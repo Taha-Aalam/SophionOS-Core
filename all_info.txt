@@ -1,0 +1,3388 @@
+# LifeOS Core — AI Coding Rules
+
+**This file is law.** Place it at the root of the repository as `.cursorrules`, `CLAUDE.md`, or `.github/copilot-instructions.md` depending on your AI tool. Every AI-generated line of code must comply with these rules. No exceptions, no "I'll fix it later," no clever workarounds.
+
+You are a senior engineer on the LifeOS Core project. You write code that a junior engineer can read, a principal engineer would approve, and a production server won't choke on. You are not creative with architecture. You are creative with solutions within the architecture.
+
+---
+
+## 0. Project Context (Read This First)
+
+LifeOS Core is a SaaS life management platform. It is **Project 1 of 2** — the data platform, REST API, and web dashboard. **Project 2** (LifeOS Agent) is a separate AI assistant that consumes this API. Everything you build must work for both human users (dashboard) and programmatic clients (Agent via API).
+
+**Stack (non-negotiable):**
+- Next.js 14 (App Router) + TypeScript (strict)
+- Tailwind CSS v4 + shadcn/ui + Radix
+- Zustand (client state) + TanStack Query v5 (server state)
+- React Hook Form + Zod (forms + validation)
+- Tiptap (rich text editor for Notes)
+- Supabase (PostgreSQL + Auth + Storage + Realtime + Edge Functions)
+- Stripe (billing), Resend (email), PostHog (analytics), Sentry (errors)
+- Vercel (hosting)
+
+**Architecture layers:**
+```
+Pages (thin) → Hooks (TanStack Query) → Services (business logic) → Supabase (data)
+```
+Never skip a layer. Never merge layers.
+
+---
+
+## 1. Approved Frameworks Only
+
+### YOU MUST USE:
+- **Next.js 14 App Router** — all routing via `/app` directory. Use `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx` conventions.
+- **TypeScript strict mode** — `"strict": true` in `tsconfig.json`. No `any`. No `@ts-ignore`. No `@ts-expect-error` unless accompanied by a comment explaining the exact upstream bug with a link to the issue.
+- **Tailwind CSS** — all styling via utility classes. No CSS files except `globals.css` for theme variables and base resets.
+- **shadcn/ui** — all UI primitives (Button, Dialog, Input, Select, etc.) from the project's `/components/ui` directory. These are copied-in, not imported from a package.
+- **Zustand** — client-side ephemeral state only (sidebar, modals, filters, theme). One store per concern. No nested state. No `immer` middleware.
+- **TanStack Query v5** — all server data fetching. Every database read goes through a `useQuery` hook. Every write goes through `useMutation` with optimistic updates.
+- **React Hook Form + Zod** — all forms. No `useState` for form fields. No manual `onChange` handlers for form inputs.
+- **Supabase JS client** — all database operations. `createBrowserClient` in client components. `createServerClient` in server components and route handlers.
+- **Zod** — all input validation, shared between frontend forms and API route handlers. One schema file per entity.
+
+### YOU MUST NOT USE:
+- ❌ **Redux, MobX, Recoil, Jotai** — Zustand + TanStack Query covers everything
+- ❌ **Axios** — use native `fetch` (Next.js extends it with caching)
+- ❌ **Styled-components, CSS Modules, Emotion, Sass** — Tailwind only
+- ❌ **Material UI, Ant Design, Chakra UI** — shadcn/ui only
+- ❌ **Prisma, Drizzle, Knex** — Supabase JS client only
+- ❌ **Express, Fastify, Hono** — Next.js Route Handlers only
+- ❌ **GraphQL, tRPC** — REST only (API must be consumable by external clients without special tooling)
+- ❌ **Moment.js** — use `date-fns` or native `Intl.DateTimeFormat`
+- ❌ **Lodash** — write the utility or use a native method. If you need `debounce`, write a 10-line hook.
+- ❌ **Any package over 50KB gzipped** without explicit approval in this document
+- ❌ **`npm install` for anything not on this list** without first checking if shadcn/ui, Radix, or a native API already solves it
+
+---
+
+## 2. UI Rules
+
+### Layout
+- The dashboard uses a **sidebar + main content** layout. Sidebar is collapsible on desktop, drawer on mobile.
+- **Breakpoints:** `sm: 640px`, `md: 768px`, `lg: 1024px`, `xl: 1280px`. Mobile-first: write base styles for mobile, use `md:` and `lg:` for larger screens.
+- **Max content width:** `max-w-6xl` (1152px) for main content areas. Full-width for tables and kanban boards.
+- Every page must be **usable at 375px width** (iPhone SE). Test this. No horizontal scrolling on any page.
+
+### Dark Mode
+- Dark mode is the **default**. Light mode is opt-in via toggle.
+- Use `dark:` variant in Tailwind. Never hardcode colors. Always use CSS variables defined in `globals.css`:
+  ```
+  --background, --foreground, --card, --card-foreground,
+  --primary, --primary-foreground, --muted, --muted-foreground,
+  --border, --ring, --destructive
+  ```
+- Test every component in both themes before committing. If a component looks broken in light mode, it's a bug.
+
+### Components
+- Use shadcn/ui components for **every** primitive: Button, Input, Select, Dialog, Sheet, Popover, Tooltip, Badge, Card, Table, Tabs, Command (for Cmd+K), Toast.
+- Never build a custom component if shadcn/ui has one. Check the [shadcn/ui docs](https://ui.shadcn.com) first.
+- Every interactive element must have:
+  - `aria-label` or visible label
+  - Keyboard focus ring (`focus-visible:ring-2 ring-ring`)
+  - Loading state (disabled + spinner for async actions)
+  - Error state (destructive variant + error message)
+
+### Empty States
+- Every list/grid view **must** have a designed empty state. Never show a blank white area.
+- Empty states include: an icon, a short message, and a primary action button (e.g., "No tasks yet. Create your first task.").
+
+### Loading States
+- Use `loading.tsx` skeleton files for page-level loading. Every route group that fetches data needs one.
+- Use inline skeleton components (shadcn `Skeleton`) for component-level loading.
+- **Never** show a blank screen while data loads. The user must always see either content or a skeleton.
+
+### Toasts
+- Use the shadcn toast component for **all** user-facing feedback after write operations.
+- Pattern: action → optimistic update → toast with undo option → server confirmation.
+- Toast duration: 5 seconds for success, 8 seconds for errors.
+- **Never use `alert()` or `window.confirm()`.** Use Dialog for confirmations, Toast for feedback.
+
+---
+
+## 3. Code Style Rules
+
+### TypeScript
+```typescript
+// ✅ DO: Explicit return types on exported functions
+export function calculateSmartPriority(task: Task): number { ... }
+
+// ❌ DON'T: Implicit return types on exports
+export function calculateSmartPriority(task: Task) { ... }
+
+// ✅ DO: Interface for object shapes, type for unions/primitives
+interface Task { id: string; name: string; }
+type Priority = "high" | "medium" | "low";
+type TaskOrProject = Task | Project;
+
+// ❌ DON'T: type for object shapes
+type Task = { id: string; name: string; };
+
+// ✅ DO: Discriminated unions for state
+type QueryState<T> =
+  | { status: "loading" }
+  | { status: "error"; error: Error }
+  | { status: "success"; data: T };
+
+// ❌ DON'T: Boolean flags for state
+interface QueryState<T> { isLoading: boolean; isError: boolean; data?: T; error?: Error; }
+
+// ✅ DO: Const assertions for enums
+const PRIORITY = { HIGH: "high", MEDIUM: "medium", LOW: "low" } as const;
+
+// ❌ DON'T: TypeScript enums
+enum Priority { HIGH = "high", MEDIUM = "medium", LOW = "low" }
+```
+
+### Formatting (enforced by Biome, not Prettier)
+- **Semicolons:** always
+- **Quotes:** double quotes for strings
+- **Indentation:** 2 spaces
+- **Trailing commas:** all (ES5 style)
+- **Line length:** 100 characters max
+- **Imports:** sorted alphabetically, grouped: external → internal → types
+- **No unused imports.** Biome flags these as errors.
+- **No unused variables.** Prefix intentionally unused params with `_`.
+
+### Function Rules
+- **Max function length: 40 lines.** If a function exceeds 40 lines, extract sub-functions.
+- **Max parameters: 3.** Use an options object for 4+ params:
+  ```typescript
+  // ❌ Bad
+  function createTask(name: string, areaId: string, projectId: string, priority: Priority, dueDate: string) {}
+
+  // ✅ Good
+  function createTask(input: CreateTaskInput) {}
+  ```
+- **Pure functions preferred.** Services should be pure functions that take input and return output. No side effects except the Supabase call at the bottom of the chain.
+- **No `console.log` in production code.** Use a logger wrapper that respects environment:
+  ```typescript
+  import { logger } from "@/lib/utils/logger";
+  logger.info("Task created", { taskId, userId });  // Only outputs in dev or via Sentry in prod
+  ```
+
+### React Component Rules
+- **Function components only.** No class components. No `React.FC` (it adds `children` implicitly).
+  ```typescript
+  // ✅ Correct
+  export function TaskListItem({ task }: { task: Task }) { ... }
+
+  // ❌ Wrong
+  export const TaskListItem: React.FC<{ task: Task }> = ({ task }) => { ... }
+  ```
+- **Max component length: 150 lines** including imports. If larger, extract sub-components or hooks.
+- **No prop drilling beyond 2 levels.** If component C needs data from grandparent A, use a hook or Zustand store.
+- **`"use client"` only when needed.** Default to server components. Add `"use client"` only for: event handlers, hooks (useState, useEffect, etc.), browser APIs. If a component only renders data, it's a server component.
+- **No `useEffect` for data fetching.** TanStack Query handles all data fetching. `useEffect` is only for: DOM measurements, event listeners, third-party library init.
+- **No `useEffect` for derived state.** Use `useMemo` or compute inline:
+  ```typescript
+  // ❌ Bad
+  const [fullName, setFullName] = useState("");
+  useEffect(() => setFullName(`${first} ${last}`), [first, last]);
+
+  // ✅ Good
+  const fullName = `${first} ${last}`;
+  ```
+
+---
+
+## 4. Naming Conventions
+
+```
+CATEGORY         CONVENTION          EXAMPLE
+─────────────────────────────────────────────────────────────
+Files            kebab-case          task-list-item.tsx
+                                     use-tasks.ts
+                                     task.service.ts
+                                     task.schema.ts
+
+React components PascalCase          TaskListItem
+                                     GoalCard
+                                     CommandPalette
+
+Hooks            camelCase + "use"   useTasks
+                                     useCompleteTask
+                                     useDebounce
+
+Zustand stores   camelCase + "use"   useUIStore
+                                     useFilterStore
+
+Services         camelCase           taskService.create()
+                                     goalService.getActive()
+
+Zod schemas      camelCase           createTaskSchema
+                                     updateProjectSchema
+
+Types/Interfaces PascalCase          Task, Project, Goal
+                                     CreateTaskInput
+                                     ApiResponse<T>
+
+Enums (const)    SCREAMING_SNAKE     TASK_STATUS
+                                     PRIORITY
+
+API routes       kebab-case          /api/v1/tasks
+                                     /api/v1/my-day
+
+DB tables        snake_case          tasks, goal_projects
+DB columns       snake_case          smart_priority, due_date
+DB enums         snake_case          task_status, goal_term
+
+Env variables    SCREAMING_SNAKE     NEXT_PUBLIC_SUPABASE_URL
+                                     STRIPE_SECRET_KEY
+
+CSS variables    kebab-case          --background
+                                     --card-foreground
+
+Test files       *.test.ts           task.service.test.ts
+                                     smart-priority.test.ts
+
+E2E tests        *.spec.ts           onboarding.spec.ts
+```
+
+### Naming principles:
+- **Boolean variables/props:** prefix with `is`, `has`, `can`, `should`.
+  ```typescript
+  isLoading, hasError, canEdit, shouldFocus
+  // NOT: loading, error, edit, focus
+  ```
+- **Event handlers in components:** prefix with `on` for props, `handle` for internal:
+  ```typescript
+  // Prop name: onComplete, onChange, onDelete
+  // Handler: handleComplete, handleChange, handleDelete
+  <TaskItem onComplete={handleComplete} />
+  ```
+- **Arrays:** plural nouns. `tasks`, `goals`, `selectedIds`. Never `taskList`, `goalArray`.
+- **Single items from arrays:** singular. `task`, `goal`, `selectedId`.
+- **Async functions:** named for what they return, not the mechanism.
+  ```typescript
+  // ✅ Good
+  async function getActiveGoals(): Promise<Goal[]>
+  async function createTask(input: CreateTaskInput): Promise<Task>
+
+  // ❌ Bad
+  async function fetchGoalsFromDatabase()
+  async function postNewTask()
+  ```
+
+---
+
+## 5. Security Rules
+
+### Authentication
+- **Every API route handler** starts with auth validation. No exceptions.
+  ```typescript
+  export async function GET(request: NextRequest) {
+    const { user, error } = await authenticateRequest(request);
+    if (error) return error; // Returns 401 Response
+    // ... proceed with user.id
+  }
+  ```
+- **Never trust client-provided `user_id`.** Always derive from JWT or API key server-side.
+- **API keys are hashed** (SHA-256) before storage. Raw key is shown once on creation, never stored.
+- **Refresh tokens** rotate on every use (Supabase handles this).
+
+### Data Access
+- **Row-Level Security is enforced at the database level.** Even if application code has a bug, RLS prevents cross-user data access.
+- **Never use the Supabase `service_role` key in client-side code.** Only in server-side route handlers, and only when RLS bypass is explicitly needed (e.g., admin operations).
+- **Soft delete everything.** Set `archive = true` instead of `DELETE`. Hard deletes only via explicit GDPR data export flow.
+
+### Input Validation
+- **Validate ALL input with Zod** before any database operation. Both in API routes and form submissions.
+- **Strip unknown fields** from all input:
+  ```typescript
+  const parsed = createTaskSchema.strict().parse(body);
+  // .strict() rejects any field not in the schema
+  ```
+- **Sanitize HTML content** in notes (Tiptap handles this, but double-check on API input).
+- **Never interpolate user input into SQL.** Supabase JS client uses parameterized queries by default. If you ever write raw SQL (in migrations or functions), use `$1, $2` placeholders.
+
+### Secrets
+- **All secrets in environment variables.** Never hardcode API keys, database URLs, or tokens.
+- **Prefix client-safe vars** with `NEXT_PUBLIC_`. Everything else is server-only.
+- **`.env.local` is gitignored.** `.env.example` documents every required variable without values.
+- **Never log secrets.** Not even partially. No `logger.info("Key: " + key.substring(0, 8))`.
+
+### Password Manager
+- **Client-side encryption ONLY.** The server never receives, processes, or stores plaintext passwords.
+- **No Password Manager operations via API.** This module is web dashboard only, explicitly excluded from the Agent.
+- **Master password never leaves the browser.** Derived key stays in memory, never in localStorage or cookies.
+
+---
+
+## 6. Performance Rules
+
+### Bundle Size
+- **No package over 50KB gzipped** without documented justification.
+- **Dynamic imports** for heavy components:
+  ```typescript
+  const NoteEditor = dynamic(() => import("@/components/entities/note-editor"), {
+    loading: () => <Skeleton className="h-64" />,
+    ssr: false,
+  });
+  ```
+- **Tree-shake icons.** Import individual icons, never the entire icon library:
+  ```typescript
+  // ✅ Good
+  import { Check, X, ChevronDown } from "lucide-react";
+
+  // ❌ Bad
+  import * as Icons from "lucide-react";
+  ```
+
+### Data Fetching
+- **`staleTime: 5 * 60 * 1000`** (5 min) is the default for all TanStack Query queries. Override per-query only with justification.
+- **Optimistic updates for all mutations.** The user sees the change instantly; the server confirms asynchronously. Rollback on error.
+- **Cursor-based pagination** for all list views. Never load all items at once. Default page size: 50.
+- **No `SELECT *`.** Always specify columns in Supabase queries:
+  ```typescript
+  // ✅ Good
+  supabase.from("tasks").select("id, name, status, priority, due_date, complete");
+
+  // ❌ Bad
+  supabase.from("tasks").select("*");
+  ```
+- **Prefetch adjacent data.** When a user opens the Tasks page, prefetch the first page of Projects and Goals (they'll likely navigate there next).
+
+### Rendering
+- **Server Components by default.** Only use `"use client"` when the component needs interactivity.
+- **No unnecessary re-renders.** Use `React.memo` on list item components that receive objects as props. Use `useCallback` on handlers passed to memoized children.
+- **Virtualize long lists.** Any list that can exceed 100 items must use `@tanstack/react-virtual`:
+  ```typescript
+  // Tasks list, Inbox, Search results → virtualized
+  // Areas gallery (max ~15) → NOT virtualized
+  ```
+- **Images:** use `next/image` with `width`, `height`, and `loading="lazy"`. No raw `<img>` tags.
+
+### Database
+- **Every query must use an index.** Before writing a query, check that the WHERE clause matches an existing index in the schema. If it doesn't, create the index first.
+- **Rollup counts are computed on write, not on read.** Use database triggers (already defined in architecture doc) to update `progress` on projects and `completion` on goals when tasks change.
+- **Smart priority is a stored value, not a runtime computation.** Recalculated via PostgreSQL function on task insert/update.
+
+---
+
+## 7. Error Handling Rules
+
+### API Routes
+- **Every API route handler is wrapped in a try/catch** that returns standardized error responses:
+  ```typescript
+  export async function POST(request: NextRequest) {
+    try {
+      const { user } = await authenticateRequest(request);
+      const body = await request.json();
+      const input = createTaskSchema.strict().parse(body);
+      const task = await taskService.create(user.id, input);
+      return NextResponse.json({ data: task }, { status: 201 });
+    } catch (error) {
+      return handleApiError(error);
+    }
+  }
+  ```
+- **`handleApiError` maps errors to HTTP status codes:**
+  - `ZodError` → 400 with field-level details
+  - `AuthError` → 401
+  - `ForbiddenError` → 403
+  - `NotFoundError` → 404
+  - `RateLimitError` → 429 with Retry-After header
+  - `PostgrestError` → 500 (logged to Sentry, generic message to client)
+  - Unknown → 500 (logged to Sentry, generic message to client)
+- **Never expose internal error messages to the client.** Database errors, stack traces, and Supabase details are logged server-side only.
+
+### Client Side
+- **React Error Boundaries** on every route group. Use `error.tsx` files in each `(dashboard)` sub-folder.
+- **TanStack Query `onError` callbacks** show toast notifications with user-friendly messages.
+- **Retry policy:** TanStack Query retries failed queries 3 times with exponential backoff. Mutations retry once.
+- **Offline handling:** detect `navigator.onLine` and show a persistent banner. Queue mutations for retry when back online (TanStack Query handles this with `networkMode: "offlineFirst"`).
+- **Never swallow errors silently:**
+  ```typescript
+  // ❌ NEVER
+  try { await something(); } catch (e) { /* ignore */ }
+
+  // ✅ ALWAYS
+  try { await something(); } catch (error) {
+    logger.error("Failed to do something", { error, context });
+    throw error; // or handle with user-facing feedback
+  }
+  ```
+
+### Service Layer
+- **Services throw typed errors.** Never return `null` to indicate failure:
+  ```typescript
+  // ✅ Good: throw specific error
+  export async function getTaskById(userId: string, taskId: string): Promise<Task> {
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("id, name, status, priority, due_date, complete")
+      .eq("id", taskId)
+      .eq("user_id", userId)
+      .single();
+
+    if (error) throw new DatabaseError("Failed to fetch task", { cause: error });
+    if (!data) throw new NotFoundError("Task not found");
+    return data;
+  }
+
+  // ❌ Bad: return null
+  export async function getTaskById(userId: string, taskId: string): Promise<Task | null> {
+    const { data } = await supabase.from("tasks").select("*").eq("id", taskId).single();
+    return data;
+  }
+  ```
+
+---
+
+## 8. File Organization Rules
+
+### One concern per file
+- One React component per file. No multi-component files.
+- One hook per file. No file with 3 hooks in it.
+- One service per file. `task.service.ts` handles tasks. `goal.service.ts` handles goals. Never a `utils.service.ts`.
+- One Zod schema file per entity. Contains `createSchema`, `updateSchema`, `filterSchema` for that entity.
+
+### Import hierarchy (enforced by Biome)
+```typescript
+// 1. External packages
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+
+// 2. Internal absolute imports (@/ alias)
+import { Button } from "@/components/ui/button";
+import { useTasks } from "@/lib/hooks/use-tasks";
+import { taskService } from "@/lib/services/task.service";
+
+// 3. Relative imports (co-located only)
+import { TaskFilters } from "./task-filters";
+
+// 4. Types (always last)
+import type { Task, Priority } from "@/lib/types/domain.types";
+```
+
+### Co-location rules
+- **Page-specific components** live next to their page (but in separate files):
+  ```
+  app/(dashboard)/tasks/
+  ├── page.tsx              # Route (thin, imports below)
+  ├── task-filters.tsx      # Only used on this page
+  └── task-view-switcher.tsx
+  ```
+- **Shared components** live in `/components/entities/` or `/components/views/`.
+- **If a component is used on 2+ pages, move it to `/components/`.** No duplication.
+
+### What goes where
+```
+Folder                          Contains                          Does NOT contain
+─────────────────────────────────────────────────────────────────────────────────────
+/app/**/page.tsx                Route definition, layout comp     Business logic, data fetching logic
+/components/ui/                 shadcn primitives                 Business-specific components
+/components/entities/           Task card, goal card, etc.        Generic UI primitives
+/components/views/              Kanban, calendar, data table      Entity-specific rendering
+/lib/hooks/                     TanStack Query wrappers           UI state, business logic
+/lib/services/                  Business logic + Supabase calls   React code, UI code
+/lib/stores/                    Zustand stores                    Server state, API calls
+/lib/validators/                Zod schemas                       Business logic
+/lib/utils/                     Pure helper functions             Anything with side effects
+/lib/types/                     TypeScript types/interfaces       Runtime code
+/supabase/migrations/           SQL migration files               Application code
+```
+
+---
+
+## 9. Things AI Must NEVER Do
+
+This is the hard-stop list. If you catch yourself about to do any of these, stop, delete what you wrote, and start over.
+
+1. **NEVER use `any` type.** Not even as a temporary placeholder. Use `unknown` and narrow, or define a proper type.
+
+2. **NEVER use `@ts-ignore` or `@ts-expect-error`** without a linked GitHub issue explaining the upstream bug.
+
+3. **NEVER import from Supabase in a React component.** Components call hooks. Hooks call services. Services call Supabase. That's the chain.
+
+4. **NEVER put business logic in a page file.** Pages are routing glue: they import components and pass data. Zero computation.
+
+5. **NEVER use `useEffect` for data fetching.** TanStack Query exists for this exact purpose.
+
+6. **NEVER store server data in `useState` or Zustand.** Server data lives in TanStack Query's cache. Client state (modals, filters) lives in Zustand. These two never overlap.
+
+7. **NEVER use `SELECT *` in any Supabase query.** Always list columns explicitly.
+
+8. **NEVER write raw CSS.** Use Tailwind utilities. If Tailwind doesn't have it, extend the config. If you're writing a `style={{ }}` prop, you're doing it wrong (exception: dynamic values like `width: ${percentage}%`).
+
+9. **NEVER hardcode colors.** Use CSS variables from the theme. `text-foreground`, not `text-gray-900`. `bg-card`, not `bg-white`.
+
+10. **NEVER expose error internals to users.** API errors return `{ error: { code, message } }` with a generic user-friendly message. Stack traces, SQL errors, and Supabase details go to Sentry only.
+
+11. **NEVER commit `.env.local` or any file with secrets.** Check `.gitignore` before every commit.
+
+12. **NEVER use `dangerouslySetInnerHTML`.** Tiptap handles rich text rendering safely. If you think you need it elsewhere, you don't.
+
+13. **NEVER add a package** without checking if the feature exists in: (a) the browser API, (b) Next.js built-in, (c) shadcn/ui, (d) an existing project utility. Install is the last resort.
+
+14. **NEVER write an API endpoint without auth validation** as the first line of the handler.
+
+15. **NEVER create a database migration that drops a column or table** without explicit product approval. We soft-delete everything. Destructive migrations are a separate review process.
+
+16. **NEVER use `setTimeout` or `setInterval` for polling.** Use TanStack Query's `refetchInterval` or Supabase Realtime subscriptions.
+
+17. **NEVER put API keys, tokens, or secrets in client-side code.** Not even `NEXT_PUBLIC_` prefixed ones for secret values. `NEXT_PUBLIC_` is only for truly public values (Supabase anon key, PostHog project key).
+
+18. **NEVER write a component over 200 lines.** Extract sub-components or hooks.
+
+19. **NEVER duplicate code across 2+ files.** Extract to a shared utility, hook, or component immediately. Not "TODO: refactor later."
+
+20. **NEVER use `var`.** Use `const` by default, `let` only when reassignment is required.
+
+---
+
+## 10. Testing Requirements
+
+### What must be tested
+
+```
+LAYER               TOOL            COVERAGE TARGET    WHAT TO TEST
+─────────────────────────────────────────────────────────────────────────
+Services            Vitest          90%+               Business logic, edge cases,
+                                                       error paths, smart priority
+                                                       algorithm
+
+Validators          Vitest          100%               Every Zod schema: valid input
+                                                       passes, invalid input fails
+                                                       with correct error
+
+Utilities           Vitest          90%+               Date formatting, encryption
+                                                       helpers, pagination math
+
+API Routes          Vitest +        80%+               Auth guard, validation,
+                    supertest-like                     CRUD operations, error
+                                                       responses, rate limiting
+
+React Hooks         Vitest +        70%+               Data transformation,
+                    @testing-lib                       loading/error states
+
+Components          DO NOT TEST                        Components change too often.
+                                                       Test the logic they consume
+                                                       (services, hooks), not the
+                                                       rendering.
+
+E2E Flows           Playwright      Critical paths     Onboarding, task CRUD,
+                                    only               auth flow, quick capture
+```
+
+### Test file naming and location
+```
+src/lib/services/task.service.ts       →  tests/unit/task.service.test.ts
+src/lib/validators/task.schema.ts      →  tests/unit/task.schema.test.ts
+src/lib/utils/smart-priority.ts        →  tests/unit/smart-priority.test.ts
+src/app/api/v1/tasks/route.ts          →  tests/integration/tasks.api.test.ts
+src/app/(dashboard)/onboarding         →  tests/e2e/onboarding.spec.ts
+```
+
+### Test patterns
+
+```typescript
+// Unit test pattern (services):
+describe("taskService.create", () => {
+  it("creates a task with valid input", async () => {
+    const input = { name: "Call dentist", priority: "high" as const };
+    const task = await taskService.create(mockUserId, input);
+    expect(task.name).toBe("Call dentist");
+    expect(task.status).toBe("inbox"); // default
+    expect(task.smart_priority).toBeGreaterThanOrEqual(1);
+  });
+
+  it("throws ValidationError for empty name", async () => {
+    await expect(
+      taskService.create(mockUserId, { name: "", priority: "high" })
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("throws NotFoundError for invalid area_id", async () => {
+    await expect(
+      taskService.create(mockUserId, { name: "Test", area_id: "nonexistent" })
+    ).rejects.toThrow(NotFoundError);
+  });
+});
+
+// API integration test pattern:
+describe("POST /api/v1/tasks", () => {
+  it("returns 201 with valid input and auth", async () => {
+    const res = await fetch("/api/v1/tasks", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${testJwt}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Test task", priority: "medium" }),
+    });
+    expect(res.status).toBe(201);
+    const { data } = await res.json();
+    expect(data.id).toBeDefined();
+  });
+
+  it("returns 401 without auth", async () => {
+    const res = await fetch("/api/v1/tasks", {
+      method: "POST",
+      body: JSON.stringify({ name: "Test" }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 with invalid body", async () => {
+    const res = await fetch("/api/v1/tasks", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${testJwt}` },
+      body: JSON.stringify({ name: "" }), // empty name
+    });
+    expect(res.status).toBe(400);
+    const { error } = await res.json();
+    expect(error.code).toBe("VALIDATION_ERROR");
+  });
+});
+```
+
+### Before every PR:
+1. `biome check --apply` passes with zero errors
+2. `tsc --noEmit` passes with zero errors
+3. `vitest run` passes with zero failures
+4. No `console.log` statements in production code
+5. No `any` types anywhere
+6. No `TODO` without an associated GitHub issue number
+
+---
+
+## Appendix: Quick Reference Card
+
+```
+WHEN YOU NEED TO...                    USE THIS
+──────────────────────────────────────────────────────────
+Fetch data from database               TanStack Query useQuery + service
+Write data to database                 TanStack Query useMutation + service
+Store UI state (modals, sidebar)       Zustand store
+Store server data                      TanStack Query cache (NEVER Zustand)
+Validate user input                    Zod schema (shared frontend + API)
+Build a form                           React Hook Form + Zod resolver
+Show a modal/dialog                    shadcn Dialog + Zustand trigger
+Show user feedback                     shadcn Toast
+Handle keyboard shortcut               useKeyboard hook
+Add a new database table               SQL migration in /supabase/migrations
+Add a new API endpoint                 Route handler in /app/api/v1/
+Add a new page                         page.tsx in /app/(dashboard)/
+Add a new component                    /components/entities/ or /components/views/
+Add client-side interactivity          "use client" directive
+Fetch on the server (RSC)              Server component + createServerClient
+Log an error                           logger.error() → Sentry
+Track an event                         PostHog capture()
+Gate a feature                         PostHog feature flag
+Style something                        Tailwind utility classes
+Animate something                      Tailwind transition/animate utilities
+                                       (framer-motion only if Tailwind can't do it)
+```
+
+---
+
+*This document is version-controlled. Changes require PR review by the principal engineer. AI assistants must re-read this file at the start of every session.*
+# LifeOS Core — Software Architecture Document
+
+**Project 1 of 2** · Based on LifeOS Core PRD v1.0 · April 2026
+
+> This document is the engineering blueprint for building LifeOS Core. It turns the PRD into code structure, database tables, API contracts, and deployment decisions. Every section answers "how do we build this so it works at 100 users and still works at 100,000?"
+
+---
+
+## 1. Recommended Tech Stack
+
+### Why Web App (Not Native Mobile)
+
+The PRD is clear: the primary interface for most users is the AI Agent on WhatsApp/Telegram (Project 2). The web dashboard is secondary — used for deep planning, visualization, and power-user operations. Building native iOS + Android apps for a secondary interface is a bad use of startup resources. A responsive Next.js web app with PWA gives us:
+
+- One codebase for desktop, tablet, and mobile
+- Instant deploys (no app store review cycles)
+- PWA install for homescreen access and push notifications
+- SEO for the marketing site (same domain, same framework)
+
+If mobile engagement data after launch proves a native app is needed, React Native is the escape hatch — the API-first architecture means the frontend is fully replaceable.
+
+### Stack Decision Table
+
+```
+┌─────────────────────┬──────────────────────────────┬─────────────────────────────────┐
+│ Layer               │ Technology                   │ Why this, not that              │
+├─────────────────────┼──────────────────────────────┼─────────────────────────────────┤
+│ Framework           │ Next.js 14 (App Router)      │ RSC for fast loads, API routes  │
+│                     │                              │ for REST, one deploy target     │
+│                     │                              │                                 │
+│ Language            │ TypeScript (strict mode)     │ Non-negotiable for a codebase   │
+│                     │                              │ this relational. Type safety    │
+│                     │                              │ prevents 80% of bugs.           │
+│                     │                              │                                 │
+│ UI Components       │ shadcn/ui + Radix primitives │ Accessible, composable, no      │
+│                     │                              │ vendor lock-in (you own the     │
+│                     │                              │ code). Avoids Ant/MUI bloat.    │
+│                     │                              │                                 │
+│ Styling             │ Tailwind CSS v4              │ Utility-first. Co-locates       │
+│                     │                              │ styles with markup. Excellent   │
+│                     │                              │ responsive utilities.            │
+│                     │                              │                                 │
+│ State (client)      │ Zustand                      │ 1 KB, no boilerplate, works     │
+│                     │                              │ with React 18 concurrent mode.  │
+│                     │                              │ Stores: UI state, theme, modals │
+│                     │                              │                                 │
+│ State (server)      │ TanStack Query v5            │ Caching, background refetch,    │
+│                     │                              │ optimistic mutations, stale-    │
+│                     │                              │ while-revalidate. Handles all   │
+│                     │                              │ Supabase data fetching.         │
+│                     │                              │                                 │
+│ Forms               │ React Hook Form + Zod        │ Best DX for complex forms.      │
+│                     │                              │ Zod schemas shared between      │
+│                     │                              │ frontend validation and API.    │
+│                     │                              │                                 │
+│ Rich Text Editor    │ Tiptap (ProseMirror)         │ Extensible, markdown support,   │
+│                     │                              │ collaborative-ready for future. │
+│                     │                              │                                 │
+│ Backend / BaaS      │ Supabase                     │ PostgreSQL + Auth + Storage +   │
+│                     │                              │ Realtime + Edge Functions.      │
+│                     │                              │ One service replaces 5.         │
+│                     │                              │                                 │
+│ API Layer           │ Next.js Route Handlers       │ /app/api/* routes serve REST.   │
+│                     │                              │ Supabase JS client for DB ops.  │
+│                     │                              │ No separate backend server.     │
+│                     │                              │                                 │
+│ Auth                │ Supabase Auth                │ JWT + refresh tokens, Google    │
+│                     │                              │ OAuth, email/password, RLS.     │
+│                     │                              │                                 │
+│ File Storage        │ Supabase Storage             │ S3-compatible, integrated with  │
+│                     │                              │ auth. Warranty docs, avatars.   │
+│                     │                              │                                 │
+│ Realtime            │ Supabase Realtime            │ WebSocket subscriptions for     │
+│                     │                              │ live updates when Agent writes. │
+│                     │                              │                                 │
+│ Billing             │ Stripe                       │ Checkout, Customer Portal,      │
+│                     │                              │ webhooks. Industry standard.    │
+│                     │                              │                                 │
+│ Email               │ Resend                       │ Simple API, good deliverability │
+│                     │                              │ React Email for templates.      │
+│                     │                              │                                 │
+│ Analytics           │ PostHog                      │ Privacy-friendly, self-hostable │
+│                     │                              │ Feature flags included.         │
+│                     │                              │                                 │
+│ Error Tracking      │ Sentry                       │ Source maps, performance,       │
+│                     │                              │ session replay.                 │
+│                     │                              │                                 │
+│ Hosting             │ Vercel                       │ Native Next.js. Edge network.   │
+│                     │                              │ Preview deploys per PR.         │
+│                     │                              │                                 │
+│ CI/CD               │ GitHub Actions               │ Lint, test, deploy on push.     │
+│                     │                              │ Supabase migrations in CI.      │
+└─────────────────────┴──────────────────────────────┴─────────────────────────────────┘
+```
+
+---
+
+## 2. Folder Structure
+
+This is a monorepo structure using Next.js App Router conventions. Every folder has a single responsibility. A new engineer should be able to find any file in under 10 seconds.
+
+```
+lifeos-core/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml                    # Lint + test + type-check on PR
+│       └── deploy.yml                # Deploy to Vercel on main push
+│
+├── supabase/
+│   ├── migrations/                   # Sequential SQL migrations
+│   │   ├── 00001_create_areas.sql
+│   │   ├── 00002_create_goals.sql
+│   │   ├── 00003_create_projects.sql
+│   │   ├── 00004_create_tasks.sql
+│   │   ├── 00005_create_notes.sql
+│   │   ├── 00006_create_resources.sql
+│   │   ├── 00007_create_topics.sql
+│   │   ├── 00008_create_contacts.sql
+│   │   ├── 00009_create_junction_tables.sql
+│   │   ├── 00010_create_trackers.sql
+│   │   ├── 00011_create_system_tables.sql
+│   │   ├── 00012_create_rls_policies.sql
+│   │   ├── 00013_create_indexes.sql
+│   │   ├── 00014_create_functions.sql      # smart_priority(), rollups
+│   │   └── 00015_seed_default_areas.sql
+│   ├── seed.sql                      # Dev seed data
+│   └── config.toml                   # Supabase local config
+│
+├── src/
+│   ├── app/                          # Next.js App Router
+│   │   ├── (auth)/                   # Auth group (no sidebar layout)
+│   │   │   ├── login/page.tsx
+│   │   │   ├── signup/page.tsx
+│   │   │   ├── forgot-password/page.tsx
+│   │   │   └── layout.tsx            # Minimal auth layout
+│   │   │
+│   │   ├── (dashboard)/              # Main app group (sidebar layout)
+│   │   │   ├── layout.tsx            # Sidebar + topbar + command palette
+│   │   │   ├── page.tsx              # Dashboard home
+│   │   │   ├── areas/
+│   │   │   │   ├── page.tsx          # Areas gallery
+│   │   │   │   └── [id]/page.tsx     # Area detail
+│   │   │   ├── goals/page.tsx
+│   │   │   ├── projects/
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── [id]/page.tsx
+│   │   │   ├── tasks/page.tsx
+│   │   │   ├── notes/
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── [id]/page.tsx     # Note editor
+│   │   │   ├── resources/page.tsx
+│   │   │   ├── knowledge/page.tsx    # Knowledge Hub
+│   │   │   ├── inbox/page.tsx
+│   │   │   ├── my-day/page.tsx
+│   │   │   ├── time-tracker/page.tsx
+│   │   │   ├── contacts/page.tsx
+│   │   │   ├── archive/page.tsx
+│   │   │   ├── trackers/
+│   │   │   │   ├── bookmarks/page.tsx
+│   │   │   │   ├── books/page.tsx
+│   │   │   │   ├── movies/page.tsx
+│   │   │   │   ├── supplements/page.tsx
+│   │   │   │   ├── groceries/page.tsx
+│   │   │   │   ├── wishlist/page.tsx
+│   │   │   │   ├── orders/page.tsx
+│   │   │   │   ├── warranties/page.tsx
+│   │   │   │   └── passwords/page.tsx
+│   │   │   └── settings/
+│   │   │       ├── page.tsx          # General settings
+│   │   │       ├── billing/page.tsx
+│   │   │       ├── api-keys/page.tsx
+│   │   │       └── integrations/page.tsx
+│   │   │
+│   │   ├── onboarding/page.tsx       # Post-signup guided setup
+│   │   │
+│   │   ├── api/                      # REST API routes
+│   │   │   └── v1/
+│   │   │       ├── areas/route.ts
+│   │   │       ├── goals/route.ts
+│   │   │       ├── projects/route.ts
+│   │   │       ├── tasks/
+│   │   │       │   ├── route.ts      # GET (list), POST (create)
+│   │   │       │   ├── [id]/route.ts # GET, PUT, DELETE
+│   │   │       │   ├── [id]/complete/route.ts
+│   │   │       │   └── bulk/route.ts
+│   │   │       ├── notes/route.ts
+│   │   │       ├── resources/route.ts
+│   │   │       ├── topics/route.ts
+│   │   │       ├── contacts/route.ts
+│   │   │       ├── search/route.ts
+│   │   │       ├── dashboard/
+│   │   │       │   ├── today/route.ts
+│   │   │       │   └── summary/route.ts
+│   │   │       ├── trackers/
+│   │   │       │   ├── bookmarks/route.ts
+│   │   │       │   ├── books/route.ts
+│   │   │       │   ├── groceries/route.ts
+│   │   │       │   └── ... (one per tracker)
+│   │   │       ├── integrations/route.ts
+│   │   │       ├── export/route.ts
+│   │   │       ├── import/notion/route.ts
+│   │   │       └── webhooks/
+│   │   │           └── stripe/route.ts
+│   │   │
+│   │   ├── layout.tsx                # Root layout (providers, fonts)
+│   │   └── globals.css               # Tailwind base + theme vars
+│   │
+│   ├── components/                   # Shared UI components
+│   │   ├── ui/                       # shadcn/ui primitives (button, input, dialog, etc.)
+│   │   ├── layout/
+│   │   │   ├── sidebar.tsx
+│   │   │   ├── topbar.tsx
+│   │   │   ├── command-palette.tsx    # Cmd+K quick capture
+│   │   │   └── mobile-nav.tsx
+│   │   ├── entities/                 # Entity-specific components
+│   │   │   ├── task-list-item.tsx
+│   │   │   ├── task-inline-editor.tsx
+│   │   │   ├── project-card.tsx
+│   │   │   ├── goal-card.tsx
+│   │   │   ├── area-card.tsx
+│   │   │   ├── note-editor.tsx       # Tiptap wrapper
+│   │   │   ├── resource-row.tsx
+│   │   │   └── priority-badge.tsx
+│   │   ├── views/                    # Reusable view patterns
+│   │   │   ├── kanban-board.tsx
+│   │   │   ├── calendar-view.tsx
+│   │   │   ├── gallery-grid.tsx
+│   │   │   ├── data-table.tsx        # Sortable, filterable table
+│   │   │   └── empty-state.tsx
+│   │   ├── charts/
+│   │   │   ├── progress-ring.tsx
+│   │   │   ├── completion-chart.tsx
+│   │   │   └── activity-heatmap.tsx
+│   │   └── providers/
+│   │       ├── query-provider.tsx    # TanStack Query
+│   │       ├── theme-provider.tsx    # Light/dark mode
+│   │       └── auth-provider.tsx     # Supabase session context
+│   │
+│   ├── lib/                          # Core business logic
+│   │   ├── supabase/
+│   │   │   ├── client.ts             # Browser Supabase client
+│   │   │   ├── server.ts             # Server-side Supabase client (RSC)
+│   │   │   ├── admin.ts              # Service role client (API routes)
+│   │   │   └── middleware.ts         # Auth middleware for API routes
+│   │   ├── api/
+│   │   │   ├── auth-guard.ts         # JWT + API key validation
+│   │   │   ├── rate-limiter.ts       # Token bucket per user
+│   │   │   ├── pagination.ts         # Cursor-based pagination helper
+│   │   │   ├── error-handler.ts      # Standardized API error responses
+│   │   │   └── webhook-emitter.ts    # Outbound webhook dispatcher
+│   │   ├── services/                 # Business logic (no UI, no Supabase direct)
+│   │   │   ├── task.service.ts       # Smart priority calc, repeat cycle
+│   │   │   ├── project.service.ts    # Progress rollup
+│   │   │   ├── goal.service.ts       # Completion rollup
+│   │   │   ├── area.service.ts       # Activity counts
+│   │   │   ├── search.service.ts     # Full-text search
+│   │   │   └── onboarding.service.ts # Default area creation
+│   │   ├── hooks/                    # Custom React hooks
+│   │   │   ├── use-tasks.ts          # TanStack Query wrapper
+│   │   │   ├── use-projects.ts
+│   │   │   ├── use-goals.ts
+│   │   │   ├── use-areas.ts
+│   │   │   ├── use-notes.ts
+│   │   │   ├── use-keyboard.ts       # Global keyboard shortcuts
+│   │   │   ├── use-realtime.ts       # Supabase Realtime subscription
+│   │   │   └── use-debounce.ts
+│   │   ├── stores/                   # Zustand stores
+│   │   │   ├── ui.store.ts           # Sidebar state, modals, command palette
+│   │   │   ├── filters.store.ts      # Active filters per view
+│   │   │   └── onboarding.store.ts   # Onboarding step tracking
+│   │   ├── validators/               # Zod schemas (shared frontend + API)
+│   │   │   ├── task.schema.ts
+│   │   │   ├── project.schema.ts
+│   │   │   ├── goal.schema.ts
+│   │   │   ├── area.schema.ts
+│   │   │   ├── note.schema.ts
+│   │   │   └── ... (one per entity)
+│   │   ├── utils/
+│   │   │   ├── dates.ts              # Date formatting, relative dates
+│   │   │   ├── smart-priority.ts     # Score calculation algorithm
+│   │   │   ├── encryption.ts         # AES-256-GCM for password manager
+│   │   │   └── constants.ts          # Enums, defaults, limits
+│   │   └── types/
+│   │       ├── database.types.ts     # Auto-generated from Supabase
+│   │       ├── api.types.ts          # API request/response types
+│   │       └── domain.types.ts       # Derived business types
+│   │
+│   └── emails/                       # React Email templates
+│       ├── welcome.tsx
+│       ├── trial-expiring.tsx
+│       └── weekly-digest.tsx
+│
+├── public/
+│   ├── icons/                        # PWA icons
+│   └── manifest.json                 # PWA manifest
+│
+├── tests/
+│   ├── unit/                         # Vitest unit tests
+│   │   ├── smart-priority.test.ts
+│   │   ├── task.service.test.ts
+│   │   └── validators.test.ts
+│   ├── integration/                  # API route tests
+│   │   ├── tasks.api.test.ts
+│   │   └── auth.api.test.ts
+│   └── e2e/                          # Playwright E2E
+│       ├── onboarding.spec.ts
+│       └── task-crud.spec.ts
+│
+├── .env.local                        # Local env vars (gitignored)
+├── .env.example                      # Template for env vars
+├── next.config.ts
+├── tailwind.config.ts
+├── tsconfig.json
+├── package.json
+└── README.md
+```
+
+### Key principles in this structure:
+- **`/app` is for routing only.** Pages are thin — they import components and call hooks. Zero business logic in page files.
+- **`/lib/services` is where business logic lives.** Services are framework-agnostic. They can be used by both the dashboard and the API routes.
+- **`/lib/validators` are shared.** The same Zod schema validates a form submission on the frontend AND an API request on the backend.
+- **`/lib/hooks` wraps TanStack Query.** Components never call Supabase directly. They call `useTasks()` which handles caching, pagination, and optimistic updates.
+- **`/components/entities` are domain-specific.** Generic UI goes in `/components/ui`. Business-specific rendering goes in `/components/entities`.
+
+---
+
+## 3. Component Breakdown
+
+### Component hierarchy (Dashboard page as example):
+
+```
+(dashboard)/layout.tsx
+├── Sidebar
+│   ├── SidebarNav (Core section: Dashboard, Areas, Projects, Tasks, Goals)
+│   ├── SidebarNav (System section: Inbox, My Day, Knowledge Hub)
+│   ├── SidebarNav (Trackers section: Bookmarks, Books, Movies, ...)
+│   └── SidebarFooter (Settings, Theme toggle, User avatar)
+├── Topbar
+│   ├── BreadcrumbNav
+│   ├── CommandPalette (Cmd+K trigger)
+│   └── UserMenu
+└── PageContent (varies by route)
+    └── DashboardPage
+        ├── GreetingBar
+        ├── QuickCaptureWidget
+        ├── TodayTasksList
+        │   └── TaskListItem (× n)
+        │       ├── Checkbox
+        │       ├── PriorityBadge
+        │       ├── TaskName (inline editable)
+        │       ├── DueDateTag
+        │       └── AreaTag
+        ├── ActiveGoalsWidget
+        │   └── GoalCard (× 3–5)
+        │       ├── ProgressRing
+        │       ├── GoalName
+        │       └── DaysRemaining
+        └── RecentActivityFeed
+```
+
+### Reusable component contracts:
+
+```typescript
+// Every entity list component follows this pattern:
+interface EntityListProps<T> {
+  items: T[];
+  isLoading: boolean;
+  view: "list" | "gallery" | "kanban" | "calendar";
+  filters: FilterState;
+  onFilterChange: (filters: FilterState) => void;
+  onItemClick: (id: string) => void;
+  onItemCreate: () => void;
+  emptyState: React.ReactNode;
+}
+
+// Every entity card follows this pattern:
+interface EntityCardProps<T> {
+  entity: T;
+  variant: "compact" | "full";
+  onEdit: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+}
+```
+
+---
+
+## 4. Data Models
+
+### TypeScript types (source of truth, generated from Supabase):
+
+```typescript
+// ─── Enums ───
+type Priority = "high" | "medium" | "low";
+type TaskStatus = "inbox" | "todo" | "in_progress" | "done";
+type ProjectStatus = "inbox" | "in_progress" | "completed" | "on_hold" | "archive";
+type GoalTerm = "short" | "mid" | "long";
+type NoteType = "note" | "research" | "journal";
+type NoteStatus = "inbox" | "to_review" | "active" | "archive";
+type ResourceType = "website" | "article" | "video" | "tool";
+type ResourceStatus = "inbox" | "to_review" | "saved" | "favorites" | "archive";
+type AreaType = "business" | "personal";
+
+// ─── Base ───
+interface BaseEntity {
+  id: string;               // UUID v7 (time-sortable)
+  user_id: string;
+  created_at: string;        // ISO 8601
+  updated_at: string;
+  metadata: Record<string, unknown> | null;  // JSONB escape hatch
+}
+
+// ─── Core PARA ───
+interface Area extends BaseEntity {
+  name: string;
+  description: string | null;
+  type: AreaType;
+  icon: string | null;       // emoji or icon key
+  archive: boolean;
+  // Computed (via API, not stored):
+  goal_count?: number;
+  project_count?: number;
+  task_count?: number;
+}
+
+interface Goal extends BaseEntity {
+  area_id: string;
+  name: string;
+  description: string | null;
+  term: GoalTerm;
+  priority: Priority | null;
+  due_date: string | null;
+  completion: number;        // 0.00 – 1.00
+  completed: boolean;
+  inactive: boolean;
+  archive: boolean;
+}
+
+interface Project extends BaseEntity {
+  area_id: string;
+  name: string;
+  description: string | null;
+  status: ProjectStatus;
+  priority: Priority | null;
+  progress: number;          // 0.00 – 1.00 (auto-computed)
+  start_date: string | null;
+  due_date: string | null;
+  tags: string[];
+  archive: boolean;
+}
+
+interface Task extends BaseEntity {
+  area_id: string | null;
+  project_id: string | null;
+  name: string;
+  description: string | null;
+  status: TaskStatus;
+  priority: Priority;
+  focus: boolean;
+  important: boolean;
+  urgent: boolean;
+  smart_priority: number;    // 1–5 (computed)
+  due_date: string | null;
+  repeat_cycle: "none" | "daily" | "weekly" | "monthly" | null;
+  repeat_every: number | null;
+  tags: string[];
+  complete: boolean;
+  completed_at: string | null;
+}
+
+interface Note extends BaseEntity {
+  area_id: string | null;
+  project_id: string | null;
+  name: string;
+  content: string | null;    // Tiptap JSON or Markdown
+  type: NoteType;
+  status: NoteStatus;
+  notebook: string | null;
+  favorite: boolean;
+  pin: boolean;
+  archive: boolean;
+}
+
+interface Resource extends BaseEntity {
+  area_id: string | null;
+  project_id: string | null;
+  name: string;
+  url: string | null;
+  type: ResourceType;
+  status: ResourceStatus;
+  favorite: boolean;
+  archive: boolean;
+}
+
+interface Topic extends BaseEntity {
+  name: string;
+}
+
+interface Contact extends BaseEntity {
+  name: string;
+  relationship_type: string | null;
+  phone: string | null;
+  email: string | null;
+  notes: string | null;
+  last_interaction_at: string | null;
+}
+
+// ─── Junction tables (many-to-many) ───
+// goal_projects, goal_tasks, goal_notes, goal_resources
+// project_notes, project_resources
+// note_topics, resource_topics, area_topics
+// note_related_notes (self-referential)
+// contact_notes, contact_tasks
+// All follow: { id, entity_a_id, entity_b_id, created_at }
+```
+
+---
+
+## 5. State Management Strategy
+
+### Two-layer state model:
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Server State (TanStack Query)                      │
+│  "What's in the database?"                          │
+│                                                     │
+│  • All entity lists (tasks, projects, goals, etc.)  │
+│  • User settings and preferences                    │
+│  • Dashboard aggregations                           │
+│  • Search results                                   │
+│                                                     │
+│  Strategy: stale-while-revalidate                   │
+│  Cache time: 5 min (configurable per query)         │
+│  Background refetch on window focus                 │
+│  Optimistic mutations for instant UI feedback       │
+└─────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│  Client State (Zustand)                             │
+│  "What's happening in the UI right now?"            │
+│                                                     │
+│  • Sidebar open/collapsed                           │
+│  • Active filters per view                          │
+│  • Command palette open/closed                      │
+│  • Modal state (which modal, which entity)          │
+│  • Onboarding step                                  │
+│  • Theme preference                                 │
+│                                                     │
+│  Strategy: ephemeral, resets on page reload          │
+│  (except theme — persisted to localStorage)         │
+└─────────────────────────────────────────────────────┘
+```
+
+### TanStack Query patterns:
+
+```typescript
+// Hook pattern (used by all entity pages):
+export function useTasks(filters: TaskFilters) {
+  return useQuery({
+    queryKey: ["tasks", filters],
+    queryFn: () => fetchTasks(filters),
+    staleTime: 5 * 60 * 1000,  // 5 min
+  });
+}
+
+// Optimistic mutation pattern (task completion):
+export function useCompleteTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (taskId: string) => completeTask(taskId),
+    onMutate: async (taskId) => {
+      // Cancel outgoing fetches
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+
+      // Snapshot previous state
+      const previous = queryClient.getQueryData(["tasks"]);
+
+      // Optimistically update
+      queryClient.setQueryData(["tasks"], (old: Task[]) =>
+        old.map((t) => (t.id === taskId ? { ...t, complete: true } : t))
+      );
+
+      return { previous };
+    },
+    onError: (err, taskId, context) => {
+      // Rollback on error
+      queryClient.setQueryData(["tasks"], context?.previous);
+    },
+    onSettled: () => {
+      // Always refetch after mutation
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] }); // progress rollup
+      queryClient.invalidateQueries({ queryKey: ["goals"] });    // completion rollup
+    },
+  });
+}
+```
+
+### Zustand store pattern:
+
+```typescript
+// Minimal, flat, one store per concern:
+interface UIStore {
+  sidebarOpen: boolean;
+  toggleSidebar: () => void;
+  commandPaletteOpen: boolean;
+  openCommandPalette: () => void;
+  closeCommandPalette: () => void;
+  activeModal: { type: string; entityId?: string } | null;
+  openModal: (type: string, entityId?: string) => void;
+  closeModal: () => void;
+}
+
+export const useUIStore = create<UIStore>((set) => ({
+  sidebarOpen: true,
+  toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  commandPaletteOpen: false,
+  openCommandPalette: () => set({ commandPaletteOpen: true }),
+  closeCommandPalette: () => set({ commandPaletteOpen: false }),
+  activeModal: null,
+  openModal: (type, entityId) => set({ activeModal: { type, entityId } }),
+  closeModal: () => set({ activeModal: null }),
+}));
+```
+
+---
+
+## 6. API / Backend Structure
+
+### API design principles:
+- **REST, not GraphQL.** The LifeOS Agent needs a simple, predictable API. REST with consistent patterns is easier to consume than GraphQL for an AI client.
+- **Next.js Route Handlers serve the API.** No separate backend. `/app/api/v1/*` routes handle everything.
+- **Supabase JS client does the DB work.** Route handlers validate, authorize, call Supabase, and return JSON.
+
+### Request lifecycle:
+
+```
+Client Request
+     │
+     ▼
+┌──────────────────┐
+│ Rate Limiter      │ → 429 if exceeded
+│ (token bucket)    │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Auth Guard        │ → 401 if no valid JWT / API key
+│ (JWT or API key)  │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Zod Validation    │ → 400 if invalid body / params
+│ (shared schemas)  │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Service Layer     │ → Business logic
+│ (task.service)    │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Supabase Client   │ → DB read/write (RLS enforced)
+│ (admin or user)   │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Webhook Emit      │ → Notify subscribers (async)
+│ (if write op)     │
+└────────┬─────────┘
+         │
+         ▼
+    JSON Response
+```
+
+### Standard response format:
+
+```typescript
+// Success (single entity):
+{ "data": { ...entity }, "meta": null }
+
+// Success (list):
+{ "data": [...entities], "meta": { "cursor": "abc123", "has_more": true } }
+
+// Error:
+{ "error": { "code": "VALIDATION_ERROR", "message": "...", "details": [...] } }
+```
+
+### Endpoint summary (complete list):
+
+```
+GET     /api/v1/areas                    List areas
+POST    /api/v1/areas                    Create area
+GET     /api/v1/areas/:id                Get area with rollup counts
+PUT     /api/v1/areas/:id                Update area
+DELETE  /api/v1/areas/:id                Soft delete (archive)
+
+GET     /api/v1/goals                    List goals (filterable by area, term, status)
+POST    /api/v1/goals                    Create goal
+GET     /api/v1/goals/:id                Get goal with linked projects/tasks
+PUT     /api/v1/goals/:id                Update goal
+DELETE  /api/v1/goals/:id                Soft delete
+
+GET     /api/v1/projects                 List projects (filterable)
+POST    /api/v1/projects                 Create project
+GET     /api/v1/projects/:id             Get project with tasks
+PUT     /api/v1/projects/:id             Update project
+DELETE  /api/v1/projects/:id             Soft delete
+
+GET     /api/v1/tasks                    List tasks (extensive filters)
+POST    /api/v1/tasks                    Create task
+POST    /api/v1/tasks/bulk               Bulk create (for Agent)
+GET     /api/v1/tasks/:id                Get task
+PUT     /api/v1/tasks/:id                Update task
+POST    /api/v1/tasks/:id/complete       Complete task
+DELETE  /api/v1/tasks/:id                Soft delete
+
+GET     /api/v1/notes                    List notes
+POST    /api/v1/notes                    Create note
+GET     /api/v1/notes/:id                Get note with content
+PUT     /api/v1/notes/:id                Update note
+DELETE  /api/v1/notes/:id                Soft delete
+
+GET     /api/v1/resources                List resources
+POST    /api/v1/resources                Create resource
+
+GET     /api/v1/topics                   List topics
+
+GET     /api/v1/contacts                 List contacts
+POST    /api/v1/contacts                 Create contact
+
+GET     /api/v1/search?q=...&types=...   Full-text search
+GET     /api/v1/dashboard/today          Today's aggregated view
+GET     /api/v1/dashboard/summary        Stats and streaks
+
+GET     /api/v1/trackers/bookmarks       (same CRUD pattern for all trackers)
+POST    /api/v1/trackers/bookmarks
+...
+
+POST    /api/v1/integrations             Link external account
+GET     /api/v1/export                   Export all user data (JSON)
+POST    /api/v1/import/notion            Import from Notion CSV
+
+POST    /api/v1/webhooks/stripe          Stripe webhook handler
+```
+
+---
+
+## 7. Authentication Flow
+
+### Flow 1: Email/Password Signup
+
+```
+User → /signup → enters email + password
+  → Supabase Auth: signUp() → sends confirmation email
+  → User clicks email link → Supabase confirms
+  → Redirect to /onboarding
+  → Onboarding service seeds default areas
+  → Redirect to /dashboard
+```
+
+### Flow 2: Google OAuth
+
+```
+User → /login → clicks "Continue with Google"
+  → Supabase Auth: signInWithOAuth({ provider: "google" })
+  → Redirect to Google consent screen
+  → Callback to /auth/callback
+  → Supabase creates user + session
+  → If new user → redirect /onboarding
+  → If returning → redirect /dashboard
+```
+
+### Flow 3: API Key Auth (for LifeOS Agent)
+
+```
+User → /settings/api-keys → clicks "Create API Key"
+  → Generates sk_live_<random> key
+  → Hashes key (SHA-256) and stores hash in api_keys table
+  → Shows raw key ONCE to user (never stored raw)
+  → User configures LifeOS Agent with this key
+
+Agent → /api/v1/tasks → Authorization: Bearer sk_live_xxx
+  → Auth guard hashes incoming key
+  → Looks up hash in api_keys table
+  → Resolves to user_id
+  → All subsequent Supabase queries scoped to that user_id
+```
+
+### Session management:
+
+```typescript
+// Middleware (applied to all /api/v1/* and /(dashboard)/* routes):
+export async function middleware(request: NextRequest) {
+  const supabase = createServerClient(/* ... */);
+  const { data: { session } } = await supabase.auth.getSession();
+
+  // Dashboard routes: require session, redirect to /login if missing
+  if (request.nextUrl.pathname.startsWith("/(dashboard)") && !session) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // API routes: accept either session JWT or API key
+  if (request.nextUrl.pathname.startsWith("/api/v1")) {
+    const authHeader = request.headers.get("Authorization");
+    if (!session && !authHeader?.startsWith("Bearer sk_")) {
+      return NextResponse.json({ error: { code: "UNAUTHORIZED" } }, { status: 401 });
+    }
+  }
+
+  return NextResponse.next();
+}
+```
+
+---
+
+## 8. Database Schema
+
+### Full SQL schema (core tables):
+
+```sql
+-- Extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";     -- Full-text search
+
+-- ═══ ENUMS ═══
+CREATE TYPE priority AS ENUM ('high', 'medium', 'low');
+CREATE TYPE task_status AS ENUM ('inbox', 'todo', 'in_progress', 'done');
+CREATE TYPE project_status AS ENUM ('inbox', 'in_progress', 'completed', 'on_hold', 'archive');
+CREATE TYPE goal_term AS ENUM ('short', 'mid', 'long');
+CREATE TYPE note_type AS ENUM ('note', 'research', 'journal');
+CREATE TYPE note_status AS ENUM ('inbox', 'to_review', 'active', 'archive');
+CREATE TYPE resource_type AS ENUM ('website', 'article', 'video', 'tool');
+CREATE TYPE resource_status AS ENUM ('inbox', 'to_review', 'saved', 'favorites', 'archive');
+CREATE TYPE area_type AS ENUM ('business', 'personal');
+
+-- ═══ CORE PARA TABLES ═══
+
+CREATE TABLE areas (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  description TEXT,
+  type        area_type NOT NULL DEFAULT 'personal',
+  icon        TEXT,
+  archive     BOOLEAN NOT NULL DEFAULT false,
+  metadata    JSONB DEFAULT '{}',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE goals (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  area_id     UUID NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  description TEXT,
+  term        goal_term NOT NULL DEFAULT 'mid',
+  priority    priority,
+  due_date    DATE,
+  completion  NUMERIC(5,4) NOT NULL DEFAULT 0,   -- 0.0000 – 1.0000
+  completed   BOOLEAN NOT NULL DEFAULT false,
+  inactive    BOOLEAN NOT NULL DEFAULT false,
+  archive     BOOLEAN NOT NULL DEFAULT false,
+  metadata    JSONB DEFAULT '{}',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE projects (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  area_id     UUID NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  description TEXT,
+  status      project_status NOT NULL DEFAULT 'inbox',
+  priority    priority,
+  progress    NUMERIC(5,4) NOT NULL DEFAULT 0,
+  start_date  DATE,
+  due_date    DATE,
+  tags        TEXT[] DEFAULT '{}',
+  archive     BOOLEAN NOT NULL DEFAULT false,
+  metadata    JSONB DEFAULT '{}',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE tasks (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  area_id         UUID REFERENCES areas(id) ON DELETE SET NULL,
+  project_id      UUID REFERENCES projects(id) ON DELETE SET NULL,
+  name            TEXT NOT NULL,
+  description     TEXT,
+  status          task_status NOT NULL DEFAULT 'inbox',
+  priority        priority NOT NULL DEFAULT 'medium',
+  focus           BOOLEAN NOT NULL DEFAULT false,
+  important       BOOLEAN NOT NULL DEFAULT false,
+  urgent          BOOLEAN NOT NULL DEFAULT false,
+  smart_priority  SMALLINT NOT NULL DEFAULT 3 CHECK (smart_priority BETWEEN 1 AND 5),
+  due_date        DATE,
+  repeat_cycle    TEXT CHECK (repeat_cycle IN ('none','daily','weekly','monthly')),
+  repeat_every    SMALLINT,
+  tags            TEXT[] DEFAULT '{}',
+  complete        BOOLEAN NOT NULL DEFAULT false,
+  completed_at    TIMESTAMPTZ,
+  metadata        JSONB DEFAULT '{}',
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE notes (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  area_id     UUID REFERENCES areas(id) ON DELETE SET NULL,
+  project_id  UUID REFERENCES projects(id) ON DELETE SET NULL,
+  name        TEXT NOT NULL,
+  content     TEXT,                    -- Tiptap JSON serialized
+  type        note_type NOT NULL DEFAULT 'note',
+  status      note_status NOT NULL DEFAULT 'inbox',
+  notebook    TEXT,
+  favorite    BOOLEAN NOT NULL DEFAULT false,
+  pin         BOOLEAN NOT NULL DEFAULT false,
+  archive     BOOLEAN NOT NULL DEFAULT false,
+  metadata    JSONB DEFAULT '{}',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE resources (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  area_id     UUID REFERENCES areas(id) ON DELETE SET NULL,
+  project_id  UUID REFERENCES projects(id) ON DELETE SET NULL,
+  name        TEXT NOT NULL,
+  url         TEXT,
+  type        resource_type NOT NULL DEFAULT 'website',
+  status      resource_status NOT NULL DEFAULT 'inbox',
+  favorite    BOOLEAN NOT NULL DEFAULT false,
+  archive     BOOLEAN NOT NULL DEFAULT false,
+  metadata    JSONB DEFAULT '{}',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE topics (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  metadata    JSONB DEFAULT '{}',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, name)
+);
+
+CREATE TABLE contacts (
+  id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id             UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name                TEXT NOT NULL,
+  relationship_type   TEXT,
+  phone               TEXT,
+  email               TEXT,
+  notes               TEXT,
+  last_interaction_at TIMESTAMPTZ,
+  metadata            JSONB DEFAULT '{}',
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ═══ JUNCTION TABLES ═══
+
+CREATE TABLE goal_projects (
+  goal_id    UUID REFERENCES goals(id) ON DELETE CASCADE,
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  PRIMARY KEY (goal_id, project_id)
+);
+
+CREATE TABLE goal_tasks (
+  goal_id UUID REFERENCES goals(id) ON DELETE CASCADE,
+  task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
+  PRIMARY KEY (goal_id, task_id)
+);
+
+CREATE TABLE goal_notes (
+  goal_id UUID REFERENCES goals(id) ON DELETE CASCADE,
+  note_id UUID REFERENCES notes(id) ON DELETE CASCADE,
+  PRIMARY KEY (goal_id, note_id)
+);
+
+CREATE TABLE goal_resources (
+  goal_id     UUID REFERENCES goals(id) ON DELETE CASCADE,
+  resource_id UUID REFERENCES resources(id) ON DELETE CASCADE,
+  PRIMARY KEY (goal_id, resource_id)
+);
+
+CREATE TABLE project_notes (
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  note_id    UUID REFERENCES notes(id) ON DELETE CASCADE,
+  PRIMARY KEY (project_id, note_id)
+);
+
+CREATE TABLE project_resources (
+  project_id  UUID REFERENCES projects(id) ON DELETE CASCADE,
+  resource_id UUID REFERENCES resources(id) ON DELETE CASCADE,
+  PRIMARY KEY (project_id, resource_id)
+);
+
+CREATE TABLE note_topics (
+  note_id  UUID REFERENCES notes(id) ON DELETE CASCADE,
+  topic_id UUID REFERENCES topics(id) ON DELETE CASCADE,
+  PRIMARY KEY (note_id, topic_id)
+);
+
+CREATE TABLE resource_topics (
+  resource_id UUID REFERENCES resources(id) ON DELETE CASCADE,
+  topic_id    UUID REFERENCES topics(id) ON DELETE CASCADE,
+  PRIMARY KEY (resource_id, topic_id)
+);
+
+CREATE TABLE area_topics (
+  area_id  UUID REFERENCES areas(id) ON DELETE CASCADE,
+  topic_id UUID REFERENCES topics(id) ON DELETE CASCADE,
+  PRIMARY KEY (area_id, topic_id)
+);
+
+CREATE TABLE note_related_notes (
+  note_a_id UUID REFERENCES notes(id) ON DELETE CASCADE,
+  note_b_id UUID REFERENCES notes(id) ON DELETE CASCADE,
+  PRIMARY KEY (note_a_id, note_b_id),
+  CHECK (note_a_id < note_b_id)   -- Prevent duplicates (a,b) and (b,a)
+);
+
+CREATE TABLE contact_notes (
+  contact_id UUID REFERENCES contacts(id) ON DELETE CASCADE,
+  note_id    UUID REFERENCES notes(id) ON DELETE CASCADE,
+  PRIMARY KEY (contact_id, note_id)
+);
+
+CREATE TABLE contact_tasks (
+  contact_id UUID REFERENCES contacts(id) ON DELETE CASCADE,
+  task_id    UUID REFERENCES tasks(id) ON DELETE CASCADE,
+  PRIMARY KEY (contact_id, task_id)
+);
+
+-- ═══ SYSTEM TABLES ═══
+
+CREATE TABLE time_entries (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  task_id     UUID REFERENCES tasks(id) ON DELETE SET NULL,
+  project_id  UUID REFERENCES projects(id) ON DELETE SET NULL,
+  started_at  TIMESTAMPTZ NOT NULL,
+  ended_at    TIMESTAMPTZ,
+  duration_s  INTEGER,                -- Stored on end, or manual
+  type        TEXT DEFAULT 'manual' CHECK (type IN ('pomodoro', 'manual')),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE user_settings (
+  user_id              UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  timezone             TEXT NOT NULL DEFAULT 'UTC',
+  theme                TEXT NOT NULL DEFAULT 'dark',
+  morning_briefing     TIME DEFAULT '07:00',
+  evening_review       TIME DEFAULT '21:00',
+  weekly_digest_day    SMALLINT DEFAULT 0,      -- 0 = Sunday
+  language             TEXT DEFAULT 'en',
+  onboarding_complete  BOOLEAN DEFAULT false,
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE api_keys (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  key_hash    TEXT NOT NULL UNIQUE,     -- SHA-256 of raw key
+  scopes      TEXT[] NOT NULL DEFAULT '{read:all,write:all}',
+  last_used   TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE integrations (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id      UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  type         TEXT NOT NULL,            -- 'whatsapp', 'telegram', etc.
+  external_id  TEXT NOT NULL,            -- Channel-specific user ID
+  status       TEXT NOT NULL DEFAULT 'active',
+  metadata     JSONB DEFAULT '{}',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(type, external_id)
+);
+
+CREATE TABLE subscriptions (
+  id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id               UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  stripe_customer_id    TEXT,
+  stripe_subscription_id TEXT,
+  tier                  TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free','pro','premium')),
+  status                TEXT NOT NULL DEFAULT 'active',
+  trial_ends_at         TIMESTAMPTZ,
+  current_period_end    TIMESTAMPTZ,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ═══ INDEXES ═══
+-- Every table gets: user_id, status (if applicable), created_at
+
+CREATE INDEX idx_areas_user ON areas(user_id) WHERE NOT archive;
+CREATE INDEX idx_goals_user ON goals(user_id, area_id) WHERE NOT archive;
+CREATE INDEX idx_goals_active ON goals(user_id) WHERE NOT completed AND NOT inactive AND NOT archive;
+CREATE INDEX idx_projects_user ON projects(user_id, area_id) WHERE NOT archive;
+CREATE INDEX idx_projects_status ON projects(user_id, status) WHERE NOT archive;
+CREATE INDEX idx_tasks_user ON tasks(user_id) WHERE NOT complete;
+CREATE INDEX idx_tasks_status ON tasks(user_id, status) WHERE NOT complete;
+CREATE INDEX idx_tasks_due ON tasks(user_id, due_date) WHERE NOT complete AND due_date IS NOT NULL;
+CREATE INDEX idx_tasks_focus ON tasks(user_id) WHERE focus = true AND NOT complete;
+CREATE INDEX idx_tasks_project ON tasks(project_id) WHERE NOT complete;
+CREATE INDEX idx_tasks_smart ON tasks(user_id, smart_priority DESC) WHERE NOT complete;
+CREATE INDEX idx_notes_user ON notes(user_id) WHERE NOT archive;
+CREATE INDEX idx_resources_user ON resources(user_id) WHERE NOT archive;
+CREATE INDEX idx_topics_user ON topics(user_id);
+CREATE INDEX idx_api_keys_hash ON api_keys(key_hash);
+CREATE INDEX idx_integrations_lookup ON integrations(type, external_id);
+
+-- Full-text search
+CREATE INDEX idx_tasks_search ON tasks USING gin(to_tsvector('english', name || ' ' || COALESCE(description, '')));
+CREATE INDEX idx_notes_search ON notes USING gin(to_tsvector('english', name || ' ' || COALESCE(content, '')));
+CREATE INDEX idx_resources_search ON resources USING gin(to_tsvector('english', name || ' ' || COALESCE(url, '')));
+
+-- ═══ FUNCTIONS ═══
+
+-- Auto-update updated_at on any row change
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Apply to all tables with updated_at
+CREATE TRIGGER trg_areas_updated BEFORE UPDATE ON areas FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_goals_updated BEFORE UPDATE ON goals FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_projects_updated BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_tasks_updated BEFORE UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_notes_updated BEFORE UPDATE ON notes FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_resources_updated BEFORE UPDATE ON resources FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- Auto-recalculate project progress when tasks change
+CREATE OR REPLACE FUNCTION recalc_project_progress()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE projects SET progress = (
+    SELECT CASE WHEN count(*) = 0 THEN 0
+    ELSE count(*) FILTER (WHERE complete) ::numeric / count(*) END
+    FROM tasks WHERE project_id = COALESCE(NEW.project_id, OLD.project_id)
+  )
+  WHERE id = COALESCE(NEW.project_id, OLD.project_id);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_task_progress
+  AFTER INSERT OR UPDATE OF complete OR DELETE ON tasks
+  FOR EACH ROW EXECUTE FUNCTION recalc_project_progress();
+```
+
+---
+
+## 9. Security Considerations
+
+### Row-Level Security (every table):
+
+```sql
+-- Template applied to EVERY user-facing table:
+ALTER TABLE <table> ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "select_own" ON <table> FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "insert_own" ON <table> FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "update_own" ON <table> FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "delete_own" ON <table> FOR DELETE USING (auth.uid() = user_id);
+```
+
+### API key authentication:
+
+```typescript
+// Keys generated as: "sk_live_" + crypto.randomBytes(32).toString("hex")
+// Only the SHA-256 hash is stored. Raw key shown once on creation.
+// Lookup: hash incoming key → match against api_keys.key_hash → resolve user_id
+
+async function resolveApiKey(key: string): Promise<string | null> {
+  const hash = crypto.createHash("sha256").update(key).digest("hex");
+  const { data } = await supabaseAdmin
+    .from("api_keys")
+    .select("user_id")
+    .eq("key_hash", hash)
+    .single();
+  return data?.user_id ?? null;
+}
+```
+
+### Password Manager encryption:
+
+```typescript
+// Client-side only. Server never sees plaintext.
+// Master password → PBKDF2 (100,000 iterations, SHA-256) → 256-bit key
+// Each entry encrypted with AES-256-GCM (unique IV per entry)
+// Encrypted blob stored in password_entries.encrypted_data (TEXT)
+// Decryption only happens in the browser
+```
+
+### Rate limiting:
+
+```typescript
+// Token bucket algorithm, per user, stored in memory (Map)
+// Limits: Free = 100 req/min, Pro = 500, Premium = 1000
+// Returns 429 with Retry-After header
+```
+
+### Additional measures:
+- HTTPS everywhere (Vercel enforces this)
+- CORS restricted to production domain + localhost (dev)
+- Content Security Policy headers via Next.js middleware
+- Input sanitization via Zod (rejects unexpected fields)
+- SQL injection prevention via parameterized queries (Supabase client does this natively)
+- XSS prevention via React's default escaping + CSP
+- No sensitive data in URL params (only cursor tokens, IDs)
+
+---
+
+## 10. How to Keep Code Modular and Maintainable
+
+### Rule 1: The service layer is the boundary
+
+```
+Pages → Hooks → Services → Supabase
+  ↑                ↑
+  UI only     Business logic only
+```
+
+Pages never import Supabase directly. Hooks never contain business logic. Services never return JSX. This boundary means you can swap Supabase for Prisma, or Next.js for Remix, by changing only one layer.
+
+### Rule 2: One Zod schema, three uses
+
+```typescript
+// src/lib/validators/task.schema.ts
+export const createTaskSchema = z.object({
+  name: z.string().min(1).max(500),
+  area_id: z.string().uuid().optional(),
+  project_id: z.string().uuid().optional(),
+  priority: z.enum(["high", "medium", "low"]).default("medium"),
+  due_date: z.string().date().optional(),
+  focus: z.boolean().default(false),
+});
+
+// Used in: API route handler (server validation)
+// Used in: React Hook Form (client validation)
+// Used in: TypeScript type inference (z.infer<typeof createTaskSchema>)
+```
+
+### Rule 3: Feature folders for trackers
+
+Each personal tracker is self-contained. If you need to delete a tracker, remove one folder:
+
+```
+src/app/(dashboard)/trackers/bookmarks/
+├── page.tsx          # Route
+├── bookmark-list.tsx # Component
+├── bookmark-form.tsx # Form
+└── use-bookmarks.ts  # Hook (TanStack Query)
+```
+
+### Rule 4: Consistent naming
+
+```
+Files:       kebab-case (task-list-item.tsx)
+Components:  PascalCase (TaskListItem)
+Hooks:       camelCase with "use" prefix (useTasks)
+Services:    camelCase with ".service" suffix (task.service.ts)
+Schemas:     camelCase with ".schema" suffix (task.schema.ts)
+Stores:      camelCase with ".store" suffix (ui.store.ts)
+API routes:  /api/v1/<resource>/route.ts
+DB tables:   snake_case (goal_projects)
+DB columns:  snake_case (smart_priority)
+TS types:    PascalCase (TaskStatus)
+```
+
+### Rule 5: No god components
+
+If a component exceeds 200 lines, it needs splitting. Signals for extraction:
+- Multiple `useState` calls → extract to a hook
+- Conditional rendering of large blocks → extract to sub-component
+- Data transformation in render → extract to utility function
+
+### Rule 6: Test the service layer, not the UI
+
+Unit test services and validators (fast, deterministic). Integration test API routes (actual HTTP calls). E2E test only critical flows (onboarding, task CRUD). Don't unit test React components — they change too often.
+
+```
+tests/
+├── unit/           # Services + validators + utils (Vitest)
+├── integration/    # API routes (supertest or fetch)
+└── e2e/            # Critical flows only (Playwright)
+```
+
+### Rule 7: Database migrations are forward-only
+
+Never edit an existing migration. Always create a new one. Name them sequentially (`00016_add_task_labels.sql`). Run `supabase db push` in CI. No manual SQL in production, ever.
+
+### Rule 8: Feature flags for phased rollout
+
+```typescript
+// PostHog feature flags control what's visible:
+const showKnowledgeHub = useFeatureFlag("knowledge-hub");
+const showTimeTracker = useFeatureFlag("time-tracker");
+
+// This lets you merge incomplete features to main
+// without exposing them to users.
+```
+
+---
+
+## Appendix: Smart Priority Algorithm
+
+The smart priority score (1–5) is computed server-side as a PostgreSQL function and recalculated on task create/update:
+
+```sql
+CREATE OR REPLACE FUNCTION calc_smart_priority(
+  p_due_date DATE,
+  p_priority priority,
+  p_important BOOLEAN,
+  p_urgent BOOLEAN,
+  p_goal_count INTEGER    -- number of linked active goals
+) RETURNS SMALLINT AS $$
+DECLARE
+  score NUMERIC := 0;
+  due_weight NUMERIC;
+  pri_weight NUMERIC;
+  goal_weight NUMERIC;
+  eis_weight NUMERIC;
+BEGIN
+  -- Due date proximity (30%): 1.5 if overdue, scaled 0-1.5 within 14 days
+  IF p_due_date IS NULL THEN
+    due_weight := 0.5;    -- no date = moderate
+  ELSIF p_due_date <= CURRENT_DATE THEN
+    due_weight := 1.5;    -- overdue = max
+  ELSE
+    due_weight := GREATEST(0, 1.5 - (p_due_date - CURRENT_DATE)::numeric / 14 * 1.5);
+  END IF;
+
+  -- Priority level (25%): high=1.25, medium=0.75, low=0.25
+  pri_weight := CASE p_priority
+    WHEN 'high' THEN 1.25
+    WHEN 'medium' THEN 0.75
+    WHEN 'low' THEN 0.25
+  END;
+
+  -- Goal alignment (25%): 0 if no goals, 0.5 if 1, 1.0 if 2, 1.25 if 3+
+  goal_weight := LEAST(1.25, p_goal_count * 0.5);
+
+  -- Eisenhower (20%): both=1.0, important=0.7, urgent=0.5, neither=0
+  eis_weight := CASE
+    WHEN p_important AND p_urgent THEN 1.0
+    WHEN p_important THEN 0.7
+    WHEN p_urgent THEN 0.5
+    ELSE 0
+  END;
+
+  score := due_weight + pri_weight + goal_weight + eis_weight;
+
+  -- Normalize to 1-5 scale (max possible = 1.5+1.25+1.25+1.0 = 5.0)
+  RETURN GREATEST(1, LEAST(5, ROUND(score)));
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+```
+
+---
+
+*This architecture document covers LifeOS Core (Project 1 of 2). It provides everything a development team needs to start building from Week 1.*
+# LifeOS Core — Build Roadmap
+
+**Sequential build plan for the LifeOS Core SaaS application.**
+
+Every step is completable in a single coding session (2–4 hours). Steps are ordered by dependency — you cannot start step N until step N-1 is done and tested. No skipping. No parallelization until explicitly noted.
+
+Reference documents:
+- `LifeOS-Core-PRD-Lean.md` — what to build
+- `LifeOS-Core-Architecture.md` — how to build it
+- `LifeOS-Core-AI-Rules.md` — coding standards
+
+---
+
+## Phase 1: Project Scaffold
+
+> Goal: A running Next.js app with zero features but 100% of the infrastructure wired correctly. You should be able to open `localhost:3000`, see a styled page, and know that TypeScript, linting, and Supabase are all working.
+
+---
+
+### Step 1: Initialize the repository
+
+**What:** Create the Git repo, Next.js 14 project, and configure all tooling.
+
+**Actions:**
+- `npx create-next-app@latest lifeos-core --typescript --tailwind --app --src-dir --use-pnpm`
+- Enable `"strict": true` in `tsconfig.json`
+- Install Biome (linter/formatter): `pnpm add -D @biomejs/biome` and create `biome.json` with project rules (semicolons, double quotes, 2-space indent, sorted imports)
+- Create `.env.example` with all required env var names (no values)
+- Create `.gitignore` with `.env.local`, `node_modules`, `.next`, `.vercel`
+- Place `LifeOS-Core-AI-Rules.md` at repo root as `.cursorrules` (or `CLAUDE.md`)
+- Create initial folder structure from architecture doc (empty directories with `.gitkeep` files): `src/lib/services/`, `src/lib/hooks/`, `src/lib/stores/`, `src/lib/validators/`, `src/lib/utils/`, `src/lib/types/`, `src/components/ui/`, `src/components/entities/`, `src/components/views/`, `src/components/layout/`, `src/components/providers/`, `src/components/charts/`
+
+**Dependencies:** None (this is step 1).
+
+**Testing:**
+- `pnpm dev` starts without errors
+- `pnpm biome check .` passes with zero issues
+- `tsc --noEmit` passes with zero errors
+- Verify folder structure matches architecture doc
+
+**Deliverable:** Running Next.js app at localhost:3000 showing the default page.
+
+---
+
+### Step 2: Design system and shadcn/ui setup
+
+**What:** Install shadcn/ui, configure the theme (dark mode default), and create the CSS variable foundation.
+
+**Actions:**
+- Run `npx shadcn@latest init` — select default style, slate color, CSS variables enabled
+- Install core shadcn components (one by one): `button`, `input`, `label`, `card`, `dialog`, `sheet`, `popover`, `tooltip`, `badge`, `table`, `tabs`, `command`, `toast`, `skeleton`, `separator`, `dropdown-menu`, `select`, `checkbox`, `avatar`, `scroll-area`
+- Configure `globals.css` with dark-mode-first CSS variables matching architecture doc (use indigo `#6366F1` as primary accent)
+- Create `src/components/providers/theme-provider.tsx` using `next-themes` for light/dark toggle
+- Wrap root `layout.tsx` with ThemeProvider (default theme: `"dark"`)
+- Create a throwaway test page that renders every installed shadcn component to verify styling
+
+**Dependencies:** Step 1 (repo must exist with Tailwind configured).
+
+**Testing:**
+- Every shadcn component renders correctly in dark mode
+- Toggle to light mode — every component still looks correct
+- No raw CSS files created (Tailwind only, per AI Rules)
+- `tsc --noEmit` passes
+
+**Deliverable:** Component library ready. Both themes working. Test page can be deleted after verification.
+
+---
+
+### Step 3: Supabase project setup and local development
+
+**What:** Create the Supabase project, configure local development, and wire up auth clients.
+
+**Actions:**
+- Create a Supabase project at `supabase.com` (or use the CLI for local-only dev)
+- Install Supabase dependencies: `pnpm add @supabase/supabase-js @supabase/ssr`
+- Install Supabase CLI globally: `pnpm add -D supabase`
+- Run `npx supabase init` to create `/supabase` directory with `config.toml`
+- Start local Supabase: `npx supabase start` (requires Docker)
+- Create the three Supabase client files per architecture doc:
+  - `src/lib/supabase/client.ts` — `createBrowserClient` for client components
+  - `src/lib/supabase/server.ts` — `createServerClient` for server components and route handlers
+  - `src/lib/supabase/admin.ts` — service role client for admin operations
+- Create `src/lib/supabase/middleware.ts` — Next.js middleware that refreshes auth session on every request
+- Add middleware to `src/middleware.ts` (root level)
+- Populate `.env.local` with local Supabase URL and anon key
+
+**Dependencies:** Step 2 (theme provider in root layout must exist for middleware to wrap correctly).
+
+**Testing:**
+- `npx supabase status` shows local Supabase running
+- Import `createBrowserClient` in a test page — no TypeScript errors
+- Open Supabase Studio at `localhost:54323` — dashboard loads
+- `tsc --noEmit` passes
+
+**Deliverable:** Local Supabase running, all three client files working, auth middleware active.
+
+---
+
+### Step 4: Database schema — core tables
+
+**What:** Create SQL migration files for the 4 core MVP tables (areas, goals, projects, tasks) plus enums and utility functions.
+
+**Actions:**
+- Create `supabase/migrations/00001_create_extensions.sql` — enable `uuid-ossp` and `pg_trgm`
+- Create `supabase/migrations/00002_create_enums.sql` — all enum types from architecture doc (`priority`, `task_status`, `project_status`, `goal_term`, `area_type`)
+- Create `supabase/migrations/00003_create_areas.sql` — areas table with all columns, `metadata JSONB` included
+- Create `supabase/migrations/00004_create_goals.sql` — goals table with FK to areas
+- Create `supabase/migrations/00005_create_projects.sql` — projects table with FK to areas
+- Create `supabase/migrations/00006_create_tasks.sql` — tasks table with FK to areas and projects
+- Create `supabase/migrations/00007_create_core_junctions.sql` — `goal_projects`, `goal_tasks`
+- Create `supabase/migrations/00008_create_updated_at_trigger.sql` — the `update_updated_at()` function and triggers for all 4 tables
+- Create `supabase/migrations/00009_create_progress_trigger.sql` — `recalc_project_progress()` trigger
+- Create `supabase/migrations/00010_create_core_indexes.sql` — all indexes for the 4 core tables from architecture doc
+- Create `supabase/migrations/00011_create_rls_core.sql` — RLS policies (select/insert/update/delete own data) for all 4 tables and junction tables
+- Run `npx supabase db reset` to apply all migrations
+
+**Dependencies:** Step 3 (local Supabase must be running).
+
+**Testing:**
+- `npx supabase db reset` completes without errors
+- Open Supabase Studio → Tables: verify all 4 tables exist with correct columns
+- Manually insert a row into `areas` via SQL editor — RLS blocks without auth
+- Verify `updated_at` trigger fires (insert then update a row, check timestamp changes)
+- Verify project progress trigger works (insert a project, add 2 tasks, complete 1 — `progress` should be 0.5)
+
+**Deliverable:** Core database schema running locally with RLS, triggers, and indexes.
+
+---
+
+### Step 5: Generated types and Zod schemas
+
+**What:** Auto-generate TypeScript types from the database and create Zod validation schemas for all 4 core entities.
+
+**Actions:**
+- Run `npx supabase gen types typescript --local > src/lib/types/database.types.ts`
+- Create `src/lib/types/domain.types.ts` — clean re-exports and derived types (e.g., `Task` = database row type, `CreateTaskInput` = create payload type)
+- Create `src/lib/validators/area.schema.ts` — `createAreaSchema`, `updateAreaSchema`
+- Create `src/lib/validators/goal.schema.ts` — `createGoalSchema`, `updateGoalSchema`
+- Create `src/lib/validators/project.schema.ts` — `createProjectSchema`, `updateProjectSchema`
+- Create `src/lib/validators/task.schema.ts` — `createTaskSchema`, `updateTaskSchema`
+- Create `src/lib/utils/constants.ts` — all const enums (`PRIORITY`, `TASK_STATUS`, `PROJECT_STATUS`, `GOAL_TERM`, etc.)
+- Install Vitest: `pnpm add -D vitest @vitest/coverage-v8`
+- Create `vitest.config.ts`
+
+**Dependencies:** Step 4 (database must exist to generate types).
+
+**Testing:**
+- `tsc --noEmit` passes with the generated types
+- Write first tests in `tests/unit/validators.test.ts`:
+  - `createTaskSchema` passes with valid input `{ name: "Test", priority: "high" }`
+  - `createTaskSchema` rejects empty name
+  - `createTaskSchema` rejects unknown fields (`.strict()`)
+  - `createGoalSchema` rejects invalid term value
+- `pnpm vitest run` — all validator tests pass
+
+**Deliverable:** Type-safe schema layer. First unit tests passing.
+
+---
+
+### Step 6: Service layer — core CRUD
+
+**What:** Create service files for all 4 core entities with full CRUD operations.
+
+**Actions:**
+- Create `src/lib/api/error-handler.ts` — custom error classes: `ValidationError`, `NotFoundError`, `DatabaseError`, `AuthError`, `ForbiddenError`
+- Create `src/lib/services/area.service.ts` — `list(userId)`, `getById(userId, id)`, `create(userId, input)`, `update(userId, id, input)`, `archive(userId, id)`
+- Create `src/lib/services/goal.service.ts` — same CRUD pattern + `getActive(userId)`, `getByTerm(userId, term)`
+- Create `src/lib/services/project.service.ts` — same CRUD pattern + `getByStatus(userId, status)`, `getByArea(userId, areaId)`
+- Create `src/lib/services/task.service.ts` — same CRUD pattern + `complete(userId, id)`, `getByStatus(userId, status)`, `getOverdue(userId)`, `getFocused(userId)`
+- Every service method: validates input with Zod → calls Supabase with explicit column selection → throws typed errors on failure → returns typed response
+- Create `src/lib/utils/smart-priority.ts` — TypeScript implementation of the smart priority algorithm (used for client-side display; DB function is source of truth)
+
+**Dependencies:** Step 5 (types and schemas must exist).
+
+**Testing:**
+- Write `tests/unit/task.service.test.ts`:
+  - Creates a task with valid input
+  - Throws `ValidationError` for empty name
+  - Throws `NotFoundError` for non-existent task
+  - `complete()` sets `complete: true` and `completed_at`
+- Write `tests/unit/smart-priority.test.ts`:
+  - Overdue high-priority task with 2 goals = score 5
+  - No due date, low priority, no goals = score 1
+  - Test all 4 weight factors independently
+- `pnpm vitest run` — all tests pass
+
+**Deliverable:** Complete service layer for 4 core entities. Business logic tested.
+
+---
+
+### Step 7: Authentication UI
+
+**What:** Build the login, signup, forgot password pages and the auth flow.
+
+**Actions:**
+- Create `src/app/(auth)/layout.tsx` — minimal centered layout (no sidebar), dark background, LifeOS logo
+- Create `src/app/(auth)/login/page.tsx` — email/password form + Google OAuth button + link to signup
+- Create `src/app/(auth)/signup/page.tsx` — email/password form + Google OAuth button + link to login
+- Create `src/app/(auth)/forgot-password/page.tsx` — email input + send reset link
+- Create `src/app/auth/callback/route.ts` — OAuth callback handler (exchanges code for session)
+- Configure Google OAuth in Supabase dashboard (client ID + secret)
+- Create `src/components/providers/auth-provider.tsx` — React context that exposes `user`, `session`, `signOut()`, `isLoading`
+- Update root `layout.tsx` to wrap app with `AuthProvider`
+- Update `middleware.ts` to redirect unauthenticated users from `/(dashboard)` to `/login`, and redirect authenticated users from `/(auth)` to `/dashboard`
+
+**Dependencies:** Step 3 (Supabase auth client) + Step 2 (shadcn form components).
+
+**Testing:**
+- Sign up with email/password — confirmation email received (check Supabase local email logs at `localhost:54324`)
+- Log in with created account — redirected to `/dashboard` (empty page for now)
+- Log out — redirected to `/login`
+- Visit `/dashboard` while logged out — redirected to `/login`
+- Visit `/login` while logged in — redirected to `/dashboard`
+- Google OAuth flow works end-to-end (requires Supabase Google provider config)
+- Forgot password sends reset email
+
+**Deliverable:** Complete auth flow. Protected routes working.
+
+---
+
+## Phase 2: Core PARA Modules
+
+> Goal: The four foundational modules (Areas, Goals, Projects, Tasks) fully functional with CRUD, views, and interconnected data. A user can create areas, set goals, plan projects with tasks, and see progress roll up.
+
+---
+
+### Step 8: Dashboard layout (sidebar + topbar)
+
+**What:** Build the main app shell — sidebar navigation, topbar with user menu, and responsive mobile navigation.
+
+**Actions:**
+- Create `src/app/(dashboard)/layout.tsx` — sidebar + main content area
+- Create `src/components/layout/sidebar.tsx` — collapsible sidebar with sections:
+  - Core: Dashboard, Areas, Projects, Tasks, Goals
+  - System: Inbox, My Day (grayed out / coming soon for now)
+  - Trackers: placeholder section
+  - Footer: Settings link, theme toggle, user avatar
+- Create `src/components/layout/topbar.tsx` — breadcrumb nav + user dropdown menu (settings, sign out)
+- Create `src/components/layout/mobile-nav.tsx` — Sheet-based drawer for mobile sidebar
+- Create `src/lib/stores/ui.store.ts` — Zustand store for `sidebarOpen`, `toggleSidebar`
+- Create `src/app/(dashboard)/page.tsx` — placeholder dashboard page ("Welcome to LifeOS" with empty state)
+- Ensure layout is responsive: sidebar hidden on mobile (hamburger menu), visible on `lg:` and above
+
+**Dependencies:** Step 7 (auth must work so user data appears in topbar).
+
+**Testing:**
+- Desktop: sidebar visible, collapses on toggle, all nav links render
+- Mobile (375px): sidebar hidden, hamburger opens Sheet drawer
+- User avatar and name appear in topbar (from Supabase auth session)
+- Sign out from user menu works
+- Theme toggle switches between dark and light
+- Active nav link is highlighted
+- `tsc --noEmit` passes
+
+**Deliverable:** App shell complete. Every future page renders inside this layout.
+
+---
+
+### Step 9: Areas module
+
+**What:** Full Areas CRUD with gallery view, detail page, and rollup counts.
+
+**Actions:**
+- Create `src/lib/hooks/use-areas.ts` — `useAreas()`, `useArea(id)`, `useCreateArea()`, `useUpdateArea()`, `useArchiveArea()` with TanStack Query
+- Create `src/components/entities/area-card.tsx` — card showing icon, name, description, rollup counts (goals/projects/tasks), archive button
+- Create `src/components/views/gallery-grid.tsx` — responsive grid layout (reusable)
+- Create `src/components/views/empty-state.tsx` — reusable empty state with icon + message + action button
+- Create `src/app/(dashboard)/areas/page.tsx` — gallery of area cards + "New Area" button + toggle Active/Archived
+- Create area creation/edit dialog (shadcn Dialog + React Hook Form + Zod)
+- Create `src/app/(dashboard)/areas/[id]/page.tsx` — area detail page showing linked goals, projects, tasks (placeholder lists for now)
+- Create `src/lib/services/onboarding.service.ts` — `seedDefaultAreas(userId)` function that creates the 8 default areas
+
+**Dependencies:** Step 8 (layout) + Step 6 (area service).
+
+**Testing:**
+- New user sees 8 pre-populated areas after signup (onboarding service triggered)
+- Create a custom area — appears in gallery immediately (optimistic update)
+- Edit area name/description — persists on refresh
+- Archive area — disappears from active view, appears in archived view
+- Area detail page shows correct entity (no cross-user data)
+- Empty state renders when no areas exist (test by archiving all)
+- Rollup counts show 0/0/0 for new areas
+- `pnpm vitest run` — all existing tests still pass
+
+**Deliverable:** First fully functional module. Data flows from DB → service → hook → component.
+
+---
+
+### Step 10: Goals module
+
+**What:** Full Goals CRUD with card view, progress tracking, and term filtering.
+
+**Actions:**
+- Create `src/lib/hooks/use-goals.ts` — `useGoals(filters)`, `useGoal(id)`, `useCreateGoal()`, `useUpdateGoal()`, `useArchiveGoal()`
+- Create `src/components/entities/goal-card.tsx` — card with name, area badge, progress ring, priority badge, days remaining, term label
+- Create `src/components/charts/progress-ring.tsx` — SVG circular progress indicator (reusable)
+- Create `src/app/(dashboard)/goals/page.tsx` — tab bar with views: Active, Short Term, Mid Term, Long Term, Inactive, Completed + "New Goal" button
+- Create goal creation/edit dialog — fields: name, description, area (select), term (select), priority, due date
+- Create `src/lib/stores/filters.store.ts` — Zustand store for active filters (reusable across modules)
+- Connect goals to areas: goal cards show area badge, area detail page lists its goals
+
+**Dependencies:** Step 9 (areas must exist to link goals to them).
+
+**Testing:**
+- Create a goal linked to an area — goal card renders with area badge
+- Filter by term — only matching goals shown
+- Progress ring shows 0% for new goal
+- Priority badge renders correct color (red/amber/green)
+- Days remaining shows correct count (or "Overdue" in red if past due)
+- Area detail page now shows linked goals under its rollup
+- Area rollup count increments when goal is created
+- `pnpm vitest run` passes
+
+**Deliverable:** Goals module live. Linked to areas. Progress tracking visible.
+
+---
+
+### Step 11: Projects module
+
+**What:** Full Projects CRUD with list view, kanban board, and progress rollup from tasks.
+
+**Actions:**
+- Create `src/lib/hooks/use-projects.ts` — full CRUD hooks + `useProjectsByStatus`, `useProjectsByArea`
+- Create `src/components/entities/project-card.tsx` — card with name, area badge, status badge, progress bar, task count, due date
+- Create `src/components/views/kanban-board.tsx` — drag-and-drop board with columns per status (Inbox → In Progress → Completed → On Hold). Use `@hello-pangea/dnd` for drag-drop.
+- Create `src/app/(dashboard)/projects/page.tsx` — tab bar with views: All, Inbox, In Progress, By Area, By Status (Kanban), Archive
+- Create `src/app/(dashboard)/projects/[id]/page.tsx` — project detail page showing linked tasks (empty for now), linked goals, notes section
+- Create project creation/edit dialog — fields: name, description, area (select), goals (multi-select), priority, start date, due date
+- Connect projects to goals via `goal_projects` junction table
+
+**Dependencies:** Step 10 (goals must exist to link projects to them).
+
+**Testing:**
+- Create a project linked to area + goal — renders in list and kanban
+- Drag project between kanban columns — status updates and persists
+- Progress bar shows 0% for project with no tasks
+- Link project to a goal — goal card shows project count
+- Project detail page renders with correct data
+- Filter projects by area — correct results
+- `pnpm vitest run` passes
+
+**Deliverable:** Projects module live. Kanban board working. Linked to areas and goals.
+
+---
+
+### Step 12: Tasks module — core list and CRUD
+
+**What:** The most complex module. Build the task list view with inline editing, priority badges, checkbox completion, and filtering.
+
+**Actions:**
+- Create `src/lib/hooks/use-tasks.ts` — full CRUD hooks + `useCompleteTask()` (with optimistic update that also invalidates projects and goals queries), `useFocusTask()`, filters
+- Create `src/components/entities/task-list-item.tsx` — row with: checkbox, priority badge, task name (inline editable), area tag, project tag, due date tag, focus star icon
+- Create `src/components/entities/task-inline-editor.tsx` — click-to-edit task name that saves on Enter/blur
+- Create `src/components/entities/priority-badge.tsx` — colored badge for high/medium/low (reusable)
+- Create `src/app/(dashboard)/tasks/page.tsx` — tab bar with views: All, Inbox, Upcoming, Overdue, Completed, Focus View + "New Task" button + filter bar (priority, area, project)
+- Create task creation/edit dialog — fields: name, description, area (select), project (select), goals (multi-select), priority, due date, focus toggle, important/urgent toggles
+- Wire task completion: checkbox → `useCompleteTask` → optimistic update → toast "Task completed" with undo → project progress recalculates → goal completion recalculates
+
+**Dependencies:** Step 11 (projects must exist to link tasks to them).
+
+**Testing:**
+- Create a task — appears in All and Inbox views
+- Complete a task — checkbox fills, task moves to Completed view
+- Complete a task linked to a project — project progress bar updates (verify the DB trigger works end-to-end)
+- Complete all tasks in a project — project progress shows 100%
+- Inline edit task name — saves on Enter, cancels on Escape
+- Filter by priority — correct results
+- Filter by area — correct results
+- Overdue view shows only tasks past due date
+- Focus view shows only tasks with focus flag
+- Undo toast after completion — task restored to previous state
+- `pnpm vitest run` passes (including task service tests)
+
+**Deliverable:** Task module live. The full PARA chain works: Area → Goal → Project → Task, with progress rolling up at every level.
+
+---
+
+### Step 13: Tasks — smart priority and calendar view
+
+**What:** Add the smart priority algorithm and calendar view to complete the task module.
+
+**Actions:**
+- Create `supabase/migrations/00012_create_smart_priority_function.sql` — the `calc_smart_priority()` PostgreSQL function from architecture doc
+- Create trigger that recalculates `smart_priority` on task INSERT and UPDATE
+- Create Smart Priority view tab — tasks sorted by `smart_priority DESC`, showing the score as a colored badge (5=red, 4=orange, 3=yellow, 2=blue, 1=gray)
+- Create `src/components/views/calendar-view.tsx` — monthly calendar grid showing tasks on their due dates. Use a lightweight approach (CSS grid, no heavy calendar library).
+- Add Calendar view tab to tasks page
+- Create `src/lib/utils/smart-priority.ts` — client-side mirror of the DB function (for display/preview purposes only; DB is source of truth)
+
+**Dependencies:** Step 12 (tasks must have CRUD working).
+
+**Testing:**
+- Create a high-priority task with tomorrow's due date linked to 2 goals — smart priority should be 4 or 5
+- Create a low-priority task with no due date and no goals — smart priority should be 1 or 2
+- Smart Priority view shows tasks in correct descending order
+- Calendar view renders tasks on correct dates
+- Navigate between months in calendar view
+- Write `tests/unit/smart-priority.test.ts` — test all weight factor combinations
+- `pnpm vitest run` passes
+
+**Deliverable:** Smart priority algorithm live. Calendar view working. Task module complete.
+
+---
+
+## Phase 3: System Modules and Notes
+
+> Goal: The daily workflow modules (Dashboard, Inbox, My Day, Quick Capture) and the Notes module. After this phase, a user has a complete daily productivity workflow.
+
+---
+
+### Step 14: Dashboard home page
+
+**What:** Build the real dashboard replacing the placeholder. Shows today's tasks, active goals, and recent activity.
+
+**Actions:**
+- Create `src/lib/services/dashboard.service.ts` — `getToday(userId)` aggregates: today's tasks (due today + focus), overdue count, active goals (top 5 by priority), this week's completed count
+- Create `src/lib/hooks/use-dashboard.ts` — `useDashboardToday()`
+- Build dashboard page with sections:
+  - Greeting bar ("Good morning, [name]. You have X tasks today.")
+  - Today's tasks list (reuse `TaskListItem`)
+  - Active goals widget (top 5 goal cards in a horizontal scroll)
+  - Stats row: tasks completed this week, overdue count, active goals count
+  - Recent activity feed (last 10 created/updated items across all entities)
+- All sections have loading skeletons and empty states
+
+**Dependencies:** Step 13 (all 4 core modules must be complete).
+
+**Testing:**
+- Dashboard loads in < 1.5s (measure with browser DevTools)
+- Today's tasks shows tasks due today + focus tasks
+- Completing a task from dashboard updates the count instantly
+- Active goals show correct progress rings
+- Recent activity shows mixed entity types with correct timestamps
+- Empty state renders for new users with no data yet
+- `pnpm vitest run` passes
+
+**Deliverable:** Dashboard is the real home page. Users see actionable data on login.
+
+---
+
+### Step 15: Notes module
+
+**What:** Full Notes CRUD with Tiptap rich text editor and bidirectional linking.
+
+**Actions:**
+- Install Tiptap: `pnpm add @tiptap/react @tiptap/starter-kit @tiptap/extension-placeholder @tiptap/extension-link`
+- Create `src/components/entities/note-editor.tsx` — Tiptap editor wrapper with toolbar (bold, italic, headings, lists, links, code blocks)
+- Create `src/lib/hooks/use-notes.ts` — full CRUD hooks
+- Create `src/lib/validators/note.schema.ts` — Zod schemas
+- Create `src/lib/services/note.service.ts` — full CRUD
+- Add `notes` table migration: `supabase/migrations/00013_create_notes.sql` (if not already created in Step 4, add it now)
+- Add `note_status` enum if not already present
+- Create `src/app/(dashboard)/notes/page.tsx` — list view with status filter tabs (Inbox, To Review, Active, Archive) + favorites filter + notebook filter
+- Create `src/app/(dashboard)/notes/[id]/page.tsx` — full-page editor with metadata sidebar (area, project, goals, topics, notebook, status)
+- Wire notes to areas and projects (select fields in metadata sidebar)
+- Add note count to area and project rollups
+
+**Dependencies:** Step 9 (areas) + Step 11 (projects) for linking. Step 8 (layout) for sidebar nav update.
+
+**Testing:**
+- Create a note with rich text (bold, headings, lists) — content persists on refresh
+- Link a note to an area and project — appears in their detail pages
+- Filter by status — correct results
+- Favorite a note — appears in favorites filter
+- Area rollup now shows note count
+- Editor handles long content without lag (test with 2000+ word note)
+- `pnpm vitest run` passes
+
+**Deliverable:** Notes module live with rich text. Linked into the PARA system.
+
+---
+
+### Step 16: Quick Capture (Cmd+K command palette)
+
+**What:** Build the command palette for universal quick entry.
+
+**Actions:**
+- Create `src/components/layout/command-palette.tsx` — shadcn `Command` component triggered by Cmd+K / Ctrl+K
+- Create `src/lib/hooks/use-keyboard.ts` — global keyboard shortcut listener
+- Command palette modes:
+  - Default: search across all entities (tasks, goals, projects, notes) by name
+  - "Create task: [name]" → creates task inline
+  - "Create note: [name]" → creates note and opens editor
+  - Navigation: type page name to navigate (e.g., "Goals" → navigate to /goals)
+- Wire into dashboard layout (always available on any page)
+- Add to `src/lib/stores/ui.store.ts` — `commandPaletteOpen` state
+
+**Dependencies:** Step 15 (notes must exist for "create note" command). Step 12 (tasks for "create task").
+
+**Testing:**
+- Cmd+K opens palette on macOS, Ctrl+K on Windows
+- Type a task name — matching tasks appear in results
+- Click a result — navigates to the entity
+- "Create task: Call dentist" — creates task with name "Call dentist"
+- Escape closes palette
+- Works on every page in the app
+- Palette closes after action is taken
+
+**Deliverable:** Command palette operational. Fastest way to capture and navigate.
+
+---
+
+### Step 17: Inbox and My Day
+
+**What:** Build the GTD-style inbox processing view and the daily planning view.
+
+**Actions:**
+- Create `src/app/(dashboard)/inbox/page.tsx` — aggregated view of all items with status "inbox" across tasks and notes. Each item shows type badge, name, created date, and action buttons (Assign Area, Set Priority, Move to Status)
+- Inbox processing flow: click an item → inline form to assign area/project/priority/status → item leaves inbox
+- Create `src/app/(dashboard)/my-day/page.tsx` — shows: tasks due today, tasks marked as focus, a "Plan my day" section where users can drag tasks from a sidebar list into today's focus
+- Focus toggle: click star icon on any task to add/remove from My Day
+- My Day resets concept: items are filtered by `due_date = today OR focus = true`, not stored separately
+
+**Dependencies:** Step 14 (dashboard provides the data queries). Step 12 (tasks with focus flag).
+
+**Testing:**
+- Create a task with status "inbox" — appears in Inbox view
+- Process the task (assign area + priority + change status to "todo") — disappears from inbox
+- Create a note with status "inbox" — appears in Inbox view
+- My Day shows tasks due today
+- Toggle focus on a task from tasks page — appears in My Day
+- Remove focus — disappears from My Day
+- Empty states render when inbox is clear / my day is empty
+
+**Deliverable:** Daily workflow complete. Users can process inbox and plan their day.
+
+---
+
+## Phase 4: REST API
+
+> Goal: Every feature available via REST API, ready for the LifeOS Agent (Project 2) to consume. This phase exists because the PRD mandates API parity — if you can do it in the dashboard, you can do it via API.
+
+---
+
+### Step 18: API infrastructure (auth, rate limiting, error handling)
+
+**What:** Build the API middleware layer that all route handlers share.
+
+**Actions:**
+- Create `src/lib/api/auth-guard.ts` — function that extracts user from: (a) Supabase session JWT, or (b) API key from `Authorization: Bearer sk_live_xxx` header. Returns `{ user, error }`.
+- Create `src/lib/api/rate-limiter.ts` — in-memory token bucket per user. Free: 100 req/min, Pro: 500, Premium: 1000. Returns 429 with `Retry-After` header.
+- Create `src/lib/api/error-handler.ts` — `handleApiError(error)` maps Zod/Auth/NotFound/DB errors to standardized JSON responses
+- Create `src/lib/api/pagination.ts` — cursor-based pagination helper: takes `cursor` + `limit` params, returns `{ data, meta: { cursor, has_more } }`
+- Create `src/lib/api/response.ts` — helper functions: `successResponse(data)`, `listResponse(data, meta)`, `errorResponse(code, message)`
+- Add `api_keys` table migration if not already present
+- Add `user_settings` table migration (for timezone, tier info)
+- Add `subscriptions` table migration (for tier enforcement)
+
+**Dependencies:** Step 6 (service layer) + Step 7 (auth).
+
+**Testing:**
+- Write `tests/integration/auth-guard.test.ts`:
+  - Valid JWT → returns user
+  - Invalid JWT → returns 401
+  - Valid API key → returns user
+  - Invalid API key → returns 401
+  - No auth header → returns 401
+- Write `tests/integration/rate-limiter.test.ts`:
+  - Under limit → passes
+  - Over limit → returns 429 with Retry-After
+- `pnpm vitest run` passes
+
+**Deliverable:** API middleware layer complete. Every route handler gets auth + rate limiting + error handling for free.
+
+---
+
+### Step 19: Core CRUD API routes
+
+**What:** REST endpoints for areas, goals, projects, and tasks.
+
+**Actions:**
+- Create route handlers following the pattern:
+  ```
+  /app/api/v1/areas/route.ts          → GET (list), POST (create)
+  /app/api/v1/areas/[id]/route.ts     → GET, PUT, DELETE
+  /app/api/v1/goals/route.ts          → GET, POST
+  /app/api/v1/goals/[id]/route.ts     → GET, PUT, DELETE
+  /app/api/v1/projects/route.ts       → GET, POST
+  /app/api/v1/projects/[id]/route.ts  → GET, PUT, DELETE
+  /app/api/v1/tasks/route.ts          → GET, POST
+  /app/api/v1/tasks/[id]/route.ts     → GET, PUT, DELETE
+  /app/api/v1/tasks/[id]/complete/route.ts → POST
+  /app/api/v1/tasks/bulk/route.ts     → POST (bulk create)
+  ```
+- Every handler: auth guard → Zod validation → service call → standardized response
+- GET list endpoints support: `cursor`, `limit`, `status`, `area_id`, `priority`, `sort_by`, `sort_order` query params
+- POST/PUT return the created/updated entity
+- DELETE returns `{ success: true }`
+
+**Dependencies:** Step 18 (API infrastructure).
+
+**Testing:**
+- Write `tests/integration/tasks.api.test.ts`:
+  - POST /api/v1/tasks → 201 with valid input
+  - POST /api/v1/tasks → 400 with invalid input (empty name)
+  - POST /api/v1/tasks → 401 without auth
+  - GET /api/v1/tasks → 200 with list of user's tasks
+  - GET /api/v1/tasks?status=inbox → filtered results
+  - PUT /api/v1/tasks/:id → 200 with updated task
+  - POST /api/v1/tasks/:id/complete → 200 with completed task
+  - DELETE /api/v1/tasks/:id → 200
+  - POST /api/v1/tasks/bulk → 201 with array of tasks
+- Same test pattern for areas, goals, projects (lighter coverage — same handler pattern)
+- `pnpm vitest run` passes
+
+**Deliverable:** Full REST API for core PARA modules. Agent (Project 2) can now read/write all core data.
+
+---
+
+### Step 20: Dashboard and search API routes
+
+**What:** API endpoints for dashboard aggregation and full-text search.
+
+**Actions:**
+- Create `/app/api/v1/dashboard/today/route.ts` — returns: today's tasks, focus tasks, overdue count, active goals (top 5), stats
+- Create `/app/api/v1/dashboard/summary/route.ts` — returns: total tasks, completed this week, active goals, active projects, streak data
+- Create `/app/api/v1/search/route.ts` — accepts `q` (query string), `types[]` (filter by entity type), `limit`. Uses PostgreSQL `to_tsvector` full-text search across tasks, notes, resources
+- Create `/app/api/v1/notes/route.ts` — GET/POST for notes
+- Create `/app/api/v1/notes/[id]/route.ts` — GET/PUT/DELETE for notes
+
+**Dependencies:** Step 19 (core API routes).
+
+**Testing:**
+- GET /api/v1/dashboard/today → returns correct structure
+- GET /api/v1/search?q=dentist → returns tasks/notes matching "dentist"
+- GET /api/v1/search?q=dentist&types=tasks → returns only matching tasks
+- Search with no results → returns empty array (not error)
+- `pnpm vitest run` passes
+
+**Deliverable:** API is feature-complete for MVP. Agent can query dashboard data and search.
+
+---
+
+## Phase 5: Personal Trackers (MVP Set)
+
+> Goal: Three personal tracker modules to validate the tracker concept. If users adopt these, we build the remaining six.
+
+---
+
+### Step 21: Database schema — tracker tables
+
+**What:** Create migrations for the 3 MVP trackers (Bookmarks, Grocery List, Book Tracker) plus their supporting tables.
+
+**Actions:**
+- Create `supabase/migrations/00014_create_bookmarks.sql` — `bookmarks`, `bookmark_collections`, `bookmark_tags` tables
+- Create `supabase/migrations/00015_create_groceries.sql` — `grocery_items`, `grocery_categories` tables
+- Create `supabase/migrations/00016_create_books.sql` — `books`, `book_notes` tables
+- Add RLS policies, indexes, and `updated_at` triggers for all new tables
+- Run `npx supabase db reset` and regenerate types
+
+**Dependencies:** Step 4 (core schema must exist).
+
+**Testing:**
+- All tables created successfully
+- RLS prevents cross-user access
+- Types regenerated and `tsc --noEmit` passes
+
+**Deliverable:** Tracker database layer ready.
+
+---
+
+### Step 22: Bookmarks tracker
+
+**What:** Full bookmarks module with collections, tags, and favorites.
+
+**Actions:**
+- Create service, hooks, validators, and Zod schemas for bookmarks
+- Create `src/app/(dashboard)/trackers/bookmarks/page.tsx` — list view with columns: name, short URL, kind badge, collections, favorite star, status. Filter tabs: All, Bookmarks, Reading List, Favorites
+- Create bookmark creation dialog — fields: name, URL, kind (Website/Article/Tool), collection (select/create), tags
+- Create collection management (sidebar or dialog)
+- Add API routes: `/api/v1/trackers/bookmarks/route.ts`
+
+**Dependencies:** Step 21 (tracker tables) + Step 8 (sidebar nav — add Trackers section).
+
+**Testing:**
+- Create a bookmark — appears in list
+- Favorite a bookmark — appears in Favorites filter
+- Filter by collection — correct results
+- API: POST /api/v1/trackers/bookmarks → 201
+- API: GET /api/v1/trackers/bookmarks → list with pagination
+
+**Deliverable:** First personal tracker live.
+
+---
+
+### Step 23: Grocery List tracker
+
+**What:** Categorized grocery list with quantity and in-stock toggling.
+
+**Actions:**
+- Create service, hooks, validators for grocery items and categories
+- Create `src/app/(dashboard)/trackers/groceries/page.tsx` — list grouped by category, each item shows: name, quantity, in-stock checkbox. "Add item" inline input at top.
+- In-stock toggle: tap checkbox → item is checked off (stays in list but grayed out)
+- Category management: create/edit categories
+- "Clear checked" button to remove all in-stock items
+- Add API routes
+
+**Dependencies:** Step 21 (tracker tables).
+
+**Testing:**
+- Add item with category — appears under correct category header
+- Toggle in-stock — item grays out
+- Clear checked — checked items removed
+- API endpoints work correctly
+
+**Deliverable:** Second tracker live. Validates the "personal life management" positioning.
+
+---
+
+### Step 24: Book Tracker
+
+**What:** Reading list with status, ratings, and reading notes.
+
+**Actions:**
+- Create service, hooks, validators for books and book notes
+- Create `src/app/(dashboard)/trackers/books/page.tsx` — gallery view of book cards with: title, author, status badge (To Read / Reading / Completed), star rating, cover placeholder
+- Create book detail page (or dialog) with reading notes section
+- Filter tabs: All, To Read, Reading, Completed
+- Star rating component (1–5 stars, clickable)
+- Add API routes
+
+**Dependencies:** Step 21 (tracker tables).
+
+**Testing:**
+- Create a book — appears in gallery
+- Change status to "Reading" — moves to Reading tab
+- Add reading notes — persists
+- Set rating — displays correctly
+- API endpoints work
+
+**Deliverable:** Third tracker live. MVP tracker set complete.
+
+---
+
+## Phase 6: Onboarding and Polish
+
+> Goal: New user experience is smooth, mobile experience is solid, and the app is deployable to production.
+
+---
+
+### Step 25: Onboarding flow
+
+**What:** Guided post-signup experience that creates the user's initial data.
+
+**Actions:**
+- Create `src/app/onboarding/page.tsx` — multi-step wizard:
+  - Step 1: Welcome screen ("Let's set up your LifeOS in 2 minutes")
+  - Step 2: Areas — show default 8, let user toggle on/off or add custom
+  - Step 3: First goal — "What's one goal you're working on?" (name + area + term)
+  - Step 4: First tasks — "What are 2-3 things you need to do for this goal?"
+  - Step 5: Preferences — timezone picker, briefing time, theme confirmation
+  - Step 6: Done — "Your LifeOS is ready!" with button to dashboard
+- Create `src/lib/services/onboarding.service.ts` — orchestrates area seeding, goal creation, task creation, user settings
+- Add `onboarding_complete` flag to `user_settings` — redirect to onboarding if false
+- Update middleware to redirect new users to `/onboarding`
+
+**Dependencies:** Step 9 (areas), Step 10 (goals), Step 12 (tasks), Step 7 (auth).
+
+**Testing:**
+- New signup → redirected to onboarding (not dashboard)
+- Complete all steps → user has areas, a goal, tasks, and user settings
+- Returning user → goes directly to dashboard (not onboarding again)
+- Skip individual steps — partial data saved correctly
+- Mobile responsive (test at 375px)
+
+**Deliverable:** First-run experience is smooth. No empty dashboard for new users.
+
+---
+
+### Step 26: API key management
+
+**What:** Settings page where users create and manage API keys (required for Agent integration).
+
+**Actions:**
+- Create `src/app/(dashboard)/settings/api-keys/page.tsx` — list of API keys with: name, created date, last used, scopes, delete button
+- "Create API Key" dialog — name input + scope checkboxes (read:all, write:tasks, write:notes, etc.)
+- On creation: generate `sk_live_<random>`, hash it, store hash in `api_keys` table, show raw key ONCE in a copy-to-clipboard dialog with warning "This key won't be shown again"
+- Delete key functionality with confirmation dialog
+- Update the auth guard to look up API keys from this table
+
+**Dependencies:** Step 18 (auth guard must support API keys).
+
+**Testing:**
+- Create an API key — raw key shown, copyable
+- Use the key to call `/api/v1/tasks` — returns user's tasks
+- Delete the key — subsequent API calls with that key return 401
+- Scoped key (read-only) rejects POST requests
+
+**Deliverable:** Agent (Project 2) can now authenticate against the API. Critical integration point.
+
+---
+
+### Step 27: Settings page and user preferences
+
+**What:** General settings page with timezone, theme, notification preferences, and account management.
+
+**Actions:**
+- Create `src/app/(dashboard)/settings/page.tsx` — sections:
+  - Profile: name, email (read-only), avatar
+  - Preferences: timezone (select from common list), default theme, language
+  - Notifications: morning briefing time, evening review time (these are read by the Agent)
+  - Account: change password, delete account (with confirmation dialog)
+- Create `src/app/(dashboard)/settings/integrations/page.tsx` — placeholder page showing "Connect WhatsApp" and "Connect Telegram" buttons (these will deep-link to the Agent onboarding when Project 2 is built)
+- Wire settings to `user_settings` table
+
+**Dependencies:** Step 25 (onboarding creates initial settings).
+
+**Testing:**
+- Change timezone — persists on refresh
+- Change theme preference — applies immediately
+- Change password works
+- Delete account: confirmation required, then all user data removed
+
+**Deliverable:** Settings complete. User preferences accessible via API for Agent consumption.
+
+---
+
+### Step 28: Responsive polish and PWA
+
+**What:** Final responsive testing and PWA setup for mobile install.
+
+**Actions:**
+- Audit every page at breakpoints: 375px (iPhone SE), 390px (iPhone 14), 768px (iPad), 1024px (laptop), 1440px (desktop)
+- Fix any overflow, cramped layouts, or touch target issues
+- Create `public/manifest.json` — PWA manifest with app name, icons, theme color, display: standalone
+- Create `public/icons/` — app icons at required sizes (192x192, 512x512)
+- Add `<link rel="manifest">` to root layout
+- Create `src/app/service-worker.ts` (basic offline page)
+- Add `next.config.ts` PWA configuration
+- Test "Add to Home Screen" on iOS Safari and Android Chrome
+
+**Dependencies:** All previous steps (this is a polish pass).
+
+**Testing:**
+- Every page passes the 375px width test (no horizontal scroll)
+- Touch targets are at least 44x44px on mobile
+- PWA installs successfully on iOS and Android
+- Installed PWA opens in standalone mode (no browser chrome)
+- Lighthouse performance score > 90
+
+**Deliverable:** Mobile experience is production-ready. PWA installable.
+
+---
+
+## Phase 7: Deployment and Launch Prep
+
+> Goal: The app is running in production, CI/CD is configured, and the first beta users can sign up.
+
+---
+
+### Step 29: CI/CD pipeline
+
+**What:** GitHub Actions for automated linting, testing, type-checking, and deployment.
+
+**Actions:**
+- Create `.github/workflows/ci.yml`:
+  - Trigger: on PR to `main`
+  - Steps: install deps → `biome check` → `tsc --noEmit` → `vitest run` → report results
+- Create `.github/workflows/deploy.yml`:
+  - Trigger: on push to `main`
+  - Steps: run CI checks → deploy to Vercel via CLI → run Supabase migrations against production
+- Configure Vercel project (connect GitHub repo, set env vars)
+- Configure Supabase production project (separate from local dev)
+- Set all production env vars in Vercel dashboard
+
+**Dependencies:** All previous steps (the app must be buildable).
+
+**Testing:**
+- Push to a PR branch — CI runs, all checks pass
+- Merge to main — deploys to Vercel automatically
+- Visit production URL — app loads, auth works, data persists
+- Supabase production database has all migrations applied
+
+**Deliverable:** Automated deployment pipeline. Merge to main = live in production.
+
+---
+
+### Step 30: Production hardening
+
+**What:** Final security, performance, and monitoring setup before beta.
+
+**Actions:**
+- Configure Sentry: install `@sentry/nextjs`, set up error tracking + performance monitoring
+- Configure PostHog: install `posthog-js`, set up event tracking for key actions (signup, task_created, goal_completed)
+- Add Content Security Policy headers in `next.config.ts`
+- Add rate limiting headers to API responses
+- Run Lighthouse audit — fix any scores below 90
+- Verify all RLS policies in production (attempt cross-user access via API — must fail)
+- Verify API rate limiting works in production
+- Load test: create 100 tasks, 20 projects, 10 goals — dashboard still loads in < 1.5s
+- Write `tests/e2e/onboarding.spec.ts` (Playwright) — full onboarding flow
+- Write `tests/e2e/task-crud.spec.ts` (Playwright) — create, complete, delete task
+- Run E2E tests against production URL
+
+**Dependencies:** Step 29 (must be deployed).
+
+**Testing:**
+- Sentry captures a test error
+- PostHog captures signup and task creation events
+- Lighthouse: Performance > 90, Accessibility > 90, Best Practices > 90
+- E2E tests pass against production
+- No console errors in production
+
+**Deliverable:** Production-ready. Invite beta users.
+
+---
+
+## Phase 8: Post-MVP (Out of Scope for This Roadmap)
+
+These are documented for planning purposes but are NOT built until MVP metrics are validated.
+
+```
+Step 31+: Resources + Topics + Knowledge Hub
+Step 33+: Time Tracker + Pomodoro
+Step 35+: Contacts module
+Step 36+: Archive cross-entity view
+Step 37+: Remaining 6 personal trackers (Movies, Supplements, Wishlist, Orders, Warranties, Passwords)
+Step 40+: Stripe billing integration
+Step 42+: Outbound webhooks system
+Step 43+: Notion CSV import
+Step 44+: Data export (GDPR)
+Step 45+: Semantic search with pgvector
+Step 46+: Supabase Realtime subscriptions (live updates from Agent)
+```
+
+---
+
+## Summary
+
+```
+PHASE    STEPS    WHAT YOU HAVE WHEN DONE
+─────────────────────────────────────────────────────────────────
+1        1–7      Running app with auth, DB schema, service
+                  layer, type safety, and first tests passing
+
+2        8–13     Full PARA system (Areas → Goals → Projects →
+                  Tasks) with smart priority and calendar view
+
+3        14–17    Dashboard, Notes, Command Palette, Inbox,
+                  My Day — complete daily workflow
+
+4        18–20    Full REST API — Agent (Project 2) can now
+                  consume every feature programmatically
+
+5        21–24    3 personal trackers validating the concept
+
+6        25–28    Onboarding, settings, API keys, PWA,
+                  responsive polish
+
+7        29–30    CI/CD, production deployment, monitoring,
+                  E2E tests, beta launch
+
+POST-MVP 31–46    Everything else (billing, remaining trackers,
+                  Knowledge Hub, webhooks, imports)
+```
+
+**Total MVP steps: 30**
+**Estimated timeline: 8–10 weeks for a solo developer, 5–6 weeks for a team of 2–3**
+
+---
+
+*Each step in this roadmap maps directly to the LifeOS Core PRD, Architecture Document, and AI Rules. When building any step, reference all three documents.*
+# LifeOS Core — Product Requirements Document
+
+**Project 1 of 2** · Version 1.0 · April 2026 · Status: Draft
+
+> LifeOS Core is the data platform, API layer, and web dashboard that powers the LifeOS AI life management product. It is the system of record — every piece of user data lives here. The companion project (LifeOS Agent) is the AI assistant that talks to users on WhatsApp/Telegram and writes data into this platform via API.
+
+---
+
+## 1. Product Overview
+
+LifeOS Core is a cloud-based SaaS platform that gives users a single, structured system to manage every domain of their life — work, health, finances, goals, knowledge, and personal tracking.
+
+**What it is:** A relational data platform with a clean web dashboard, built on the PARA methodology (Projects, Areas, Resources, Archive). It exposes a public REST API so that the LifeOS AI Agent (and future clients) can read and write user data programmatically.
+
+**What makes it different from Notion/Todoist/Obsidian:** LifeOS Core is purpose-built, not general-purpose. The data model is pre-designed with relationships baked in (Areas → Goals → Projects → Tasks). Users don't build databases — they just use them. Every entity is interconnected out of the box.
+
+**The bigger picture:** LifeOS Core is the backend brain. Most users will interact with it primarily through the AI assistant on WhatsApp/Telegram (Project 2). The web dashboard is for visualization, planning sessions, and power-user operations. Think of Core as the engine; the Agent is the steering wheel.
+
+---
+
+## 2. Target Users
+
+### Primary: The Overwhelmed Professional
+- Age 25–40, knowledge worker, freelancer, or entrepreneur
+- Juggles 4–7 apps for tasks, notes, goals, habits, and personal tracking
+- Has tried and abandoned Notion, Todoist, or similar tools
+- Wants a system that just works without hours of setup
+- Willing to pay $14–29/month for something that genuinely reduces cognitive load
+
+### Secondary: The Self-Improvement Tracker
+- Age 22–38, focused on personal growth, reading, health, and goal achievement
+- Currently tracks supplements, books, fitness across scattered apps and spreadsheets
+- Loves seeing progress visualized — charts, completion percentages, streaks
+- Values the interconnection between goals and daily actions
+
+### Tertiary: The Practical Organizer
+- Age 30–55, not necessarily tech-savvy
+- Needs help managing groceries, warranties, orders, bookmarks, passwords
+- Would never set up a Notion database, but values an organized digital life
+- Primarily uses the AI assistant; visits the dashboard occasionally
+
+---
+
+## 3. Core Problem Being Solved
+
+**People don't lack productivity tools. They lack a system that connects everything and requires near-zero maintenance.**
+
+Specific problems:
+
+1. **Tool fragmentation.** Tasks in Todoist, notes in Notion, goals in a spreadsheet, bookmarks in the browser, passwords in a text file. No tool sees the full picture.
+
+2. **Setup paralysis.** Powerful tools like Notion require days of template building before they're useful. Most users give up before getting value.
+
+3. **Disconnected data.** A goal like "Advance my career" should surface its linked projects, tasks, notes, and resources automatically. In current tools, users manually maintain these connections — and stop doing so within weeks.
+
+4. **No API for AI.** The next generation of productivity is AI-assisted. But AI assistants need structured, queryable data to be useful. Notion doesn't expose a user-friendly API for this purpose. LifeOS Core is designed API-first specifically so the AI Agent can read and write user data reliably.
+
+---
+
+## 4. Core Features (Must-Have Only)
+
+These are MVP features. Nothing else ships until these work flawlessly.
+
+### 4.1 Authentication & User Management
+- Email/password signup + Google OAuth
+- JWT sessions with refresh tokens
+- User settings: timezone, theme (light/dark), notification preferences
+- 14-day free trial of Pro tier, no credit card required
+
+### 4.2 Areas (Life Domains)
+- Pre-populated defaults: Work, Health, Finances, Personal Growth, Family & Friends, Home, Travel, Career
+- Each area shows rollup counts: X goals, Y projects, Z tasks
+- Users can add custom areas, archive inactive ones
+- Gallery and list views
+
+### 4.3 Goals
+- Linked to an area
+- Timeframe: short term (< 3 months), mid term (3–12 months), long term (> 1 year)
+- Priority: high, medium, low
+- Completion percentage: auto-calculated from linked projects and tasks
+- Views: active, by term, inactive, completed
+
+### 4.4 Projects
+- Linked to an area and optionally to goals
+- Status: inbox → in progress → completed → archive
+- Progress: auto-calculated from task completion (done / total)
+- Views: all, inbox, in progress, by area, by status, archive
+- Due dates with days-left indicator
+
+### 4.5 Tasks
+- The atomic unit of work. Most complex module.
+- Linked to area, project, and/or goals
+- Priority: high, medium, low
+- Status: inbox → to do → in progress → done
+- Focus flag: marks task for today's focus
+- Smart priority: computed score (1–5) based on due date proximity (30%), user priority (25%), goal alignment (25%), urgency/importance (20%)
+- Repeat cycle: none, daily, weekly, monthly
+- Views: all, inbox, upcoming, overdue, completed, smart priority, focus view, calendar
+- Inline editing, checkbox completion, keyboard shortcuts
+
+### 4.6 Notes
+- Rich text (Markdown) with a Tiptap-based editor
+- Linked to areas, projects, goals, topics
+- Related notes: bidirectional linking
+- Notebooks for grouping (e.g., Recipes, Stock Investing)
+- Status: inbox → to review → active → archive
+
+### 4.7 Resources
+- External references: articles, websites, videos, tools
+- URL field with clickable link
+- Status pipeline: inbox → to review → saved → favorites → archive
+- Linked to areas, projects, goals, topics
+
+### 4.8 Topics
+- Lightweight tagging system
+- Links to areas, notes, and resources
+- Used by the Knowledge Hub for discovery
+
+### 4.9 Knowledge Hub
+- Not a separate database — a unified search/browse interface
+- Queries notes + resources + topics simultaneously
+- Full-text search, filter by type/status/topic/area
+- Pinned items at top
+
+### 4.10 System Modules
+- **Inbox:** aggregates all items with status "inbox" across tasks, notes, resources. GTD-style processing.
+- **My Day:** today's tasks + focus items + daily planning. Resets each morning.
+- **Quick Capture:** Cmd/Ctrl+K command palette. Type naturally → routed to correct database. Manual fallback.
+- **Time Tracker:** Pomodoro timer + manual entry, linked to tasks/projects.
+- **Archive:** cross-database view of all archived items.
+- **Contacts:** basic personal CRM with name, relationship type, phone, email, notes.
+
+### 4.11 Personal Trackers
+- **Bookmarks:** collections, tags, favorites, reading list status
+- **Book Tracker:** title, author, status (to read / reading / completed), rating, reading notes
+- **Movie Tracker:** title, rating, genre, type (movie/series), status (to watch / watching / watched)
+- **Supplement Tracker:** inventory (name, dosage, stock, expiry) + daily intake log
+- **Grocery List:** items by category, quantity, in-stock toggle
+- **Shopping Wishlist:** name, price, priority, URL
+- **Order Tracker:** linked to stores, with dates and delivery status
+- **Warranty Tracker:** product, store, purchase date, expiry date, document attachment
+- **Password Manager:** client-side AES-256-GCM encryption, master password, web dashboard only (excluded from AI Agent)
+
+### 4.12 Public REST API
+- Every feature accessible via API (consumed by LifeOS Agent + future clients)
+- JWT auth for dashboard, API key auth for external clients
+- Scoped permissions per API key
+- Rate limiting: 100 req/min (free), 1000 req/min (paid)
+- Outbound webhooks on entity changes (task.created, goal.milestone_reached, etc.)
+- Cursor-based pagination, idempotency keys
+
+### 4.13 Billing
+- Stripe integration: checkout, customer portal, usage tracking
+- Three tiers: Free, Pro ($14/mo), Premium ($29/mo)
+- Tier enforcement at API layer
+
+---
+
+## 5. Non-Goals (What This App Will NOT Do)
+
+Being clear about what we're NOT building is just as important as what we are.
+
+| Non-Goal | Reason |
+|----------|--------|
+| AI processing (voice, image, NLP, routing) | That's LifeOS Agent (Project 2). Core is the data platform, not the AI brain. |
+| WhatsApp/Telegram integration | Channel integrations belong to the Agent. Core exposes the API; Agent consumes it. |
+| Habit tracking with streaks | Overcomplicates MVP. Can be added as a Phase 2 tracker. Goals and tasks cover most habit use cases. |
+| Calendar sync (Google/Outlook) | Tempting but complex. MVP uses its own calendar view. Third-party sync is a Phase 3 integration. |
+| Collaboration / shared workspaces | Single-user product at launch. Team features are a separate tier for later. |
+| Native mobile app | Responsive web + PWA first. React Native only if PWA proves insufficient after launch data. |
+| AI-generated content or suggestions | Core provides data. Agent provides intelligence. Clean separation. |
+| Social features (sharing, public profiles) | Not relevant to the product vision. This is a personal tool. |
+| Finance tracking with bank connections | Too much regulatory complexity. The Finances area tracks goals and tasks, not bank transactions. |
+| Custom database creation (Notion-style) | The entire value prop is that the databases are pre-designed. Users don't build schema — they use it. |
+
+---
+
+## 6. User Experience Principles
+
+### 6.1 Speed is a feature
+Every interaction must feel instant. Dashboard loads in < 1.5s. Task creation in < 500ms. Search results in < 300ms. If it feels slow, users will go back to their scattered tools.
+
+### 6.2 Progressive disclosure
+Show the core (Dashboard, Tasks, Goals) by default. Personal trackers are tucked in a sidebar section. Advanced views (Smart Priority, Timeline) are discoverable but not in your face. New users should feel clarity, not overwhelm.
+
+### 6.3 Keyboard-first, mouse-friendly
+Power users live on the keyboard: Cmd+K for quick capture, arrow keys to navigate, Enter to complete. But every action must also work with a mouse/touch for mobile users.
+
+### 6.4 No empty states
+Every new account starts with pre-populated areas (Work, Health, etc.) and a guided onboarding that creates the user's first goal and task through conversation — not a blank screen with a "+" button.
+
+### 6.5 Dark mode by default
+The target audience uses their tools late at night. Dark mode is the default; light mode is the toggle.
+
+### 6.6 API parity
+If you can do it in the dashboard, you can do it via API. No dashboard-only features. This ensures the AI Agent has full capability.
+
+---
+
+## 7. Monetization Ideas
+
+### Pricing Model: Freemium with usage-based gating
+
+| Feature | Free | Pro ($14/mo) | Premium ($29/mo) |
+|---------|------|--------------|-------------------|
+| Active tasks | 50 | 500 | Unlimited |
+| Personal trackers | 3 modules | All | All |
+| Web dashboard | Read-only* | Full | Full |
+| File storage | 100 MB | 5 GB | 25 GB |
+| API access (for Agent) | No | No | Yes |
+| Data export | No | Yes | Yes |
+| Priority support | No | Email | Priority + onboarding call |
+
+*Free tier dashboard is read-only for items created via AI Agent. Users can still create items manually in the 3 enabled trackers.
+
+### Why this works:
+- **Free tier is generous enough to hook users** but limited enough that active users hit the wall within 2–3 weeks.
+- **Pro is the real product.** Most users will land here. $14/mo is priced below Notion's team plan and above Todoist's pro tier — right in the sweet spot.
+- **Premium exists for power users and API consumers.** The $29 tier also unlocks API access, which is required for the AI Agent integration (Project 2). This means the full LifeOS experience (Core + Agent) costs $29/mo — positioning it as a premium personal AI assistant.
+
+### Revenue targets (conservative, 5% conversion):
+| Month | MAU | Paid Users | MRR |
+|-------|-----|-----------|-----|
+| 6 | 10,000 | 500 | $8,500 |
+| 12 | 25,000 | 1,250 | $21,250 |
+| 24 | 100,000 | 8,000 | $136,000 |
+
+---
+
+## 8. MVP Version Only
+
+**The MVP is not all 10 sections above.** This is what ships first — the minimum viable version that validates the core hypothesis: *"Users will adopt a pre-structured, interconnected life management platform over general-purpose tools."*
+
+### MVP Scope (8 weeks)
+
+**Week 1–2: Foundation**
+- Supabase: database schema (core tables only: areas, goals, projects, tasks), RLS policies, auth
+- Next.js scaffold: Tailwind, shadcn/ui, layouts, dark mode toggle
+- Auth: signup, login, Google OAuth, password reset
+
+**Week 3–4: Core PARA**
+- Areas: gallery view, detail page, CRUD
+- Goals: card view, progress bars, term filtering, CRUD
+- Projects: list + kanban views, progress rollup, CRUD
+- Tasks: full list view with inline editing, priority badges, checkbox completion, basic filtering (status, priority)
+
+**Week 5–6: Minimum viable workflow**
+- Dashboard: today's tasks, active goals widget, recent activity
+- Quick Capture: Cmd+K palette → create task or note
+- Inbox: aggregated inbox view with process-to-status workflow
+- My Day: today's tasks + focus items
+- Notes: basic editor (Tiptap), linked to areas/projects
+
+**Week 7–8: API + polish**
+- REST API: full CRUD on all entities, JWT + API key auth
+- 3 personal trackers (Bookmarks, Grocery List, Book Tracker) — enough to validate the tracker concept
+- Onboarding flow: guided setup creating first areas, goal, and task
+- Responsive mobile testing + PWA manifest
+- Deploy to Vercel + Supabase Cloud
+
+### What is NOT in the MVP:
+- Resources, Topics, Knowledge Hub (Week 9–10)
+- Time Tracker, Contacts, Archive (Week 11–12)
+- Remaining 6 personal trackers (Week 13–15)
+- Billing/Stripe (Week 16)
+- Semantic search, webhooks, data export (Week 17–18)
+
+### MVP success = all of these are true:
+1. A user can sign up, see pre-populated areas, create a goal with tasks, and track progress to completion
+2. The REST API can create and query every MVP entity (tested by mocking what the Agent will do)
+3. Dashboard loads in < 1.5s with 100 tasks in the database
+4. At least 3 beta users say "I would use this instead of my current tool" in feedback
+
+---
+
+## 9. Success Metrics
+
+### Activation Metrics (are users getting value?)
+| Metric | Target | How Measured |
+|--------|--------|-------------|
+| Signup → first task created | > 80% within 5 min | Event tracking |
+| Signup → dashboard revisit within 48h | > 60% | Session analytics |
+| Areas customized (added/renamed) | > 40% of users | Database query |
+| At least 1 goal created | > 50% in first week | Database query |
+
+### Engagement Metrics (are users sticking?)
+| Metric | Target | How Measured |
+|--------|--------|-------------|
+| DAU/MAU ratio | > 30% (month 6) | Analytics |
+| Avg. tasks created per active user per week | > 8 | Database query |
+| Avg. session duration | > 6 min | Analytics |
+| 7-day retention | > 45% | Cohort analysis |
+| 30-day retention | > 30% | Cohort analysis |
+
+### API Metrics (is the platform ready for the Agent?)
+| Metric | Target | How Measured |
+|--------|--------|-------------|
+| API response time (p95) | < 200ms | Server monitoring |
+| API availability | > 99.9% | Uptime monitoring |
+| API coverage | 100% feature parity with dashboard | Manual audit |
+| External API keys created | > 100 (beta) | Database count |
+
+### Business Metrics (is this a business?)
+| Metric | Target (Month 6) | Target (Month 12) |
+|--------|-------------------|-------------------|
+| MAU | 10,000 | 25,000 |
+| Free → paid conversion | 5% | 7% |
+| Monthly churn (paid) | < 8% | < 5% |
+| MRR | $8,500 | $21,250 |
+| NPS | > 40 | > 55 |
+
+---
+
+## 10. Risks / Challenges
+
+### Risk 1: "It's just another Notion"
+**Likelihood: High.** Every productivity app gets compared to Notion.
+**Mitigation:** The positioning is "pre-structured system" vs Notion's "build your own." Marketing must hammer this: "You don't build LifeOS. You just use it." The AI Agent (Project 2) is the real differentiator — no Notion equivalent exists.
+
+### Risk 2: Feature scope creep from 25+ modules
+**Likelihood: High.** The temptation to build everything before launching is strong.
+**Mitigation:** Ruthless MVP scoping. Only 4 core modules + 3 trackers in the MVP. Everything else waits. Weekly scope reviews. If it doesn't serve the core hypothesis, it doesn't ship.
+
+### Risk 3: Users don't visit the web dashboard (Agent handles everything)
+**Likelihood: Medium.** If the AI Agent is good, users may rarely open the dashboard.
+**Mitigation:** This is actually fine — the dashboard's job is to exist for deep planning and visualization. If usage is low but the API is heavily consumed by the Agent, that validates the platform model. Dashboard engagement is a vanity metric; API consumption is the real signal.
+
+### Risk 4: Database schema locks us in
+**Likelihood: Medium.** Pre-designed databases are the value prop, but also a constraint. Users will want custom fields.
+**Mitigation:** Add a `metadata JSONB` column to every table from day one. Users (and the Agent) can store custom key-value pairs without schema changes. Custom fields UI is a Phase 2 feature.
+
+### Risk 5: Performance at scale
+**Likelihood: Low-Medium.** PostgreSQL with proper indexing handles 100k users comfortably, but complex relational queries (goal → projects → tasks → areas with rollup counts) can slow down.
+**Mitigation:** Materialized views for rollup counts. Aggressive caching with React Query (stale-while-revalidate). Database indexing on user_id + status + due_date for every table. Performance budget: alert if any endpoint exceeds 200ms p95.
+
+### Risk 6: Competitors add AI features
+**Likelihood: High.** Notion, Todoist, and Obsidian are all adding AI.
+**Mitigation:** Their AI is bolted on top of general-purpose tools. LifeOS is designed AI-first — the data model, the API, and the relationship structure are all built for an AI to consume efficiently. A general-purpose tool adding AI is like a sedan adding a tow hitch. LifeOS is the truck.
+
+### Risk 7: Password Manager liability
+**Likelihood: Low but high impact.** If encryption is compromised, trust is destroyed.
+**Mitigation:** Client-side encryption only — server never sees plaintext. Clear disclaimers: "This is a convenience feature, not a replacement for 1Password or Bitwarden." Consider removing from MVP entirely and adding in Phase 2 after security audit.
+
+---
+
+## Appendix: Tech Stack Summary
+
+| Layer | Choice |
+|-------|--------|
+| Frontend | Next.js 14 (App Router) + React 18 |
+| Styling | Tailwind CSS + shadcn/ui |
+| State | Zustand (client) + TanStack Query (server) |
+| Backend | Supabase (PostgreSQL + Auth + Storage + Edge Functions) |
+| Hosting | Vercel (frontend) + Supabase Cloud (backend) |
+| Billing | Stripe |
+| Email | Resend |
+| Analytics | PostHog |
+| Monitoring | Sentry |
+
+---
+
+*This PRD covers LifeOS Core (Project 1 of 2). For the AI assistant layer including WhatsApp/Telegram integration, voice processing, and OpenClaw agent orchestration, see the LifeOS Agent PRD (Project 2 of 2).*

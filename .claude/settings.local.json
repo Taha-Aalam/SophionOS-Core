@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install *)",
+      "Bash(export PATH=\"$PATH:/C/Users/tahaa/AppData/Roaming/Python/Python314/Scripts\")",
+      "Bash(semgrep --version)",
+      "Bash(claude mcp *)",
+      "Bash(python *)",
+      "Bash(mcp add *)",
+      "Bash(npm install *)",
+      "Bash(npx skills *)",
+      "Bash(npx create-next-app@latest *)",
+      "Bash(mv temp-app/* .)",
+      "Bash(mv temp-app/.[^.]* .)",
+      "Bash(pnpm add *)",
+      "Bash(pnpm install *)",
+      "Bash(pnpm biome *)",
+      "Bash(pnpm tsc *)",
+      "Bash(pnpm next *)",
+      "Bash(npx shadcn@latest *)"
+    ]
+  }
+}
