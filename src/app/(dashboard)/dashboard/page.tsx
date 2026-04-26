@@ -1,68 +1,73 @@
-import Link from "next/link";
-import { ArrowRight, CheckSquare, FolderKanban, Map, Target } from "lucide-react";
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-const dashboardDestinations = [
-  {
-    description: "Review the restored default areas and make sure your life domains feel right.",
-    href: "/areas",
-    icon: Map,
-    title: "Areas",
-  },
-  {
-    description: "Project pages are back in the shell and ready for the later restoration batches.",
-    href: "/projects",
-    icon: FolderKanban,
-    title: "Projects",
-  },
-  {
-    description: "Task views remain available without pulling deeper feature work into Batch C.",
-    href: "/tasks",
-    icon: CheckSquare,
-    title: "Tasks",
-  },
-  {
-    description: "Goal routes stay reachable while the richer goal restoration waits for Batch E.",
-    href: "/goals",
-    icon: Target,
-    title: "Goals",
-  },
-];
+import { useAuth } from "@/components/providers/auth-provider";
+import { useDashboardToday } from "@/lib/hooks/use-dashboard";
+import { GreetingBar } from "@/components/dashboard/greeting-bar";
+import { TodayTasksList } from "@/components/dashboard/today-tasks-list";
+import { ActiveGoalsWidget } from "@/components/dashboard/active-goals-widget";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import {
+  GreetingBarSkeleton,
+  TaskListSkeleton,
+  ActiveGoalsSkeleton,
+  ActivityFeedSkeleton,
+} from "@/components/dashboard/dashboard-skeletons";
 
 export default function DashboardPage() {
-  return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">LifeOS Dashboard</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Batch C keeps the app shell trustworthy: auth is stable, navigation is consistent, and
-          the dashboard now serves as a clean launch point instead of pretending deeper features
-          are fully restored.
-        </p>
-      </div>
+  const { user } = useAuth();
+  const data = useDashboardToday();
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {dashboardDestinations.map((destination) => (
-          <Link href={destination.href} key={destination.href}>
-            <Card className="h-full transition-colors hover:border-primary/60 hover:bg-muted/30">
-              <CardHeader className="space-y-3">
-                <destination.icon className="size-5 text-primary" />
-                <div className="space-y-1">
-                  <CardTitle className="flex items-center justify-between text-base">
-                    <span>{destination.title}</span>
-                    <ArrowRight className="size-4 text-muted-foreground" />
-                  </CardTitle>
-                  <CardDescription>{destination.description}</CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Open {destination.title.toLowerCase()}.
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+  // When a task mutation fires (complete/focus/update), invalidateTaskGraph
+  // in use-tasks.ts invalidates the DASHBOARD_QUERY_KEY, so this query refetches.
+
+  if (!data) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-8">
+        <GreetingBarSkeleton />
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Today&apos;s Tasks</h2>
+          <TaskListSkeleton />
+        </section>
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Active Goals</h2>
+          <ActiveGoalsSkeleton />
+        </section>
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Recent Activity</h2>
+          <ActivityFeedSkeleton />
+        </section>
       </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-8 px-4 py-8">
+      <GreetingBar
+        userName={user?.user_metadata?.full_name}
+        tasksTodayCount={data.tasksTodayCount}
+        stats={data.stats}
+      />
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Today&apos;s Tasks</h2>
+        </div>
+        <TodayTasksList tasks={data.todayTasks} />
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Active Goals</h2>
+        </div>
+        <ActiveGoalsWidget goals={data.activeGoals} />
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Recent Activity</h2>
+        </div>
+        <ActivityFeed items={data.recentActivity} />
+      </section>
     </div>
   );
 }
