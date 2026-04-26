@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Map,
   NotebookPen,
+  Sun,
   Target,
 } from "lucide-react";
 
@@ -18,8 +19,8 @@ const coreNavItems = [
 ] as const;
 
 const systemNavItems = [
-  { href: "/inbox", label: "Inbox", icon: Inbox, comingSoon: true },
-  { href: "/my-day", label: "My Day", icon: CheckSquare, comingSoon: true },
+  { href: "/inbox", label: "Inbox", icon: Inbox },
+  { href: "/my-day", label: "My Day", icon: Sun },
 ] as const;
 
 const breadcrumbLabels: Record<string, string> = {
@@ -27,7 +28,9 @@ const breadcrumbLabels: Record<string, string> = {
   dashboard: "Dashboard",
   "forgot-password": "Forgot Password",
   goals: "Goals",
+  inbox: "Inbox",
   login: "Login",
+  "my-day": "My Day",
   notes: "Notes",
   projects: "Projects",
   "reset-password": "Reset Password",
