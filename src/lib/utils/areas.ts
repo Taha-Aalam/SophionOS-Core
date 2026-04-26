@@ -1,4 +1,4 @@
-import type { Area, Goal, Project, Task } from "@/lib/types/domain.types";
+import type { Area, Goal, Note, Project, Task } from "@/lib/types/domain.types";
 
 export type AreaStatus = "active" | "inactive" | "archived";
 
@@ -11,6 +11,7 @@ export interface AreaRollups {
   goalsCount: number;
   projectsCount: number;
   tasksCount: number;
+  notesCount: number;
 }
 
 export function normalizeAreaType(type: string | null | undefined): string {
@@ -73,8 +74,9 @@ export function getAreaRollups(params: {
   goals: Goal[];
   projects: Project[];
   tasks: Task[];
+  notes?: Note[];
 }): AreaRollups {
-  const { areaId, goals, projects, tasks } = params;
+  const { areaId, goals, projects, tasks, notes = [] } = params;
 
   return {
     goalsCount: goals.filter((goal) => goal.area_id === areaId && !goal.is_archived).length,
@@ -83,5 +85,6 @@ export function getAreaRollups(params: {
     tasksCount: tasks.filter(
       (task) => task.area_id === areaId && !task.is_archived && !task.is_completed,
     ).length,
+    notesCount: notes.filter((note) => note.area_id === areaId && !note.is_archived).length,
   };
 }

@@ -134,6 +134,59 @@ export type Database = {
           task_id?: string;
         };
       };
+      notes: {
+        Row: {
+          id: string;
+          user_id: string;
+          area_id: string | null;
+          project_id: string | null;
+          name: string;
+          content: string | null;
+          type: Database["public"]["Enums"]["note_type"];
+          status: Database["public"]["Enums"]["note_status"];
+          notebook: string | null;
+          favorite: boolean;
+          pin: boolean;
+          is_archived: boolean;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          area_id?: string | null;
+          project_id?: string | null;
+          name: string;
+          content?: string | null;
+          type?: Database["public"]["Enums"]["note_type"];
+          status?: Database["public"]["Enums"]["note_status"];
+          notebook?: string | null;
+          favorite?: boolean;
+          pin?: boolean;
+          is_archived?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          area_id?: string | null;
+          project_id?: string | null;
+          name?: string;
+          content?: string | null;
+          type?: Database["public"]["Enums"]["note_type"];
+          status?: Database["public"]["Enums"]["note_status"];
+          notebook?: string | null;
+          favorite?: boolean;
+          pin?: boolean;
+          is_archived?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       projects: {
         Row: {
           id: string;
@@ -252,6 +305,8 @@ export type Database = {
     };
     Enums: {
       goal_term: "short" | "mid" | "long";
+      note_status: "inbox" | "to_review" | "active" | "archive";
+      note_type: "note" | "research" | "journal";
       priority: "low" | "medium" | "high" | "urgent";
       project_status: "planning" | "active" | "completed" | "on_hold" | "archived";
       task_status: "inbox" | "todo" | "in_progress" | "completed" | "archived";

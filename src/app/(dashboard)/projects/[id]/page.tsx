@@ -9,6 +9,7 @@ import {
   CheckSquare,
   Edit,
   Link as LinkIcon,
+  NotebookPen,
   Plus,
   Target,
   Trash2,
@@ -31,6 +32,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
+import { useNotesByProject } from "@/lib/hooks/use-notes";
 import {
   useDeleteProject,
   useLinkProjectToGoal,
@@ -68,6 +70,7 @@ export default function ProjectDetailPage() {
   const { data: areas = [] } = useAreas();
   const { data: goals = [] } = useGoals({ status: "all" });
   const { data: tasks = [], isLoading: isLoadingTasks } = useTasks();
+  const { data: linkedNotes = [], isLoading: isLoadingNotes } = useNotesByProject(projectId);
 
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
@@ -342,16 +345,53 @@ export default function ProjectDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookText className="size-4" />
-            Notes
-          </CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2">
+              <BookText className="size-4" />
+              Linked Notes
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/notes?project=${projectId}`)}
+            >
+              <NotebookPen className="mr-1 size-3" />
+              View All
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Notes are not restored as part of Batch F. This placeholder is intentional until the
-            later Notes phase is resumed.
-          </p>
+          {isLoadingNotes ? (
+            <div className="space-y-2">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full" />
+              ))}
+            </div>
+          ) : linkedNotes.length === 0 ? (
+            <p className="py-4 text-sm text-muted-foreground">
+              No notes linked to this project yet. Open a note and set this project in its metadata sidebar.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {linkedNotes.map((note) => (
+                <button
+                  key={note.id}
+                  type="button"
+                  onClick={() => router.push(`/notes/${note.id}`)}
+                  className="flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/40"
+                >
+                  <NotebookPen className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{note.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {note.status.replace("_", " ")}
+                      {note.notebook ? ` · ${note.notebook}` : ""}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

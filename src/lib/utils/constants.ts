@@ -45,3 +45,20 @@ export const AREA_TYPE = {
 } as const;
 
 export type AreaType = typeof AREA_TYPE[keyof typeof AREA_TYPE];
+
+export const NOTE_STATUS = {
+  INBOX: 'inbox',
+  TO_REVIEW: 'to_review',
+  ACTIVE: 'active',
+  ARCHIVE: 'archive',
+} as const;
+
+export type NoteStatus = typeof NOTE_STATUS[keyof typeof NOTE_STATUS];
+
+export const NOTE_TYPE = {
+  NOTE: 'note',
+  RESEARCH: 'research',
+  JOURNAL: 'journal',
+} as const;
+
+export type NoteType = typeof NOTE_TYPE[keyof typeof NOTE_TYPE];
