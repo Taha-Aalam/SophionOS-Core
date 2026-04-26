@@ -5,7 +5,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { AREAS_QUERY_KEY } from "@/lib/hooks/use-areas";
 import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
-
+import { DASHBOARD_QUERY_KEY } from "@/lib/services/dashboard.service";
 import { taskService } from "../services/task.service";
 import { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
 
@@ -17,6 +17,7 @@ function invalidateTaskGraph(queryClient: ReturnType<typeof useQueryClient>): Pr
     queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [DASHBOARD_QUERY_KEY] }),
   ]);
 }
 
