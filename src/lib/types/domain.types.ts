@@ -9,6 +9,8 @@ export interface Area extends Omit<DatabaseTable<"areas">, "is_archived"> {}
 
 export interface Goal extends DatabaseTable<"goals"> {}
 
+export interface Note extends DatabaseTable<"notes"> {}
+
 export interface Project extends DatabaseTable<"projects"> {}
 
 export interface Task extends DatabaseTable<"tasks"> {}
@@ -24,6 +26,10 @@ export interface AreaUpdate extends Omit<DatabaseUpdate<"areas">, "is_archived">
 export interface GoalInsert extends DatabaseInsert<"goals"> {}
 
 export interface GoalUpdate extends DatabaseUpdate<"goals"> {}
+
+export interface NoteInsert extends DatabaseInsert<"notes"> {}
+
+export interface NoteUpdate extends DatabaseUpdate<"notes"> {}
 
 export interface ProjectInsert extends DatabaseInsert<"projects"> {}
 
@@ -96,3 +102,18 @@ export interface CreateTaskInput {
 export interface UpdateTaskInput extends Partial<CreateTaskInput> {
   completed_at?: string | null;
 }
+
+export interface CreateNoteInput {
+  area_id?: string | null;
+  project_id?: string | null;
+  name: string;
+  content?: string | null;
+  type?: Note["type"];
+  status?: Note["status"];
+  notebook?: string | null;
+  favorite?: boolean;
+  pin?: boolean;
+  is_archived?: boolean;
+}
+
+export interface UpdateNoteInput extends Partial<CreateNoteInput> {}

@@ -8,12 +8,14 @@ import {
   CheckSquare,
   Edit2,
   FolderKanban,
+  NotebookPen,
   RotateCcw,
   Target,
 } from "lucide-react";
 
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useArea, useArchiveArea, useRestoreArea } from "@/lib/hooks/use-areas";
+import { useNotesByArea } from "@/lib/hooks/use-notes";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -51,6 +53,7 @@ export default function AreaDetailPage() {
   });
   const { data: projects = [], isLoading: projectsLoading } = useProjects({ status: "all" });
   const { data: tasks = [], isLoading: tasksLoading } = useTasks();
+  const { data: notes = [], isLoading: notesLoading } = useNotesByArea(area?.id ?? "");
 
   useEffect(() => {
     if (area) {
@@ -96,11 +99,13 @@ export default function AreaDetailPage() {
   const openTasks = tasks.filter(
     (task) => task.area_id === area.id && !task.is_archived && !task.is_completed,
   );
+  const linkedNotes = notes.filter((note) => !note.is_archived);
   const rollups = getAreaRollups({
     areaId: area.id,
     goals: linkedGoals,
     projects: linkedProjects,
     tasks: openTasks,
+    notes: linkedNotes,
   });
   const areaType = normalizeAreaType(area.type);
 
@@ -179,7 +184,7 @@ export default function AreaDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3 mb-6">
+      <div className="grid gap-4 sm:grid-cols-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -214,6 +219,18 @@ export default function AreaDetailPage() {
           <CardContent>
             <p className="text-2xl font-bold">{rollups.tasksCount}</p>
             <p className="text-xs text-muted-foreground">Open tasks</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <NotebookPen className="size-4 text-muted-foreground" />
+              Notes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{rollups.notesCount}</p>
+            <p className="text-xs text-muted-foreground">Linked notes</p>
           </CardContent>
         </Card>
       </div>
@@ -313,6 +330,39 @@ export default function AreaDetailPage() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <h2 className="text-lg font-semibold">Linked Notes</h2>
+        <Card>
+          <CardContent className="py-4">
+            {notesLoading ? (
+              <div className="h-24 rounded-xl bg-muted animate-pulse" />
+            ) : linkedNotes.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No notes linked to this area yet
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {linkedNotes.map((note) => (
+                  <button
+                    key={note.id}
+                    type="button"
+                    onClick={() => router.push(`/notes/${note.id}`)}
+                    className="flex w-full items-start gap-3 rounded-lg border border-border/60 px-4 py-3 text-left transition-colors hover:bg-accent/30"
+                  >
+                    <NotebookPen className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{note.name}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                        <span>{note.status.replace("_", " ")}</span>
+                        {note.notebook && <span>{note.notebook}</span>}
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </div>
             )}
           </CardContent>
