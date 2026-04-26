@@ -1,0 +1,277 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
+export type Database = {
+  public: {
+    Tables: {
+      areas: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          description: string | null;
+          icon: string | null;
+          color: string | null;
+          type: string;
+          metadata: Json;
+          is_archived: boolean | null;
+          inactive: boolean;
+          archive: boolean;
+          slug: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          description?: string | null;
+          icon?: string | null;
+          color?: string | null;
+          type?: string;
+          metadata?: Json;
+          is_archived?: boolean | null;
+          inactive?: boolean;
+          archive?: boolean;
+          slug: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          description?: string | null;
+          icon?: string | null;
+          color?: string | null;
+          type?: string;
+          metadata?: Json;
+          is_archived?: boolean | null;
+          inactive?: boolean;
+          archive?: boolean;
+          slug?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      goals: {
+        Row: {
+          id: string;
+          user_id: string;
+          area_id: string | null;
+          name: string;
+          description: string | null;
+          term: Database["public"]["Enums"]["goal_term"];
+          priority: Database["public"]["Enums"]["priority"];
+          target_date: string | null;
+          progress: number;
+          is_completed: boolean;
+          is_archived: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          area_id?: string | null;
+          name: string;
+          description?: string | null;
+          term: Database["public"]["Enums"]["goal_term"];
+          priority?: Database["public"]["Enums"]["priority"];
+          target_date?: string | null;
+          progress?: number;
+          is_completed?: boolean;
+          is_archived?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          area_id?: string | null;
+          name?: string;
+          description?: string | null;
+          term?: Database["public"]["Enums"]["goal_term"];
+          priority?: Database["public"]["Enums"]["priority"];
+          target_date?: string | null;
+          progress?: number;
+          is_completed?: boolean;
+          is_archived?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      goal_projects: {
+        Row: {
+          goal_id: string;
+          project_id: string;
+        };
+        Insert: {
+          goal_id: string;
+          project_id: string;
+        };
+        Update: {
+          goal_id?: string;
+          project_id?: string;
+        };
+      };
+      goal_tasks: {
+        Row: {
+          goal_id: string;
+          task_id: string;
+        };
+        Insert: {
+          goal_id: string;
+          task_id: string;
+        };
+        Update: {
+          goal_id?: string;
+          task_id?: string;
+        };
+      };
+      projects: {
+        Row: {
+          id: string;
+          user_id: string;
+          area_id: string | null;
+          name: string;
+          description: string | null;
+          status: Database["public"]["Enums"]["project_status"];
+          priority: Database["public"]["Enums"]["priority"];
+          start_date: string | null;
+          due_date: string | null;
+          progress: number;
+          is_archived: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          area_id?: string | null;
+          name: string;
+          description?: string | null;
+          status?: Database["public"]["Enums"]["project_status"];
+          priority?: Database["public"]["Enums"]["priority"];
+          start_date?: string | null;
+          due_date?: string | null;
+          progress?: number;
+          is_archived?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          area_id?: string | null;
+          name?: string;
+          description?: string | null;
+          status?: Database["public"]["Enums"]["project_status"];
+          priority?: Database["public"]["Enums"]["priority"];
+          start_date?: string | null;
+          due_date?: string | null;
+          progress?: number;
+          is_archived?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      tasks: {
+        Row: {
+          id: string;
+          user_id: string;
+          area_id: string | null;
+          project_id: string | null;
+          name: string;
+          description: string | null;
+          status: Database["public"]["Enums"]["task_status"];
+          priority: Database["public"]["Enums"]["priority"];
+          due_date: string | null;
+          is_completed: boolean;
+          is_focused: boolean;
+          is_important: boolean;
+          is_urgent: boolean;
+          completed_at: string | null;
+          smart_priority: number;
+          is_archived: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          area_id?: string | null;
+          project_id?: string | null;
+          name: string;
+          description?: string | null;
+          status?: Database["public"]["Enums"]["task_status"];
+          priority?: Database["public"]["Enums"]["priority"];
+          due_date?: string | null;
+          is_completed?: boolean;
+          is_focused?: boolean;
+          is_important?: boolean;
+          is_urgent?: boolean;
+          completed_at?: string | null;
+          smart_priority?: number;
+          is_archived?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          area_id?: string | null;
+          project_id?: string | null;
+          name?: string;
+          description?: string | null;
+          status?: Database["public"]["Enums"]["task_status"];
+          priority?: Database["public"]["Enums"]["priority"];
+          due_date?: string | null;
+          is_completed?: boolean;
+          is_focused?: boolean;
+          is_important?: boolean;
+          is_urgent?: boolean;
+          completed_at?: string | null;
+          smart_priority?: number;
+          is_archived?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      goal_term: "short" | "mid" | "long";
+      priority: "low" | "medium" | "high" | "urgent";
+      project_status: "planning" | "active" | "completed" | "on_hold" | "archived";
+      task_status: "inbox" | "todo" | "in_progress" | "completed" | "archived";
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
+};
+
+type PublicSchema = Database["public"];
+
+export type Tables<TableName extends keyof PublicSchema["Tables"]> =
+  PublicSchema["Tables"][TableName]["Row"];
+
+export type TablesInsert<TableName extends keyof PublicSchema["Tables"]> =
+  PublicSchema["Tables"][TableName]["Insert"];
+
+export type TablesUpdate<TableName extends keyof PublicSchema["Tables"]> =
+  PublicSchema["Tables"][TableName]["Update"];
+
+export type Enums<EnumName extends keyof PublicSchema["Enums"]> =
+  PublicSchema["Enums"][EnumName];

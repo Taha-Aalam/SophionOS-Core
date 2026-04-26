@@ -286,6 +286,167 @@ Reference documents:
 
 ---
 
+### Step 9b: Areas — "By type" grouped view and custom area types
+
+**What:** Add the "By type" view that groups areas by their type category, and expand the type system to support user-defined types beyond the default Business/Personal.
+
+**Actions:**
+- **Schema update:** Create `supabase/migrations/000XX_expand_area_types.sql`:
+  - Drop the existing `area_type` enum constraint (which only allows `business` / `personal`)
+  - Replace with a `TEXT` column + a separate `area_types` reference table per user, OR simply change the column to `TEXT NOT NULL DEFAULT 'personal'` so users can define custom types (recommended — simpler, no enum migration headaches)
+  - Seed default types: `Business`, `Personal`, `Studies`
+  - Add index on `areas(user_id, type)` for grouped queries
+- **Update Zod schema:** `src/lib/validators/area.schema.ts` — change `type` from `z.enum(["business", "personal"])` to `z.string().min(1).max(50)` to accept any user-defined type
+- **Update area service:** Add `getGroupedByType(userId)` method that queries areas and groups them by type. Returns `Map<string, Area[]>` or `{ type: string; areas: Area[] }[]`
+- **Update area hooks:** Add `useAreasByType()` hook wrapping the grouped query
+- **Build the "By type" view component:** Create `src/app/(dashboard)/areas/areas-by-type-view.tsx`:
+  - Renders collapsible sections (use shadcn `Collapsible` or a simple disclosure)
+  - Each section header shows the type name as a colored badge (e.g., green for Business, blue for Personal, orange for Studies)
+  - Each section contains the area cards in a gallery grid
+  - Sections are collapsible (click header to expand/collapse)
+  - "+" button next to each section header to create a new area with that type pre-filled
+  - "+ New page" placeholder card at the end of each section for quick area creation
+- **Update areas page:** Add the complete tab bar with all 4 views:
+  - `Active` (default) — flat gallery of non-archived areas
+  - `Inactive` — archived areas
+  - `By type` — grouped view (this step)
+  - `All` — flat gallery of all areas regardless of status
+- **Update area creation dialog:** Add a `type` field:
+  - Combobox (shadcn `Command`-based) that shows existing types as suggestions
+  - User can select an existing type OR type a new custom type name
+  - Default types pre-populated: Business, Personal, Studies
+- **Update area card:** Show a small type badge on each card (subtle, bottom-left or top-right)
+- **Update the default area seeding:** In `onboarding.service.ts`, assign types to the default 8 areas:
+  - Business: Work, Finances
+  - Personal: Family & Friends, Health, Home, Travel
+  - Studies: Personal Growth, Career
+
+**Dependencies:** Step 9 (base Areas module must be complete with CRUD, gallery view, and detail page).
+
+**Testing:**
+- "By type" tab renders areas grouped under correct type headers
+- Business section shows Work, Finances (from seed data)
+- Personal section shows Family & Friends, Health, Home, Travel
+- Studies section shows Personal Growth, Career
+- Collapse a section — areas hide. Expand — areas reappear. State persists during session.
+- Create a new area with type "Fitness" — a new section "Fitness" appears with that single area
+- Create a second area with type "Fitness" — it appears in the same section
+- Edit an area's type from "Personal" to "Business" — area moves to the Business section on refresh
+- "All" tab shows every area in a flat gallery regardless of status or type
+- The type combobox in the creation dialog suggests existing types as you type
+- Area card shows type badge in both the "Active" view and "By type" view
+- Mobile (375px): sections stack vertically, cards are single-column, sections still collapsible
+- `tsc --noEmit` passes (no type errors from the enum-to-string migration)
+- `pnpm vitest run` passes (update existing area validator tests for string type instead of enum)
+
+**Deliverable:** Areas page has all 4 view tabs (Active, Inactive, By type, All). Users can organize areas by custom types. The grouped view provides a clear "categorized life domains" experience.
+
+---
+
+### Step 9c: Areas — Archived tab and auto-active/inactive status
+
+**What:** Add a fifth "Archived" tab to the Areas page and implement automatic active/inactive status detection based on whether an area has any linked goals, projects, or tasks.
+
+**Key distinction between Inactive and Archived:**
+- **Inactive** = the area is paused or has zero activity. It still exists in the user's mental model and can become active again automatically when items are added. Think of it as "dormant."
+- **Archived** = the user has deliberately moved this area to long-term storage. It's out of sight, out of mind, kept only for historical records. It doesn't come back unless the user explicitly restores it.
+
+This means `inactive` is a **system-computed status** (driven by data), while `archive` is a **user-initiated action** (driven by intent). They are independent — an area can be inactive but not archived, or archived regardless of whether it had activity.
+
+**Actions:**
+
+- **Schema update:** Create `supabase/migrations/000XX_area_status_fields.sql`:
+  - Ensure the `areas` table has both fields clearly separated:
+    - `inactive BOOLEAN NOT NULL DEFAULT true` — system-managed, computed from linked entity counts
+    - `archive BOOLEAN NOT NULL DEFAULT false` — user-managed, set only by explicit user action
+  - Add a database function `recalc_area_inactive()` that sets `inactive = true` when the area has 0 linked goals AND 0 linked projects AND 0 linked tasks (non-archived, non-completed), and `inactive = false` otherwise
+  - Create triggers on `goals`, `projects`, and `tasks` tables: after INSERT, UPDATE (of `area_id`, `archive`, `complete`), or DELETE — call `recalc_area_inactive()` for the affected area
+  - New areas default to `inactive = true` (no linked items yet) and `archive = false`
+
+- **Update area service:** `src/lib/services/area.service.ts`:
+  - Add `archive(userId, id)` — sets `archive = true` (user action)
+  - Add `restore(userId, id)` — sets `archive = false` (user action, brings back from archive)
+  - Update `list()` to accept a `status` filter: `"active"` (inactive=false, archive=false), `"inactive"` (inactive=true, archive=false), `"archived"` (archive=true), `"all"` (no filter)
+  - Remove any manual `inactive` toggle from the UI — this field is now fully system-computed
+
+- **Update Zod schema:** `updateAreaSchema` should NOT include `inactive` as a writable field (it's computed). Only `archive` is user-controllable.
+
+- **Update area hooks:** `src/lib/hooks/use-areas.ts`:
+  - `useArchiveArea()` mutation — sets archive=true, invalidates area queries
+  - `useRestoreArea()` mutation — sets archive=false, invalidates area queries
+  - Update `useAreas(filter)` to support the new status filter parameter
+
+- **Update Areas page tabs:** `src/app/(dashboard)/areas/page.tsx` — now 5 tabs:
+  - **Active** (default) — areas where `inactive = false AND archive = false`. These have at least one linked goal, project, or task.
+  - **Inactive** — areas where `inactive = true AND archive = false`. These exist but have zero linked items. They're dormant, waiting for activity.
+  - **By type** — all non-archived areas grouped by type (from Step 9b)
+  - **All** — every non-archived area regardless of active/inactive status
+  - **Archived** — areas where `archive = true`. Shows a "Restore" button on each card instead of the archive button. Muted visual treatment (lower opacity or grayed-out cards).
+
+- **Update area card actions:**
+  - Non-archived areas show: Edit, Archive (moves to Archived tab)
+  - Archived areas show: Restore (moves back to Active or Inactive depending on linked items), Delete permanently (with confirmation dialog — this is the only hard delete in the system)
+
+- **Auto-activation flow:** When a user creates a goal/project/task linked to an area:
+  - The database trigger fires `recalc_area_inactive()`
+  - The area's `inactive` flag flips from `true` to `false`
+  - On the frontend, the TanStack Query cache is invalidated (the area moves from the Inactive tab to the Active tab on next refetch)
+  - No user action required — the area activates itself
+
+- **Auto-deactivation flow:** When the last goal/project/task linked to an area is completed, archived, or deleted:
+  - The trigger fires again
+  - If the area now has 0 non-archived, non-completed linked items, `inactive` flips to `true`
+  - The area moves back to the Inactive tab automatically
+
+- **Update area card UI:** Add a subtle status indicator:
+  - Active areas: normal rendering, no extra indicator needed
+  - Inactive areas: a small "No activity" label or a dimmed state to visually distinguish from active areas
+  - Archived areas: grayed-out card with a "Restore" action
+
+**Dependencies:** Step 9b (the 4-tab view system must exist to extend it to 5 tabs). This step also depends on the area-entity linking from Steps 9–9b being in place.
+
+**Testing:**
+
+*Auto-status tests:*
+- Create a new area with no linked items — appears in Inactive tab (not Active)
+- Create a goal linked to that area — area automatically moves to Active tab
+- Delete that goal — area automatically moves back to Inactive tab
+- Create a task linked to the area — area moves to Active
+- Complete the task — area moves back to Inactive (completed tasks don't count as activity)
+- Create a project with 2 tasks linked to the area — area is Active
+- Complete one task — area stays Active (1 incomplete task remains)
+- Complete the second task — area moves to Inactive
+
+*Archive tests:*
+- Archive an active area — it moves to the Archived tab, disappears from Active
+- Archive an inactive area — it moves to the Archived tab, disappears from Inactive
+- Archived areas do NOT appear in Active, Inactive, or By type tabs
+- Archived areas DO appear in the All tab (with a visual "archived" badge) and the Archived tab
+- Restore an archived area that has linked items — it reappears in the Active tab
+- Restore an archived area that has no linked items — it reappears in the Inactive tab
+- "Delete permanently" on an archived area — confirmation dialog appears, area is hard deleted on confirm
+
+*Edge cases:*
+- Creating a goal linked to an archived area: the area stays archived (archive is user-intent, not overridden by activity)
+- Bulk-archiving multiple areas works correctly
+- The "By type" view only shows non-archived areas
+- The rollup counts on area cards still work correctly and only count non-archived/non-completed items
+
+*Database trigger tests:*
+- Write `tests/unit/area-inactive-trigger.test.ts`:
+  - Insert a goal with area_id → area.inactive should be false
+  - Delete that goal → area.inactive should be true
+  - Insert a task with area_id → area.inactive should be false
+  - Update task.complete to true → area.inactive should be true (no other linked items)
+  - Insert 2 tasks, complete 1 → area.inactive should be false (1 remains)
+
+- `tsc --noEmit` passes
+- `pnpm vitest run` passes
+
+**Deliverable:** Areas page has 5 view tabs (Active, Inactive, By type, All, Archived). Areas auto-detect their active/inactive status based on linked entity counts — zero manual toggling. Archive is a separate, deliberate user action for long-term storage. The system now understands the difference between "nothing is happening here" (inactive) and "I'm done with this" (archived).
+
+---
+
 ### Step 10: Goals module
 
 **What:** Full Goals CRUD with card view, progress tracking, and term filtering.
@@ -928,33 +1089,35 @@ Step 46+: Supabase Realtime subscriptions (live updates from Agent)
 ## Summary
 
 ```
-PHASE    STEPS    WHAT YOU HAVE WHEN DONE
+PHASE    STEPS      WHAT YOU HAVE WHEN DONE
 ─────────────────────────────────────────────────────────────────
-1        1–7      Running app with auth, DB schema, service
-                  layer, type safety, and first tests passing
+1        1–7        Running app with auth, DB schema, service
+                    layer, type safety, and first tests passing
 
-2        8–13     Full PARA system (Areas → Goals → Projects →
-                  Tasks) with smart priority and calendar view
+2        8–13       Full PARA system (Areas → Goals → Projects →
+         (inc.      Tasks) with "By type" grouped view, auto
+         9b, 9c)    active/inactive detection, archive system,
+                    smart priority, and calendar view
 
-3        14–17    Dashboard, Notes, Command Palette, Inbox,
-                  My Day — complete daily workflow
+3        14–17      Dashboard, Notes, Command Palette, Inbox,
+                    My Day — complete daily workflow
 
-4        18–20    Full REST API — Agent (Project 2) can now
-                  consume every feature programmatically
+4        18–20      Full REST API — Agent (Project 2) can now
+                    consume every feature programmatically
 
-5        21–24    3 personal trackers validating the concept
+5        21–24      3 personal trackers validating the concept
 
-6        25–28    Onboarding, settings, API keys, PWA,
-                  responsive polish
+6        25–28      Onboarding, settings, API keys, PWA,
+                    responsive polish
 
-7        29–30    CI/CD, production deployment, monitoring,
-                  E2E tests, beta launch
+7        29–30      CI/CD, production deployment, monitoring,
+                    E2E tests, beta launch
 
-POST-MVP 31–46    Everything else (billing, remaining trackers,
-                  Knowledge Hub, webhooks, imports)
+POST-MVP 31–46      Everything else (billing, remaining trackers,
+                    Knowledge Hub, webhooks, imports)
 ```
 
-**Total MVP steps: 30**
+**Total MVP steps: 32** (30 + Step 9b + Step 9c)
 **Estimated timeline: 8–10 weeks for a solo developer, 5–6 weeks for a team of 2–3**
 
 ---

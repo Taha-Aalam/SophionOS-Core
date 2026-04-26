@@ -5,7 +5,6 @@ build/
 
 # Dependencies
 node_modules/
-pnpm-lock.yaml
 package-lock.json
 yarn.lock
 
@@ -22,6 +21,43 @@ supabase/.temp/
 
 # Vercel
 .vercel
+
+# Local AI / agent tooling
+.agents/
+.claude/
+.codebuddy/
+.commandcode/
+.continue/
+.crush/
+.factory/
+.goose/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openclaude/
+.openhands/
+.pi/
+.playwright-mcp/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.windsurf/
+.zencoder/
+skills/
+skills-lock.json
+.openclaude-profile.json
+
+# Local artifacts
+all_info.txt
+bin/
+screenshots/
+tsconfig.tsbuildinfo
 
 # OS
 .DS_Store
