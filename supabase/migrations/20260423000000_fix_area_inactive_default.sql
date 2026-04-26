@@ -1,0 +1,3 @@
+-- No-op: previous version of this migration incorrectly changed inactive DEFAULT to false.
+-- The original DEFAULT true from 20260421000000_area_status_fields.sql is correct:
+-- new areas start inactive and become active only once goals/projects/tasks are linked.
