@@ -13,6 +13,10 @@ export interface Note extends DatabaseTable<"notes"> {}
 
 export interface Project extends DatabaseTable<"projects"> {}
 
+export interface Resource extends DatabaseTable<"resources"> {}
+
+export interface Topic extends DatabaseTable<"topics"> {}
+
 export interface Task extends DatabaseTable<"tasks"> {}
 
 export interface GoalProject extends DatabaseTable<"goal_projects"> {}
@@ -30,6 +34,14 @@ export interface GoalUpdate extends DatabaseUpdate<"goals"> {}
 export interface NoteInsert extends DatabaseInsert<"notes"> {}
 
 export interface NoteUpdate extends DatabaseUpdate<"notes"> {}
+
+export interface ResourceInsert extends DatabaseInsert<"resources"> {}
+
+export interface ResourceUpdate extends DatabaseUpdate<"resources"> {}
+
+export interface TopicInsert extends DatabaseInsert<"topics"> {}
+
+export interface TopicUpdate extends DatabaseUpdate<"topics"> {}
 
 export interface ProjectInsert extends DatabaseInsert<"projects"> {}
 
@@ -117,3 +129,25 @@ export interface CreateNoteInput {
 }
 
 export interface UpdateNoteInput extends Partial<CreateNoteInput> {}
+
+export interface CreateResourceInput {
+  area_id?: string | null;
+  project_id?: string | null;
+  topic_id?: string | null;
+  name: string;
+  url?: string | null;
+  type?: Resource["type"];
+  status?: Resource["status"];
+  favorite?: boolean;
+  is_archived?: boolean;
+}
+
+export interface UpdateResourceInput extends Partial<CreateResourceInput> {}
+
+export interface CreateTopicInput {
+  area_id?: string | null;
+  name: string;
+  favorite?: boolean;
+}
+
+export interface UpdateTopicInput extends Partial<CreateTopicInput> {}

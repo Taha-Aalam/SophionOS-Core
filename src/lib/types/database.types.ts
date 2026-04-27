@@ -234,6 +234,88 @@ export type Database = {
           updated_at?: string;
         };
       };
+      resources: {
+        Row: {
+          id: string;
+          user_id: string;
+          area_id: string | null;
+          project_id: string | null;
+          topic_id: string | null;
+          name: string;
+          url: string | null;
+          type: Database["public"]["Enums"]["resource_type"];
+          status: Database["public"]["Enums"]["resource_status"];
+          favorite: boolean;
+          is_archived: boolean;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          area_id?: string | null;
+          project_id?: string | null;
+          topic_id?: string | null;
+          name: string;
+          url?: string | null;
+          type?: Database["public"]["Enums"]["resource_type"];
+          status?: Database["public"]["Enums"]["resource_status"];
+          favorite?: boolean;
+          is_archived?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          area_id?: string | null;
+          project_id?: string | null;
+          topic_id?: string | null;
+          name?: string;
+          url?: string | null;
+          type?: Database["public"]["Enums"]["resource_type"];
+          status?: Database["public"]["Enums"]["resource_status"];
+          favorite?: boolean;
+          is_archived?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      topics: {
+        Row: {
+          id: string;
+          user_id: string;
+          area_id: string | null;
+          name: string;
+          favorite: boolean;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          area_id?: string | null;
+          name: string;
+          favorite?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          area_id?: string | null;
+          name?: string;
+          favorite?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       tasks: {
         Row: {
           id: string;
@@ -309,6 +391,8 @@ export type Database = {
       note_type: "note" | "research" | "journal";
       priority: "low" | "medium" | "high" | "urgent";
       project_status: "planning" | "active" | "completed" | "on_hold" | "archived";
+      resource_status: "inbox" | "to_review" | "active";
+      resource_type: "website" | "article" | "video" | "document" | "podcast" | "social_media" | "tool";
       task_status: "inbox" | "todo" | "in_progress" | "completed" | "archived";
     };
     CompositeTypes: {
