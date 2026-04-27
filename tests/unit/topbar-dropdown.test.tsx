@@ -34,6 +34,16 @@ vi.mock("@/lib/stores/ui.store", () => ({
   }),
 }));
 
+vi.mock("@/lib/hooks/use-goals", () => ({
+  useGoals: () => ({
+    data: [],
+  }),
+}));
+
+vi.mock("@/lib/utils/goal-urls", () => ({
+  buildGoalDetailHref: (goal: { slug?: string; name: string }) => `/goals/${goal.slug ?? "slug"}`,
+}));
+
 vi.mock("@/components/ui/avatar", () => ({
   Avatar: ({ children }: { children: React.ReactNode }) => (
     <div data-slot="avatar">{children}</div>

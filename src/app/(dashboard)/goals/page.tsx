@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { LayoutGrid, List as ListIcon, Plus, Target } from "lucide-react";
 
 import { GoalCard } from "@/components/entities/goal-card";
@@ -18,8 +19,10 @@ import {
   getGoalViewFromFilters,
   type GoalView,
 } from "@/lib/utils/goals";
+import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 
 export default function GoalsPage() {
+  const router = useRouter();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -39,6 +42,34 @@ export default function GoalsPage() {
       ),
     [areas],
   );
+
+  // Compute duplicate occurrence index per goal name (real duplicates only)
+  const duplicateIndices = useMemo(() => {
+    if (!goals) return new Map<string, number>();
+    const result = new Map<string, number>();
+
+    const grouped = new Map<string, Goal[]>();
+    for (const goal of goals) {
+      if (!grouped.has(goal.name)) {
+        grouped.set(goal.name, []);
+      }
+      grouped.get(goal.name)!.push(goal);
+    }
+
+    for (const group of grouped.values()) {
+      if (group.length < 2) continue;
+
+      const byCreationOrder = [...group].sort((a, b) =>
+        a.created_at.localeCompare(b.created_at),
+      );
+
+      byCreationOrder.forEach((goal, index) => {
+        result.set(goal.id, index + 1);
+      });
+    }
+
+    return result;
+  }, [goals]);
 
   const handleViewChange = (view: string) => {
     const nextView = view as GoalView;
@@ -125,9 +156,9 @@ export default function GoalsPage() {
               key={goal.id}
               goal={goal}
               areaName={goal.area_id ? areaNamesById.get(goal.area_id) : "Unassigned"}
-              onEdit={(nextGoal) => {
-                setEditingGoal(nextGoal);
-                setIsCreateOpen(true);
+              duplicateIndex={duplicateIndices.get(goal.id)}
+              onEdit={() => {
+                router.push(buildGoalDetailHref(goal));
               }}
             />
           ))}

@@ -31,8 +31,23 @@ export const createGoalSchema = z
     progress: goalProgressSchema.default(0),
     is_completed: z.boolean().default(false),
     is_archived: z.boolean().default(false),
+    slug: z.string().optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((data, ctx) => {
+    if (data.target_date !== null && data.target_date !== undefined) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const targetDate = new Date(data.target_date + "T00:00:00");
+      if (targetDate < today) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Target date cannot be in the past",
+          path: ["target_date"],
+        });
+      }
+    }
+  });
 
 export const updateGoalSchema = z
   .object({
