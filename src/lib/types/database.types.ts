@@ -140,6 +140,7 @@ export type Database = {
           user_id: string;
           area_id: string | null;
           project_id: string | null;
+          topic_id: string | null;
           name: string;
           content: string | null;
           type: Database["public"]["Enums"]["note_type"];
@@ -157,6 +158,7 @@ export type Database = {
           user_id: string;
           area_id?: string | null;
           project_id?: string | null;
+          topic_id?: string | null;
           name: string;
           content?: string | null;
           type?: Database["public"]["Enums"]["note_type"];
@@ -174,6 +176,7 @@ export type Database = {
           user_id?: string;
           area_id?: string | null;
           project_id?: string | null;
+          topic_id?: string | null;
           name?: string;
           content?: string | null;
           type?: Database["public"]["Enums"]["note_type"];
@@ -291,6 +294,7 @@ export type Database = {
           area_id: string | null;
           name: string;
           favorite: boolean;
+          inactive: boolean;
           metadata: Json;
           created_at: string;
           updated_at: string;
@@ -301,6 +305,7 @@ export type Database = {
           area_id?: string | null;
           name: string;
           favorite?: boolean;
+          inactive?: boolean;
           metadata?: Json;
           created_at?: string;
           updated_at?: string;
@@ -311,9 +316,24 @@ export type Database = {
           area_id?: string | null;
           name?: string;
           favorite?: boolean;
+          inactive?: boolean;
           metadata?: Json;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      topic_areas: {
+        Row: {
+          topic_id: string;
+          area_id: string;
+        };
+        Insert: {
+          topic_id: string;
+          area_id: string;
+        };
+        Update: {
+          topic_id?: string;
+          area_id?: string;
         };
       };
       tasks: {

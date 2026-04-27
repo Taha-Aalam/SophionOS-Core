@@ -24,6 +24,7 @@ const noteBaseSchema = z
   .object({
     area_id: nullableUuidSchema,
     project_id: nullableUuidSchema,
+    topic_id: nullableUuidSchema,
     name: z.string().min(1, "Name is required").max(255),
     content: z.string().nullable().optional(),
     notebook: z.string().max(100).nullable().optional(),
