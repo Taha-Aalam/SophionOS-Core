@@ -61,9 +61,9 @@ export function useUpdateArea(userId: string | undefined) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: UpdateAreaInput & { id: string }) => {
+    mutationFn: ({ id, ...input }: UpdateAreaInput & { id: string }) => {
       if (!userId) throw new Error("User not authenticated");
-      return areaService.update(userId, data.id, data);
+      return areaService.update(userId, id, input);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] });
