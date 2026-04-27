@@ -134,6 +134,34 @@ export type Database = {
           task_id?: string;
         };
       };
+      goal_notes: {
+        Row: {
+          goal_id: string;
+          note_id: string;
+        };
+        Insert: {
+          goal_id: string;
+          note_id: string;
+        };
+        Update: {
+          goal_id?: string;
+          note_id?: string;
+        };
+      };
+      goal_resources: {
+        Row: {
+          goal_id: string;
+          resource_id: string;
+        };
+        Insert: {
+          goal_id: string;
+          resource_id: string;
+        };
+        Update: {
+          goal_id?: string;
+          resource_id?: string;
+        };
+      };
       notes: {
         Row: {
           id: string;
