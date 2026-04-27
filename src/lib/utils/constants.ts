@@ -62,3 +62,23 @@ export const NOTE_TYPE = {
 } as const;
 
 export type NoteType = typeof NOTE_TYPE[keyof typeof NOTE_TYPE];
+
+export const RESOURCE_STATUS = {
+  INBOX: 'inbox',
+  TO_REVIEW: 'to_review',
+  ACTIVE: 'active',
+} as const;
+
+export type ResourceStatus = typeof RESOURCE_STATUS[keyof typeof RESOURCE_STATUS];
+
+export const RESOURCE_TYPE = {
+  WEBSITE: 'website',
+  ARTICLE: 'article',
+  VIDEO: 'video',
+  DOCUMENT: 'document',
+  PODCAST: 'podcast',
+  SOCIAL_MEDIA: 'social_media',
+  TOOL: 'tool',
+} as const;
+
+export type ResourceType = typeof RESOURCE_TYPE[keyof typeof RESOURCE_TYPE];

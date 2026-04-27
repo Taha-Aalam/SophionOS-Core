@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   CheckSquare,
   FolderKanban,
+  Globe,
   LayoutDashboard,
   Map,
   NotebookPen,
@@ -26,6 +27,7 @@ import {
 import { useKeyboardShortcut } from "@/lib/hooks/use-keyboard";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useCreateNote, useNotes } from "@/lib/hooks/use-notes";
+import { useCreateResource, useResources } from "@/lib/hooks/use-resources";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useCreateTask, useTasks } from "@/lib/hooks/use-tasks";
 import { useUIStore } from "@/lib/stores/ui.store";
@@ -42,6 +44,7 @@ const NAV_ITEMS = [
 
 const CREATE_TASK_RE = /^create\s+task:\s*(.+)/i;
 const CREATE_NOTE_RE = /^create\s+note:\s*(.+)/i;
+const CREATE_RESOURCE_RE = /^create\s+resource:\s*(.+)/i;
 
 export function CommandPalette() {
   const router = useRouter();
@@ -52,9 +55,11 @@ export function CommandPalette() {
   const { data: goals = [] } = useGoals({ status: "all" });
   const { data: projects = [] } = useProjects({ status: "all" });
   const { data: notes = [] } = useNotes();
+  const { data: resources = [] } = useResources({ status: "all" });
 
   const createTask = useCreateTask();
   const createNote = useCreateNote();
+  const createResource = useCreateResource();
 
   // Cmd+K (macOS) / Ctrl+K (Windows/Linux) — skip when inside a rich-text editor
   useKeyboardShortcut(
@@ -84,9 +89,11 @@ export function CommandPalette() {
   // Parse explicit create-mode patterns
   const taskMatch = CREATE_TASK_RE.exec(query);
   const noteMatch = CREATE_NOTE_RE.exec(query);
+  const resourceMatch = CREATE_RESOURCE_RE.exec(query);
   const explicitTaskName = taskMatch?.[1]?.trim() ?? null;
   const explicitNoteName = noteMatch?.[1]?.trim() ?? null;
-  const isExplicitCreate = explicitTaskName !== null || explicitNoteName !== null;
+  const explicitResourceUrl = resourceMatch?.[1]?.trim() ?? null;
+  const isExplicitCreate = explicitTaskName !== null || explicitNoteName !== null || explicitResourceUrl !== null;
 
   const hasQuery = query.length > 0;
   const q = query.toLowerCase();
@@ -104,6 +111,9 @@ export function CommandPalette() {
   const filteredNotes = hasQuery && !isExplicitCreate
     ? notes.filter((n) => !n.is_archived && n.name.toLowerCase().includes(q)).slice(0, 5)
     : [];
+  const filteredResources = hasQuery && !isExplicitCreate
+    ? resources.filter((r) => !r.is_archived && r.name.toLowerCase().includes(q)).slice(0, 5)
+    : [];
   const filteredNav = NAV_ITEMS.filter(
     (item) => !hasQuery || item.label.toLowerCase().includes(q),
   );
@@ -112,7 +122,8 @@ export function CommandPalette() {
     filteredTasks.length > 0 ||
     filteredGoals.length > 0 ||
     filteredProjects.length > 0 ||
-    filteredNotes.length > 0;
+    filteredNotes.length > 0 ||
+    filteredResources.length > 0;
 
   const handleCreateTask = useCallback(
     async (name: string) => {
@@ -139,6 +150,27 @@ export function CommandPalette() {
       }
     },
     [createNote, router, close],
+  );
+
+  const handleCreateResource = useCallback(
+    async (url: string) => {
+      if (!url) return;
+      try {
+        // Try to extract a name from the URL
+        let name = url;
+        try {
+          const u = new URL(url);
+          name = u.hostname.replace(/^www\./, "");
+        } catch {
+          // use the URL as name
+        }
+        await createResource.mutateAsync({ name, url });
+        close();
+      } catch {
+        // toast handled inside the mutation
+      }
+    },
+    [createResource, close],
   );
 
   return (
@@ -182,6 +214,19 @@ export function CommandPalette() {
                   <span>
                     Create note:{" "}
                     <span className="font-medium">{explicitNoteName}</span>
+                  </span>
+                </CommandItem>
+              )}
+              {explicitResourceUrl && (
+                <CommandItem
+                  value="explicit-create-resource"
+                  disabled={createResource.isPending}
+                  onSelect={() => handleCreateResource(explicitResourceUrl)}
+                >
+                  <Globe className="size-4 text-muted-foreground" />
+                  <span>
+                    Create resource:{" "}
+                    <span className="font-medium">{explicitResourceUrl}</span>
                   </span>
                 </CommandItem>
               )}
@@ -328,6 +373,24 @@ export function CommandPalette() {
                       >
                         <NotebookPen className="size-4 text-muted-foreground" />
                         {note.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </>
+              )}
+
+              {filteredResources.length > 0 && (
+                <>
+                  <CommandSeparator />
+                  <CommandGroup heading="Resources">
+                    {filteredResources.map((resource) => (
+                      <CommandItem
+                        key={resource.id}
+                        value={`resource-${resource.id}`}
+                        onSelect={() => go("/resources")}
+                      >
+                        <Globe className="size-4 text-muted-foreground" />
+                        {resource.name}
                       </CommandItem>
                     ))}
                   </CommandGroup>

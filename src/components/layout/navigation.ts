@@ -1,6 +1,7 @@
 import {
   CheckSquare,
   FolderKanban,
+  Globe,
   Inbox,
   LayoutDashboard,
   Map,
@@ -16,6 +17,7 @@ const coreNavItems = [
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/notes", label: "Notes", icon: NotebookPen },
+  { href: "/resources", label: "Resources", icon: Globe },
 ] as const;
 
 const systemNavItems = [
@@ -34,6 +36,7 @@ const breadcrumbLabels: Record<string, string> = {
   notes: "Notes",
   projects: "Projects",
   "reset-password": "Reset Password",
+  resources: "Resources",
   settings: "Settings",
   signup: "Sign Up",
   tasks: "Tasks",
