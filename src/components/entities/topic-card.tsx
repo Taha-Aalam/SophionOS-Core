@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 interface TopicCardProps {
   topic: TopicWithCounts;
   areaNames?: Map<string, string>;
+  duplicateIndex?: number;
   onToggleFavorite?: (id: string, favorite: boolean) => void;
   onEdit?: (topic: TopicWithCounts) => void;
   compact?: boolean;
@@ -20,6 +21,7 @@ interface TopicCardProps {
 const TopicCardComponent = ({
   topic,
   areaNames = new Map(),
+  duplicateIndex,
   onToggleFavorite,
   onEdit,
   compact = false,
@@ -43,7 +45,14 @@ const TopicCardComponent = ({
               <Tag className="size-4 text-muted-foreground" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-medium truncate">{topic.name}</h3>
+              <h3 className="font-medium truncate">
+                {topic.name}
+                {duplicateIndex != null && duplicateIndex > 1 && (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    copy {duplicateIndex}
+                  </span>
+                )}
+              </h3>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 {topic.inactive && (
                   <Badge variant="outline" className="text-xs text-muted-foreground">
@@ -133,6 +142,8 @@ export const TopicCard = memo(TopicCardComponent, (prev, next) => {
     prev.topic.inactive === next.topic.inactive &&
     prev.topic.notesCount === next.topic.notesCount &&
     prev.topic.resourcesCount === next.topic.resourcesCount &&
+    prev.duplicateIndex === next.duplicateIndex &&
+    prev.areaNames === next.areaNames &&
     prev.compact === next.compact
   );
 });

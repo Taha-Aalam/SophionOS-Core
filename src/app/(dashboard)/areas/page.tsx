@@ -83,6 +83,32 @@ export default function AreasPage() {
     );
   }, [areas, goals, projects, tasks]);
 
+  const duplicateIndices = useMemo(() => {
+    const result = new Map<string, number>();
+    const grouped = new Map<string, Area[]>();
+
+    for (const area of areas) {
+      if (!grouped.has(area.name)) {
+        grouped.set(area.name, []);
+      }
+      grouped.get(area.name)!.push(area);
+    }
+
+    for (const group of grouped.values()) {
+      if (group.length < 2) continue;
+
+      const byCreationOrder = [...group].sort((a, b) =>
+        a.created_at.localeCompare(b.created_at),
+      );
+
+      byCreationOrder.forEach((area, index) => {
+        result.set(area.id, index + 1);
+      });
+    }
+
+    return result;
+  }, [areas]);
+
   const handleOpenCreate = (type?: string) => {
     setDefaultType(type ? normalizeAreaType(type) : undefined);
     setEditingArea(undefined);
@@ -175,6 +201,7 @@ export default function AreasPage() {
                   goalsCount={rollupsByAreaId.get(area.id)?.goalsCount}
                   projectsCount={rollupsByAreaId.get(area.id)?.projectsCount}
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
+                  duplicateIndex={duplicateIndices.get(area.id)}
                   onEdit={handleOpenEdit}
                   onArchive={handleArchive}
                   isArchiving={archiveArea.isPending}
@@ -210,6 +237,7 @@ export default function AreasPage() {
                   goalsCount={rollupsByAreaId.get(area.id)?.goalsCount}
                   projectsCount={rollupsByAreaId.get(area.id)?.projectsCount}
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
+                  duplicateIndex={duplicateIndices.get(area.id)}
                   onEdit={handleOpenEdit}
                   onArchive={handleArchive}
                   isArchiving={archiveArea.isPending}
@@ -225,6 +253,7 @@ export default function AreasPage() {
           <AreasByTypeView
             groupedAreas={groupedAreas}
             rollupsByAreaId={rollupsByAreaId}
+            duplicateIndices={duplicateIndices}
             isLoading={isLoading}
             onEdit={handleOpenEdit}
             onArchive={handleArchive}
@@ -249,6 +278,7 @@ export default function AreasPage() {
                   goalsCount={rollupsByAreaId.get(area.id)?.goalsCount}
                   projectsCount={rollupsByAreaId.get(area.id)?.projectsCount}
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
+                  duplicateIndex={duplicateIndices.get(area.id)}
                   onEdit={!area.archive ? handleOpenEdit : undefined}
                   onArchive={handleArchive}
                   isArchiving={archiveArea.isPending}
@@ -284,6 +314,7 @@ export default function AreasPage() {
                   goalsCount={rollupsByAreaId.get(area.id)?.goalsCount}
                   projectsCount={rollupsByAreaId.get(area.id)?.projectsCount}
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
+                  duplicateIndex={duplicateIndices.get(area.id)}
                   onArchive={handleArchive}
                   isArchiving={archiveArea.isPending}
                   onRestore={handleRestore}

@@ -18,6 +18,7 @@ interface ProjectCardProps {
   project: Project;
   areaName?: string;
   taskStats?: ProjectTaskStats;
+  duplicateIndex?: number;
   onEdit?: (project: Project) => void;
 }
 
@@ -40,6 +41,7 @@ export function ProjectCard({
   project,
   areaName,
   taskStats,
+  duplicateIndex,
   onEdit,
 }: ProjectCardProps) {
   const router = useRouter();
@@ -63,7 +65,14 @@ export function ProjectCard({
       <CardContent className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm leading-tight line-clamp-2">{project.name}</h3>
+            <h3 className="font-medium text-sm leading-tight line-clamp-2">
+              {project.name}
+              {duplicateIndex != null && duplicateIndex > 1 && (
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  copy {duplicateIndex}
+                </span>
+              )}
+            </h3>
             <p className="text-xs text-muted-foreground mt-1 truncate">{resolvedAreaName}</p>
           </div>
           {onEdit && (

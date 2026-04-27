@@ -13,6 +13,7 @@ import type { AreaRollups, GroupedAreas } from "@/lib/utils/areas";
 interface AreasByTypeViewProps {
   groupedAreas: GroupedAreas[];
   rollupsByAreaId?: Map<string, AreaRollups>;
+  duplicateIndices?: Map<string, number>;
   isLoading?: boolean;
   onEdit?: (area: Area) => void;
   onArchive?: (area: Area) => void;
@@ -35,6 +36,7 @@ function CollapsibleSection({
   type,
   areas,
   rollupsByAreaId,
+  duplicateIndices,
   onEdit,
   onArchive,
   isArchiving,
@@ -43,6 +45,7 @@ function CollapsibleSection({
   type: string;
   areas: Area[];
   rollupsByAreaId?: Map<string, AreaRollups>;
+  duplicateIndices?: Map<string, number>;
   onEdit?: (area: Area) => void;
   onArchive?: (area: Area) => void;
   isArchiving?: boolean;
@@ -105,6 +108,7 @@ function CollapsibleSection({
                 goalsCount={rollupsByAreaId?.get(area.id)?.goalsCount}
                 projectsCount={rollupsByAreaId?.get(area.id)?.projectsCount}
                 tasksCount={rollupsByAreaId?.get(area.id)?.tasksCount}
+                duplicateIndex={duplicateIndices?.get(area.id)}
                 onEdit={onEdit}
                 onArchive={onArchive}
                 isArchiving={isArchiving}
@@ -127,6 +131,7 @@ function CollapsibleSection({
 export function AreasByTypeView({
   groupedAreas,
   rollupsByAreaId,
+  duplicateIndices,
   isLoading,
   onEdit,
   onArchive,
@@ -170,6 +175,7 @@ export function AreasByTypeView({
           type={type}
           areas={areas}
           rollupsByAreaId={rollupsByAreaId}
+          duplicateIndices={duplicateIndices}
           onEdit={onEdit}
           onArchive={onArchive}
           isArchiving={isArchiving}
