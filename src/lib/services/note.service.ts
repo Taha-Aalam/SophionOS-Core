@@ -5,7 +5,7 @@ import { DatabaseError, NotFoundError } from "../api/error-handler";
 import type { NoteStatus } from "../utils/constants";
 
 const NOTE_SELECT =
-  "id, user_id, area_id, project_id, name, content, type, status, notebook, favorite, pin, is_archived, metadata, created_at, updated_at";
+  "id, user_id, area_id, project_id, topic_id, name, content, type, status, notebook, favorite, pin, is_archived, metadata, created_at, updated_at";
 
 export const noteService = {
   async list(

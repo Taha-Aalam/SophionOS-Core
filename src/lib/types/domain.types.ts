@@ -15,7 +15,15 @@ export interface Project extends DatabaseTable<"projects"> {}
 
 export interface Resource extends DatabaseTable<"resources"> {}
 
-export interface Topic extends DatabaseTable<"topics"> {}
+export interface Topic extends Omit<DatabaseTable<"topics">, "area_id"> {
+  area_id: string | null;
+  inactive: boolean;
+}
+
+export interface TopicArea {
+  topic_id: string;
+  area_id: string;
+}
 
 export interface Task extends DatabaseTable<"tasks"> {}
 
@@ -118,6 +126,7 @@ export interface UpdateTaskInput extends Partial<CreateTaskInput> {
 export interface CreateNoteInput {
   area_id?: string | null;
   project_id?: string | null;
+  topic_id?: string | null;
   name: string;
   content?: string | null;
   type?: Note["type"];
@@ -145,9 +154,13 @@ export interface CreateResourceInput {
 export interface UpdateResourceInput extends Partial<CreateResourceInput> {}
 
 export interface CreateTopicInput {
-  area_id?: string | null;
+  area_ids?: string[];
   name: string;
   favorite?: boolean;
 }
 
-export interface UpdateTopicInput extends Partial<CreateTopicInput> {}
+export interface UpdateTopicInput {
+  name?: string;
+  area_ids?: string[];
+  favorite?: boolean;
+}
