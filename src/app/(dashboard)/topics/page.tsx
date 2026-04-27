@@ -118,6 +118,32 @@ export default function TopicsPage() {
     [topics]
   );
 
+  const duplicateIndices = useMemo(() => {
+    const result = new Map<string, number>();
+    const grouped = new Map<string, TopicWithCounts[]>();
+
+    for (const topic of topics) {
+      if (!grouped.has(topic.name)) {
+        grouped.set(topic.name, []);
+      }
+      grouped.get(topic.name)!.push(topic);
+    }
+
+    for (const group of grouped.values()) {
+      if (group.length < 2) continue;
+
+      const byCreationOrder = [...group].sort((a, b) =>
+        a.created_at.localeCompare(b.created_at),
+      );
+
+      byCreationOrder.forEach((topic, index) => {
+        result.set(topic.id, index + 1);
+      });
+    }
+
+    return result;
+  }, [topics]);
+
   const groupedByArea = useMemo(() => {
     const grouped = new Map<string, { areaName: string; topics: TopicWithCounts[] }>();
     for (const topic of topics) {
@@ -230,6 +256,7 @@ export default function TopicsPage() {
             key={topic.id}
             topic={topic}
             areaNames={areaNames}
+            duplicateIndex={duplicateIndices.get(topic.id)}
             onToggleFavorite={handleToggleFavorite}
             onEdit={handleEdit}
           />
@@ -343,6 +370,7 @@ export default function TopicsPage() {
                         key={topic.id}
                         topic={topic}
                         areaNames={areaNames}
+                        duplicateIndex={duplicateIndices.get(topic.id)}
                         onToggleFavorite={handleToggleFavorite}
                         onEdit={handleEdit}
                       />
@@ -398,7 +426,14 @@ export default function TopicsPage() {
                     <Tag className="size-4 text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{topic.name}</p>
+                    <p className="font-medium truncate">
+                      {topic.name}
+                      {(duplicateIndices.get(topic.id) ?? 0) > 1 && (
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          copy {duplicateIndices.get(topic.id)}
+                        </span>
+                      )}
+                    </p>
                     <div className="flex items-center gap-1 mt-0.5">
                       {topic.inactive && (
                         <Badge variant="outline" className="text-xs text-muted-foreground">Inactive</Badge>

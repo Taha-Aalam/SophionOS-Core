@@ -55,6 +55,32 @@ export default function ProjectsPage() {
   const projectsByStatus = useMemo(() => groupProjectsByStatus(activeProjects), [activeProjects]);
   const projectsByArea = useMemo(() => groupProjectsByArea(activeProjects), [activeProjects]);
 
+  const duplicateIndices = useMemo(() => {
+    const result = new Map<string, number>();
+    const grouped = new Map<string, Project[]>();
+
+    for (const project of allProjects) {
+      if (!grouped.has(project.name)) {
+        grouped.set(project.name, []);
+      }
+      grouped.get(project.name)!.push(project);
+    }
+
+    for (const group of grouped.values()) {
+      if (group.length < 2) continue;
+
+      const byCreationOrder = [...group].sort((a, b) =>
+        a.created_at.localeCompare(b.created_at),
+      );
+
+      byCreationOrder.forEach((project, index) => {
+        result.set(project.id, index + 1);
+      });
+    }
+
+    return result;
+  }, [allProjects]);
+
   const handleCreate = () => {
     setEditingProject(null);
     setIsDialogOpen(true);
@@ -96,6 +122,7 @@ export default function ProjectsPage() {
             project={project}
             areaName={getAreaName(project.area_id, areaNames)}
             taskStats={taskStatsByProject.get(project.id)}
+            duplicateIndex={duplicateIndices.get(project.id)}
             onEdit={handleEdit}
           />
         ))}
@@ -199,6 +226,7 @@ export default function ProjectsPage() {
                       project={project}
                       areaName={getAreaName(project.area_id, areaNames)}
                       taskStats={taskStatsByProject.get(project.id)}
+                      duplicateIndex={duplicateIndices.get(project.id)}
                       onEdit={handleEdit}
                     />
                   ))}
@@ -212,6 +240,7 @@ export default function ProjectsPage() {
           <KanbanBoard
             projects={activeProjects}
             areas={areas}
+            duplicateIndices={duplicateIndices}
             onProjectClick={(project) => router.push(`/projects/${project.id}`)}
           />
         </TabsContent>

@@ -4,6 +4,12 @@ import { createProjectSchema, updateProjectSchema } from "../validators/project.
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import type { ProjectStatus } from "../utils/constants";
 
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+}
+
 const PROJECT_SELECT =
   "id, user_id, area_id, name, description, status, priority, start_date, due_date, progress, is_archived, created_at, updated_at";
 

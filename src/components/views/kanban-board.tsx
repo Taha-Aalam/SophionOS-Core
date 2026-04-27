@@ -34,10 +34,11 @@ const COLUMNS: KanbanColumn[] = [
 interface KanbanBoardProps {
   projects: Project[];
   areas: Area[];
+  duplicateIndices?: Map<string, number>;
   onProjectClick?: (project: Project) => void;
 }
 
-export function KanbanBoard({ projects, areas, onProjectClick }: KanbanBoardProps) {
+export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick }: KanbanBoardProps) {
   const updateStatus = useUpdateProjectStatus();
 
   const areaMap = React.useMemo(() => new Map(areas.map((area) => [area.id, area])), [areas]);
@@ -110,6 +111,11 @@ export function KanbanBoard({ projects, areas, onProjectClick }: KanbanBoardProp
                               <div className="flex items-start justify-between gap-2">
                                 <h4 className="line-clamp-2 text-sm font-medium leading-tight">
                                   {project.name}
+                                  {duplicateIndices?.get(project.id) != null && duplicateIndices.get(project.id)! > 1 && (
+                                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                      copy {duplicateIndices.get(project.id)}
+                                    </span>
+                                  )}
                                 </h4>
                               </div>
 
