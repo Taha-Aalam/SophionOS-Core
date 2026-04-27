@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -58,6 +59,7 @@ import { cn } from "@/lib/utils";
 import type { Note, Project, Resource, Task } from "@/lib/types/domain.types";
 import { GOAL_TERM, NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUpdateGoal } from "@/lib/hooks/use-goals";
+import { useUIStore } from "@/lib/stores/ui.store";
 
 const TERM_LABELS: Record<string, string> = {
   short: "Short Term",
@@ -171,6 +173,7 @@ export default function GoalDetailPage() {
   const params = useParams();
   const router = useRouter();
   const goalId = params.id as string;
+  const { setPageTitle } = useUIStore();
 
   // UI state
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -218,6 +221,14 @@ export default function GoalDetailPage() {
 
   const area = goal?.area_id ? areas.find((a) => a.id === goal.area_id) : null;
   const dueState = goal ? calculateDueState(goal.target_date) : null;
+
+  // Sync page title with goal name
+  useEffect(() => {
+    if (goal) {
+      setPageTitle(goal.name);
+    }
+    return () => setPageTitle("");
+  }, [goal, setPageTitle]);
 
   // Task completion updates header completion %
   const taskCompletionPercent = useMemo(() => {

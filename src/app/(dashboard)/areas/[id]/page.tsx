@@ -29,6 +29,7 @@ import { GoalCard } from "@/components/entities/goal-card";
 import { ProjectCard } from "@/components/entities/project-card";
 import { cn } from "@/lib/utils";
 import { getAreaRollups, normalizeAreaType } from "@/lib/utils/areas";
+import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 
 const AREA_TYPE_COLORS: Record<string, string> = {
   Business: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
@@ -252,6 +253,7 @@ export default function AreaDetailPage() {
                     key={goal.id}
                     goal={goal}
                     areaName={area?.name}
+                    onEdit={() => router.push(buildGoalDetailHref(goal))}
                   />
                 ))}
               </div>

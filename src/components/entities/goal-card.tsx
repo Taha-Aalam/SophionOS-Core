@@ -12,6 +12,7 @@ interface GoalCardProps {
   goal: Goal;
   areaName?: string;
   onEdit?: (goal: Goal) => void;
+  duplicateIndex?: number;
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -62,10 +63,12 @@ function calculateDueState(targetDate: string | null): { text: string; isOverdue
   };
 }
 
-export function GoalCard({ goal, areaName, onEdit }: GoalCardProps) {
+export function GoalCard({ goal, areaName, onEdit, duplicateIndex }: GoalCardProps) {
   const dueState = calculateDueState(goal.target_date);
   const resolvedAreaName = areaName?.trim() || 'Unassigned';
   const isInteractive = typeof onEdit === 'function';
+
+  const showDuplicateBadge = duplicateIndex != null && duplicateIndex > 1;
 
   return (
     <Card
@@ -82,6 +85,11 @@ export function GoalCard({ goal, areaName, onEdit }: GoalCardProps) {
             <div className="flex items-center gap-2 mb-1">
               <Target className="size-4 text-muted-foreground" />
               <h3 className="font-medium truncate text-sm">{goal.name}</h3>
+              {showDuplicateBadge && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
+                  copy {duplicateIndex}
+                </Badge>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mt-2">

@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 
 import { breadcrumbLabels } from "@/components/layout/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useGoals } from "@/lib/hooks/use-goals";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -18,11 +19,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUIStore } from "@/lib/stores/ui.store";
+import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 
 function Breadcrumb() {
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
   const { pageTitle } = useUIStore();
+  const { data: allGoals = [] } = useGoals({ status: "all" });
 
   const isUUID = (value: string) =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
@@ -36,6 +39,16 @@ function Breadcrumb() {
 
         if (isUUID(segment)) {
           label = pageTitle || "Details";
+        }
+
+        // For /goals/<slug> — resolve slug to real goal name
+        if (segments[0] === "goals" && index === 1 && !isUUID(segment)) {
+          const matchedGoal = allGoals.find(
+            (g) => (g.slug ?? buildGoalDetailHref(g).split("/").pop()) === segment,
+          );
+          if (matchedGoal) {
+            label = matchedGoal.name;
+          }
         }
 
         return (

@@ -43,13 +43,14 @@ export function useGoalDetail(goalId: string, filters?: GoalDetailFilters) {
       const userId = user.id;
 
       // Parallel fetches for goal + all linked entities
-      const [goal, projectsResult, tasksResult, notesResult, resourcesResult] =
+      const goal = await goalService.getByIdentifier(userId, goalId);
+
+      const [projectsResult, tasksResult, notesResult, resourcesResult] =
         await Promise.all([
-          goalService.getById(userId, goalId),
-          projectService.listByGoal(userId, goalId),
-          taskService.listByGoal(userId, goalId),
-          noteService.listByGoal(userId, goalId),
-          resourceService.listByGoal(userId, goalId),
+          projectService.listByGoal(userId, goal.id),
+          taskService.listByGoal(userId, goal.id),
+          noteService.listByGoal(userId, goal.id),
+          resourceService.listByGoal(userId, goal.id),
         ]);
 
       let projects = projectsResult;

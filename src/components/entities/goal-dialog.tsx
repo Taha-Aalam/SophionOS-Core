@@ -1,13 +1,26 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAreas } from "@/lib/hooks/use-areas";
 import {
@@ -19,7 +32,7 @@ import {
 } from "@/lib/hooks/use-goals";
 import { CreateGoalInput, Goal } from "@/lib/types/domain.types";
 import { GOAL_TERM, PRIORITY } from "@/lib/utils/constants";
-import { createGoalSchema } from "@/lib/validators/goal.schema";
+import { createGoalSchema, updateGoalSchema } from "@/lib/validators/goal.schema";
 
 interface GoalDialogProps {
   open: boolean;
@@ -28,45 +41,71 @@ interface GoalDialogProps {
   onSuccess?: () => void;
 }
 
-const goalFormSchema = createGoalSchema.omit({ is_archived: true, is_completed: true });
-interface GoalFormValues extends Omit<CreateGoalInput, "is_archived" | "is_completed"> {
+type GoalFormValues = Omit<CreateGoalInput, "is_archived" | "is_completed"> & {
   name: string;
   progress: number;
-  term: Goal["term"];
-  priority: Goal["priority"];
-}
-
-const goalResolver: Resolver<GoalFormValues> = async (values) => {
-  const result = goalFormSchema.safeParse(values);
-
-  if (result.success) {
-    return {
-      values: result.data,
-      errors: {},
-    };
-  }
-
-  const errors: Record<string, { type: string; message: string }> = {};
-
-  for (const issue of result.error.issues) {
-    const field = issue.path[0];
-    if (typeof field === "string" && !errors[field]) {
-      errors[field] = {
-        type: issue.code,
-        message: issue.message,
-      };
-    }
-  }
-
-  return {
-    values: {},
-    errors,
-  };
 };
 
+const emptyStringToNull = (value: unknown): unknown => (value === "" ? null : value);
+
+function buildGoalResolver(isCreate: boolean): Resolver<GoalFormValues> {
+  return async (values) => {
+    let schema: z.ZodType<unknown>;
+
+    if (isCreate) {
+      const dateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid ISO date");
+      schema = z.object({
+        area_id: z.preprocess(emptyStringToNull, z.string().uuid().optional().nullable()),
+        name: z.string().trim().min(1, "Name is required").max(100),
+        description: z.preprocess(emptyStringToNull, z.string().trim().max(500).optional().nullable()),
+        term: z.nativeEnum(GOAL_TERM),
+        priority: z.nativeEnum(PRIORITY).default(PRIORITY.MEDIUM),
+        target_date: z.preprocess(
+          emptyStringToNull,
+          dateStringSchema.optional().nullable(),
+        ),
+        progress: z.number().min(0).max(100).default(0),
+      }).superRefine((data, ctx) => {
+        if (data.target_date !== null && data.target_date !== undefined) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const targetDate = new Date(data.target_date + "T00:00:00");
+          if (targetDate < today) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Target date cannot be in the past",
+              path: ["target_date"],
+            });
+          }
+        }
+      });
+    } else {
+      schema = updateGoalSchema.omit({ is_archived: true, is_completed: true });
+    }
+
+    const result = await schema.safeParseAsync(values);
+
+    if (result.success) {
+      return { values: result.data as GoalFormValues, errors: {} };
+    }
+
+    const errors: Record<string, { type: string; message: string }> = {};
+    for (const issue of result.error.issues) {
+      const field = issue.path[0];
+      if (typeof field === "string" && !errors[field]) {
+        errors[field] = { type: issue.code, message: issue.message };
+      }
+    }
+
+    return { values: {}, errors };
+  };
+}
+
 export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogProps) {
+  const isCreate = !goal;
   const { data: allAreas = [] } = useAreas();
   const areas = allAreas.filter((area) => !area.archive);
+  const UNASSIGNED_AREA_VALUE = "__unassigned__";
 
   const createMutation = useCreateGoal();
   const updateMutation = useUpdateGoal();
@@ -74,8 +113,10 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
   const restoreMutation = useRestoreGoal();
   const completeMutation = useCompleteGoal();
 
+  const resolver = useMemo(() => buildGoalResolver(isCreate), [isCreate]);
+
   const form = useForm<GoalFormValues>({
-    resolver: goalResolver,
+    resolver,
     defaultValues: goal ? {
       name: goal.name || "",
       description: goal.description || "",
@@ -112,12 +153,32 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
   }, [form, goal, open]);
 
   const progressValue = form.watch("progress") ?? 0;
+  const selectedAreaId = form.watch("area_id");
+  const selectedTerm = form.watch("term") ?? GOAL_TERM.SHORT;
+  const selectedPriority = form.watch("priority") ?? PRIORITY.MEDIUM;
+  const todayStr = new Date().toISOString().split("T")[0];
   const isPending =
     createMutation.isPending ||
     updateMutation.isPending ||
     archiveMutation.isPending ||
     restoreMutation.isPending ||
     completeMutation.isPending;
+  const selectedAreaLabel =
+    areas.find((area) => area.id === selectedAreaId)?.name ?? "Unassigned";
+  const selectedTermLabel =
+    selectedTerm === GOAL_TERM.SHORT
+      ? "Short Term"
+      : selectedTerm === GOAL_TERM.MID
+        ? "Mid Term"
+        : "Long Term";
+  const selectedPriorityLabel =
+    selectedPriority === PRIORITY.LOW
+      ? "Low"
+      : selectedPriority === PRIORITY.MEDIUM
+        ? "Medium"
+        : selectedPriority === PRIORITY.HIGH
+          ? "High"
+          : "Urgent";
 
   const handleSubmit = async (values: GoalFormValues) => {
     const nextProgress = Number.isFinite(values.progress) ? values.progress : 0;
@@ -203,18 +264,24 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="goal-area">Area</Label>
-              <select
-                id="goal-area"
-                className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                {...form.register("area_id")}
+              <Select
+                value={selectedAreaId ?? UNASSIGNED_AREA_VALUE}
+                onValueChange={(value) =>
+                  form.setValue("area_id", value === UNASSIGNED_AREA_VALUE ? undefined : value)
+                }
               >
-                <option value="">Unassigned</option>
-                {areas.map((area) => (
-                  <option key={area.id} value={area.id}>
-                    {area.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="goal-area" className="w-full">
+                  <SelectValue>{selectedAreaLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UNASSIGNED_AREA_VALUE}>Unassigned</SelectItem>
+                  {areas.map((area) => (
+                    <SelectItem key={area.id} value={area.id}>
+                      {area.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {form.formState.errors.area_id && (
                 <p className="text-xs text-destructive">
                   {String(form.formState.errors.area_id.message)}
@@ -224,15 +291,19 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
 
             <div className="space-y-2">
               <Label htmlFor="goal-term">Term</Label>
-              <select
-                id="goal-term"
-                className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                {...form.register("term")}
+              <Select
+                value={selectedTerm}
+                onValueChange={(value) => form.setValue("term", value as Goal["term"])}
               >
-                <option value={GOAL_TERM.SHORT}>Short Term</option>
-                <option value={GOAL_TERM.MID}>Mid Term</option>
-                <option value={GOAL_TERM.LONG}>Long Term</option>
-              </select>
+                <SelectTrigger id="goal-term" className="w-full">
+                  <SelectValue>{selectedTermLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={GOAL_TERM.SHORT}>Short Term</SelectItem>
+                  <SelectItem value={GOAL_TERM.MID}>Mid Term</SelectItem>
+                  <SelectItem value={GOAL_TERM.LONG}>Long Term</SelectItem>
+                </SelectContent>
+              </Select>
               {form.formState.errors.term && (
                 <p className="text-xs text-destructive">
                   {String(form.formState.errors.term.message)}
@@ -244,16 +315,20 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="goal-priority">Priority</Label>
-              <select
-                id="goal-priority"
-                className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                {...form.register("priority")}
+              <Select
+                value={selectedPriority}
+                onValueChange={(value) => form.setValue("priority", value as Goal["priority"])}
               >
-                <option value={PRIORITY.LOW}>Low</option>
-                <option value={PRIORITY.MEDIUM}>Medium</option>
-                <option value={PRIORITY.HIGH}>High</option>
-                <option value={PRIORITY.URGENT}>Urgent</option>
-              </select>
+                <SelectTrigger id="goal-priority" className="w-full">
+                  <SelectValue>{selectedPriorityLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
+                  <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
+                  <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
+                  <SelectItem value={PRIORITY.URGENT}>Urgent</SelectItem>
+                </SelectContent>
+              </Select>
               {form.formState.errors.priority && (
                 <p className="text-xs text-destructive">
                   {String(form.formState.errors.priority.message)}
@@ -266,6 +341,7 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
               <Input
                 id="goal-target-date"
                 type="date"
+                min={!goal ? todayStr : undefined}
                 {...form.register("target_date")}
               />
               {form.formState.errors.target_date && (
