@@ -398,6 +398,102 @@ export type Database = {
           updated_at?: string;
         };
       };
+      contacts: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          role: string | null;
+          organization: string | null;
+          group: string | null;
+          phone: string | null;
+          email: string | null;
+          linkedin: string | null;
+          website: string | null;
+          last_interaction_at: string | null;
+          follow_up_interval_days: number | null;
+          favorite: boolean;
+          notes: string | null;
+          archive: boolean;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          role?: string | null;
+          organization?: string | null;
+          group?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          linkedin?: string | null;
+          website?: string | null;
+          last_interaction_at?: string | null;
+          follow_up_interval_days?: number | null;
+          favorite?: boolean;
+          notes?: string | null;
+          archive?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          role?: string | null;
+          organization?: string | null;
+          group?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          linkedin?: string | null;
+          website?: string | null;
+          last_interaction_at?: string | null;
+          follow_up_interval_days?: number | null;
+          favorite?: boolean;
+          notes?: string | null;
+          archive?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      contact_projects: {
+        Row: {
+          contact_id: string;
+          project_id: string;
+          role_in_project: string | null;
+        };
+        Insert: {
+          contact_id: string;
+          project_id: string;
+          role_in_project?: string | null;
+        };
+        Update: {
+          contact_id?: string;
+          project_id?: string;
+          role_in_project?: string | null;
+        };
+      };
+      contact_tasks: {
+        Row: {
+          contact_id: string;
+          task_id: string;
+          role_in_task: string | null;
+        };
+        Insert: {
+          contact_id: string;
+          task_id: string;
+          role_in_task?: string | null;
+        };
+        Update: {
+          contact_id?: string;
+          task_id?: string;
+          role_in_task?: string | null;
+        };
+      };
     };
     Views: {
       [_ in never]: never;

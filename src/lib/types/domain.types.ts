@@ -164,3 +164,46 @@ export interface UpdateTopicInput {
   area_ids?: string[];
   favorite?: boolean;
 }
+
+export interface Contact extends DatabaseTable<"contacts"> {}
+
+export interface ContactProject extends DatabaseTable<"contact_projects"> {}
+
+export interface ContactTask extends DatabaseTable<"contact_tasks"> {}
+
+export interface ContactInsert extends DatabaseInsert<"contacts"> {}
+
+export interface ContactUpdate extends DatabaseUpdate<"contacts"> {}
+
+export interface CreateContactInput {
+  name: string;
+  role?: string | null;
+  organization?: string | null;
+  group?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  linkedin?: string | null;
+  website?: string | null;
+  last_interaction_at?: string | null;
+  follow_up_interval_days?: number | null;
+  favorite?: boolean;
+  notes?: string | null;
+  metadata?: Json;
+}
+
+export interface UpdateContactInput extends Partial<CreateContactInput> {
+  archive?: boolean;
+}
+
+export type FollowUpStatus = "ON TRACK" | "FOLLOW UP";
+
+export interface ContactWithRelations extends Contact {
+  linked_projects: Array<{
+    project_id: string;
+    role_in_project: string | null;
+  }>;
+  linked_tasks: Array<{
+    task_id: string;
+    role_in_task: string | null;
+  }>;
+}

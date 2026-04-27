@@ -12,6 +12,7 @@ import {
   Plus,
   Settings,
   Target,
+  Users,
 } from "lucide-react";
 
 import {
@@ -25,6 +26,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { useKeyboardShortcut } from "@/lib/hooks/use-keyboard";
+import { useContacts } from "@/lib/hooks/use-contacts";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useCreateNote, useNotes } from "@/lib/hooks/use-notes";
 import { useCreateResource, useResources } from "@/lib/hooks/use-resources";
@@ -56,6 +58,7 @@ export function CommandPalette() {
   const { data: projects = [] } = useProjects({ status: "all" });
   const { data: notes = [] } = useNotes();
   const { data: resources = [] } = useResources({ status: "all" });
+  const { data: contacts = [] } = useContacts();
 
   const createTask = useCreateTask();
   const createNote = useCreateNote();
@@ -114,6 +117,9 @@ export function CommandPalette() {
   const filteredResources = hasQuery && !isExplicitCreate
     ? resources.filter((r) => !r.is_archived && r.name.toLowerCase().includes(q)).slice(0, 5)
     : [];
+  const filteredContacts = hasQuery && !isExplicitCreate
+    ? contacts.filter((c) => !c.archive && c.name.toLowerCase().includes(q)).slice(0, 5)
+    : [];
   const filteredNav = NAV_ITEMS.filter(
     (item) => !hasQuery || item.label.toLowerCase().includes(q),
   );
@@ -123,7 +129,8 @@ export function CommandPalette() {
     filteredGoals.length > 0 ||
     filteredProjects.length > 0 ||
     filteredNotes.length > 0 ||
-    filteredResources.length > 0;
+    filteredResources.length > 0 ||
+    filteredContacts.length > 0;
 
   const handleCreateTask = useCallback(
     async (name: string) => {
@@ -391,6 +398,24 @@ export function CommandPalette() {
                       >
                         <Globe className="size-4 text-muted-foreground" />
                         {resource.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </>
+              )}
+
+              {filteredContacts.length > 0 && (
+                <>
+                  <CommandSeparator />
+                  <CommandGroup heading="Contacts">
+                    {filteredContacts.map((contact) => (
+                      <CommandItem
+                        key={contact.id}
+                        value={`contact-${contact.id}`}
+                        onSelect={() => go("/contacts")}
+                      >
+                        <Users className="size-4 text-muted-foreground" />
+                        {contact.name}
                       </CommandItem>
                     ))}
                   </CommandGroup>

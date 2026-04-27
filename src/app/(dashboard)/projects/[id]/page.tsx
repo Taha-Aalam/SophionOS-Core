@@ -14,6 +14,7 @@ import {
   Target,
   Trash2,
   Unlink,
+  Users,
 } from "lucide-react";
 
 import { ProjectDialog } from "@/components/entities/project-dialog";
@@ -41,6 +42,7 @@ import {
   useUnlinkProjectFromGoal,
   useUpdateProject,
 } from "@/lib/hooks/use-projects";
+import { useContacts, useContactByProject, useLinkContactToProject, useUnlinkContactFromProject } from "@/lib/hooks/use-contacts";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { cn } from "@/lib/utils";
 import {
@@ -64,6 +66,7 @@ export default function ProjectDetailPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isLinkGoalOpen, setIsLinkGoalOpen] = useState(false);
+  const [isLinkContactOpen, setIsLinkContactOpen] = useState(false);
 
   const { data: project, isLoading: isLoadingProject } = useProject(projectId);
   const { data: relations } = useProjectWithRelations(projectId);
@@ -76,6 +79,24 @@ export default function ProjectDetailPage() {
   const deleteProject = useDeleteProject();
   const linkProjectToGoal = useLinkProjectToGoal();
   const unlinkProjectFromGoal = useUnlinkProjectFromGoal();
+
+  const { data: allContacts = [] } = useContacts();
+  const { data: projectContactLinks = [] } = useContactByProject(projectId);
+  const linkContactToProject = useLinkContactToProject();
+  const unlinkContactFromProject = useUnlinkContactFromProject();
+
+  const linkedContactIds = useMemo(
+    () => new Set(projectContactLinks.map((l) => l.contact_id)),
+    [projectContactLinks],
+  );
+  const linkedContacts = useMemo(
+    () => allContacts.filter((c) => linkedContactIds.has(c.id)),
+    [allContacts, linkedContactIds],
+  );
+  const unlinkedContacts = useMemo(
+    () => allContacts.filter((c) => !linkedContactIds.has(c.id)),
+    [allContacts, linkedContactIds],
+  );
 
   const area = useMemo(
     () => (project?.area_id ? areas.find((candidate) => candidate.id === project.area_id) : null),
@@ -127,6 +148,15 @@ export default function ProjectDetailPage() {
 
   const handleUnlinkGoal = async (goalId: string) => {
     await unlinkProjectFromGoal.mutateAsync({ goalId, projectId });
+  };
+
+  const handleLinkContact = async (contactId: string) => {
+    await linkContactToProject.mutateAsync({ contactId, projectId });
+    setIsLinkContactOpen(false);
+  };
+
+  const handleUnlinkContact = async (contactId: string) => {
+    await unlinkContactFromProject.mutateAsync({ contactId, projectId });
   };
 
   if (isLoadingProject) {
@@ -395,6 +425,55 @@ export default function ProjectDetailPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2">
+              <Users className="size-4" />
+              People
+            </CardTitle>
+            <Button variant="outline" size="sm" onClick={() => setIsLinkContactOpen(true)}>
+              <Plus className="mr-1 size-3" />
+              Link Contact
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {linkedContacts.length === 0 ? (
+            <p className="py-4 text-sm text-muted-foreground">
+              No contacts are linked to this project yet.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {linkedContacts.map((contact) => {
+                const link = projectContactLinks.find((l) => l.contact_id === contact.id);
+                return (
+                  <div
+                    key={contact.id}
+                    className="flex items-center justify-between rounded-lg border p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{contact.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {[contact.role, contact.organization].filter(Boolean).join(" · ")}
+                        {link?.role_in_project && ` · ${link.role_in_project}`}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleUnlinkContact(contact.id)}
+                    >
+                      <Unlink className="size-3" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Dialog open={isLinkGoalOpen} onOpenChange={setIsLinkGoalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -445,6 +524,41 @@ export default function ProjectDetailPage() {
               Delete Project
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isLinkContactOpen} onOpenChange={setIsLinkContactOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link Contact</DialogTitle>
+            <DialogDescription>
+              Add a contact to this project.
+            </DialogDescription>
+          </DialogHeader>
+          {unlinkedContacts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              All contacts are already linked to this project.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {unlinkedContacts.map((contact) => (
+                <button
+                  key={contact.id}
+                  type="button"
+                  onClick={() => handleLinkContact(contact.id)}
+                  className="flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/40"
+                >
+                  <Users className="mt-0.5 size-4 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{contact.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {[contact.role, contact.organization].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
