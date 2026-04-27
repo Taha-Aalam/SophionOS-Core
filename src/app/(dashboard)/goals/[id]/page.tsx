@@ -407,7 +407,7 @@ export default function GoalDetailPage() {
           return new Date(t.due_date) < new Date();
         });
       case "by_projects":
-        return tasks.filter((t) => t.project_id && !t.is_completed);
+        return tasks.filter((t) => !t.is_completed);
       case "completed":
         return tasks.filter((t) => t.is_completed);
       default:
@@ -812,7 +812,7 @@ export default function GoalDetailPage() {
                     if (!groups[s]) groups[s] = [];
                     groups[s].push(p);
                   }
-                  const STATUS_ORDER = ["planning", "active", "completed", "on_hold"];
+                  const STATUS_ORDER = ["planning", "active", "completed", "on_hold", "unknown"];
                   const sortedKeys = Object.keys(groups).sort(
                     (a, b) => STATUS_ORDER.indexOf(a) - STATUS_ORDER.indexOf(b),
                   );
@@ -914,41 +914,36 @@ export default function GoalDetailPage() {
                 (() => {
                   const groups: Record<string, Task[]> = {};
                   for (const t of filteredTasks) {
-                    const key = t.project_id || "ungrouped";
+                    const key = t.project_id ? (allProjects.find((p) => p.id === t.project_id)?.name ?? "ungrouped") : "ungrouped";
                     if (!groups[key]) groups[key] = [];
                     groups[key].push(t);
                   }
-                  const sortedKeys = Object.keys(groups).sort();
+                  const sortedKeys = Object.keys(groups).sort((a, b) =>
+                    a === "ungrouped" ? 1 : b === "ungrouped" ? -1 : a.localeCompare(b),
+                  );
                   return (
                     <div className="space-y-6">
-                      {sortedKeys.map((projectId) => {
-                        const project = allProjects.find((p) => p.id === projectId);
-                        return (
-                          <div key={projectId}>
-                            <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
-                              {project ? project.name : "Ungrouped"} ({groups[projectId].length})
-                            </h3>
-                            <div className="rounded-lg border bg-card">
-                              {groups[projectId].map((task) => (
-                                <TaskListItem
-                                  key={task.id}
-                                  task={task}
-                                  areaName={task.area_id ? areaNames.get(task.area_id) ?? null : null}
-                                  projectName={
-                                    task.project_id
-                                      ? allProjects.find((p) => p.id === task.project_id)?.name ?? null
-                                      : null
-                                  }
-                                  onCompletionToggle={handleTaskCompletion}
-                                  onFocusToggle={handleTaskFocus}
-                                  onNameSave={handleTaskNameSave}
-                                  onDelete={handleTaskDelete}
-                                />
-                              ))}
-                            </div>
+                      {sortedKeys.map((projectName) => (
+                        <div key={projectName}>
+                          <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
+                            {projectName} ({groups[projectName].length})
+                          </h3>
+                          <div className="rounded-lg border bg-card">
+                            {groups[projectName].map((task) => (
+                              <TaskListItem
+                                key={task.id}
+                                task={task}
+                                areaName={task.area_id ? areaNames.get(task.area_id) ?? null : null}
+                                projectName={null}
+                                onCompletionToggle={handleTaskCompletion}
+                                onFocusToggle={handleTaskFocus}
+                                onNameSave={handleTaskNameSave}
+                                onDelete={handleTaskDelete}
+                              />
+                            ))}
                           </div>
-                        );
-                      })}
+                        </div>
+                      ))}
                     </div>
                   );
                 })()

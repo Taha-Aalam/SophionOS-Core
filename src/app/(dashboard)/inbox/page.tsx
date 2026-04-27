@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import {
   CheckSquare,
   Inbox as InboxIcon,
+  Link,
   NotebookPen,
   X,
 } from "lucide-react";
@@ -20,12 +21,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
 import { useAreas } from "@/lib/hooks/use-areas";
-import { useInboxNotes, useInboxTasks } from "@/lib/hooks/use-inbox";
+import { useInboxNotes, useInboxTasks, useInboxResources } from "@/lib/hooks/use-inbox";
 import { useUpdateNote } from "@/lib/hooks/use-notes";
 import { useProjects } from "@/lib/hooks/use-projects";
+import { useUpdateResource } from "@/lib/hooks/use-resources";
+import { useTopics } from "@/lib/hooks/use-topics";
 import { useUpdateTask } from "@/lib/hooks/use-tasks";
-import type { Note, Task } from "@/lib/types/domain.types";
-import { NOTE_STATUS, TASK_STATUS } from "@/lib/utils/constants";
+import type { Note, Resource, Task } from "@/lib/types/domain.types";
+import { NOTE_STATUS, RESOURCE_STATUS, TASK_STATUS } from "@/lib/utils/constants";
 import { relativeTime } from "@/lib/utils/dates";
 import { cn } from "@/lib/utils";
 
@@ -360,6 +363,190 @@ function InboxNoteRow({
   );
 }
 
+// ─── Resource processing form ────────────────────────────────────────────────
+
+interface ResourceProcessFormProps {
+  resource: Resource;
+  areaOptions: { id: string; name: string }[];
+  projectOptions: { id: string; name: string }[];
+  topicOptions: { id: string; name: string }[];
+  onClose: () => void;
+}
+
+function ResourceProcessForm({
+  resource,
+  areaOptions,
+  projectOptions,
+  topicOptions,
+  onClose,
+}: ResourceProcessFormProps) {
+  const updateResource = useUpdateResource();
+  const [areaId, setAreaId] = useState(resource.area_id ?? UNSET);
+  const [projectId, setProjectId] = useState(resource.project_id ?? UNSET);
+  const [topicId, setTopicId] = useState(resource.topic_id ?? UNSET);
+  const [status, setStatus] = useState<string>(RESOURCE_STATUS.ACTIVE);
+
+  const handleSave = () => {
+    updateResource.mutate(
+      {
+        id: resource.id,
+        input: {
+          area_id: areaId === UNSET ? null : areaId,
+          project_id: projectId === UNSET ? null : projectId,
+          topic_id: topicId === UNSET ? null : topicId,
+          status: status as Resource["status"],
+        },
+      },
+      { onSuccess: onClose },
+    );
+  };
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-3">
+      <Select value={areaId} onValueChange={(v) => setAreaId(v ?? UNSET)}>
+        <SelectTrigger className="h-8 w-[140px] text-xs">
+          <SelectValue placeholder="Area" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={UNSET}>No area</SelectItem>
+          {areaOptions.map((a) => (
+            <SelectItem key={a.id} value={a.id}>
+              {a.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={projectId} onValueChange={(v) => setProjectId(v ?? UNSET)}>
+        <SelectTrigger className="h-8 w-[150px] text-xs">
+          <SelectValue placeholder="Project" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={UNSET}>No project</SelectItem>
+          {projectOptions.map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={topicId} onValueChange={(v) => setTopicId(v ?? UNSET)}>
+        <SelectTrigger className="h-8 w-[140px] text-xs">
+          <SelectValue placeholder="Topic" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={UNSET}>No topic</SelectItem>
+          {topicOptions.map((t) => (
+            <SelectItem key={t.id} value={t.id}>
+              {t.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={status} onValueChange={(v) => setStatus(v ?? RESOURCE_STATUS.ACTIVE)}>
+        <SelectTrigger className="h-8 w-[130px] text-xs">
+          <SelectValue placeholder="Move to" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={RESOURCE_STATUS.TO_REVIEW}>To Review</SelectItem>
+          <SelectItem value={RESOURCE_STATUS.ACTIVE}>Active</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <div className="flex items-center gap-1.5">
+        <Button
+          size="sm"
+          className="h-8 text-xs"
+          onClick={handleSave}
+          disabled={updateResource.isPending}
+        >
+          Process
+        </Button>
+        <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={onClose}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Inbox resource row ──────────────────────────────────────────────────────
+
+interface InboxResourceRowProps {
+  resource: Resource;
+  areaName?: string;
+  areaOptions: { id: string; name: string }[];
+  projectOptions: { id: string; name: string }[];
+  topicOptions: { id: string; name: string }[];
+  expanded: boolean;
+  onExpand: () => void;
+  onCollapse: () => void;
+}
+
+function InboxResourceRow({
+  resource,
+  areaName,
+  areaOptions,
+  projectOptions,
+  topicOptions,
+  expanded,
+  onExpand,
+  onCollapse,
+}: InboxResourceRowProps) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border border-border/60 bg-card p-3 transition-colors",
+        expanded && "border-primary/40 bg-accent/20",
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <Badge
+          variant="secondary"
+          className="shrink-0 gap-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+        >
+          <Link className="size-3" />
+          resource
+        </Badge>
+
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">{resource.name}</span>
+
+        <div className="flex shrink-0 items-center gap-2">
+          {areaName && (
+            <span className="hidden text-xs text-muted-foreground sm:block">{areaName}</span>
+          )}
+          <span className="text-xs text-muted-foreground">{relativeTime(resource.created_at)}</span>
+          {expanded ? (
+            <button
+              onClick={onCollapse}
+              className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+              aria-label="Cancel"
+            >
+              <X className="size-3.5" />
+            </button>
+          ) : (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onExpand}>
+              Process
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {expanded && (
+        <ResourceProcessForm
+          resource={resource}
+          areaOptions={areaOptions}
+          projectOptions={projectOptions}
+          topicOptions={topicOptions}
+          onClose={onCollapse}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 
 function InboxItemSkeleton() {
@@ -377,13 +564,15 @@ function InboxItemSkeleton() {
 export default function InboxPage() {
   const { data: inboxTasks, isLoading: tasksLoading } = useInboxTasks();
   const { data: inboxNotes = [], isLoading: notesLoading } = useInboxNotes();
+  const { data: inboxResources = [], isLoading: resourcesLoading } = useInboxResources();
   const { data: allAreas } = useAreas();
   const { data: allProjects } = useProjects({ status: "all" });
+  const { data: allTopics } = useTopics();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const isLoading = tasksLoading || notesLoading;
-  const totalCount = inboxTasks.length + inboxNotes.length;
+  const isLoading = tasksLoading || notesLoading || resourcesLoading;
+  const totalCount = inboxTasks.length + inboxNotes.length + inboxResources.length;
 
   const areaOptions = useMemo(
     () =>
@@ -399,6 +588,14 @@ export default function InboxPage() {
         .filter((p) => !p.is_archived)
         .map((p) => ({ id: p.id, name: p.name })),
     [allProjects],
+  );
+
+  const topicOptions = useMemo(
+    () =>
+      (allTopics ?? [])
+        .filter((t) => !t.inactive)
+        .map((t) => ({ id: t.id, name: t.name })),
+    [allTopics],
   );
 
   const areaMap = useMemo(
@@ -480,6 +677,31 @@ export default function InboxPage() {
                       projectOptions={projectOptions}
                       expanded={expandedId === note.id}
                       onExpand={() => setExpandedId(note.id)}
+                      onCollapse={() => setExpandedId(null)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {inboxResources.length > 0 && (
+              <section className="flex flex-col gap-2">
+                <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Link className="size-3.5" />
+                  Resources
+                  <span className="ml-0.5 font-normal normal-case">({inboxResources.length})</span>
+                </h2>
+                <div className="flex flex-col gap-2">
+                  {inboxResources.map((resource) => (
+                    <InboxResourceRow
+                      key={resource.id}
+                      resource={resource}
+                      areaName={resource.area_id ? areaMap.get(resource.area_id) : undefined}
+                      areaOptions={areaOptions}
+                      projectOptions={projectOptions}
+                      topicOptions={topicOptions}
+                      expanded={expandedId === resource.id}
+                      onExpand={() => setExpandedId(resource.id)}
                       onCollapse={() => setExpandedId(null)}
                     />
                   ))}
