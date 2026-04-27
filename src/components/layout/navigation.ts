@@ -8,6 +8,7 @@ import {
   NotebookPen,
   Sun,
   Target,
+  Users,
 } from "lucide-react";
 
 const coreNavItems = [
@@ -18,6 +19,7 @@ const coreNavItems = [
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/notes", label: "Notes", icon: NotebookPen },
   { href: "/resources", label: "Resources", icon: Globe },
+  { href: "/contacts", label: "Contacts", icon: Users },
 ] as const;
 
 const systemNavItems = [
@@ -27,6 +29,7 @@ const systemNavItems = [
 
 const breadcrumbLabels: Record<string, string> = {
   areas: "Areas",
+  contacts: "Contacts",
   dashboard: "Dashboard",
   "forgot-password": "Forgot Password",
   goals: "Goals",
