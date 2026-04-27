@@ -300,6 +300,19 @@ export const taskService = {
     }
   },
 
+  async listByGoal(userId: string, goalId: string): Promise<Task[]> {
+    const { data, error } = await createClient()
+      .from("goal_tasks")
+      .select("task:tasks(*)")
+      .eq("goal_id", goalId);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    return (data ?? []).map((r) => r.task as unknown as Task).filter(Boolean);
+  },
+
   async touch(userId: string, id: string): Promise<Task> {
     const { data, error } = await createClient()
       .from("tasks")

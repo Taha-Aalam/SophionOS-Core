@@ -37,6 +37,7 @@ export const createNoteSchema = noteBaseSchema.extend({
   favorite: z.boolean().default(false),
   pin: z.boolean().default(false),
   is_archived: z.boolean().default(false),
+  goal_ids: z.array(z.string().uuid()).default([]),
 });
 
 export const updateNoteSchema = noteBaseSchema

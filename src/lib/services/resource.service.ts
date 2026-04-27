@@ -7,6 +7,18 @@ import type { ResourceStatus } from "../utils/constants";
 const RESOURCE_SELECT =
   "id, user_id, area_id, project_id, topic_id, name, url, type, status, favorite, is_archived, metadata, created_at, updated_at";
 
+function extractGoalIds(input: { goal_ids?: string[] }): {
+  goalIds: string[] | undefined;
+  resourceInput: Omit<typeof input, "goal_ids">;
+} {
+  const { goal_ids, ...resourceInput } = input;
+
+  return {
+    goalIds: goal_ids ? Array.from(new Set(goal_ids)) : undefined,
+    resourceInput,
+  };
+}
+
 export const resourceService = {
   async list(
     userId: string,
@@ -69,39 +81,57 @@ export const resourceService = {
 
   async create(userId: string, input: CreateResourceInput): Promise<Resource> {
     const validated = createResourceSchema.parse(input);
+    const { goalIds, resourceInput } = extractGoalIds(validated);
 
     const { data, error } = await createClient()
       .from("resources")
-      .insert({ ...validated, user_id: userId })
+      .insert({ ...resourceInput, user_id: userId })
       .select(RESOURCE_SELECT)
       .single();
 
     if (error) {
       throw new DatabaseError(error.message);
+    }
+
+    if (goalIds?.length) {
+      await this.replaceGoalLinks(data.id, goalIds);
     }
 
     return data;
   },
 
   async update(userId: string, id: string, input: UpdateResourceInput): Promise<Resource> {
-    const validated = updateResourceSchema.parse(input);
+    const { goal_ids, ...rest } = input;
+    const goalIds = goal_ids ? Array.from(new Set(goal_ids)) : undefined;
+    const validated = updateResourceSchema.parse(rest);
+    const hasResourceUpdates = Object.keys(validated).length > 0;
 
-    const { data, error } = await createClient()
-      .from("resources")
-      .update(validated)
-      .eq("user_id", userId)
-      .eq("id", id)
-      .select(RESOURCE_SELECT)
-      .single();
+    const resource = hasResourceUpdates
+      ? await (async () => {
+          const { data, error } = await createClient()
+            .from("resources")
+            .update(validated)
+            .eq("user_id", userId)
+            .eq("id", id)
+            .select(RESOURCE_SELECT)
+            .single();
 
-    if (error) {
-      if (error.code === "PGRST116") {
-        throw new NotFoundError("Resource", id);
-      }
-      throw new DatabaseError(error.message);
+          if (error) {
+            if (error.code === "PGRST116") {
+              throw new NotFoundError("Resource", id);
+            }
+            throw new DatabaseError(error.message);
+          }
+
+          return data;
+        })()
+      : await this.getById(userId, id);
+
+    if (goalIds) {
+      await this.replaceGoalLinks(id, goalIds);
     }
 
-    return data;
+    return resource;
   },
 
   async archive(userId: string, id: string): Promise<Resource> {
@@ -164,5 +194,83 @@ export const resourceService = {
     }
 
     return data || [];
+  },
+
+  async listByGoal(userId: string, goalId: string): Promise<Resource[]> {
+    const { data, error } = await createClient()
+      .from("goal_resources")
+      .select("resource:resources(*)")
+      .eq("goal_id", goalId);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    return (data ?? []).map((r) => r.resource as unknown as Resource).filter(Boolean);
+  },
+
+  async linkToGoal(goalId: string, resourceId: string): Promise<void> {
+    const { error } = await createClient()
+      .from("goal_resources")
+      .upsert({ goal_id: goalId, resource_id: resourceId });
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+  },
+
+  async unlinkFromGoal(goalId: string, resourceId: string): Promise<void> {
+    const { error } = await createClient()
+      .from("goal_resources")
+      .delete()
+      .eq("goal_id", goalId)
+      .eq("resource_id", resourceId);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+  },
+
+  async getWithRelations(resourceId: string): Promise<{ goal_ids: string[] }> {
+    const { data, error } = await createClient()
+      .from("goal_resources")
+      .select("goal_id")
+      .eq("resource_id", resourceId);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    return { goal_ids: data?.map((r) => r.goal_id) || [] };
+  },
+
+  async replaceGoalLinks(resourceId: string, goalIds: string[]): Promise<void> {
+    const existingRelations = await this.getWithRelations(resourceId);
+    const existingGoalIds = new Set(existingRelations.goal_ids);
+    const nextGoalIds = new Set(goalIds);
+    const goalIdsToAdd = goalIds.filter((goalId) => !existingGoalIds.has(goalId));
+    const goalIdsToRemove = existingRelations.goal_ids.filter((goalId) => !nextGoalIds.has(goalId));
+
+    if (goalIdsToAdd.length > 0) {
+      const { error } = await createClient()
+        .from("goal_resources")
+        .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, resource_id: resourceId })));
+
+      if (error) {
+        throw new DatabaseError(error.message);
+      }
+    }
+
+    if (goalIdsToRemove.length > 0) {
+      const { error } = await createClient()
+        .from("goal_resources")
+        .delete()
+        .eq("resource_id", resourceId)
+        .in("goal_id", goalIdsToRemove);
+
+      if (error) {
+        throw new DatabaseError(error.message);
+      }
+    }
   },
 };

@@ -39,6 +39,7 @@ interface ProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   project?: Project | null;
+  goalId?: string;
   onSuccess?: () => void;
 }
 
@@ -73,9 +74,10 @@ const EMPTY_FORM_VALUES: ProjectFormValues = {
 function buildProjectFormValues(
   project: Project | null | undefined,
   goalIds: string[],
+  defaultGoalId?: string,
 ): ProjectFormValues {
   if (!project) {
-    return EMPTY_FORM_VALUES;
+    return { ...EMPTY_FORM_VALUES, goal_ids: defaultGoalId ? [defaultGoalId] : [] };
   }
 
   return {
@@ -96,6 +98,7 @@ export function ProjectDialog({
   open,
   onOpenChange,
   project,
+  goalId,
   onSuccess,
 }: ProjectDialogProps) {
   const { data: allAreas = [] } = useAreas();
@@ -125,8 +128,8 @@ export function ProjectDialog({
       return;
     }
 
-    form.reset(buildProjectFormValues(project, linkedGoalIds));
-  }, [form, linkedGoalIds, open, project]);
+    form.reset(buildProjectFormValues(project, linkedGoalIds, goalId));
+  }, [form, linkedGoalIds, open, project, goalId]);
 
   const selectedGoalIds = form.watch("goal_ids") ?? [];
   const isPending = createMutation.isPending || updateMutation.isPending;

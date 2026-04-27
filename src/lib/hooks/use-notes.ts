@@ -66,6 +66,50 @@ export function useNotebooks() {
   });
 }
 
+export function useNotesByGoal(goalId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [NOTES_QUERY_KEY, "byGoal", user?.id ?? null, goalId],
+    queryFn: () => noteService.listByGoal(user!.id, goalId),
+    enabled: !!user && !!goalId,
+  });
+}
+
+export function useLinkNoteToGoal() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: ({ noteId, goalId }: { noteId: string; goalId: string }) =>
+      noteService.linkToGoal(goalId, noteId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
+      toast.success("Note linked to goal");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to link note to goal");
+    },
+  });
+}
+
+export function useUnlinkNoteFromGoal() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: ({ noteId, goalId }: { noteId: string; goalId: string }) =>
+      noteService.unlinkFromGoal(goalId, noteId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
+      toast.success("Note unlinked from goal");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to unlink note from goal");
+    },
+  });
+}
+
 function invalidateNoteGraph(
   queryClient: ReturnType<typeof useQueryClient>,
 ): Promise<unknown[]> {
@@ -82,6 +126,24 @@ export function useCreateNote() {
 
   return useMutation({
     mutationFn: (input: CreateNoteInput) => noteService.create(user!.id, input),
+    onSuccess: async () => {
+      await invalidateNoteGraph(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
+      toast.success("Note created");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create note");
+    },
+  });
+}
+
+export function useCreateNoteWithGoal(goalId: string) {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (input: CreateNoteInput) =>
+      noteService.create(user!.id, { ...input, goal_ids: [goalId] }),
     onSuccess: async () => {
       await invalidateNoteGraph(queryClient);
       toast.success("Note created");

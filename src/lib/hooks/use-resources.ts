@@ -68,6 +68,50 @@ export function useResourcesByTopic(topicId: string) {
   });
 }
 
+export function useResourcesByGoal(goalId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [RESOURCES_QUERY_KEY, "byGoal", user?.id ?? null, goalId],
+    queryFn: () => resourceService.listByGoal(user!.id, goalId),
+    enabled: !!user && !!goalId,
+  });
+}
+
+export function useLinkResourceToGoal() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: ({ resourceId, goalId }: { resourceId: string; goalId: string }) =>
+      resourceService.linkToGoal(goalId, resourceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      toast.success("Resource linked to goal");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to link resource to goal");
+    },
+  });
+}
+
+export function useUnlinkResourceFromGoal() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: ({ resourceId, goalId }: { resourceId: string; goalId: string }) =>
+      resourceService.unlinkFromGoal(goalId, resourceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      toast.success("Resource unlinked from goal");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to unlink resource from goal");
+    },
+  });
+}
+
 export function useFavoriteResources() {
   const { user } = useAuth();
 
@@ -94,6 +138,24 @@ export function useCreateResource() {
 
   return useMutation({
     mutationFn: (input: CreateResourceInput) => resourceService.create(user!.id, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
+      toast.success("Resource created");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create resource");
+    },
+  });
+}
+
+export function useCreateResourceWithGoal(goalId: string) {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (input: CreateResourceInput) =>
+      resourceService.create(user!.id, { ...input, goal_ids: [goalId] }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
       toast.success("Resource created");

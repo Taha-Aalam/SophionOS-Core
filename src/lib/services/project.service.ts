@@ -276,4 +276,17 @@ export const projectService = {
       throw new DatabaseError(error.message);
     }
   },
+
+  async listByGoal(userId: string, goalId: string): Promise<Project[]> {
+    const { data, error } = await createClient()
+      .from("goal_projects")
+      .select("project:projects(*)")
+      .eq("goal_id", goalId);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    return (data ?? []).map((r) => r.project as unknown as Project).filter(Boolean);
+  },
 };

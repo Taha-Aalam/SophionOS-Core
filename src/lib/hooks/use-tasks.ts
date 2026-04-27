@@ -59,6 +59,7 @@ export function useCreateTask() {
     mutationFn: (input: CreateTaskInput) => taskService.create(user!.id, input),
     onSuccess: async () => {
       await invalidateTaskGraph(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
       toast.success("Task created");
     },
     onError: (error: Error) => {
@@ -184,6 +185,73 @@ export function useFocusTask() {
     },
     onSettled: async () => {
       await invalidateTaskGraph(queryClient);
+    },
+  });
+}
+
+export function useTasksByGoal(goalId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [TASKS_QUERY_KEY, "byGoal", user?.id ?? null, goalId],
+    queryFn: () => taskService.listByGoal(user!.id, goalId),
+    enabled: !!user && !!goalId,
+  });
+}
+
+export function useCompleteTaskWithGoalRefresh() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => taskService.complete(user!.id, id),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: [TASKS_QUERY_KEY] });
+      const previousData = queryClient.getQueriesData<Task[]>({ queryKey: [TASKS_QUERY_KEY] });
+
+      queryClient.setQueriesData<Task[]>({ queryKey: [TASKS_QUERY_KEY] }, (old) => {
+        if (!Array.isArray(old)) {
+          return old;
+        }
+
+        return old.map((task) =>
+          task.id === id
+            ? { ...task, completed_at: new Date().toISOString(), is_completed: true }
+            : task,
+        );
+      });
+
+      return { previousData };
+    },
+    onSuccess: (_completedTask, id) => {
+      toast.success("Task completed", {
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              await taskService.uncomplete(user!.id, id);
+              await invalidateTaskGraph(queryClient);
+              toast.success("Task restored");
+            } catch {
+              toast.error("Failed to undo");
+            }
+          },
+        },
+      });
+    },
+    onError: (_error, _id, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+
+      toast.error("Failed to complete task");
+    },
+    onSettled: async () => {
+      await invalidateTaskGraph(queryClient);
+      // Also invalidate goal detail queries so completion % updates in real time
+      queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
     },
   });
 }

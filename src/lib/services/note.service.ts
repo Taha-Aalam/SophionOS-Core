@@ -7,6 +7,18 @@ import type { NoteStatus } from "../utils/constants";
 const NOTE_SELECT =
   "id, user_id, area_id, project_id, topic_id, name, content, type, status, notebook, favorite, pin, is_archived, metadata, created_at, updated_at";
 
+function extractGoalIds(input: { goal_ids?: string[] }): {
+  goalIds: string[] | undefined;
+  noteInput: Omit<typeof input, "goal_ids">;
+} {
+  const { goal_ids, ...noteInput } = input;
+
+  return {
+    goalIds: goal_ids ? Array.from(new Set(goal_ids)) : undefined,
+    noteInput,
+  };
+}
+
 export const noteService = {
   async list(
     userId: string,
@@ -69,39 +81,57 @@ export const noteService = {
 
   async create(userId: string, input: CreateNoteInput): Promise<Note> {
     const validated = createNoteSchema.parse(input);
+    const { goalIds, noteInput } = extractGoalIds(validated);
 
     const { data, error } = await createClient()
       .from("notes")
-      .insert({ ...validated, user_id: userId })
+      .insert({ ...noteInput, user_id: userId })
       .select(NOTE_SELECT)
       .single();
 
     if (error) {
       throw new DatabaseError(error.message);
+    }
+
+    if (goalIds?.length) {
+      await this.replaceGoalLinks(data.id, goalIds);
     }
 
     return data;
   },
 
   async update(userId: string, id: string, input: UpdateNoteInput): Promise<Note> {
-    const validated = updateNoteSchema.parse(input);
+    const { goal_ids, ...rest } = input;
+    const goalIds = goal_ids ? Array.from(new Set(goal_ids)) : undefined;
+    const validated = updateNoteSchema.parse(rest);
+    const hasNoteUpdates = Object.keys(validated).length > 0;
 
-    const { data, error } = await createClient()
-      .from("notes")
-      .update(validated)
-      .eq("user_id", userId)
-      .eq("id", id)
-      .select(NOTE_SELECT)
-      .single();
+    const note = hasNoteUpdates
+      ? await (async () => {
+          const { data, error } = await createClient()
+            .from("notes")
+            .update(validated)
+            .eq("user_id", userId)
+            .eq("id", id)
+            .select(NOTE_SELECT)
+            .single();
 
-    if (error) {
-      if (error.code === "PGRST116") {
-        throw new NotFoundError("Note", id);
-      }
-      throw new DatabaseError(error.message);
+          if (error) {
+            if (error.code === "PGRST116") {
+              throw new NotFoundError("Note", id);
+            }
+            throw new DatabaseError(error.message);
+          }
+
+          return data;
+        })()
+      : await this.getById(userId, id);
+
+    if (goalIds) {
+      await this.replaceGoalLinks(id, goalIds);
     }
 
-    return data;
+    return note;
   },
 
   async archive(userId: string, id: string): Promise<Note> {
@@ -161,5 +191,83 @@ export const noteService = {
     }
 
     return Array.from(notebooks).sort();
+  },
+
+  async listByGoal(userId: string, goalId: string): Promise<Note[]> {
+    const { data, error } = await createClient()
+      .from("goal_notes")
+      .select("note:notes(*)")
+      .eq("goal_id", goalId);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    return (data ?? []).map((r) => r.note as unknown as Note).filter(Boolean);
+  },
+
+  async linkToGoal(goalId: string, noteId: string): Promise<void> {
+    const { error } = await createClient()
+      .from("goal_notes")
+      .upsert({ goal_id: goalId, note_id: noteId });
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+  },
+
+  async unlinkFromGoal(goalId: string, noteId: string): Promise<void> {
+    const { error } = await createClient()
+      .from("goal_notes")
+      .delete()
+      .eq("goal_id", goalId)
+      .eq("note_id", noteId);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+  },
+
+  async getWithRelations(noteId: string): Promise<{ goal_ids: string[] }> {
+    const { data, error } = await createClient()
+      .from("goal_notes")
+      .select("goal_id")
+      .eq("note_id", noteId);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    return { goal_ids: data?.map((r) => r.goal_id) || [] };
+  },
+
+  async replaceGoalLinks(noteId: string, goalIds: string[]): Promise<void> {
+    const existingRelations = await this.getWithRelations(noteId);
+    const existingGoalIds = new Set(existingRelations.goal_ids);
+    const nextGoalIds = new Set(goalIds);
+    const goalIdsToAdd = goalIds.filter((goalId) => !existingGoalIds.has(goalId));
+    const goalIdsToRemove = existingRelations.goal_ids.filter((goalId) => !nextGoalIds.has(goalId));
+
+    if (goalIdsToAdd.length > 0) {
+      const { error } = await createClient()
+        .from("goal_notes")
+        .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, note_id: noteId })));
+
+      if (error) {
+        throw new DatabaseError(error.message);
+      }
+    }
+
+    if (goalIdsToRemove.length > 0) {
+      const { error } = await createClient()
+        .from("goal_notes")
+        .delete()
+        .eq("note_id", noteId)
+        .in("goal_id", goalIdsToRemove);
+
+      if (error) {
+        throw new DatabaseError(error.message);
+      }
+    }
   },
 };

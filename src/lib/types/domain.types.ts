@@ -31,6 +31,10 @@ export interface GoalProject extends DatabaseTable<"goal_projects"> {}
 
 export interface GoalTask extends DatabaseTable<"goal_tasks"> {}
 
+export interface GoalNote extends DatabaseTable<"goal_notes"> {}
+
+export interface GoalResource extends DatabaseTable<"goal_resources"> {}
+
 export interface AreaInsert extends Omit<DatabaseInsert<"areas">, "is_archived"> {}
 
 export interface AreaUpdate extends Omit<DatabaseUpdate<"areas">, "is_archived"> {}
@@ -135,6 +139,7 @@ export interface CreateNoteInput {
   favorite?: boolean;
   pin?: boolean;
   is_archived?: boolean;
+  goal_ids?: string[];
 }
 
 export interface UpdateNoteInput extends Partial<CreateNoteInput> {}
@@ -149,6 +154,7 @@ export interface CreateResourceInput {
   status?: Resource["status"];
   favorite?: boolean;
   is_archived?: boolean;
+  goal_ids?: string[];
 }
 
 export interface UpdateResourceInput extends Partial<CreateResourceInput> {}

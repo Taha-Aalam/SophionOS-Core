@@ -42,6 +42,7 @@ interface TaskDialogProps {
   task?: Task | null;
   defaultProjectId?: string;
   defaultAreaId?: string;
+  goalId?: string;
   onSuccess?: () => void;
 }
 
@@ -85,12 +86,14 @@ function buildTaskFormValues(
   goalIds: string[],
   defaultAreaId?: string,
   defaultProjectId?: string,
+  defaultGoalId?: string,
 ): TaskFormValues {
   if (!task) {
     return {
       ...EMPTY_FORM_VALUES,
       area_id: defaultAreaId ?? "",
       project_id: defaultProjectId ?? "",
+      goal_ids: defaultGoalId ? [defaultGoalId] : [],
     };
   }
 
@@ -117,6 +120,7 @@ export function TaskDialog({
   task,
   defaultProjectId,
   defaultAreaId,
+  goalId,
   onSuccess,
 }: TaskDialogProps) {
   const { data: allAreas = [] } = useAreas();
@@ -154,8 +158,8 @@ export function TaskDialog({
       return;
     }
 
-    form.reset(buildTaskFormValues(task, linkedGoalIds, defaultAreaId, defaultProjectId));
-  }, [defaultAreaId, defaultProjectId, form, linkedGoalIds, open, task]);
+    form.reset(buildTaskFormValues(task, linkedGoalIds, defaultAreaId, defaultProjectId, goalId));
+  }, [defaultAreaId, defaultProjectId, form, goalId, linkedGoalIds, open, task]);
 
   const selectedAreaId = form.watch("area_id");
   const selectedGoalIds = form.watch("goal_ids") ?? [];

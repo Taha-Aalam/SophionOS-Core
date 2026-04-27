@@ -82,6 +82,7 @@ export function useCreateProject() {
     mutationFn: (input: CreateProjectInput) => projectService.create(user!.id, input),
     onSuccess: async () => {
       await invalidateProjectGraph(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
       toast.success("Project created successfully");
     },
     onError: (error: Error) => {
@@ -197,5 +198,15 @@ export function useUnlinkProjectFromGoal() {
     onError: (error: Error) => {
       toast.error(error.message || "Failed to unlink project from goal");
     },
+  });
+}
+
+export function useProjectsByGoal(goalId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [PROJECTS_QUERY_KEY, "byGoal", user?.id ?? null, goalId],
+    queryFn: () => projectService.listByGoal(user!.id, goalId),
+    enabled: !!user && !!goalId,
   });
 }
