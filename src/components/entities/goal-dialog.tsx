@@ -163,8 +163,10 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
     archiveMutation.isPending ||
     restoreMutation.isPending ||
     completeMutation.isPending;
-  const selectedAreaLabel =
-    areas.find((area) => area.id === selectedAreaId)?.name ?? "Unassigned";
+  const selectedArea = areas.find((area) => area.id === selectedAreaId);
+  const selectedAreaLabel = selectedArea
+    ? `${selectedArea.icon ? `${selectedArea.icon} ` : ""}${selectedArea.name}`
+    : "Unassigned";
   const selectedTermLabel =
     selectedTerm === GOAL_TERM.SHORT
       ? "Short Term"
@@ -277,6 +279,7 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
                   <SelectItem value={UNASSIGNED_AREA_VALUE}>Unassigned</SelectItem>
                   {areas.map((area) => (
                     <SelectItem key={area.id} value={area.id}>
+                      {area.icon ? `${area.icon} ` : ""}
                       {area.name}
                     </SelectItem>
                   ))}

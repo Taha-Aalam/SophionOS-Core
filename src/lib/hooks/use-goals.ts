@@ -3,12 +3,155 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { AREAS_QUERY_KEY } from "@/lib/hooks/use-areas";
+import {
+  GOAL_DETAIL_QUERY_KEY,
+  type GoalDetailData,
+} from "@/lib/hooks/use-goal-detail";
 
 import { goalService } from "../services/goal.service";
 import { CreateGoalInput, Goal, UpdateGoalInput } from "../types/domain.types";
-import type { GoalStatusFilter, GoalTermFilter } from "../utils/goals";
+import {
+  calculateGoalProgress,
+  mergeGoalIntoFilteredList,
+  type GoalListFilters,
+  type GoalStatusFilter,
+  type GoalTermFilter,
+} from "../utils/goals";
 
 export const GOALS_QUERY_KEY = "goals";
+
+function invalidateGoalGraph(
+  queryClient: ReturnType<typeof useQueryClient>,
+): Promise<unknown[]> {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] }),
+  ]);
+}
+
+interface GoalMutationContext {
+  previousGoalDetails: Array<[readonly unknown[], GoalDetailData | undefined]>;
+  previousGoals: Array<[readonly unknown[], Goal | Goal[] | undefined]>;
+}
+
+function patchGoalCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  nextGoal: Goal,
+  previousGoals: Array<[readonly unknown[], Goal | Goal[] | undefined]>,
+): void {
+  for (const [queryKey, data] of previousGoals) {
+    if (Array.isArray(data)) {
+      const filters =
+        typeof queryKey[1] === "object" && queryKey[1] !== null
+          ? (queryKey[1] as GoalListFilters)
+          : {};
+      queryClient.setQueryData(queryKey, mergeGoalIntoFilteredList(data, nextGoal, filters));
+      continue;
+    }
+
+    if (data?.id === nextGoal.id) {
+      queryClient.setQueryData(queryKey, nextGoal);
+    }
+  }
+
+  queryClient.setQueriesData<GoalDetailData | undefined>(
+    { queryKey: [GOAL_DETAIL_QUERY_KEY] },
+    (current) => {
+      if (!current || current.goal.id !== nextGoal.id) {
+        return current;
+      }
+
+      return {
+        ...current,
+        goal: nextGoal,
+      };
+    },
+  );
+}
+
+function syncResolvedGoalCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  nextGoal: Goal,
+): void {
+  patchGoalCaches(
+    queryClient,
+    nextGoal,
+    queryClient.getQueriesData<Goal | Goal[] | undefined>({
+      queryKey: [GOALS_QUERY_KEY],
+    }),
+  );
+}
+
+async function optimisticallyPatchGoal(
+  queryClient: ReturnType<typeof useQueryClient>,
+  goalId: string,
+  patch: Partial<Goal>,
+): Promise<GoalMutationContext> {
+  await Promise.all([
+    queryClient.cancelQueries({ queryKey: [GOALS_QUERY_KEY] }),
+    queryClient.cancelQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] }),
+  ]);
+
+  const previousGoals = queryClient.getQueriesData<Goal | Goal[] | undefined>({
+    queryKey: [GOALS_QUERY_KEY],
+  });
+  const previousGoalDetails = queryClient.getQueriesData<GoalDetailData | undefined>({
+    queryKey: [GOAL_DETAIL_QUERY_KEY],
+  });
+  const goalDetailData = previousGoalDetails.find(([, data]) => data?.goal.id === goalId)?.[1];
+
+  const currentGoal =
+    goalDetailData?.goal ??
+    previousGoals.find(([, data]) => !Array.isArray(data) && data?.id === goalId)?.[1] ??
+    previousGoals
+      .flatMap(([, data]) => (Array.isArray(data) ? data : []))
+      .find((goal) => goal.id === goalId);
+
+  if (!currentGoal) {
+    return {
+      previousGoalDetails,
+      previousGoals,
+    };
+  }
+
+  const nextPatch: Partial<Goal> = { ...patch };
+  if (patch.is_completed === true && patch.progress === undefined) {
+    nextPatch.progress = 100;
+  } else if (patch.is_completed === false && patch.progress === undefined && goalDetailData) {
+    nextPatch.progress = calculateGoalProgress(
+      { ...currentGoal, is_completed: false, progress: 0 },
+      goalDetailData.projects,
+      goalDetailData.tasks,
+    );
+  } else if (patch.is_completed === false && patch.progress === undefined) {
+    nextPatch.progress = 0;
+  }
+
+  const nextGoal = {
+    ...currentGoal,
+    ...nextPatch,
+  };
+
+  patchGoalCaches(queryClient, nextGoal, previousGoals);
+
+  return {
+    previousGoalDetails,
+    previousGoals,
+  };
+}
+
+function restoreGoalCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  context?: GoalMutationContext,
+): void {
+  context?.previousGoals.forEach(([queryKey, data]) => {
+    queryClient.setQueryData(queryKey, data);
+  });
+  context?.previousGoalDetails.forEach(([queryKey, data]) => {
+    queryClient.setQueryData(queryKey, data);
+  });
+}
 
 export interface GoalQueryFilters {
   term?: GoalTermFilter;
@@ -44,8 +187,7 @@ export function useCreateGoal() {
   return useMutation({
     mutationFn: (input: CreateGoalInput) => goalService.create(user!.id, input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] });
+      invalidateGoalGraph(queryClient);
       toast.success("Goal created successfully");
     },
     onError: (error: Error) => {
@@ -61,13 +203,17 @@ export function useUpdateGoal() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateGoalInput }) =>
       goalService.update(user!.id, id, input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] });
+    onMutate: async ({ id, input }) => optimisticallyPatchGoal(queryClient, id, input),
+    onSuccess: (updatedGoal) => {
+      syncResolvedGoalCaches(queryClient, updatedGoal);
       toast.success("Goal updated successfully");
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _variables, context) => {
+      restoreGoalCaches(queryClient, context);
       toast.error(error.message || "Failed to update goal");
+    },
+    onSettled: async () => {
+      await invalidateGoalGraph(queryClient);
     },
   });
 }
@@ -78,13 +224,18 @@ export function useArchiveGoal() {
 
   return useMutation({
     mutationFn: (id: string) => goalService.archive(user!.id, id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] });
+    onMutate: async (id: string) =>
+      optimisticallyPatchGoal(queryClient, id, { is_archived: true }),
+    onSuccess: (updatedGoal) => {
+      syncResolvedGoalCaches(queryClient, updatedGoal);
       toast.success("Goal archived");
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _id, context) => {
+      restoreGoalCaches(queryClient, context);
       toast.error(error.message || "Failed to archive goal");
+    },
+    onSettled: async () => {
+      await invalidateGoalGraph(queryClient);
     },
   });
 }
@@ -98,13 +249,18 @@ export function useCompleteGoal() {
       is_completed: true,
       progress: 100,
     }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] });
+    onMutate: async (id: string) =>
+      optimisticallyPatchGoal(queryClient, id, { is_completed: true, progress: 100 }),
+    onSuccess: (updatedGoal) => {
+      syncResolvedGoalCaches(queryClient, updatedGoal);
       toast.success("Goal marked as completed!");
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _id, context) => {
+      restoreGoalCaches(queryClient, context);
       toast.error(error.message || "Failed to complete goal");
+    },
+    onSettled: async () => {
+      await invalidateGoalGraph(queryClient);
     },
   });
 }
@@ -115,13 +271,18 @@ export function useRestoreGoal() {
 
   return useMutation({
     mutationFn: (id: string) => goalService.restore(user!.id, id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] });
+    onMutate: async (id: string) =>
+      optimisticallyPatchGoal(queryClient, id, { is_archived: false }),
+    onSuccess: (updatedGoal) => {
+      syncResolvedGoalCaches(queryClient, updatedGoal);
       toast.success("Goal restored");
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _id, context) => {
+      restoreGoalCaches(queryClient, context);
       toast.error(error.message || "Failed to restore goal");
+    },
+    onSettled: async () => {
+      await invalidateGoalGraph(queryClient);
     },
   });
 }

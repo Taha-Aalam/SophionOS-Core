@@ -18,6 +18,7 @@ import {
   buildProjectTaskStats,
   groupProjectsByArea,
   groupProjectsByStatus,
+  mergeProjectQueryResults,
   PROJECT_VIEW,
 } from "@/lib/utils/projects";
 
@@ -35,17 +36,27 @@ export default function ProjectsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
-  const { data: allProjects = [], isLoading: isLoadingProjects } = useProjects({ status: "all" });
+  const { data: activeProjectResults = [], isLoading: isLoadingActiveProjects } = useProjects({
+    status: "all",
+  });
+  const { data: archivedProjectResults = [], isLoading: isLoadingArchivedProjects } = useProjects({
+    status: "archived",
+  });
   const { data: areas = [] } = useAreas();
   const { data: tasks = [] } = useTasks();
 
+  const allProjects = useMemo(
+    () => mergeProjectQueryResults(activeProjectResults, archivedProjectResults),
+    [activeProjectResults, archivedProjectResults],
+  );
+  const isLoadingProjects = isLoadingActiveProjects || isLoadingArchivedProjects;
   const activeProjects = useMemo(
-    () => allProjects.filter((project) => !project.is_archived),
-    [allProjects],
+    () => activeProjectResults.filter((project) => !project.is_archived),
+    [activeProjectResults],
   );
   const archivedProjects = useMemo(
-    () => allProjects.filter((project) => project.is_archived),
-    [allProjects],
+    () => archivedProjectResults.filter((project) => project.is_archived),
+    [archivedProjectResults],
   );
   const areaNames = useMemo(
     () => new Map(areas.map((area) => [area.id, area.name])),
