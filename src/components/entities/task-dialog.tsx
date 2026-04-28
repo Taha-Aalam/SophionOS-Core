@@ -12,7 +12,13 @@ import {
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import { Task } from "@/lib/types/domain.types";
+import { getStableStringArray } from "@/lib/utils/stable-arrays";
 import { PRIORITY, TASK_STATUS } from "@/lib/utils/constants";
+import {
+  applyGoalScopedDefaults,
+  filterAllowedProjectsForGoal,
+  type GoalScopedTaskConfig,
+} from "@/lib/utils/goal-scoped";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task.schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +49,13 @@ interface TaskDialogProps {
   defaultProjectId?: string;
   defaultAreaId?: string;
   goalId?: string;
+  /**
+   * When set, the dialog runs in goal-scoped mode:
+   *  - the area is locked to the parent goal's area
+   *  - goal linkage is locked to the parent goal only
+   *  - project options are limited to projects already linked to the goal
+   */
+  goalScoped?: GoalScopedTaskConfig;
   onSuccess?: () => void;
 }
 
@@ -87,8 +100,17 @@ function buildTaskFormValues(
   defaultAreaId?: string,
   defaultProjectId?: string,
   defaultGoalId?: string,
+  goalScoped?: GoalScopedTaskConfig,
 ): TaskFormValues {
   if (!task) {
+    if (goalScoped) {
+      return {
+        ...EMPTY_FORM_VALUES,
+        area_id: goalScoped.areaId ?? "",
+        project_id: "",
+        goal_ids: [goalScoped.goalId],
+      };
+    }
     return {
       ...EMPTY_FORM_VALUES,
       area_id: defaultAreaId ?? "",
@@ -121,8 +143,10 @@ export function TaskDialog({
   defaultProjectId,
   defaultAreaId,
   goalId,
+  goalScoped,
   onSuccess,
 }: TaskDialogProps) {
+  const isGoalScoped = Boolean(goalScoped) && !task;
   const { data: allAreas = [] } = useAreas();
   const { data: allGoals = [] } = useGoals({ status: "all" });
   const { data: allProjects = [] } = useProjects({ status: "all" });
@@ -147,7 +171,7 @@ export function TaskDialog({
     () => new Map(projects.map((project) => [project.id, project])),
     [projects],
   );
-  const linkedGoalIds = taskRelations?.goal_ids ?? [];
+  const linkedGoalIds = getStableStringArray(taskRelations?.goal_ids);
 
   const form = useForm<TaskFormValues>({
     defaultValues: EMPTY_FORM_VALUES,
@@ -158,20 +182,42 @@ export function TaskDialog({
       return;
     }
 
-    form.reset(buildTaskFormValues(task, linkedGoalIds, defaultAreaId, defaultProjectId, goalId));
-  }, [defaultAreaId, defaultProjectId, form, goalId, linkedGoalIds, open, task]);
+    form.reset(
+      buildTaskFormValues(
+        task,
+        linkedGoalIds,
+        defaultAreaId,
+        defaultProjectId,
+        goalId,
+        goalScoped,
+      ),
+    );
+  }, [
+    defaultAreaId,
+    defaultProjectId,
+    form,
+    goalId,
+    goalScoped,
+    linkedGoalIds,
+    open,
+    task,
+  ]);
 
   const selectedAreaId = form.watch("area_id");
   const selectedGoalIds = form.watch("goal_ids") ?? [];
   const isPending = createTask.isPending || updateTask.isPending;
 
   const filteredProjects = useMemo(() => {
+    if (isGoalScoped && goalScoped) {
+      return filterAllowedProjectsForGoal(projects, goalScoped.allowedProjectIds);
+    }
+
     if (!selectedAreaId) {
       return projects;
     }
 
     return projects.filter((project) => project.area_id === selectedAreaId);
-  }, [projects, selectedAreaId]);
+  }, [goalScoped, isGoalScoped, projects, selectedAreaId]);
 
   const handleGoalToggle = (goalId: string, checked: boolean) => {
     const nextGoalIds = checked
@@ -209,6 +255,7 @@ export function TaskDialog({
 
         await updateTask.mutateAsync({ id: task.id, input: validation.data });
       } else {
+        // intentionally re-applied below for goal-scoped mode
         const validation = createTaskSchema.safeParse(values);
 
         if (!validation.success) {
@@ -226,7 +273,10 @@ export function TaskDialog({
           return;
         }
 
-        await createTask.mutateAsync(validation.data);
+        const payload = isGoalScoped && goalScoped
+          ? applyGoalScopedDefaults(validation.data as TaskFormValues, goalScoped)
+          : validation.data;
+        await createTask.mutateAsync(payload);
       }
 
       onOpenChange(false);
@@ -270,50 +320,69 @@ export function TaskDialog({
             </FormItem>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormItem>
-                <FormLabel>Area</FormLabel>
-                <Controller
-                  control={form.control}
-                  name="area_id"
-                  render={({ field }) => (
-                    <Select
-                      onValueChange={(value) => {
-                        const nextAreaId = value === UNASSIGNED_AREA_VALUE ? "" : value;
-                        field.onChange(nextAreaId);
+              {isGoalScoped ? (
+                <FormItem>
+                  <FormLabel>Area</FormLabel>
+                  <div
+                    className="flex h-9 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
+                    aria-readonly="true"
+                    data-testid="task-dialog-area-locked"
+                  >
+                    {(() => {
+                      const lockedArea = areas.find(
+                        (area) => area.id === goalScoped?.areaId,
+                      );
+                      if (!lockedArea) return "Inherited from goal";
+                      return `${lockedArea.icon ? `${lockedArea.icon} ` : ""}${lockedArea.name} (from goal)`;
+                    })()}
+                  </div>
+                </FormItem>
+              ) : (
+                <FormItem>
+                  <FormLabel>Area</FormLabel>
+                  <Controller
+                    control={form.control}
+                    name="area_id"
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={(value) => {
+                          const nextAreaId = value === UNASSIGNED_AREA_VALUE ? "" : value;
+                          field.onChange(nextAreaId);
 
-                        const currentProjectId = form.getValues("project_id");
-                        if (
-                          currentProjectId &&
-                          projectById.get(currentProjectId)?.area_id !== nextAreaId
-                        ) {
-                          form.setValue("project_id", "", {
-                            shouldDirty: true,
-                            shouldTouch: true,
-                            shouldValidate: true,
-                          });
-                        }
-                      }}
-                      value={field.value || UNASSIGNED_AREA_VALUE}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select area" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={UNASSIGNED_AREA_VALUE}>Unassigned</SelectItem>
-                        {areas.map((area) => (
-                          <SelectItem key={area.id} value={area.id}>
-                            {area.icon ? `${area.icon} ` : ""}
-                            {area.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <FormMessage>{form.formState.errors.area_id?.message}</FormMessage>
-              </FormItem>
+                          const currentProjectId = form.getValues("project_id");
+                          if (
+                            currentProjectId &&
+                            projectById.get(currentProjectId)?.area_id !== nextAreaId
+                          ) {
+                            form.setValue("project_id", "", {
+                              shouldDirty: true,
+                              shouldTouch: true,
+                              shouldValidate: true,
+                            });
+                          }
+                        }}
+                        value={field.value || UNASSIGNED_AREA_VALUE}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select area" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={UNASSIGNED_AREA_VALUE}>Unassigned</SelectItem>
+                          {areas.map((area) => (
+                            <SelectItem key={area.id} value={area.id}>
+                              {area.icon ? `${area.icon} ` : ""}
+                              {area.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  <FormMessage>{form.formState.errors.area_id?.message}</FormMessage>
+                </FormItem>
+              )}
 
               <FormItem>
                 <FormLabel>Project</FormLabel>
@@ -415,6 +484,18 @@ export function TaskDialog({
               </FormItem>
             </div>
 
+            {isGoalScoped ? (
+              <FormItem>
+                <FormLabel>Linked Goal</FormLabel>
+                <div
+                  className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+                  data-testid="task-dialog-goal-locked"
+                >
+                  Locked to current goal
+                  <Badge variant="secondary">1 linked</Badge>
+                </div>
+              </FormItem>
+            ) : (
             <FormItem>
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -469,6 +550,7 @@ export function TaskDialog({
               </ScrollArea>
               <FormMessage>{form.formState.errors.goal_ids?.message}</FormMessage>
             </FormItem>
+            )}
 
             <div className="flex flex-wrap items-center gap-6 pt-1">
               <FormItem className="flex items-center gap-2 space-y-0">

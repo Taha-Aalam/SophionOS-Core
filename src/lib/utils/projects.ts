@@ -104,6 +104,19 @@ export function groupProjectsByArea(projects: Project[]): Record<string, Project
   }, {});
 }
 
+export function mergeProjectQueryResults(
+  activeProjects: Project[],
+  archivedProjects: Project[],
+): Project[] {
+  const projectsById = new Map<string, Project>();
+
+  for (const project of [...activeProjects, ...archivedProjects]) {
+    projectsById.set(project.id, project);
+  }
+
+  return Array.from(projectsById.values());
+}
+
 export function buildProjectTaskStats(tasks: Task[]): Map<string, ProjectTaskStats> {
   const stats = new Map<string, ProjectTaskStats>();
 

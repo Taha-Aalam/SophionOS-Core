@@ -60,6 +60,7 @@ import type { Note, Project, Resource, Task } from "@/lib/types/domain.types";
 import { GOAL_TERM, NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUpdateGoal } from "@/lib/hooks/use-goals";
 import { useUIStore } from "@/lib/stores/ui.store";
+import { calculateGoalProgress } from "@/lib/utils/goals";
 
 const TERM_LABELS: Record<string, string> = {
   short: "Short Term",
@@ -230,11 +231,10 @@ export default function GoalDetailPage() {
     return () => setPageTitle("");
   }, [goal, setPageTitle]);
 
-  // Task completion updates header completion %
-  const taskCompletionPercent = useMemo(() => {
-    if (!goalData || goalData.rollups.taskCount === 0) return 0;
-    return Math.round((goalData.rollups.completedTaskCount / goalData.rollups.taskCount) * 100);
-  }, [goalData?.rollups.completedTaskCount, goalData?.rollups.taskCount]);
+  const goalProgressPercent = useMemo(() => {
+    if (!goal || !goalData) return 0;
+    return calculateGoalProgress(goal, goalData.projects, goalData.tasks);
+  }, [goal, goalData]);
 
   // Dynamic note type tabs
   const noteTypesInGoal = useMemo(() => {
@@ -258,7 +258,7 @@ export default function GoalDetailPage() {
 
   // Filter notes by tab
   const filteredNotes = useMemo(() => {
-    let notes = goalData?.notes ?? [];
+    const notes = goalData?.notes ?? [];
     if (noteTab.startsWith("type:")) {
       const type = noteTab.slice(5);
       return notes.filter((n) => n.type === type);
@@ -301,7 +301,7 @@ export default function GoalDetailPage() {
 
   // Filter resources by tab
   const filteredResources = useMemo(() => {
-    let resources = goalData?.resources ?? [];
+    const resources = goalData?.resources ?? [];
     if (resourceTab.startsWith("type:")) {
       const type = resourceTab.slice(5);
       return resources.filter((r) => r.type === type);
@@ -476,22 +476,19 @@ export default function GoalDetailPage() {
     [deleteTask],
   );
 
-  const handleGoalArchiveToggle = useCallback(async () => {
-    if (!goal) return;
+  const handleGoalArchiveToggle = useCallback(async (checked: boolean) => {
+    if (!goal || checked === goal.is_archived) return;
     await updateGoal.mutateAsync({
       id: goal.id,
-      input: { is_archived: !goal.is_archived },
+      input: { is_archived: checked },
     });
   }, [goal, updateGoal]);
 
-  const handleGoalCompleteToggle = useCallback(async () => {
-    if (!goal) return;
+  const handleGoalCompleteToggle = useCallback(async (checked: boolean) => {
+    if (!goal || checked === goal.is_completed) return;
     await updateGoal.mutateAsync({
       id: goal.id,
-      input: {
-        is_completed: !goal.is_completed,
-        progress: !goal.is_completed ? 100 : goal.progress,
-      },
+      input: checked ? { is_completed: true, progress: 100 } : { is_completed: false },
     });
   }, [goal, updateGoal]);
 
@@ -581,12 +578,12 @@ export default function GoalDetailPage() {
                   strokeWidth="6"
                   fill="transparent"
                   strokeDasharray={64 * 2 * Math.PI}
-                  strokeDashoffset={64 * 2 * Math.PI * (1 - taskCompletionPercent / 100)}
+                  strokeDashoffset={64 * 2 * Math.PI * (1 - goalProgressPercent / 100)}
                   strokeLinecap="round"
                   className="text-primary transition-all duration-500"
                 />
               </svg>
-              <span className="absolute text-sm font-bold">{taskCompletionPercent}%</span>
+              <span className="absolute text-sm font-bold">{goalProgressPercent}%</span>
             </div>
 
             <div className="space-y-2">
@@ -749,7 +746,8 @@ export default function GoalDetailPage() {
                   <Checkbox
                     id="goal-archived"
                     checked={goal.is_archived}
-                    onCheckedChange={() => handleGoalArchiveToggle()}
+                    disabled={updateGoal.isPending}
+                    onCheckedChange={(checked) => handleGoalArchiveToggle(checked === true)}
                   />
                   <Label htmlFor="goal-archived" className="cursor-pointer text-sm">
                     Archived
@@ -759,7 +757,8 @@ export default function GoalDetailPage() {
                   <Checkbox
                     id="goal-completed"
                     checked={goal.is_completed}
-                    onCheckedChange={() => handleGoalCompleteToggle()}
+                    disabled={updateGoal.isPending}
+                    onCheckedChange={(checked) => handleGoalCompleteToggle(checked === true)}
                   />
                   <Label htmlFor="goal-completed" className="cursor-pointer text-sm">
                     Completed
@@ -1130,19 +1129,23 @@ export default function GoalDetailPage() {
         onSuccess={() => setIsEditOpen(false)}
       />
 
-      {/* Inline Project Creation */}
+      {/* Inline Project Creation (goal-scoped) */}
       <ProjectDialog
         open={isNewProjectOpen}
         onOpenChange={setIsNewProjectOpen}
-        goalId={goalId}
+        goalScoped={{ goalId: goal.id, areaId: goal.area_id ?? null }}
         onSuccess={() => setIsNewProjectOpen(false)}
       />
 
-      {/* Inline Task Creation */}
+      {/* Inline Task Creation (goal-scoped) */}
       <TaskDialog
         open={isNewTaskOpen}
         onOpenChange={setIsNewTaskOpen}
-        goalId={goalId}
+        goalScoped={{
+          goalId: goal.id,
+          areaId: goal.area_id ?? null,
+          allowedProjectIds: (goalData?.projects ?? []).map((p) => p.id),
+        }}
         onSuccess={() => setIsNewTaskOpen(false)}
       />
 
@@ -1151,7 +1154,7 @@ export default function GoalDetailPage() {
         open={isNewNoteOpen}
         onOpenChange={setIsNewNoteOpen}
         note={null}
-        goalId={goalId}
+        goalId={goal.id}
         onSuccess={() => setIsNewNoteOpen(false)}
       />
 
@@ -1162,7 +1165,7 @@ export default function GoalDetailPage() {
             <DialogTitle>New Resource</DialogTitle>
           </DialogHeader>
           <ResourceForm
-            goalId={goalId}
+            goalId={goal.id}
             onSubmit={async (input) => {
               await createResource.mutateAsync(input);
               setIsNewResourceOpen(false);

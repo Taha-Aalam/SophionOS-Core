@@ -11,8 +11,13 @@ import {
   useUpdateProject,
 } from "@/lib/hooks/use-projects";
 import { type Project } from "@/lib/types/domain.types";
+import { getStableStringArray } from "@/lib/utils/stable-arrays";
 import { PRIORITY, PROJECT_STATUS } from "@/lib/utils/constants";
-import { createProjectSchema } from "@/lib/validators/project.schema";
+import {
+  applyGoalScopedDefaults,
+  type GoalScopedConfig,
+} from "@/lib/utils/goal-scoped";
+import { createProjectSchema, updateProjectSchema } from "@/lib/validators/project.schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -40,6 +45,12 @@ interface ProjectDialogProps {
   onOpenChange: (open: boolean) => void;
   project?: Project | null;
   goalId?: string;
+  /**
+   * When set, the dialog runs in goal-scoped mode:
+   *  - the area is locked to the goal's area and not selectable
+   *  - goal linkage is locked to the parent goal only
+   */
+  goalScoped?: GoalScopedConfig;
   onSuccess?: () => void;
 }
 
@@ -75,8 +86,16 @@ function buildProjectFormValues(
   project: Project | null | undefined,
   goalIds: string[],
   defaultGoalId?: string,
+  goalScoped?: GoalScopedConfig,
 ): ProjectFormValues {
   if (!project) {
+    if (goalScoped) {
+      return {
+        ...EMPTY_FORM_VALUES,
+        area_id: goalScoped.areaId ?? "",
+        goal_ids: [goalScoped.goalId],
+      };
+    }
     return { ...EMPTY_FORM_VALUES, goal_ids: defaultGoalId ? [defaultGoalId] : [] };
   }
 
@@ -99,8 +118,10 @@ export function ProjectDialog({
   onOpenChange,
   project,
   goalId,
+  goalScoped,
   onSuccess,
 }: ProjectDialogProps) {
+  const isGoalScoped = Boolean(goalScoped) && !project;
   const { data: allAreas = [] } = useAreas();
   const { data: allGoals = [] } = useGoals({ status: "all" });
   const { data: projectRelations, isLoading: isLoadingRelations } = useProjectWithRelations(
@@ -117,7 +138,7 @@ export function ProjectDialog({
         .sort((left, right) => left.name.localeCompare(right.name)),
     [allGoals],
   );
-  const linkedGoalIds = projectRelations?.goal_ids ?? [];
+  const linkedGoalIds = getStableStringArray(projectRelations?.goal_ids);
 
   const form = useForm<ProjectFormValues>({
     defaultValues: EMPTY_FORM_VALUES,
@@ -128,10 +149,22 @@ export function ProjectDialog({
       return;
     }
 
-    form.reset(buildProjectFormValues(project, linkedGoalIds, goalId));
-  }, [form, linkedGoalIds, open, project, goalId]);
+    form.reset(
+      buildProjectFormValues(project, linkedGoalIds, goalId, goalScoped),
+    );
+  }, [form, linkedGoalIds, open, project, goalId, goalScoped]);
 
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(
+    today.getDate(),
+  ).padStart(2, "0")}`;
+  const selectedStartDate = form.watch("start_date") ?? "";
   const selectedGoalIds = form.watch("goal_ids") ?? [];
+  const dueDateMin = !project && selectedStartDate && selectedStartDate > todayStr
+    ? selectedStartDate
+    : !project
+      ? todayStr
+      : undefined;
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   const handleGoalToggle = (goalId: string, checked: boolean) => {
@@ -148,7 +181,9 @@ export function ProjectDialog({
 
   const handleSubmit = form.handleSubmit(async (values) => {
     form.clearErrors();
-    const validation = createProjectSchema.safeParse(values);
+    const validation = project
+      ? updateProjectSchema.safeParse(values)
+      : createProjectSchema.safeParse(values);
 
     if (!validation.success) {
       for (const issue of validation.error.issues) {
@@ -172,7 +207,10 @@ export function ProjectDialog({
           input: validation.data,
         });
       } else {
-        await createMutation.mutateAsync(validation.data);
+        const payload = isGoalScoped && goalScoped
+          ? applyGoalScopedDefaults(validation.data as ProjectFormValues, goalScoped)
+          : validation.data;
+        await createMutation.mutateAsync(payload);
       }
 
       onOpenChange(false);
@@ -219,36 +257,56 @@ export function ProjectDialog({
             </FormItem>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormItem>
-                <FormLabel>Area</FormLabel>
-                <Controller
-                  control={form.control}
-                  name="area_id"
-                  render={({ field }) => (
-                    <Select
-                      onValueChange={(value) =>
-                        field.onChange(value === UNASSIGNED_AREA_VALUE ? "" : value)
-                      }
-                      value={field.value || UNASSIGNED_AREA_VALUE}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select area" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={UNASSIGNED_AREA_VALUE}>Unassigned</SelectItem>
-                        {areas.map((area) => (
-                          <SelectItem key={area.id} value={area.id}>
-                            {area.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <FormMessage>{form.formState.errors.area_id?.message}</FormMessage>
-              </FormItem>
+              {isGoalScoped ? (
+                <FormItem>
+                  <FormLabel>Area</FormLabel>
+                  <div
+                    className="flex h-9 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
+                    aria-readonly="true"
+                    data-testid="project-dialog-area-locked"
+                  >
+                    {(() => {
+                      const lockedArea = areas.find(
+                        (area) => area.id === goalScoped?.areaId,
+                      );
+                      if (!lockedArea) return "Inherited from goal";
+                      return `${lockedArea.icon ? `${lockedArea.icon} ` : ""}${lockedArea.name} (from goal)`;
+                    })()}
+                  </div>
+                </FormItem>
+              ) : (
+                <FormItem>
+                  <FormLabel>Area</FormLabel>
+                  <Controller
+                    control={form.control}
+                    name="area_id"
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={(value) =>
+                          field.onChange(value === UNASSIGNED_AREA_VALUE ? "" : value)
+                        }
+                        value={field.value || UNASSIGNED_AREA_VALUE}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select area" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={UNASSIGNED_AREA_VALUE}>Unassigned</SelectItem>
+                          {areas.map((area) => (
+                            <SelectItem key={area.id} value={area.id}>
+                              {area.icon ? `${area.icon} ` : ""}
+                              {area.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  <FormMessage>{form.formState.errors.area_id?.message}</FormMessage>
+                </FormItem>
+              )}
 
               <FormItem>
                 <FormLabel>Priority</FormLabel>
@@ -303,7 +361,7 @@ export function ProjectDialog({
               <FormItem>
                 <FormLabel>Start Date</FormLabel>
                 <FormControl>
-                  <Input type="date" {...form.register("start_date")} />
+                  <Input type="date" min={!project ? todayStr : undefined} {...form.register("start_date")} />
                 </FormControl>
                 <FormMessage>{form.formState.errors.start_date?.message}</FormMessage>
               </FormItem>
@@ -311,12 +369,24 @@ export function ProjectDialog({
               <FormItem>
                 <FormLabel>Due Date</FormLabel>
                 <FormControl>
-                  <Input type="date" {...form.register("due_date")} />
+                  <Input type="date" min={dueDateMin} {...form.register("due_date")} />
                 </FormControl>
                 <FormMessage>{form.formState.errors.due_date?.message}</FormMessage>
               </FormItem>
             </div>
 
+            {isGoalScoped ? (
+              <FormItem>
+                <FormLabel>Linked Goal</FormLabel>
+                <div
+                  className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+                  data-testid="project-dialog-goal-locked"
+                >
+                  Locked to current goal
+                  <Badge variant="secondary">1 linked</Badge>
+                </div>
+              </FormItem>
+            ) : (
             <FormItem>
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -371,6 +441,7 @@ export function ProjectDialog({
 
               <FormMessage>{form.formState.errors.goal_ids?.message}</FormMessage>
             </FormItem>
+            )}
 
             <div className="flex justify-end gap-3 pt-2">
               <Button

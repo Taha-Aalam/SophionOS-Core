@@ -1,6 +1,6 @@
 import { createClient } from "../supabase/client";
 import type { CreateGoalInput, Goal, UpdateGoalInput } from "../types/domain.types";
-import type { GoalStatusFilter, GoalTermFilter } from "../utils/goals";
+import { calculateGoalProgress, type GoalStatusFilter, type GoalTermFilter } from "../utils/goals";
 import { createGoalSchema, updateGoalSchema } from "../validators/goal.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
@@ -12,6 +12,70 @@ function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value,
   );
+}
+
+async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
+  if (goals.length === 0) {
+    return goals;
+  }
+
+  const goalIds = goals.map((goal) => goal.id);
+
+  const [{ data: projectLinks, error: projectError }, { data: taskLinks, error: taskError }] =
+    await Promise.all([
+      createClient()
+        .from("goal_projects")
+        .select("goal_id, project:projects(status, is_archived)")
+        .in("goal_id", goalIds),
+      createClient()
+        .from("goal_tasks")
+        .select("goal_id, task:tasks(is_completed, is_archived)")
+        .in("goal_id", goalIds),
+    ]);
+
+  if (projectError) {
+    throw new DatabaseError(projectError.message);
+  }
+
+  if (taskError) {
+    throw new DatabaseError(taskError.message);
+  }
+
+  const projectsByGoalId = new Map<string, Array<{ is_archived: boolean; status: string }>>();
+  for (const link of projectLinks ?? []) {
+    if (!link.project) {
+      continue;
+    }
+
+    const currentProjects = projectsByGoalId.get(link.goal_id) ?? [];
+    currentProjects.push(link.project as { is_archived: boolean; status: string });
+    projectsByGoalId.set(link.goal_id, currentProjects);
+  }
+
+  const tasksByGoalId = new Map<string, Array<{ is_archived: boolean; is_completed: boolean }>>();
+  for (const link of taskLinks ?? []) {
+    if (!link.task) {
+      continue;
+    }
+
+    const currentTasks = tasksByGoalId.get(link.goal_id) ?? [];
+    currentTasks.push(link.task as { is_archived: boolean; is_completed: boolean });
+    tasksByGoalId.set(link.goal_id, currentTasks);
+  }
+
+  return goals.map((goal) => ({
+    ...goal,
+    progress: calculateGoalProgress(
+      goal,
+      projectsByGoalId.get(goal.id),
+      tasksByGoalId.get(goal.id),
+    ),
+  }));
+}
+
+async function hydrateSingleGoalProgress(goal: Goal): Promise<Goal> {
+  const [hydratedGoal] = await hydrateGoalProgress([goal]);
+  return hydratedGoal;
 }
 
 export const goalService = {
@@ -52,7 +116,7 @@ export const goalService = {
       throw new DatabaseError(error.message);
     }
 
-    return data || [];
+    return hydrateGoalProgress(data || []);
   },
 
   async getById(userId: string, id: string): Promise<Goal> {
@@ -153,10 +217,26 @@ export const goalService = {
 
   async update(userId: string, id: string, input: UpdateGoalInput): Promise<Goal> {
     const validated = updateGoalSchema.parse(input);
+    let nextInput = validated;
+
+    if (validated.is_completed === true && validated.progress === undefined) {
+      nextInput = { ...validated, progress: 100 };
+    } else if (validated.is_completed === false && validated.progress === undefined) {
+      const currentGoal = await this.getById(userId, id);
+      const reopenedGoal = await hydrateSingleGoalProgress({
+        ...currentGoal,
+        is_completed: false,
+        progress: 0,
+      });
+      nextInput = {
+        ...validated,
+        progress: reopenedGoal.progress,
+      };
+    }
 
     const { data, error } = await createClient()
       .from("goals")
-      .update(validated)
+      .update(nextInput)
       .eq("user_id", userId)
       .eq("id", id)
       .select(GOAL_SELECT)
@@ -170,7 +250,7 @@ export const goalService = {
       throw new DatabaseError(error.message);
     }
 
-    return data;
+    return hydrateSingleGoalProgress(data);
   },
 
   async countByArea(userId: string, areaId: string): Promise<number> {
