@@ -76,9 +76,12 @@ function addProjectDateRules<TSchema extends z.ZodTypeAny>(
   });
 }
 
+const projectAreaIdsSchema = z.array(z.string().uuid()).default([]);
+
 const projectBaseSchema = z
   .object({
     area_id: nullableUuidSchema,
+    area_ids: projectAreaIdsSchema,
     name: z.string().min(1, "Name is required").max(100),
     description: z.string().max(500).optional().nullable(),
     start_date: nullableDateSchema,
@@ -101,6 +104,7 @@ export const createProjectSchema = addProjectDateRules(
 export const updateProjectSchema = addProjectDateRules(
   projectBaseSchema
     .extend({
+      area_ids: z.array(z.string().uuid()).optional(),
       status: z.enum(projectStatusValues).optional(),
       priority: z.enum(priorityValues).optional(),
       progress: z.number().min(0).max(100).optional(),

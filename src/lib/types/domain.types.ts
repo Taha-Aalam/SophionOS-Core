@@ -7,11 +7,15 @@ import type {
 
 export interface Area extends Omit<DatabaseTable<"areas">, "is_archived"> {}
 
-export interface Goal extends DatabaseTable<"goals"> {}
+export interface Goal extends DatabaseTable<"goals"> {
+  linkedAreaIds?: string[];
+}
 
 export interface Note extends DatabaseTable<"notes"> {}
 
-export interface Project extends DatabaseTable<"projects"> {}
+export interface Project extends DatabaseTable<"projects"> {
+  linkedAreaIds?: string[];
+}
 
 export interface Resource extends DatabaseTable<"resources"> {}
 
@@ -28,6 +32,8 @@ export interface TopicArea {
 export interface Task extends DatabaseTable<"tasks"> {}
 
 export interface GoalProject extends DatabaseTable<"goal_projects"> {}
+
+export interface GoalArea extends DatabaseTable<"goal_areas"> {}
 
 export interface GoalTask extends DatabaseTable<"goal_tasks"> {}
 
@@ -80,6 +86,7 @@ export interface UpdateAreaInput extends Partial<CreateAreaInput> {
 
 export interface CreateGoalInput {
   area_id?: string | null;
+  area_ids?: string[];
   name: string;
   description?: string | null;
   term: Goal["term"];
@@ -94,6 +101,7 @@ export interface UpdateGoalInput extends Partial<CreateGoalInput> {}
 
 export interface CreateProjectInput {
   area_id?: string | null;
+  area_ids?: string[];
   name: string;
   description?: string | null;
   status?: Project["status"];

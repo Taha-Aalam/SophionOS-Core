@@ -114,7 +114,10 @@ describe("goalService", () => {
 
     const result = await goalService.restore(userId, "goal-1");
 
-    expect(result).toEqual(mockGoal);
+    expect(result).toMatchObject({
+      ...mockGoal,
+      linkedAreaIds: [],
+    });
     expect(goalsTable.update).toHaveBeenCalledWith({ is_archived: false });
   });
 
@@ -188,6 +191,132 @@ describe("goalService", () => {
     expect(updatedPayload).toEqual({ is_completed: false, progress: 50 });
     expect(result.progress).toBe(50);
     expect(result.is_completed).toBe(false);
+  });
+
+  it("handles relation payloads when Supabase returns nested project and task rows as arrays", async () => {
+    const goal = {
+      area_id: null,
+      created_at: "2026-04-28T10:00:00.000Z",
+      description: null,
+      id: "goal-array-shape",
+      is_archived: false,
+      is_completed: false,
+      name: "Goal Array Shape",
+      priority: "medium",
+      progress: 0,
+      slug: "goal-array-shape",
+      target_date: null,
+      term: GOAL_TERM.SHORT,
+      updated_at: "2026-04-28T10:00:00.000Z",
+      user_id: userId,
+    };
+    const goalsTable = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [goal], error: null }),
+    };
+    const goalProjectsTable = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({
+        data: [
+          {
+            goal_id: goal.id,
+            project: [{ is_archived: false, status: "completed" }],
+          },
+        ],
+        error: null,
+      }),
+    };
+    const goalTasksTable = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({
+        data: [
+          {
+            goal_id: goal.id,
+            task: [{ is_archived: false, is_completed: true }],
+          },
+        ],
+        error: null,
+      }),
+    };
+    const mockClient = {
+      from: vi.fn((table: string) => {
+        if (table === "goals") return goalsTable;
+        if (table === "goal_projects") return goalProjectsTable;
+        if (table === "goal_tasks") return goalTasksTable;
+        throw new Error(`Unexpected table: ${table}`);
+      }),
+    };
+
+    vi.mocked(createClient).mockImplementation(() => mockClient as never);
+
+    const result = await goalService.list(userId, { status: "active" });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.progress).toBe(100);
+  });
+
+  it("falls back to the legacy single-area model when goal_areas is unavailable", async () => {
+    const goal = {
+      area_id: "123e4567-e89b-42d3-a456-426614174000",
+      created_at: "2026-04-28T10:00:00.000Z",
+      description: null,
+      id: "goal-legacy-area",
+      is_archived: false,
+      is_completed: false,
+      name: "Legacy Goal",
+      priority: "medium",
+      progress: 0,
+      slug: "legacy-goal",
+      target_date: null,
+      term: GOAL_TERM.SHORT,
+      updated_at: "2026-04-28T10:00:00.000Z",
+      user_id: userId,
+    };
+    const goalsTable = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [goal], error: null }),
+    };
+    const goalAreasTable = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: "42P01",
+          message: 'relation "goal_areas" does not exist',
+        },
+      }),
+    };
+    const goalProjectsTable = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    };
+    const goalTasksTable = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    };
+    const mockClient = {
+      from: vi.fn((table: string) => {
+        if (table === "goals") return goalsTable;
+        if (table === "goal_areas") return goalAreasTable;
+        if (table === "goal_projects") return goalProjectsTable;
+        if (table === "goal_tasks") return goalTasksTable;
+        throw new Error(`Unexpected table: ${table}`);
+      }),
+    };
+
+    vi.mocked(createClient).mockImplementation(() => mockClient as never);
+
+    const result = await goalService.list(userId, { status: "active" });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      area_id: goal.area_id,
+      id: goal.id,
+      linkedAreaIds: [goal.area_id],
+      name: goal.name,
+    });
   });
 
   it("resets reopened goals to 0 progress when no linked projects or tasks exist", async () => {

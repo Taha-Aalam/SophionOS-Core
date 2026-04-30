@@ -36,6 +36,10 @@ describe("project view filters", () => {
       includeArchived: false,
       status: PROJECT_STATUS.ACTIVE,
     });
+    expect(getProjectFiltersForView(PROJECT_VIEW.COMPLETED)).toEqual({
+      includeArchived: false,
+      status: PROJECT_STATUS.COMPLETED,
+    });
     expect(getProjectFiltersForView(PROJECT_VIEW.ARCHIVE)).toEqual({ includeArchived: true });
   });
 
@@ -46,6 +50,9 @@ describe("project view filters", () => {
     );
     expect(getProjectViewFromFilters({ status: PROJECT_STATUS.ACTIVE })).toBe(
       PROJECT_VIEW.IN_PROGRESS,
+    );
+    expect(getProjectViewFromFilters({ status: PROJECT_STATUS.COMPLETED })).toBe(
+      PROJECT_VIEW.COMPLETED,
     );
     expect(getProjectViewFromFilters({ includeArchived: true })).toBe(PROJECT_VIEW.ARCHIVE);
   });

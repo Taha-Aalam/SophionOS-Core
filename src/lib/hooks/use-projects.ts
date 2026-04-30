@@ -43,7 +43,7 @@ export function useProject(id: string) {
 
   return useQuery({
     queryKey: [PROJECTS_QUERY_KEY, id],
-    queryFn: () => projectService.getById(user!.id, id),
+    queryFn: () => projectService.getByIdentifier(user!.id, id),
     enabled: !!user && !!id,
   });
 }
@@ -197,6 +197,42 @@ export function useUnlinkProjectFromGoal() {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to unlink project from goal");
+    },
+  });
+}
+
+export function useLinkProjectToArea() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: ({ projectId, areaId }: { projectId: string; areaId: string }) =>
+      projectService.linkToArea(user!.id, projectId, areaId),
+    onSuccess: async (_, variables) => {
+      await invalidateProjectGraph(queryClient);
+      await queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY, variables.projectId] });
+      toast.success("Area linked to project");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to link area to project");
+    },
+  });
+}
+
+export function useUnlinkProjectFromArea() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: ({ projectId, areaId }: { projectId: string; areaId: string }) =>
+      projectService.unlinkFromArea(user!.id, projectId, areaId),
+    onSuccess: async (_, variables) => {
+      await invalidateProjectGraph(queryClient);
+      await queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY, variables.projectId] });
+      toast.success("Area unlinked from project");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to unlink area from project");
     },
   });
 }

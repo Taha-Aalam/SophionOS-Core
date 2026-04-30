@@ -8,9 +8,12 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
-  Globe,
+  Edit,
+  Link as LinkIcon,
   Plus,
   Target,
+  Trash2,
+  Unlink,
   X,
 } from "lucide-react";
 
@@ -41,26 +44,26 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoalDetail } from "@/lib/hooks/use-goal-detail";
 import {
+  useDeleteGoal,
+  useLinkGoalToArea,
+  useUnlinkGoalFromArea,
+  useUpdateGoal,
+} from "@/lib/hooks/use-goals";
+import {
   useCompleteTaskWithGoalRefresh,
-  useCreateTask,
   useDeleteTask,
   useFocusTask,
-  useTasks,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import { useProjects } from "@/lib/hooks/use-projects";
-import {
-  useCreateProject,
-  useUpdateProject,
-} from "@/lib/hooks/use-projects";
-import { useNotes, useToggleFavoriteNote, useCreateNote } from "@/lib/hooks/use-notes";
-import { useResources, useToggleFavoriteResource, useCreateResource } from "@/lib/hooks/use-resources";
+import { useToggleFavoriteNote } from "@/lib/hooks/use-notes";
+import { useToggleFavoriteResource, useCreateResource } from "@/lib/hooks/use-resources";
 import { cn } from "@/lib/utils";
-import type { Note, Project, Resource, Task } from "@/lib/types/domain.types";
-import { GOAL_TERM, NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
-import { useUpdateGoal } from "@/lib/hooks/use-goals";
+import type { Project, Task } from "@/lib/types/domain.types";
+import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUIStore } from "@/lib/stores/ui.store";
-import { calculateGoalProgress } from "@/lib/utils/goals";
+import { calculateGoalProgress, getGoalLinkedAreaIds } from "@/lib/utils/goals";
+import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
 
 const TERM_LABELS: Record<string, string> = {
   short: "Short Term",
@@ -178,6 +181,8 @@ export default function GoalDetailPage() {
 
   // UI state
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isLinkAreaOpen, setIsLinkAreaOpen] = useState(false);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const [projectTab, setProjectTab] = useState("all");
   const [taskTab, setTaskTab] = useState("all");
@@ -198,29 +203,42 @@ export default function GoalDetailPage() {
   const { data: goalData, isLoading } = useGoalDetail(goalId);
   const { data: areas = [] } = useAreas();
   const { data: allProjects = [] } = useProjects({ status: "all" });
-  const { data: allTasks = [] } = useTasks();
-  const { data: allNotes = [] } = useNotes({ status: "all" });
-  const { data: allResources = [] } = useResources({ status: "all" });
 
   // Mutations
   const updateGoal = useUpdateGoal();
+  const deleteGoal = useDeleteGoal();
+  const linkGoalToArea = useLinkGoalToArea();
+  const unlinkGoalFromArea = useUnlinkGoalFromArea();
   const completeTask = useCompleteTaskWithGoalRefresh();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const focusTask = useFocusTask();
-  const createTask = useCreateTask();
-  const createProject = useCreateProject();
-  const updateProject = useUpdateProject();
   const toggleFavoriteNote = useToggleFavoriteNote();
-  const createNote = useCreateNote();
   const toggleFavoriteResource = useToggleFavoriteResource();
   const createResource = useCreateResource();
 
   // Derived
   const goal = goalData?.goal;
   const areaNames = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
-
-  const area = goal?.area_id ? areas.find((a) => a.id === goal.area_id) : null;
+  const getProjectAreaNames = useCallback(
+    (project: Project) =>
+      getProjectLinkedAreaIds(project)
+        .map((id) => areaNames.get(id))
+        .filter((name): name is string => Boolean(name)),
+    [areaNames],
+  );
+  const linkedAreaIds = useMemo(() => (goal ? getGoalLinkedAreaIds(goal) : []), [goal]);
+  const linkedAreas = useMemo(
+    () => areas.filter((areaOption) => linkedAreaIds.includes(areaOption.id)),
+    [areas, linkedAreaIds],
+  );
+  const unlinkedAreas = useMemo(
+    () =>
+      areas.filter(
+        (areaOption) => !areaOption.archive && !linkedAreaIds.includes(areaOption.id),
+      ),
+    [areas, linkedAreaIds],
+  );
   const dueState = goal ? calculateDueState(goal.target_date) : null;
 
   // Sync page title with goal name
@@ -334,6 +352,11 @@ export default function GoalDetailPage() {
       value: "in_progress",
       label: "In Progress",
       count: goalData?.projects.filter((p) => p.status === "active").length,
+    },
+    {
+      value: "completed",
+      label: "Completed",
+      count: goalData?.projects.filter((p) => p.status === "completed" && !p.is_archived).length,
     },
     {
       value: "by_status",
@@ -506,6 +529,24 @@ export default function GoalDetailPage() {
     [toggleFavoriteResource],
   );
 
+  const handleDeleteGoal = useCallback(async () => {
+    if (!goal) {
+      return;
+    }
+
+    await deleteGoal.mutateAsync(goal.id);
+    router.push("/goals");
+  }, [deleteGoal, goal, router]);
+
+  const handleLinkArea = useCallback(async (areaId: string) => {
+    if (!goal) {
+      return;
+    }
+
+    await linkGoalToArea.mutateAsync({ goalId: goal.id, areaId });
+    setIsLinkAreaOpen(false);
+  }, [goal, linkGoalToArea]);
+
   if (isLoading) {
     return (
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
@@ -592,11 +633,11 @@ export default function GoalDetailPage() {
 
               {/* Badges row */}
               <div className="flex flex-wrap items-center gap-2">
-                {area && (
-                  <Badge variant="secondary" className="text-xs">
+                {linkedAreas.map((area) => (
+                  <Badge key={area.id} variant="secondary" className="text-xs">
                     {area.name}
                   </Badge>
-                )}
+                ))}
                 <Badge variant="outline" className={cn("text-xs", PRIORITY_COLORS[goal.priority])}>
                   {goal.priority}
                 </Badge>
@@ -691,10 +732,34 @@ export default function GoalDetailPage() {
             <Separator />
             <div className="space-y-4 p-6">
               <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-                {/* Area */}
+                {/* Areas */}
                 <div>
-                  <Label className="text-xs text-muted-foreground">Area</Label>
-                  <p className="mt-1 font-medium">{area?.name ?? "Unassigned"}</p>
+                  <Label className="text-xs text-muted-foreground">Areas</Label>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {linkedAreas.length > 0 ? (
+                      linkedAreas.map((area) => (
+                        <Badge
+                          key={area.id}
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
+                          {area.icon ? `${area.icon} ` : ""}
+                          {area.name}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              unlinkGoalFromArea.mutate({ goalId: goal.id, areaId: area.id })
+                            }
+                            className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                          >
+                            <Unlink className="size-3" />
+                          </button>
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Unassigned</span>
+                    )}
+                  </div>
                 </div>
                 {/* Term */}
                 <div>
@@ -739,6 +804,24 @@ export default function GoalDetailPage() {
                   <Plus className="size-3.5" />
                   Add Project
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsLinkAreaOpen(true)}
+                  className="gap-1.5"
+                >
+                  <Plus className="size-3.5" />
+                  Link Area
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setIsDeleteOpen(true)}
+                  className="gap-1.5"
+                >
+                  <Trash2 className="size-3.5" />
+                  Delete
+                </Button>
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
@@ -774,7 +857,13 @@ export default function GoalDetailPage() {
               )}
 
               <div className="flex justify-end">
-                <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditOpen(true)}
+                  className="gap-1.5"
+                >
+                  <Edit className="size-3.5" />
                   Edit Goal
                 </Button>
               </div>
@@ -837,6 +926,7 @@ export default function GoalDetailPage() {
                             key={project.id}
                             project={project}
                             areaName={project.area_id ? areaNames.get(project.area_id) : undefined}
+                            areaNames={getProjectAreaNames(project)}
                           />
                         ))}
                       </div>
@@ -852,7 +942,7 @@ export default function GoalDetailPage() {
                   }).sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime());
                   return (
                     <div className="relative border-l-2 border-muted-foreground/20 pl-6">
-                      {withDates.map(({ project }, i) => (
+                      {withDates.map(({ project }) => (
                         <div
                           key={project.id}
                           className={cn(
@@ -880,6 +970,7 @@ export default function GoalDetailPage() {
                           <ProjectCard
                             project={project}
                             areaName={project.area_id ? areaNames.get(project.area_id) : undefined}
+                            areaNames={getProjectAreaNames(project)}
                           />
                         </div>
                       ))}
@@ -894,6 +985,7 @@ export default function GoalDetailPage() {
                       key={project.id}
                       project={project}
                       areaName={project.area_id ? areaNames.get(project.area_id) : undefined}
+                      areaNames={getProjectAreaNames(project)}
                     />
                   ))}
                 </div>
@@ -1129,6 +1221,65 @@ export default function GoalDetailPage() {
         onSuccess={() => setIsEditOpen(false)}
       />
 
+      <Dialog open={isLinkAreaOpen} onOpenChange={setIsLinkAreaOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link Area</DialogTitle>
+          </DialogHeader>
+          {unlinkedAreas.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              All active areas are already linked to this goal.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {unlinkedAreas.map((area) => (
+                <button
+                  key={area.id}
+                  type="button"
+                  onClick={() => handleLinkArea(area.id)}
+                  className="flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/40"
+                >
+                  <LinkIcon className="mt-0.5 size-4 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">
+                      {area.icon ? `${area.icon} ` : ""}
+                      {area.name}
+                    </p>
+                    {area.description ? (
+                      <p className="text-sm text-muted-foreground">{area.description}</p>
+                    ) : null}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Goal Permanently?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This removes the goal and clears its linked areas, projects, tasks, notes, and
+            resources relationships.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteGoal}
+              disabled={deleteGoal.isPending}
+            >
+              Delete Goal
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Inline Project Creation (goal-scoped) */}
       <ProjectDialog
         open={isNewProjectOpen}
@@ -1144,6 +1295,7 @@ export default function GoalDetailPage() {
         goalScoped={{
           goalId: goal.id,
           areaId: goal.area_id ?? null,
+          linkedAreaIds: linkedAreaIds,
           allowedProjectIds: (goalData?.projects ?? []).map((p) => p.id),
         }}
         onSuccess={() => setIsNewTaskOpen(false)}

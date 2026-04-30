@@ -1,27 +1,29 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { FileText, LucideIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 const ACCENT_COLORS: Record<string, string> = {
+  goals: "bg-blue-500",
   projects: "bg-blue-500",
   tasks: "bg-green-500",
   notes: "bg-purple-500",
   resources: "bg-orange-500",
+  people: "bg-sky-500",
 };
 
 const DEFAULT_ICONS: Record<string, LucideIcon> = {
+  goals: FileText,
   projects: FileText,
   tasks: FileText,
   notes: FileText,
   resources: FileText,
+  people: FileText,
 };
 
 interface TabOption {
@@ -32,7 +34,7 @@ interface TabOption {
 
 interface GoalDetailSectionProps {
   id: string;
-  entityType: "projects" | "tasks" | "notes" | "resources";
+  entityType: "goals" | "projects" | "tasks" | "notes" | "resources" | "people";
   tabs: TabOption[];
   activeTab: string;
   onTabChange: (tab: string) => void;

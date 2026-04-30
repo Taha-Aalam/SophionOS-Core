@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { Controller, FormProvider, useForm } from "react-hook-form";
+import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
+
+import { Target, X } from "lucide-react";
 
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
@@ -10,16 +12,18 @@ import {
   useProjectWithRelations,
   useUpdateProject,
 } from "@/lib/hooks/use-projects";
-import { type Project } from "@/lib/types/domain.types";
+import { type CreateProjectInput, type Project } from "@/lib/types/domain.types";
+import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
 import { getStableStringArray } from "@/lib/utils/stable-arrays";
 import { PRIORITY, PROJECT_STATUS } from "@/lib/utils/constants";
 import {
-  applyGoalScopedDefaults,
-  type GoalScopedConfig,
-} from "@/lib/utils/goal-scoped";
+  filterProjectDialogAreas,
+  filterProjectDialogGoals,
+} from "@/lib/utils/project-dialog-filters";
+import { type GoalScopedConfig } from "@/lib/utils/goal-scoped";
 import { createProjectSchema, updateProjectSchema } from "@/lib/validators/project.schema";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -28,6 +32,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -55,7 +65,7 @@ interface ProjectDialogProps {
 }
 
 interface ProjectFormValues {
-  area_id: string;
+  area_ids: string[];
   description: string;
   due_date: string;
   goal_ids: string[];
@@ -67,10 +77,8 @@ interface ProjectFormValues {
   status: Project["status"];
 }
 
-const UNASSIGNED_AREA_VALUE = "__unassigned__";
-
 const EMPTY_FORM_VALUES: ProjectFormValues = {
-  area_id: "",
+  area_ids: [],
   description: "",
   due_date: "",
   goal_ids: [],
@@ -92,7 +100,7 @@ function buildProjectFormValues(
     if (goalScoped) {
       return {
         ...EMPTY_FORM_VALUES,
-        area_id: goalScoped.areaId ?? "",
+        area_ids: goalScoped.areaId ? [goalScoped.areaId] : [],
         goal_ids: [goalScoped.goalId],
       };
     }
@@ -100,7 +108,7 @@ function buildProjectFormValues(
   }
 
   return {
-    area_id: project.area_id ?? "",
+    area_ids: getProjectLinkedAreaIds(project),
     description: project.description ?? "",
     due_date: project.due_date ?? "",
     goal_ids: goalIds,
@@ -154,18 +162,63 @@ export function ProjectDialog({
     );
   }, [form, linkedGoalIds, open, project, goalId, goalScoped]);
 
+  const watchedAreaIds = useWatch({ control: form.control, name: "area_ids" });
+  const selectedAreaIds = useMemo(() => watchedAreaIds ?? [], [watchedAreaIds]);
+  const selectedAreaLabels = useMemo(() => {
+    return selectedAreaIds
+      .map((id) => areas.find((area) => area.id === id))
+      .filter((area): area is NonNullable<typeof area> => Boolean(area));
+  }, [selectedAreaIds, areas]);
+
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(
     today.getDate(),
   ).padStart(2, "0")}`;
-  const selectedStartDate = form.watch("start_date") ?? "";
-  const selectedGoalIds = form.watch("goal_ids") ?? [];
+  const selectedStartDate = useWatch({ control: form.control, name: "start_date" }) ?? "";
+  const watchedGoalIds = useWatch({ control: form.control, name: "goal_ids" });
+  const selectedGoalIds = useMemo(() => watchedGoalIds ?? [], [watchedGoalIds]);
   const dueDateMin = !project && selectedStartDate && selectedStartDate > todayStr
     ? selectedStartDate
     : !project
       ? todayStr
       : undefined;
   const isPending = createMutation.isPending || updateMutation.isPending;
+
+  const visibleGoals = useMemo(() => {
+    return filterProjectDialogGoals(activeGoals, selectedAreaIds);
+  }, [activeGoals, selectedAreaIds]);
+
+  const visibleAreas = useMemo(() => {
+    return filterProjectDialogAreas(areas, activeGoals, selectedAreaIds, selectedGoalIds);
+  }, [activeGoals, areas, selectedAreaIds, selectedGoalIds]);
+
+  useEffect(() => {
+    const allowedGoalIds = new Set(visibleGoals.map((goal) => goal.id));
+    const nextGoalIds = selectedGoalIds.filter((goalId) => allowedGoalIds.has(goalId));
+    if (nextGoalIds.length !== selectedGoalIds.length) {
+      form.setValue("goal_ids", nextGoalIds, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [visibleGoals, selectedGoalIds, form]);
+
+  useEffect(() => {
+    const allowedAreaIds = new Set(visibleAreas.map((area) => area.id));
+    const nextAreaIds = selectedAreaIds.filter((areaId) => allowedAreaIds.has(areaId));
+    if (nextAreaIds.length !== selectedAreaIds.length) {
+      form.setValue("area_ids", nextAreaIds, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [visibleAreas, selectedAreaIds, form]);
+
+  const handleAreaToggle = (areaId: string, checked: boolean) => {
+    const nextAreaIds = checked
+      ? Array.from(new Set([...selectedAreaIds, areaId]))
+      : selectedAreaIds.filter((id) => id !== areaId);
+
+    form.setValue("area_ids", nextAreaIds, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+  };
 
   const handleGoalToggle = (goalId: string, checked: boolean) => {
     const nextGoalIds = checked
@@ -179,37 +232,61 @@ export function ProjectDialog({
     });
   };
 
+  const applyValidationErrors = (
+    issues: Array<{ path: PropertyKey[]; message: string }>,
+  ) => {
+    for (const issue of issues) {
+      const fieldName = issue.path[0];
+
+      if (typeof fieldName === "string") {
+        form.setError(fieldName as keyof ProjectFormValues, {
+          message: issue.message,
+          type: "validate",
+        });
+      }
+    }
+  };
+
   const handleSubmit = form.handleSubmit(async (values) => {
     form.clearErrors();
-    const validation = project
-      ? updateProjectSchema.safeParse(values)
-      : createProjectSchema.safeParse(values);
-
-    if (!validation.success) {
-      for (const issue of validation.error.issues) {
-        const fieldName = issue.path[0];
-
-        if (typeof fieldName === "string") {
-          form.setError(fieldName as keyof ProjectFormValues, {
-            message: issue.message,
-            type: "validate",
-          });
-        }
-      }
-
-      return;
-    }
 
     try {
+      const areaIdPayload = values.area_ids[0] ?? null;
       if (project) {
+        const validation = updateProjectSchema.safeParse(values);
+
+        if (!validation.success) {
+          applyValidationErrors(validation.error.issues);
+          return;
+        }
+
         await updateMutation.mutateAsync({
           id: project.id,
-          input: validation.data,
+          input: {
+            ...validation.data,
+            area_id: areaIdPayload,
+          },
         });
       } else {
-        const payload = isGoalScoped && goalScoped
-          ? applyGoalScopedDefaults(validation.data as ProjectFormValues, goalScoped)
-          : validation.data;
+        const validation = createProjectSchema.safeParse(values);
+
+        if (!validation.success) {
+          applyValidationErrors(validation.error.issues);
+          return;
+        }
+
+        const payload: CreateProjectInput = isGoalScoped && goalScoped
+          ? {
+              ...validation.data,
+              area_ids: goalScoped.areaId ? [goalScoped.areaId] : [],
+              area_id: goalScoped.areaId ?? null,
+              goal_ids: [goalScoped.goalId],
+            }
+          : {
+              ...validation.data,
+              area_id: areaIdPayload,
+            };
+
         await createMutation.mutateAsync(payload);
       }
 
@@ -276,35 +353,59 @@ export function ProjectDialog({
                 </FormItem>
               ) : (
                 <FormItem>
-                  <FormLabel>Area</FormLabel>
-                  <Controller
-                    control={form.control}
-                    name="area_id"
-                    render={({ field }) => (
-                      <Select
-                        onValueChange={(value) =>
-                          field.onChange(value === UNASSIGNED_AREA_VALUE ? "" : value)
-                        }
-                        value={field.value || UNASSIGNED_AREA_VALUE}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select area" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={UNASSIGNED_AREA_VALUE}>Unassigned</SelectItem>
-                          {areas.map((area) => (
-                            <SelectItem key={area.id} value={area.id}>
-                              {area.icon ? `${area.icon} ` : ""}
-                              {area.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  <FormMessage>{form.formState.errors.area_id?.message}</FormMessage>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Areas</FormLabel>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                        {selectedAreaIds.length === 0
+                          ? "Select areas..."
+                          : `${selectedAreaIds.length} selected`}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-56">
+                        <DropdownMenuItem onClick={() => form.setValue("area_ids", [])}>
+                          Clear selection
+                        </DropdownMenuItem>
+                        <ScrollArea className="max-h-56">
+                          {visibleAreas.map((area) => {
+                            const isSelected = selectedAreaIds.includes(area.id);
+                            return (
+                              <DropdownMenuItem
+                                key={area.id}
+                                onClick={() => handleAreaToggle(area.id, !isSelected)}
+                                className="flex items-center gap-2"
+                              >
+                                <Checkbox checked={isSelected} />
+                                {area.icon ? `${area.icon} ` : ""}
+                                {area.name}
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </ScrollArea>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  {selectedAreaLabels.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {selectedAreaLabels.map((area) => (
+                        <Badge key={area.id} variant="secondary" className="flex items-center gap-1">
+                          {area.icon ? `${area.icon} ` : ""}
+                          {area.name}
+                          <button
+                            type="button"
+                            onClick={() => handleAreaToggle(area.id, false)}
+                            className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
+                  {form.formState.errors.area_ids && (
+                    <p className="text-xs text-destructive">
+                      {String(form.formState.errors.area_ids.message)}
+                    </p>
+                  )}
                 </FormItem>
               )}
 
@@ -404,14 +505,16 @@ export function ProjectDialog({
                 <div className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
                   Loading linked goals...
                 </div>
-              ) : activeGoals.length === 0 ? (
+              ) : visibleGoals.length === 0 ? (
                 <div className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
-                  No active goals are available yet.
+                  {selectedAreaIds.length > 0
+                    ? "No active goals in the selected areas. Select different areas to see more goals."
+                    : "No active goals are available yet."}
                 </div>
               ) : (
                 <ScrollArea className="h-52 rounded-lg border">
                   <div className="space-y-2 p-3">
-                    {activeGoals.map((goal) => (
+                    {visibleGoals.map((goal) => (
                       <label
                         key={goal.id}
                         className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/40"
@@ -422,6 +525,7 @@ export function ProjectDialog({
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
+                            <Target className="size-4 text-muted-foreground" />
                             <span className="truncate font-medium">{goal.name}</span>
                             <Badge variant="outline" className="text-[10px] uppercase">
                               {goal.term}

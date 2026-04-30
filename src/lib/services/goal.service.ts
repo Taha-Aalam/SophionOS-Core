@@ -1,6 +1,12 @@
 import { createClient } from "../supabase/client";
-import type { CreateGoalInput, Goal, UpdateGoalInput } from "../types/domain.types";
-import { calculateGoalProgress, type GoalStatusFilter, type GoalTermFilter } from "../utils/goals";
+import type { CreateGoalInput, Goal, Project, Task, UpdateGoalInput } from "../types/domain.types";
+import {
+  calculateGoalProgress,
+  goalMatchesAreaId,
+  getGoalLinkedAreaIds,
+  type GoalStatusFilter,
+  type GoalTermFilter,
+} from "../utils/goals";
 import { createGoalSchema, updateGoalSchema } from "../validators/goal.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
@@ -12,6 +18,123 @@ function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value,
   );
+}
+
+function dedupeAreaIds(areaIds: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(areaIds.filter((areaId): areaId is string => Boolean(areaId))));
+}
+
+function isMissingGoalAreasTableError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const code = "code" in error && typeof error.code === "string" ? error.code : undefined;
+  const message = "message" in error && typeof error.message === "string" ? error.message : "";
+  const normalizedMessage = message.toLowerCase();
+
+  return (
+    code === "42P01" ||
+    (normalizedMessage.includes("goal_areas") &&
+      (normalizedMessage.includes("does not exist") ||
+        normalizedMessage.includes("unexpected table") ||
+        normalizedMessage.includes("relation")))
+  );
+}
+
+function withPrimaryAreaLinks(goals: Goal[]): Goal[] {
+  return goals.map((goal) => ({
+    ...goal,
+    linkedAreaIds: dedupeAreaIds([goal.area_id]),
+  }));
+}
+
+function extractGoalAreaIds<TInput extends { area_id?: string | null; area_ids?: string[] }>(
+  input: TInput,
+): {
+  areaIds: string[] | undefined;
+  goalInput: Omit<TInput, "area_ids">;
+} {
+  const { area_ids, area_id, ...rest } = input;
+
+  if (area_ids !== undefined) {
+    const normalizedAreaIds = dedupeAreaIds(area_ids);
+    return {
+      areaIds: normalizedAreaIds,
+      goalInput: {
+        ...rest,
+        area_id: normalizedAreaIds[0] ?? null,
+      } as Omit<TInput, "area_ids">,
+    };
+  }
+
+  if (area_id !== undefined) {
+    const normalizedAreaIds = dedupeAreaIds([area_id]);
+    return {
+      areaIds: normalizedAreaIds,
+      goalInput: {
+        ...rest,
+        area_id: normalizedAreaIds[0] ?? null,
+      } as Omit<TInput, "area_ids">,
+    };
+  }
+
+  return {
+    areaIds: undefined,
+    goalInput: {
+      ...rest,
+    } as Omit<TInput, "area_ids">,
+  };
+}
+
+async function hydrateGoalAreaLinks(goals: Goal[]): Promise<Goal[]> {
+  if (goals.length === 0) {
+    return goals;
+  }
+
+  const goalIds = goals.map((goal) => goal.id);
+  let data:
+    | Array<{
+        goal_id: string;
+        area_id: string;
+      }>
+    | null
+    | undefined;
+
+  try {
+    const result = await createClient()
+      .from("goal_areas")
+      .select("goal_id, area_id")
+      .in("goal_id", goalIds);
+
+    if (result.error) {
+      if (isMissingGoalAreasTableError(result.error)) {
+        return withPrimaryAreaLinks(goals);
+      }
+
+      throw new DatabaseError(result.error.message);
+    }
+
+    data = result.data;
+  } catch (error) {
+    if (isMissingGoalAreasTableError(error)) {
+      return withPrimaryAreaLinks(goals);
+    }
+
+    throw error;
+  }
+
+  const areaIdsByGoalId = new Map<string, string[]>();
+  for (const row of data ?? []) {
+    const currentAreaIds = areaIdsByGoalId.get(row.goal_id) ?? [];
+    currentAreaIds.push(row.area_id);
+    areaIdsByGoalId.set(row.goal_id, currentAreaIds);
+  }
+
+  return goals.map((goal) => ({
+    ...goal,
+    linkedAreaIds: dedupeAreaIds([goal.area_id, ...(areaIdsByGoalId.get(goal.id) ?? [])]),
+  }));
 }
 
 async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
@@ -41,25 +164,33 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
     throw new DatabaseError(taskError.message);
   }
 
-  const projectsByGoalId = new Map<string, Array<{ is_archived: boolean; status: string }>>();
+  const projectsByGoalId = new Map<string, Array<Pick<Project, "is_archived" | "status">>>();
   for (const link of projectLinks ?? []) {
-    if (!link.project) {
+    const linkedProject = Array.isArray(link.project) ? link.project[0] : link.project;
+    if (!linkedProject) {
       continue;
     }
 
     const currentProjects = projectsByGoalId.get(link.goal_id) ?? [];
-    currentProjects.push(link.project as { is_archived: boolean; status: string });
+    currentProjects.push({
+      is_archived: linkedProject.is_archived,
+      status: linkedProject.status as Project["status"],
+    });
     projectsByGoalId.set(link.goal_id, currentProjects);
   }
 
-  const tasksByGoalId = new Map<string, Array<{ is_archived: boolean; is_completed: boolean }>>();
+  const tasksByGoalId = new Map<string, Array<Pick<Task, "is_archived" | "is_completed">>>();
   for (const link of taskLinks ?? []) {
-    if (!link.task) {
+    const linkedTask = Array.isArray(link.task) ? link.task[0] : link.task;
+    if (!linkedTask) {
       continue;
     }
 
     const currentTasks = tasksByGoalId.get(link.goal_id) ?? [];
-    currentTasks.push(link.task as { is_archived: boolean; is_completed: boolean });
+    currentTasks.push({
+      is_archived: linkedTask.is_archived,
+      is_completed: linkedTask.is_completed,
+    });
     tasksByGoalId.set(link.goal_id, currentTasks);
   }
 
@@ -75,6 +206,11 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
 
 async function hydrateSingleGoalProgress(goal: Goal): Promise<Goal> {
   const [hydratedGoal] = await hydrateGoalProgress([goal]);
+  return hydratedGoal;
+}
+
+async function hydrateSingleGoalAreaLinks(goal: Goal): Promise<Goal> {
+  const [hydratedGoal] = await hydrateGoalAreaLinks([goal]);
   return hydratedGoal;
 }
 
@@ -99,9 +235,6 @@ export const goalService = {
     if (filters.priority && filters.priority !== "all") {
       query = query.eq("priority", filters.priority);
     }
-    if (filters.areaId) {
-      query = query.eq("area_id", filters.areaId);
-    }
 
     if (filters.status === "active") {
       query = query.eq("is_completed", false).eq("is_archived", false);
@@ -116,7 +249,12 @@ export const goalService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateGoalProgress(data || []);
+    let goals = await hydrateGoalAreaLinks(data || []);
+    if (filters.areaId) {
+      goals = goals.filter((goal) => goalMatchesAreaId(goal, filters.areaId));
+    }
+
+    return hydrateGoalProgress(goals);
   },
 
   async getById(userId: string, id: string): Promise<Goal> {
@@ -135,7 +273,7 @@ export const goalService = {
       throw new DatabaseError(error.message);
     }
 
-    return data;
+    return hydrateSingleGoalAreaLinks(data);
   },
 
   async getBySlug(userId: string, slug: string): Promise<Goal> {
@@ -153,7 +291,7 @@ export const goalService = {
       throw new DatabaseError(error.message);
     }
 
-    return data;
+    return hydrateSingleGoalAreaLinks(data);
   },
 
   async getByIdentifier(userId: string, identifier: string): Promise<Goal> {
@@ -174,13 +312,14 @@ export const goalService = {
 
   async create(userId: string, input: CreateGoalInput): Promise<Goal> {
     const validated = createGoalSchema.parse(input);
+    const { areaIds, goalInput } = extractGoalAreaIds(validated);
 
     const baseSlug = validated.slug ?? generateSlug(validated.name);
     const slug = await this.generateUniqueSlug(userId, baseSlug);
 
     const { data, error } = await createClient()
       .from("goals")
-      .insert({ ...validated, user_id: userId, slug })
+      .insert({ ...goalInput, user_id: userId, slug })
       .select(GOAL_SELECT)
       .single();
 
@@ -191,7 +330,11 @@ export const goalService = {
       throw new DatabaseError(error.message);
     }
 
-    return data;
+    if (areaIds?.length) {
+      await this.replaceAreaLinks(userId, data.id, areaIds);
+    }
+
+    return hydrateSingleGoalAreaLinks(data);
   },
 
   async generateUniqueSlug(userId: string, baseSlug: string): Promise<string> {
@@ -217,11 +360,12 @@ export const goalService = {
 
   async update(userId: string, id: string, input: UpdateGoalInput): Promise<Goal> {
     const validated = updateGoalSchema.parse(input);
-    let nextInput = validated;
+    const { areaIds, goalInput } = extractGoalAreaIds(validated);
+    let nextInput = goalInput;
 
-    if (validated.is_completed === true && validated.progress === undefined) {
-      nextInput = { ...validated, progress: 100 };
-    } else if (validated.is_completed === false && validated.progress === undefined) {
+    if (goalInput.is_completed === true && goalInput.progress === undefined) {
+      nextInput = { ...goalInput, progress: 100 };
+    } else if (goalInput.is_completed === false && goalInput.progress === undefined) {
       const currentGoal = await this.getById(userId, id);
       const reopenedGoal = await hydrateSingleGoalProgress({
         ...currentGoal,
@@ -229,18 +373,21 @@ export const goalService = {
         progress: 0,
       });
       nextInput = {
-        ...validated,
+        ...goalInput,
         progress: reopenedGoal.progress,
       };
     }
 
-    const { data, error } = await createClient()
-      .from("goals")
-      .update(nextInput)
-      .eq("user_id", userId)
-      .eq("id", id)
-      .select(GOAL_SELECT)
-      .single();
+    const hasGoalUpdates = Object.keys(nextInput).length > 0;
+    const { data, error } = hasGoalUpdates
+      ? await createClient()
+          .from("goals")
+          .update(nextInput)
+          .eq("user_id", userId)
+          .eq("id", id)
+          .select(GOAL_SELECT)
+          .single()
+      : { data: await this.getById(userId, id), error: null };
 
     if (error) {
       if (error.code === "PGRST116") {
@@ -250,22 +397,184 @@ export const goalService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateSingleGoalProgress(data);
+    if (areaIds !== undefined) {
+      await this.replaceAreaLinks(userId, id, areaIds);
+    }
+
+    return hydrateSingleGoalAreaLinks(await hydrateSingleGoalProgress(data));
   },
 
   async countByArea(userId: string, areaId: string): Promise<number> {
-    const { count, error } = await createClient()
+    const [{ data: primaryGoals, error: primaryError }, { data: linkedGoals, error: linkedError }] =
+      await Promise.all([
+        createClient()
+          .from("goals")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("area_id", areaId)
+          .eq("is_archived", false),
+        createClient()
+          .from("goal_areas")
+          .select("goal_id, goal:goals!inner(id, user_id, is_archived)")
+          .eq("area_id", areaId),
+      ]);
+
+    if (primaryError) {
+      throw new DatabaseError(primaryError.message);
+    }
+
+    if (linkedError) {
+      if (isMissingGoalAreasTableError(linkedError)) {
+        return (primaryGoals ?? []).length;
+      }
+
+      throw new DatabaseError(linkedError.message);
+    }
+
+    const goalIds = new Set((primaryGoals ?? []).map((goal) => goal.id));
+    for (const row of linkedGoals ?? []) {
+      const linkedGoal = Array.isArray(row.goal) ? row.goal[0] : row.goal;
+      if (linkedGoal?.user_id === userId && linkedGoal.is_archived === false) {
+        goalIds.add(row.goal_id);
+      }
+    }
+
+    return goalIds.size;
+  },
+
+  async getLinkedAreaIds(goalId: string): Promise<string[]> {
+    try {
+      const { data, error } = await createClient()
+        .from("goal_areas")
+        .select("area_id")
+        .eq("goal_id", goalId);
+
+      if (error) {
+        if (isMissingGoalAreasTableError(error)) {
+          const { data: goalData, error: goalError } = await createClient()
+            .from("goals")
+            .select("area_id")
+            .eq("id", goalId)
+            .single();
+
+          if (goalError) {
+            throw new DatabaseError(goalError.message);
+          }
+
+          return dedupeAreaIds([goalData.area_id]);
+        }
+
+        throw new DatabaseError(error.message);
+      }
+
+      return dedupeAreaIds((data ?? []).map((row) => row.area_id));
+    } catch (error) {
+      if (isMissingGoalAreasTableError(error)) {
+        const { data: goalData, error: goalError } = await createClient()
+          .from("goals")
+          .select("area_id")
+          .eq("id", goalId)
+          .single();
+
+        if (goalError) {
+          throw new DatabaseError(goalError.message);
+        }
+
+        return dedupeAreaIds([goalData.area_id]);
+      }
+
+      throw error;
+    }
+  },
+
+  async replaceAreaLinks(userId: string, goalId: string, areaIds: string[]): Promise<void> {
+    const normalizedAreaIds = dedupeAreaIds(areaIds);
+
+    const { error: updateError } = await createClient()
       .from("goals")
-      .select("id", { count: "exact", head: true })
+      .update({ area_id: normalizedAreaIds[0] ?? null })
       .eq("user_id", userId)
-      .eq("area_id", areaId)
-      .eq("is_archived", false);
+      .eq("id", goalId);
+
+    if (updateError) {
+      throw new DatabaseError(updateError.message);
+    }
+
+    try {
+      const { error: deleteError } = await createClient()
+        .from("goal_areas")
+        .delete()
+        .eq("goal_id", goalId);
+
+      if (deleteError) {
+        if (isMissingGoalAreasTableError(deleteError)) {
+          return;
+        }
+
+        throw new DatabaseError(deleteError.message);
+      }
+    } catch (error) {
+      if (isMissingGoalAreasTableError(error)) {
+        return;
+      }
+
+      throw error;
+    }
+
+    if (normalizedAreaIds.length === 0) {
+      return;
+    }
+
+    try {
+      const { error: insertError } = await createClient()
+        .from("goal_areas")
+        .insert(
+          normalizedAreaIds.map((area_id) => ({
+            area_id,
+            goal_id: goalId,
+          })),
+        );
+
+      if (insertError) {
+        if (isMissingGoalAreasTableError(insertError)) {
+          return;
+        }
+
+        throw new DatabaseError(insertError.message);
+      }
+    } catch (error) {
+      if (isMissingGoalAreasTableError(error)) {
+        return;
+      }
+
+      throw error;
+    }
+  },
+
+  async linkToArea(userId: string, goalId: string, areaId: string): Promise<Goal> {
+    const goal = await this.getById(userId, goalId);
+    const nextAreaIds = dedupeAreaIds([...getGoalLinkedAreaIds(goal), areaId]);
+    await this.replaceAreaLinks(userId, goalId, nextAreaIds);
+    return this.getById(userId, goalId);
+  },
+
+  async unlinkFromArea(userId: string, goalId: string, areaId: string): Promise<Goal> {
+    const goal = await this.getById(userId, goalId);
+    const nextAreaIds = getGoalLinkedAreaIds(goal).filter((linkedAreaId) => linkedAreaId !== areaId);
+    await this.replaceAreaLinks(userId, goalId, nextAreaIds);
+    return this.getById(userId, goalId);
+  },
+
+  async delete(userId: string, id: string): Promise<void> {
+    const { error } = await createClient()
+      .from("goals")
+      .delete()
+      .eq("user_id", userId)
+      .eq("id", id);
 
     if (error) {
       throw new DatabaseError(error.message);
     }
-
-    return count || 0;
   },
 
   async archive(userId: string, id: string): Promise<Goal> {

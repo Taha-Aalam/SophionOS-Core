@@ -18,6 +18,8 @@ export interface GoalListFilters {
   status?: GoalStatusFilter;
 }
 
+type GoalWithAreaLinks = Pick<Goal, "area_id"> & { linkedAreaIds?: string[] };
+
 const GOAL_VIEW_FILTERS: Record<GoalView, GoalViewFilters> = {
   active: {
     status: "active",
@@ -87,6 +89,21 @@ export function getGoalViewFromFilters(filters: GoalViewFilters): GoalView {
   return "active";
 }
 
+export function getGoalLinkedAreaIds(goal: GoalWithAreaLinks): string[] {
+  const linkedAreaIds = goal.linkedAreaIds ?? [];
+  const nextAreaIds = goal.area_id ? [goal.area_id, ...linkedAreaIds] : linkedAreaIds;
+
+  return Array.from(new Set(nextAreaIds.filter(Boolean)));
+}
+
+export function goalMatchesAreaId(goal: GoalWithAreaLinks, areaId?: string): boolean {
+  if (!areaId) {
+    return true;
+  }
+
+  return getGoalLinkedAreaIds(goal).includes(areaId);
+}
+
 export function goalMatchesFilters(
   goal: Goal,
   filters: GoalListFilters = {},
@@ -113,7 +130,7 @@ export function goalMatchesFilters(
     return false;
   }
 
-  if (filters.areaId && goal.area_id !== filters.areaId) {
+  if (!goalMatchesAreaId(goal, filters.areaId)) {
     return false;
   }
 

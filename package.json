@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
@@ -42,7 +43,9 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@next/bundle-analyzer": "^16.2.4",
     "@vitest/coverage-v8": "^4.1.4",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "supabase": "^2.92.1",

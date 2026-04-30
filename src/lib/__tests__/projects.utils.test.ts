@@ -14,6 +14,7 @@ function buildProject(overrides: Partial<Project>): Project {
     name: "Project",
     priority: "medium",
     progress: 0,
+    slug: "project",
     start_date: null,
     status: "planning",
     updated_at: "2026-01-01T00:00:00.000Z",

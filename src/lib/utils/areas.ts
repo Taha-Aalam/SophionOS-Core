@@ -1,4 +1,5 @@
 import type { Area, Goal, Note, Project, Task } from "@/lib/types/domain.types";
+import { goalMatchesAreaId } from "@/lib/utils/goals";
 
 export type AreaStatus = "active" | "inactive" | "archived";
 
@@ -79,7 +80,8 @@ export function getAreaRollups(params: {
   const { areaId, goals, projects, tasks, notes = [] } = params;
 
   return {
-    goalsCount: goals.filter((goal) => goal.area_id === areaId && !goal.is_archived).length,
+    goalsCount: goals.filter((goal) => goalMatchesAreaId(goal, areaId) && !goal.is_archived)
+      .length,
     projectsCount: projects.filter((project) => project.area_id === areaId && !project.is_archived)
       .length,
     tasksCount: tasks.filter(

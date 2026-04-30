@@ -114,4 +114,22 @@ describe("Topbar breadcrumb slug resolution", () => {
     // copy badges appear on GoalCard, not breadcrumb — breadcrumb should show name only
     expect(html).not.toContain("copy");
   });
+
+  it("renders pageTitle for /projects/<slug> routes", () => {
+    mockUsePathname.mockReturnValue("/projects/restore-projects");
+    mockUseGoalsData.mockReturnValue([]);
+    mockUseUIStorePageTitle.mockReturnValue("Restore Projects");
+
+    const html = renderToStaticMarkup(<Topbar />);
+    expect(html).toContain("Restore Projects");
+  });
+
+  it("renders pageTitle for /projects/<uuid> routes", () => {
+    mockUsePathname.mockReturnValue("/projects/550e8400-e29b-41d4-a716-446655440000");
+    mockUseGoalsData.mockReturnValue([]);
+    mockUseUIStorePageTitle.mockReturnValue("Project Detail");
+
+    const html = renderToStaticMarkup(<Topbar />);
+    expect(html).toContain("Project Detail");
+  });
 });

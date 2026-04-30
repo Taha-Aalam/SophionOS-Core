@@ -1,14 +1,30 @@
 "use client";
 
 import { type ReactNode, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Archive, Folder, Plus } from "lucide-react";
 
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
 import { EmptyState } from "@/components/views/empty-state";
-import { KanbanBoard } from "@/components/views/kanban-board";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// KanbanBoard pulls @hello-pangea/dnd (~50KB gz). Only needed in the "By Status" tab.
+const KanbanBoard = dynamic(
+  () => import("@/components/views/kanban-board").then((m) => m.KanbanBoard),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex gap-4">
+        <Skeleton className="h-[300px] w-full" />
+        <Skeleton className="h-[300px] w-full" />
+        <Skeleton className="h-[300px] w-full" />
+      </div>
+    ),
+  },
+);
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useProjects } from "@/lib/hooks/use-projects";
@@ -16,11 +32,13 @@ import { useTasks } from "@/lib/hooks/use-tasks";
 import { type Project } from "@/lib/types/domain.types";
 import {
   buildProjectTaskStats,
+  getProjectLinkedAreaIds,
   groupProjectsByArea,
   groupProjectsByStatus,
   mergeProjectQueryResults,
   PROJECT_VIEW,
 } from "@/lib/utils/projects";
+import { buildProjectDetailHref } from "@/lib/utils/project-urls";
 
 function getAreaName(areaId: string | null, areaNames: Map<string, string>): string | undefined {
   if (!areaId) {
@@ -28,6 +46,12 @@ function getAreaName(areaId: string | null, areaNames: Map<string, string>): str
   }
 
   return areaNames.get(areaId);
+}
+
+function getProjectAreaNames(project: Project, areaNames: Map<string, string>): string[] {
+  return getProjectLinkedAreaIds(project)
+    .map((id) => areaNames.get(id))
+    .filter((name): name is string => Boolean(name));
 }
 
 export default function ProjectsPage() {
@@ -132,6 +156,7 @@ export default function ProjectsPage() {
             key={project.id}
             project={project}
             areaName={getAreaName(project.area_id, areaNames)}
+            areaNames={getProjectAreaNames(project, areaNames)}
             taskStats={taskStatsByProject.get(project.id)}
             duplicateIndex={duplicateIndices.get(project.id)}
             onEdit={handleEdit}
@@ -161,10 +186,11 @@ export default function ProjectsPage() {
         onValueChange={(value) => setActiveView(value as typeof activeView)}
         className="w-full"
       >
-        <TabsList className="w-full justify-start overflow-auto">
+        <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden bg-muted/50 p-1">
           <TabsTrigger value={PROJECT_VIEW.ALL}>All</TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.INBOX}>Inbox</TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.IN_PROGRESS}>In Progress</TabsTrigger>
+          <TabsTrigger value={PROJECT_VIEW.COMPLETED}>Completed</TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.BY_AREA}>By Area</TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.BY_STATUS}>By Status</TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.ARCHIVE}>
@@ -212,6 +238,17 @@ export default function ProjectsPage() {
           )}
         </TabsContent>
 
+        <TabsContent value={PROJECT_VIEW.COMPLETED} className="mt-6">
+          {renderProjectGrid(
+            projectsByStatus.completed,
+            <EmptyState
+              icon={Folder}
+              title="No completed projects"
+              description="Projects marked completed will appear here."
+            />,
+          )}
+        </TabsContent>
+
         <TabsContent value={PROJECT_VIEW.BY_AREA} className="mt-6 space-y-8">
           {Object.keys(projectsByArea).length === 0 ? (
             <EmptyState
@@ -236,6 +273,7 @@ export default function ProjectsPage() {
                       key={project.id}
                       project={project}
                       areaName={getAreaName(project.area_id, areaNames)}
+                      areaNames={getProjectAreaNames(project, areaNames)}
                       taskStats={taskStatsByProject.get(project.id)}
                       duplicateIndex={duplicateIndices.get(project.id)}
                       onEdit={handleEdit}
@@ -252,7 +290,7 @@ export default function ProjectsPage() {
             projects={activeProjects}
             areas={areas}
             duplicateIndices={duplicateIndices}
-            onProjectClick={(project) => router.push(`/projects/${project.id}`)}
+            onProjectClick={(project) => router.push(buildProjectDetailHref(project))}
           />
         </TabsContent>
 

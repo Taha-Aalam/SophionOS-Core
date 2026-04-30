@@ -10,6 +10,12 @@
 export interface GoalScopedConfig {
   goalId: string;
   areaId: string | null;
+  /**
+   * All area ids linked to the parent goal. Used by display layers to render
+   * resolved area names when no single primary area is set on the goal.
+   * Persistence still uses `areaId` (the primary area) when applying defaults.
+   */
+  linkedAreaIds?: string[];
 }
 
 export interface GoalScopedTaskConfig extends GoalScopedConfig {
