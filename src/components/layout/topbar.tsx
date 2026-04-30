@@ -21,34 +21,50 @@ import {
 import { useUIStore } from "@/lib/stores/ui.store";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUUID = (value: string) => UUID_RE.test(value);
+
+function useGoalSlugLabel(slug: string): string | null {
+  const { data: allGoals = [] } = useGoals({ status: "all" });
+  const matchedGoal = allGoals.find(
+    (g) => (g.slug ?? buildGoalDetailHref(g).split("/").pop()) === slug,
+  );
+  return matchedGoal?.name ?? null;
+}
+
+function GoalSlugSegment({ slug }: { slug: string }) {
+  const resolved = useGoalSlugLabel(slug);
+  return <>{resolved ?? slug}</>;
+}
+
 function Breadcrumb() {
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
   const { pageTitle } = useUIStore();
-  const { data: allGoals = [] } = useGoals({ status: "all" });
-
-  const isUUID = (value: string) =>
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm">
       {segments.map((segment, index) => {
         const isLast = index === segments.length - 1;
         const href = `/${segments.slice(0, index + 1).join("/")}`;
-        let label = breadcrumbLabels[segment] ?? segment;
+        const baseLabel = breadcrumbLabels[segment] ?? segment;
+        let label: React.ReactNode = baseLabel;
 
         if (isUUID(segment)) {
           label = pageTitle || "Details";
         }
 
-        // For /goals/<slug> — resolve slug to real goal name
-        if (segments[0] === "goals" && index === 1 && !isUUID(segment)) {
-          const matchedGoal = allGoals.find(
-            (g) => (g.slug ?? buildGoalDetailHref(g).split("/").pop()) === segment,
-          );
-          if (matchedGoal) {
-            label = matchedGoal.name;
-          }
+        // For /goals/<slug> — resolve slug to real goal name (only when on a goals route)
+        const isGoalsSlugSegment =
+          segments[0] === "goals" && index === 1 && !isUUID(segment);
+        if (isGoalsSlugSegment) {
+          label = <GoalSlugSegment slug={segment} />;
+        }
+
+        // For /projects/<slug-or-uuid> — prefer current page title
+        if (segments[0] === "projects" && index === 1 && pageTitle) {
+          label = pageTitle;
         }
 
         return (

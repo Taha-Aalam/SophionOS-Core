@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { ChevronDown } from "lucide-react";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -12,8 +14,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -32,7 +41,10 @@ import {
 } from "@/lib/hooks/use-goals";
 import { CreateGoalInput, Goal } from "@/lib/types/domain.types";
 import { GOAL_TERM, PRIORITY } from "@/lib/utils/constants";
-import { createGoalSchema, updateGoalSchema } from "@/lib/validators/goal.schema";
+import {
+  createGoalFormSchema,
+  updateGoalFormSchema,
+} from "@/lib/validators/goal.schema";
 
 interface GoalDialogProps {
   open: boolean;
@@ -42,46 +54,16 @@ interface GoalDialogProps {
 }
 
 type GoalFormValues = Omit<CreateGoalInput, "is_archived" | "is_completed"> & {
+  area_ids: string[];
   name: string;
   progress: number;
 };
 
-const emptyStringToNull = (value: unknown): unknown => (value === "" ? null : value);
-
 function buildGoalResolver(isCreate: boolean): Resolver<GoalFormValues> {
   return async (values) => {
-    let schema: z.ZodType<unknown>;
-
-    if (isCreate) {
-      const dateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid ISO date");
-      schema = z.object({
-        area_id: z.preprocess(emptyStringToNull, z.string().uuid().optional().nullable()),
-        name: z.string().trim().min(1, "Name is required").max(100),
-        description: z.preprocess(emptyStringToNull, z.string().trim().max(500).optional().nullable()),
-        term: z.nativeEnum(GOAL_TERM),
-        priority: z.nativeEnum(PRIORITY).default(PRIORITY.MEDIUM),
-        target_date: z.preprocess(
-          emptyStringToNull,
-          dateStringSchema.optional().nullable(),
-        ),
-        progress: z.number().min(0).max(100).default(0),
-      }).superRefine((data, ctx) => {
-        if (data.target_date !== null && data.target_date !== undefined) {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const targetDate = new Date(data.target_date + "T00:00:00");
-          if (targetDate < today) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Target date cannot be in the past",
-              path: ["target_date"],
-            });
-          }
-        }
-      });
-    } else {
-      schema = updateGoalSchema.omit({ is_archived: true, is_completed: true });
-    }
+    const schema: z.ZodType<unknown> = isCreate
+      ? createGoalFormSchema
+      : updateGoalFormSchema;
 
     const result = await schema.safeParseAsync(values);
 
@@ -105,7 +87,6 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
   const isCreate = !goal;
   const { data: allAreas = [] } = useAreas();
   const areas = allAreas.filter((area) => !area.archive);
-  const UNASSIGNED_AREA_VALUE = "__unassigned__";
 
   const createMutation = useCreateGoal();
   const updateMutation = useUpdateGoal();
@@ -120,7 +101,7 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
     defaultValues: goal ? {
       name: goal.name || "",
       description: goal.description || "",
-      area_id: goal.area_id ?? undefined,
+      area_ids: goal.linkedAreaIds ?? (goal.area_id ? [goal.area_id] : []),
       term: goal.term || GOAL_TERM.SHORT,
       priority: goal.priority || PRIORITY.MEDIUM,
       target_date: goal.target_date ?? undefined,
@@ -128,7 +109,7 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
     } : {
       name: "",
       description: "",
-      area_id: undefined,
+      area_ids: [],
       term: GOAL_TERM.SHORT,
       priority: PRIORITY.MEDIUM,
       target_date: undefined,
@@ -144,7 +125,7 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
     form.reset({
       name: goal?.name || "",
       description: goal?.description || "",
-      area_id: goal?.area_id ?? undefined,
+      area_ids: goal?.linkedAreaIds ?? (goal?.area_id ? [goal.area_id] : []),
       term: goal?.term || GOAL_TERM.SHORT,
       priority: goal?.priority || PRIORITY.MEDIUM,
       target_date: goal?.target_date ?? undefined,
@@ -152,10 +133,11 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
     });
   }, [form, goal, open]);
 
-  const progressValue = form.watch("progress") ?? 0;
-  const selectedAreaId = form.watch("area_id");
-  const selectedTerm = form.watch("term") ?? GOAL_TERM.SHORT;
-  const selectedPriority = form.watch("priority") ?? PRIORITY.MEDIUM;
+  const progressValue = useWatch({ control: form.control, name: "progress" }) ?? 0;
+  const selectedAreaIds = useWatch({ control: form.control, name: "area_ids" }) ?? [];
+  const selectedTerm = useWatch({ control: form.control, name: "term" }) ?? GOAL_TERM.SHORT;
+  const selectedPriority =
+    useWatch({ control: form.control, name: "priority" }) ?? PRIORITY.MEDIUM;
   const todayStr = new Date().toISOString().split("T")[0];
   const isPending =
     createMutation.isPending ||
@@ -163,10 +145,13 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
     archiveMutation.isPending ||
     restoreMutation.isPending ||
     completeMutation.isPending;
-  const selectedArea = areas.find((area) => area.id === selectedAreaId);
-  const selectedAreaLabel = selectedArea
-    ? `${selectedArea.icon ? `${selectedArea.icon} ` : ""}${selectedArea.name}`
-    : "Unassigned";
+  const selectedAreas = areas.filter((area) => selectedAreaIds.includes(area.id));
+  const selectedAreaLabel =
+    selectedAreas.length === 0
+      ? "Unassigned"
+      : selectedAreas.length === 1
+        ? `${selectedAreas[0].icon ? `${selectedAreas[0].icon} ` : ""}${selectedAreas[0].name}`
+        : `${selectedAreas.length} areas selected`;
   const selectedTermLabel =
     selectedTerm === GOAL_TERM.SHORT
       ? "Short Term"
@@ -186,6 +171,7 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
     const nextProgress = Number.isFinite(values.progress) ? values.progress : 0;
     const input = {
       ...values,
+      area_id: values.area_ids[0] ?? null,
       progress: nextProgress,
     };
 
@@ -266,28 +252,67 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="goal-area">Area</Label>
-              <Select
-                value={selectedAreaId ?? UNASSIGNED_AREA_VALUE}
-                onValueChange={(value) =>
-                  form.setValue("area_id", value === UNASSIGNED_AREA_VALUE ? undefined : value)
-                }
-              >
-                <SelectTrigger id="goal-area" className="w-full">
-                  <SelectValue>{selectedAreaLabel}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={UNASSIGNED_AREA_VALUE}>Unassigned</SelectItem>
-                  {areas.map((area) => (
-                    <SelectItem key={area.id} value={area.id}>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <button
+                      id="goal-area"
+                      type="button"
+                      className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] hover:bg-accent/40"
+                    />
+                  }
+                >
+                  <span className="truncate text-left">{selectedAreaLabel}</span>
+                  <ChevronDown className="size-4 text-muted-foreground" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[var(--anchor-width)]">
+                  <DropdownMenuItem onClick={() => form.setValue("area_ids", [])}>
+                    Clear selection
+                  </DropdownMenuItem>
+                  <ScrollArea className="max-h-56">
+                    <div className="space-y-1">
+                      {areas.map((area) => {
+                        const checked = selectedAreaIds.includes(area.id);
+                        return (
+                          <button
+                            key={area.id}
+                            type="button"
+                            onClick={() => {
+                              const nextAreaIds = checked
+                                ? selectedAreaIds.filter((areaId) => areaId !== area.id)
+                                : [...selectedAreaIds, area.id];
+                              form.setValue("area_ids", nextAreaIds, { shouldDirty: true });
+                            }}
+                            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+                          >
+                            <Checkbox checked={checked} />
+                            <span className="truncate">
+                              {area.icon ? `${area.icon} ` : ""}
+                              {area.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {selectedAreas.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedAreas.map((area) => (
+                    <span
+                      key={area.id}
+                      className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
+                    >
                       {area.icon ? `${area.icon} ` : ""}
                       {area.name}
-                    </SelectItem>
+                    </span>
                   ))}
-                </SelectContent>
-              </Select>
-              {form.formState.errors.area_id && (
+                </div>
+              ) : null}
+              {form.formState.errors.area_ids && (
                 <p className="text-xs text-destructive">
-                  {String(form.formState.errors.area_id.message)}
+                  {String(form.formState.errors.area_ids.message)}
                 </p>
               )}
             </div>

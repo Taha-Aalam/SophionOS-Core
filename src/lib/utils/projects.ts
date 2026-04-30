@@ -1,10 +1,28 @@
 import type { Project, Task } from "@/lib/types/domain.types";
 import { PROJECT_STATUS, type ProjectStatus } from "@/lib/utils/constants";
 
+type ProjectWithAreaLinks = Pick<Project, "area_id"> & { linkedAreaIds?: string[] };
+
+export function getProjectLinkedAreaIds(project: ProjectWithAreaLinks): string[] {
+  const linkedAreaIds = project.linkedAreaIds ?? [];
+  const nextAreaIds = project.area_id ? [project.area_id, ...linkedAreaIds] : linkedAreaIds;
+
+  return Array.from(new Set(nextAreaIds.filter(Boolean)));
+}
+
+export function projectMatchesAreaId(project: ProjectWithAreaLinks, areaId?: string): boolean {
+  if (!areaId) {
+    return true;
+  }
+
+  return getProjectLinkedAreaIds(project).includes(areaId);
+}
+
 export const PROJECT_VIEW = {
   ALL: "all",
   INBOX: "inbox",
   IN_PROGRESS: "in-progress",
+  COMPLETED: "completed",
   BY_AREA: "by-area",
   BY_STATUS: "by-status",
   ARCHIVE: "archive",
@@ -50,6 +68,8 @@ export function getProjectFiltersForView(view: ProjectView): {
       return { includeArchived: false, status: PROJECT_STATUS.PLANNING };
     case PROJECT_VIEW.IN_PROGRESS:
       return { includeArchived: false, status: PROJECT_STATUS.ACTIVE };
+    case PROJECT_VIEW.COMPLETED:
+      return { includeArchived: false, status: PROJECT_STATUS.COMPLETED };
     case PROJECT_VIEW.ARCHIVE:
       return { includeArchived: true };
     default:
@@ -71,6 +91,10 @@ export function getProjectViewFromFilters(filters: {
 
   if (filters.status === PROJECT_STATUS.ACTIVE) {
     return PROJECT_VIEW.IN_PROGRESS;
+  }
+
+  if (filters.status === PROJECT_STATUS.COMPLETED) {
+    return PROJECT_VIEW.COMPLETED;
   }
 
   return PROJECT_VIEW.ALL;

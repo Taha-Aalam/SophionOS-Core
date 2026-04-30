@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -13,32 +15,48 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NoteEditor } from "@/components/entities/note-editor";
-import { Button } from "@/components/ui/button";
-import { useCreateNote } from "@/lib/hooks/use-notes";
-import { useUpdateNote } from "@/lib/hooks/use-notes";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useCreateNote, useUpdateNote } from "@/lib/hooks/use-notes";
 import type { Note } from "@/lib/types/domain.types";
+
+// TipTap is heavy (~150KB+ gz). Defer until the dialog actually mounts.
+const NoteEditor = dynamic(
+  () => import("@/components/entities/note-editor").then((m) => m.NoteEditor),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-[240px] w-full" />,
+  },
+);
 
 interface NoteEditorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   note: Note | null;
   goalId?: string;
+  projectId?: string;
   onSuccess?: () => void;
 }
 
-export function NoteEditorDialog({ open, onOpenChange, note, goalId, onSuccess }: NoteEditorDialogProps) {
+interface NoteEditorDialogFormProps {
+  note: Note | null;
+  goalId?: string;
+  projectId?: string;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+}
+
+function NoteEditorDialogForm({
+  note,
+  goalId,
+  projectId,
+  onOpenChange,
+  onSuccess,
+}: NoteEditorDialogFormProps) {
   const router = useRouter();
   const createNote = useCreateNote();
   const updateNote = useUpdateNote();
-  const [name, setName] = useState("");
-  const [content, setContent] = useState("");
-
-  useEffect(() => {
-    if (!open) return;
-    setName(note?.name ?? "");
-    setContent(note?.content ?? "");
-  }, [open, note]);
+  const [name, setName] = useState(note?.name ?? "");
+  const [content, setContent] = useState(note?.content ?? "");
 
   const handleSave = async () => {
     if (note) {
@@ -49,9 +67,15 @@ export function NoteEditorDialog({ open, onOpenChange, note, goalId, onSuccess }
         content,
         status: "inbox",
       };
+
       if (goalId) {
         createInput.goal_ids = [goalId];
       }
+
+      if (projectId) {
+        createInput.project_id = projectId;
+      }
+
       const newNote = await createNote.mutateAsync(createInput);
       router.push(`/notes/${newNote.id}`);
     }
@@ -61,37 +85,61 @@ export function NoteEditorDialog({ open, onOpenChange, note, goalId, onSuccess }
   };
 
   return (
+    <>
+      <DialogHeader>
+        <DialogTitle>{note ? "Edit Note" : "Create Note"}</DialogTitle>
+        <DialogDescription>Create or edit a note in your PARA system.</DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="note-name">Title</Label>
+          <Input
+            id="note-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Note title"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Content</Label>
+          <NoteEditor content={content} onChange={setContent} />
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={() => onOpenChange(false)}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave}>{note ? "Save Changes" : "Create Note"}</Button>
+      </DialogFooter>
+    </>
+  );
+}
+
+export function NoteEditorDialog({
+  open,
+  onOpenChange,
+  note,
+  goalId,
+  projectId,
+  onSuccess,
+}: NoteEditorDialogProps) {
+  const formKey = `${note?.id ?? "new"}-${goalId ?? "no-goal"}-${projectId ?? "no-project"}-${open ? "open" : "closed"}`;
+
+  return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{note ? "Edit Note" : "Create Note"}</DialogTitle>
-          <DialogDescription>Create or edit a note in your PARA system.</DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="note-name">Title</Label>
-            <Input
-              id="note-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Note title"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Content</Label>
-            <NoteEditor content={content} onChange={setContent} />
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave}>
-            {note ? "Save Changes" : "Create Note"}
-          </Button>
-        </DialogFooter>
+        {open ? (
+          <NoteEditorDialogForm
+            key={formKey}
+            note={note}
+            goalId={goalId}
+            projectId={projectId}
+            onOpenChange={onOpenChange}
+            onSuccess={onSuccess}
+          />
+        ) : null}
       </DialogContent>
     </Dialog>
   );

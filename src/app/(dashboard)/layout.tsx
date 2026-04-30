@@ -1,7 +1,4 @@
-"use client";
-
 import React from "react";
-import { UIProvider } from "@/lib/stores/ui.store";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
@@ -13,7 +10,7 @@ export default function DashboardGroupLayout({
   children: React.ReactNode;
 }) {
   return (
-    <UIProvider>
+    <>
       <div className="flex h-screen overflow-hidden bg-background">
         <Sidebar />
         <MobileNav />
@@ -23,6 +20,6 @@ export default function DashboardGroupLayout({
         </div>
       </div>
       <CommandPalette />
-    </UIProvider>
+    </>
   );
 }

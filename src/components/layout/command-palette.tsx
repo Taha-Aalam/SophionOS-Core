@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckSquare,
@@ -28,6 +28,8 @@ import {
 import { useKeyboardShortcut } from "@/lib/hooks/use-keyboard";
 import { useContacts } from "@/lib/hooks/use-contacts";
 import { useGoals } from "@/lib/hooks/use-goals";
+import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
+import { buildProjectDetailHref } from "@/lib/utils/project-urls";
 import { useCreateNote, useNotes } from "@/lib/hooks/use-notes";
 import { useCreateResource, useResources } from "@/lib/hooks/use-resources";
 import { useProjects } from "@/lib/hooks/use-projects";
@@ -74,12 +76,10 @@ export function CommandPalette() {
     toggleCommandPalette,
   );
 
-  // Reset query each time the palette closes
-  useEffect(() => {
-    if (!commandPaletteOpen) setQuery("");
-  }, [commandPaletteOpen]);
-
-  const close = useCallback(() => closeCommandPalette(), [closeCommandPalette]);
+  const close = useCallback(() => {
+    setQuery("");
+    closeCommandPalette();
+  }, [closeCommandPalette]);
 
   const go = useCallback(
     (href: string) => {
@@ -340,7 +340,7 @@ export function CommandPalette() {
                       <CommandItem
                         key={goal.id}
                         value={`goal-${goal.id}`}
-                        onSelect={() => go("/goals")}
+                        onSelect={() => go(buildGoalDetailHref(goal))}
                       >
                         <Target className="size-4 text-muted-foreground" />
                         {goal.name}
@@ -358,7 +358,7 @@ export function CommandPalette() {
                       <CommandItem
                         key={project.id}
                         value={`project-${project.id}`}
-                        onSelect={() => go(`/projects/${project.id}`)}
+                        onSelect={() => go(buildProjectDetailHref(project))}
                       >
                         <FolderKanban className="size-4 text-muted-foreground" />
                         {project.name}

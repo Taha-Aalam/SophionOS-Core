@@ -16,6 +16,7 @@ import { Goal } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
 import {
   getGoalFiltersForView,
+  getGoalLinkedAreaIds,
   getGoalViewFromFilters,
   type GoalView,
 } from "@/lib/utils/goals";
@@ -151,17 +152,23 @@ export default function GoalsPage() {
             viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1",
           )}
         >
-          {goals.map((goal) => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
-              areaName={goal.area_id ? areaNamesById.get(goal.area_id) : "Unassigned"}
-              duplicateIndex={duplicateIndices.get(goal.id)}
-              onEdit={() => {
-                router.push(buildGoalDetailHref(goal));
-              }}
-            />
-          ))}
+          {goals.map((goal) => {
+            const linkedAreaNames = getGoalLinkedAreaIds(goal)
+              .map((id) => areaNamesById.get(id))
+              .filter((name): name is string => Boolean(name));
+            return (
+              <GoalCard
+                key={goal.id}
+                goal={goal}
+                areaName={goal.area_id ? areaNamesById.get(goal.area_id) : "Unassigned"}
+                areaNames={linkedAreaNames}
+                duplicateIndex={duplicateIndices.get(goal.id)}
+                onEdit={() => {
+                  router.push(buildGoalDetailHref(goal));
+                }}
+              />
+            );
+          })}
         </div>
       ) : (
         <EmptyState

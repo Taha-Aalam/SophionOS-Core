@@ -2,9 +2,10 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, CheckSquare } from "lucide-react";
+import { Calendar, CheckSquare, Edit, FolderKanban } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { type Project } from "@/lib/types/domain.types";
@@ -13,10 +14,17 @@ import {
   getProjectStatusLabel,
   type ProjectTaskStats,
 } from "@/lib/utils/projects";
+import ProgressRing from "@/components/charts/progress-ring";
+import { buildProjectDetailHref } from "@/lib/utils/project-urls";
 
 interface ProjectCardProps {
   project: Project;
   areaName?: string;
+  /**
+   * When provided, renders chips for each linked area name (up to 2, with a
+   * `+N` overflow chip). Falls back to `areaName` for backwards compatibility.
+   */
+  areaNames?: string[];
   taskStats?: ProjectTaskStats;
   duplicateIndex?: number;
   onEdit?: (project: Project) => void;
@@ -29,24 +37,25 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  planning: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  completed: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-  on_hold: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
-  archived: "bg-muted text-muted-foreground",
-};
-
 export function ProjectCard({
   project,
   areaName,
+  areaNames,
   taskStats,
   duplicateIndex,
   onEdit,
 }: ProjectCardProps) {
   const router = useRouter();
   const dueState = getProjectDueState(project.due_date);
-  const resolvedAreaName = areaName?.trim() || "Unassigned";
+  const resolvedAreaNames = (() => {
+    if (areaNames && areaNames.length > 0) {
+      return areaNames.map((n) => n.trim()).filter(Boolean);
+    }
+    const fallback = areaName?.trim();
+    return fallback ? [fallback] : ["Unassigned"];
+  })();
+  const visibleAreaNames = resolvedAreaNames.slice(0, 2);
+  const overflowAreaCount = Math.max(resolvedAreaNames.length - visibleAreaNames.length, 0);
   const totalTasks = taskStats?.total;
   const completedTasks = taskStats?.completed ?? 0;
   const progress =
@@ -57,68 +66,83 @@ export function ProjectCard({
   return (
     <Card
       className={cn(
-        "group relative overflow-hidden transition-all hover:ring-2 hover:ring-primary/20 cursor-pointer",
+        "group relative overflow-hidden transition-all cursor-pointer hover:ring-2 hover:ring-primary/20",
         project.is_archived && "opacity-60 grayscale",
       )}
-      onClick={() => router.push(`/projects/${project.id}`)}
+      onClick={() => {
+        router.push(buildProjectDetailHref(project));
+      }}
     >
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-start justify-between gap-2">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm leading-tight line-clamp-2">
-              {project.name}
+            <div className="flex items-center gap-2 mb-1">
+              <FolderKanban className="size-4 text-muted-foreground" />
+              <h3 className="font-medium truncate text-sm">{project.name}</h3>
               {duplicateIndex != null && duplicateIndex > 1 && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
                   copy {duplicateIndex}
-                </span>
+                </Badge>
               )}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1 truncate">{resolvedAreaName}</p>
-          </div>
-          {onEdit && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(project);
-              }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-              aria-label="Edit project"
-            >
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                />
-              </svg>
-            </button>
-          )}
-        </div>
+            </div>
 
-        <div className="flex flex-wrap gap-1.5">
-          <Badge variant="secondary" className={cn("text-xs", PRIORITY_COLORS[project.priority])}>
-            {project.priority}
-          </Badge>
-          <Badge variant="secondary" className={cn("text-xs", STATUS_COLORS[project.status])}>
-            {getProjectStatusLabel(project.status)}
-          </Badge>
-        </div>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {visibleAreaNames.map((name, index) => (
+                <Badge
+                  key={`${name}-${index}`}
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0"
+                >
+                  {name}
+                </Badge>
+              ))}
+              {overflowAreaCount > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  +{overflowAreaCount}
+                </Badge>
+              )}
+              <Badge
+                variant="outline"
+                className={cn("text-[10px] px-1.5 py-0", PRIORITY_COLORS[project.priority])}
+              >
+                {project.priority}
+              </Badge>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">
+                {getProjectStatusLabel(project.status)}
+              </Badge>
+            </div>
 
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium">{progress}%</span>
+            {project.description && (
+              <p className="mt-3 line-clamp-2 text-xs text-muted-foreground">
+                {project.description}
+              </p>
+            )}
           </div>
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all duration-300 rounded-full"
-              style={{ width: `${progress}%` }}
+
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            {onEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(project);
+                }}
+                aria-label={`Edit ${project.name}`}
+              >
+                <Edit className="size-4" />
+              </Button>
+            )}
+            <ProgressRing
+              percentage={progress}
+              size={48}
+              strokeWidth={4}
             />
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground pt-1">
+        <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1 whitespace-nowrap">
               <CheckSquare className="size-3" />
@@ -129,13 +153,25 @@ export function ProjectCard({
             <span
               className={cn(
                 "flex items-center gap-1 whitespace-nowrap",
-                dueState.tone === "warning" && "text-red-600 dark:text-red-400",
-                dueState.tone === "muted" && "text-muted-foreground/80",
+                dueState.isOverdue && "text-destructive font-medium",
               )}
             >
               <Calendar className="size-3" />
               {dueState.label}
             </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {project.status === "completed" && (
+              <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-none">
+                Completed
+              </Badge>
+            )}
+            {project.is_archived && (
+              <Badge variant="outline">
+                Archived
+              </Badge>
+            )}
           </div>
         </div>
       </CardContent>

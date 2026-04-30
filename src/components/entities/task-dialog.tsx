@@ -42,6 +42,26 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+/**
+ * Locked-context configuration for project-scoped task creation flows
+ * (e.g., from a project detail page's Tasks section).
+ *
+ * When set the dialog locks both the project and its area chain, and
+ * displays them as resolved names (never raw UUIDs).
+ */
+export interface ProjectScopedTaskConfig {
+  projectId: string;
+  /** Resolved project name for display. */
+  projectName: string;
+  /** Primary area id to persist alongside the task (may be null). */
+  areaId: string | null;
+  /**
+   * All area ids linked to the project. Used to render resolved area name
+   * chips when the project has multiple linked areas.
+   */
+  linkedAreaIds?: string[];
+}
+
 interface TaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -56,6 +76,12 @@ interface TaskDialogProps {
    *  - project options are limited to projects already linked to the goal
    */
   goalScoped?: GoalScopedTaskConfig;
+  /**
+   * When set, the dialog runs in project-scoped mode:
+   *  - the project is locked to the parent project (display: name, not UUID)
+   *  - the area is locked to the parent project's primary area
+   */
+  projectScoped?: ProjectScopedTaskConfig;
   onSuccess?: () => void;
 }
 
@@ -101,6 +127,7 @@ function buildTaskFormValues(
   defaultProjectId?: string,
   defaultGoalId?: string,
   goalScoped?: GoalScopedTaskConfig,
+  projectScoped?: ProjectScopedTaskConfig,
 ): TaskFormValues {
   if (!task) {
     if (goalScoped) {
@@ -109,6 +136,14 @@ function buildTaskFormValues(
         area_id: goalScoped.areaId ?? "",
         project_id: "",
         goal_ids: [goalScoped.goalId],
+      };
+    }
+    if (projectScoped) {
+      return {
+        ...EMPTY_FORM_VALUES,
+        area_id: projectScoped.areaId ?? "",
+        project_id: projectScoped.projectId,
+        goal_ids: defaultGoalId ? [defaultGoalId] : [],
       };
     }
     return {
@@ -144,9 +179,11 @@ export function TaskDialog({
   defaultAreaId,
   goalId,
   goalScoped,
+  projectScoped,
   onSuccess,
 }: TaskDialogProps) {
   const isGoalScoped = Boolean(goalScoped) && !task;
+  const isProjectScoped = Boolean(projectScoped) && !task && !isGoalScoped;
   const { data: allAreas = [] } = useAreas();
   const { data: allGoals = [] } = useGoals({ status: "all" });
   const { data: allProjects = [] } = useProjects({ status: "all" });
@@ -190,6 +227,7 @@ export function TaskDialog({
         defaultProjectId,
         goalId,
         goalScoped,
+        projectScoped,
       ),
     );
   }, [
@@ -198,6 +236,7 @@ export function TaskDialog({
     form,
     goalId,
     goalScoped,
+    projectScoped,
     linkedGoalIds,
     open,
     task,
@@ -324,16 +363,55 @@ export function TaskDialog({
                 <FormItem>
                   <FormLabel>Area</FormLabel>
                   <div
-                    className="flex h-9 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
+                    className="flex h-9 w-full items-center gap-1 rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
                     aria-readonly="true"
                     data-testid="task-dialog-area-locked"
                   >
                     {(() => {
-                      const lockedArea = areas.find(
-                        (area) => area.id === goalScoped?.areaId,
-                      );
-                      if (!lockedArea) return "Inherited from goal";
-                      return `${lockedArea.icon ? `${lockedArea.icon} ` : ""}${lockedArea.name} (from goal)`;
+                      const candidateAreaIds = goalScoped?.areaId
+                        ? [goalScoped.areaId]
+                        : (goalScoped?.linkedAreaIds ?? []);
+                      const resolved = candidateAreaIds
+                        .map((id) => areas.find((area) => area.id === id))
+                        .filter((area): area is NonNullable<typeof area> => Boolean(area));
+
+                      if (resolved.length === 0) {
+                        return "Inherited from goal";
+                      }
+
+                      const label = resolved
+                        .map((area) => `${area.icon ? `${area.icon} ` : ""}${area.name}`)
+                        .join(", ");
+                      return `${label} (from goal)`;
+                    })()}
+                  </div>
+                </FormItem>
+              ) : isProjectScoped ? (
+                <FormItem>
+                  <FormLabel>Area</FormLabel>
+                  <div
+                    className="flex h-9 w-full items-center gap-1 rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
+                    aria-readonly="true"
+                    data-testid="task-dialog-area-locked"
+                  >
+                    {(() => {
+                      const candidateAreaIds = projectScoped?.linkedAreaIds?.length
+                        ? projectScoped.linkedAreaIds
+                        : projectScoped?.areaId
+                          ? [projectScoped.areaId]
+                          : [];
+                      const resolved = candidateAreaIds
+                        .map((id) => areas.find((area) => area.id === id))
+                        .filter((area): area is NonNullable<typeof area> => Boolean(area));
+
+                      if (resolved.length === 0) {
+                        return "Inherited from project";
+                      }
+
+                      const label = resolved
+                        .map((area) => `${area.icon ? `${area.icon} ` : ""}${area.name}`)
+                        .join(", ");
+                      return `${label} (from project)`;
                     })()}
                   </div>
                 </FormItem>
@@ -384,46 +462,80 @@ export function TaskDialog({
                 </FormItem>
               )}
 
-              <FormItem>
-                <FormLabel>Project</FormLabel>
-                <Controller
-                  control={form.control}
-                  name="project_id"
-                  render={({ field }) => (
-                    <Select
-                      onValueChange={(value) => {
-                        const nextProjectId = value === UNASSIGNED_PROJECT_VALUE ? "" : value;
-                        field.onChange(nextProjectId);
+              {isProjectScoped ? (
+                <FormItem>
+                  <FormLabel>Project</FormLabel>
+                  <div
+                    className="flex h-9 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
+                    aria-readonly="true"
+                    data-testid="task-dialog-project-locked"
+                  >
+                    {projectScoped?.projectName ?? "Inherited from project"}
+                  </div>
+                </FormItem>
+              ) : (
+                <FormItem>
+                  <FormLabel>Project</FormLabel>
+                  <Controller
+                    control={form.control}
+                    name="project_id"
+                    render={({ field }) => {
+                      const selectedProject = field.value ? projectById.get(field.value) : null;
+                      return (
+                        <Select
+                          onValueChange={(value) => {
+                            const nextProjectId = value === UNASSIGNED_PROJECT_VALUE ? "" : value;
+                            field.onChange(nextProjectId);
 
-                        const project = nextProjectId ? projectById.get(nextProjectId) : null;
-                        if (project?.area_id) {
-                          form.setValue("area_id", project.area_id, {
-                            shouldDirty: true,
-                            shouldTouch: true,
-                            shouldValidate: true,
-                          });
-                        }
-                      }}
-                      value={field.value || UNASSIGNED_PROJECT_VALUE}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select project" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={UNASSIGNED_PROJECT_VALUE}>Unassigned</SelectItem>
-                        {filteredProjects.map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <FormMessage>{form.formState.errors.project_id?.message}</FormMessage>
-              </FormItem>
+                            const project = nextProjectId
+                              ? projectById.get(nextProjectId)
+                              : null;
+                            if (project?.area_id) {
+                              form.setValue("area_id", project.area_id, {
+                                shouldDirty: true,
+                                shouldTouch: true,
+                                shouldValidate: true,
+                              });
+                            }
+                          }}
+                          value={field.value || UNASSIGNED_PROJECT_VALUE}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select project">
+                                {selectedProject ? selectedProject.name : undefined}
+                              </SelectValue>
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value={UNASSIGNED_PROJECT_VALUE}>Unassigned</SelectItem>
+                            {/*
+                              Always include the currently-selected project so that the
+                              trigger renders its name even when the project is filtered
+                              out by the area scope or a goal-scoped allow list.
+                            */}
+                            {selectedProject &&
+                            !filteredProjects.some((p) => p.id === selectedProject.id) ? (
+                              <SelectItem
+                                key={selectedProject.id}
+                                value={selectedProject.id}
+                              >
+                                {selectedProject.name}
+                              </SelectItem>
+                            ) : null}
+                            {filteredProjects.map((project) => (
+                              <SelectItem key={project.id} value={project.id}>
+                                {project.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      );
+                    }}
+                  />
+                  <FormMessage>{form.formState.errors.project_id?.message}</FormMessage>
+                </FormItem>
+              )}
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

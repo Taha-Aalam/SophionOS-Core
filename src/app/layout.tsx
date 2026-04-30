@@ -31,15 +31,15 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-full flex flex-col antialiased" suppressHydrationWarning>
         <QueryProvider>
-          <AuthProvider>
-            <ThemeProvider>
+          <ThemeProvider>
+            <AuthProvider>
               <TooltipProvider>
                 <UIProvider>
                   {children}
                 </UIProvider>
               </TooltipProvider>
-            </ThemeProvider>
-          </AuthProvider>
+            </AuthProvider>
+          </ThemeProvider>
         </QueryProvider>
       </body>
     </html>

@@ -11,6 +11,11 @@ import ProgressRing from '@/components/charts/progress-ring';
 interface GoalCardProps {
   goal: Goal;
   areaName?: string;
+  /**
+   * When provided, renders chips for each linked area name (up to 2, with a
+   * `+N` overflow chip). Falls back to `areaName` for backwards compatibility.
+   */
+  areaNames?: string[];
   onEdit?: (goal: Goal) => void;
   duplicateIndex?: number;
 }
@@ -63,9 +68,17 @@ function calculateDueState(targetDate: string | null): { text: string; isOverdue
   };
 }
 
-export function GoalCard({ goal, areaName, onEdit, duplicateIndex }: GoalCardProps) {
+export function GoalCard({ goal, areaName, areaNames, onEdit, duplicateIndex }: GoalCardProps) {
   const dueState = calculateDueState(goal.target_date);
-  const resolvedAreaName = areaName?.trim() || 'Unassigned';
+  const resolvedAreaNames = (() => {
+    if (areaNames && areaNames.length > 0) {
+      return areaNames.map((n) => n.trim()).filter(Boolean);
+    }
+    const fallback = areaName?.trim();
+    return fallback ? [fallback] : ['Unassigned'];
+  })();
+  const visibleAreaNames = resolvedAreaNames.slice(0, 2);
+  const overflowAreaCount = Math.max(resolvedAreaNames.length - visibleAreaNames.length, 0);
   const isInteractive = typeof onEdit === 'function';
 
   const showDuplicateBadge = duplicateIndex != null && duplicateIndex > 1;
@@ -93,9 +106,20 @@ export function GoalCard({ goal, areaName, onEdit, duplicateIndex }: GoalCardPro
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mt-2">
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                {resolvedAreaName}
-              </Badge>
+              {visibleAreaNames.map((name, index) => (
+                <Badge
+                  key={`${name}-${index}`}
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0"
+                >
+                  {name}
+                </Badge>
+              ))}
+              {overflowAreaCount > 0 && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  +{overflowAreaCount}
+                </Badge>
+              )}
               <Badge
                 variant="outline"
                 className={cn("text-[10px] px-1.5 py-0", PRIORITY_COLORS[goal.priority] || PRIORITY_COLORS.medium)}

@@ -35,6 +35,8 @@ interface GoalMutationContext {
   previousGoals: Array<[readonly unknown[], Goal | Goal[] | undefined]>;
 }
 
+type GoalPatch = Partial<Goal> & { area_ids?: string[] };
+
 function patchGoalCaches(
   queryClient: ReturnType<typeof useQueryClient>,
   nextGoal: Goal,
@@ -86,7 +88,7 @@ function syncResolvedGoalCaches(
 async function optimisticallyPatchGoal(
   queryClient: ReturnType<typeof useQueryClient>,
   goalId: string,
-  patch: Partial<Goal>,
+  patch: GoalPatch,
 ): Promise<GoalMutationContext> {
   await Promise.all([
     queryClient.cancelQueries({ queryKey: [GOALS_QUERY_KEY] }),
@@ -101,12 +103,13 @@ async function optimisticallyPatchGoal(
   });
   const goalDetailData = previousGoalDetails.find(([, data]) => data?.goal.id === goalId)?.[1];
 
-  const currentGoal =
-    goalDetailData?.goal ??
-    previousGoals.find(([, data]) => !Array.isArray(data) && data?.id === goalId)?.[1] ??
-    previousGoals
-      .flatMap(([, data]) => (Array.isArray(data) ? data : []))
-      .find((goal) => goal.id === goalId);
+  const cachedSingleGoal = previousGoals
+    .map(([, data]) => data)
+    .find((data): data is Goal => !Array.isArray(data) && data?.id === goalId);
+  const cachedListGoal = previousGoals
+    .flatMap(([, data]) => (Array.isArray(data) ? data : []))
+    .find((goal) => goal.id === goalId);
+  const currentGoal: Goal | undefined = goalDetailData?.goal ?? cachedSingleGoal ?? cachedListGoal;
 
   if (!currentGoal) {
     return {
@@ -116,6 +119,11 @@ async function optimisticallyPatchGoal(
   }
 
   const nextPatch: Partial<Goal> = { ...patch };
+  if (patch.area_ids !== undefined) {
+    nextPatch.linkedAreaIds = [...patch.area_ids];
+    nextPatch.area_id = patch.area_ids[0] ?? null;
+    delete (nextPatch as GoalPatch).area_ids;
+  }
   if (patch.is_completed === true && patch.progress === undefined) {
     nextPatch.progress = 100;
   } else if (patch.is_completed === false && patch.progress === undefined && goalDetailData) {
@@ -128,7 +136,7 @@ async function optimisticallyPatchGoal(
     nextPatch.progress = 0;
   }
 
-  const nextGoal = {
+  const nextGoal: Goal = {
     ...currentGoal,
     ...nextPatch,
   };
@@ -283,6 +291,56 @@ export function useRestoreGoal() {
     },
     onSettled: async () => {
       await invalidateGoalGraph(queryClient);
+    },
+  });
+}
+
+export function useDeleteGoal() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => goalService.delete(user!.id, id),
+    onSuccess: async () => {
+      await invalidateGoalGraph(queryClient);
+      toast.success("Goal deleted successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete goal");
+    },
+  });
+}
+
+export function useLinkGoalToArea() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: ({ goalId, areaId }: { goalId: string; areaId: string }) =>
+      goalService.linkToArea(user!.id, goalId, areaId),
+    onSuccess: async () => {
+      await invalidateGoalGraph(queryClient);
+      toast.success("Area linked to goal");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to link area to goal");
+    },
+  });
+}
+
+export function useUnlinkGoalFromArea() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: ({ goalId, areaId }: { goalId: string; areaId: string }) =>
+      goalService.unlinkFromArea(user!.id, goalId, areaId),
+    onSuccess: async () => {
+      await invalidateGoalGraph(queryClient);
+      toast.success("Area unlinked from goal");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to unlink area from goal");
     },
   });
 }

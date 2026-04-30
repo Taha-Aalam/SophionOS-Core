@@ -43,6 +43,26 @@ describe("applyGoalScopedDefaults", () => {
   });
 });
 
+describe("GoalScopedConfig with linkedAreaIds", () => {
+  it("preserves the primary areaId for persistence even when linkedAreaIds is provided", () => {
+    const result = applyGoalScopedDefaults(
+      { name: "x", area_id: "ignored", goal_ids: [] },
+      { goalId: "g1", areaId: "primary-area", linkedAreaIds: ["a1", "a2"] },
+    );
+    expect(result.area_id).toBe("primary-area");
+    expect(result.goal_ids).toEqual(["g1"]);
+  });
+
+  it("uses an empty primary areaId when the goal has no primary area, even with linked area ids", () => {
+    const result = applyGoalScopedDefaults(
+      { name: "x", area_id: "ignored", goal_ids: [] },
+      { goalId: "g1", areaId: null, linkedAreaIds: ["a1", "a2"] },
+    );
+    expect(result.area_id).toBe("");
+    expect(result.goal_ids).toEqual(["g1"]);
+  });
+});
+
 describe("filterAllowedProjectsForGoal", () => {
   const projects = [
     { id: "p1", name: "P1" },

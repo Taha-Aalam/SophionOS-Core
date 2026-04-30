@@ -123,6 +123,20 @@ export type Database = {
           project_id?: string;
         };
       };
+      goal_areas: {
+        Row: {
+          goal_id: string;
+          area_id: string;
+        };
+        Insert: {
+          goal_id: string;
+          area_id: string;
+        };
+        Update: {
+          goal_id?: string;
+          area_id?: string;
+        };
+      };
       goal_tasks: {
         Row: {
           goal_id: string;
@@ -234,6 +248,7 @@ export type Database = {
           due_date: string | null;
           progress: number;
           is_archived: boolean;
+          slug: string;
           created_at: string;
           updated_at: string;
         };
@@ -249,6 +264,7 @@ export type Database = {
           due_date?: string | null;
           progress?: number;
           is_archived?: boolean;
+          slug: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -264,6 +280,7 @@ export type Database = {
           due_date?: string | null;
           progress?: number;
           is_archived?: boolean;
+          slug?: string;
           created_at?: string;
           updated_at?: string;
         };
