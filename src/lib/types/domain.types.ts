@@ -29,7 +29,9 @@ export interface TopicArea {
   area_id: string;
 }
 
-export interface Task extends DatabaseTable<"tasks"> {}
+export interface Task extends DatabaseTable<"tasks"> {
+  linkedAreaIds?: string[];
+}
 
 export interface GoalProject extends DatabaseTable<"goal_projects"> {}
 
@@ -117,6 +119,7 @@ export interface UpdateProjectInput extends Partial<CreateProjectInput> {}
 
 export interface CreateTaskInput {
   area_id?: string | null;
+  area_ids?: string[];
   project_id?: string | null;
   name: string;
   description?: string | null;

@@ -37,7 +37,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAreas } from "@/lib/hooks/use-areas";
 import {
   useDeleteNote,
-  useNote,
+  useNoteByIdentifier,
   useNotebooks,
   useUpdateNote,
 } from "@/lib/hooks/use-notes";
@@ -45,6 +45,7 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import type { UpdateNoteInput } from "@/lib/types/domain.types";
 import { NOTE_STATUS, NOTE_TYPE } from "@/lib/utils/constants";
 import { cn } from "@/lib/utils";
+import { useUIStore } from "@/lib/stores/ui.store";
 
 const STATUS_OPTIONS = [
   { value: NOTE_STATUS.INBOX, label: "Inbox" },
@@ -72,6 +73,7 @@ export default function NoteDetailPage() {
   const params = useParams();
   const router = useRouter();
   const noteId = params.id as string;
+  const { setPageTitle } = useUIStore();
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [localTitle, setLocalTitle] = useState("");
@@ -81,7 +83,7 @@ export default function NoteDetailPage() {
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingContent = useRef<string | null>(null);
 
-  const { data: note, isLoading } = useNote(noteId);
+  const { data: note, isLoading } = useNoteByIdentifier(noteId);
   const { data: areas = [] } = useAreas();
   const { data: projects = [] } = useProjects({ status: "all" });
   const { data: notebooks = [] } = useNotebooks();
@@ -92,21 +94,24 @@ export default function NoteDetailPage() {
     if (note) {
       setLocalTitle(note.name);
       setNotebookInput(note.notebook ?? "");
+      setPageTitle(note.name);
     }
-  }, [note]);
+    return () => setPageTitle("");
+  }, [note, setPageTitle]);
 
   const save = useCallback(
     async (input: UpdateNoteInput) => {
+      if (!note) return;
       setSaveState("saving");
       try {
-        await updateNote.mutateAsync({ id: noteId, input });
+        await updateNote.mutateAsync({ id: note.id, input });
         setSaveState("saved");
         setTimeout(() => setSaveState("idle"), 2000);
       } catch {
         setSaveState("idle");
       }
     },
-    [noteId, updateNote],
+    [note, updateNote],
   );
 
   const handleContentChange = useCallback(
@@ -141,7 +146,8 @@ export default function NoteDetailPage() {
   };
 
   const handleDelete = async () => {
-    await deleteNote.mutateAsync(noteId);
+    if (!note) return;
+    await deleteNote.mutateAsync(note.id);
     router.push("/notes");
   };
 
@@ -180,6 +186,15 @@ export default function NoteDetailPage() {
     ? projects.find((p) => p.id === note.project_id)
     : null;
   const activeProjects = projects.filter((p) => !p.is_archived);
+  const projectsForSelect =
+    linkedProject && !activeProjects.some((p) => p.id === linkedProject.id)
+      ? [...activeProjects, linkedProject]
+      : activeProjects;
+  const activeAreas = areas.filter((a) => !a.archive);
+  const areasForSelect =
+    linkedArea && !activeAreas.some((a) => a.id === linkedArea.id)
+      ? [...activeAreas, linkedArea]
+      : activeAreas;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -325,18 +340,20 @@ export default function NoteDetailPage() {
               }
             >
               <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="No area" />
+                <SelectValue placeholder="No area">
+                  {linkedArea
+                    ? `${linkedArea.icon ? `${linkedArea.icon} ` : ""}${linkedArea.name}`
+                    : undefined}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No area</SelectItem>
-                {areas
-                  .filter((a) => !a.archive)
-                  .map((area) => (
-                    <SelectItem key={area.id} value={area.id}>
-                      {area.icon ? `${area.icon} ` : ""}
-                      {area.name}
-                    </SelectItem>
-                  ))}
+                {areasForSelect.map((area) => (
+                  <SelectItem key={area.id} value={area.id}>
+                    {area.icon ? `${area.icon} ` : ""}
+                    {area.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -350,11 +367,13 @@ export default function NoteDetailPage() {
               }
             >
               <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="No project" />
+                <SelectValue placeholder="No project">
+                  {linkedProject?.name ?? undefined}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No project</SelectItem>
-                {activeProjects.map((project) => (
+                {projectsForSelect.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}
                   </SelectItem>

@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
-import { useAreas } from "@/lib/hooks/use-areas";
+import { useAreas, useAreasByIds } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
@@ -16,9 +18,12 @@ import { getStableStringArray } from "@/lib/utils/stable-arrays";
 import { PRIORITY, TASK_STATUS } from "@/lib/utils/constants";
 import {
   applyGoalScopedDefaults,
+  applyProjectScopedAreaGuard,
   filterAllowedProjectsForGoal,
+  getScopedCandidateAreaIds,
   type GoalScopedTaskConfig,
 } from "@/lib/utils/goal-scoped";
+import { getGoalLinkedAreaIds, goalMatchesAreaId } from "@/lib/utils/goals";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task.schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +65,11 @@ export interface ProjectScopedTaskConfig {
    * chips when the project has multiple linked areas.
    */
   linkedAreaIds?: string[];
+  /**
+   * Goal ids already linked to the project. Goal selector will be restricted
+   * to these ids and all are pre-selected by default.
+   */
+  linkedGoalIds?: string[];
 }
 
 interface TaskDialogProps {
@@ -83,10 +93,12 @@ interface TaskDialogProps {
    */
   projectScoped?: ProjectScopedTaskConfig;
   onSuccess?: () => void;
+  /** Called when the user deletes an existing task. */
+  onDelete?: (id: string) => void;
 }
 
 interface TaskFormValues {
-  area_id: string;
+  area_ids: string[];
   description: string;
   due_date: string;
   goal_ids: string[];
@@ -105,7 +117,7 @@ const UNASSIGNED_AREA_VALUE = "__unassigned_area__";
 const UNASSIGNED_PROJECT_VALUE = "__unassigned_project__";
 
 const EMPTY_FORM_VALUES: TaskFormValues = {
-  area_id: "",
+  area_ids: [],
   description: "",
   due_date: "",
   goal_ids: [],
@@ -123,6 +135,7 @@ const EMPTY_FORM_VALUES: TaskFormValues = {
 function buildTaskFormValues(
   task: Task | null | undefined,
   goalIds: string[],
+  linkedAreaIds: string[],
   defaultAreaId?: string,
   defaultProjectId?: string,
   defaultGoalId?: string,
@@ -131,31 +144,41 @@ function buildTaskFormValues(
 ): TaskFormValues {
   if (!task) {
     if (goalScoped) {
+      const scopedAreaIds = goalScoped.linkedAreaIds?.length
+        ? goalScoped.linkedAreaIds
+        : goalScoped.areaId ? [goalScoped.areaId] : [];
       return {
         ...EMPTY_FORM_VALUES,
-        area_id: goalScoped.areaId ?? "",
+        area_ids: scopedAreaIds,
         project_id: "",
         goal_ids: [goalScoped.goalId],
       };
     }
     if (projectScoped) {
+      const scopedAreaIds = projectScoped.linkedAreaIds?.length
+        ? projectScoped.linkedAreaIds
+        : projectScoped.areaId ? [projectScoped.areaId] : [];
       return {
         ...EMPTY_FORM_VALUES,
-        area_id: projectScoped.areaId ?? "",
+        area_ids: scopedAreaIds,
         project_id: projectScoped.projectId,
-        goal_ids: defaultGoalId ? [defaultGoalId] : [],
+        goal_ids: projectScoped.linkedGoalIds?.length
+          ? projectScoped.linkedGoalIds
+          : defaultGoalId
+            ? [defaultGoalId]
+            : [],
       };
     }
     return {
       ...EMPTY_FORM_VALUES,
-      area_id: defaultAreaId ?? "",
+      area_ids: defaultAreaId ? [defaultAreaId] : [],
       project_id: defaultProjectId ?? "",
       goal_ids: defaultGoalId ? [defaultGoalId] : [],
     };
   }
 
   return {
-    area_id: task.area_id ?? "",
+    area_ids: linkedAreaIds.length > 0 ? linkedAreaIds : (task.area_id ? [task.area_id] : []),
     description: task.description ?? "",
     due_date: task.due_date ?? "",
     goal_ids: goalIds,
@@ -181,6 +204,7 @@ export function TaskDialog({
   goalScoped,
   projectScoped,
   onSuccess,
+  onDelete,
 }: TaskDialogProps) {
   const isGoalScoped = Boolean(goalScoped) && !task;
   const isProjectScoped = Boolean(projectScoped) && !task && !isGoalScoped;
@@ -188,6 +212,15 @@ export function TaskDialog({
   const { data: allGoals = [] } = useGoals({ status: "all" });
   const { data: allProjects = [] } = useProjects({ status: "all" });
   const { data: taskRelations } = useTaskWithRelations(task?.id ?? "");
+
+  const scopedCandidateIds = useMemo(() => {
+    if (isGoalScoped && goalScoped) return getScopedCandidateAreaIds(goalScoped);
+    if (isProjectScoped && projectScoped) return getScopedCandidateAreaIds(projectScoped);
+    return [];
+  }, [isGoalScoped, isProjectScoped, goalScoped, projectScoped]);
+
+  const { data: scopedAreas = [], isLoading: isScopedAreasLoading } =
+    useAreasByIds(scopedCandidateIds);
 
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
@@ -209,20 +242,38 @@ export function TaskDialog({
     [projects],
   );
   const linkedGoalIds = getStableStringArray(taskRelations?.goal_ids);
+  const linkedAreaIds = getStableStringArray(taskRelations?.area_ids ?? []);
 
   const form = useForm<TaskFormValues>({
     defaultValues: EMPTY_FORM_VALUES,
   });
 
+  /**
+   * Tracks the "session key" for the last form reset.
+   * Reset fires only when the dialog opens (open transitions false→true) or
+   * when the task being edited changes. This prevents goalScoped/projectScoped
+   * object-literal props — which carry new references on every parent render —
+   * from triggering repeated resets that wipe the user's in-progress selections.
+   */
+  const lastResetKeyRef = useRef<string>("");
+
   useEffect(() => {
     if (!open) {
+      lastResetKeyRef.current = "";
       return;
     }
+
+    const resetKey = task?.id ?? "create";
+    if (lastResetKeyRef.current === resetKey) {
+      return;
+    }
+    lastResetKeyRef.current = resetKey;
 
     form.reset(
       buildTaskFormValues(
         task,
         linkedGoalIds,
+        linkedAreaIds,
         defaultAreaId,
         defaultProjectId,
         goalId,
@@ -238,25 +289,130 @@ export function TaskDialog({
     goalScoped,
     projectScoped,
     linkedGoalIds,
+    linkedAreaIds,
     open,
     task,
   ]);
 
-  const selectedAreaId = form.watch("area_id");
+  /** Hydrate relation fields once after async taskRelations resolve. */
+  const hasHydratedRelationsRef = useRef(false);
+
+  useEffect(() => {
+    if (!open || !task) {
+      hasHydratedRelationsRef.current = false;
+      return;
+    }
+    if (!taskRelations || hasHydratedRelationsRef.current) return;
+
+    const nextGoalIds = getStableStringArray(taskRelations.goal_ids);
+    const nextAreaIds = getStableStringArray(taskRelations.area_ids ?? []);
+    form.setValue("goal_ids", nextGoalIds, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: true,
+    });
+    form.setValue("area_ids", nextAreaIds, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: true,
+    });
+    hasHydratedRelationsRef.current = true;
+  }, [open, task, taskRelations, form]);
+
+  const selectedAreaIds = form.watch("area_ids") ?? [];
   const selectedGoalIds = form.watch("goal_ids") ?? [];
   const isPending = createTask.isPending || updateTask.isPending;
+
+  useEffect(() => {
+    if (isGoalScoped || isProjectScoped) return;
+
+    const invalidGoalIds = selectedGoalIds.filter((goalId) => {
+      const goal = allGoals.find((g) => g.id === goalId);
+      if (!goal) return true;
+      if (selectedAreaIds.length === 0) return false;
+      return !selectedAreaIds.some((areaId) => goalMatchesAreaId(goal, areaId));
+    });
+
+    if (invalidGoalIds.length > 0) {
+      const nextGoalIds = selectedGoalIds.filter((id) => !invalidGoalIds.includes(id));
+      form.setValue("goal_ids", nextGoalIds, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+    }
+  }, [selectedAreaIds, allGoals, selectedGoalIds, form, isGoalScoped, isProjectScoped]);
+
+  /** Goals visible in the goal selector — restricted to project-linked goals when project-scoped, or area-linked goals when an area is selected. */
+  const visibleGoals = useMemo(() => {
+    if (isProjectScoped && projectScoped?.linkedGoalIds?.length) {
+      const allowedSet = new Set(projectScoped.linkedGoalIds);
+      return goals.filter((goal) => allowedSet.has(goal.id));
+    }
+
+    if (!isGoalScoped && selectedAreaIds.length > 0) {
+      return goals.filter((goal) =>
+        selectedAreaIds.some((areaId) => goalMatchesAreaId(goal, areaId)),
+      );
+    }
+
+    return goals;
+  }, [isGoalScoped, isProjectScoped, projectScoped, goals, selectedAreaIds]);
 
   const filteredProjects = useMemo(() => {
     if (isGoalScoped && goalScoped) {
       return filterAllowedProjectsForGoal(projects, goalScoped.allowedProjectIds);
     }
 
-    if (!selectedAreaId) {
+    if (selectedAreaIds.length === 0) {
       return projects;
     }
 
-    return projects.filter((project) => project.area_id === selectedAreaId);
-  }, [goalScoped, isGoalScoped, projects, selectedAreaId]);
+    return projects.filter((project) =>
+      selectedAreaIds.includes(project.area_id ?? ""),
+    );
+  }, [goalScoped, isGoalScoped, projects, selectedAreaIds]);
+
+  /** Areas visible in the area selector — restricted to goal-linked areas when goals are selected. */
+  const visibleAreas = useMemo(() => {
+    if (selectedGoalIds.length === 0) {
+      return areas;
+    }
+
+    const allowedAreaIds = new Set<string>();
+    for (const goalId of selectedGoalIds) {
+      const goal = goals.find((g) => g.id === goalId);
+      if (goal) {
+        for (const areaId of getGoalLinkedAreaIds(goal)) {
+          allowedAreaIds.add(areaId);
+        }
+      }
+    }
+
+    return areas.filter((area) => allowedAreaIds.has(area.id));
+  }, [areas, goals, selectedGoalIds]);
+
+  useEffect(() => {
+    if (isGoalScoped || isProjectScoped) return;
+
+    const invalidAreaIds = selectedAreaIds.filter((areaId) => {
+      if (selectedGoalIds.length === 0) return false;
+      return !selectedGoalIds.some((goalId) => {
+        const goal = allGoals.find((g) => g.id === goalId);
+        if (!goal) return false;
+        return goalMatchesAreaId(goal, areaId);
+      });
+    });
+
+    if (invalidAreaIds.length > 0) {
+      const nextAreaIds = selectedAreaIds.filter((id) => !invalidAreaIds.includes(id));
+      form.setValue("area_ids", nextAreaIds, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+    }
+  }, [selectedGoalIds, allGoals, selectedAreaIds, form, isGoalScoped, isProjectScoped]);
 
   const handleGoalToggle = (goalId: string, checked: boolean) => {
     const nextGoalIds = checked
@@ -309,12 +465,18 @@ export function TaskDialog({
             }
           }
 
+          toast.error("Please fix the errors in the form.");
           return;
         }
 
-        const payload = isGoalScoped && goalScoped
-          ? applyGoalScopedDefaults(validation.data as TaskFormValues, goalScoped)
-          : validation.data;
+        let payload: typeof validation.data;
+        if (isGoalScoped && goalScoped) {
+          payload = applyGoalScopedDefaults(validation.data as TaskFormValues, goalScoped);
+        } else if (isProjectScoped && projectScoped) {
+          payload = applyProjectScopedAreaGuard(validation.data, projectScoped);
+        } else {
+          payload = validation.data;
+        }
         await createTask.mutateAsync(payload);
       }
 
@@ -361,104 +523,212 @@ export function TaskDialog({
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {isGoalScoped ? (
                 <FormItem>
-                  <FormLabel>Area</FormLabel>
-                  <div
-                    className="flex h-9 w-full items-center gap-1 rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
-                    aria-readonly="true"
-                    data-testid="task-dialog-area-locked"
-                  >
-                    {(() => {
-                      const candidateAreaIds = goalScoped?.areaId
-                        ? [goalScoped.areaId]
-                        : (goalScoped?.linkedAreaIds ?? []);
-                      const resolved = candidateAreaIds
-                        .map((id) => areas.find((area) => area.id === id))
-                        .filter((area): area is NonNullable<typeof area> => Boolean(area));
-
-                      if (resolved.length === 0) {
-                        return "Inherited from goal";
-                      }
-
-                      const label = resolved
-                        .map((area) => `${area.icon ? `${area.icon} ` : ""}${area.name}`)
-                        .join(", ");
-                      return `${label} (from goal)`;
-                    })()}
+                  <div className="flex items-center justify-between gap-3">
+                    <FormLabel>Area</FormLabel>
+                    {scopedAreas.length > 1 && selectedAreaIds.length > 0 && (
+                      <Badge variant="secondary">{selectedAreaIds.length} selected</Badge>
+                    )}
                   </div>
+                  {(() => {
+                    if (scopedCandidateIds.length === 0 || scopedAreas.length === 0) {
+                      return (
+                        <div
+                          className="flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+                          aria-readonly="true"
+                          data-testid="task-dialog-area-locked"
+                        >
+                          {isScopedAreasLoading ? "Loading area…" : "Inherited from goal"}
+                        </div>
+                      );
+                    }
+
+                    if (scopedAreas.length === 1) {
+                      return (
+                        <div
+                          className="flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+                          aria-readonly="true"
+                          data-testid="task-dialog-area-locked"
+                        >
+                          {`${scopedAreas[0].icon ? `${scopedAreas[0].icon} ` : ""}${scopedAreas[0].name} (from goal)`}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <Controller
+                        control={form.control}
+                        name="area_ids"
+                        render={({ field }) => (
+                          <ScrollArea
+                            className="h-28 rounded-md border"
+                            data-testid="task-dialog-area-scoped-multi"
+                          >
+                            <div className="space-y-2 p-3">
+                              {scopedAreas.map((area) => {
+                                const checked = (field.value ?? []).includes(area.id);
+                                return (
+                                  <label
+                                    key={area.id}
+                                    className="flex cursor-pointer items-center gap-3 rounded-md px-1 py-1 transition-colors hover:bg-muted/40"
+                                    data-testid={`task-dialog-scoped-area-option-${area.id}`}
+                                  >
+                                    <Checkbox
+                                      checked={checked}
+                                      onCheckedChange={(next) => {
+                                        const nextAreaIds =
+                                          next === true
+                                            ? Array.from(new Set([...(field.value ?? []), area.id]))
+                                            : (field.value ?? []).filter((id) => id !== area.id);
+                                        field.onChange(nextAreaIds);
+                                      }}
+                                    />
+                                    <span className="text-sm">
+                                      {area.icon ? `${area.icon} ` : ""}{area.name}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </ScrollArea>
+                        )}
+                      />
+                    );
+                  })()}
                 </FormItem>
               ) : isProjectScoped ? (
                 <FormItem>
-                  <FormLabel>Area</FormLabel>
-                  <div
-                    className="flex h-9 w-full items-center gap-1 rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
-                    aria-readonly="true"
-                    data-testid="task-dialog-area-locked"
-                  >
-                    {(() => {
-                      const candidateAreaIds = projectScoped?.linkedAreaIds?.length
-                        ? projectScoped.linkedAreaIds
-                        : projectScoped?.areaId
-                          ? [projectScoped.areaId]
-                          : [];
-                      const resolved = candidateAreaIds
-                        .map((id) => areas.find((area) => area.id === id))
-                        .filter((area): area is NonNullable<typeof area> => Boolean(area));
-
-                      if (resolved.length === 0) {
-                        return "Inherited from project";
-                      }
-
-                      const label = resolved
-                        .map((area) => `${area.icon ? `${area.icon} ` : ""}${area.name}`)
-                        .join(", ");
-                      return `${label} (from project)`;
-                    })()}
+                  <div className="flex items-center justify-between gap-3">
+                    <FormLabel>Area</FormLabel>
+                    {scopedAreas.length > 1 && selectedAreaIds.length > 0 && (
+                      <Badge variant="secondary">{selectedAreaIds.length} selected</Badge>
+                    )}
                   </div>
+                  {(() => {
+                    if (scopedCandidateIds.length === 0 || scopedAreas.length === 0) {
+                      return (
+                        <div
+                          className="flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+                          aria-readonly="true"
+                          data-testid="task-dialog-area-locked"
+                        >
+                          {isScopedAreasLoading ? "Loading area…" : "Inherited from project"}
+                        </div>
+                      );
+                    }
+
+                    if (scopedAreas.length === 1) {
+                      return (
+                        <div
+                          className="flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+                          aria-readonly="true"
+                          data-testid="task-dialog-area-locked"
+                        >
+                          {`${scopedAreas[0].icon ? `${scopedAreas[0].icon} ` : ""}${scopedAreas[0].name} (from project)`}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <Controller
+                        control={form.control}
+                        name="area_ids"
+                        render={({ field }) => (
+                          <ScrollArea
+                            className="h-28 rounded-md border"
+                            data-testid="task-dialog-area-scoped-multi"
+                          >
+                            <div className="space-y-2 p-3">
+                              {scopedAreas.map((area) => {
+                                const checked = (field.value ?? []).includes(area.id);
+                                return (
+                                  <label
+                                    key={area.id}
+                                    className="flex cursor-pointer items-center gap-3 rounded-md px-1 py-1 transition-colors hover:bg-muted/40"
+                                    data-testid={`task-dialog-scoped-area-option-${area.id}`}
+                                  >
+                                    <Checkbox
+                                      checked={checked}
+                                      onCheckedChange={(next) => {
+                                        const nextAreaIds =
+                                          next === true
+                                            ? Array.from(new Set([...(field.value ?? []), area.id]))
+                                            : (field.value ?? []).filter((id) => id !== area.id);
+                                        field.onChange(nextAreaIds);
+                                      }}
+                                    />
+                                    <span className="text-sm">
+                                      {area.icon ? `${area.icon} ` : ""}{area.name}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </ScrollArea>
+                        )}
+                      />
+                    );
+                  })()}
                 </FormItem>
               ) : (
                 <FormItem>
-                  <FormLabel>Area</FormLabel>
+                  <div className="flex items-center justify-between gap-3">
+                    <FormLabel>Areas</FormLabel>
+                    {selectedAreaIds.length > 0 && (
+                      <Badge variant="secondary">{selectedAreaIds.length} selected</Badge>
+                    )}
+                  </div>
                   <Controller
                     control={form.control}
-                    name="area_id"
+                    name="area_ids"
                     render={({ field }) => (
-                      <Select
-                        onValueChange={(value) => {
-                          const nextAreaId = value === UNASSIGNED_AREA_VALUE ? "" : value;
-                          field.onChange(nextAreaId);
-
-                          const currentProjectId = form.getValues("project_id");
-                          if (
-                            currentProjectId &&
-                            projectById.get(currentProjectId)?.area_id !== nextAreaId
-                          ) {
-                            form.setValue("project_id", "", {
-                              shouldDirty: true,
-                              shouldTouch: true,
-                              shouldValidate: true,
-                            });
-                          }
-                        }}
-                        value={field.value || UNASSIGNED_AREA_VALUE}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select area" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={UNASSIGNED_AREA_VALUE}>Unassigned</SelectItem>
-                          {areas.map((area) => (
-                            <SelectItem key={area.id} value={area.id}>
-                              {area.icon ? `${area.icon} ` : ""}
-                              {area.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <ScrollArea className="h-32 rounded-md border">
+                        <div className="space-y-2 p-3">
+                          {visibleAreas.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">No active areas available.</p>
+                          ) : (
+                            visibleAreas.map((area) => {
+                              const checked = (field.value ?? []).includes(area.id);
+                              return (
+                                <label
+                                  key={area.id}
+                                  className="flex cursor-pointer items-center gap-3 rounded-md px-1 py-1 transition-colors hover:bg-muted/40"
+                                >
+                                  <Checkbox
+                                    checked={checked}
+                                    onCheckedChange={(next) => {
+                                      const nextAreaIds =
+                                        next === true
+                                          ? Array.from(new Set([...(field.value ?? []), area.id]))
+                                          : (field.value ?? []).filter((id) => id !== area.id);
+                                      field.onChange(nextAreaIds);
+                                      const currentProjectId = form.getValues("project_id");
+                                      if (
+                                        currentProjectId &&
+                                        nextAreaIds.length > 0 &&
+                                        !nextAreaIds.includes(
+                                          projectById.get(currentProjectId)?.area_id ?? "",
+                                        )
+                                      ) {
+                                        form.setValue("project_id", "", {
+                                          shouldDirty: true,
+                                          shouldTouch: true,
+                                          shouldValidate: true,
+                                        });
+                                      }
+                                    }}
+                                  />
+                                  <span className="text-sm">
+                                    {area.icon ? `${area.icon} ` : ""}{area.name}
+                                  </span>
+                                </label>
+                              );
+                            })
+                          )}
+                        </div>
+                      </ScrollArea>
                     )}
                   />
-                  <FormMessage>{form.formState.errors.area_id?.message}</FormMessage>
+                  <FormMessage>{form.formState.errors.area_ids?.message}</FormMessage>
                 </FormItem>
               )}
 
@@ -491,11 +761,14 @@ export function TaskDialog({
                               ? projectById.get(nextProjectId)
                               : null;
                             if (project?.area_id) {
-                              form.setValue("area_id", project.area_id, {
-                                shouldDirty: true,
-                                shouldTouch: true,
-                                shouldValidate: true,
-                              });
+                              const currentAreaIds = form.getValues("area_ids") ?? [];
+                              if (!currentAreaIds.includes(project.area_id)) {
+                                form.setValue("area_ids", [...currentAreaIds, project.area_id], {
+                                  shouldDirty: true,
+                                  shouldTouch: true,
+                                  shouldValidate: true,
+                                });
+                              }
                             }
                           }}
                           value={field.value || UNASSIGNED_PROJECT_VALUE}
@@ -590,7 +863,11 @@ export function TaskDialog({
               <FormItem>
                 <FormLabel>Due Date</FormLabel>
                 <FormControl>
-                  <Input type="date" {...form.register("due_date")} />
+                  <Input
+                    type="date"
+                    min={!task ? new Date().toISOString().split("T")[0] : undefined}
+                    {...form.register("due_date")}
+                  />
                 </FormControl>
                 <FormMessage>{form.formState.errors.due_date?.message}</FormMessage>
               </FormItem>
@@ -622,12 +899,14 @@ export function TaskDialog({
               </div>
               <ScrollArea className="h-40 rounded-md border">
                 <div className="space-y-3 p-3">
-                  {goals.length === 0 ? (
+                  {visibleGoals.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No active goals available yet.
+                      {isProjectScoped
+                        ? "No goals are linked to this project yet."
+                        : "No active goals available yet."}
                     </p>
                   ) : (
-                    goals.map((goal) => {
+                    visibleGoals.map((goal) => {
                       const checked = selectedGoalIds.includes(goal.id);
 
                       return (
@@ -708,13 +987,37 @@ export function TaskDialog({
               </FormItem>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? "Saving..." : task ? "Update Task" : "Create Task"}
-              </Button>
+            <div className="flex items-center justify-between gap-3 pt-4">
+              {task && onDelete && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={isPending}
+                  onClick={() => {
+                    onDelete(task.id);
+                    onOpenChange(false);
+                  }}
+                >
+                  <Trash2 className="mr-1 size-4" />
+                  Delete
+                </Button>
+              )}
+              <div className="ml-auto flex gap-3">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isPending}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    void handleSubmit();
+                  }}
+                >
+                  {isPending ? "Saving..." : task ? "Update Task" : "Create Task"}
+                </Button>
+              </div>
             </div>
           </form>
         </FormProvider>

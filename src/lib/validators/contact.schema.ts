@@ -20,7 +20,7 @@ export const createContactSchema = z
     linkedin: nullableStringSchema,
     website: nullableStringSchema,
     last_interaction_at: z.string().datetime().nullable().optional(),
-    follow_up_interval_days: z.number().int().min(1).max(365).nullable().optional(),
+    follow_up_interval_days: z.number().int().min(0).max(365).nullable().optional(),
     favorite: z.boolean().default(false),
     notes: nullableStringSchema,
     metadata: metadataSchema,

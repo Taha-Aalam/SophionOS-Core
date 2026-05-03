@@ -192,7 +192,7 @@ export default function NotesPage() {
       name: "Untitled note",
       status: NOTE_STATUS.INBOX,
     });
-    router.push(`/notes/${note.id}`);
+    router.push(`/notes/${note.slug ?? note.id}`);
   };
 
   return (
@@ -293,7 +293,7 @@ export default function NotesPage() {
                     key={note.id}
                     note={note}
                     areaName={note.area_id ? areaNames.get(note.area_id) : undefined}
-                    onOpen={() => router.push(`/notes/${note.id}`)}
+                    onOpen={() => router.push(`/notes/${note.slug ?? note.id}`)}
                     onToggleFavorite={() =>
                       toggleFavorite.mutate({ id: note.id, favorite: !note.favorite })
                     }

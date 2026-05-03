@@ -36,6 +36,16 @@ export function useNote(id: string) {
   });
 }
 
+export function useNoteByIdentifier(identifier: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [NOTES_QUERY_KEY, "detail", user?.id ?? null, identifier],
+    queryFn: () => noteService.getByIdentifier(user!.id, identifier),
+    enabled: !!user && !!identifier,
+  });
+}
+
 export function useNotesByArea(areaId: string) {
   const { user } = useAuth();
 

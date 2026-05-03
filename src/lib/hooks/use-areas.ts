@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -36,6 +37,23 @@ export function useArea(identifier: string) {
     queryKey: [AREAS_QUERY_KEY, "detail", user?.id ?? null, identifier],
     queryFn: () => areaService.getByIdentifier(user!.id, identifier),
     enabled: !!user && !!identifier,
+  });
+}
+
+/**
+ * Fetches a specific set of areas by their IDs.
+ * Unlike useAreas(), this bypasses the default list cap and always returns
+ * exactly the requested areas — critical for scoped task-creation flows where
+ * the linked areas may not appear in the generic top-50 result set.
+ */
+export function useAreasByIds(ids: string[]) {
+  const { user } = useAuth();
+  const stableIds = useMemo(() => Array.from(new Set(ids)).sort(), [ids]);
+
+  return useQuery({
+    queryKey: [AREAS_QUERY_KEY, "by-ids", user?.id ?? null, stableIds],
+    queryFn: () => areaService.listByIds(user!.id, stableIds),
+    enabled: !!user && stableIds.length > 0,
   });
 }
 

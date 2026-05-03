@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   CalendarDays,
   CheckSquare,
+  ChevronDown,
   Clock,
   Filter,
   Inbox as InboxIcon,
@@ -15,7 +16,16 @@ import {
 
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskListItem } from "@/components/entities/task-list-item";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -36,19 +46,19 @@ import {
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import { Task } from "@/lib/types/domain.types";
-import { TASK_VIEW, type TaskView, getTaskCounts, getVisibleTasks } from "@/lib/utils/tasks";
+import { TASK_VIEW, type TaskView, getTaskCounts, getVisibleTasks, getTaskLinkedAreaIds, taskMatchesAreaId } from "@/lib/utils/tasks";
 
 const ALL_PRIORITY_VALUE = "__all_priority__";
-const ALL_AREA_VALUE = "__all_area__";
-const ALL_PROJECT_VALUE = "__all_project__";
 
 export default function TasksPage() {
   const [activeTab, setActiveTab] = useState<TaskView>(TASK_VIEW.ALL);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [filterPriority, setFilterPriority] = useState("");
-  const [filterAreaId, setFilterAreaId] = useState("");
-  const [filterProjectId, setFilterProjectId] = useState("");
+  const [filterAreaIds, setFilterAreaIds] = useState<string[]>([]);
+  const [filterProjectIds, setFilterProjectIds] = useState<string[]>([]);
+  const [areaPopoverOpen, setAreaPopoverOpen] = useState(false);
+  const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
 
   const { data: allTasks, isLoading } = useTasks();
   const { data: allAreas } = useAreas();
@@ -75,16 +85,20 @@ export default function TasksPage() {
       result = result.filter((task) => task.priority === filterPriority);
     }
 
-    if (filterAreaId) {
-      result = result.filter((task) => task.area_id === filterAreaId);
+    if (filterAreaIds.length > 0) {
+      result = result.filter((task) =>
+        filterAreaIds.some((areaId) => taskMatchesAreaId(task, areaId)),
+      );
     }
 
-    if (filterProjectId) {
-      result = result.filter((task) => task.project_id === filterProjectId);
+    if (filterProjectIds.length > 0) {
+      result = result.filter((task) =>
+        filterProjectIds.includes(task.project_id ?? ""),
+      );
     }
 
     return result;
-  }, [activeTab, filterAreaId, filterPriority, filterProjectId, tasks]);
+  }, [activeTab, filterAreaIds, filterPriority, filterProjectIds, tasks]);
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
@@ -96,9 +110,19 @@ export default function TasksPage() {
     setEditingTask(null);
   };
 
-  const hasFilters = Boolean(filterPriority || filterAreaId || filterProjectId);
+  const hasFilters = Boolean(filterPriority || filterAreaIds.length > 0 || filterProjectIds.length > 0);
   const activeAreas = allAreas?.filter((area) => !area.archive) ?? [];
   const activeProjects = allProjects?.filter((project) => !project.is_archived) ?? [];
+
+  const selectedAreaLabels = filterAreaIds
+    .map((id) => activeAreas.find((a) => a.id === id))
+    .filter(Boolean)
+    .map((a) => `${(a as { icon?: string }).icon ? `${(a as { icon?: string }).icon} ` : ""}${(a as { name: string }).name}`);
+
+  const selectedProjectLabels = filterProjectIds
+    .map((id) => activeProjects.find((p) => p.id === id))
+    .filter(Boolean)
+    .map((p) => (p as { name: string }).name);
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-0">
@@ -122,35 +146,26 @@ export default function TasksPage() {
         className="flex flex-1 flex-col"
       >
         <div className="border-b border-border/50 px-6 pt-4">
-          <TabsList className="h-auto flex-wrap gap-0 bg-transparent p-0">
+          <TabsList className="flex h-auto flex-nowrap gap-0 bg-transparent p-0">
             <TabsTrigger
               value={TASK_VIEW.ALL}
               className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
-              All{" "}
-              {counts.all > 0 && (
-                <span className="ml-1.5 text-xs text-muted-foreground">{counts.all}</span>
-              )}
+              All
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.INBOX}
               className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <InboxIcon className="mr-1.5 size-3.5" />
-              Inbox{" "}
-              {counts.inbox > 0 && (
-                <span className="ml-1.5 text-xs text-muted-foreground">{counts.inbox}</span>
-              )}
+              Inbox
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.UPCOMING}
               className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <Clock className="mr-1.5 size-3.5" />
-              Upcoming{" "}
-              {counts.upcoming > 0 && (
-                <span className="ml-1.5 text-xs text-muted-foreground">{counts.upcoming}</span>
-              )}
+              Upcoming
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.OVERDUE}
@@ -158,51 +173,34 @@ export default function TasksPage() {
             >
               <AlertTriangle className="mr-1.5 size-3.5" />
               Overdue
-              {counts.overdue > 0 && (
-                <span className="ml-1.5 text-xs font-medium text-red-500">{counts.overdue}</span>
-              )}
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.COMPLETED}
               className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <CheckSquare className="mr-1.5 size-3.5" />
-              Completed{" "}
-              {counts.completed > 0 && (
-                <span className="ml-1.5 text-xs text-muted-foreground">{counts.completed}</span>
-              )}
+              Completed
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.FOCUS}
               className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <Star className="mr-1.5 size-3.5" />
-              Focus{" "}
-              {counts.focus > 0 && (
-                <span className="ml-1.5 text-xs text-muted-foreground">{counts.focus}</span>
-              )}
+              Focus
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.SMART_PRIORITY}
               className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <Zap className="mr-1.5 size-3.5" />
-              Smart Priority{" "}
-              {counts.smartPriority > 0 && (
-                <span className="ml-1.5 text-xs text-muted-foreground">
-                  {counts.smartPriority}
-                </span>
-              )}
+              Smart Priority
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.CALENDAR}
               className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <CalendarDays className="mr-1.5 size-3.5" />
-              Calendar{" "}
-              {counts.calendar > 0 && (
-                <span className="ml-1.5 text-xs text-muted-foreground">{counts.calendar}</span>
-              )}
+              Calendar
             </TabsTrigger>
           </TabsList>
         </div>
@@ -228,51 +226,121 @@ export default function TasksPage() {
               </SelectContent>
             </Select>
 
-            <Select
-              value={filterAreaId || ALL_AREA_VALUE}
-              onValueChange={(value) =>
-                setFilterAreaId(value === ALL_AREA_VALUE ? "" : (value ?? ""))
-              }
-            >
-              <SelectTrigger className="h-7 w-[130px] text-xs">
-                <SelectValue placeholder="Area" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_AREA_VALUE}>All areas</SelectItem>
-                {activeAreas.map((area) => (
-                  <SelectItem key={area.id} value={area.id}>
-                    {area.icon ? `${area.icon} ` : ""}
-                    {area.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={areaPopoverOpen} onOpenChange={setAreaPopoverOpen}>
+              <PopoverTrigger
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                )}
+              >
+                {filterAreaIds.length === 0 ? (
+                  "Area"
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <span className="max-w-[100px] truncate">{selectedAreaLabels[0]}</span>
+                    {selectedAreaLabels.length > 1 && (
+                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                        +{selectedAreaLabels.length - 1}
+                      </Badge>
+                    )}
+                  </span>
+                )}
+                <ChevronDown className="size-3 text-muted-foreground" />
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2">
+                <div className="space-y-1">
+                  {activeAreas.length === 0 && (
+                    <p className="px-2 py-1 text-xs text-muted-foreground">No areas available.</p>
+                  )}
+                  <ScrollArea className="max-h-60">
+                    {activeAreas.map((area) => {
+                      const checked = filterAreaIds.includes(area.id);
+                      return (
+                        <label
+                          key={area.id}
+                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/40"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(next) => {
+                              setFilterAreaIds((prev) =>
+                                next === true
+                                  ? Array.from(new Set([...prev, area.id]))
+                                  : prev.filter((id) => id !== area.id),
+                              );
+                            }}
+                          />
+                          <span className="text-sm">
+                            {area.icon ? `${area.icon} ` : ""}
+                            {area.name}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </ScrollArea>
+                </div>
+              </PopoverContent>
+            </Popover>
 
-            <Select
-              value={filterProjectId || ALL_PROJECT_VALUE}
-              onValueChange={(value) =>
-                setFilterProjectId(value === ALL_PROJECT_VALUE ? "" : (value ?? ""))
-              }
-            >
-              <SelectTrigger className="h-7 w-[140px] text-xs">
-                <SelectValue placeholder="Project" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_PROJECT_VALUE}>All projects</SelectItem>
-                {activeProjects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={projectPopoverOpen} onOpenChange={setProjectPopoverOpen}>
+              <PopoverTrigger
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                )}
+              >
+                {filterProjectIds.length === 0 ? (
+                  "Project"
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <span className="max-w-[100px] truncate">{selectedProjectLabels[0]}</span>
+                    {selectedProjectLabels.length > 1 && (
+                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                        +{selectedProjectLabels.length - 1}
+                      </Badge>
+                    )}
+                  </span>
+                )}
+                <ChevronDown className="size-3 text-muted-foreground" />
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2">
+                <div className="space-y-1">
+                  {activeProjects.length === 0 && (
+                    <p className="px-2 py-1 text-xs text-muted-foreground">No projects available.</p>
+                  )}
+                  <ScrollArea className="max-h-60">
+                    {activeProjects.map((project) => {
+                      const checked = filterProjectIds.includes(project.id);
+                      return (
+                        <label
+                          key={project.id}
+                          className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/40"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(next) => {
+                              setFilterProjectIds((prev) =>
+                                next === true
+                                  ? Array.from(new Set([...prev, project.id]))
+                                  : prev.filter((id) => id !== project.id),
+                              );
+                            }}
+                          />
+                          <span className="text-sm">{project.name}</span>
+                        </label>
+                      );
+                    })}
+                  </ScrollArea>
+                </div>
+              </PopoverContent>
+            </Popover>
 
             {hasFilters && (
               <button
                 onClick={() => {
                   setFilterPriority("");
-                  setFilterAreaId("");
-                  setFilterProjectId("");
+                  setFilterAreaIds([]);
+                  setFilterProjectIds([]);
                 }}
                 className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
               >
@@ -347,6 +415,9 @@ export default function TasksPage() {
                     key={task.id}
                     task={task}
                     areaName={task.area_id ? areaMap.get(task.area_id)?.name : null}
+                    linkedAreaNames={getTaskLinkedAreaIds(task)
+                      .map((id) => areaMap.get(id)?.name)
+                      .filter((n): n is string => Boolean(n))}
                     projectName={task.project_id ? projectMap.get(task.project_id)?.name : null}
                     showSmartPriority={tab === TASK_VIEW.SMART_PRIORITY}
                     onCompletionToggle={(id, isCompleted) => {
@@ -375,7 +446,12 @@ export default function TasksPage() {
         ))}
       </Tabs>
 
-      <TaskDialog open={isDialogOpen} onOpenChange={handleCloseDialog} task={editingTask} />
+      <TaskDialog
+        open={isDialogOpen}
+        onOpenChange={handleCloseDialog}
+        task={editingTask}
+        onDelete={(id) => deleteTask.mutate(id)}
+      />
     </div>
   );
 }

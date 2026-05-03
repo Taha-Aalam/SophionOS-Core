@@ -228,6 +228,10 @@ export default function GoalDetailPage() {
     [areaNames],
   );
   const linkedAreaIds = useMemo(() => (goal ? getGoalLinkedAreaIds(goal) : []), [goal]);
+  const allowedProjectIds = useMemo(
+    () => (goalData?.projects ?? []).map((p) => p.id),
+    [goalData?.projects],
+  );
   const linkedAreas = useMemo(
     () => areas.filter((areaOption) => linkedAreaIds.includes(areaOption.id)),
     [areas, linkedAreaIds],
@@ -1098,7 +1102,7 @@ export default function GoalDetailPage() {
                 <button
                   key={note.id}
                   type="button"
-                  onClick={() => router.push(`/notes/${note.id}`)}
+                  onClick={() => router.push(`/notes/${note.slug ?? note.id}`)}
                   className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -1296,7 +1300,7 @@ export default function GoalDetailPage() {
           goalId: goal.id,
           areaId: goal.area_id ?? null,
           linkedAreaIds: linkedAreaIds,
-          allowedProjectIds: (goalData?.projects ?? []).map((p) => p.id),
+          allowedProjectIds: allowedProjectIds,
         }}
         onSuccess={() => setIsNewTaskOpen(false)}
       />
@@ -1307,6 +1311,7 @@ export default function GoalDetailPage() {
         onOpenChange={setIsNewNoteOpen}
         note={null}
         goalId={goal.id}
+        areaId={linkedAreaIds[0] ?? null}
         onSuccess={() => setIsNewNoteOpen(false)}
       />
 
@@ -1356,10 +1361,10 @@ function ResourceForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !url.trim()) return;
     const input: Parameters<typeof onSubmit>[0] = {
       name: name.trim(),
-      url: url.trim() || undefined,
+      url: url.trim(),
       type,
       status,
     };
@@ -1381,7 +1386,7 @@ function ResourceForm({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="res-url">URL</Label>
+        <Label htmlFor="res-url">URL *</Label>
         <Input
           id="res-url"
           type="url"
@@ -1423,7 +1428,7 @@ function ResourceForm({
         </div>
       </div>
       <div className="flex justify-end gap-3">
-        <Button type="submit" disabled={!name.trim() || isPending}>
+        <Button type="submit" disabled={!name.trim() || !url.trim() || isPending}>
           {isPending ? "Creating..." : "Create Resource"}
         </Button>
       </div>

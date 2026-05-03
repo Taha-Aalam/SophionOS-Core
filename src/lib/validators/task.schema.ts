@@ -12,15 +12,28 @@ const nullableDateSchema = z.preprocess(
   dateStringSchema.nullable().optional(),
 );
 
-export const createTaskSchema = z
+/** Rejects dates strictly before today (local calendar date). */
+const nullableFutureDateSchema = z.preprocess(
+  (value) => (value === "" ? null : value),
+  dateStringSchema
+    .refine((date) => {
+      const today = new Date().toISOString().split("T")[0];
+      return date >= today;
+    }, "Due date cannot be in the past")
+    .nullable()
+    .optional(),
+);
+
+const createTaskBaseSchema = z
   .object({
     area_id: nullableUuidSchema,
+    area_ids: z.array(z.string().uuid()).default([]),
     project_id: nullableUuidSchema,
     name: z.string().min(1, "Name is required").max(255),
     description: z.string().max(1000).optional().nullable(),
     status: z.nativeEnum(TASK_STATUS).default(TASK_STATUS.INBOX),
     priority: z.nativeEnum(PRIORITY).default(PRIORITY.MEDIUM),
-    due_date: nullableDateSchema,
+    due_date: nullableFutureDateSchema,
     is_completed: z.boolean().default(false),
     is_focused: z.boolean().default(false),
     is_important: z.boolean().default(false),
@@ -30,9 +43,13 @@ export const createTaskSchema = z
   })
   .strict();
 
-export const updateTaskSchema = createTaskSchema
+export const createTaskSchema = createTaskBaseSchema;
+
+export const updateTaskSchema = createTaskBaseSchema
   .partial()
   .extend({
+    area_ids: z.array(z.string().uuid()).optional(),
+    due_date: nullableDateSchema,
     completed_at: z.string().datetime().optional().nullable(),
   })
   .strict();
