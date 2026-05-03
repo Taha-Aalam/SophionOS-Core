@@ -17,13 +17,13 @@ function computeFollowUpStatus(
   lastInteractionAt: string | null | undefined,
   intervalDays: number | null | undefined,
 ): FollowUpStatus {
+  if (intervalDays === null || intervalDays === undefined || intervalDays === 0) return "ON TRACK";
   if (!lastInteractionAt) return "FOLLOW UP";
-  const interval = intervalDays ?? 14;
   const lastDate = new Date(lastInteractionAt);
   const now = new Date();
   const diffMs = now.getTime() - lastDate.getTime();
   const diffDays = diffMs / (1000 * 60 * 60 * 24);
-  return diffDays <= interval ? "ON TRACK" : "FOLLOW UP";
+  return diffDays <= intervalDays ? "ON TRACK" : "FOLLOW UP";
 }
 
 function computeDaysSinceInteraction(lastInteractionAt: string | null | undefined): number | null {

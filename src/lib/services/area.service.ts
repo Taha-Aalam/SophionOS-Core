@@ -231,6 +231,22 @@ export const areaService = {
     return data as AreaSelect;
   },
 
+  async listByIds(userId: string, ids: string[]): Promise<AreaSelect[]> {
+    if (!ids.length) return [];
+
+    const { data, error } = await createClient()
+      .from("areas")
+      .select(AREA_SELECT)
+      .eq("user_id", userId)
+      .in("id", ids);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    return (data as AreaSelect[]) || [];
+  },
+
   async delete(userId: string, id: string): Promise<void> {
     const { error } = await createClient()
       .from("areas")

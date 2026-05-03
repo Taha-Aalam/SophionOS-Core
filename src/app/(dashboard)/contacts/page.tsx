@@ -35,7 +35,11 @@ function buildCreateInput(values: {
     email: values.email || null,
     linkedin: values.linkedin || null,
     website: values.website || null,
-    follow_up_interval_days: values.follow_up_interval_days ? parseInt(values.follow_up_interval_days, 10) : 14,
+    follow_up_interval_days: values.follow_up_interval_days === "none"
+      ? null
+      : values.follow_up_interval_days
+        ? parseInt(values.follow_up_interval_days, 10)
+        : 14,
     notes: values.notes || null,
   };
 }

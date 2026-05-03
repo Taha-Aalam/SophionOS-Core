@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 import { breadcrumbLabels } from "@/components/layout/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useGoals } from "@/lib/hooks/use-goals";
+import { useNotes } from "@/lib/hooks/use-notes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -38,6 +39,17 @@ function GoalSlugSegment({ slug }: { slug: string }) {
   return <>{resolved ?? slug}</>;
 }
 
+function useNoteSlugLabel(slug: string): string | null {
+  const { data: allNotes = [] } = useNotes({ status: "all" });
+  const matched = allNotes.find((n) => n.slug === slug || n.id === slug);
+  return matched?.name ?? null;
+}
+
+function NoteSlugSegment({ slug }: { slug: string }) {
+  const resolved = useNoteSlugLabel(slug);
+  return <>{resolved ?? slug}</>;
+}
+
 function Breadcrumb() {
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
@@ -65,6 +77,14 @@ function Breadcrumb() {
         // For /projects/<slug-or-uuid> — prefer current page title
         if (segments[0] === "projects" && index === 1 && pageTitle) {
           label = pageTitle;
+        }
+
+        // For /notes/<slug-or-uuid> — prefer current page title, fallback to slug resolution
+        const isNotesSegment = segments[0] === "notes" && index === 1;
+        if (isNotesSegment && pageTitle) {
+          label = pageTitle;
+        } else if (isNotesSegment && !isUUID(segment)) {
+          label = <NoteSlugSegment slug={segment} />;
         }
 
         return (

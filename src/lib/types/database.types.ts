@@ -187,6 +187,7 @@ export type Database = {
           project_id: string | null;
           topic_id: string | null;
           name: string;
+          slug: string | null;
           content: string | null;
           type: Database["public"]["Enums"]["note_type"];
           status: Database["public"]["Enums"]["note_status"];
@@ -205,6 +206,7 @@ export type Database = {
           project_id?: string | null;
           topic_id?: string | null;
           name: string;
+          slug?: string | null;
           content?: string | null;
           type?: Database["public"]["Enums"]["note_type"];
           status?: Database["public"]["Enums"]["note_status"];
@@ -223,6 +225,7 @@ export type Database = {
           project_id?: string | null;
           topic_id?: string | null;
           name?: string;
+          slug?: string | null;
           content?: string | null;
           type?: Database["public"]["Enums"]["note_type"];
           status?: Database["public"]["Enums"]["note_status"];
@@ -381,6 +384,20 @@ export type Database = {
         };
         Update: {
           topic_id?: string;
+          area_id?: string;
+        };
+      };
+      task_areas: {
+        Row: {
+          task_id: string;
+          area_id: string;
+        };
+        Insert: {
+          task_id: string;
+          area_id: string;
+        };
+        Update: {
+          task_id?: string;
           area_id?: string;
         };
       };

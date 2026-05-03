@@ -166,6 +166,7 @@ export default function ProjectDetailPage() {
     [projectLinkedAreaIds, areas],
   );
   const linkedGoalIds = useMemo(() => new Set(relations?.goal_ids ?? []), [relations?.goal_ids]);
+  const linkedGoalIdsArray = useMemo(() => Array.from(linkedGoalIds), [linkedGoalIds]);
   const linkedGoals = useMemo(
     () => goals.filter((goal) => linkedGoalIds.has(goal.id)),
     [goals, linkedGoalIds],
@@ -522,9 +523,10 @@ export default function ProjectDetailPage() {
           email: values.email || null,
           linkedin: values.linkedin || null,
           website: values.website || null,
-          follow_up_interval_days: values.follow_up_interval_days
-            ? parseInt(values.follow_up_interval_days, 10)
-            : 14,
+          follow_up_interval_days:
+            values.follow_up_interval_days && values.follow_up_interval_days !== "none"
+              ? parseInt(values.follow_up_interval_days, 10)
+              : null,
           notes: values.notes || null,
         },
         {
@@ -704,13 +706,6 @@ export default function ProjectDetailPage() {
             <span className="text-muted-foreground">Notes</span>
           </button>
           <button
-            onClick={() => scrollToSection("people")}
-            className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
-          >
-            <span className="font-medium text-sky-600 dark:text-sky-400">{linkedContacts.length}</span>
-            <span className="text-muted-foreground">People</span>
-          </button>
-          <button
             onClick={() => scrollToSection("resources")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -718,6 +713,13 @@ export default function ProjectDetailPage() {
               {linkedResources.length}
             </span>
             <span className="text-muted-foreground">Resources</span>
+          </button>
+          <button
+            onClick={() => scrollToSection("people")}
+            className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
+          >
+            <span className="font-medium text-sky-600 dark:text-sky-400">{linkedContacts.length}</span>
+            <span className="text-muted-foreground">People</span>
           </button>
         </div>
 
@@ -958,7 +960,7 @@ export default function ProjectDetailPage() {
                 <button
                   key={note.id}
                   type="button"
-                  onClick={() => router.push(`/notes/${note.id}`)}
+                  onClick={() => router.push(`/notes/${note.slug ?? note.id}`)}
                   className="flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/40"
                 >
                   <NotebookPen className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
@@ -971,62 +973,6 @@ export default function ProjectDetailPage() {
                   </div>
                 </button>
               ))}
-            </div>
-          ) : null}
-        </GoalDetailSection>
-      </div>
-
-      <div ref={peopleRef}>
-        <GoalDetailSection
-          id="people"
-          entityType="people"
-          tabs={contactTabs}
-          activeTab={contactTab}
-          onTabChange={setContactTab}
-          isLoading={false}
-          emptyTitle="No linked people"
-          emptyDescription="Create a new contact to attach to this project, or link an existing one."
-          onCreateNew={() => setIsNewContactOpen(true)}
-          createLabel="New Contact"
-        >
-          {filteredContacts.length > 0 ? (
-            <div className="space-y-3">
-              <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsLinkContactOpen(true)}
-                  className="gap-1.5"
-                >
-                  <LinkIcon className="size-3.5" />
-                  Link Existing Contact
-                </Button>
-              </div>
-              {filteredContacts.map((contact) => {
-                const link = projectContactLinks.find((item) => item.contact_id === contact.id);
-
-                return (
-                  <div
-                    key={contact.id}
-                    className="flex items-center justify-between rounded-lg border p-4"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{contact.name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {[contact.role, contact.organization].filter(Boolean).join(" - ")}
-                        {link?.role_in_project ? ` - ${link.role_in_project}` : ""}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleUnlinkContact(contact.id)}
-                    >
-                      <Unlink className="size-3" />
-                    </Button>
-                  </div>
-                );
-              })}
             </div>
           ) : null}
         </GoalDetailSection>
@@ -1110,6 +1056,62 @@ export default function ProjectDetailPage() {
                   </button>
                 </div>
               ))}
+            </div>
+          ) : null}
+        </GoalDetailSection>
+      </div>
+
+      <div ref={peopleRef}>
+        <GoalDetailSection
+          id="people"
+          entityType="people"
+          tabs={contactTabs}
+          activeTab={contactTab}
+          onTabChange={setContactTab}
+          isLoading={false}
+          emptyTitle="No linked people"
+          emptyDescription="Create a new contact to attach to this project, or link an existing one."
+          onCreateNew={() => setIsNewContactOpen(true)}
+          createLabel="New Contact"
+        >
+          {filteredContacts.length > 0 ? (
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsLinkContactOpen(true)}
+                  className="gap-1.5"
+                >
+                  <LinkIcon className="size-3.5" />
+                  Link Existing Contact
+                </Button>
+              </div>
+              {filteredContacts.map((contact) => {
+                const link = projectContactLinks.find((item) => item.contact_id === contact.id);
+
+                return (
+                  <div
+                    key={contact.id}
+                    className="flex items-center justify-between rounded-lg border p-4"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{contact.name}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {[contact.role, contact.organization].filter(Boolean).join(" - ")}
+                        {link?.role_in_project ? ` - ${link.role_in_project}` : ""}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleUnlinkContact(contact.id)}
+                    >
+                      <Unlink className="size-3" />
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           ) : null}
         </GoalDetailSection>
@@ -1249,6 +1251,7 @@ export default function ProjectDetailPage() {
           projectName: project.name,
           areaId: project.area_id ?? null,
           linkedAreaIds: projectLinkedAreaIds,
+          linkedGoalIds: linkedGoalIdsArray,
         }}
         onSuccess={() => setIsNewTaskOpen(false)}
       />
@@ -1258,6 +1261,7 @@ export default function ProjectDetailPage() {
         onOpenChange={setIsNewNoteOpen}
         note={null}
         projectId={project.id}
+        areaId={projectLinkedAreaIds[0] ?? null}
         onSuccess={() => setIsNewNoteOpen(false)}
       />
 
@@ -1267,6 +1271,7 @@ export default function ProjectDetailPage() {
         open={isNewContactOpen}
         onOpenChange={setIsNewContactOpen}
         contact={null}
+        requireContactDetails
         onSubmit={handleCreateContactSubmit}
       />
 
@@ -1321,10 +1326,10 @@ function ProjectResourceForm({
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !url.trim()) return;
     onSubmit({
       name: name.trim(),
-      url: url.trim() || undefined,
+      url: url.trim(),
       type,
       status,
       project_id: projectId,
@@ -1343,7 +1348,7 @@ function ProjectResourceForm({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="proj-res-url">URL</Label>
+        <Label htmlFor="proj-res-url">URL *</Label>
         <Input
           id="proj-res-url"
           type="url"
@@ -1385,7 +1390,7 @@ function ProjectResourceForm({
         </div>
       </div>
       <div className="flex justify-end gap-3">
-        <Button type="submit" disabled={!name.trim() || isPending}>
+        <Button type="submit" disabled={!name.trim() || !url.trim() || isPending}>
           {isPending ? "Creating..." : "Create Resource"}
         </Button>
       </div>

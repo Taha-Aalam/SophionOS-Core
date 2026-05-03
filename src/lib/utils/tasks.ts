@@ -173,6 +173,17 @@ export function getVisibleTasks(tasks: Task[], view: TaskView): Task[] {
   return visibleTasks;
 }
 
+export function getTaskLinkedAreaIds(task: Task): string[] {
+  if (task.linkedAreaIds && task.linkedAreaIds.length > 0) {
+    return task.linkedAreaIds;
+  }
+  return task.area_id ? [task.area_id] : [];
+}
+
+export function taskMatchesAreaId(task: Task, areaId: string): boolean {
+  return getTaskLinkedAreaIds(task).includes(areaId);
+}
+
 export function getTaskCounts(tasks: Task[]): TaskCounts {
   return {
     all: tasks.filter((task) => !task.is_archived).length,

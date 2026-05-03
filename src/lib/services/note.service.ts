@@ -5,7 +5,19 @@ import { DatabaseError, NotFoundError } from "../api/error-handler";
 import type { NoteStatus } from "../utils/constants";
 
 const NOTE_SELECT =
-  "id, user_id, area_id, project_id, topic_id, name, content, type, status, notebook, favorite, pin, is_archived, metadata, created_at, updated_at";
+  "id, user_id, area_id, project_id, topic_id, name, slug, content, type, status, notebook, favorite, pin, is_archived, metadata, created_at, updated_at";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function buildSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    || "note";
+}
 
 function extractGoalIds(input: { goal_ids?: string[] }): {
   goalIds: string[] | undefined;
@@ -79,17 +91,60 @@ export const noteService = {
     return data;
   },
 
+  async getBySlug(userId: string, slug: string): Promise<Note | null> {
+    const { data, error } = await createClient()
+      .from("notes")
+      .select(NOTE_SELECT)
+      .eq("user_id", userId)
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    return data;
+  },
+
+  /** Resolves by UUID when identifier looks like a UUID, otherwise tries slug. */
+  async getByIdentifier(userId: string, identifier: string): Promise<Note> {
+    if (UUID_RE.test(identifier)) {
+      return this.getById(userId, identifier);
+    }
+    const note = await this.getBySlug(userId, identifier);
+    if (!note) {
+      throw new NotFoundError("Note", identifier);
+    }
+    return note;
+  },
+
   async create(userId: string, input: CreateNoteInput): Promise<Note> {
     const validated = createNoteSchema.parse(input);
     const { goalIds, noteInput } = extractGoalIds(validated);
 
-    const { data, error } = await createClient()
-      .from("notes")
-      .insert({ ...noteInput, user_id: userId })
-      .select(NOTE_SELECT)
-      .single();
+    const baseSlug = buildSlug(validated.name);
+    let slug = baseSlug;
+    let counter = 2;
+    let data: Note | null = null;
 
-    if (error) {
+    while (!data) {
+      const { data: insertData, error } = await createClient()
+        .from("notes")
+        .insert({ ...noteInput, user_id: userId, slug })
+        .select(NOTE_SELECT)
+        .single();
+
+      if (!error) {
+        data = insertData;
+        break;
+      }
+
+      if (error.code === "23505") {
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+        continue;
+      }
+
       throw new DatabaseError(error.message);
     }
 

@@ -37,6 +37,8 @@ interface ContactDialogProps {
   onOpenChange: (open: boolean) => void;
   contact?: Contact | null;
   onSubmit?: (values: ContactFormValues) => void;
+  /** When true, phone and email are required fields. */
+  requireContactDetails?: boolean;
 }
 
 interface ContactFormValues {
@@ -68,6 +70,10 @@ const EMPTY_FORM_VALUES: ContactFormValues = {
 function buildContactFormValues(contact: Contact | null | undefined): ContactFormValues {
   if (!contact) return EMPTY_FORM_VALUES;
 
+  const interval = contact.follow_up_interval_days;
+  const intervalStr =
+    interval === null || interval === undefined || interval === 0 ? "none" : String(interval);
+
   return {
     name: contact.name ?? "",
     role: contact.role ?? "",
@@ -77,7 +83,7 @@ function buildContactFormValues(contact: Contact | null | undefined): ContactFor
     email: contact.email ?? "",
     linkedin: contact.linkedin ?? "",
     website: contact.website ?? "",
-    follow_up_interval_days: String(contact.follow_up_interval_days ?? 14),
+    follow_up_interval_days: intervalStr,
     notes: contact.notes ?? "",
   };
 }
@@ -87,6 +93,7 @@ export function ContactDialog({
   onOpenChange,
   contact,
   onSubmit,
+  requireContactDetails = false,
 }: ContactDialogProps) {
   const form = useForm<ContactFormValues>({
     defaultValues: EMPTY_FORM_VALUES,
@@ -99,6 +106,18 @@ export function ContactDialog({
 
   const handleSubmit = form.handleSubmit(async (values) => {
     form.clearErrors();
+    if (requireContactDetails) {
+      let hasError = false;
+      if (!values.phone.trim()) {
+        form.setError("phone", { message: "Phone is required" });
+        hasError = true;
+      }
+      if (!values.email.trim()) {
+        form.setError("email", { message: "Email is required" });
+        hasError = true;
+      }
+      if (hasError) return;
+    }
     onSubmit?.(values);
     onOpenChange(false);
   });
@@ -163,17 +182,19 @@ export function ContactDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <FormItem>
-                <FormLabel>Phone</FormLabel>
+                <FormLabel>{requireContactDetails ? "Phone *" : "Phone"}</FormLabel>
                 <FormControl>
                   <Input type="tel" placeholder="+1 555 000 0000" {...form.register("phone")} />
                 </FormControl>
+                <FormMessage>{form.formState.errors.phone?.message}</FormMessage>
               </FormItem>
 
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>{requireContactDetails ? "Email *" : "Email"}</FormLabel>
                 <FormControl>
                   <Input type="email" placeholder="email@example.com" {...form.register("email")} />
                 </FormControl>
+                <FormMessage>{form.formState.errors.email?.message}</FormMessage>
               </FormItem>
             </div>
 
@@ -206,6 +227,7 @@ export function ContactDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="none">No follow-up required</SelectItem>
                       <SelectItem value="7">Every 7 days</SelectItem>
                       <SelectItem value="14">Every 14 days</SelectItem>
                       <SelectItem value="30">Every 30 days</SelectItem>

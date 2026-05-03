@@ -45,6 +45,20 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+vi.mock("next/dynamic", async () => {
+  const kanbanMod = await import("@/components/views/kanban-board");
+  return {
+    __esModule: true,
+    default: (importFn: () => Promise<unknown>) => {
+      const fnStr = importFn.toString();
+      if (fnStr.includes("kanban-board")) {
+        return kanbanMod.KanbanBoard;
+      }
+      return () => null;
+    },
+  };
+});
+
 vi.mock("@/lib/hooks/use-projects", async () => {
   const actual = await vi.importActual<typeof import("@/lib/hooks/use-projects")>(
     "@/lib/hooks/use-projects",

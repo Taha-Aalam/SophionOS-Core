@@ -82,8 +82,8 @@ describe('Validators', () => {
     it('should accept HTML date input values for date fields', () => {
       const validProject = {
         name: 'Launch plan',
-        start_date: '2026-05-01',
-        due_date: '2026-05-31',
+        start_date: '2030-01-01',
+        due_date: '2030-01-31',
       };
 
       const result = createProjectSchema.parse(validProject);

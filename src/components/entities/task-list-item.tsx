@@ -15,6 +15,7 @@ import { TaskInlineEditor } from "./task-inline-editor";
 interface TaskListItemProps {
   task: Task;
   areaName?: string | null;
+  linkedAreaNames?: string[];
   projectName?: string | null;
   showSmartPriority?: boolean;
   onCompletionToggle: (id: string, isCompleted: boolean) => void;
@@ -47,6 +48,7 @@ function formatDueDate(dateStr: string | null): { label: string; overdue: boolea
 export function TaskListItem({
   task,
   areaName,
+  linkedAreaNames,
   projectName,
   showSmartPriority = false,
   onCompletionToggle,
@@ -55,6 +57,7 @@ export function TaskListItem({
   onEdit,
   onDelete,
 }: TaskListItemProps) {
+  const displayAreaNames = linkedAreaNames && linkedAreaNames.length > 0 ? linkedAreaNames : (areaName ? [areaName] : []);
   const dueInfo = formatDueDate(task.due_date);
 
   return (
@@ -63,11 +66,13 @@ export function TaskListItem({
         "group flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30",
         task.is_completed && "opacity-60",
       )}
+      onClick={() => onEdit?.(task)}
     >
       <Checkbox
         checked={task.is_completed}
         onCheckedChange={(checked) => onCompletionToggle(task.id, checked === true)}
         className="shrink-0"
+        onClick={(e) => e.stopPropagation()}
       />
 
       {showSmartPriority ? (
@@ -77,19 +82,37 @@ export function TaskListItem({
       )}
 
       <div className="min-w-0 flex-1">
-        <TaskInlineEditor
-          value={task.name}
-          onSave={(name) => onNameSave(task.id, name)}
-          disabled={task.is_completed}
-          completed={task.is_completed}
-        />
+        {onEdit ? (
+          <span
+            className={cn(
+              "text-sm leading-tight break-words",
+              task.is_completed ? "line-through text-muted-foreground" : "cursor-pointer hover:text-foreground/80",
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(task);
+            }}
+          >
+            {task.name}
+          </span>
+        ) : (
+          <TaskInlineEditor
+            value={task.name}
+            onSave={(name) => onNameSave(task.id, name)}
+            disabled={task.is_completed}
+            completed={task.is_completed}
+          />
+        )}
       </div>
 
       <div className="hidden shrink-0 items-center gap-2.5 md:flex">
-        {areaName && (
+        {displayAreaNames.length > 0 && (
           <Badge variant="outline" className="gap-1 text-xs font-normal">
             <Tag className="size-3" />
-            {areaName}
+            {displayAreaNames[0]}
+            {displayAreaNames.length > 1 && (
+              <span className="ml-0.5 text-muted-foreground">+{displayAreaNames.length - 1}</span>
+            )}
           </Badge>
         )}
         {projectName && (
@@ -115,7 +138,10 @@ export function TaskListItem({
       <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
         {onEdit && (
           <button
-            onClick={() => onEdit(task)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(task);
+            }}
             className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="Edit task"
           >
@@ -124,7 +150,10 @@ export function TaskListItem({
         )}
         {onDelete && (
           <button
-            onClick={() => onDelete(task.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(task.id);
+            }}
             className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
             aria-label="Archive task"
           >
@@ -134,7 +163,10 @@ export function TaskListItem({
       </div>
 
       <button
-        onClick={() => onFocusToggle(task.id, !task.is_focused)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onFocusToggle(task.id, !task.is_focused);
+        }}
         className={cn(
           "shrink-0 rounded-md p-1.5 transition-colors",
           task.is_focused

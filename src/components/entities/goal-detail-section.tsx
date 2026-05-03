@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { FileText, LucideIcon } from "lucide-react";
+import { FileText, LucideIcon, Plus } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -81,6 +82,17 @@ export function GoalDetailSection({
           <span className="text-sm text-muted-foreground">
             {tabCountMap.get(activeTab) ?? 0} total
           </span>
+        )}
+        {onCreateNew && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onCreateNew}
+            className="ml-auto gap-1.5"
+          >
+            <Plus className="size-3.5" />
+            {createLabel}
+          </Button>
         )}
       </div>
 

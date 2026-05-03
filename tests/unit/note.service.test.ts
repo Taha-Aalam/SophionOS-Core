@@ -39,9 +39,11 @@ describe("noteService", () => {
       from: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      like: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: baseNote, error: null }),
     };
-    vi.mocked(createClient).mockReturnValueOnce(client as never);
+    vi.mocked(createClient).mockReturnValue(client as never);
 
     const result = await noteService.create(userId, { name: "Test note" });
 
@@ -68,9 +70,11 @@ describe("noteService", () => {
       from: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      like: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: researchNote, error: null }),
     };
-    vi.mocked(createClient).mockReturnValueOnce(client as never);
+    vi.mocked(createClient).mockReturnValue(client as never);
 
     const result = await noteService.create(userId, {
       name: "Test note",
