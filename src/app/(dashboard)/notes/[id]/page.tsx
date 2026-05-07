@@ -1,13 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  BookOpen,
-  Heart,
   Link2,
-  Map,
   NotebookPen,
   Pin,
   Trash2,
@@ -15,9 +12,10 @@ import {
 } from "lucide-react";
 
 import { NoteEditor } from "@/components/entities/note-editor";
+import { NoteMetadataPanel } from "@/components/entities/note-metadata-panel";
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -34,26 +32,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAreas } from "@/lib/hooks/use-areas";
+import { useGoals } from "@/lib/hooks/use-goals";
 import {
   useDeleteNote,
   useNoteByIdentifier,
-  useNotebooks,
+  useNoteTypes,
   useNotes,
   useRelatedNotes,
   useLinkRelatedNote,
@@ -61,23 +51,11 @@ import {
   useUpdateNote,
 } from "@/lib/hooks/use-notes";
 import { useProjects } from "@/lib/hooks/use-projects";
+import { useTasks } from "@/lib/hooks/use-tasks";
 import type { UpdateNoteInput } from "@/lib/types/domain.types";
-import { NOTE_STATUS, NOTE_TYPE } from "@/lib/utils/constants";
+import { NOTE_STATUS } from "@/lib/utils/constants";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/stores/ui.store";
-
-const STATUS_OPTIONS = [
-  { value: NOTE_STATUS.INBOX, label: "Inbox" },
-  { value: NOTE_STATUS.TO_REVIEW, label: "To Review" },
-  { value: NOTE_STATUS.ACTIVE, label: "Active" },
-  { value: NOTE_STATUS.ARCHIVE, label: "Archive" },
-];
-
-const TYPE_OPTIONS = [
-  { value: NOTE_TYPE.NOTE, label: "Note" },
-  { value: NOTE_TYPE.RESEARCH, label: "Research" },
-  { value: NOTE_TYPE.JOURNAL, label: "Journal" },
-];
 
 const STATUS_COLORS: Record<string, string> = {
   inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -96,7 +74,7 @@ export default function NoteDetailPage() {
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [localTitle, setLocalTitle] = useState("");
-  const [notebookInput, setNotebookInput] = useState("");
+  const [localNotebook, setLocalNotebook] = useState<string>("");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -104,8 +82,10 @@ export default function NoteDetailPage() {
 
   const { data: note, isLoading } = useNoteByIdentifier(noteId);
   const { data: areas = [] } = useAreas();
+  const { data: goals = [] } = useGoals({ status: "all" });
   const { data: projects = [] } = useProjects({ status: "all" });
-  const { data: notebooks = [] } = useNotebooks();
+  const { data: tasks = [] } = useTasks();
+  const { data: noteTypes = [] } = useNoteTypes();
   const { data: allNotes = [] } = useNotes({ status: "all" });
   const { data: relatedNotes = [] } = useRelatedNotes(noteId);
   const linkRelated = useLinkRelatedNote();
@@ -118,9 +98,11 @@ export default function NoteDetailPage() {
 
   useEffect(() => {
     if (note) {
-      setLocalTitle(note.name);
-      setNotebookInput(note.notebook ?? "");
-      setPageTitle(note.name);
+      startTransition(() => {
+        setLocalTitle(note.name);
+        setLocalNotebook(note.notebook ?? "");
+        setPageTitle(note.name);
+      });
     }
     return () => setPageTitle("");
   }, [note, setPageTitle]);
@@ -157,13 +139,6 @@ export default function NoteDetailPage() {
   const handleTitleBlur = () => {
     if (note && localTitle !== note.name && localTitle.trim()) {
       save({ name: localTitle.trim() });
-    }
-  };
-
-  const handleNotebookBlur = () => {
-    const next = notebookInput.trim() || null;
-    if (note && next !== note.notebook) {
-      save({ notebook: next });
     }
   };
 
@@ -207,21 +182,6 @@ export default function NoteDetailPage() {
     );
   }
 
-  const linkedArea = note.area_id ? areas.find((a) => a.id === note.area_id) : null;
-  const linkedProject = note.project_id
-    ? projects.find((p) => p.id === note.project_id)
-    : null;
-  const activeProjects = projects.filter((p) => !p.is_archived);
-  const projectsForSelect =
-    linkedProject && !activeProjects.some((p) => p.id === linkedProject.id)
-      ? [...activeProjects, linkedProject]
-      : activeProjects;
-  const activeAreas = areas.filter((a) => !a.archive);
-  const areasForSelect =
-    linkedArea && !activeAreas.some((a) => a.id === linkedArea.id)
-      ? [...activeAreas, linkedArea]
-      : activeAreas;
-
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-4 py-2.5">
@@ -241,24 +201,6 @@ export default function NoteDetailPage() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {saveState === "saving" && <span className="text-xs">Saving…</span>}
           {saveState === "saved" && <span className="text-xs text-green-600 dark:text-green-400">Saved</span>}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => handleMetaChange({ favorite: !note.favorite })}
-            title={note.favorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            <Heart
-              className={cn("size-4", note.favorite && "fill-rose-500 text-rose-500")}
-            />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => handleMetaChange({ pin: !note.pin })}
-            title={note.pin ? "Unpin" : "Pin note"}
-          >
-            <Pin className={cn("size-4", note.pin && "text-primary")} />
-          </Button>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -290,8 +232,8 @@ export default function NoteDetailPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Related Notes</h3>
               <Popover open={linkOpen} onOpenChange={setLinkOpen}>
-                <PopoverTrigger>
-                  <Button variant="outline" size="sm"><Link2 className="mr-1.5 size-3.5" />Link Related Note</Button>
+                <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  <Link2 className="mr-1.5 size-3.5" />Link Related Note
                 </PopoverTrigger>
                 <PopoverContent className="w-72 p-0" align="end">
                   <Command>
@@ -355,126 +297,43 @@ export default function NoteDetailPage() {
           </div>
         </div>
 
-        <aside className="hidden w-64 shrink-0 flex-col gap-5 overflow-y-auto border-l border-border p-4 xl:flex">
+        <aside className="hidden w-72 shrink-0 flex-col gap-5 overflow-y-auto border-l border-border p-4 xl:flex">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Metadata
           </p>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Status</Label>
-            <Select
-              value={note.status}
-              onValueChange={(v) =>
-                handleMetaChange({ status: v as typeof note.status })
+          <NoteMetadataPanel
+            areas={areas}
+            goals={goals}
+            projects={projects}
+            tasks={tasks}
+            noteTypes={noteTypes}
+            status={note.status}
+            type={note.type}
+            notebook={localNotebook}
+            areaIds={note.linkedAreaIds ?? (note.area_id ? [note.area_id] : [])}
+            goalIds={note.linkedGoalIds ?? []}
+            projectIds={note.linkedProjectIds ?? (note.project_id ? [note.project_id] : [])}
+            taskIds={note.linkedTaskIds ?? []}
+            favorite={note.favorite}
+            pin={note.pin}
+            onStatusChange={(status) => handleMetaChange({ status })}
+            onTypeChange={(type) => handleMetaChange({ type })}
+            onNotebookChange={(notebook) => setLocalNotebook(notebook ?? "")}
+            onNotebookBlur={() => {
+              const next = localNotebook.trim() || null;
+              if (next !== note.notebook) {
+                save({ notebook: next });
               }
-            >
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Type</Label>
-            <Select
-              value={note.type}
-              onValueChange={(v) =>
-                handleMetaChange({ type: v as typeof note.type })
-              }
-            >
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">
-              <BookOpen className="mr-1 inline size-3" />
-              Notebook
-            </Label>
-            <Input
-              value={notebookInput}
-              onChange={(e) => setNotebookInput(e.target.value)}
-              onBlur={handleNotebookBlur}
-              placeholder="e.g. Work, Ideas…"
-              list="notebooks-list"
-              className="h-8 text-sm"
-            />
-            <datalist id="notebooks-list">
-              {notebooks.map((nb) => (
-                <option key={nb} value={nb} />
-              ))}
-            </datalist>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">
-              <Map className="mr-1 inline size-3" />
-              Area
-            </Label>
-            <Select
-              value={note.area_id ?? "none"}
-              onValueChange={(v) =>
-                handleMetaChange({ area_id: v === "none" ? null : v })
-              }
-            >
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="No area">
-                  {linkedArea
-                    ? `${linkedArea.icon ? `${linkedArea.icon} ` : ""}${linkedArea.name}`
-                    : undefined}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No area</SelectItem>
-                {areasForSelect.map((area) => (
-                  <SelectItem key={area.id} value={area.id}>
-                    {area.icon ? `${area.icon} ` : ""}
-                    {area.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Project</Label>
-            <Select
-              value={note.project_id ?? "none"}
-              onValueChange={(v) =>
-                handleMetaChange({ project_id: v === "none" ? null : v })
-              }
-            >
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue placeholder="No project">
-                  {linkedProject?.name ?? undefined}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No project</SelectItem>
-                {projectsForSelect.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            }}
+            onAreaIdsChange={(areaIds) => handleMetaChange({ area_ids: areaIds })}
+            onGoalIdsChange={(goalIds) => handleMetaChange({ goal_ids: goalIds })}
+            onProjectIdsChange={(projectIds) => handleMetaChange({ project_ids: projectIds })}
+            onTaskIdsChange={(taskIds) => handleMetaChange({ task_ids: taskIds })}
+            onFavoriteChange={(favorite) => handleMetaChange({ favorite })}
+            onPinChange={(pin) => handleMetaChange({ pin })}
+            disabled={updateNote.isPending}
+          />
 
           <div className="mt-auto space-y-1 border-t border-border pt-4 text-xs text-muted-foreground">
             <p>
@@ -502,7 +361,7 @@ export default function NoteDetailPage() {
           <DialogHeader>
             <DialogTitle>Delete note permanently?</DialogTitle>
             <DialogDescription>
-              "{note.name}" will be permanently removed. This cannot be undone.
+              &quot;{note.name}&quot; will be permanently removed. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
