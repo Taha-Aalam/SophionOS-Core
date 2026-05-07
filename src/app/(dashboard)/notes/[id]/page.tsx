@@ -77,6 +77,11 @@ export default function NoteDetailPage() {
   const [localNotebook, setLocalNotebook] = useState<string>("");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
+  const [localAreaIds,    setLocalAreaIds]    = useState<string[]>([]);
+  const [localGoalIds,    setLocalGoalIds]    = useState<string[]>([]);
+  const [localProjectIds, setLocalProjectIds] = useState<string[]>([]);
+  const [localTaskIds,    setLocalTaskIds]    = useState<string[]>([]);
+
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingContent = useRef<string | null>(null);
 
@@ -101,6 +106,10 @@ export default function NoteDetailPage() {
       startTransition(() => {
         setLocalTitle(note.name);
         setLocalNotebook(note.notebook ?? "");
+        setLocalAreaIds(note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []));
+        setLocalGoalIds(note.linkedGoalIds ?? []);
+        setLocalProjectIds(note.linkedProjectIds ?? (note.project_id ? [note.project_id] : []));
+        setLocalTaskIds(note.linkedTaskIds ?? []);
         setPageTitle(note.name);
       });
     }
@@ -311,10 +320,10 @@ export default function NoteDetailPage() {
             status={note.status}
             type={note.type}
             notebook={localNotebook}
-            areaIds={note.linkedAreaIds ?? (note.area_id ? [note.area_id] : [])}
-            goalIds={note.linkedGoalIds ?? []}
-            projectIds={note.linkedProjectIds ?? (note.project_id ? [note.project_id] : [])}
-            taskIds={note.linkedTaskIds ?? []}
+            areaIds={localAreaIds}
+            goalIds={localGoalIds}
+            projectIds={localProjectIds}
+            taskIds={localTaskIds}
             favorite={note.favorite}
             pin={note.pin}
             onStatusChange={(status) => handleMetaChange({ status })}
@@ -326,10 +335,10 @@ export default function NoteDetailPage() {
                 save({ notebook: next });
               }
             }}
-            onAreaIdsChange={(areaIds) => handleMetaChange({ area_ids: areaIds })}
-            onGoalIdsChange={(goalIds) => handleMetaChange({ goal_ids: goalIds })}
-            onProjectIdsChange={(projectIds) => handleMetaChange({ project_ids: projectIds })}
-            onTaskIdsChange={(taskIds) => handleMetaChange({ task_ids: taskIds })}
+            onAreaIdsChange={(ids) => { setLocalAreaIds(ids); handleMetaChange({ area_ids: ids }); }}
+            onGoalIdsChange={(ids) => { setLocalGoalIds(ids); handleMetaChange({ goal_ids: ids }); }}
+            onProjectIdsChange={(ids) => { setLocalProjectIds(ids); handleMetaChange({ project_ids: ids }); }}
+            onTaskIdsChange={(ids) => { setLocalTaskIds(ids); handleMetaChange({ task_ids: ids }); }}
             onFavoriteChange={(favorite) => handleMetaChange({ favorite })}
             onPinChange={(pin) => handleMetaChange({ pin })}
             disabled={updateNote.isPending}
