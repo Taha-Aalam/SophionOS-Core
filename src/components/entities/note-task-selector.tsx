@@ -77,7 +77,7 @@ export function NoteTaskSelector({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-72 p-0" align="start">
-          <Command>
+          <Command shouldFilter={false}>
             <CommandInput
               placeholder="Search tasks..."
               value={query}

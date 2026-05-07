@@ -131,7 +131,7 @@ export function NoteMetadataPanel({
     if (!hasConstraints) return activeAreas;
     const allowed = new Set<string>();
     for (const gId of goalIds) {
-      const goal = activeGoals.find((g) => g.id === gId);
+      const goal = goals.find((g) => g.id === gId);
       for (const aId of goal?.linkedAreaIds ?? []) allowed.add(aId);
     }
     for (const pId of projectIds) {
