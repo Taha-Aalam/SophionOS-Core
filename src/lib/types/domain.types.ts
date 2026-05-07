@@ -17,7 +17,11 @@ export interface Project extends DatabaseTable<"projects"> {
   linkedAreaIds?: string[];
 }
 
-export interface Resource extends DatabaseTable<"resources"> {}
+export interface Resource extends DatabaseTable<"resources"> {
+  linkedAreaIds?: string[];
+  linkedGoalIds?: string[];
+  linkedTaskIds?: string[];
+}
 
 export interface Topic extends Omit<DatabaseTable<"topics">, "area_id"> {
   area_id: string | null;
@@ -28,6 +32,8 @@ export interface TopicArea {
   topic_id: string;
   area_id: string;
 }
+
+export interface ResourceArea extends DatabaseTable<"resource_areas"> {}
 
 export interface Task extends DatabaseTable<"tasks"> {
   linkedAreaIds?: string[];
@@ -42,6 +48,11 @@ export interface GoalTask extends DatabaseTable<"goal_tasks"> {}
 export interface GoalNote extends DatabaseTable<"goal_notes"> {}
 
 export interface GoalResource extends DatabaseTable<"goal_resources"> {}
+
+export interface TaskResource {
+  task_id: string;
+  resource_id: string;
+}
 
 export interface AreaInsert extends Omit<DatabaseInsert<"areas">, "is_archived"> {}
 
@@ -157,6 +168,7 @@ export interface UpdateNoteInput extends Partial<CreateNoteInput> {}
 
 export interface CreateResourceInput {
   area_id?: string | null;
+  area_ids?: string[];
   project_id?: string | null;
   topic_id?: string | null;
   name: string;
@@ -166,6 +178,7 @@ export interface CreateResourceInput {
   favorite?: boolean;
   is_archived?: boolean;
   goal_ids?: string[];
+  task_ids?: string[];
 }
 
 export interface UpdateResourceInput extends Partial<CreateResourceInput> {}

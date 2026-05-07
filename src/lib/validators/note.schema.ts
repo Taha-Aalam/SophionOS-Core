@@ -50,3 +50,17 @@ export const updateNoteSchema = noteBaseSchema
   })
   .partial()
   .strict();
+
+export const bulkArchiveSchema = z.object({
+  noteIds: z.array(z.string().uuid()),
+});
+
+export const bulkUpdateStatusSchema = z.object({
+  noteIds: z.array(z.string().uuid()),
+  status: z.enum(noteStatusValues),
+});
+
+export const bulkUpdateNotebookSchema = z.object({
+  noteIds: z.array(z.string().uuid()),
+  notebook: z.string().nullable(),
+});

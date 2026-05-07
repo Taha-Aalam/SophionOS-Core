@@ -1,3 +1,5 @@
+"use client";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -99,6 +101,47 @@ export function useLinkNoteToGoal() {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to link note to goal");
+    },
+  });
+}
+
+export function useTogglePinNote() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: ({ id, pin }: { id: string; pin: boolean }) =>
+      noteService.update(user!.id, id, { pin }),
+    onMutate: async ({ id, pin }) => {
+      await queryClient.cancelQueries({ queryKey: [NOTES_QUERY_KEY] });
+      const previous = queryClient.getQueryData<Note>([
+        NOTES_QUERY_KEY,
+        "detail",
+        user?.id ?? null,
+        id,
+      ]);
+      queryClient.setQueriesData<Note[]>({ queryKey: [NOTES_QUERY_KEY, "list"] }, (current) => {
+        if (!Array.isArray(current)) return current;
+        return current.map((n) => (n.id === id ? { ...n, pin } : n));
+      });
+      queryClient.setQueryData<Note>(
+        [NOTES_QUERY_KEY, "detail", user?.id ?? null, id],
+        (current) => (current ? { ...current, pin } : current),
+      );
+      return { previous };
+    },
+    onError: (error: Error, variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(
+          [NOTES_QUERY_KEY, "detail", user?.id ?? null, variables.id],
+          context.previous,
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
+      toast.error(error.message || "Failed to update pin");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
     },
   });
 }
@@ -253,6 +296,157 @@ export function useToggleFavoriteNote() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
+    },
+  });
+}
+
+export function useNotesByNotebook(notebook: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [NOTES_QUERY_KEY, "byNotebook", user?.id ?? null, notebook],
+    queryFn: () => noteService.getByNotebook(user!.id, notebook),
+    enabled: !!user && !!notebook,
+  });
+}
+
+export function useRelatedNotes(noteId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [NOTES_QUERY_KEY, "related", user?.id ?? null, noteId],
+    queryFn: () => noteService.getRelated(user!.id, noteId),
+    enabled: !!user && !!noteId,
+  });
+}
+
+export function useLinkRelatedNote() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: ({ noteAId, noteBId }: { noteAId: string; noteBId: string }) =>
+      noteService.linkRelated(user!.id, noteAId, noteBId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY, "related"] });
+      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY, "list"] });
+      toast.success("Notes linked");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to link notes");
+    },
+  });
+}
+
+export function useUnlinkRelatedNote() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: ({ noteAId, noteBId }: { noteAId: string; noteBId: string }) =>
+      noteService.unlinkRelated(user!.id, noteAId, noteBId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY, "related"] });
+      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY, "list"] });
+      toast.success("Notes unlinked");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to unlink notes");
+    },
+  });
+}
+
+export function useBulkUpdateNotes() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return {
+    archive: useMutation({
+      mutationFn: (noteIds: string[]) => noteService.bulkArchive(user!.id, noteIds),
+      onSuccess: async () => {
+        await invalidateNoteGraph(queryClient);
+        toast.success("Notes archived");
+      },
+      onError: (error: Error) => {
+        toast.error(error.message || "Failed to archive notes");
+      },
+    }),
+    updateStatus: useMutation({
+      mutationFn: ({ noteIds, status }: { noteIds: string[]; status: NoteStatus }) =>
+        noteService.bulkUpdateStatus(user!.id, noteIds, status),
+      onSuccess: async () => {
+        await invalidateNoteGraph(queryClient);
+        toast.success("Status updated");
+      },
+      onError: (error: Error) => {
+        toast.error(error.message || "Failed to update status");
+      },
+    }),
+    updateNotebook: useMutation({
+      mutationFn: ({ noteIds, notebook }: { noteIds: string[]; notebook: string | null }) =>
+        noteService.bulkUpdateNotebook(user!.id, noteIds, notebook),
+      onSuccess: async () => {
+        await invalidateNoteGraph(queryClient);
+        toast.success("Notebook updated");
+      },
+      onError: (error: Error) => {
+        toast.error(error.message || "Failed to move notes");
+      },
+    }),
+    delete: useMutation({
+      mutationFn: (noteIds: string[]) => noteService.bulkDelete(user!.id, noteIds),
+      onSuccess: async () => {
+        await invalidateNoteGraph(queryClient);
+        toast.success("Notes deleted");
+      },
+      onError: (error: Error) => {
+        toast.error(error.message || "Failed to delete notes");
+      },
+    }),
+  };
+}
+
+export function useArchiveNoteWithUndo() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => noteService.archive(user!.id, id),
+    onSuccess: async (_, id) => {
+      await invalidateNoteGraph(queryClient);
+      toast.success("Note archived", {
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              await noteService.restore(user!.id, id);
+              await invalidateNoteGraph(queryClient);
+              toast.success("Note restored");
+            } catch {
+              toast.error("Failed to undo");
+            }
+          },
+        },
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to archive note");
+    },
+  });
+}
+
+export function useRestoreNote() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => noteService.restore(user!.id, id),
+    onSuccess: async () => {
+      await invalidateNoteGraph(queryClient);
+      toast.success("Note restored");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to restore note");
     },
   });
 }

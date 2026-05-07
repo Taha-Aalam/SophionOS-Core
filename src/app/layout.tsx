@@ -31,15 +31,17 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-full flex flex-col antialiased" suppressHydrationWarning>
         <QueryProvider>
-          <ThemeProvider>
-            <AuthProvider>
-              <TooltipProvider>
-                <UIProvider>
-                  {children}
-                </UIProvider>
-              </TooltipProvider>
-            </AuthProvider>
-          </ThemeProvider>
+          <div suppressHydrationWarning>
+            <ThemeProvider>
+              <AuthProvider>
+                <TooltipProvider>
+                  <UIProvider>
+                    {children}
+                  </UIProvider>
+                </TooltipProvider>
+              </AuthProvider>
+            </ThemeProvider>
+          </div>
         </QueryProvider>
       </body>
     </html>

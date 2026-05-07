@@ -33,7 +33,12 @@ describe("resource.service", () => {
     });
 
     it("rejects invalid url", () => {
-      expect(() => createResourceSchema.parse({ name: "Test", url: "not-a-url" })).toThrow();
+      expect(() => createResourceSchema.parse({ name: "Test", url: "not a url" })).toThrow();
+    });
+
+    it("preprends https:// to urls without protocol", () => {
+      const result = createResourceSchema.parse({ name: "Test", url: "example.com" });
+      expect(result.url).toBe("https://example.com");
     });
 
     it("rejects unknown fields", () => {

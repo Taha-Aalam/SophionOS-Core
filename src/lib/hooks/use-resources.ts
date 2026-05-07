@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { formatValidationMessage } from "@/lib/api/error-handler";
 import { resourceService } from "@/lib/services/resource.service";
 import type {
   CreateResourceInput,
@@ -144,7 +145,7 @@ export function useCreateResource() {
       toast.success("Resource created");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to create resource");
+      toast.error(formatValidationMessage(error) || "Failed to create resource");
     },
   });
 }
@@ -161,7 +162,7 @@ export function useCreateResourceWithGoal(goalId: string) {
       toast.success("Resource created");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to create resource");
+      toast.error(formatValidationMessage(error) || "Failed to create resource");
     },
   });
 }
@@ -182,7 +183,7 @@ export function useUpdateResource() {
       toast.success("Resource updated");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to update resource");
+      toast.error(formatValidationMessage(error) || "Failed to update resource");
     },
   });
 }
@@ -199,6 +200,22 @@ export function useArchiveResource() {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to archive resource");
+    },
+  });
+}
+
+export function useUnarchiveResource() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => resourceService.unarchive(user!.id, id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      toast.success("Resource restored");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to restore resource");
     },
   });
 }

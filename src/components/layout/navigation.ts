@@ -4,6 +4,7 @@ import {
   Globe,
   Inbox,
   LayoutDashboard,
+  Library,
   Map,
   NotebookPen,
   Sun,
@@ -23,6 +24,7 @@ const coreNavItems = [
 ] as const;
 
 const systemNavItems = [
+  { href: "/knowledge", label: "Knowledge Hub", icon: Library },
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/my-day", label: "My Day", icon: Sun },
 ] as const;
@@ -34,6 +36,7 @@ const breadcrumbLabels: Record<string, string> = {
   "forgot-password": "Forgot Password",
   goals: "Goals",
   inbox: "Inbox",
+  knowledge: "Knowledge Hub",
   login: "Login",
   "my-day": "My Day",
   notes: "Notes",
