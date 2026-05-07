@@ -175,6 +175,58 @@ async function hydrateSingleProjectAreaLinks(project: Project): Promise<Project>
   return hydratedProject;
 }
 
+async function hydrateProjectGoalLinks(projects: Project[]): Promise<Project[]> {
+  if (projects.length === 0) return projects;
+
+  const projectIds = projects.map((p) => p.id);
+
+  try {
+    const result = await createClient()
+      .from("goal_projects")
+      .select("project_id, goal_id")
+      .in("project_id", projectIds);
+
+    if (result.error) {
+      if (result.error.code === "42P01") {
+        return projects.map((p) => ({ ...p, linkedGoalIds: [] }));
+      }
+      throw new DatabaseError(result.error.message);
+    }
+
+    const goalIdsByProjectId = new Map<string, string[]>();
+    for (const row of result.data ?? []) {
+      const current = goalIdsByProjectId.get(row.project_id) ?? [];
+      current.push(row.goal_id);
+      goalIdsByProjectId.set(row.project_id, current);
+    }
+
+    return projects.map((p) => ({
+      ...p,
+      linkedGoalIds: goalIdsByProjectId.get(p.id) ?? [],
+    }));
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code === "42P01"
+    ) {
+      return projects.map((p) => ({ ...p, linkedGoalIds: [] }));
+    }
+    throw error;
+  }
+}
+
+async function hydrateProjectRelations(projects: Project[]): Promise<Project[]> {
+  const withAreas = await hydrateProjectAreaLinks(projects);
+  return hydrateProjectGoalLinks(withAreas);
+}
+
+async function hydrateSingleProjectRelations(project: Project): Promise<Project> {
+  const [hydrated] = await hydrateProjectRelations([project]);
+  return hydrated;
+}
+
 function normalizeProject(project: ProjectRecord): Project {
   return {
     ...project,
@@ -304,7 +356,7 @@ export const projectService = {
       return query;
     });
 
-    return hydrateProjectAreaLinks(projects);
+    return hydrateProjectRelations(projects);
   },
 
   async getById(userId: string, id: string): Promise<Project> {
@@ -319,7 +371,7 @@ export const projectService = {
       { entity: "Project", identifier: id },
     );
 
-    return hydrateSingleProjectAreaLinks(project);
+    return hydrateSingleProjectRelations(project);
   },
 
   async getBySlug(userId: string, slug: string): Promise<Project> {
@@ -338,7 +390,7 @@ export const projectService = {
         throw new NotFoundError("Project", slug);
       }
 
-      return hydrateSingleProjectAreaLinks(project);
+      return hydrateSingleProjectRelations(project);
     }
 
     if (result.error) {
@@ -347,7 +399,7 @@ export const projectService = {
         const project = projects.find((candidate) => candidate.slug === slug);
 
         if (project) {
-          return hydrateSingleProjectAreaLinks(project);
+          return hydrateSingleProjectRelations(project);
         }
 
         throw new NotFoundError("Project", slug);
@@ -356,7 +408,7 @@ export const projectService = {
       throw new DatabaseError(result.error.message, result.error);
     }
 
-    return hydrateSingleProjectAreaLinks(normalizeProject(result.data as unknown as ProjectRecord));
+    return hydrateSingleProjectRelations(normalizeProject(result.data as unknown as ProjectRecord));
   },
 
   async getByIdentifier(userId: string, identifier: string): Promise<Project> {
@@ -422,7 +474,7 @@ export const projectService = {
       await this.replaceGoalLinks(userId, project.id, goalIds);
     }
 
-    return hydrateSingleProjectAreaLinks(project);
+    return hydrateSingleProjectRelations(project);
   },
 
   async update(userId: string, id: string, input: UpdateProjectInput): Promise<Project> {
@@ -453,7 +505,7 @@ export const projectService = {
       await this.replaceGoalLinks(userId, id, goalIds);
     }
 
-    return hydrateSingleProjectAreaLinks(project);
+    return hydrateSingleProjectRelations(project);
   },
 
   async delete(userId: string, id: string): Promise<void> {
@@ -481,7 +533,7 @@ export const projectService = {
       { entity: "Project", identifier: id },
     );
 
-    return hydrateSingleProjectAreaLinks(project);
+    return hydrateSingleProjectRelations(project);
   },
 
   async listByStatus(
@@ -507,7 +559,7 @@ export const projectService = {
       return query;
     });
 
-    return hydrateProjectAreaLinks(projects);
+    return hydrateProjectRelations(projects);
   },
 
   async listByArea(userId: string | undefined, areaId: string): Promise<Project[]> {
@@ -521,7 +573,7 @@ export const projectService = {
         .order("created_at", { ascending: false }),
     );
 
-    return hydrateProjectAreaLinks(projects);
+    return hydrateProjectRelations(projects);
   },
 
   async getWithRelations(userId: string, id: string): Promise<{
@@ -676,6 +728,6 @@ export const projectService = {
         .filter((project): project is ProjectRecord => Boolean(project)),
     );
 
-    return hydrateProjectAreaLinks(projects);
+    return hydrateProjectRelations(projects);
   },
 };
