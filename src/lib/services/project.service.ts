@@ -72,6 +72,23 @@ function isMissingProjectAreasTableError(error: unknown): boolean {
   );
 }
 
+function isMissingGoalProjectsTableError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code =
+    "code" in error && typeof (error as Record<string, unknown>).code === "string"
+      ? (error as Record<string, unknown>).code
+      : undefined;
+  const message =
+    "message" in error && typeof (error as Record<string, unknown>).message === "string"
+      ? String((error as Record<string, unknown>).message).toLowerCase()
+      : "";
+  return (
+    code === "42P01" ||
+    (message.includes("goal_projects") &&
+      (message.includes("does not exist") || message.includes("relation")))
+  );
+}
+
 function withPrimaryAreaLinks(projects: Project[]): Project[] {
   return projects.map((project) => ({
     ...project,
@@ -170,15 +187,11 @@ async function hydrateProjectAreaLinks(projects: Project[]): Promise<Project[]> 
   }));
 }
 
-async function hydrateSingleProjectAreaLinks(project: Project): Promise<Project> {
-  const [hydratedProject] = await hydrateProjectAreaLinks([project]);
-  return hydratedProject;
-}
-
 async function hydrateProjectGoalLinks(projects: Project[]): Promise<Project[]> {
   if (projects.length === 0) return projects;
 
   const projectIds = projects.map((p) => p.id);
+  let data: Array<{ project_id: string; goal_id: string }> | null | undefined;
 
   try {
     const result = await createClient()
@@ -187,34 +200,31 @@ async function hydrateProjectGoalLinks(projects: Project[]): Promise<Project[]> 
       .in("project_id", projectIds);
 
     if (result.error) {
-      if (result.error.code === "42P01") {
-        return projects.map((p) => ({ ...p, linkedGoalIds: [] }));
+      if (isMissingGoalProjectsTableError(result.error)) {
+        return projects.map((project) => ({ ...project, linkedGoalIds: [] }));
       }
       throw new DatabaseError(result.error.message);
     }
 
-    const goalIdsByProjectId = new Map<string, string[]>();
-    for (const row of result.data ?? []) {
-      const current = goalIdsByProjectId.get(row.project_id) ?? [];
-      current.push(row.goal_id);
-      goalIdsByProjectId.set(row.project_id, current);
-    }
-
-    return projects.map((p) => ({
-      ...p,
-      linkedGoalIds: goalIdsByProjectId.get(p.id) ?? [],
-    }));
+    data = result.data;
   } catch (error) {
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      (error as { code: string }).code === "42P01"
-    ) {
-      return projects.map((p) => ({ ...p, linkedGoalIds: [] }));
+    if (isMissingGoalProjectsTableError(error)) {
+      return projects.map((project) => ({ ...project, linkedGoalIds: [] }));
     }
     throw error;
   }
+
+  const goalIdsByProjectId = new Map<string, string[]>();
+  for (const row of data ?? []) {
+    const current = goalIdsByProjectId.get(row.project_id) ?? [];
+    current.push(row.goal_id);
+    goalIdsByProjectId.set(row.project_id, current);
+  }
+
+  return projects.map((project) => ({
+    ...project,
+    linkedGoalIds: goalIdsByProjectId.get(project.id) ?? [],
+  }));
 }
 
 async function hydrateProjectRelations(projects: Project[]): Promise<Project[]> {
