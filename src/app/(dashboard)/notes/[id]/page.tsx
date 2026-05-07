@@ -77,10 +77,10 @@ export default function NoteDetailPage() {
   const [localNotebook, setLocalNotebook] = useState<string>("");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
-  const [localAreaIds,    setLocalAreaIds]    = useState<string[]>([]);
-  const [localGoalIds,    setLocalGoalIds]    = useState<string[]>([]);
+  const [localAreaIds, setLocalAreaIds] = useState<string[]>([]);
+  const [localGoalIds, setLocalGoalIds] = useState<string[]>([]);
   const [localProjectIds, setLocalProjectIds] = useState<string[]>([]);
-  const [localTaskIds,    setLocalTaskIds]    = useState<string[]>([]);
+  const [localTaskIds, setLocalTaskIds] = useState<string[]>([]);
 
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingContent = useRef<string | null>(null);
