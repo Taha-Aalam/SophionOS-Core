@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { BookOpen, Check, ChevronDown, Map, Pin, Star, Target, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Command,
@@ -131,7 +131,7 @@ export function NoteMetadataPanel({
     if (!hasConstraints) return activeAreas;
     const allowed = new Set<string>();
     for (const gId of goalIds) {
-      const goal = goals.find((g) => g.id === gId);
+      const goal = activeGoals.find((g) => g.id === gId);
       for (const aId of goal?.linkedAreaIds ?? []) allowed.add(aId);
     }
     for (const pId of projectIds) {
@@ -146,7 +146,7 @@ export function NoteMetadataPanel({
       }
     }
     return activeAreas.filter((a) => allowed.has(a.id));
-  }, [activeAreas, goalIds, projectIds, taskIds, goals, activeProjects, tasks]);
+  }, [activeAreas, goalIds, projectIds, taskIds, activeGoals, activeProjects, tasks]);
 
   const filteredGoals = useMemo(() => {
     const hasConstraints = areaIds.length > 0 || projectIds.length > 0 || taskIds.length > 0;
