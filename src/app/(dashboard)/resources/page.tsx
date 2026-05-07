@@ -1,103 +1,56 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ExternalLink, FilePlus, Globe, Heart } from "lucide-react";
+import { FilePlus, Globe, Heart } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResourceDialog } from "@/components/entities/resource-dialog";
 import { ResourceRow, ResourceRowSkeleton } from "@/components/entities/resource-row";
 import { useAreas } from "@/lib/hooks/use-areas";
-import { useCreateResource, useResources, useToggleFavoriteResource, useUpdateResource, useArchivedResources, useFavoriteResources, useArchiveResource } from "@/lib/hooks/use-resources";
+import {
+  useCreateResource,
+  useResources,
+  useToggleFavoriteResource,
+  useUpdateResource,
+  useArchivedResources,
+  useFavoriteResources,
+  useArchiveResource,
+  useUnarchiveResource,
+} from "@/lib/hooks/use-resources";
+import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
+import { useTasks } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
-import type { CreateResourceInput, Resource } from "@/lib/types/domain.types";
-import { RESOURCE_STATUS, RESOURCE_TYPE, type ResourceStatus } from "@/lib/utils/constants";
-import { cn } from "@/lib/utils";
-
-const RESOURCE_TYPE_OPTIONS = [
-  { value: RESOURCE_TYPE.WEBSITE, label: "Website" },
-  { value: RESOURCE_TYPE.ARTICLE, label: "Article" },
-  { value: RESOURCE_TYPE.VIDEO, label: "Video" },
-  { value: RESOURCE_TYPE.DOCUMENT, label: "Document" },
-  { value: RESOURCE_TYPE.PODCAST, label: "Podcast" },
-  { value: RESOURCE_TYPE.SOCIAL_MEDIA, label: "Social Media" },
-  { value: RESOURCE_TYPE.TOOL, label: "Tool" },
-];
-
-const RESOURCE_STATUS_OPTIONS = [
-  { value: RESOURCE_STATUS.INBOX, label: "Inbox" },
-  { value: RESOURCE_STATUS.TO_REVIEW, label: "To Review" },
-  { value: RESOURCE_STATUS.ACTIVE, label: "Active" },
-];
-
-const TYPE_COLORS: Record<string, string> = {
-  website: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  article: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-  video: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-  document: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-  podcast: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  social_media: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
-  tool: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300",
-};
-
-interface NewResourceForm {
-  name: string;
-  url: string;
-  type: string;
-  area_id: string;
-  project_id: string;
-  topic_id: string;
-  status: string;
-}
-
-const defaultForm: NewResourceForm = {
-  name: "",
-  url: "",
-  type: RESOURCE_TYPE.WEBSITE,
-  area_id: "",
-  project_id: "",
-  topic_id: "",
-  status: RESOURCE_STATUS.INBOX,
-};
+import type { CreateResourceInput, Resource, UpdateResourceInput } from "@/lib/types/domain.types";
+import { RESOURCE_STATUS, type ResourceStatus } from "@/lib/utils/constants";
 
 export default function ResourcesPage() {
-  const [tab, setTab] = useState<string>("inbox");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [form, setForm] = useState<NewResourceForm>(defaultForm);
+  const [tab, setTab] = useState<string>("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingResource, setEditingResource] = useState<Resource | null>(null);
 
   const { data: allResources = [], isLoading } = useResources({ status: "all" });
   const { data: archivedResources = [] } = useArchivedResources();
   const { data: favoriteResources = [] } = useFavoriteResources();
   const { data: areas = [] } = useAreas();
+  const { data: goals = [] } = useGoals({});
   const { data: projects = [] } = useProjects({ status: "all" });
+  const { data: tasks = [] } = useTasks();
   const { data: topics = [] } = useTopics();
 
   const createResource = useCreateResource();
   const toggleFavorite = useToggleFavoriteResource();
   const updateResource = useUpdateResource();
   const archiveResource = useArchiveResource();
+  const unarchiveResource = useUnarchiveResource();
 
   const areaNames = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
+  const goalNames = useMemo(() => new Map(goals.map((g) => [g.id, g.name])), [goals]);
   const projectNames = useMemo(() => new Map(projects.map((p) => [p.id, p.name])), [projects]);
+  const taskNames = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks]);
   const topicNames = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
 
   const filtered = useMemo(() => {
@@ -129,19 +82,16 @@ export default function ResourcesPage() {
     return map;
   }, [allResources]);
 
-  const handleCreate = async () => {
-    const input: CreateResourceInput = {
-      name: form.name,
-      url: form.url || undefined,
-      type: form.type as Resource["type"],
-      status: form.status as ResourceStatus,
-      area_id: form.area_id || undefined,
-      project_id: form.project_id || undefined,
-      topic_id: form.topic_id || undefined,
-    };
+  const handleCreate = async (input: CreateResourceInput) => {
     await createResource.mutateAsync(input);
-    setForm(defaultForm);
-    setIsCreateOpen(false);
+    setDialogOpen(false);
+  };
+
+  const handleUpdate = async (input: UpdateResourceInput) => {
+    if (!editingResource) return;
+    await updateResource.mutateAsync({ id: editingResource.id, input });
+    setDialogOpen(false);
+    setEditingResource(null);
   };
 
   const handleToggleFavorite = (id: string, favorite: boolean) => {
@@ -152,24 +102,22 @@ export default function ResourcesPage() {
     archiveResource.mutate(id);
   };
 
+  const handleUnarchive = (id: string) => {
+    unarchiveResource.mutate(id);
+  };
+
   const handleStatusChange = (id: string, status: ResourceStatus) => {
     updateResource.mutate({ id, input: { status } });
   };
 
-  const handleFormChange = (field: keyof NewResourceForm, value: string | null) => {
-    setForm((prev) => ({ ...prev, [field]: value ?? "" }));
+  const handleEdit = (resource: Resource) => {
+    setEditingResource(resource);
+    setDialogOpen(true);
   };
 
-  const handleUrlBlur = () => {
-    if (form.url && !form.name) {
-      try {
-        const u = new URL(form.url);
-        const host = u.hostname.replace(/^www\./, "");
-        setForm((prev) => ({ ...prev, name: prev.url ? host : prev.name }));
-      } catch {
-        // invalid URL, keep name empty
-      }
-    }
+  const handleOpenCreate = () => {
+    setEditingResource(null);
+    setDialogOpen(true);
   };
 
   const countForTab = (tabValue: string) => {
@@ -196,7 +144,7 @@ export default function ResourcesPage() {
             {allResources.length} {allResources.length === 1 ? "resource" : "resources"}
           </p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} disabled={createResource.isPending}>
+        <Button onClick={handleOpenCreate} disabled={createResource.isPending}>
           <FilePlus className="mr-2 size-4" />
           New Resource
         </Button>
@@ -204,6 +152,14 @@ export default function ResourcesPage() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
+          <TabsTrigger value="all">
+            All
+            {countForTab("all") > 0 && (
+              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
+                {countForTab("all")}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="inbox">
             Inbox
             {countForTab("inbox") > 0 && (
@@ -238,14 +194,6 @@ export default function ResourcesPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="all">
-            All
-            {countForTab("all") > 0 && (
-              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab("all")}
-              </Badge>
-            )}
-          </TabsTrigger>
         </TabsList>
 
         {/* Inbox, To Review, Favorites, Archive, All — table view */}
@@ -275,7 +223,7 @@ export default function ResourcesPage() {
                   tab === "all" ? "Add your first resource to get started" : "Try a different filter"
                 }
                 actionLabel={tab === "all" ? "New Resource" : undefined}
-                onAction={tab === "all" ? () => setIsCreateOpen(true) : undefined}
+                onAction={tab === "all" ? handleOpenCreate : undefined}
               />
             ) : (
               <div className="rounded-lg border border-border">
@@ -283,10 +231,12 @@ export default function ResourcesPage() {
                 <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-3 py-2">
                   <span className="w-20 text-xs font-medium text-muted-foreground">Status</span>
                   <span className="flex-1 text-xs font-medium text-muted-foreground">Name</span>
+                  <span className="w-24 text-xs font-medium text-muted-foreground hidden md:inline">Topic</span>
                   <span className="w-20 text-xs font-medium text-muted-foreground hidden sm:inline">Type</span>
-                  <span className="w-16 text-xs font-medium text-muted-foreground hidden md:inline">Topic</span>
-                  <span className="w-16 text-xs font-medium text-muted-foreground hidden lg:inline">Area</span>
-                  <span className="w-16 text-xs font-medium text-muted-foreground hidden xl:inline">Project</span>
+                  <span className="w-24 text-xs font-medium text-muted-foreground hidden lg:inline">Area</span>
+                  <span className="w-24 text-xs font-medium text-muted-foreground hidden xl:inline">Goals</span>
+                  <span className="w-24 text-xs font-medium text-muted-foreground hidden xl:inline">Projects</span>
+                  <span className="w-24 text-xs font-medium text-muted-foreground hidden xl:inline">Tasks</span>
                   <span className="w-8" />
                   <span className="w-8" />
                   <span className="w-8" />
@@ -296,12 +246,30 @@ export default function ResourcesPage() {
                   <ResourceRow
                     key={resource.id}
                     resource={resource}
-                    areaName={resource.area_id ? areaNames.get(resource.area_id) : undefined}
+                    areaName={
+                      resource.linkedAreaIds && resource.linkedAreaIds.length > 0
+                        ? resource.linkedAreaIds.map((id) => areaNames.get(id)).filter((n): n is string => Boolean(n))
+                        : resource.area_id
+                          ? [areaNames.get(resource.area_id)].filter((n): n is string => Boolean(n))
+                          : undefined
+                    }
+                    goalNames={
+                      resource.linkedGoalIds && resource.linkedGoalIds.length > 0
+                        ? resource.linkedGoalIds.map((id) => goalNames.get(id)).filter((n): n is string => Boolean(n))
+                        : undefined
+                    }
                     projectName={resource.project_id ? projectNames.get(resource.project_id) : undefined}
+                    taskNames={
+                      resource.linkedTaskIds && resource.linkedTaskIds.length > 0
+                        ? resource.linkedTaskIds.map((id) => taskNames.get(id)).filter((n): n is string => Boolean(n))
+                        : undefined
+                    }
                     topicName={resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
                     onToggleFavorite={handleToggleFavorite}
                     onArchive={handleArchive}
+                    onUnarchive={handleUnarchive}
                     onStatusChange={handleStatusChange}
+                    onEdit={handleEdit}
                   />
                 ))}
               </div>
@@ -330,7 +298,7 @@ export default function ResourcesPage() {
               title="No resources linked to topics"
               description="Link resources to topics to see them grouped here"
               actionLabel="New Resource"
-              onAction={() => setIsCreateOpen(true)}
+              onAction={handleOpenCreate}
             />
           ) : (
             <div className="flex flex-col gap-4">
@@ -347,12 +315,30 @@ export default function ResourcesPage() {
                         <ResourceRow
                           key={resource.id}
                           resource={resource}
-                          areaName={resource.area_id ? areaNames.get(resource.area_id) : undefined}
+                          areaName={
+                            resource.linkedAreaIds && resource.linkedAreaIds.length > 0
+                              ? resource.linkedAreaIds.map((id) => areaNames.get(id)).filter((n): n is string => Boolean(n))
+                              : resource.area_id
+                                ? [areaNames.get(resource.area_id)].filter((n): n is string => Boolean(n))
+                                : undefined
+                          }
+                          goalNames={
+                            resource.linkedGoalIds && resource.linkedGoalIds.length > 0
+                              ? resource.linkedGoalIds.map((id) => goalNames.get(id)).filter((n): n is string => Boolean(n))
+                              : undefined
+                          }
                           projectName={resource.project_id ? projectNames.get(resource.project_id) : undefined}
+                          taskNames={
+                            resource.linkedTaskIds && resource.linkedTaskIds.length > 0
+                              ? resource.linkedTaskIds.map((id) => taskNames.get(id)).filter((n): n is string => Boolean(n))
+                              : undefined
+                          }
                           topicName={name}
                           onToggleFavorite={handleToggleFavorite}
                           onArchive={handleArchive}
+                          onUnarchive={handleUnarchive}
                           onStatusChange={handleStatusChange}
+                          onEdit={handleEdit}
                         />
                       ))}
                     </div>
@@ -364,120 +350,19 @@ export default function ResourcesPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Create Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>New Resource</DialogTitle>
-            <DialogDescription>Add an external reference to your PARA system</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="res-name">Name</Label>
-              <Input
-                id="res-name"
-                placeholder="My favorite article"
-                value={form.name}
-                onChange={(e) => handleFormChange("name", e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="res-url">URL</Label>
-              <Input
-                id="res-url"
-                type="url"
-                placeholder="https://..."
-                value={form.url}
-                onChange={(e) => handleFormChange("url", e.target.value)}
-                onBlur={handleUrlBlur}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="res-type">Type</Label>
-              <Select value={form.type} onValueChange={(v) => handleFormChange("type", v)}>
-                <SelectTrigger id="res-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {RESOURCE_TYPE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="res-status">Status</Label>
-              <Select value={form.status} onValueChange={(v) => handleFormChange("status", v)}>
-                <SelectTrigger id="res-status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {RESOURCE_STATUS_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="res-area">Area</Label>
-              <Select value={form.area_id} onValueChange={(v) => handleFormChange("area_id", v)}>
-                <SelectTrigger id="res-area">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  {areas.map((area) => (
-                    <SelectItem key={area.id} value={area.id}>
-                      {area.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="res-project">Project</Label>
-              <Select value={form.project_id} onValueChange={(v) => handleFormChange("project_id", v)}>
-                <SelectTrigger id="res-project">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="res-topic">Topic</Label>
-              <Select value={form.topic_id} onValueChange={(v) => handleFormChange("topic_id", v)}>
-                <SelectTrigger id="res-topic">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  {topics.map((topic) => (
-                    <SelectItem key={topic.id} value={topic.id}>
-                      {topic.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreate} disabled={!form.name || createResource.isPending}>
-              Create Resource
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ResourceDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        resource={editingResource}
+        onSubmit={(input) => {
+          if (editingResource) {
+            handleUpdate(input as UpdateResourceInput);
+          } else {
+            handleCreate(input as CreateResourceInput);
+          }
+        }}
+        isPending={createResource.isPending || updateResource.isPending}
+      />
     </div>
   );
 }

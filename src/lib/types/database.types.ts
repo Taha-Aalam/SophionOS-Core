@@ -338,6 +338,20 @@ export type Database = {
           updated_at?: string;
         };
       };
+      resource_areas: {
+        Row: {
+          resource_id: string;
+          area_id: string;
+        };
+        Insert: {
+          resource_id: string;
+          area_id: string;
+        };
+        Update: {
+          resource_id?: string;
+          area_id?: string;
+        };
+      };
       topics: {
         Row: {
           id: string;
@@ -557,6 +571,49 @@ export type Database = {
           contact_id?: string;
           task_id?: string;
           role_in_task?: string | null;
+        };
+      };
+      note_related_notes: {
+        Row: {
+          note_a_id: string;
+          note_b_id: string;
+          created_at: string;
+        };
+        Insert: {
+          note_a_id: string;
+          note_b_id: string;
+          created_at?: string;
+        };
+        Update: {
+          note_a_id?: string;
+          note_b_id?: string;
+          created_at?: string;
+        };
+      };
+      user_settings: {
+        Row: {
+          id: string;
+          user_id: string;
+          key: string;
+          value: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          key: string;
+          value?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          key?: string;
+          value?: Json;
+          created_at?: string;
+          updated_at?: string;
         };
       };
     };

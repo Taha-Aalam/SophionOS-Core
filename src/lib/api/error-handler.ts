@@ -12,6 +12,17 @@ export class ValidationError extends AppError {
   }
 }
 
+export function formatValidationMessage(error: Error): string {
+  if (error instanceof ValidationError && Array.isArray(error.details) && error.details.length > 0) {
+    const issues = error.details.map((issue: any) => {
+      const path = issue.path?.join?.('.') || 'field';
+      return `${path}: ${issue.message}`;
+    });
+    return issues.join('; ');
+  }
+  return error.message;
+}
+
 export class NotFoundError extends AppError {
   constructor(entity: string, id: string) {
     super(`${entity} with id ${id} not found`, 404, 'NOT_FOUND');

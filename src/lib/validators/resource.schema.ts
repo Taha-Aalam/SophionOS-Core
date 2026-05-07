@@ -23,13 +23,28 @@ const nullableUuidSchema = z.preprocess(
   z.string().uuid().nullable().optional(),
 );
 
+const urlSchema = z.preprocess(
+  (value) => {
+    if (value === "" || value === null || value === undefined) return null;
+    if (typeof value !== "string") return value;
+    if (/^https?:\/\//i.test(value)) return value;
+    try {
+      new URL(`https://${value}`);
+      return `https://${value}`;
+    } catch {
+      return value;
+    }
+  },
+  z.string().url("Must be a valid URL").nullable().optional(),
+);
+
 const resourceBaseSchema = z
   .object({
     area_id: nullableUuidSchema,
     project_id: nullableUuidSchema,
     topic_id: nullableUuidSchema,
     name: z.string().min(1, "Name is required").max(255),
-    url: z.string().url("Must be a valid URL").nullable().optional(),
+    url: urlSchema,
   })
   .strict();
 
@@ -39,6 +54,8 @@ export const createResourceSchema = resourceBaseSchema.extend({
   favorite: z.boolean().default(false),
   is_archived: z.boolean().default(false),
   goal_ids: z.array(z.string().uuid()).default([]),
+  task_ids: z.array(z.string().uuid()).default([]),
+  area_ids: z.array(z.string().uuid()).default([]),
 });
 
 export const updateResourceSchema = resourceBaseSchema
@@ -47,6 +64,9 @@ export const updateResourceSchema = resourceBaseSchema
     status: z.enum(resourceStatusValues).optional(),
     favorite: z.boolean().optional(),
     is_archived: z.boolean().optional(),
+    goal_ids: z.array(z.string().uuid()).optional(),
+    task_ids: z.array(z.string().uuid()).optional(),
+    area_ids: z.array(z.string().uuid()).optional(),
   })
   .partial()
   .strict();

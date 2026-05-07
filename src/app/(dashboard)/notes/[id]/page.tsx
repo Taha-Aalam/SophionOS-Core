@@ -6,16 +6,26 @@ import {
   ArrowLeft,
   BookOpen,
   Heart,
+  Link2,
   Map,
   NotebookPen,
   Pin,
   Trash2,
+  X,
 } from "lucide-react";
 
 import { NoteEditor } from "@/components/entities/note-editor";
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +36,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -39,6 +54,10 @@ import {
   useDeleteNote,
   useNoteByIdentifier,
   useNotebooks,
+  useNotes,
+  useRelatedNotes,
+  useLinkRelatedNote,
+  useUnlinkRelatedNote,
   useUpdateNote,
 } from "@/lib/hooks/use-notes";
 import { useProjects } from "@/lib/hooks/use-projects";
@@ -87,8 +106,15 @@ export default function NoteDetailPage() {
   const { data: areas = [] } = useAreas();
   const { data: projects = [] } = useProjects({ status: "all" });
   const { data: notebooks = [] } = useNotebooks();
+  const { data: allNotes = [] } = useNotes({ status: "all" });
+  const { data: relatedNotes = [] } = useRelatedNotes(noteId);
+  const linkRelated = useLinkRelatedNote();
+  const unlinkRelated = useUnlinkRelatedNote();
   const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
+
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkQuery, setLinkQuery] = useState("");
 
   useEffect(() => {
     if (note) {
@@ -259,6 +285,74 @@ export default function NoteDetailPage() {
             placeholder="Start writing your note…"
             className="flex-1"
           />
+
+          <div className="mt-8 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Related Notes</h3>
+              <Popover open={linkOpen} onOpenChange={setLinkOpen}>
+                <PopoverTrigger>
+                  <Button variant="outline" size="sm"><Link2 className="mr-1.5 size-3.5" />Link Related Note</Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-0" align="end">
+                  <Command>
+                    <CommandInput placeholder="Search notes…" value={linkQuery} onValueChange={setLinkQuery} />
+                    <CommandList>
+                      <CommandEmpty>No notes found.</CommandEmpty>
+                      <CommandGroup>
+                        {allNotes
+                          .filter((n) => n.id !== note.id && !relatedNotes.some((r) => r.id === n.id))
+                          .filter((n) => n.name.toLowerCase().includes(linkQuery.toLowerCase()))
+                          .slice(0, 10)
+                          .map((n) => (
+                            <CommandItem
+                              key={n.id}
+                              onSelect={() => {
+                                linkRelated.mutate({ noteAId: note.id, noteBId: n.id });
+                                setLinkOpen(false);
+                                setLinkQuery("");
+                              }}
+                            >
+                              <NotebookPen className="mr-2 size-3.5" />
+                              {n.name}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            {relatedNotes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No related notes yet.</p>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {relatedNotes.map((rn) => (
+                  <div
+                    key={rn.id}
+                    className="group flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 cursor-pointer"
+                    onClick={() => router.push(`/notes/${rn.slug ?? rn.id}`)}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <NotebookPen className="size-3.5 shrink-0 text-muted-foreground" />
+                      <span className="truncate text-sm font-medium">{rn.name}</span>
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">{rn.type}</Badge>
+                    </div>
+                    <button
+                      type="button"
+                      className="rounded p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        unlinkRelated.mutate({ noteAId: note.id, noteBId: rn.id });
+                      }}
+                      title="Unlink"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <aside className="hidden w-64 shrink-0 flex-col gap-5 overflow-y-auto border-l border-border p-4 xl:flex">
