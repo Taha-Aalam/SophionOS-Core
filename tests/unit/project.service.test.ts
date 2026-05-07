@@ -48,7 +48,7 @@ describe("projectService", () => {
       user_id: userId,
     };
 
-    const clients = Array.from({ length: 6 }, () => makeChainableClient());
+    const clients = Array.from({ length: 7 }, () => makeChainableClient());
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
       return clients[callIndex++] as never;
@@ -58,13 +58,15 @@ describe("projectService", () => {
     // 2nd call: insert project
     // 3rd/4th calls: getWithRelations (goal_projects + project_areas inside replaceGoalLinks)
     // 5th call: insert goal links (inside replaceGoalLinks)
-    // 6th call: final hydration
+    // 6th call: hydrateProjectAreaLinks
+    // 7th call: hydrateProjectGoalLinks
 
     clients[1].single.mockResolvedValue({ data: createdProject, error: null });
     clients[2].eq.mockResolvedValue({ data: [], error: null });
     clients[3].eq.mockResolvedValue({ data: [], error: null });
     clients[4].insert.mockResolvedValue({ error: null });
     clients[5].in.mockResolvedValue({ data: [], error: null });
+    clients[6].in.mockResolvedValue({ data: [], error: null });
 
     const result = await projectService.create(userId, {
       name: "Restore Projects",
@@ -94,7 +96,7 @@ describe("projectService", () => {
       user_id: userId,
     };
 
-    const clients = Array.from({ length: 6 }, () => makeChainableClient());
+    const clients = Array.from({ length: 7 }, () => makeChainableClient());
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
       return clients[callIndex++] as never;
@@ -104,7 +106,8 @@ describe("projectService", () => {
     // 2nd/3rd calls: getWithRelations (goal_projects + project_areas)
     // 4th call: insert new links
     // 5th call: delete old links
-    // 6th call: final hydration
+    // 6th call: hydrateProjectAreaLinks
+    // 7th call: hydrateProjectGoalLinks
 
     clients[0].single.mockResolvedValue({ data: updatedProject, error: null });
     clients[1].eq.mockResolvedValue({
@@ -115,6 +118,7 @@ describe("projectService", () => {
     clients[3].insert.mockResolvedValue({ error: null });
     clients[4].in.mockResolvedValue({ error: null });
     clients[5].in.mockResolvedValue({ data: [], error: null });
+    clients[6].in.mockResolvedValue({ data: [], error: null });
 
     const result = await projectService.update(userId, projectId, {
       status: PROJECT_STATUS.ACTIVE,
@@ -136,7 +140,7 @@ describe("projectService", () => {
       user_id: userId,
     };
 
-    const clients = Array.from({ length: 2 }, () => makeChainableClient());
+    const clients = Array.from({ length: 3 }, () => makeChainableClient());
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
       return clients[callIndex++] as never;
@@ -144,6 +148,7 @@ describe("projectService", () => {
 
     clients[0].single.mockResolvedValue({ data: updatedProject, error: null });
     clients[1].in.mockResolvedValue({ data: [], error: null });
+    clients[2].in.mockResolvedValue({ data: [], error: null });
 
     const result = await projectService.update(userId, projectId, {
       status: PROJECT_STATUS.ACTIVE,
@@ -254,10 +259,12 @@ describe("projectService", () => {
       error: null,
     });
     hydrationClient.in.mockResolvedValue({ data: [], error: null });
+    const goalLinkClient1 = makeChainableClient();
+    goalLinkClient1.in.mockResolvedValue({ data: [], error: null });
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      return [failingClient, fallbackClient, hydrationClient][callIndex++] as never;
+      return [failingClient, fallbackClient, hydrationClient, goalLinkClient1][callIndex++] as never;
     });
 
     const result = await projectService.list(userId, { status: "all" });
@@ -313,10 +320,12 @@ describe("projectService", () => {
 
     const areaLinkClient = makeChainableClient();
     areaLinkClient.in.mockResolvedValue({ data: [], error: null });
+    const goalLinkClient2 = makeChainableClient();
+    goalLinkClient2.in.mockResolvedValue({ data: [], error: null });
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      return [missingSlugClient, failingListClient, legacyListClient, areaLinkClient][callIndex++] as never;
+      return [missingSlugClient, failingListClient, legacyListClient, areaLinkClient, goalLinkClient2][callIndex++] as never;
     });
 
     const result = await projectService.getByIdentifier(userId, "restore-projects");
@@ -363,10 +372,12 @@ describe("projectService", () => {
     });
     const areaLinkClient = makeChainableClient();
     areaLinkClient.in.mockResolvedValue({ data: [], error: null });
+    const goalLinkClient3 = makeChainableClient();
+    goalLinkClient3.in.mockResolvedValue({ data: [], error: null });
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      return [slugLookupClient, listClient, areaLinkClient][callIndex++] as never;
+      return [slugLookupClient, listClient, areaLinkClient, goalLinkClient3][callIndex++] as never;
     });
 
     const result = await projectService.getByIdentifier(userId, "restore-projects");
@@ -434,7 +445,7 @@ describe("projectService", () => {
       user_id: userId,
     };
 
-    const clients = Array.from({ length: 7 }, () => makeChainableClient());
+    const clients = Array.from({ length: 8 }, () => makeChainableClient());
     // Custom mock for update().eq().eq() chain in replaceAreaLinks
     const updateEqClient = makeChainableClient();
     clients[5].eq.mockReturnValue(updateEqClient);
@@ -451,8 +462,9 @@ describe("projectService", () => {
     clients[3].eq.mockResolvedValue({ data: [], error: null });
     // insert project_areas
     clients[4].insert.mockResolvedValue({ error: null });
-    // final hydration call (clients[6])
+    // hydrateProjectAreaLinks (clients[6]), hydrateProjectGoalLinks (clients[7])
     clients[6].in.mockResolvedValue({ data: [], error: null });
+    clients[7].in.mockResolvedValue({ data: [], error: null });
 
     const areaA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
     const areaB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -555,6 +567,7 @@ describe("projectService", () => {
 
     const listClient = makeChainableClient();
     const areaLinkClient = makeChainableClient();
+    const goalLinkClient4 = makeChainableClient();
 
     listClient.data = [baseProject];
     listClient.error = null;
@@ -565,10 +578,11 @@ describe("projectService", () => {
       ],
       error: null,
     });
+    goalLinkClient4.in.mockResolvedValue({ data: [], error: null });
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      const clients = [listClient, areaLinkClient];
+      const clients = [listClient, areaLinkClient, goalLinkClient4];
       return clients[callIndex++] as never;
     });
 
@@ -604,6 +618,7 @@ describe("projectService", () => {
     const listClient = makeChainableClient();
     const areaLinkClient = makeChainableClient();
 
+    const goalLinkClientFallback = makeChainableClient();
     listClient.data = [baseProject];
     listClient.error = null;
     areaLinkClient.in.mockResolvedValue({
@@ -613,10 +628,11 @@ describe("projectService", () => {
         message: 'relation "project_areas" does not exist',
       },
     });
+    goalLinkClientFallback.in.mockResolvedValue({ data: [], error: null });
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      const clients = [listClient, areaLinkClient];
+      const clients = [listClient, areaLinkClient, goalLinkClientFallback];
       return clients[callIndex++] as never;
     });
 
