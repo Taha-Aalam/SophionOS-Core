@@ -164,8 +164,8 @@ export default function TasksPage() {
   const filterOptionLabelClassName = "min-w-0 flex-1 whitespace-normal break-words text-sm";
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-0">
-      <div className="flex items-center justify-between border-b border-border/50 px-6 py-5">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+      <div className="flex items-center justify-between border-b border-border/50">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
           <p className="text-sm text-muted-foreground">

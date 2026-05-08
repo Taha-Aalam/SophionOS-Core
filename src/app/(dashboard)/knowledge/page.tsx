@@ -65,6 +65,7 @@ import {
   useNotes,
   useNotesByGoal,
   useNotesByNotebook,
+  useNotebooks,
   useRelatedNotes,
   useRestoreNote,
   useToggleFavoriteNote,
@@ -81,6 +82,12 @@ import {
 } from "@/lib/hooks/use-resources";
 import { useNoteDefaults } from "@/lib/hooks/use-user-settings";
 import { useKnowledgeSearch } from "@/lib/hooks/use-knowledge-hub";
+import {
+  useTopics,
+  useCreateTopic,
+  useUpdateTopic,
+  useToggleFavoriteTopic,
+} from "@/lib/hooks/use-topics";
 import { noteService } from "@/lib/services/note.service";
 import type { Note, Resource } from "@/lib/types/domain.types";
 import type { TopicWithCounts } from "@/lib/services/topic.service";
@@ -678,7 +685,7 @@ export default function KnowledgeHubPage() {
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-8 p-6 lg:p-8">
+    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2.5">

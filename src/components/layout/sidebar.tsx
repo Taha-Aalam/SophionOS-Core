@@ -6,11 +6,7 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { ChevronLeft, ChevronRight, Settings, SunMoon } from "lucide-react";
 
-import {
-  coreNavItems,
-  systemNavItems,
-  trackerSectionMessage,
-} from "@/components/layout/navigation";
+import { coreNavItems, systemNavItems } from "@/components/layout/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -121,21 +117,6 @@ export function Sidebar() {
           {systemNavItems.map((item) => (
             <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
           ))}
-        </div>
-
-        <div className="space-y-2 rounded-xl border border-sidebar-border/70 bg-sidebar-accent/30 px-3 py-3">
-          {isDesktopSidebarOpen ? (
-            <>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Trackers
-              </p>
-              <p className="text-sm text-muted-foreground">{trackerSectionMessage}</p>
-            </>
-          ) : (
-            <p className="text-center text-[10px] uppercase tracking-wider text-muted-foreground">
-              Soon
-            </p>
-          )}
         </div>
       </nav>
 
