@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 
+import { NoteArchiveToggle } from "@/components/entities/note-archive-toggle";
 import { NoteEditor } from "@/components/entities/note-editor";
 import { NoteMetadataPanel } from "@/components/entities/note-metadata-panel";
 import { EmptyState } from "@/components/views/empty-state";
@@ -41,19 +42,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import {
+  useArchiveNote,
   useDeleteNote,
   useNoteByIdentifier,
   useNoteTypes,
   useNotes,
   useRelatedNotes,
   useLinkRelatedNote,
+  useRestoreNote,
   useUnlinkRelatedNote,
   useUpdateNote,
 } from "@/lib/hooks/use-notes";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import type { UpdateNoteInput } from "@/lib/types/domain.types";
-import { NOTE_STATUS } from "@/lib/utils/constants";
+import { buildNoteMetadataUpdateInput } from "@/lib/utils/note-detail-metadata";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/stores/ui.store";
 
@@ -73,6 +76,8 @@ export default function NoteDetailPage() {
   const { setPageTitle } = useUIStore();
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [localIsArchived, setLocalIsArchived] = useState(false);
+  const [optimisticArchivedTarget, setOptimisticArchivedTarget] = useState<boolean | null>(null);
   const [localTitle, setLocalTitle] = useState("");
   const [localNotebook, setLocalNotebook] = useState<string>("");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
@@ -95,8 +100,11 @@ export default function NoteDetailPage() {
   const { data: relatedNotes = [] } = useRelatedNotes(noteId);
   const linkRelated = useLinkRelatedNote();
   const unlinkRelated = useUnlinkRelatedNote();
+  const archiveNote = useArchiveNote();
+  const restoreNote = useRestoreNote();
   const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
+  const isArchiveMutationPending = archiveNote.isPending || restoreNote.isPending;
 
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkQuery, setLinkQuery] = useState("");
@@ -105,6 +113,12 @@ export default function NoteDetailPage() {
     if (note) {
       startTransition(() => {
         setLocalTitle(note.name);
+        if (optimisticArchivedTarget === null) {
+          setLocalIsArchived(note.is_archived);
+        } else if (note.is_archived === optimisticArchivedTarget) {
+          setLocalIsArchived(note.is_archived);
+          setOptimisticArchivedTarget(null);
+        }
         setLocalNotebook(note.notebook ?? "");
         setLocalAreaIds(note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []));
         setLocalGoalIds(note.linkedGoalIds ?? []);
@@ -114,7 +128,7 @@ export default function NoteDetailPage() {
       });
     }
     return () => setPageTitle("");
-  }, [note, setPageTitle]);
+  }, [note, optimisticArchivedTarget, setPageTitle]);
 
   const save = useCallback(
     async (input: UpdateNoteInput) => {
@@ -151,14 +165,56 @@ export default function NoteDetailPage() {
     }
   };
 
+  const buildMetadataInput = useCallback(
+    (overrides: UpdateNoteInput) => {
+      if (!note) return overrides;
+
+      return buildNoteMetadataUpdateInput(
+        {
+          status: note.status,
+          type: note.type,
+          notebook: localNotebook,
+          areaIds: localAreaIds,
+          goalIds: localGoalIds,
+          projectIds: localProjectIds,
+          taskIds: localTaskIds,
+          favorite: note.favorite,
+          pin: note.pin,
+        },
+        overrides,
+      );
+    },
+    [localAreaIds, localGoalIds, localNotebook, localProjectIds, localTaskIds, note],
+  );
+
   const handleMetaChange = (input: UpdateNoteInput) => {
-    save(input);
+    save(buildMetadataInput(input));
   };
 
   const handleDelete = async () => {
     if (!note) return;
     await deleteNote.mutateAsync(note.id);
     router.push("/notes");
+  };
+
+  const handleArchiveToggle = async () => {
+    if (!note) return;
+
+    const nextArchived = !localIsArchived;
+    setLocalIsArchived(nextArchived);
+    setOptimisticArchivedTarget(nextArchived);
+
+    try {
+      if (nextArchived) {
+        await archiveNote.mutateAsync(note.id);
+        return;
+      }
+
+      await restoreNote.mutateAsync(note.id);
+    } catch {
+      setLocalIsArchived(!nextArchived);
+      setOptimisticArchivedTarget(null);
+    }
   };
 
   useEffect(() => {
@@ -210,6 +266,12 @@ export default function NoteDetailPage() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {saveState === "saving" && <span className="text-xs">Saving…</span>}
           {saveState === "saved" && <span className="text-xs text-green-600 dark:text-green-400">Saved</span>}
+          <NoteArchiveToggle
+            isArchived={localIsArchived}
+            mode="detail"
+            disabled={isArchiveMutationPending}
+            onClick={handleArchiveToggle}
+          />
           <Button
             variant="ghost"
             size="icon-sm"
@@ -332,7 +394,7 @@ export default function NoteDetailPage() {
             onNotebookBlur={() => {
               const next = localNotebook.trim() || null;
               if (next !== note.notebook) {
-                save({ notebook: next });
+                handleMetaChange({ notebook: next });
               }
             }}
             onAreaIdsChange={(ids) => { setLocalAreaIds(ids); handleMetaChange({ area_ids: ids }); }}
