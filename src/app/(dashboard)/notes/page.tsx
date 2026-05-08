@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Archive,
   BookOpen,
@@ -62,11 +62,13 @@ import { useTasks } from "@/lib/hooks/use-tasks";
 import { cn } from "@/lib/utils";
 import {
   getNoteLinkedGoalIds,
+  getNoteLinkedProjectIds,
   getNoteCounts,
   getVisibleNotes,
   NOTE_VIEW,
   noteMatchesAreaId,
   noteMatchesGoalId,
+  noteMatchesProjectId,
   noteMatchesTaskId,
   type NoteView,
 } from "@/lib/utils/notes";
@@ -172,7 +174,9 @@ export default function NotesPage() {
     }
 
     if (filterProjectIds.length > 0) {
-      result = result.filter((n) => filterProjectIds.includes(n.project_id ?? ""));
+      result = result.filter((n) =>
+        filterProjectIds.some((projectId) => noteMatchesProjectId(n, projectId)),
+      );
     }
 
     if (filterTaskIds.length > 0) {
@@ -197,6 +201,31 @@ export default function NotesPage() {
     filterTaskIds,
     search,
   ]);
+
+  useEffect(() => {
+    if (selectedIds.size === 0) {
+      return;
+    }
+
+    const visibleNoteIds = new Set(visibleNotes.map((note) => note.id));
+    const nextSelectedIds = new Set(
+      Array.from(selectedIds).filter((id) => visibleNoteIds.has(id)),
+    );
+
+    if (nextSelectedIds.size !== selectedIds.size) {
+      let cancelled = false;
+
+      queueMicrotask(() => {
+        if (!cancelled) {
+          setSelectedIds(nextSelectedIds);
+        }
+      });
+
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [selectedIds, visibleNotes]);
 
   const hasFilters = Boolean(
     filterStatus ||
@@ -731,7 +760,7 @@ export default function NotesPage() {
                       const linkedGoals = getNoteLinkedGoalIds(note)
                         .map((id) => goalMap.get(id))
                         .filter((g): g is NonNullable<typeof g> => Boolean(g));
-                      const linkedProjects = (note.linkedProjectIds ?? (note.project_id ? [note.project_id] : []))
+                      const linkedProjects = getNoteLinkedProjectIds(note)
                         .map((id) => projectMap.get(id))
                         .filter((p): p is NonNullable<typeof p> => Boolean(p));
                       const linkedTasks = (note.linkedTaskIds ?? [])
