@@ -112,7 +112,7 @@ export default function ContactsPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
+      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-96 w-full" />
       </div>
@@ -120,7 +120,7 @@ export default function ContactsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Users className="size-5 text-muted-foreground" />

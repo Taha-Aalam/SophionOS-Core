@@ -1,7 +1,7 @@
 export const NOTES_TABS_LIST_CLASS_NAME =
   "flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
-export const NOTES_PAGE_SHELL_CLASS_NAME = "flex flex-col gap-6 p-6 lg:p-8";
+export const NOTES_PAGE_SHELL_CLASS_NAME = "flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full";
 
 export const NOTES_TABLE_WRAPPER_CLASS_NAME = "overflow-x-auto rounded-lg border";
 export const NOTES_RELATION_BADGE_CLASS_NAME =

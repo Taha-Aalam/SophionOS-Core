@@ -26,8 +26,9 @@ describe("note page display helpers", () => {
 
   it("keeps the Notes page on the wide dashboard shell", () => {
     expect(NOTES_PAGE_SHELL_CLASS_NAME).toContain("p-6");
-    expect(NOTES_PAGE_SHELL_CLASS_NAME).toContain("lg:p-8");
-    expect(NOTES_PAGE_SHELL_CLASS_NAME).not.toContain("max-w-4xl");
+    expect(NOTES_PAGE_SHELL_CLASS_NAME).toContain("max-w-7xl");
+    expect(NOTES_PAGE_SHELL_CLASS_NAME).toContain("mx-auto");
+    expect(NOTES_PAGE_SHELL_CLASS_NAME).toContain("w-full");
   });
 
   it("uses visible archive row actions with explicit archive labels", () => {

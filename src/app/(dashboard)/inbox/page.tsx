@@ -604,8 +604,8 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-0">
-      <div className="border-b border-border/50 px-6 py-5">
+    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className="border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
           <InboxIcon className="size-6 text-muted-foreground" />
           <div>
@@ -621,7 +621,7 @@ export default function InboxPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-6 px-6 py-6">
+      <div className="flex flex-col gap-6 py-6">
         {isLoading ? (
           <div className="flex flex-col gap-2">
             {Array.from({ length: 4 }).map((_, i) => (

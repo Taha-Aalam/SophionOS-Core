@@ -6,11 +6,7 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Settings, SunMoon } from "lucide-react";
 
-import {
-  coreNavItems,
-  systemNavItems,
-  trackerSectionMessage,
-} from "@/components/layout/navigation";
+import { coreNavItems, systemNavItems } from "@/components/layout/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -106,12 +102,6 @@ export function MobileNav() {
             ))}
           </div>
 
-          <div className="space-y-2 rounded-xl border border-border bg-muted/30 px-3 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Trackers
-            </p>
-            <p className="text-sm text-muted-foreground">{trackerSectionMessage}</p>
-          </div>
         </nav>
 
         <div className="space-y-1 border-t border-border px-3 py-4">

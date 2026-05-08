@@ -8,6 +8,7 @@ import {
   Map,
   NotebookPen,
   Sun,
+  Tag,
   Target,
   Users,
 } from "lucide-react";
@@ -15,18 +16,19 @@ import {
 const coreNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/areas", label: "Areas", icon: Map },
+  { href: "/goals", label: "Goals", icon: Target },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
-  { href: "/goals", label: "Goals", icon: Target },
   { href: "/notes", label: "Notes", icon: NotebookPen },
   { href: "/resources", label: "Resources", icon: Globe },
+  { href: "/topics", label: "Topics", icon: Tag },
   { href: "/contacts", label: "Contacts", icon: Users },
 ] as const;
 
 const systemNavItems = [
-  { href: "/knowledge", label: "Knowledge Hub", icon: Library },
-  { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/my-day", label: "My Day", icon: Sun },
+  { href: "/inbox", label: "Inbox", icon: Inbox },
+  { href: "/knowledge", label: "Knowledge Hub", icon: Library },
 ] as const;
 
 const breadcrumbLabels: Record<string, string> = {
@@ -46,8 +48,7 @@ const breadcrumbLabels: Record<string, string> = {
   settings: "Settings",
   signup: "Sign Up",
   tasks: "Tasks",
+  topics: "Topics",
 };
 
-const trackerSectionMessage = "Trackers return in later restoration batches.";
-
-export { breadcrumbLabels, coreNavItems, systemNavItems, trackerSectionMessage };
+export { breadcrumbLabels, coreNavItems, systemNavItems };
