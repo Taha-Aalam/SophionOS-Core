@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Command,
@@ -62,19 +62,16 @@ export function NoteTaskSelector({
   return (
     <div className="space-y-2">
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="w-full justify-between text-sm font-normal"
-            disabled={disabled}
-          >
-            <span className="truncate">
-              {selectedIds.length === 0 ? placeholder : `${selectedIds.length} linked`}
-            </span>
-            <ChevronDown className="ml-2 size-3.5 shrink-0 opacity-50" />
-          </Button>
+        <PopoverTrigger
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
+        >
+          <span className="truncate">
+            {selectedIds.length === 0 ? placeholder : `${selectedIds.length} linked`}
+          </span>
+          <ChevronDown className="ml-2 size-3.5 shrink-0 opacity-50" />
         </PopoverTrigger>
         <PopoverContent className="w-72 p-0" align="start">
           <Command shouldFilter={false}>

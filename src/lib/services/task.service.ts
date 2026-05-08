@@ -1,10 +1,9 @@
 import { z } from "zod";
-
+import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
 import { createClient } from "../supabase/client";
 import type { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
-import { createTaskSchema, updateTaskSchema } from "../validators/task.schema";
-import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
 import { TASK_STATUS, type TaskStatus } from "../utils/constants";
+import { createTaskSchema, updateTaskSchema } from "../validators/task.schema";
 
 const TASK_SELECT =
   "id, user_id, area_id, project_id, name, description, status, priority, due_date, is_completed, is_focused, is_important, is_urgent, completed_at, smart_priority, is_archived, created_at, updated_at";
@@ -56,8 +55,9 @@ function extractTaskAreaIds<TInput extends { area_id?: string | null; area_ids?:
 
 function isMissingTaskAreasTableError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
-  const code = "code" in error && typeof (error as any).code === "string" ? (error as any).code : undefined;
-  const message = "message" in error && typeof (error as any).message === "string" ? (error as any).message : "";
+  const e = error as Record<string, unknown>;
+  const code = typeof e.code === "string" ? e.code : undefined;
+  const message = typeof e.message === "string" ? e.message : "";
   const normalizedMessage = message.toLowerCase();
   return (
     code === "42P01" ||
@@ -117,6 +117,38 @@ async function hydrateSingleTaskAreaLinks(task: Task): Promise<Task> {
   return hydrated;
 }
 
+async function hydrateTaskGoalLinks(tasks: Task[]): Promise<Task[]> {
+  if (tasks.length === 0) return tasks;
+
+  const taskIds = tasks.map((t) => t.id);
+
+  const result = await createClient()
+    .from("goal_tasks")
+    .select("task_id, goal_id")
+    .in("task_id", taskIds);
+
+  if (result.error) {
+    throw new DatabaseError(result.error.message);
+  }
+
+  const goalIdsByTaskId = new Map<string, string[]>();
+  for (const row of result.data ?? []) {
+    const current = goalIdsByTaskId.get(row.task_id) ?? [];
+    current.push(row.goal_id);
+    goalIdsByTaskId.set(row.task_id, current);
+  }
+
+  return tasks.map((task) => ({
+    ...task,
+    linkedGoalIds: goalIdsByTaskId.get(task.id) ?? [],
+  }));
+}
+
+async function hydrateSingleTaskGoalLinks(task: Task): Promise<Task> {
+  const [hydrated] = await hydrateTaskGoalLinks([task]);
+  return hydrated;
+}
+
 // ─── Goal ID helpers ──────────────────────────────────────────────────────────
 
 function extractGoalIds(input: { goal_ids?: string[] }): {
@@ -145,7 +177,8 @@ export const taskService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateTaskAreaLinks(data || []);
+    const tasksWithAreas = await hydrateTaskAreaLinks(data || []);
+    return hydrateTaskGoalLinks(tasksWithAreas);
   },
 
   async getById(userId: string, id: string): Promise<Task> {
@@ -163,7 +196,8 @@ export const taskService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateSingleTaskAreaLinks(data);
+    const taskWithAreas = await hydrateSingleTaskAreaLinks(data);
+    return hydrateSingleTaskGoalLinks(taskWithAreas);
   },
 
   async create(userId: string, input: CreateTaskInput): Promise<Task> {
@@ -289,7 +323,8 @@ export const taskService = {
     const { data, error } = await query;
     if (error) throw new DatabaseError(error.message);
 
-    return hydrateTaskAreaLinks(data || []);
+    const tasksWithAreas = await hydrateTaskAreaLinks(data || []);
+    return hydrateTaskGoalLinks(tasksWithAreas);
   },
 
   async getOverdue(userId: string): Promise<Task[]> {
@@ -305,7 +340,8 @@ export const taskService = {
 
     if (error) throw new DatabaseError(error.message);
 
-    return hydrateTaskAreaLinks(data || []);
+    const tasksWithAreas = await hydrateTaskAreaLinks(data || []);
+    return hydrateTaskGoalLinks(tasksWithAreas);
   },
 
   async getFocused(userId: string): Promise<Task[]> {
@@ -320,7 +356,8 @@ export const taskService = {
 
     if (error) throw new DatabaseError(error.message);
 
-    return hydrateTaskAreaLinks(data || []);
+    const tasksWithAreas = await hydrateTaskAreaLinks(data || []);
+    return hydrateTaskGoalLinks(tasksWithAreas);
   },
 
   async uncomplete(userId: string, id: string): Promise<Task> {
@@ -357,7 +394,10 @@ export const taskService = {
     return data;
   },
 
-  async getWithRelations(_userId: string, id: string): Promise<{ goal_ids: string[]; area_ids: string[] }> {
+  async getWithRelations(
+    _userId: string,
+    id: string,
+  ): Promise<{ goal_ids: string[]; area_ids: string[] }> {
     const [goalResult, areaResult] = await Promise.all([
       createClient().from("goal_tasks").select("goal_id").eq("task_id", id),
       createClient().from("task_areas").select("area_id").eq("task_id", id),
@@ -445,7 +485,8 @@ export const taskService = {
     if (error) throw new DatabaseError(error.message);
 
     const tasks = (data ?? []).map((r) => r.task as unknown as Task).filter(Boolean);
-    return hydrateTaskAreaLinks(tasks);
+    const tasksWithAreas = await hydrateTaskAreaLinks(tasks);
+    return hydrateTaskGoalLinks(tasksWithAreas);
   },
 
   async touch(userId: string, id: string): Promise<Task> {
@@ -475,10 +516,7 @@ export const taskService = {
   },
 
   async getAreaLinks(taskId: string): Promise<string[]> {
-    const result = await createClient()
-      .from("task_areas")
-      .select("area_id")
-      .eq("task_id", taskId);
+    const result = await createClient().from("task_areas").select("area_id").eq("task_id", taskId);
     if (result.error) {
       if (isMissingTaskAreasTableError(result.error)) return [];
       throw new DatabaseError(result.error.message);
@@ -487,4 +525,5 @@ export const taskService = {
   },
 
   hydrateTaskAreaLinks,
+  hydrateTaskGoalLinks,
 };

@@ -173,7 +173,8 @@ export const dashboardService = {
       .limit(20);
 
     // Deduplicate: merge focus + due-today, prefer the focus version for duplicates
-    const taskMap = new Map<string, any>();
+    type TodayTaskRow = NonNullable<typeof tasksData>[number];
+    const taskMap = new Map<string, TodayTaskRow>();
     for (const t of tasksData ?? []) {
       taskMap.set(t.id, t);
     }
@@ -184,7 +185,6 @@ export const dashboardService = {
     }
     const allTodayTasks = Array.from(taskMap.values());
 
-    const now = new Date();
     const todayStartDate = new Date(todayStart);
 
     const todayTasksFormatted = allTodayTasks.map((t) => {

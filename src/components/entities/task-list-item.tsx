@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Archive, Calendar, Folder, Pencil, Star, Tag } from "lucide-react";
+import { Archive, Calendar, Folder, Pencil, Star, Tag, Target } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,6 +16,8 @@ interface TaskListItemProps {
   task: Task;
   areaName?: string | null;
   linkedAreaNames?: string[];
+  goalName?: string | null;
+  linkedGoalNames?: string[];
   projectName?: string | null;
   showSmartPriority?: boolean;
   onCompletionToggle: (id: string, isCompleted: boolean) => void;
@@ -49,6 +51,8 @@ export function TaskListItem({
   task,
   areaName,
   linkedAreaNames,
+  goalName,
+  linkedGoalNames,
   projectName,
   showSmartPriority = false,
   onCompletionToggle,
@@ -58,6 +62,7 @@ export function TaskListItem({
   onDelete,
 }: TaskListItemProps) {
   const displayAreaNames = linkedAreaNames && linkedAreaNames.length > 0 ? linkedAreaNames : (areaName ? [areaName] : []);
+  const displayGoalNames = linkedGoalNames && linkedGoalNames.length > 0 ? linkedGoalNames : (goalName ? [goalName] : []);
   const dueInfo = formatDueDate(task.due_date);
 
   return (
@@ -112,6 +117,15 @@ export function TaskListItem({
             {displayAreaNames[0]}
             {displayAreaNames.length > 1 && (
               <span className="ml-0.5 text-muted-foreground">+{displayAreaNames.length - 1}</span>
+            )}
+          </Badge>
+        )}
+        {displayGoalNames.length > 0 && (
+          <Badge variant="outline" className="gap-1 text-xs font-normal">
+            <Target className="size-3" />
+            {displayGoalNames[0]}
+            {displayGoalNames.length > 1 && (
+              <span className="ml-0.5 text-muted-foreground">+{displayGoalNames.length - 1}</span>
             )}
           </Badge>
         )}

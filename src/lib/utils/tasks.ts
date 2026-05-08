@@ -184,6 +184,14 @@ export function taskMatchesAreaId(task: Task, areaId: string): boolean {
   return getTaskLinkedAreaIds(task).includes(areaId);
 }
 
+export function getTaskLinkedGoalIds(task: Task): string[] {
+  return task.linkedGoalIds ?? [];
+}
+
+export function taskMatchesGoalId(task: Task, goalId: string): boolean {
+  return getTaskLinkedGoalIds(task).includes(goalId);
+}
+
 export function getTaskCounts(tasks: Task[]): TaskCounts {
   return {
     all: tasks.filter((task) => !task.is_archived).length,

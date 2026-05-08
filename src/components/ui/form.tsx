@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import type { Control, ControllerFieldState, ControllerRenderProps, FieldValues } from "react-hook-form";
 import { useFormField } from "./form-field";
 import { cn } from "@/lib/utils";
 
@@ -72,6 +73,7 @@ const FormControlInner = React.forwardRef<
 >(({ className, ...props }, ref) => {
   return <div ref={ref} className={className} {...props} />;
 });
+FormControlInner.displayName = "FormControlInner";
 
 export const FormMessage = React.forwardRef<
   HTMLParagraphElement,
@@ -93,9 +95,9 @@ export const FormField = ({
   render,
   ...props
 }: {
-  control: any;
+  control: Control<FieldValues>;
   name: string;
-  render: (field: any, formState: any) => React.ReactNode;
+  render: (field: ControllerRenderProps<FieldValues, string>, formState: ControllerFieldState) => React.ReactNode;
 } & React.HTMLAttributes<HTMLDivElement>) => {
   const { field, fieldState } = useFormField({
     control,

@@ -189,7 +189,7 @@ export type Database = {
           name: string;
           slug: string | null;
           content: string | null;
-          type: Database["public"]["Enums"]["note_type"];
+          type: string;
           status: Database["public"]["Enums"]["note_status"];
           notebook: string | null;
           favorite: boolean;
@@ -208,7 +208,7 @@ export type Database = {
           name: string;
           slug?: string | null;
           content?: string | null;
-          type?: Database["public"]["Enums"]["note_type"];
+          type?: string;
           status?: Database["public"]["Enums"]["note_status"];
           notebook?: string | null;
           favorite?: boolean;
@@ -227,7 +227,7 @@ export type Database = {
           name?: string;
           slug?: string | null;
           content?: string | null;
-          type?: Database["public"]["Enums"]["note_type"];
+          type?: string;
           status?: Database["public"]["Enums"]["note_status"];
           notebook?: string | null;
           favorite?: boolean;
@@ -415,6 +415,20 @@ export type Database = {
           area_id?: string;
         };
       };
+      task_notes: {
+        Row: {
+          task_id: string;
+          note_id: string;
+        };
+        Insert: {
+          task_id: string;
+          note_id: string;
+        };
+        Update: {
+          task_id?: string;
+          note_id?: string;
+        };
+      };
       tasks: {
         Row: {
           id: string;
@@ -573,6 +587,34 @@ export type Database = {
           role_in_task?: string | null;
         };
       };
+      note_areas: {
+        Row: {
+          note_id: string;
+          area_id: string;
+        };
+        Insert: {
+          note_id: string;
+          area_id: string;
+        };
+        Update: {
+          note_id?: string;
+          area_id?: string;
+        };
+      };
+      note_projects: {
+        Row: {
+          note_id: string;
+          project_id: string;
+        };
+        Insert: {
+          note_id: string;
+          project_id: string;
+        };
+        Update: {
+          note_id?: string;
+          project_id?: string;
+        };
+      };
       note_related_notes: {
         Row: {
           note_a_id: string;
@@ -588,6 +630,32 @@ export type Database = {
           note_a_id?: string;
           note_b_id?: string;
           created_at?: string;
+        };
+      };
+      note_types: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          slug: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          slug: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          slug?: string;
+          created_at?: string;
+          updated_at?: string;
         };
       };
       user_settings: {

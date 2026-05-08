@@ -53,8 +53,9 @@ function extractResourceAreaIds<TInput extends { area_id?: string | null; area_i
 
 function isMissingResourceAreasTableError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
-  const code = "code" in error && typeof (error as any).code === "string" ? (error as any).code : undefined;
-  const message = "message" in error && typeof (error as any).message === "string" ? (error as any).message : "";
+  const e = error as Record<string, unknown>;
+  const code = typeof e.code === "string" ? e.code : undefined;
+  const message = typeof e.message === "string" ? e.message : "";
   const normalizedMessage = message.toLowerCase();
   return (
     code === "42P01" ||
@@ -139,8 +140,9 @@ function extractTaskIds(input: { task_ids?: string[] }): {
 
 function isMissingTaskResourcesTableError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
-  const code = "code" in error && typeof (error as any).code === "string" ? (error as any).code : undefined;
-  const message = "message" in error && typeof (error as any).message === "string" ? (error as any).message : "";
+  const e = error as Record<string, unknown>;
+  const code = typeof e.code === "string" ? e.code : undefined;
+  const message = typeof e.message === "string" ? e.message : "";
   const normalizedMessage = message.toLowerCase();
   return (
     code === "42P01" ||

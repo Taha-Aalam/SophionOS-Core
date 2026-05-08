@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -137,25 +137,29 @@ export function ResourceDialog({ open, onOpenChange, resource, onSubmit, isPendi
 
   useEffect(() => {
     if (open && resource) {
-      setName(resource.name);
-      setUrl(resource.url ?? "");
-      setType(resource.type);
-      setStatus(resource.status as ResourceStatus);
-      setAreaIds(resource.linkedAreaIds ?? (resource.area_id ? [resource.area_id] : []));
-      setProjectId(resource.project_id ?? "");
-      setTopicId(resource.topic_id ?? "");
-      setGoalIds(resource.linkedGoalIds ?? []);
-      setTaskIds(resource.linkedTaskIds ?? []);
+      startTransition(() => {
+        setName(resource.name);
+        setUrl(resource.url ?? "");
+        setType(resource.type);
+        setStatus(resource.status as ResourceStatus);
+        setAreaIds(resource.linkedAreaIds ?? (resource.area_id ? [resource.area_id] : []));
+        setProjectId(resource.project_id ?? "");
+        setTopicId(resource.topic_id ?? "");
+        setGoalIds(resource.linkedGoalIds ?? []);
+        setTaskIds(resource.linkedTaskIds ?? []);
+      });
     } else if (open) {
-      setName("");
-      setUrl("");
-      setType(RESOURCE_TYPE.WEBSITE);
-      setStatus(RESOURCE_STATUS.INBOX);
-      setAreaIds([]);
-      setProjectId("");
-      setTopicId("");
-      setGoalIds([]);
-      setTaskIds([]);
+      startTransition(() => {
+        setName("");
+        setUrl("");
+        setType(RESOURCE_TYPE.WEBSITE);
+        setStatus(RESOURCE_STATUS.INBOX);
+        setAreaIds([]);
+        setProjectId("");
+        setTopicId("");
+        setGoalIds([]);
+        setTaskIds([]);
+      });
     }
   }, [open, resource]);
 

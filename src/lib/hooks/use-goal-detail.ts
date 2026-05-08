@@ -55,8 +55,8 @@ export function useGoalDetail(goalId: string, filters?: GoalDetailFilters) {
 
       let projects = projectsResult;
       let tasks = tasksResult;
-      let notes = notesResult;
-      let resources = resourcesResult;
+      const notes = notesResult;
+      const resources = resourcesResult;
 
       // Apply status filters if provided
       if (filters?.projectStatus && filters.projectStatus !== "all") {

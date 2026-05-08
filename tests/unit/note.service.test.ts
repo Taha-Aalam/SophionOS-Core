@@ -30,24 +30,38 @@ describe("noteService", () => {
     updated_at: new Date().toISOString(),
   };
 
+  // Stub for junction-table queries (note_areas, goal_notes, task_notes) and
+  // note_types upsert — all of which are secondary createClient() calls.
+  function makeHydrationClient() {
+    return {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+      upsert: vi.fn().mockResolvedValue({ error: null }),
+    };
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("creates a note with defaults", async () => {
+    // create() calls: (1) upsertNoteType, (2) insert note, (3-5) hydration.
+    // A single client mock with all required methods handles all five calls.
     const client = {
       from: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      like: vi.fn().mockReturnThis(),
+      upsert: vi.fn().mockResolvedValue({ error: null }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
       single: vi.fn().mockResolvedValue({ data: baseNote, error: null }),
     };
     vi.mocked(createClient).mockReturnValue(client as never);
 
     const result = await noteService.create(userId, { name: "Test note" });
 
-    expect(result).toEqual(baseNote);
+    expect(result).toMatchObject(baseNote);
     expect(client.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Test note",
@@ -71,7 +85,8 @@ describe("noteService", () => {
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      like: vi.fn().mockReturnThis(),
+      upsert: vi.fn().mockResolvedValue({ error: null }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
       single: vi.fn().mockResolvedValue({ data: researchNote, error: null }),
     };
     vi.mocked(createClient).mockReturnValue(client as never);
@@ -87,13 +102,16 @@ describe("noteService", () => {
   });
 
   it("lists notes without filters", async () => {
-    const client = {
+    // list() calls: (1) main query, (2-4) hydration.
+    const primaryClient = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({ data: [baseNote], error: null }),
     };
-    vi.mocked(createClient).mockReturnValueOnce(client as never);
+    vi.mocked(createClient)
+      .mockReturnValue(makeHydrationClient() as never)
+      .mockReturnValueOnce(primaryClient as never);
 
     const result = await noteService.list(userId);
 
@@ -101,16 +119,54 @@ describe("noteService", () => {
     expect(result[0].id).toBe(noteId);
   });
 
+  it("default list excludes archived notes", async () => {
+    const primaryClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+    };
+    vi.mocked(createClient)
+      .mockReturnValue(makeHydrationClient() as never)
+      .mockReturnValueOnce(primaryClient as never);
+
+    await noteService.list(userId);
+
+    expect(primaryClient.eq).toHaveBeenCalledWith("is_archived", false);
+  });
+
+  it("lists notes including archived when includeArchived is true", async () => {
+    const archivedNote = { ...baseNote, is_archived: true };
+    const primaryClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [archivedNote], error: null }),
+    };
+    vi.mocked(createClient)
+      .mockReturnValue(makeHydrationClient() as never)
+      .mockReturnValueOnce(primaryClient as never);
+
+    const result = await noteService.list(userId, { includeArchived: true });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].is_archived).toBe(true);
+    expect(primaryClient.eq).not.toHaveBeenCalledWith("is_archived", false);
+  });
+
   it("updates a note", async () => {
+    // update() calls: (1) update query, (2-4) hydration. No upsertNoteType since no type field.
     const updated = { ...baseNote, name: "Updated title", status: NOTE_STATUS.ACTIVE };
-    const client = {
+    const primaryClient = {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: updated, error: null }),
     };
-    vi.mocked(createClient).mockReturnValueOnce(client as never);
+    vi.mocked(createClient)
+      .mockReturnValue(makeHydrationClient() as never)
+      .mockReturnValueOnce(primaryClient as never);
 
     const result = await noteService.update(userId, noteId, {
       name: "Updated title",
@@ -119,26 +175,29 @@ describe("noteService", () => {
 
     expect(result.name).toBe("Updated title");
     expect(result.status).toBe(NOTE_STATUS.ACTIVE);
-    expect(client.update).toHaveBeenCalledWith(
+    expect(primaryClient.update).toHaveBeenCalledWith(
       expect.objectContaining({ name: "Updated title", status: NOTE_STATUS.ACTIVE }),
     );
   });
 
   it("archives a note", async () => {
+    // archive() calls: (1) update query, (2-4) hydration.
     const archived = { ...baseNote, is_archived: true };
-    const client = {
+    const primaryClient = {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: archived, error: null }),
     };
-    vi.mocked(createClient).mockReturnValueOnce(client as never);
+    vi.mocked(createClient)
+      .mockReturnValue(makeHydrationClient() as never)
+      .mockReturnValueOnce(primaryClient as never);
 
     const result = await noteService.archive(userId, noteId);
 
     expect(result.is_archived).toBe(true);
-    expect(client.update).toHaveBeenCalledWith({ is_archived: true });
+    expect(primaryClient.update).toHaveBeenCalledWith({ is_archived: true });
   });
 
   it("throws ValidationError for empty name on create", async () => {

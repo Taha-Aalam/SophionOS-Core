@@ -7,14 +7,14 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, public details?: any) {
+  constructor(message: string, public details?: unknown) {
     super(message, 400, 'VALIDATION_ERROR');
   }
 }
 
 export function formatValidationMessage(error: Error): string {
   if (error instanceof ValidationError && Array.isArray(error.details) && error.details.length > 0) {
-    const issues = error.details.map((issue: any) => {
+    const issues = error.details.map((issue: { path?: string[]; message: string }) => {
       const path = issue.path?.join?.('.') || 'field';
       return `${path}: ${issue.message}`;
     });
@@ -30,7 +30,7 @@ export class NotFoundError extends AppError {
 }
 
 export class DatabaseError extends AppError {
-  constructor(message: string = 'A database error occurred', public originalError?: any) {
+  constructor(message: string = 'A database error occurred', public originalError?: unknown) {
     super(message, 500, 'DATABASE_ERROR');
   }
 }

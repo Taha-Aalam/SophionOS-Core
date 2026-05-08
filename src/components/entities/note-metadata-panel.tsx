@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { BookOpen, Check, ChevronDown, Map, Pin, Star, Target, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Command,
@@ -430,18 +430,15 @@ function AreaSelector({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          className="w-full justify-between text-sm font-normal"
-          disabled={disabled}
-        >
-          <span className="truncate">
-            {selectedIds.length === 0 ? "Select areas..." : `${selectedIds.length} selected`}
-          </span>
-          <ChevronDown className="ml-2 size-3.5 shrink-0 opacity-50" />
-        </Button>
+      <PopoverTrigger
+        role="combobox"
+        disabled={disabled}
+        className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
+      >
+        <span className="truncate">
+          {selectedIds.length === 0 ? "Select areas..." : `${selectedIds.length} selected`}
+        </span>
+        <ChevronDown className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start">
         <Command shouldFilter={false}>
@@ -494,18 +491,15 @@ function GoalSelector({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          className="w-full justify-between text-sm font-normal"
-          disabled={disabled}
-        >
-          <span className="truncate">
-            {selectedIds.length === 0 ? "Select goals..." : `${selectedIds.length} selected`}
-          </span>
-          <ChevronDown className="ml-2 size-3.5 shrink-0 opacity-50" />
-        </Button>
+      <PopoverTrigger
+        role="combobox"
+        disabled={disabled}
+        className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
+      >
+        <span className="truncate">
+          {selectedIds.length === 0 ? "Select goals..." : `${selectedIds.length} selected`}
+        </span>
+        <ChevronDown className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0" align="start">
         <Command shouldFilter={false}>
@@ -558,18 +552,15 @@ function ProjectSelector({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          className="w-full justify-between text-sm font-normal"
-          disabled={disabled}
-        >
-          <span className="truncate">
-            {selectedIds.length === 0 ? "Select projects..." : `${selectedIds.length} selected`}
-          </span>
-          <ChevronDown className="ml-2 size-3.5 shrink-0 opacity-50" />
-        </Button>
+      <PopoverTrigger
+        role="combobox"
+        disabled={disabled}
+        className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
+      >
+        <span className="truncate">
+          {selectedIds.length === 0 ? "Select projects..." : `${selectedIds.length} selected`}
+        </span>
+        <ChevronDown className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start">
         <Command shouldFilter={false}>

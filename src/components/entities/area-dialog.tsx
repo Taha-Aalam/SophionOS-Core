@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { Controller, useForm, type Resolver } from "react-hook-form";
+import { Controller, useForm, type Resolver, type SubmitHandler } from "react-hook-form";
 import { z } from "zod/v4";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -117,7 +117,7 @@ export function AreaDialog({
           <DialogTitle>{area ? "Edit Area" : "Create New Area"}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onFormSubmit as any)} className="space-y-4">
+        <form onSubmit={handleSubmit(onFormSubmit as SubmitHandler<AreaFormValues>)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
             <Input id="name" placeholder="e.g., Career Growth" {...register("name")} />

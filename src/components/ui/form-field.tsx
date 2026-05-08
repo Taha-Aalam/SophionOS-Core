@@ -2,12 +2,13 @@
 
 import * as React from "react";
 import { useController, useFormContext } from "react-hook-form";
+import type { Control, FieldValues } from "react-hook-form";
 
 export function useFormField({
   control,
   name,
 }: {
-  control?: any;
+  control?: Control<FieldValues>;
   name: string;
 }) {
   const context = useFormContext();
