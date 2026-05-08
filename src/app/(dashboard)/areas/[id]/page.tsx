@@ -1,40 +1,54 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  Archive,
   ArrowLeft,
-  CheckSquare,
-  Edit2,
-  FolderKanban,
-  NotebookPen,
-  RotateCcw,
+  ChevronDown,
+  ChevronRight,
+  Edit,
   Target,
+  Trash2,
 } from "lucide-react";
 
-import { useGoals } from "@/lib/hooks/use-goals";
-import { useArea, useArchiveArea, useRestoreArea } from "@/lib/hooks/use-areas";
-import { useNotesByArea } from "@/lib/hooks/use-notes";
-import { useProjects } from "@/lib/hooks/use-projects";
-import { useTasks } from "@/lib/hooks/use-tasks";
-import { useAuth } from "@/components/providers/auth-provider";
-import { useUIStore } from "@/lib/stores/ui.store";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/views/empty-state";
+import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { GoalCard } from "@/components/entities/goal-card";
+import { GoalDialog } from "@/components/entities/goal-dialog";
 import { ProjectCard } from "@/components/entities/project-card";
+import { ProjectDialog } from "@/components/entities/project-dialog";
+import { TaskDialog } from "@/components/entities/task-dialog";
+import { TaskListItem } from "@/components/entities/task-list-item";
+import { EmptyState } from "@/components/views/empty-state";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/components/providers/auth-provider";
+import { useAreaDetail } from "@/lib/hooks/use-area-detail";
+import { useArchiveArea, useRestoreArea, useUpdateArea } from "@/lib/hooks/use-areas";
+import {
+  useCompleteTaskWithGoalRefresh,
+  useDeleteTask,
+  useUpdateTask,
+} from "@/lib/hooks/use-tasks";
+import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
-import { getAreaRollups, normalizeAreaType } from "@/lib/utils/areas";
+import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 
 const AREA_TYPE_COLORS: Record<string, string> = {
   Business: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
   Personal: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
   Studies: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+};
+
+const STATUS_LABELS: Record<AreaStatus, string> = {
+  active: "Active",
+  inactive: "Inactive",
+  archived: "Archived",
 };
 
 export default function AreaDetailPage() {
@@ -45,16 +59,34 @@ export default function AreaDetailPage() {
   const areaIdentifier = params.id as string;
   const { setPageTitle } = useUIStore();
 
-  const { data: area, isLoading: areaLoading } = useArea(areaIdentifier);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
+  const [goalTab, setGoalTab] = useState("all");
+  const [projectTab, setProjectTab] = useState("all");
+  const [taskTab, setTaskTab] = useState("all");
+  const [noteTab, setNoteTab] = useState("all");
+  const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
+  const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
+  const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
+
+  const projectsRef = useRef<HTMLDivElement>(null);
+  const tasksRef = useRef<HTMLDivElement>(null);
+  const notesRef = useRef<HTMLDivElement>(null);
+
+  const { data: areaData, isLoading } = useAreaDetail(areaIdentifier);
+
   const archiveArea = useArchiveArea(userId);
   const restoreArea = useRestoreArea(userId);
-  const { data: goals = [], isLoading: goalsLoading } = useGoals({
-    areaId: area?.id,
-    status: "all",
-  });
-  const { data: projects = [], isLoading: projectsLoading } = useProjects({ status: "all" });
-  const { data: tasks = [], isLoading: tasksLoading } = useTasks();
-  const { data: notes = [], isLoading: notesLoading } = useNotesByArea(area?.id ?? "");
+  const updateArea = useUpdateArea(userId);
+  const completeTask = useCompleteTaskWithGoalRefresh();
+  const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
+
+  const area = areaData?.area;
+  const rollups = areaData?.rollups ?? { goalCount: 0, projectCount: 0, taskCount: 0, noteCount: 0 };
+
+  const areaStatus = area ? classifyAreaStatus(area) : "active";
+  const areaType = area ? normalizeAreaType(area.type) : "Personal";
 
   useEffect(() => {
     if (area) {
@@ -63,313 +95,546 @@ export default function AreaDetailPage() {
     return () => setPageTitle("");
   }, [area, setPageTitle]);
 
-  if (areaLoading) {
+  const filteredGoals = useMemo(() => {
+    const goals = areaData?.goals;
+    if (!goals) return [];
+    if (goalTab === "all") return goals;
+    if (goalTab === "active") return goals.filter((g) => !g.is_completed && !g.is_archived);
+    if (goalTab === "completed") return goals.filter((g) => g.is_completed && !g.is_archived);
+    if (goalTab === "archived") return goals.filter((g) => g.is_archived);
+    return goals;
+  }, [areaData?.goals, goalTab]);
+
+  const filteredProjects = useMemo(() => {
+    const projects = areaData?.projects;
+    if (!projects) return [];
+    if (projectTab === "all") return projects;
+    if (projectTab === "planning") return projects.filter((p) => p.status === "planning");
+    if (projectTab === "active") return projects.filter((p) => p.status === "active");
+    if (projectTab === "completed") return projects.filter((p) => p.status === "completed");
+    if (projectTab === "archived") return projects.filter((p) => p.is_archived);
+    return projects;
+  }, [areaData?.projects, projectTab]);
+
+  const filteredTasks = useMemo(() => {
+    const tasks = areaData?.tasks;
+    if (!tasks) return [];
+    if (taskTab === "all") return tasks;
+    if (taskTab === "inbox") return tasks.filter((t) => t.status === "inbox" && !t.is_completed);
+    if (taskTab === "upcoming") return tasks.filter((t) => t.status !== "inbox" && t.status !== "completed" && !t.is_completed);
+    if (taskTab === "overdue") return tasks.filter((t) => {
+      if (!t.due_date || t.is_completed) return false;
+      return new Date(t.due_date) < new Date();
+    });
+    if (taskTab === "completed") return tasks.filter((t) => t.is_completed);
+    return tasks;
+  }, [areaData?.tasks, taskTab]);
+
+  const filteredNotes = useMemo(() => {
+    const notes = areaData?.notes;
+    if (!notes) return [];
+    if (noteTab === "all") return notes;
+    if (noteTab === "inbox") return notes.filter((n) => n.status === "inbox");
+    if (noteTab === "active") return notes.filter((n) => n.status === "active");
+    if (noteTab === "archived") return notes.filter((n) => n.is_archived);
+    return notes;
+  }, [areaData?.notes, noteTab]);
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleArchiveToggle = async (checked: boolean) => {
+    if (!area || checked === area.archive) return;
+    if (checked) {
+      await archiveArea.mutateAsync(area.id);
+      router.push("/areas");
+    } else {
+      await restoreArea.mutateAsync(area.id);
+    }
+  };
+
+  const handleInactiveToggle = async (checked: boolean) => {
+    if (!area || checked === area.inactive) return;
+    await updateArea.mutateAsync({ id: area.id, inactive: checked });
+  };
+
+  const handleDeleteArea = async () => {
+    if (!area) return;
+    await archiveArea.mutateAsync(area.id);
+    router.push("/areas");
+  };
+
+  const handleTaskCompletion = async (taskId: string, completed: boolean) => {
+    if (completed) {
+      await completeTask.mutateAsync(taskId);
+    } else {
+      await updateTask.mutateAsync({
+        id: taskId,
+        input: { is_completed: false, completed_at: null },
+      });
+    }
+  };
+
+  const handleTaskNameSave = async (taskId: string, name: string) => {
+    await updateTask.mutateAsync({ id: taskId, input: { name } });
+  };
+
+  const handleTaskDelete = async (taskId: string) => {
+    await deleteTask.mutateAsync(taskId);
+  };
+
+  if (isLoading) {
     return (
-      <div className="p-6 lg:p-8 max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
-          <Skeleton className="h-10 w-10" />
-          <Skeleton className="h-8 w-48" />
-        </div>
-        <div className="grid gap-4">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-        </div>
+      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-52 w-full" />
       </div>
     );
   }
 
   if (!area) {
     return (
-      <div className="p-6 lg:p-8 max-w-4xl mx-auto">
+      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+        <Button variant="ghost" onClick={() => router.push("/areas")}>
+          <ArrowLeft className="mr-2 size-4" />
+          Back to Areas
+        </Button>
         <EmptyState
           icon={Target}
           title="Area not found"
-          description="This area doesn't exist or you don't have access to it"
-          actionLabel="Go Back"
+          description="This area may have been deleted or you do not have access to it."
+          actionLabel="Return to Areas"
           onAction={() => router.push("/areas")}
         />
       </div>
     );
   }
 
-  const linkedGoals = goals.filter((goal) => !goal.is_archived);
-  const linkedProjects = projects.filter(
-    (project) => project.area_id === area.id && !project.is_archived,
-  );
-  const openTasks = tasks.filter(
-    (task) => task.area_id === area.id && !task.is_archived && !task.is_completed,
-  );
-  const linkedNotes = notes.filter((note) => !note.is_archived);
-  const rollups = getAreaRollups({
-    areaId: area.id,
-    goals: linkedGoals,
-    projects: linkedProjects,
-    tasks: openTasks,
-    notes: linkedNotes,
-  });
-  const areaType = normalizeAreaType(area.type);
-
-  const handleArchive = async () => {
-    await archiveArea.mutateAsync(area.id);
-    router.push("/areas");
-  };
-
-  const handleRestore = async () => {
-    await restoreArea.mutateAsync(area.id);
-  };
-
   return (
-    <div className="p-6 lg:p-8 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon-sm" onClick={() => router.push("/areas")}>
-          <ArrowLeft className="size-4" />
+    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-6"
+          onClick={() => router.push("/areas")}
+        >
+          <ArrowLeft className="size-3.5" />
         </Button>
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          {area.icon ? (
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0"
-              style={{ backgroundColor: area.color ? `${area.color}20` : "var(--muted)" }}
-            >
-              {area.icon}
-            </div>
-          ) : (
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0 font-bold"
-              style={{
-                backgroundColor: area.color ? `${area.color}20` : "var(--muted)",
-                color: area.color || "var(--foreground)",
-              }}
-            >
-              {area.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight truncate">{area.name}</h1>
-              <Badge variant="secondary" className={cn("text-xs", AREA_TYPE_COLORS[areaType])}>
-                {areaType}
-              </Badge>
-              {area.inactive && !area.archive && (
-                <Badge variant="outline" className="text-xs text-muted-foreground">
-                  Inactive
+        <span>/</span>
+        <button className="hover:text-foreground" onClick={() => router.push("/areas")}>
+          Areas
+        </button>
+        <span>/</span>
+        <span className="text-foreground">{area.name}</span>
+      </div>
+
+      {/* Properties Header */}
+      <div className="rounded-xl border bg-card">
+        <div className="flex items-start justify-between gap-4 p-6">
+          <div className="flex items-start gap-4">
+            {/* Area Icon */}
+            {area.icon ? (
+              <div
+                className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl shrink-0"
+                style={{ backgroundColor: area.color ? `${area.color}20` : "var(--muted)" }}
+              >
+                {area.icon}
+              </div>
+            ) : (
+              <div
+                className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl shrink-0 font-bold"
+                style={{
+                  backgroundColor: area.color ? `${area.color}20` : "var(--muted)",
+                  color: area.color || "var(--foreground)",
+                }}
+              >
+                {area.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {/* Title */}
+              <h1 className="text-3xl font-bold tracking-tight">{area.name}</h1>
+
+              {/* Badges row */}
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className={cn("text-xs", AREA_TYPE_COLORS[areaType])}>
+                  {areaType}
                 </Badge>
+                {area.inactive && (
+                  <Badge variant="outline" className="text-xs text-muted-foreground">
+                    Inactive
+                  </Badge>
+                )}
+                {area.archive && (
+                  <Badge variant="outline" className="text-xs">
+                    Archived
+                  </Badge>
+                )}
+              </div>
+
+              {/* Description */}
+              {area.description && (
+                <p className="text-sm text-muted-foreground">{area.description}</p>
               )}
-              {area.archive && <Badge variant="outline">Archived</Badge>}
             </div>
-            {area.description && (
-              <p className="text-muted-foreground text-sm mt-1">{area.description}</p>
-            )}
           </div>
-        </div>
-        <div className="flex items-center gap-2">
+
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={() => router.push(`/areas/${area.slug || area.id}/edit`)}
+            onClick={() => setIsPropertiesOpen(!isPropertiesOpen)}
+            className="gap-1"
           >
-            <Edit2 className="size-4 mr-2" />
-            Edit
+            Properties
+            {isPropertiesOpen ? (
+              <ChevronDown className="size-3.5" />
+            ) : (
+              <ChevronRight className="size-3.5" />
+            )}
           </Button>
-          {area.archive ? (
-            <Button variant="outline" size="sm" onClick={handleRestore}>
-              <RotateCcw className="size-4 mr-2" />
-              Restore
-            </Button>
-          ) : (
-            <Button variant="outline" size="sm" onClick={handleArchive}>
-              <Archive className="size-4 mr-2" />
-              Archive
-            </Button>
-          )}
         </div>
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-4 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Target className="size-4 text-muted-foreground" />
-              Goals
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{rollups.goalsCount}</p>
-            <p className="text-xs text-muted-foreground">Linked goals</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <FolderKanban className="size-4 text-muted-foreground" />
-              Projects
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{rollups.projectsCount}</p>
-            <p className="text-xs text-muted-foreground">Linked projects</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <CheckSquare className="size-4 text-muted-foreground" />
-              Tasks
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{rollups.tasksCount}</p>
-            <p className="text-xs text-muted-foreground">Open tasks</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <NotebookPen className="size-4 text-muted-foreground" />
-              Notes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{rollups.notesCount}</p>
-            <p className="text-xs text-muted-foreground">Linked notes</p>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Activity Rollups */}
+        <div className="flex flex-wrap items-center gap-4 px-6 pb-4">
+          <button
+            onClick={() => scrollToSection("goals")}
+            className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
+          >
+            <span className="font-medium text-blue-600 dark:text-blue-400">
+              {rollups.goalCount}
+            </span>
+            <span className="text-muted-foreground">Goals</span>
+          </button>
+          <button
+            onClick={() => scrollToSection("projects")}
+            className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
+          >
+            <span className="font-medium text-green-600 dark:text-green-400">
+              {rollups.projectCount}
+            </span>
+            <span className="text-muted-foreground">Projects</span>
+          </button>
+          <button
+            onClick={() => scrollToSection("tasks")}
+            className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
+          >
+            <span className="font-medium text-purple-600 dark:text-purple-400">
+              {rollups.taskCount}
+            </span>
+            <span className="text-muted-foreground">Tasks</span>
+          </button>
+          <button
+            onClick={() => scrollToSection("notes")}
+            className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
+          >
+            <span className="font-medium text-orange-600 dark:text-orange-400">
+              {rollups.noteCount}
+            </span>
+            <span className="text-muted-foreground">Notes</span>
+          </button>
+        </div>
 
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Linked Goals</h2>
-        <Card>
-          <CardContent className="p-4 grid gap-4">
-            {goalsLoading ? (
-              <div className="h-32 rounded-xl bg-muted animate-pulse" />
-            ) : linkedGoals.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No goals linked to this area yet
-              </p>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {linkedGoals.map((goal) => (
-                  <GoalCard
-                    key={goal.id}
-                    goal={goal}
-                    areaName={area?.name}
-                    onEdit={() => router.push(buildGoalDetailHref(goal))}
+        {/* Collapsible Properties Panel */}
+        {isPropertiesOpen && (
+          <>
+            <Separator />
+            <div className="space-y-4 p-6">
+              <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+                {/* Type */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Type</Label>
+                  <p className="mt-1 font-medium">{areaType}</p>
+                </div>
+                {/* Status */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <p className="mt-1 font-medium">{STATUS_LABELS[areaStatus]}</p>
+                </div>
+                {/* Icon */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Icon</Label>
+                  <p className="mt-1 font-medium">{area.icon || "None"}</p>
+                </div>
+                {/* Color */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Color</Label>
+                  <div className="mt-1 flex items-center gap-2">
+                    {area.color && (
+                      <div
+                        className="size-4 rounded-full border"
+                        style={{ backgroundColor: area.color }}
+                      />
+                    )}
+                    <span className="font-medium">{area.color || "None"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => router.push(`/areas/${area.slug || area.id}/edit`)}
+                  className="gap-1.5"
+                >
+                  <Edit className="size-3.5" />
+                  Edit Area
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setIsDeleteOpen(true)}
+                  className="gap-1.5"
+                >
+                  <Trash2 className="size-3.5" />
+                  Delete
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="area-inactive"
+                    checked={area.inactive}
+                    disabled={updateArea.isPending}
+                    onCheckedChange={(checked) => handleInactiveToggle(checked === true)}
                   />
-                ))}
+                  <Label htmlFor="area-inactive" className="cursor-pointer text-sm">
+                    Inactive
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="area-archived"
+                    checked={area.archive}
+                    disabled={archiveArea.isPending}
+                    onCheckedChange={(checked) => handleArchiveToggle(checked === true)}
+                  />
+                  <Label htmlFor="area-archived" className="cursor-pointer text-sm">
+                    Archived
+                  </Label>
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        <h2 className="text-lg font-semibold">Linked Projects</h2>
-        <Card>
-          <CardContent className="py-8">
-            {projectsLoading ? (
-              <div className="h-32 rounded-xl bg-muted animate-pulse" />
-            ) : linkedProjects.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">
-                No projects linked to this area yet
-              </p>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {linkedProjects.map((project) => {
-                  const projectTasks = tasks.filter(
-                    (task) => task.project_id === project.id && !task.is_archived,
-                  );
-                  const completedProjectTasks = projectTasks.filter((task) => task.is_completed);
-
-                  return (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      areaName={area.name}
-                      taskStats={{
-                        completed: completedProjectTasks.length,
-                        total: projectTasks.length,
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <h2 className="text-lg font-semibold">Open Tasks</h2>
-        <Card>
-          <CardContent className="py-4">
-            {tasksLoading ? (
-              <div className="h-32 rounded-xl bg-muted animate-pulse" />
-            ) : openTasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No open tasks in this area yet
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {openTasks.map((task) => {
-                  const linkedProject = linkedProjects.find((project) => project.id === task.project_id);
-
-                  return (
-                    <div
-                      key={task.id}
-                      className="rounded-lg border border-border/60 px-4 py-3"
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{task.name}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                            <span className="uppercase">{task.priority}</span>
-                            {linkedProject && <span>{linkedProject.name}</span>}
-                            {task.due_date && (
-                              <span>
-                                Due {new Date(task.due_date).toLocaleDateString("en-US")}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <Badge variant="outline">{task.status}</Badge>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <h2 className="text-lg font-semibold">Linked Notes</h2>
-        <Card>
-          <CardContent className="py-4">
-            {notesLoading ? (
-              <div className="h-24 rounded-xl bg-muted animate-pulse" />
-            ) : linkedNotes.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No notes linked to this area yet
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {linkedNotes.map((note) => (
-                  <button
-                    key={note.id}
-                    type="button"
-                    onClick={() => router.push(`/notes/${note.id}`)}
-                    className="flex w-full items-start gap-3 rounded-lg border border-border/60 px-4 py-3 text-left transition-colors hover:bg-accent/30"
-                  >
-                    <NotebookPen className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{note.name}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                        <span>{note.status.replace("_", " ")}</span>
-                        {note.notebook && <span>{note.notebook}</span>}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              {area.description && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Description</Label>
+                  <p className="mt-1 text-sm">{area.description}</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
+
+      {/* Linked Goals Section */}
+      <div ref={projectsRef}>
+        <GoalDetailSection
+          id="goals"
+          entityType="goals"
+          tabs={[
+            { value: "all", label: "All", count: rollups.goalCount },
+            { value: "active", label: "Active" },
+            { value: "completed", label: "Completed" },
+            { value: "archived", label: "Archive" },
+          ]}
+          activeTab={goalTab}
+          onTabChange={setGoalTab}
+          isLoading={isLoading}
+          emptyTitle="No goals linked to this area"
+          emptyDescription="Create a goal to track objectives for this area."
+          onCreateNew={() => setIsNewGoalOpen(true)}
+          createLabel="New Goal"
+        >
+          {filteredGoals.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {filteredGoals.map((goal) => (
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  areaName={area.name}
+                  onEdit={() => router.push(buildGoalDetailHref(goal))}
+                />
+              ))}
+            </div>
+          ) : null}
+        </GoalDetailSection>
+      </div>
+
+      {/* Linked Projects Section */}
+      <div ref={projectsRef}>
+        <GoalDetailSection
+          id="projects"
+          entityType="projects"
+          tabs={[
+            { value: "all", label: "All", count: rollups.projectCount },
+            { value: "planning", label: "Planning" },
+            { value: "active", label: "In Progress" },
+            { value: "completed", label: "Completed" },
+            { value: "archived", label: "Archive" },
+          ]}
+          activeTab={projectTab}
+          onTabChange={setProjectTab}
+          isLoading={isLoading}
+          emptyTitle="No projects linked to this area"
+          emptyDescription="Create a project to track work in this area."
+          onCreateNew={() => setIsNewProjectOpen(true)}
+          createLabel="New Project"
+        >
+          {filteredProjects.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {filteredProjects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  areaName={area.name}
+                />
+              ))}
+            </div>
+          ) : null}
+        </GoalDetailSection>
+      </div>
+
+      {/* Linked Tasks Section */}
+      <div ref={tasksRef}>
+        <GoalDetailSection
+          id="tasks"
+          entityType="tasks"
+          tabs={[
+            { value: "all", label: "All", count: rollups.taskCount },
+            { value: "inbox", label: "Inbox" },
+            { value: "upcoming", label: "Upcoming" },
+            { value: "overdue", label: "Overdue" },
+            { value: "completed", label: "Completed" },
+          ]}
+          activeTab={taskTab}
+          onTabChange={setTaskTab}
+          isLoading={isLoading}
+          emptyTitle="No tasks linked to this area"
+          emptyDescription="Create a task to track work in this area."
+          onCreateNew={() => setIsNewTaskOpen(true)}
+          createLabel="New Task"
+        >
+          {filteredTasks.length > 0 ? (
+            <div className="rounded-lg border bg-card">
+              {filteredTasks.map((task) => (
+                <TaskListItem
+                  key={task.id}
+                  task={task}
+                  areaName={area.name}
+                  projectName={null}
+                  onCompletionToggle={handleTaskCompletion}
+                  onFocusToggle={() => {}}
+                  onNameSave={handleTaskNameSave}
+                  onDelete={handleTaskDelete}
+                />
+              ))}
+            </div>
+          ) : null}
+        </GoalDetailSection>
+      </div>
+
+      {/* Linked Notes Section */}
+      <div ref={notesRef}>
+        <GoalDetailSection
+          id="notes"
+          entityType="notes"
+          tabs={[
+            { value: "all", label: "All", count: rollups.noteCount },
+            { value: "inbox", label: "Inbox" },
+            { value: "active", label: "Active" },
+            { value: "archived", label: "Archive" },
+          ]}
+          activeTab={noteTab}
+          onTabChange={setNoteTab}
+          isLoading={isLoading}
+          emptyTitle="No notes linked to this area"
+          emptyDescription="Create a note to capture thoughts for this area."
+          onCreateNew={() => area && router.push(`/notes/new?areaId=${area.id}`)}
+          createLabel="New Note"
+        >
+          {filteredNotes.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {filteredNotes.map((note) => (
+                <button
+                  key={note.id}
+                  type="button"
+                  onClick={() => router.push(`/notes/${note.slug ?? note.id}`)}
+                  className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="truncate font-semibold">{note.name}</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge variant="secondary" className="text-xs">
+                      {note.status}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {note.type}
+                    </Badge>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </GoalDetailSection>
+      </div>
+
+      {/* Delete Dialog */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Archive Area?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This archives the area. The linked goals, projects, tasks, and notes will become unlinked. You can restore it later from the archive.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteArea}
+              disabled={archiveArea.isPending}
+            >
+              Archive Area
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Inline Goal Creation */}
+      <GoalDialog
+        open={isNewGoalOpen}
+        onOpenChange={setIsNewGoalOpen}
+        defaultAreaIds={area?.id ? [area.id] : []}
+        onSuccess={() => setIsNewGoalOpen(false)}
+      />
+
+      {/* Inline Project Creation */}
+      <ProjectDialog
+        open={isNewProjectOpen}
+        onOpenChange={setIsNewProjectOpen}
+        defaultAreaIds={area?.id ? [area.id] : []}
+        onSuccess={() => setIsNewProjectOpen(false)}
+      />
+
+      {/* Inline Task Creation */}
+      <TaskDialog
+        open={isNewTaskOpen}
+        onOpenChange={setIsNewTaskOpen}
+        defaultAreaId={area?.id}
+        onSuccess={() => setIsNewTaskOpen(false)}
+      />
+
+      {/* Note creation navigates directly to /notes/new */}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
-import { AREAS_QUERY_KEY } from "@/lib/hooks/use-areas";
+import { AREAS_QUERY_KEY, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
 import { noteService } from "@/lib/services/note.service";
 import type { CreateNoteInput, Note, UpdateNoteInput } from "@/lib/types/domain.types";
@@ -185,6 +185,7 @@ function invalidateNoteGraph(
     queryClient.invalidateQueries({ queryKey: [NOTE_TYPES_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
   ]);
 }
 

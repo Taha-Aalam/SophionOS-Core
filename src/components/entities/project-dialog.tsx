@@ -61,6 +61,7 @@ interface ProjectDialogProps {
    *  - goal linkage is locked to the parent goal only
    */
   goalScoped?: GoalScopedConfig;
+  defaultAreaIds?: string[];
   onSuccess?: () => void;
 }
 
@@ -95,6 +96,7 @@ function buildProjectFormValues(
   goalIds: string[],
   defaultGoalId?: string,
   goalScoped?: GoalScopedConfig,
+  defaultAreaIds?: string[],
 ): ProjectFormValues {
   if (!project) {
     if (goalScoped) {
@@ -104,7 +106,11 @@ function buildProjectFormValues(
         goal_ids: [goalScoped.goalId],
       };
     }
-    return { ...EMPTY_FORM_VALUES, goal_ids: defaultGoalId ? [defaultGoalId] : [] };
+    return {
+      ...EMPTY_FORM_VALUES,
+      area_ids: defaultAreaIds ?? [],
+      goal_ids: defaultGoalId ? [defaultGoalId] : [],
+    };
   }
 
   return {
@@ -127,6 +133,7 @@ export function ProjectDialog({
   project,
   goalId,
   goalScoped,
+  defaultAreaIds,
   onSuccess,
 }: ProjectDialogProps) {
   const isGoalScoped = Boolean(goalScoped) && !project;
@@ -158,9 +165,9 @@ export function ProjectDialog({
     }
 
     form.reset(
-      buildProjectFormValues(project, linkedGoalIds, goalId, goalScoped),
+      buildProjectFormValues(project, linkedGoalIds, goalId, goalScoped, defaultAreaIds),
     );
-  }, [form, linkedGoalIds, open, project, goalId, goalScoped]);
+  }, [form, linkedGoalIds, open, project, goalId, goalScoped, defaultAreaIds]);
 
   const watchedAreaIds = useWatch({ control: form.control, name: "area_ids" });
   const selectedAreaIds = useMemo(() => watchedAreaIds ?? [], [watchedAreaIds]);

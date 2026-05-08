@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
-import { AREAS_QUERY_KEY } from "@/lib/hooks/use-areas";
+import { AREAS_QUERY_KEY, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
 import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
 import { DASHBOARD_QUERY_KEY } from "@/lib/services/dashboard.service";
@@ -18,6 +18,7 @@ function invalidateTaskGraph(queryClient: ReturnType<typeof useQueryClient>): Pr
     queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [DASHBOARD_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
   ]);
 }
 

@@ -30,6 +30,7 @@ import {
 } from "@/lib/hooks/use-areas";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
+import { useNotes } from "@/lib/hooks/use-notes";
 import { Area, CreateAreaInput } from "@/lib/types/domain.types";
 import {
   classifyAreaStatus,
@@ -52,6 +53,7 @@ export default function AreasPage() {
   const { data: goals = [] } = useGoals({ status: "all" });
   const { data: projects = [] } = useProjects({ status: "all" });
   const { data: tasks = [] } = useTasks();
+  const { data: notes = [] } = useNotes({ includeArchived: true });
   const createArea = useCreateArea(userId);
   const updateArea = useUpdateArea(userId);
   const archiveArea = useArchiveArea(userId);
@@ -78,10 +80,11 @@ export default function AreasPage() {
           goals,
           projects,
           tasks,
+          notes,
         }),
       ]),
     );
-  }, [areas, goals, projects, tasks]);
+  }, [areas, goals, projects, tasks, notes]);
 
   const duplicateIndices = useMemo(() => {
     const result = new Map<string, number>();
@@ -201,6 +204,7 @@ export default function AreasPage() {
                   goalsCount={rollupsByAreaId.get(area.id)?.goalsCount}
                   projectsCount={rollupsByAreaId.get(area.id)?.projectsCount}
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
+                  notesCount={rollupsByAreaId.get(area.id)?.notesCount}
                   duplicateIndex={duplicateIndices.get(area.id)}
                   onEdit={handleOpenEdit}
                   onArchive={handleArchive}
@@ -237,6 +241,7 @@ export default function AreasPage() {
                   goalsCount={rollupsByAreaId.get(area.id)?.goalsCount}
                   projectsCount={rollupsByAreaId.get(area.id)?.projectsCount}
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
+                  notesCount={rollupsByAreaId.get(area.id)?.notesCount}
                   duplicateIndex={duplicateIndices.get(area.id)}
                   onEdit={handleOpenEdit}
                   onArchive={handleArchive}
@@ -278,6 +283,7 @@ export default function AreasPage() {
                   goalsCount={rollupsByAreaId.get(area.id)?.goalsCount}
                   projectsCount={rollupsByAreaId.get(area.id)?.projectsCount}
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
+                  notesCount={rollupsByAreaId.get(area.id)?.notesCount}
                   duplicateIndex={duplicateIndices.get(area.id)}
                   onEdit={!area.archive ? handleOpenEdit : undefined}
                   onArchive={handleArchive}
@@ -314,6 +320,7 @@ export default function AreasPage() {
                   goalsCount={rollupsByAreaId.get(area.id)?.goalsCount}
                   projectsCount={rollupsByAreaId.get(area.id)?.projectsCount}
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
+                  notesCount={rollupsByAreaId.get(area.id)?.notesCount}
                   duplicateIndex={duplicateIndices.get(area.id)}
                   onArchive={handleArchive}
                   isArchiving={archiveArea.isPending}

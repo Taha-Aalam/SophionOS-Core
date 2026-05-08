@@ -553,7 +553,7 @@ export default function GoalDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
+      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-40 w-full" />
         <Skeleton className="h-52 w-full" />
@@ -563,7 +563,7 @@ export default function GoalDetailPage() {
 
   if (!goal) {
     return (
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
+      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
         <Button variant="ghost" onClick={() => router.push("/goals")}>
           <ArrowLeft className="mr-2 size-4" />
           Back to Goals
@@ -580,7 +580,7 @@ export default function GoalDetailPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button

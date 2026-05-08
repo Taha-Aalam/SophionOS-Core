@@ -78,6 +78,7 @@ import {
   useCreateResource,
   useResources,
   useToggleFavoriteResource,
+  useUnarchiveResource,
   useUpdateResource,
 } from "@/lib/hooks/use-resources";
 import { useNoteDefaults } from "@/lib/hooks/use-user-settings";
@@ -348,6 +349,7 @@ export default function KnowledgeHubPage() {
   const createResource = useCreateResource();
   const toggleFavoriteResource = useToggleFavoriteResource();
   const archiveResource = useArchiveResource();
+  const unarchiveResource = useUnarchiveResource();
   const updateResource = useUpdateResource();
 
   // ── handlers ─────────────────────────────────────────────────────────────
@@ -604,6 +606,7 @@ export default function KnowledgeHubPage() {
             topicName={r.topic_id ? topicNames.get(r.topic_id) : undefined}
             onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
             onArchive={(id) => archiveResource.mutate(id)}
+            onUnarchive={(id) => unarchiveResource.mutate(id)}
             onStatusChange={(id, status) => updateResource.mutate({ id, input: { status } })}
           />
         ))}
@@ -983,6 +986,7 @@ export default function KnowledgeHubPage() {
                                   topicName={tname}
                                   onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
                                   onArchive={(id) => archiveResource.mutate(id)}
+                                  onUnarchive={(id) => unarchiveResource.mutate(id)}
                                   onStatusChange={(id, status) => updateResource.mutate({ id, input: { status } })}
                                 />
                               ))}

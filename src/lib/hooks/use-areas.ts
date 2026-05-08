@@ -9,6 +9,7 @@ import { groupAreasByType } from "@/lib/utils/areas";
 import type { CreateAreaInput, UpdateAreaInput } from "@/lib/types/domain.types";
 
 export const AREAS_QUERY_KEY = "areas";
+export const AREA_DETAIL_QUERY_KEY = "area-detail";
 
 export function useAreas(filters?: { inactive?: boolean; archive?: boolean }) {
   const { user } = useAuth();
@@ -85,6 +86,7 @@ export function useUpdateArea(userId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
       toast.success("Area updated successfully");
     },
     onError: (error: Error) => {
@@ -103,6 +105,7 @@ export function useRestoreArea(userId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
       toast.success("Area restored successfully");
     },
     onError: (error: Error) => {
@@ -121,6 +124,7 @@ export function useArchiveArea(userId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
       toast.success("Area archived successfully");
     },
     onError: (error: Error) => {

@@ -225,7 +225,7 @@ export default function NoteDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-full flex-col gap-4 p-6">
+      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-10 w-full max-w-xl" />
         <Skeleton className="flex-1" />
@@ -235,7 +235,7 @@ export default function NoteDetailPage() {
 
   if (!note) {
     return (
-      <div className="flex h-full items-center justify-center p-6">
+      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
         <EmptyState
           icon={NotebookPen}
           title="Note not found"
@@ -248,7 +248,7 @@ export default function NoteDetailPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-4 py-2.5">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon-sm" onClick={() => router.push("/notes")}>
