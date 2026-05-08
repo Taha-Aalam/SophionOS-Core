@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { buildNoteMetadataUpdateInput } from "../../src/lib/utils/note-detail-metadata";
+
 /**
  * Regression tests for FIX 5:
  * Note detail metadata selects (Area, Project) must always display
@@ -138,5 +140,65 @@ describe("note detail metadata: select trigger label resolution", () => {
     const linkedProject = PROJECTS.find((p) => p.id === noteProjectId);
     const triggerLabel = linkedProject?.name ?? undefined;
     expect(triggerLabel).toBeUndefined();
+  });
+});
+
+describe("note detail metadata: full autosave payloads", () => {
+  it("preserves existing linked relations when only goals change", () => {
+    expect(
+      buildNoteMetadataUpdateInput(
+        {
+          status: "active",
+          type: "research",
+          notebook: "Work",
+          areaIds: ["area-1"],
+          goalIds: ["goal-1"],
+          projectIds: ["project-1"],
+          taskIds: ["task-1"],
+          favorite: true,
+          pin: false,
+        },
+        { goal_ids: ["goal-2", "goal-3"] },
+      ),
+    ).toEqual({
+      status: "active",
+      type: "research",
+      notebook: "Work",
+      area_ids: ["area-1"],
+      goal_ids: ["goal-2", "goal-3"],
+      project_ids: ["project-1"],
+      task_ids: ["task-1"],
+      favorite: true,
+      pin: false,
+    });
+  });
+
+  it("normalizes blank notebooks to null while keeping other metadata intact", () => {
+    expect(
+      buildNoteMetadataUpdateInput(
+        {
+          status: "inbox",
+          type: "note",
+          notebook: "   ",
+          areaIds: [],
+          goalIds: ["goal-1"],
+          projectIds: ["project-1"],
+          taskIds: ["task-1"],
+          favorite: false,
+          pin: true,
+        },
+        {},
+      ),
+    ).toEqual({
+      status: "inbox",
+      type: "note",
+      notebook: null,
+      area_ids: [],
+      goal_ids: ["goal-1"],
+      project_ids: ["project-1"],
+      task_ids: ["task-1"],
+      favorite: false,
+      pin: true,
+    });
   });
 });

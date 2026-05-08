@@ -71,6 +71,122 @@ describe("createNoteSchema", () => {
     ).toThrow();
   });
 
+  it("accepts custom type text", () => {
+    const result = createNoteSchema.parse({
+      name: "Custom type note",
+      type: "My Custom Type",
+    });
+
+    expect(result.type).toBe("My Custom Type");
+  });
+
+  it("accepts area_ids array for multi-area linkage", () => {
+    const result = createNoteSchema.parse({
+      name: "Multi-area note",
+      area_ids: [
+        "11111111-1111-4111-8111-111111111111",
+        "22222222-2222-4222-8222-222222222222",
+      ],
+    });
+
+    expect(result.area_ids).toEqual([
+      "11111111-1111-4111-8111-111111111111",
+      "22222222-2222-4222-8222-222222222222",
+    ]);
+  });
+
+  it("accepts goal_ids array for multi-goal linkage", () => {
+    const result = createNoteSchema.parse({
+      name: "Multi-goal note",
+      goal_ids: [
+        "33333333-3333-4333-8333-333333333333",
+        "44444444-4444-4444-8444-444444444444",
+      ],
+    });
+
+    expect(result.goal_ids).toEqual([
+      "33333333-3333-4333-8333-333333333333",
+      "44444444-4444-4444-8444-444444444444",
+    ]);
+  });
+
+  it("accepts task_ids array for multi-task linkage", () => {
+    const result = createNoteSchema.parse({
+      name: "Multi-task note",
+      task_ids: [
+        "55555555-5555-4555-8555-555555555555",
+        "66666666-6666-4666-8666-666666666666",
+      ],
+    });
+
+    expect(result.task_ids).toEqual([
+      "55555555-5555-4555-8555-555555555555",
+      "66666666-6666-4666-8666-666666666666",
+    ]);
+  });
+
+  it("normalizes empty notebook and content to null", () => {
+    const result = createNoteSchema.parse({
+      name: "Note",
+      notebook: "",
+      content: "",
+    });
+
+    expect(result.notebook).toBeNull();
+    expect(result.content).toBeNull();
+  });
+
+  it("rejects invalid UUID in area_ids", () => {
+    expect(() =>
+      createNoteSchema.parse({
+        name: "Note",
+        area_ids: ["11111111-1111-4111-8111-111111111111", "not-a-uuid"],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects invalid UUID in goal_ids", () => {
+    expect(() =>
+      createNoteSchema.parse({
+        name: "Note",
+        goal_ids: ["not-a-uuid"],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects invalid UUID in task_ids", () => {
+    expect(() =>
+      createNoteSchema.parse({
+        name: "Note",
+        task_ids: ["not-a-uuid"],
+      }),
+    ).toThrow();
+  });
+
+  it("accepts project_ids array for multi-project linkage", () => {
+    const result = createNoteSchema.parse({
+      name: "Multi-project note",
+      project_ids: [
+        "77777777-7777-4777-8777-777777777777",
+        "88888888-8888-4888-8888-888888888888",
+      ],
+    });
+
+    expect(result.project_ids).toEqual([
+      "77777777-7777-4777-8777-777777777777",
+      "88888888-8888-4888-8888-888888888888",
+    ]);
+  });
+
+  it("rejects invalid UUID in project_ids", () => {
+    expect(() =>
+      createNoteSchema.parse({
+        name: "Note",
+        project_ids: ["not-a-uuid"],
+      }),
+    ).toThrow();
+  });
+
   it("rejects unexpected fields (strict)", () => {
     expect(() =>
       createNoteSchema.parse({ name: "Note", unexpectedField: true }),
@@ -92,6 +208,103 @@ describe("updateNoteSchema", () => {
   it("accepts notebook update", () => {
     const result = updateNoteSchema.parse({ notebook: "Work" });
     expect(result.notebook).toBe("Work");
+  });
+
+  it("normalizes empty notebook and content to null", () => {
+    const result = updateNoteSchema.parse({
+      notebook: "",
+      content: "",
+    });
+
+    expect(result.notebook).toBeNull();
+    expect(result.content).toBeNull();
+  });
+
+  it("accepts custom type text", () => {
+    const result = updateNoteSchema.parse({ type: "Meeting Notes" });
+    expect(result.type).toBe("Meeting Notes");
+  });
+
+  it("accepts area_ids array for multi-area linkage", () => {
+    const result = updateNoteSchema.parse({
+      area_ids: [
+        "11111111-1111-4111-8111-111111111111",
+        "22222222-2222-4222-8222-222222222222",
+      ],
+    });
+
+    expect(result.area_ids).toEqual([
+      "11111111-1111-4111-8111-111111111111",
+      "22222222-2222-4222-8222-222222222222",
+    ]);
+  });
+
+  it("accepts goal_ids array for multi-goal linkage", () => {
+    const result = updateNoteSchema.parse({
+      goal_ids: [
+        "33333333-3333-4333-8333-333333333333",
+        "44444444-4444-4444-8444-444444444444",
+      ],
+    });
+
+    expect(result.goal_ids).toEqual([
+      "33333333-3333-4333-8333-333333333333",
+      "44444444-4444-4444-8444-444444444444",
+    ]);
+  });
+
+  it("accepts task_ids array for multi-task linkage", () => {
+    const result = updateNoteSchema.parse({
+      task_ids: [
+        "55555555-5555-4555-8555-555555555555",
+        "66666666-6666-4666-8666-666666666666",
+      ],
+    });
+
+    expect(result.task_ids).toEqual([
+      "55555555-5555-4555-8555-555555555555",
+      "66666666-6666-4666-8666-666666666666",
+    ]);
+  });
+
+  it("rejects invalid UUID in area_ids", () => {
+    expect(() =>
+      updateNoteSchema.parse({
+        area_ids: ["11111111-1111-4111-8111-111111111111", "not-a-uuid"],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects invalid UUID in goal_ids", () => {
+    expect(() =>
+      updateNoteSchema.parse({ goal_ids: ["not-a-uuid"] }),
+    ).toThrow();
+  });
+
+  it("rejects invalid UUID in task_ids", () => {
+    expect(() =>
+      updateNoteSchema.parse({ task_ids: ["not-a-uuid"] }),
+    ).toThrow();
+  });
+
+  it("accepts project_ids array for multi-project linkage", () => {
+    const result = updateNoteSchema.parse({
+      project_ids: [
+        "77777777-7777-4777-8777-777777777777",
+        "88888888-8888-4888-8888-888888888888",
+      ],
+    });
+
+    expect(result.project_ids).toEqual([
+      "77777777-7777-4777-8777-777777777777",
+      "88888888-8888-4888-8888-888888888888",
+    ]);
+  });
+
+  it("rejects invalid UUID in project_ids", () => {
+    expect(() =>
+      updateNoteSchema.parse({ project_ids: ["not-a-uuid"] }),
+    ).toThrow();
   });
 
   it("rejects unknown fields", () => {

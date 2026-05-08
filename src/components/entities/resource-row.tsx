@@ -82,7 +82,7 @@ export function ResourceRow({
       : [];
 
   return (
-    <div className="group flex items-start gap-3 border-b border-border px-3 py-3 transition-colors hover:bg-accent/30 min-h-0">
+    <div className="group flex items-center gap-3 border-b border-border px-3 py-3 transition-colors hover:bg-accent/30 min-h-0">
       {/* Status */}
       <div className="w-20 self-center">
         <Badge variant="secondary" className={cn("text-xs truncate max-w-full", STATUS_COLORS[resource.status])}>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { startTransition, useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -31,7 +31,7 @@ export function TaskInlineEditor({
   }, [editing]);
 
   useEffect(() => {
-    setDraft(value);
+    startTransition(() => setDraft(value));
   }, [value]);
 
   const commit = () => {

@@ -1,11 +1,21 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { FilePlus, Globe, Heart } from "lucide-react";
+import { FilePlus, Globe, Heart, Filter, ChevronDown } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
 import { ResourceRow, ResourceRowSkeleton } from "@/components/entities/resource-row";
@@ -25,12 +35,23 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "@/lib/types/domain.types";
-import { RESOURCE_STATUS, type ResourceStatus } from "@/lib/utils/constants";
+import { RESOURCE_STATUS, type ResourceStatus, RESOURCE_TYPE } from "@/lib/utils/constants";
+import { cn } from "@/lib/utils";
 
 export default function ResourcesPage() {
   const [tab, setTab] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
+
+  const [filterType, setFilterType] = useState<string>("");
+  const [filterAreaIds, setFilterAreaIds] = useState<string[]>([]);
+  const [filterGoalIds, setFilterGoalIds] = useState<string[]>([]);
+  const [filterTaskIds, setFilterTaskIds] = useState<string[]>([]);
+  const [filterTopicIds, setFilterTopicIds] = useState<string[]>([]);
+  const [areaPopoverOpen, setAreaPopoverOpen] = useState(false);
+  const [goalPopoverOpen, setGoalPopoverOpen] = useState(false);
+  const [taskPopoverOpen, setTaskPopoverOpen] = useState(false);
+  const [topicPopoverOpen, setTopicPopoverOpen] = useState(false);
 
   const { data: allResources = [], isLoading } = useResources({ status: "all" });
   const { data: archivedResources = [] } = useArchivedResources();
@@ -53,22 +74,115 @@ export default function ResourcesPage() {
   const taskNames = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks]);
   const topicNames = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
 
+  const activeAreas = areas.filter((area) => !area.archive);
+  const activeGoals = goals.filter((goal) => !goal.is_archived);
+  const activeTasks = tasks.filter((task) => !task.is_archived);
+  const activeTopics = topics.filter((topic) => !topic.inactive);
+
   const filtered = useMemo(() => {
+    let result = allResources;
+
     switch (tab) {
       case "inbox":
-        return allResources.filter((r) => r.status === RESOURCE_STATUS.INBOX);
+        result = allResources.filter((r) => r.status === RESOURCE_STATUS.INBOX);
+        break;
       case "to_review":
-        return allResources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW);
+        result = allResources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW);
+        break;
+      case "active":
+        result = allResources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE);
+        break;
       case "favorites":
-        return allResources.filter((r) => r.favorite);
+        result = allResources.filter((r) => r.favorite);
+        break;
       case "archive":
-        return archivedResources;
-      case "all":
-        return allResources;
+        result = archivedResources;
+        break;
       default:
-        return allResources;
+        break;
     }
-  }, [tab, allResources, archivedResources]);
+
+    if (filterType) {
+      result = result.filter((r) => r.type === filterType);
+    }
+
+    if (filterAreaIds.length > 0) {
+      result = result.filter((r) => {
+        const linked = r.linkedAreaIds ?? [];
+        const primary = r.area_id ? [r.area_id] : [];
+        const allAreaIds = Array.from(new Set([...primary, ...linked]));
+        return filterAreaIds.some((id) => allAreaIds.includes(id));
+      });
+    }
+
+    if (filterGoalIds.length > 0) {
+      result = result.filter((r) => {
+        const linked = r.linkedGoalIds ?? [];
+        return filterGoalIds.some((id) => linked.includes(id));
+      });
+    }
+
+    if (filterTaskIds.length > 0) {
+      result = result.filter((r) => {
+        const linked = r.linkedTaskIds ?? [];
+        return filterTaskIds.some((id) => linked.includes(id));
+      });
+    }
+
+    if (filterTopicIds.length > 0) {
+      result = result.filter((r) => {
+        const primary = r.topic_id ? [r.topic_id] : [];
+        return filterTopicIds.some((id) => primary.includes(id));
+      });
+    }
+
+    return result;
+  }, [
+    tab,
+    allResources,
+    archivedResources,
+    filterType,
+    filterAreaIds,
+    filterGoalIds,
+    filterTaskIds,
+    filterTopicIds,
+  ]);
+
+  const hasFilters = Boolean(
+    filterType ||
+      filterAreaIds.length > 0 ||
+      filterGoalIds.length > 0 ||
+      filterTaskIds.length > 0 ||
+      filterTopicIds.length > 0,
+  );
+
+  const selectedAreaLabels = filterAreaIds
+    .map((id) => activeAreas.find((a) => a.id === id))
+    .filter(Boolean)
+    .map(
+      (a) =>
+        `${(a as { icon?: string }).icon ? `${(a as { icon?: string }).icon} ` : ""}${(a as { name: string }).name}`,
+    );
+
+  const selectedGoalLabels = filterGoalIds
+    .map((id) => activeGoals.find((g) => g.id === id))
+    .filter(Boolean)
+    .map((g) => (g as { name: string }).name);
+
+  const selectedTaskLabels = filterTaskIds
+    .map((id) => activeTasks.find((t) => t.id === id))
+    .filter(Boolean)
+    .map((t) => (t as { name: string }).name);
+
+  const selectedTopicLabels = filterTopicIds
+    .map((id) => activeTopics.find((t) => t.id === id))
+    .filter(Boolean)
+    .map((t) => (t as { name: string }).name);
+
+  const filterPopoverContentClassName = "w-80 max-w-[calc(100vw-2rem)] overflow-x-hidden p-2";
+  const filterOptionClassName =
+    "flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
+  const filterOptionLabelClassName = "min-w-0 flex-1 whitespace-normal break-words text-sm";
 
   const byTopic = useMemo(() => {
     const map = new Map<string, Resource[]>();
@@ -126,6 +240,8 @@ export default function ResourcesPage() {
         return allResources.filter((r) => r.status === RESOURCE_STATUS.INBOX).length;
       case "to_review":
         return allResources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW).length;
+      case "active":
+        return allResources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE).length;
       case "favorites":
         return allResources.filter((r) => r.favorite).length;
       case "all":
@@ -176,6 +292,14 @@ export default function ResourcesPage() {
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="active">
+            Active
+            {countForTab("active") > 0 && (
+              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
+                {countForTab("active")}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="favorites">
             <Heart className="mr-1 size-3" />
             Favorites
@@ -196,8 +320,252 @@ export default function ResourcesPage() {
           </TabsTrigger>
         </TabsList>
 
+        <div className="flex items-center gap-3 border-b border-border/30 py-3">
+          <Filter className="size-3.5 shrink-0 text-muted-foreground" />
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={filterType || "__all_type__"}
+              onValueChange={(value) =>
+                setFilterType(value === "__all_type__" ? "" : (value ?? ""))
+              }
+            >
+              <SelectTrigger className="h-7 w-[120px] text-xs">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all_type__">All types</SelectItem>
+                <SelectItem value={RESOURCE_TYPE.WEBSITE}>Website</SelectItem>
+                <SelectItem value={RESOURCE_TYPE.ARTICLE}>Article</SelectItem>
+                <SelectItem value={RESOURCE_TYPE.VIDEO}>Video</SelectItem>
+                <SelectItem value={RESOURCE_TYPE.DOCUMENT}>Document</SelectItem>
+                <SelectItem value={RESOURCE_TYPE.PODCAST}>Podcast</SelectItem>
+                <SelectItem value={RESOURCE_TYPE.SOCIAL_MEDIA}>Social Media</SelectItem>
+                <SelectItem value={RESOURCE_TYPE.TOOL}>Tool</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Popover open={areaPopoverOpen} onOpenChange={setAreaPopoverOpen}>
+              <PopoverTrigger
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                )}
+              >
+                {filterAreaIds.length === 0 ? (
+                  "Area"
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <span className="max-w-[100px] truncate">{selectedAreaLabels[0]}</span>
+                    {selectedAreaLabels.length > 1 && (
+                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                        +{selectedAreaLabels.length - 1}
+                      </Badge>
+                    )}
+                  </span>
+                )}
+                <ChevronDown className="size-3 text-muted-foreground" />
+              </PopoverTrigger>
+              <PopoverContent className={filterPopoverContentClassName}>
+                <div className="space-y-1">
+                  {activeAreas.length === 0 && (
+                    <p className="px-2 py-1 text-xs text-muted-foreground">No areas available.</p>
+                  )}
+                  <ScrollArea className="max-h-60 w-full">
+                    {activeAreas.map((area) => {
+                      const checked = filterAreaIds.includes(area.id);
+                      return (
+                        <label key={area.id} className={filterOptionClassName}>
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(next) => {
+                              setFilterAreaIds((prev) =>
+                                next === true
+                                  ? Array.from(new Set([...prev, area.id]))
+                                  : prev.filter((id) => id !== area.id),
+                              );
+                            }}
+                          />
+                          <span className={filterOptionLabelClassName}>
+                            {area.icon ? `${area.icon} ` : ""}
+                            {area.name}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </ScrollArea>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Popover open={goalPopoverOpen} onOpenChange={setGoalPopoverOpen}>
+              <PopoverTrigger
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                )}
+              >
+                {filterGoalIds.length === 0 ? (
+                  "Goal"
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <span className="max-w-[100px] truncate">{selectedGoalLabels[0]}</span>
+                    {selectedGoalLabels.length > 1 && (
+                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                        +{selectedGoalLabels.length - 1}
+                      </Badge>
+                    )}
+                  </span>
+                )}
+                <ChevronDown className="size-3 text-muted-foreground" />
+              </PopoverTrigger>
+              <PopoverContent className={filterPopoverContentClassName}>
+                <div className="space-y-1">
+                  {activeGoals.length === 0 && (
+                    <p className="px-2 py-1 text-xs text-muted-foreground">No goals available.</p>
+                  )}
+                  <ScrollArea className="max-h-60 w-full">
+                    {activeGoals.map((goal) => {
+                      const checked = filterGoalIds.includes(goal.id);
+                      return (
+                        <label key={goal.id} className={filterOptionClassName}>
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(next) => {
+                              setFilterGoalIds((prev) =>
+                                next === true
+                                  ? Array.from(new Set([...prev, goal.id]))
+                                  : prev.filter((id) => id !== goal.id),
+                              );
+                            }}
+                          />
+                          <span className={filterOptionLabelClassName}>{goal.name}</span>
+                        </label>
+                      );
+                    })}
+                  </ScrollArea>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Popover open={taskPopoverOpen} onOpenChange={setTaskPopoverOpen}>
+              <PopoverTrigger
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                )}
+              >
+                {filterTaskIds.length === 0 ? (
+                  "Task"
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <span className="max-w-[100px] truncate">{selectedTaskLabels[0]}</span>
+                    {selectedTaskLabels.length > 1 && (
+                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                        +{selectedTaskLabels.length - 1}
+                      </Badge>
+                    )}
+                  </span>
+                )}
+                <ChevronDown className="size-3 text-muted-foreground" />
+              </PopoverTrigger>
+              <PopoverContent className={filterPopoverContentClassName}>
+                <div className="space-y-1">
+                  {activeTasks.length === 0 && (
+                    <p className="px-2 py-1 text-xs text-muted-foreground">No tasks available.</p>
+                  )}
+                  <ScrollArea className="max-h-60 w-full">
+                    {activeTasks.map((task) => {
+                      const checked = filterTaskIds.includes(task.id);
+                      return (
+                        <label key={task.id} className={filterOptionClassName}>
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(next) => {
+                              setFilterTaskIds((prev) =>
+                                next === true
+                                  ? Array.from(new Set([...prev, task.id]))
+                                  : prev.filter((id) => id !== task.id),
+                              );
+                            }}
+                          />
+                          <span className={filterOptionLabelClassName}>{task.name}</span>
+                        </label>
+                      );
+                    })}
+                  </ScrollArea>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Popover open={topicPopoverOpen} onOpenChange={setTopicPopoverOpen}>
+              <PopoverTrigger
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                )}
+              >
+                {filterTopicIds.length === 0 ? (
+                  "Topic"
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <span className="max-w-[100px] truncate">{selectedTopicLabels[0]}</span>
+                    {selectedTopicLabels.length > 1 && (
+                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                        +{selectedTopicLabels.length - 1}
+                      </Badge>
+                    )}
+                  </span>
+                )}
+                <ChevronDown className="size-3 text-muted-foreground" />
+              </PopoverTrigger>
+              <PopoverContent className={filterPopoverContentClassName}>
+                <div className="space-y-1">
+                  {activeTopics.length === 0 && (
+                    <p className="px-2 py-1 text-xs text-muted-foreground">No topics available.</p>
+                  )}
+                  <ScrollArea className="max-h-60 w-full">
+                    {activeTopics.map((topic) => {
+                      const checked = filterTopicIds.includes(topic.id);
+                      return (
+                        <label key={topic.id} className={filterOptionClassName}>
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(next) => {
+                              setFilterTopicIds((prev) =>
+                                next === true
+                                  ? Array.from(new Set([...prev, topic.id]))
+                                  : prev.filter((id) => id !== topic.id),
+                              );
+                            }}
+                          />
+                          <span className={filterOptionLabelClassName}>{topic.name}</span>
+                        </label>
+                      );
+                    })}
+                  </ScrollArea>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {hasFilters && (
+              <button
+                onClick={() => {
+                  setFilterType("");
+                  setFilterAreaIds([]);
+                  setFilterGoalIds([]);
+                  setFilterTaskIds([]);
+                  setFilterTopicIds([]);
+                }}
+                className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Inbox, To Review, Favorites, Archive, All — table view */}
-        {["inbox", "to_review", "favorites", "archive", "all"].includes(tab) && (
+        {["inbox", "to_review", "active", "favorites", "archive", "all"].includes(tab) && (
           <TabsContent value={tab} className="mt-4">
             {isLoading ? (
               <div className="flex flex-col">
@@ -213,11 +581,13 @@ export default function ResourcesPage() {
                     ? "No resources in inbox"
                     : tab === "to_review"
                       ? "No resources to review"
-                      : tab === "favorites"
-                        ? "No favorite resources"
-                        : tab === "archive"
-                          ? "No archived resources"
-                          : "No resources yet"
+                      : tab === "active"
+                        ? "No active resources"
+                        : tab === "favorites"
+                          ? "No favorite resources"
+                          : tab === "archive"
+                            ? "No archived resources"
+                            : "No resources yet"
                 }
                 description={
                   tab === "all" ? "Add your first resource to get started" : "Try a different filter"

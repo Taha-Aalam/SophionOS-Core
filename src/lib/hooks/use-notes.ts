@@ -18,6 +18,7 @@ export function useNotes(filters?: {
   notebook?: string;
   areaId?: string;
   projectId?: string;
+  includeArchived?: boolean;
 }) {
   const { user } = useAuth();
 
@@ -25,6 +26,7 @@ export function useNotes(filters?: {
     queryKey: [NOTES_QUERY_KEY, "list", user?.id ?? null, filters ?? {}],
     queryFn: () => noteService.list(user!.id, filters),
     enabled: !!user,
+    refetchOnMount: true,
   });
 }
 
@@ -163,11 +165,24 @@ export function useUnlinkNoteFromGoal() {
   });
 }
 
+export const NOTE_TYPES_QUERY_KEY = "note_types";
+
+export function useNoteTypes() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [NOTE_TYPES_QUERY_KEY, user?.id ?? null],
+    queryFn: () => noteService.listTypes(user!.id),
+    enabled: !!user,
+  });
+}
+
 function invalidateNoteGraph(
   queryClient: ReturnType<typeof useQueryClient>,
 ): Promise<unknown[]> {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [NOTE_TYPES_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] }),
   ]);
@@ -219,6 +234,12 @@ export function useUpdateNote() {
         [NOTES_QUERY_KEY, "detail", user?.id ?? null, updated.id],
         updated,
       );
+      if (updated.slug) {
+        queryClient.setQueryData(
+          [NOTES_QUERY_KEY, "detail", user?.id ?? null, updated.slug],
+          updated,
+        );
+      }
       await invalidateNoteGraph(queryClient);
     },
     onError: (error: Error) => {
@@ -431,6 +452,38 @@ export function useArchiveNoteWithUndo() {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to archive note");
+    },
+  });
+}
+
+export function useBulkArchiveNotes() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (noteIds: string[]) => noteService.bulkArchive(user!.id, noteIds),
+    onSuccess: async () => {
+      await invalidateNoteGraph(queryClient);
+      toast.success("Notes archived");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to archive notes");
+    },
+  });
+}
+
+export function useBulkDeleteNotes() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (noteIds: string[]) => noteService.bulkDelete(user!.id, noteIds),
+    onSuccess: async () => {
+      await invalidateNoteGraph(queryClient);
+      toast.success("Notes deleted");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete notes");
     },
   });
 }
