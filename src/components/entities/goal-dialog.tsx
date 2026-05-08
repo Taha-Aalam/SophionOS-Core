@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo } from "react";
-import { ChevronDown } from "lucide-react";
+import { X } from "lucide-react";
 import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { z } from "zod";
 
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -50,6 +51,7 @@ interface GoalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   goal?: Goal | null;
+  defaultAreaIds?: string[];
   onSuccess?: () => void;
 }
 
@@ -83,7 +85,7 @@ function buildGoalResolver(isCreate: boolean): Resolver<GoalFormValues> {
   };
 }
 
-export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogProps) {
+export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess }: GoalDialogProps) {
   const isCreate = !goal;
   const { data: allAreas = [] } = useAreas();
   const areas = allAreas.filter((area) => !area.archive);
@@ -109,7 +111,7 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
     } : {
       name: "",
       description: "",
-      area_ids: [],
+      area_ids: defaultAreaIds ?? [],
       term: GOAL_TERM.SHORT,
       priority: PRIORITY.MEDIUM,
       target_date: undefined,
@@ -125,13 +127,15 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
     form.reset({
       name: goal?.name || "",
       description: goal?.description || "",
-      area_ids: goal?.linkedAreaIds ?? (goal?.area_id ? [goal.area_id] : []),
+      area_ids: goal
+        ? goal.linkedAreaIds ?? (goal?.area_id ? [goal.area_id] : [])
+        : defaultAreaIds ?? [],
       term: goal?.term || GOAL_TERM.SHORT,
       priority: goal?.priority || PRIORITY.MEDIUM,
       target_date: goal?.target_date ?? undefined,
       progress: goal?.progress || 0,
     });
-  }, [form, goal, open]);
+  }, [form, goal, open, defaultAreaIds]);
 
   const progressValue = useWatch({ control: form.control, name: "progress" }) ?? 0;
   const selectedAreaIds = useWatch({ control: form.control, name: "area_ids" }) ?? [];
@@ -146,12 +150,6 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
     restoreMutation.isPending ||
     completeMutation.isPending;
   const selectedAreas = areas.filter((area) => selectedAreaIds.includes(area.id));
-  const selectedAreaLabel =
-    selectedAreas.length === 0
-      ? "Unassigned"
-      : selectedAreas.length === 1
-        ? `${selectedAreas[0].icon ? `${selectedAreas[0].icon} ` : ""}${selectedAreas[0].name}`
-        : `${selectedAreas.length} areas selected`;
   const selectedTermLabel =
     selectedTerm === GOAL_TERM.SHORT
       ? "Short Term"
@@ -249,64 +247,63 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+<div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="goal-area">Area</Label>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={
-                    <button
-                      id="goal-area"
-                      type="button"
-                      className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] hover:bg-accent/40"
-                    />
-                  }
-                >
-                  <span className="truncate text-left">{selectedAreaLabel}</span>
-                  <ChevronDown className="size-4 text-muted-foreground" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-[var(--anchor-width)]">
-                  <DropdownMenuItem onClick={() => form.setValue("area_ids", [])}>
-                    Clear selection
-                  </DropdownMenuItem>
-                  <ScrollArea className="max-h-56">
-                    <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="goal-area">Areas</Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    {selectedAreaIds.length === 0
+                      ? "Select areas..."
+                      : `${selectedAreaIds.length} selected`}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuItem onClick={() => form.setValue("area_ids", [])}>
+                      Clear selection
+                    </DropdownMenuItem>
+                    <ScrollArea className="max-h-56">
                       {areas.map((area) => {
                         const checked = selectedAreaIds.includes(area.id);
                         return (
-                          <button
+                          <DropdownMenuItem
                             key={area.id}
-                            type="button"
                             onClick={() => {
                               const nextAreaIds = checked
                                 ? selectedAreaIds.filter((areaId) => areaId !== area.id)
                                 : [...selectedAreaIds, area.id];
                               form.setValue("area_ids", nextAreaIds, { shouldDirty: true });
                             }}
-                            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+                            className="flex items-center gap-2"
                           >
                             <Checkbox checked={checked} />
-                            <span className="truncate">
-                              {area.icon ? `${area.icon} ` : ""}
-                              {area.name}
-                            </span>
-                          </button>
+                            {area.icon ? `${area.icon} ` : ""}
+                            {area.name}
+                          </DropdownMenuItem>
                         );
                       })}
-                    </div>
-                  </ScrollArea>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    </ScrollArea>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               {selectedAreas.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2 pt-2">
                   {selectedAreas.map((area) => (
-                    <span
-                      key={area.id}
-                      className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
-                    >
+                    <Badge key={area.id} variant="secondary" className="flex items-center gap-1">
                       {area.icon ? `${area.icon} ` : ""}
                       {area.name}
-                    </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextAreaIds = selectedAreaIds.filter((id) => id !== area.id);
+                          form.setValue("area_ids", nextAreaIds, { shouldDirty: true });
+                        }}
+                        className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </Badge>
                   ))}
                 </div>
               ) : null}
@@ -315,7 +312,7 @@ export function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogPr
                   {String(form.formState.errors.area_ids.message)}
                 </p>
               )}
-            </div>
+</div>
 
             <div className="space-y-2">
               <Label htmlFor="goal-term">Term</Label>

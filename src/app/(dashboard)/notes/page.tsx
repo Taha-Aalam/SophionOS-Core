@@ -418,7 +418,7 @@ export default function NotesPage() {
             <Select
               value={filterStatus || ALL_STATUS_VALUE}
               onValueChange={(value) =>
-                setFilterStatus(value === ALL_STATUS_VALUE ? "" : value)
+                setFilterStatus(value === ALL_STATUS_VALUE ? "" : (value || ""))
               }
             >
               <SelectTrigger className="h-7 w-[120px] text-xs">
@@ -638,7 +638,7 @@ export default function NotesPage() {
 
             <Select
               value={filterNotebook}
-              onValueChange={(value) => setFilterNotebook(value)}
+              onValueChange={(value) => setFilterNotebook(value || "")}
             >
               <SelectTrigger className="h-7 w-[140px] text-xs">
                 <SelectValue placeholder="Notebook" />

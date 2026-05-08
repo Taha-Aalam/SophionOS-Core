@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Save } from "lucide-react";
 
 import { NoteEditor } from "@/components/entities/note-editor";
@@ -18,7 +18,10 @@ import { NOTE_STATUS, NOTE_TYPE, type NoteStatus } from "@/lib/utils/constants";
 
 export default function NewNotePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const createNote = useCreateNote();
+
+  const prefilledAreaId = searchParams.get("areaId");
 
   const { data: areas = [], isLoading: areasLoading } = useAreas();
   const { data: goals = [], isLoading: goalsLoading } = useGoals({ status: "all" });
@@ -37,6 +40,19 @@ export default function NewNotePage() {
   const [taskIds, setTaskIds] = useState<string[]>([]);
   const [favorite, setFavorite] = useState(false);
   const [pin, setPin] = useState(false);
+
+  const initialized = useRef(false);
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    if (prefilledAreaId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAreaIds([prefilledAreaId]);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("areaId");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [prefilledAreaId]);
 
   const isLoading = areasLoading || goalsLoading || projectsLoading || tasksLoading || typesLoading;
 
@@ -59,7 +75,7 @@ export default function NewNotePage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-6">
+      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-10 w-full" />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -71,7 +87,7 @@ export default function NewNotePage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-6">
+    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon-sm" onClick={() => router.push("/notes")}>

@@ -200,9 +200,9 @@ export const dashboardService = {
         status: t.status,
         isOverdue,
         projectId: t.project_id,
-        projectName: (t.projects as { name: string } | null)?.name ?? null,
+        projectName: (t.projects?.[0] as { name: string } | undefined)?.name ?? null,
         areaId: t.area_id,
-        areaName: (t.areas as { name: string } | null)?.name ?? null,
+        areaName: (t.areas?.[0] as { name: string } | undefined)?.name ?? null,
       };
     });
 

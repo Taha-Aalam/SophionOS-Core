@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
-import { AREAS_QUERY_KEY } from "@/lib/hooks/use-areas";
+import { AREAS_QUERY_KEY, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
 import {
   GOAL_DETAIL_QUERY_KEY,
   type GoalDetailData,
@@ -27,6 +27,7 @@ function invalidateGoalGraph(
     queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
   ]);
 }
 

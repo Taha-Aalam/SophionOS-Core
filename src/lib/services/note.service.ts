@@ -360,8 +360,8 @@ export const noteService = {
       const goalIds = goal_ids ? Array.from(new Set(goal_ids)) : undefined;
       const taskIds = task_ids ? Array.from(new Set(task_ids)) : undefined;
       const projectIds = project_ids ? Array.from(new Set(project_ids)) : undefined;
-      const { areaIds, noteInput: areaCleanedInput } = extractNoteAreaIds(rest);
-      const { projectIds: extractedProjectIds, noteInput: projectCleanedInput } = extractProjectIds(areaCleanedInput);
+      const { areaIds, noteInput: areaCleanedInput } = extractNoteAreaIds({ ...rest, project_ids });
+      const { noteInput: projectCleanedInput } = extractProjectIds(areaCleanedInput);
       const validated = updateNoteSchema.parse(projectCleanedInput);
       const hasNoteUpdates = Object.keys(validated).length > 0;
 
@@ -414,8 +414,8 @@ export const noteService = {
         await this.replaceGoalLinks(id, goalIds);
       }
 
-      if (projectIds ?? extractedProjectIds) {
-        await this.replaceProjectLinks(id, projectIds ?? extractedProjectIds ?? []);
+      if (projectIds) {
+        await this.replaceProjectLinks(id, projectIds);
       }
 
       if (taskIds) {
