@@ -55,9 +55,19 @@ interface ResourceDialogProps {
   resource?: Resource | null;
   onSubmit: (input: CreateResourceInput | UpdateResourceInput) => void;
   isPending?: boolean;
+  initialGoalIds?: string[];
+  initialAreaIds?: string[];
 }
 
-export function ResourceDialog({ open, onOpenChange, resource, onSubmit, isPending }: ResourceDialogProps) {
+export function ResourceDialog({
+  open,
+  onOpenChange,
+  resource,
+  onSubmit,
+  isPending,
+  initialGoalIds,
+  initialAreaIds,
+}: ResourceDialogProps) {
   const isEdit = !!resource;
   const { data: areas = [] } = useAreas();
   const { data: projects = [] } = useProjects({ status: "all" });
@@ -154,14 +164,14 @@ export function ResourceDialog({ open, onOpenChange, resource, onSubmit, isPendi
         setUrl("");
         setType(RESOURCE_TYPE.WEBSITE);
         setStatus(RESOURCE_STATUS.INBOX);
-        setAreaIds([]);
+        setAreaIds(initialAreaIds ?? []);
         setProjectId("");
         setTopicId("");
-        setGoalIds([]);
+        setGoalIds(initialGoalIds ?? []);
         setTaskIds([]);
       });
     }
-  }, [open, resource]);
+  }, [open, resource, initialGoalIds, initialAreaIds]);
 
   const handleUrlBlur = () => {
     if (url && !name) {

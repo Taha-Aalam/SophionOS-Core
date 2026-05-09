@@ -84,22 +84,12 @@ interface TaskDialogProps {
   task?: Task | null;
   defaultProjectId?: string;
   defaultAreaId?: string;
+  defaultGoalId?: string;
   goalId?: string;
-  /**
-   * When set, the dialog runs in goal-scoped mode:
-   *  - the area is locked to the parent goal's area
-   *  - goal linkage is locked to the parent goal only
-   *  - project options are limited to projects already linked to the goal
-   */
   goalScoped?: GoalScopedTaskConfig;
-  /**
-   * When set, the dialog runs in project-scoped mode:
-   *  - the project is locked to the parent project (display: name, not UUID)
-   *  - the area is locked to the parent project's primary area
-   */
   projectScoped?: ProjectScopedTaskConfig;
+  allowedProjectIds?: string[];
   onSuccess?: () => void;
-  /** Called when the user deletes an existing task. */
   onDelete?: (id: string) => void;
 }
 
@@ -206,9 +196,11 @@ export function TaskDialog({
   task,
   defaultProjectId,
   defaultAreaId,
+  defaultGoalId,
   goalId,
   goalScoped,
   projectScoped,
+  allowedProjectIds,
   onSuccess,
   onDelete,
 }: TaskDialogProps) {
@@ -370,6 +362,10 @@ export function TaskDialog({
       return filterAllowedProjectsForGoal(projects, goalScoped.allowedProjectIds);
     }
 
+    if (allowedProjectIds && allowedProjectIds.length > 0) {
+      return filterAllowedProjectsForGoal(projects, allowedProjectIds);
+    }
+
     if (selectedAreaIds.length === 0) {
       return projects;
     }
@@ -377,7 +373,7 @@ export function TaskDialog({
     return projects.filter((project) =>
       selectedAreaIds.includes(project.area_id ?? ""),
     );
-  }, [goalScoped, isGoalScoped, projects, selectedAreaIds]);
+  }, [goalScoped, isGoalScoped, projects, selectedAreaIds, allowedProjectIds]);
 
   /** Areas visible in the area selector — restricted to goal-linked areas when goals are selected. */
   const visibleAreas = useMemo(() => {

@@ -252,9 +252,7 @@ export default function AreaDetailPage() {
           <ArrowLeft className="size-3.5" />
         </Button>
         <span>/</span>
-        <button className="hover:text-foreground" onClick={() => router.push("/areas")}>
-          Areas
-        </button>
+        <span className="text-foreground">Areas</span>
         <span>/</span>
         <span className="text-foreground">{area.name}</span>
       </div>

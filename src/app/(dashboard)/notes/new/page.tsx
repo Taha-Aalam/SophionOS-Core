@@ -23,6 +23,7 @@ export default function NewNotePage() {
   const createNote = useCreateNote();
 
   const prefilledAreaId = searchParams.get("areaId");
+  const prefilledGoalId = searchParams.get("goalId");
   const noteReturnTo = decodeReturnTo(searchParams.get("returnTo") || "");
 
   const { data: areas = [], isLoading: areasLoading } = useAreas();
@@ -47,14 +48,21 @@ export default function NewNotePage() {
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
+    const url = new URL(window.location.href);
     if (prefilledAreaId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAreaIds([prefilledAreaId]);
-      const url = new URL(window.location.href);
       url.searchParams.delete("areaId");
+    }
+    if (prefilledGoalId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setGoalIds([prefilledGoalId]);
+      url.searchParams.delete("goalId");
+    }
+    if (prefilledAreaId || prefilledGoalId) {
       window.history.replaceState({}, "", url.toString());
     }
-  }, [prefilledAreaId]);
+  }, [prefilledAreaId, prefilledGoalId]);
 
   const isLoading = areasLoading || goalsLoading || projectsLoading || tasksLoading || typesLoading;
 
