@@ -5,6 +5,44 @@ import {
   filterProjectDialogGoals,
 } from "../../src/lib/utils/project-dialog-filters";
 
+/**
+ * Regression: goal-detail new project must use standard area selector UI
+ * (defaultAreaIds + goalId), NOT the locked goalScoped "from goal" presentation.
+ * These tests verify that the filter helpers work correctly for preselected
+ * defaults used in standard create mode.
+ */
+describe("goal-detail project create: standard area selector with preselected defaults", () => {
+  const areas = [
+    { id: "a1", name: "Work" },
+    { id: "a2", name: "Health" },
+    { id: "a3", name: "Learning" },
+  ];
+  const goals = [
+    { id: "g1", name: "Goal 1", area_id: "a1" },
+    { id: "g2", name: "Goal 2", area_id: "a2" },
+  ];
+
+  it("defaultAreaIds [a1] plus goalId [g1] produces correct goal filter", () => {
+    const filteredGoals = filterProjectDialogGoals(goals, ["a1"]);
+    expect(filteredGoals.map((g) => g.id)).toEqual(["g1"]);
+  });
+
+  it("defaultAreaIds [a1, a2] plus goalId [g1] produces correct goal filter", () => {
+    const filteredGoals = filterProjectDialogGoals(goals, ["a1", "a2"]);
+    expect(filteredGoals.map((g) => g.id)).toEqual(["g1", "g2"]);
+  });
+
+  it("preselected area [a1] is retained by filterProjectDialogAreas", () => {
+    const result = filterProjectDialogAreas(areas, goals, ["a1"], ["g1"]);
+    expect(result.some((a) => a.id === "a1")).toBe(true);
+  });
+
+  it("no area preselected returns all areas", () => {
+    const result = filterProjectDialogAreas(areas, goals, [], []);
+    expect(result).toEqual(areas);
+  });
+});
+
 describe("filterProjectDialogGoals", () => {
   const goals = [
     { id: "g1", name: "Goal 1", area_id: "a1", is_archived: false },
