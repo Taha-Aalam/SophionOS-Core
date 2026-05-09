@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, ChevronDown, Plus } from "lucide-react";
+import { Check, ChevronDownIcon, Plus } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -63,7 +63,7 @@ export function NoteTypeCombobox({
         className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
       >
         {value ? selectedLabel : placeholder}
-        <ChevronDown className="ml-2 size-3.5 shrink-0 opacity-50" />
+        <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start">
         <Command>

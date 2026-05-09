@@ -4,7 +4,7 @@ import React, { startTransition, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { ChevronLeft, ChevronRight, Settings, SunMoon } from "lucide-react";
+import { ChevronLeft, ChevronRightIcon, Settings, SunMoon } from "lucide-react";
 
 import { coreNavItems, systemNavItems } from "@/components/layout/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -91,7 +91,7 @@ export function Sidebar() {
           {isDesktopSidebarOpen ? (
             <ChevronLeft className="size-3.5" />
           ) : (
-            <ChevronRight className="size-3.5" />
+            <ChevronRightIcon className="size-3.5" />
           )}
         </Button>
       </div>

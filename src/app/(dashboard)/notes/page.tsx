@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Archive,
   BookOpen,
-  ChevronDown,
+  ChevronDownIcon,
   Clock,
   Filter,
   FolderOpen,
@@ -452,7 +452,7 @@ export default function NotesPage() {
                     )}
                   </span>
                 )}
-                <ChevronDown className="size-3 text-muted-foreground" />
+                <ChevronDownIcon className="size-3 text-muted-foreground" />
               </PopoverTrigger>
               <PopoverContent className={filterPopoverContentClassName}>
                 <div className="space-y-1">
@@ -505,7 +505,7 @@ export default function NotesPage() {
                     )}
                   </span>
                 )}
-                <ChevronDown className="size-3 text-muted-foreground" />
+                <ChevronDownIcon className="size-3 text-muted-foreground" />
               </PopoverTrigger>
               <PopoverContent className={filterPopoverContentClassName}>
                 <div className="space-y-1">
@@ -555,7 +555,7 @@ export default function NotesPage() {
                     )}
                   </span>
                 )}
-                <ChevronDown className="size-3 text-muted-foreground" />
+                <ChevronDownIcon className="size-3 text-muted-foreground" />
               </PopoverTrigger>
               <PopoverContent className={filterPopoverContentClassName}>
                 <div className="space-y-1">
@@ -605,7 +605,7 @@ export default function NotesPage() {
                     )}
                   </span>
                 )}
-                <ChevronDown className="size-3 text-muted-foreground" />
+                <ChevronDownIcon className="size-3 text-muted-foreground" />
               </PopoverTrigger>
               <PopoverContent className={filterPopoverContentClassName}>
                 <div className="space-y-1">

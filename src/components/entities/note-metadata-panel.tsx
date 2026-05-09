@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BookOpen, Check, ChevronDown, Map, Pin, Star, Target, X } from "lucide-react";
+import { BookOpen, Check, ChevronDownIcon, Map, Pin, Star, Target, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -438,7 +438,7 @@ function AreaSelector({
         <span className="truncate">
           {selectedIds.length === 0 ? "Select areas..." : `${selectedIds.length} selected`}
         </span>
-        <ChevronDown className="ml-2 size-3.5 shrink-0 opacity-50" />
+        <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start">
         <Command shouldFilter={false}>
@@ -499,7 +499,7 @@ function GoalSelector({
         <span className="truncate">
           {selectedIds.length === 0 ? "Select goals..." : `${selectedIds.length} selected`}
         </span>
-        <ChevronDown className="ml-2 size-3.5 shrink-0 opacity-50" />
+        <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0" align="start">
         <Command shouldFilter={false}>
@@ -560,7 +560,7 @@ function ProjectSelector({
         <span className="truncate">
           {selectedIds.length === 0 ? "Select projects..." : `${selectedIds.length} selected`}
         </span>
-        <ChevronDown className="ml-2 size-3.5 shrink-0 opacity-50" />
+        <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start">
         <Command shouldFilter={false}>

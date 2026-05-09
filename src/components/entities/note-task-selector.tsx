@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, ChevronDown, X } from "lucide-react";
+import { Check, ChevronDownIcon, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -71,7 +71,7 @@ export function NoteTaskSelector({
           <span className="truncate">
             {selectedIds.length === 0 ? placeholder : `${selectedIds.length} linked`}
           </span>
-          <ChevronDown className="ml-2 size-3.5 shrink-0 opacity-50" />
+          <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
         </PopoverTrigger>
         <PopoverContent className="w-72 p-0" align="start">
           <Command shouldFilter={false}>

@@ -2,12 +2,12 @@
 
 import { useEffect } from "react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Calendar,
-  ChevronDown,
-  ChevronRight,
+  ChevronDownIcon,
+  ChevronRightIcon,
   Edit,
   Link as LinkIcon,
   Plus,
@@ -64,6 +64,7 @@ import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { calculateGoalProgress, getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
+import { encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 
 const TERM_LABELS: Record<string, string> = {
   short: "Short Term",
@@ -176,8 +177,10 @@ function InlineGoalTitleEditor({
 export default function GoalDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const goalId = params.id as string;
   const { setPageTitle } = useUIStore();
+  const currentPagePath = `/goals/${goalId}`;
 
   // UI state
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -228,6 +231,13 @@ export default function GoalDetailPage() {
     [areaNames],
   );
   const linkedAreaIds = useMemo(() => (goal ? getGoalLinkedAreaIds(goal) : []), [goal]);
+  const currentPagePathWithSlug = goal ? `/goals/${goal.slug ?? goal.id}` : currentPagePath;
+  const goalNavigation = useMemo(
+    () => resolveGoalDetailNavigation(searchParams, currentPagePathWithSlug),
+    [currentPagePathWithSlug, searchParams],
+  );
+  const goalBreadcrumbTarget = goalNavigation.breadcrumbTarget;
+  const goalNestedReturnTo = goalNavigation.nestedReturnTo;
   const allowedProjectIds = useMemo(
     () => (goalData?.projects ?? []).map((p) => p.id),
     [goalData?.projects],
@@ -587,12 +597,12 @@ export default function GoalDetailPage() {
           variant="ghost"
           size="icon"
           className="size-6"
-          onClick={() => router.push("/goals")}
+          onClick={() => router.push(goalBreadcrumbTarget)}
         >
           <ArrowLeft className="size-3.5" />
         </Button>
         <span>/</span>
-        <button className="hover:text-foreground" onClick={() => router.push("/goals")}>
+        <button className="hover:text-foreground" onClick={() => router.push(goalBreadcrumbTarget)}>
           Goals
         </button>
         <span>/</span>
@@ -683,9 +693,9 @@ export default function GoalDetailPage() {
           >
             Properties
             {isPropertiesOpen ? (
-              <ChevronDown className="size-3.5" />
+              <ChevronDownIcon className="size-3.5" />
             ) : (
-              <ChevronRight className="size-3.5" />
+              <ChevronRightIcon className="size-3.5" />
             )}
           </Button>
         </div>
@@ -1098,39 +1108,49 @@ export default function GoalDetailPage() {
         >
           {filteredNotes.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              {filteredNotes.map((note) => (
-                <button
-                  key={note.id}
-                  type="button"
-                  onClick={() => router.push(`/notes/${note.slug ?? note.id}`)}
-                  className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="truncate font-semibold">{note.name}</h3>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleNoteToggleFavorite(note.id, !note.favorite);
-                      }}
-                      className={cn(
-                        "shrink-0 text-sm",
-                        note.favorite ? "text-rose-500" : "text-muted-foreground",
-                      )}
-                    >
-                      {note.favorite ? "★" : "☆"}
-                    </button>
+              {filteredNotes.map((note) => {
+                const noteReturnTo = goalNestedReturnTo;
+                return (
+                  <div
+                    key={note.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => router.push(`/notes/${note.slug ?? note.id}?returnTo=${encodeReturnTo(noteReturnTo)}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        router.push(`/notes/${note.slug ?? note.id}?returnTo=${encodeReturnTo(noteReturnTo)}`);
+                      }
+                    }}
+                    className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30 cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="truncate font-semibold">{note.name}</h3>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleNoteToggleFavorite(note.id, !note.favorite);
+                        }}
+                        className={cn(
+                          "shrink-0 text-sm",
+                          note.favorite ? "text-rose-500" : "text-muted-foreground",
+                        )}
+                      >
+                        {note.favorite ? "★" : "☆"}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant="secondary" className="text-xs">
+                        {note.status}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {note.type}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    <Badge variant="secondary" className="text-xs">
-                      {note.status}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {note.type}
-                    </Badge>
-                  </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           ) : null}
         </GoalDetailSection>
@@ -1312,6 +1332,7 @@ export default function GoalDetailPage() {
         note={null}
         goalId={goal.id}
         areaId={linkedAreaIds[0] ?? null}
+        returnTo={goalNestedReturnTo}
         onSuccess={() => setIsNewNoteOpen(false)}
       />
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { FilePlus, Globe, Heart, Filter, ChevronDown } from "lucide-react";
+import { FilePlus, Globe, Heart, Filter, ChevronDownIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -363,7 +363,7 @@ export default function ResourcesPage() {
                     )}
                   </span>
                 )}
-                <ChevronDown className="size-3 text-muted-foreground" />
+                <ChevronDownIcon className="size-3 text-muted-foreground" />
               </PopoverTrigger>
               <PopoverContent className={filterPopoverContentClassName}>
                 <div className="space-y-1">
@@ -416,7 +416,7 @@ export default function ResourcesPage() {
                     )}
                   </span>
                 )}
-                <ChevronDown className="size-3 text-muted-foreground" />
+                <ChevronDownIcon className="size-3 text-muted-foreground" />
               </PopoverTrigger>
               <PopoverContent className={filterPopoverContentClassName}>
                 <div className="space-y-1">
@@ -466,7 +466,7 @@ export default function ResourcesPage() {
                     )}
                   </span>
                 )}
-                <ChevronDown className="size-3 text-muted-foreground" />
+                <ChevronDownIcon className="size-3 text-muted-foreground" />
               </PopoverTrigger>
               <PopoverContent className={filterPopoverContentClassName}>
                 <div className="space-y-1">
@@ -516,7 +516,7 @@ export default function ResourcesPage() {
                     )}
                   </span>
                 )}
-                <ChevronDown className="size-3 text-muted-foreground" />
+                <ChevronDownIcon className="size-3 text-muted-foreground" />
               </PopoverTrigger>
               <PopoverContent className={filterPopoverContentClassName}>
                 <div className="space-y-1">

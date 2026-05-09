@@ -8,6 +8,7 @@ const capturedHookArgs: Record<string, unknown[]> = {};
 vi.mock("next/navigation", () => ({
   useParams: () => ({ id: "my-project-slug" }),
   useRouter: () => ({ push: mockPush }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("@/lib/stores/ui.store", () => ({

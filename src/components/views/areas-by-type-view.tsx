@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import { GalleryGrid } from "@/components/views/gallery-grid";
 import { AreaCard } from "@/components/entities/area-card";
 import { Button } from "@/components/ui/button";
@@ -72,9 +72,9 @@ function CollapsibleSection({
       >
         <span className="text-muted-foreground transition-transform">
           {isOpen ? (
-            <ChevronDown className="size-4" />
+            <ChevronDownIcon className="size-4" />
           ) : (
-            <ChevronRight className="size-4" />
+            <ChevronRightIcon className="size-4" />
           )}
         </span>
         <Badge className={cn("text-xs font-medium", getTypeBadgeClass(type))}>

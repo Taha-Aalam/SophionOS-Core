@@ -3,7 +3,6 @@ import { CommandPalette } from "@/components/layout/command-palette";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { useAuth } from "@/components/providers/auth-provider";
 
 export default function DashboardGroupLayout({
   children,

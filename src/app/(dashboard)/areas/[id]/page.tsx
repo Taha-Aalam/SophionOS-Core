@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  ChevronDown,
-  ChevronRight,
+  ChevronDownIcon,
+  ChevronRightIcon,
   Edit,
   Target,
   Trash2,
@@ -34,10 +34,12 @@ import {
   useDeleteTask,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
+import { type Task } from "@/lib/types/domain.types";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
+import { buildReturnTo, encodeReturnTo } from "@/lib/utils/return-to";
 
 const AREA_TYPE_COLORS: Record<string, string> = {
   Business: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
@@ -61,13 +63,15 @@ export default function AreaDetailPage() {
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
-  const [goalTab, setGoalTab] = useState("all");
+  const [goalTab, setGoalTab] = useState("active");
   const [projectTab, setProjectTab] = useState("all");
   const [taskTab, setTaskTab] = useState("all");
   const [noteTab, setNoteTab] = useState("all");
   const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
+  const [isTaskEditOpen, setIsTaskEditOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const projectsRef = useRef<HTMLDivElement>(null);
   const tasksRef = useRef<HTMLDivElement>(null);
@@ -98,11 +102,28 @@ export default function AreaDetailPage() {
   const filteredGoals = useMemo(() => {
     const goals = areaData?.goals;
     if (!goals) return [];
-    if (goalTab === "all") return goals;
-    if (goalTab === "active") return goals.filter((g) => !g.is_completed && !g.is_archived);
-    if (goalTab === "completed") return goals.filter((g) => g.is_completed && !g.is_archived);
-    if (goalTab === "archived") return goals.filter((g) => g.is_archived);
-    return goals;
+    const statusMap: Record<string, string | undefined> = {
+      active: "active",
+      short: "active",
+      mid: "active",
+      long: "active",
+      inactive: "inactive",
+      completed: "completed",
+    };
+    const termMap: Record<string, string | undefined> = {
+      short: "short",
+      mid: "mid",
+      long: "long",
+    };
+    const status = statusMap[goalTab];
+    const term = termMap[goalTab];
+    if (!status) return goals;
+    return goals.filter((g) => {
+      const normalized = g.is_archived ? "inactive" : g.is_completed ? "completed" : "active";
+      if (normalized !== status) return false;
+      if (term && g.term !== term) return false;
+      return true;
+    });
   }, [areaData?.goals, goalTab]);
 
   const filteredProjects = useMemo(() => {
@@ -121,11 +142,15 @@ export default function AreaDetailPage() {
     if (!tasks) return [];
     if (taskTab === "all") return tasks;
     if (taskTab === "inbox") return tasks.filter((t) => t.status === "inbox" && !t.is_completed);
-    if (taskTab === "upcoming") return tasks.filter((t) => t.status !== "inbox" && t.status !== "completed" && !t.is_completed);
-    if (taskTab === "overdue") return tasks.filter((t) => {
-      if (!t.due_date || t.is_completed) return false;
-      return new Date(t.due_date) < new Date();
-    });
+    if (taskTab === "upcoming")
+      return tasks.filter((t) => t.status !== "inbox" && t.status !== "completed" && !t.is_completed);
+    if (taskTab === "overdue")
+      return tasks.filter((t) => {
+        if (!t.due_date || t.is_completed) return false;
+        return new Date(t.due_date) < new Date();
+      });
+    if (taskTab === "by_goal") return tasks.filter((t) => t.linkedGoalIds && t.linkedGoalIds.length > 0);
+    if (taskTab === "by_project") return tasks.filter((t) => !!t.project_id);
     if (taskTab === "completed") return tasks.filter((t) => t.is_completed);
     return tasks;
   }, [areaData?.tasks, taskTab]);
@@ -135,7 +160,8 @@ export default function AreaDetailPage() {
     if (!notes) return [];
     if (noteTab === "all") return notes;
     if (noteTab === "inbox") return notes.filter((n) => n.status === "inbox");
-    if (noteTab === "active") return notes.filter((n) => n.status === "active");
+    if (noteTab === "to_review") return notes.filter((n) => n.status === "to_review");
+    if (noteTab === "active") return notes.filter((n) => n.status === "active" && !n.is_archived);
     if (noteTab === "archived") return notes.filter((n) => n.is_archived);
     return notes;
   }, [areaData?.notes, noteTab]);
@@ -293,9 +319,9 @@ export default function AreaDetailPage() {
           >
             Properties
             {isPropertiesOpen ? (
-              <ChevronDown className="size-3.5" />
+              <ChevronDownIcon className="size-3.5" />
             ) : (
-              <ChevronRight className="size-3.5" />
+              <ChevronRightIcon className="size-3.5" />
             )}
           </Button>
         </div>
@@ -439,10 +465,12 @@ export default function AreaDetailPage() {
           id="goals"
           entityType="goals"
           tabs={[
-            { value: "all", label: "All", count: rollups.goalCount },
             { value: "active", label: "Active" },
+            { value: "short", label: "Short Term" },
+            { value: "mid", label: "Mid Term" },
+            { value: "long", label: "Long Term" },
+            { value: "inactive", label: "Inactive" },
             { value: "completed", label: "Completed" },
-            { value: "archived", label: "Archive" },
           ]}
           activeTab={goalTab}
           onTabChange={setGoalTab}
@@ -454,14 +482,17 @@ export default function AreaDetailPage() {
         >
           {filteredGoals.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              {filteredGoals.map((goal) => (
-                <GoalCard
-                  key={goal.id}
-                  goal={goal}
-                  areaName={area.name}
-                  onEdit={() => router.push(buildGoalDetailHref(goal))}
-                />
-              ))}
+              {filteredGoals.map((goal) => {
+                const goalReturnTo = buildReturnTo(`/areas/${area.slug ?? area.id}`);
+                return (
+                  <GoalCard
+                    key={goal.id}
+                    goal={goal}
+                    areaName={area.name}
+                    onEdit={() => router.push(`${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(goalReturnTo)}`)}
+                  />
+                );
+              })}
             </div>
           ) : null}
         </GoalDetailSection>
@@ -489,13 +520,17 @@ export default function AreaDetailPage() {
         >
           {filteredProjects.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              {filteredProjects.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  areaName={area.name}
-                />
-              ))}
+              {filteredProjects.map((project) => {
+                const projectReturnTo = buildReturnTo(`/areas/${area.slug ?? area.id}`);
+                return (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    areaName={area.name}
+                    returnTo={projectReturnTo}
+                  />
+                );
+              })}
             </div>
           ) : null}
         </GoalDetailSection>
@@ -511,6 +546,8 @@ export default function AreaDetailPage() {
             { value: "inbox", label: "Inbox" },
             { value: "upcoming", label: "Upcoming" },
             { value: "overdue", label: "Overdue" },
+            { value: "by_goal", label: "By Goal" },
+            { value: "by_project", label: "By Project" },
             { value: "completed", label: "Completed" },
           ]}
           activeTab={taskTab}
@@ -533,6 +570,10 @@ export default function AreaDetailPage() {
                   onFocusToggle={() => {}}
                   onNameSave={handleTaskNameSave}
                   onDelete={handleTaskDelete}
+                  onEdit={(task) => {
+                    setEditingTask(task);
+                    setIsTaskEditOpen(true);
+                  }}
                 />
               ))}
             </div>
@@ -548,6 +589,7 @@ export default function AreaDetailPage() {
           tabs={[
             { value: "all", label: "All", count: rollups.noteCount },
             { value: "inbox", label: "Inbox" },
+            { value: "to_review", label: "To Review" },
             { value: "active", label: "Active" },
             { value: "archived", label: "Archive" },
           ]}
@@ -556,31 +598,34 @@ export default function AreaDetailPage() {
           isLoading={isLoading}
           emptyTitle="No notes linked to this area"
           emptyDescription="Create a note to capture thoughts for this area."
-          onCreateNew={() => area && router.push(`/notes/new?areaId=${area.id}`)}
+          onCreateNew={() => area && router.push(`/notes/new?areaId=${area.id}&returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}`)}
           createLabel="New Note"
         >
           {filteredNotes.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              {filteredNotes.map((note) => (
-                <button
-                  key={note.id}
-                  type="button"
-                  onClick={() => router.push(`/notes/${note.slug ?? note.id}`)}
-                  className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="truncate font-semibold">{note.name}</h3>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    <Badge variant="secondary" className="text-xs">
-                      {note.status}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {note.type}
-                    </Badge>
-                  </div>
-                </button>
-              ))}
+              {filteredNotes.map((note) => {
+                const noteReturnTo = buildReturnTo(`/areas/${area.slug ?? area.id}`);
+                return (
+                  <button
+                    key={note.id}
+                    type="button"
+                    onClick={() => router.push(`/notes/${note.slug ?? note.id}?returnTo=${encodeReturnTo(noteReturnTo)}`)}
+                    className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="truncate font-semibold">{note.name}</h3>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant="secondary" className="text-xs">
+                        {note.status}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {note.type}
+                      </Badge>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           ) : null}
         </GoalDetailSection>
@@ -632,6 +677,20 @@ export default function AreaDetailPage() {
         onOpenChange={setIsNewTaskOpen}
         defaultAreaId={area?.id}
         onSuccess={() => setIsNewTaskOpen(false)}
+      />
+
+      {/* Task Edit Dialog */}
+      <TaskDialog
+        open={isTaskEditOpen}
+        onOpenChange={(open) => {
+          setIsTaskEditOpen(open);
+          if (!open) setEditingTask(null);
+        }}
+        task={editingTask}
+        onDelete={(id) => {
+          handleTaskDelete(id);
+          setEditingTask(null);
+        }}
       />
 
       {/* Note creation navigates directly to /notes/new */}

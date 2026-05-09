@@ -1,12 +1,12 @@
 "use client";
 
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Calendar,
-  ChevronDown,
-  ChevronRight,
+  ChevronDownIcon,
+  ChevronRightIcon,
   Edit,
   Link as LinkIcon,
   NotebookPen,
@@ -69,6 +69,7 @@ import { cn } from "@/lib/utils";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { getProjectDueState, getProjectLinkedAreaIds, getProjectStatusLabel } from "@/lib/utils/projects";
+import { resolveBackNavigation, getReturnToFromSearchParams } from "@/lib/utils/return-to";
 
 const PRIORITY_COLORS: Record<string, string> = {
   urgent: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
@@ -97,8 +98,10 @@ function getProjectProgressPercent(
 export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const projectIdentifier = params.id as string;
   const { setPageTitle } = useUIStore();
+  const projectReturnTo = getReturnToFromSearchParams(searchParams);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -585,12 +588,12 @@ export default function ProjectDetailPage() {
           variant="ghost"
           size="icon"
           className="size-6"
-          onClick={() => router.push("/projects")}
+          onClick={() => router.push(resolveBackNavigation(projectReturnTo, "/projects"))}
         >
           <ArrowLeft className="size-3.5" />
         </Button>
         <span>/</span>
-        <button className="hover:text-foreground" onClick={() => router.push("/projects")}>
+        <button className="hover:text-foreground" onClick={() => router.push(resolveBackNavigation(projectReturnTo, "/projects"))}>
           Projects
         </button>
         <span>/</span>
@@ -676,9 +679,9 @@ export default function ProjectDetailPage() {
           >
             Properties
             {isPropertiesOpen ? (
-              <ChevronDown className="size-3.5" />
+              <ChevronDownIcon className="size-3.5" />
             ) : (
-              <ChevronRight className="size-3.5" />
+              <ChevronRightIcon className="size-3.5" />
             )}
           </Button>
         </div>
