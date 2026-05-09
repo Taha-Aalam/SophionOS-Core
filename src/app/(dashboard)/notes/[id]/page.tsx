@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Link2,
@@ -59,6 +59,7 @@ import type { UpdateNoteInput } from "@/lib/types/domain.types";
 import { buildNoteMetadataUpdateInput } from "@/lib/utils/note-detail-metadata";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/stores/ui.store";
+import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
 
 const STATUS_COLORS: Record<string, string> = {
   inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -74,6 +75,9 @@ export default function NoteDetailPage() {
   const router = useRouter();
   const noteId = params.id as string;
   const { setPageTitle } = useUIStore();
+
+  const searchParams = useSearchParams();
+  const noteReturnTo = decodeReturnTo(searchParams.get("returnTo") || "");
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [localIsArchived, setLocalIsArchived] = useState(false);
@@ -251,7 +255,7 @@ export default function NoteDetailPage() {
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon-sm" onClick={() => router.push("/notes")}>
+          <Button variant="ghost" size="icon-sm" onClick={() => router.push(resolveBackNavigation(noteReturnTo, "/notes"))}>
             <ArrowLeft className="size-4" />
           </Button>
           <Badge variant="secondary" className={cn("text-xs", STATUS_COLORS[note.status])}>

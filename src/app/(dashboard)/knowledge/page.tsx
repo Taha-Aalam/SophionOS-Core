@@ -7,8 +7,8 @@ import {
   Archive,
   ArchiveRestore,
   BookOpen,
-  ChevronDown,
-  ChevronRight,
+  ChevronDownIcon,
+  ChevronRightIcon,
   FilePlus,
   FolderOpen,
   Globe,
@@ -571,7 +571,7 @@ export default function KnowledgeHubPage() {
                   })
                 }
               >
-                {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                {isOpen ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
                 {label ?? k}
                 <Badge variant="secondary" className="ml-auto h-4 px-1.5 text-[10px]">{g.length}</Badge>
               </button>

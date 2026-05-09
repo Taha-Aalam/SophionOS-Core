@@ -4,7 +4,7 @@ import {
   AlertTriangle,
   CalendarDays,
   CheckSquare,
-  ChevronDown,
+  ChevronDownIcon,
   Clock,
   Filter,
   Inbox as InboxIcon,
@@ -284,7 +284,7 @@ export default function TasksPage() {
                     )}
                   </span>
                 )}
-                <ChevronDown className="size-3 text-muted-foreground" />
+                <ChevronDownIcon className="size-3 text-muted-foreground" />
               </PopoverTrigger>
               <PopoverContent className={filterPopoverContentClassName}>
                 <div className="space-y-1">
@@ -337,7 +337,7 @@ export default function TasksPage() {
                     )}
                   </span>
                 )}
-                <ChevronDown className="size-3 text-muted-foreground" />
+                <ChevronDownIcon className="size-3 text-muted-foreground" />
               </PopoverTrigger>
               <PopoverContent className={filterPopoverContentClassName}>
                 <div className="space-y-1">
@@ -387,7 +387,7 @@ export default function TasksPage() {
                     )}
                   </span>
                 )}
-                <ChevronDown className="size-3 text-muted-foreground" />
+                <ChevronDownIcon className="size-3 text-muted-foreground" />
               </PopoverTrigger>
               <PopoverContent className={filterPopoverContentClassName}>
                 <div className="space-y-1">

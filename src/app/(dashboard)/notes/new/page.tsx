@@ -15,6 +15,7 @@ import { useCreateNote, useNoteTypes } from "@/lib/hooks/use-notes";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { NOTE_STATUS, NOTE_TYPE, type NoteStatus } from "@/lib/utils/constants";
+import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
 
 export default function NewNotePage() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function NewNotePage() {
   const createNote = useCreateNote();
 
   const prefilledAreaId = searchParams.get("areaId");
+  const noteReturnTo = decodeReturnTo(searchParams.get("returnTo") || "");
 
   const { data: areas = [], isLoading: areasLoading } = useAreas();
   const { data: goals = [], isLoading: goalsLoading } = useGoals({ status: "all" });
@@ -70,7 +72,12 @@ export default function NewNotePage() {
       favorite,
       pin,
     });
-    router.push(`/notes/${note.slug ?? note.id}`);
+    const noteUrl = `/notes/${note.slug ?? note.id}`;
+    if (noteReturnTo) {
+      router.push(`${noteUrl}?returnTo=${encodeURIComponent(noteReturnTo)}`);
+    } else {
+      router.push(noteUrl);
+    }
   };
 
   if (isLoading) {
@@ -90,7 +97,7 @@ export default function NewNotePage() {
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon-sm" onClick={() => router.push("/notes")}>
+          <Button variant="ghost" size="icon-sm" onClick={() => router.push(resolveBackNavigation(noteReturnTo, "/notes"))}>
             <ArrowLeft className="size-4" />
           </Button>
           <h1 className="text-xl font-bold tracking-tight">New Note</h1>

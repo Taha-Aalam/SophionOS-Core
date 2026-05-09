@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRightIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Task } from "@/lib/types/domain.types";
@@ -120,7 +120,7 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
           {MONTH_NAMES[month]} {year}
         </h2>
         <Button variant="ghost" size="icon-sm" onClick={nextMonth} aria-label="Next month">
-          <ChevronRight className="size-4" />
+          <ChevronRightIcon className="size-4" />
         </Button>
       </div>
 

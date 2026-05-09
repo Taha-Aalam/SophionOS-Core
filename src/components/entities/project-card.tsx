@@ -28,6 +28,8 @@ interface ProjectCardProps {
   taskStats?: ProjectTaskStats;
   duplicateIndex?: number;
   onEdit?: (project: Project) => void;
+  /** When provided, appended as ?returnTo= to the project detail navigation. */
+  returnTo?: string | null;
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -44,6 +46,7 @@ export function ProjectCard({
   taskStats,
   duplicateIndex,
   onEdit,
+  returnTo,
 }: ProjectCardProps) {
   const router = useRouter();
   const dueState = getProjectDueState(project.due_date);
@@ -63,6 +66,14 @@ export function ProjectCard({
       ? Math.round((completedTasks / totalTasks) * 100)
       : project.progress || 0;
 
+  const projectHref = (() => {
+    const base = buildProjectDetailHref(project);
+    if (returnTo) {
+      return `${base}?returnTo=${encodeURIComponent(returnTo)}`;
+    }
+    return base;
+  })();
+
   return (
     <Card
       className={cn(
@@ -70,7 +81,7 @@ export function ProjectCard({
         project.is_archived && "opacity-60 grayscale",
       )}
       onClick={() => {
-        router.push(buildProjectDetailHref(project));
+        router.push(projectHref);
       }}
     >
       <CardContent className="p-4">
