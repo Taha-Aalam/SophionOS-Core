@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Archive, Map as MapIcon, Plus } from "lucide-react";
+import { Activity, Archive, LayoutGrid, Map as MapIcon, PauseCircle, Plus, Tags } from "lucide-react";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { AreaCard } from "@/components/entities/area-card";
@@ -171,12 +171,27 @@ export default function AreasPage() {
       </div>
 
       <Tabs defaultValue="active" className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="inactive">Inactive</TabsTrigger>
-          <TabsTrigger value="by-type">By Type</TabsTrigger>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="archived">Archived</TabsTrigger>
+        <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1">
+          <TabsTrigger value="active">
+            <Activity className="mr-1.5 size-3.5" />
+            Active
+          </TabsTrigger>
+          <TabsTrigger value="inactive">
+            <PauseCircle className="mr-1.5 size-3.5" />
+            Inactive
+          </TabsTrigger>
+          <TabsTrigger value="by-type">
+            <Tags className="mr-1.5 size-3.5" />
+            By Type
+          </TabsTrigger>
+          <TabsTrigger value="all">
+            <LayoutGrid className="mr-1.5 size-3.5" />
+            All
+          </TabsTrigger>
+          <TabsTrigger value="archived">
+            <Archive className="mr-1.5 size-3.5" />
+            Archived
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="active">
