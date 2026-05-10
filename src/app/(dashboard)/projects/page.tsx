@@ -9,8 +9,11 @@ import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
 import { EmptyState } from "@/components/views/empty-state";
 import { ProjectsByAreaView, type ProjectsByAreaGroup } from "@/components/views/projects-by-area-view";
+import { ProjectsByGoalView, type ProjectsByGoalGroup } from "@/components/views/projects-by-goal-view";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useGoals } from "@/lib/hooks/use-goals";
+import { groupProjectsByGoal } from "@/lib/utils/projects";
 
 // KanbanBoard pulls @hello-pangea/dnd (~50KB gz). Only needed in the "By Status" tab.
 const KanbanBoard = dynamic(
@@ -63,6 +66,7 @@ export default function ProjectsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [defaultAreaIds, setDefaultAreaIds] = useState<string[]>([]);
+  const [defaultGoalId, setDefaultGoalId] = useState<string | undefined>(undefined);
 
   const { data: activeProjectResults = [], isLoading: isLoadingActiveProjects } = useProjects({
     status: "all",
@@ -74,6 +78,7 @@ export default function ProjectsPage() {
   const { data: tasks = [] } = useTasks();
   const { data: notes = [] } = useNotes({ status: "all" });
   const { data: resources = [] } = useResources({ status: "all" });
+  const { data: allGoals = [] } = useGoals({ status: "all" });
 
   const allProjects = useMemo(
     () => mergeProjectQueryResults(activeProjectResults, archivedProjectResults),
@@ -117,6 +122,20 @@ export default function ProjectsPage() {
       projects,
     }));
   }, [activeProjects, areaNames]);
+
+  const goalMap = useMemo(
+    () => new Map(allGoals.map((g) => [g.id, g])),
+    [allGoals],
+  );
+
+  const groupedByGoalGroups = useMemo((): ProjectsByGoalGroup[] => {
+    const byGoalId = groupProjectsByGoal(activeProjects);
+    return Object.entries(byGoalId).map(([goalId, projects]) => ({
+      goalId,
+      goalName: goalId === "unassigned" ? "No Goal" : (goalMap.get(goalId)?.name ?? goalId),
+      projects,
+    }));
+  }, [activeProjects, goalMap]);
 
   const rollupsByProject = useMemo(() => {
     const result = new Map<string, { goalCount: number; taskCount: number; noteCount: number; resourceCount: number }>();
@@ -331,6 +350,22 @@ export default function ProjectsPage() {
           />
         </TabsContent>
 
+        <TabsContent value={PROJECT_VIEW.BY_GOAL} className="mt-6">
+          <ProjectsByGoalView
+            groups={groupedByGoalGroups}
+            areaNames={areaNames}
+            taskStatsByProject={taskStatsByProject}
+            duplicateIndices={duplicateIndices}
+            rollupsByProject={rollupsByProject}
+            isLoading={isLoadingProjects}
+            onEdit={handleEdit}
+            onCreateProject={(goalId) => {
+              setDefaultGoalId(goalId);
+              setIsDialogOpen(true);
+            }}
+          />
+        </TabsContent>
+
         <TabsContent value={PROJECT_VIEW.ARCHIVE} className="mt-6">
           {renderProjectGrid(
             archivedProjects,
@@ -347,10 +382,14 @@ export default function ProjectsPage() {
         open={isDialogOpen}
         onOpenChange={(open) => {
           handleDialogOpenChange(open);
-          if (!open) setDefaultAreaIds([]);
+          if (!open) {
+            setDefaultAreaIds([]);
+            setDefaultGoalId(undefined);
+          }
         }}
         project={editingProject}
         defaultAreaIds={editingProject ? undefined : defaultAreaIds}
+        goalId={editingProject ? undefined : defaultGoalId}
       />
     </div>
   );
