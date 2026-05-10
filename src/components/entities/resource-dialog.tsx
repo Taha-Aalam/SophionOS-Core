@@ -57,6 +57,7 @@ interface ResourceDialogProps {
   isPending?: boolean;
   initialGoalIds?: string[];
   initialAreaIds?: string[];
+  initialProjectId?: string;
 }
 
 export function ResourceDialog({
@@ -67,6 +68,7 @@ export function ResourceDialog({
   isPending,
   initialGoalIds,
   initialAreaIds,
+  initialProjectId,
 }: ResourceDialogProps) {
   const isEdit = !!resource;
   const { data: areas = [] } = useAreas();
@@ -76,7 +78,7 @@ export function ResourceDialog({
   const { data: tasks = [] } = useTasks();
 
   // Fetch relation tables for cross-filtering
-  const { data: goalProjectRelations = [] } = useQuery({
+  const { data: goalProjectRelations = [], isLoading: isLoadingGoalProjectRelations } = useQuery({
     queryKey: ["goal-project-relations"],
     queryFn: async () => {
       const { data } = await createClient().from("goal_projects").select("goal_id, project_id");
@@ -85,7 +87,7 @@ export function ResourceDialog({
     enabled: open,
   });
 
-  const { data: goalTaskRelations = [] } = useQuery({
+  const { data: goalTaskRelations = [], isLoading: isLoadingGoalTaskRelations } = useQuery({
     queryKey: ["goal-task-relations"],
     queryFn: async () => {
       const { data } = await createClient().from("goal_tasks").select("goal_id, task_id");
@@ -93,6 +95,8 @@ export function ResourceDialog({
     },
     enabled: open,
   });
+
+  const isRelationsLoading = isLoadingGoalProjectRelations || isLoadingGoalTaskRelations;
 
   // Build bidirectional lookup maps
   const goalProjectIdsMap = useMemo(() => {
@@ -165,13 +169,13 @@ export function ResourceDialog({
         setType(RESOURCE_TYPE.WEBSITE);
         setStatus(RESOURCE_STATUS.INBOX);
         setAreaIds(initialAreaIds ?? []);
-        setProjectId("");
+        setProjectId(initialProjectId ?? "");
         setTopicId("");
         setGoalIds(initialGoalIds ?? []);
         setTaskIds([]);
       });
     }
-  }, [open, resource, initialGoalIds, initialAreaIds]);
+  }, [open, resource, initialGoalIds, initialAreaIds, initialProjectId]);
 
   const handleUrlBlur = () => {
     if (url && !name) {
@@ -360,41 +364,45 @@ export function ResourceDialog({
   // ── Clear invalid selections when filters change ───────────────────────────
   useEffect(() => {
     // Clear invalid areas
+    if (isRelationsLoading) return;
     const validAreaIds = areaIds.filter((id) => visibleAreas.some((a) => a.id === id));
     if (validAreaIds.length !== areaIds.length) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAreaIds(validAreaIds);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleAreas]);
+  }, [visibleAreas, isRelationsLoading]);
 
   useEffect(() => {
     // Clear invalid projects
+    if (isRelationsLoading) return;
     if (projectId && !filteredProjects.some((p) => p.id === projectId)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setProjectId("");
     }
-  }, [filteredProjects, projectId]);
+  }, [filteredProjects, projectId, isRelationsLoading]);
 
   useEffect(() => {
     // Clear invalid goals
+    if (isRelationsLoading) return;
     const validGoalIds = goalIds.filter((id) => filteredGoals.some((g) => g.id === id));
     if (validGoalIds.length !== goalIds.length) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setGoalIds(validGoalIds);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredGoals]);
+  }, [filteredGoals, isRelationsLoading]);
 
   useEffect(() => {
     // Clear invalid tasks
+    if (isRelationsLoading) return;
     const validTaskIds = taskIds.filter((id) => filteredTasks.some((t) => t.id === id));
     if (validTaskIds.length !== taskIds.length) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTaskIds(validTaskIds);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredTasks]);
+  }, [filteredTasks, isRelationsLoading]);
 
   const canSubmit = name.trim().length > 0 && !isPending;
 
