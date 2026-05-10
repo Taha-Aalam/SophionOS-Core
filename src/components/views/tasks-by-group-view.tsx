@@ -16,7 +16,7 @@ export interface TaskGroup {
 
 interface TasksByGroupViewProps {
   groups: TaskGroup[];
-  areaMap: Map<string, { name: string }>;
+  areaMap: Map<string, { name: string; icon?: string | null }>;
   goalMap: Map<string, { name: string }>;
   projectMap: Map<string, { name: string }>;
   onCompletionToggle: (id: string, isCompleted: boolean) => void;
@@ -26,6 +26,7 @@ interface TasksByGroupViewProps {
   onDelete: (id: string) => void;
   onNewTask: (groupId: string) => void;
   getLinkedAreaNames: (task: Task) => string[];
+  getLinkedAreaIcons: (task: Task) => (string | null)[];
   getLinkedGoalNames: (task: Task) => string[];
   emptyMessage?: string;
 }
@@ -42,10 +43,11 @@ function CollapsibleTaskGroup({
   onDelete,
   onNewTask,
   getLinkedAreaNames,
+  getLinkedAreaIcons,
   getLinkedGoalNames,
 }: {
   group: TaskGroup;
-  areaMap: Map<string, { name: string }>;
+  areaMap: Map<string, { name: string; icon?: string | null }>;
   goalMap: Map<string, { name: string }>;
   projectMap: Map<string, { name: string }>;
   onCompletionToggle: (id: string, isCompleted: boolean) => void;
@@ -55,6 +57,7 @@ function CollapsibleTaskGroup({
   onDelete: (id: string) => void;
   onNewTask: (groupId: string) => void;
   getLinkedAreaNames: (task: Task) => string[];
+  getLinkedAreaIcons: (task: Task) => (string | null)[];
   getLinkedGoalNames: (task: Task) => string[];
 }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -96,6 +99,7 @@ function CollapsibleTaskGroup({
               task={task}
               areaName={task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
               linkedAreaNames={getLinkedAreaNames(task)}
+              linkedAreaIcons={getLinkedAreaIcons(task)}
               linkedGoalNames={getLinkedGoalNames(task)}
               projectName={task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
               onCompletionToggle={onCompletionToggle}
@@ -132,6 +136,7 @@ export function TasksByGroupView({
   onDelete,
   onNewTask,
   getLinkedAreaNames,
+  getLinkedAreaIcons,
   getLinkedGoalNames,
   emptyMessage = "No tasks in this view.",
 }: TasksByGroupViewProps) {
@@ -161,6 +166,7 @@ export function TasksByGroupView({
           onDelete={onDelete}
           onNewTask={onNewTask}
           getLinkedAreaNames={getLinkedAreaNames}
+          getLinkedAreaIcons={getLinkedAreaIcons}
           getLinkedGoalNames={getLinkedGoalNames}
         />
       ))}

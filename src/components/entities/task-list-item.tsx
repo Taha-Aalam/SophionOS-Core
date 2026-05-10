@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Archive, Calendar, Folder, Pencil, Star, Tag, Target } from "lucide-react";
+import { Archive, Calendar, Folder, Map, Pencil, Star, Target } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,6 +16,7 @@ interface TaskListItemProps {
   task: Task;
   areaName?: string | null;
   linkedAreaNames?: string[];
+  linkedAreaIcons?: (string | null)[];
   goalName?: string | null;
   linkedGoalNames?: string[];
   projectName?: string | null;
@@ -51,6 +52,7 @@ export function TaskListItem({
   task,
   areaName,
   linkedAreaNames,
+  linkedAreaIcons,
   goalName,
   linkedGoalNames,
   projectName,
@@ -113,7 +115,11 @@ export function TaskListItem({
       <div className="hidden shrink-0 items-center gap-2.5 md:flex">
         {displayAreaNames.length > 0 && (
           <Badge variant="outline" className="gap-1 text-xs font-normal">
-            <Tag className="size-3" />
+            {linkedAreaIcons?.[0] ? (
+              <span className="text-xs leading-none">{linkedAreaIcons[0]}</span>
+            ) : (
+              <Map className="size-3" />
+            )}
             {displayAreaNames[0]}
             {displayAreaNames.length > 1 && (
               <span className="ml-0.5 text-muted-foreground">+{displayAreaNames.length - 1}</span>

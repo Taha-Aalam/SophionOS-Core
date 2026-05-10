@@ -215,6 +215,12 @@ export default function TasksPage() {
     [goalMap],
   );
 
+  const getLinkedAreaIcons = useCallback(
+    (task: Task) =>
+      getTaskLinkedAreaIds(task).map((id) => areaMap.get(id)?.icon ?? null),
+    [areaMap],
+  );
+
   const handleEdit = (task: Task) => {
     setEditingTask(task);
     setIsDialogOpen(true);
@@ -635,6 +641,7 @@ export default function TasksPage() {
                     linkedAreaNames={getTaskLinkedAreaIds(task)
                       .map((id) => areaMap.get(id)?.name)
                       .filter((n): n is string => Boolean(n))}
+                    linkedAreaIcons={getLinkedAreaIcons(task)}
                     linkedGoalNames={getTaskLinkedGoalIds(task)
                       .map((id) => goalMap.get(id)?.name)
                       .filter((n): n is string => Boolean(n))}
@@ -684,6 +691,7 @@ export default function TasksPage() {
               setIsDialogOpen(true);
             }}
             getLinkedAreaNames={getLinkedAreaNames}
+            getLinkedAreaIcons={getLinkedAreaIcons}
             getLinkedGoalNames={getLinkedGoalNames}
             emptyMessage="Tasks will be grouped by area here."
           />
@@ -708,6 +716,7 @@ export default function TasksPage() {
               setIsDialogOpen(true);
             }}
             getLinkedAreaNames={getLinkedAreaNames}
+            getLinkedAreaIcons={getLinkedAreaIcons}
             getLinkedGoalNames={getLinkedGoalNames}
             emptyMessage="Tasks will be grouped by goal here."
           />
@@ -732,6 +741,7 @@ export default function TasksPage() {
               setIsDialogOpen(true);
             }}
             getLinkedAreaNames={getLinkedAreaNames}
+            getLinkedAreaIcons={getLinkedAreaIcons}
             getLinkedGoalNames={getLinkedGoalNames}
             emptyMessage="Tasks will be grouped by project here."
           />
@@ -756,6 +766,7 @@ export default function TasksPage() {
                   task={task}
                   areaName={task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
                   linkedAreaNames={getLinkedAreaNames(task)}
+                  linkedAreaIcons={getLinkedAreaIcons(task)}
                   linkedGoalNames={getLinkedGoalNames(task)}
                   projectName={task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
                   onCompletionToggle={(id, isCompleted) => {
