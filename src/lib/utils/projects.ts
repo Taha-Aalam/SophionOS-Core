@@ -21,10 +21,12 @@ export function projectMatchesAreaId(project: ProjectWithAreaLinks, areaId?: str
 export const PROJECT_VIEW = {
   ALL: "all",
   INBOX: "inbox",
+  PLANNING: "planning",
   IN_PROGRESS: "in-progress",
   COMPLETED: "completed",
-  BY_AREA: "by-area",
   BY_STATUS: "by-status",
+  BY_AREA: "by-area",
+  BY_GOAL: "by-goal",
   ARCHIVE: "archive",
 } as const;
 
@@ -65,6 +67,8 @@ export function getProjectFiltersForView(view: ProjectView): {
 } {
   switch (view) {
     case PROJECT_VIEW.INBOX:
+      return { includeArchived: false, status: PROJECT_STATUS.PLANNING };
+    case PROJECT_VIEW.PLANNING:
       return { includeArchived: false, status: PROJECT_STATUS.PLANNING };
     case PROJECT_VIEW.IN_PROGRESS:
       return { includeArchived: false, status: PROJECT_STATUS.ACTIVE };
@@ -159,6 +163,29 @@ export function buildProjectTaskStats(tasks: Task[]): Map<string, ProjectTaskSta
   }
 
   return stats;
+}
+
+export function groupProjectsByGoal(
+  projects: Project[],
+): Record<string, Project[]> {
+  const result: Record<string, Project[]> = {};
+
+  for (const project of projects) {
+    const goalIds = project.linkedGoalIds ?? [];
+    if (goalIds.length === 0) {
+      const current = result["unassigned"] ?? [];
+      current.push(project);
+      result["unassigned"] = current;
+    } else {
+      for (const goalId of goalIds) {
+        const current = result[goalId] ?? [];
+        current.push(project);
+        result[goalId] = current;
+      }
+    }
+  }
+
+  return result;
 }
 
 function parseDateOnly(value: string): Date {
