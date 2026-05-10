@@ -10,6 +10,10 @@ export const TASK_VIEW = {
   FOCUS: "focus",
   SMART_PRIORITY: "smart",
   CALENDAR: "calendar",
+  BY_AREA: "by-area",
+  BY_GOAL: "by-goal",
+  BY_PROJECT: "by-project",
+  ARCHIVE: "archive",
 } as const;
 
 export type TaskView = (typeof TASK_VIEW)[keyof typeof TASK_VIEW];
