@@ -2,14 +2,18 @@
 
 import {
   AlertTriangle,
+  Archive,
   CalendarDays,
   CheckSquare,
   ChevronDownIcon,
   Clock,
   Filter,
+  FolderKanban,
   Inbox as InboxIcon,
+  Layers,
   Plus,
   Star,
+  Target,
   Zap,
 } from "lucide-react";
 import React, { useCallback, useMemo, useState } from "react";
@@ -336,24 +340,28 @@ export default function TasksPage() {
               value={TASK_VIEW.BY_AREA}
               className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
+              <Layers className="mr-1.5 size-3.5" />
               By Area
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.BY_GOAL}
               className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
+              <Target className="mr-1.5 size-3.5" />
               By Goal
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.BY_PROJECT}
               className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
+              <FolderKanban className="mr-1.5 size-3.5" />
               By Project
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.ARCHIVE}
               className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
+              <Archive className="mr-1.5 size-3.5" />
               Archive
             </TabsTrigger>
           </TabsList>
