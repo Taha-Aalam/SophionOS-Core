@@ -12,7 +12,7 @@ import {
   Star,
   Zap,
 } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskListItem } from "@/components/entities/task-list-item";
@@ -31,6 +31,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarView } from "@/components/views/calendar-view";
 import { EmptyState } from "@/components/views/empty-state";
+import { TasksByGroupView, type TaskGroup } from "@/components/views/tasks-by-group-view";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
@@ -64,6 +65,9 @@ export default function TasksPage() {
   const [filterAreaIds, setFilterAreaIds] = useState<string[]>([]);
   const [filterGoalIds, setFilterGoalIds] = useState<string[]>([]);
   const [filterProjectIds, setFilterProjectIds] = useState<string[]>([]);
+  const [newTaskAreaId, setNewTaskAreaId] = useState<string | undefined>(undefined);
+  const [newTaskGoalId, setNewTaskGoalId] = useState<string | undefined>(undefined);
+  const [newTaskProjectId, setNewTaskProjectId] = useState<string | undefined>(undefined);
   const [areaPopoverOpen, setAreaPopoverOpen] = useState(false);
   const [goalPopoverOpen, setGoalPopoverOpen] = useState(false);
   const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
@@ -119,6 +123,93 @@ export default function TasksPage() {
 
     return result;
   }, [activeTab, filterAreaIds, filterGoalIds, filterPriority, filterProjectIds, tasks]);
+
+  const activeTasks = useMemo(
+    () => tasks.filter((t) => !t.is_archived && !t.is_completed),
+    [tasks],
+  );
+
+  const archivedTasks = useMemo(
+    () => tasks.filter((t) => t.is_archived || t.is_completed),
+    [tasks],
+  );
+
+  const taskGroupsByArea = useMemo((): TaskGroup[] => {
+    const grouped = new Map<string, Task[]>();
+    for (const task of activeTasks) {
+      const ids = getTaskLinkedAreaIds(task);
+      if (ids.length === 0) {
+        const current = grouped.get("unassigned") ?? [];
+        current.push(task);
+        grouped.set("unassigned", current);
+      } else {
+        for (const areaId of ids) {
+          const current = grouped.get(areaId) ?? [];
+          current.push(task);
+          grouped.set(areaId, current);
+        }
+      }
+    }
+    return Array.from(grouped.entries()).map(([areaId, groupTasks]) => ({
+      groupId: areaId,
+      groupName: areaId === "unassigned" ? "No Area" : (areaMap.get(areaId)?.name ?? areaId),
+      tasks: groupTasks,
+    }));
+  }, [activeTasks, areaMap]);
+
+  const taskGroupsByGoal = useMemo((): TaskGroup[] => {
+    const grouped = new Map<string, Task[]>();
+    for (const task of activeTasks) {
+      const ids = getTaskLinkedGoalIds(task);
+      if (ids.length === 0) {
+        const current = grouped.get("unassigned") ?? [];
+        current.push(task);
+        grouped.set("unassigned", current);
+      } else {
+        for (const goalId of ids) {
+          const current = grouped.get(goalId) ?? [];
+          current.push(task);
+          grouped.set(goalId, current);
+        }
+      }
+    }
+    return Array.from(grouped.entries()).map(([goalId, groupTasks]) => ({
+      groupId: goalId,
+      groupName: goalId === "unassigned" ? "No Goal" : (goalMap.get(goalId)?.name ?? goalId),
+      tasks: groupTasks,
+    }));
+  }, [activeTasks, goalMap]);
+
+  const taskGroupsByProject = useMemo((): TaskGroup[] => {
+    const grouped = new Map<string, Task[]>();
+    for (const task of activeTasks) {
+      const projectId = task.project_id ?? "unassigned";
+      const current = grouped.get(projectId) ?? [];
+      current.push(task);
+      grouped.set(projectId, current);
+    }
+    return Array.from(grouped.entries()).map(([projectId, groupTasks]) => ({
+      groupId: projectId,
+      groupName: projectId === "unassigned" ? "No Project" : (projectMap.get(projectId)?.name ?? projectId),
+      tasks: groupTasks,
+    }));
+  }, [activeTasks, projectMap]);
+
+  const getLinkedAreaNames = useCallback(
+    (task: Task) =>
+      getTaskLinkedAreaIds(task)
+        .map((id) => areaMap.get(id)?.name)
+        .filter((n): n is string => Boolean(n)),
+    [areaMap],
+  );
+
+  const getLinkedGoalNames = useCallback(
+    (task: Task) =>
+      getTaskLinkedGoalIds(task)
+        .map((id) => goalMap.get(id)?.name)
+        .filter((n): n is string => Boolean(n)),
+    [goalMap],
+  );
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
@@ -240,6 +331,30 @@ export default function TasksPage() {
             >
               <CalendarDays className="mr-1.5 size-3.5" />
               Calendar
+            </TabsTrigger>
+            <TabsTrigger
+              value={TASK_VIEW.BY_AREA}
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            >
+              By Area
+            </TabsTrigger>
+            <TabsTrigger
+              value={TASK_VIEW.BY_GOAL}
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            >
+              By Goal
+            </TabsTrigger>
+            <TabsTrigger
+              value={TASK_VIEW.BY_PROJECT}
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            >
+              By Project
+            </TabsTrigger>
+            <TabsTrigger
+              value={TASK_VIEW.ARCHIVE}
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            >
+              Archive
             </TabsTrigger>
           </TabsList>
         </div>
@@ -541,12 +656,129 @@ export default function TasksPage() {
             )}
           </TabsContent>
         ))}
+
+        <TabsContent value={TASK_VIEW.BY_AREA} className="mt-0 flex-1">
+          <TasksByGroupView
+            groups={taskGroupsByArea}
+            areaMap={areaMap}
+            goalMap={goalMap}
+            projectMap={projectMap}
+            onCompletionToggle={(id, isCompleted) => {
+              if (isCompleted) { completeTask.mutate(id); return; }
+              updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
+            }}
+            onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
+            onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+            onEdit={handleEdit}
+            onDelete={(id) => deleteTask.mutate(id)}
+            onNewTask={(areaId) => {
+              setNewTaskAreaId(areaId);
+              setIsDialogOpen(true);
+            }}
+            getLinkedAreaNames={getLinkedAreaNames}
+            getLinkedGoalNames={getLinkedGoalNames}
+            emptyMessage="Tasks will be grouped by area here."
+          />
+        </TabsContent>
+
+        <TabsContent value={TASK_VIEW.BY_GOAL} className="mt-0 flex-1">
+          <TasksByGroupView
+            groups={taskGroupsByGoal}
+            areaMap={areaMap}
+            goalMap={goalMap}
+            projectMap={projectMap}
+            onCompletionToggle={(id, isCompleted) => {
+              if (isCompleted) { completeTask.mutate(id); return; }
+              updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
+            }}
+            onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
+            onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+            onEdit={handleEdit}
+            onDelete={(id) => deleteTask.mutate(id)}
+            onNewTask={(goalId) => {
+              setNewTaskGoalId(goalId);
+              setIsDialogOpen(true);
+            }}
+            getLinkedAreaNames={getLinkedAreaNames}
+            getLinkedGoalNames={getLinkedGoalNames}
+            emptyMessage="Tasks will be grouped by goal here."
+          />
+        </TabsContent>
+
+        <TabsContent value={TASK_VIEW.BY_PROJECT} className="mt-0 flex-1">
+          <TasksByGroupView
+            groups={taskGroupsByProject}
+            areaMap={areaMap}
+            goalMap={goalMap}
+            projectMap={projectMap}
+            onCompletionToggle={(id, isCompleted) => {
+              if (isCompleted) { completeTask.mutate(id); return; }
+              updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
+            }}
+            onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
+            onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+            onEdit={handleEdit}
+            onDelete={(id) => deleteTask.mutate(id)}
+            onNewTask={(projectId) => {
+              setNewTaskProjectId(projectId);
+              setIsDialogOpen(true);
+            }}
+            getLinkedAreaNames={getLinkedAreaNames}
+            getLinkedGoalNames={getLinkedGoalNames}
+            emptyMessage="Tasks will be grouped by project here."
+          />
+        </TabsContent>
+
+        <TabsContent value={TASK_VIEW.ARCHIVE} className="mt-0 flex-1">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
+              Loading tasks...
+            </div>
+          ) : archivedTasks.length === 0 ? (
+            <EmptyState
+              icon={CheckSquare}
+              title="No archived tasks"
+              description="Completed and archived tasks will appear here."
+            />
+          ) : (
+            <div className="divide-y-0">
+              {archivedTasks.map((task) => (
+                <TaskListItem
+                  key={task.id}
+                  task={task}
+                  areaName={task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
+                  linkedAreaNames={getLinkedAreaNames(task)}
+                  linkedGoalNames={getLinkedGoalNames(task)}
+                  projectName={task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
+                  onCompletionToggle={(id, isCompleted) => {
+                    if (isCompleted) { completeTask.mutate(id); return; }
+                    updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
+                  }}
+                  onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
+                  onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+                  onEdit={handleEdit}
+                  onDelete={(id) => deleteTask.mutate(id)}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       <TaskDialog
         open={isDialogOpen}
-        onOpenChange={handleCloseDialog}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) {
+            setNewTaskAreaId(undefined);
+            setNewTaskGoalId(undefined);
+            setNewTaskProjectId(undefined);
+          }
+        }}
         task={editingTask}
+        defaultAreaId={newTaskAreaId}
+        defaultGoalId={newTaskGoalId}
+        defaultProjectId={newTaskProjectId}
         onDelete={(id) => deleteTask.mutate(id)}
       />
     </div>
