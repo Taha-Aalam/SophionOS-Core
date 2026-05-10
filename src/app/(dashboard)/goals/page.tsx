@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LayoutGrid, List as ListIcon, Plus, Target } from "lucide-react";
+import { CalendarDays, CheckCircle, Clock, Flag, LayoutGrid, List as ListIcon, PauseCircle, Plus, Target } from "lucide-react";
 
 import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
@@ -124,12 +124,30 @@ export default function GoalsPage() {
 
       <Tabs value={currentView} onValueChange={handleViewChange} className="w-full">
         <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1">
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="short">Short Term</TabsTrigger>
-          <TabsTrigger value="mid">Mid Term</TabsTrigger>
-          <TabsTrigger value="long">Long Term</TabsTrigger>
-          <TabsTrigger value="inactive">Inactive</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="active">
+            <Target className="mr-1.5 size-3.5" />
+            Active
+          </TabsTrigger>
+          <TabsTrigger value="short">
+            <Clock className="mr-1.5 size-3.5" />
+            Short Term
+          </TabsTrigger>
+          <TabsTrigger value="mid">
+            <CalendarDays className="mr-1.5 size-3.5" />
+            Mid Term
+          </TabsTrigger>
+          <TabsTrigger value="long">
+            <Flag className="mr-1.5 size-3.5" />
+            Long Term
+          </TabsTrigger>
+          <TabsTrigger value="inactive">
+            <PauseCircle className="mr-1.5 size-3.5" />
+            Inactive
+          </TabsTrigger>
+          <TabsTrigger value="completed">
+            <CheckCircle className="mr-1.5 size-3.5" />
+            Completed
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
