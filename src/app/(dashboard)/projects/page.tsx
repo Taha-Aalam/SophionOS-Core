@@ -27,7 +27,9 @@ const KanbanBoard = dynamic(
 );
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAreas } from "@/lib/hooks/use-areas";
+import { useNotes } from "@/lib/hooks/use-notes";
 import { useProjects } from "@/lib/hooks/use-projects";
+import { useResources } from "@/lib/hooks/use-resources";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { type Project } from "@/lib/types/domain.types";
 import {
@@ -68,6 +70,8 @@ export default function ProjectsPage() {
   });
   const { data: areas = [] } = useAreas();
   const { data: tasks = [] } = useTasks();
+  const { data: notes = [] } = useNotes({ status: "all" });
+  const { data: resources = [] } = useResources({ status: "all" });
 
   const allProjects = useMemo(
     () => mergeProjectQueryResults(activeProjectResults, archivedProjectResults),
@@ -89,6 +93,19 @@ export default function ProjectsPage() {
   const taskStatsByProject = useMemo(() => buildProjectTaskStats(tasks), [tasks]);
   const projectsByStatus = useMemo(() => groupProjectsByStatus(activeProjects), [activeProjects]);
   const projectsByArea = useMemo(() => groupProjectsByArea(activeProjects), [activeProjects]);
+
+  const rollupsByProject = useMemo(() => {
+    const result = new Map<string, { goalCount: number; taskCount: number; noteCount: number; resourceCount: number }>();
+    for (const project of allProjects) {
+      const linkedGoalIds = (project as unknown as { linkedGoalIds?: string[] }).linkedGoalIds ?? [];
+      const goalCount = linkedGoalIds.length;
+      const noteCount = notes.filter((n) => n.project_id === project.id).length;
+      const resourceCount = resources.filter((r) => r.project_id === project.id).length;
+      const taskCount = tasks.filter((t) => t.project_id === project.id && !t.is_archived).length;
+      result.set(project.id, { goalCount, taskCount, noteCount, resourceCount });
+    }
+    return result;
+  }, [allProjects, notes, resources, tasks]);
 
   const duplicateIndices = useMemo(() => {
     const result = new Map<string, number>();
@@ -160,6 +177,7 @@ export default function ProjectsPage() {
             taskStats={taskStatsByProject.get(project.id)}
             duplicateIndex={duplicateIndices.get(project.id)}
             onEdit={handleEdit}
+            rollups={rollupsByProject.get(project.id)}
           />
         ))}
       </div>
@@ -189,10 +207,12 @@ export default function ProjectsPage() {
         <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden bg-muted/50 p-1">
           <TabsTrigger value={PROJECT_VIEW.ALL}>All</TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.INBOX}>Inbox</TabsTrigger>
+          <TabsTrigger value={PROJECT_VIEW.PLANNING}>Planning</TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.IN_PROGRESS}>In Progress</TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.COMPLETED}>Completed</TabsTrigger>
-          <TabsTrigger value={PROJECT_VIEW.BY_AREA}>By Area</TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.BY_STATUS}>By Status</TabsTrigger>
+          <TabsTrigger value={PROJECT_VIEW.BY_AREA}>By Area</TabsTrigger>
+          <TabsTrigger value={PROJECT_VIEW.BY_GOAL}>By Goal</TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.ARCHIVE}>
             <Archive className="mr-1 size-4" />
             Archive
@@ -218,6 +238,19 @@ export default function ProjectsPage() {
             <EmptyState
               icon={Folder}
               title="No inbox projects"
+              description="Projects in the planning state will appear here."
+              actionLabel="Create Project"
+              onAction={handleCreate}
+            />,
+          )}
+        </TabsContent>
+
+        <TabsContent value={PROJECT_VIEW.PLANNING} className="mt-6">
+          {renderProjectGrid(
+            projectsByStatus.planning,
+            <EmptyState
+              icon={Folder}
+              title="No planning projects"
               description="Projects in the planning state will appear here."
               actionLabel="Create Project"
               onAction={handleCreate}
@@ -277,6 +310,7 @@ export default function ProjectsPage() {
                       taskStats={taskStatsByProject.get(project.id)}
                       duplicateIndex={duplicateIndices.get(project.id)}
                       onEdit={handleEdit}
+                      rollups={rollupsByProject.get(project.id)}
                     />
                   ))}
                 </div>
