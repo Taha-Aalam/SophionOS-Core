@@ -599,10 +599,49 @@ export function TaskDialog({
                 </FormItem>
               ) : isProjectScoped ? (
                 <FormItem>
-                  <div className="flex items-center justify-between gap-3">
-                    <FormLabel>Area</FormLabel>
-                    {scopedAreas.length > 1 && selectedAreaIds.length > 0 && (
-                      <Badge variant="secondary">{selectedAreaIds.length} selected</Badge>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Areas</FormLabel>
+                    {scopedAreas.length > 1 && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          className={buttonVariants({ variant: "outline", size: "sm" })}
+                        >
+                          {selectedAreaIds.length === 0
+                            ? "Select areas..."
+                            : `${selectedAreaIds.length} selected`}
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-56">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              form.setValue("area_ids", [], { shouldDirty: true });
+                            }}
+                          >
+                            Clear selection
+                          </DropdownMenuItem>
+                          <ScrollArea className="max-h-56">
+                            {scopedAreas.map((area) => {
+                              const isSelected = selectedAreaIds.includes(area.id);
+                              return (
+                                <DropdownMenuItem
+                                  key={area.id}
+                                  onClick={() => {
+                                    const nextAreaIds = isSelected
+                                      ? selectedAreaIds.filter((id) => id !== area.id)
+                                      : [...selectedAreaIds, area.id];
+                                    form.setValue("area_ids", nextAreaIds, { shouldDirty: true });
+                                  }}
+                                  className="flex items-center gap-2"
+                                  data-testid={`task-dialog-scoped-area-option-${area.id}`}
+                                >
+                                  <Checkbox checked={isSelected} />
+                                  {area.icon ? `${area.icon} ` : ""}
+                                  {area.name}
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          </ScrollArea>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </div>
                   {(() => {
@@ -630,46 +669,37 @@ export function TaskDialog({
                       );
                     }
 
+                    if (selectedAreaIds.length === 0) return null;
+
                     return (
-                      <Controller
-                        control={form.control}
-                        name="area_ids"
-                        render={({ field }) => (
-                          <ScrollArea
-                            className="h-28 rounded-md border"
-                            data-testid="task-dialog-area-scoped-multi"
-                          >
-                            <div className="space-y-2 p-3">
-                              {scopedAreas.map((area) => {
-                                const checked = (field.value ?? []).includes(area.id);
-                                return (
-                                  <label
-                                    key={area.id}
-                                    className="flex cursor-pointer items-center gap-3 rounded-md px-1 py-1 transition-colors hover:bg-muted/40"
-                                    data-testid={`task-dialog-scoped-area-option-${area.id}`}
-                                  >
-                                    <Checkbox
-                                      checked={checked}
-                                      onCheckedChange={(next) => {
-                                        const nextAreaIds =
-                                          next === true
-                                            ? Array.from(new Set([...(field.value ?? []), area.id]))
-                                            : (field.value ?? []).filter((id) => id !== area.id);
-                                        field.onChange(nextAreaIds);
-                                      }}
-                                    />
-                                    <span className="text-sm">
-                                      {area.icon ? `${area.icon} ` : ""}{area.name}
-                                    </span>
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          </ScrollArea>
-                        )}
-                      />
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {selectedAreaIds
+                          .map((id) => scopedAreas.find((area) => area.id === id))
+                          .filter(Boolean)
+                          .map((area) => (
+                            <Badge
+                              key={area!.id}
+                              variant="secondary"
+                              className="flex items-center gap-1"
+                            >
+                              {area!.icon ? `${area!.icon} ` : ""}
+                              {area!.name}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextAreaIds = selectedAreaIds.filter((id) => id !== area!.id);
+                                  form.setValue("area_ids", nextAreaIds, { shouldDirty: true });
+                                }}
+                                className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                              >
+                                <X className="size-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                      </div>
                     );
                   })()}
+                  <FormMessage>{form.formState.errors.area_ids?.message}</FormMessage>
                 </FormItem>
               ) : (
                 <FormItem>
