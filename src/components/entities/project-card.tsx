@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, CheckSquare, Edit, FolderKanban } from "lucide-react";
+import { Calendar, Edit, FolderKanban, Map } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,13 @@ import {
 import ProgressRing from "@/components/charts/progress-ring";
 import { buildProjectDetailHref } from "@/lib/utils/project-urls";
 
+export interface ProjectCardRollups {
+  goalCount: number;
+  taskCount: number;
+  noteCount: number;
+  resourceCount: number;
+}
+
 interface ProjectCardProps {
   project: Project;
   areaName?: string;
@@ -30,6 +37,8 @@ interface ProjectCardProps {
   onEdit?: (project: Project) => void;
   /** When provided, appended as ?returnTo= to the project detail navigation. */
   returnTo?: string | null;
+  /** Correlation rollups for Goals, Notes, and Resources */
+  rollups?: ProjectCardRollups;
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -47,6 +56,7 @@ export function ProjectCard({
   duplicateIndex,
   onEdit,
   returnTo,
+  rollups,
 }: ProjectCardProps) {
   const router = useRouter();
   const dueState = getProjectDueState(project.due_date);
@@ -65,6 +75,8 @@ export function ProjectCard({
     totalTasks && totalTasks > 0
       ? Math.round((completedTasks / totalTasks) * 100)
       : project.progress || 0;
+
+  const showAllCounts = true; // Always show all four correlation counts, even when zero
 
   const projectHref = (() => {
     const base = buildProjectDetailHref(project);
@@ -102,8 +114,9 @@ export function ProjectCard({
                 <Badge
                   key={`${name}-${index}`}
                   variant="secondary"
-                  className="text-[10px] px-1.5 py-0"
+                  className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0"
                 >
+                  <Map className="size-2.5 shrink-0" />
                   {name}
                 </Badge>
               ))}
@@ -153,36 +166,57 @@ export function ProjectCard({
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1 whitespace-nowrap">
-              <CheckSquare className="size-3" />
-              {typeof totalTasks === "number"
-                ? `${completedTasks}/${totalTasks}`
-                : "Unavailable"}
-            </span>
-            <span
-              className={cn(
-                "flex items-center gap-1 whitespace-nowrap",
-                dueState.isOverdue && "text-destructive font-medium",
-              )}
-            >
-              <Calendar className="size-3" />
-              {dueState.label}
-            </span>
+        <div className="mt-4 flex flex-col gap-2 text-[11px] text-muted-foreground">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {showAllCounts && rollups ? (
+                <>
+                  <span className="flex items-center gap-1 whitespace-nowrap" title="Goals">
+                    <span className="text-xs">🎯</span>
+                    <span>{rollups.goalCount}</span>
+                  </span>
+                  <span className="flex items-center gap-1 whitespace-nowrap" title="Tasks">
+                    <span className="text-xs">☑️</span>
+                    <span>{rollups.taskCount}</span>
+                  </span>
+                  <span className="flex items-center gap-1 whitespace-nowrap" title="Notes">
+                    <span className="text-xs">📝</span>
+                    <span>{rollups.noteCount}</span>
+                  </span>
+                  <span className="flex items-center gap-1 whitespace-nowrap" title="Resources">
+                    <span className="text-xs">🔗</span>
+                    <span>{rollups.resourceCount}</span>
+                  </span>
+                </>
+              ) : null}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {project.status === "completed" && (
-              <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-none">
-                Completed
-              </Badge>
-            )}
-            {project.is_archived && (
-              <Badge variant="outline">
-                Archived
-              </Badge>
-            )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "flex items-center gap-1 whitespace-nowrap",
+                  dueState.isOverdue && "text-destructive font-medium",
+                )}
+              >
+                <Calendar className="size-3" />
+                {dueState.label}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {project.status === "completed" && (
+                <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-none">
+                  Completed
+                </Badge>
+              )}
+              {project.is_archived && (
+                <Badge variant="outline">
+                  Archived
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>

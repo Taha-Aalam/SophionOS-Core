@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Calendar, Target } from 'lucide-react';
+import { Calendar, Map, Target } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -110,8 +110,9 @@ export function GoalCard({ goal, areaName, areaNames, onEdit, duplicateIndex }: 
                 <Badge
                   key={`${name}-${index}`}
                   variant="secondary"
-                  className="text-[10px] px-1.5 py-0"
+                  className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0"
                 >
+                  <Map className="size-2.5 shrink-0" />
                   {name}
                 </Badge>
               ))}
