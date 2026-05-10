@@ -3,7 +3,7 @@
 import { type ReactNode, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { Archive, Folder, Plus } from "lucide-react";
+import { Activity, Archive, CheckSquare, Folder, Inbox, Layers, LayoutGrid, Map as MapIcon, Pencil, Plus, Target } from "lucide-react";
 
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
@@ -248,16 +248,40 @@ export default function ProjectsPage() {
         className="w-full"
       >
         <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden bg-muted/50 p-1">
-          <TabsTrigger value={PROJECT_VIEW.ALL}>All</TabsTrigger>
-          <TabsTrigger value={PROJECT_VIEW.INBOX}>Inbox</TabsTrigger>
-          <TabsTrigger value={PROJECT_VIEW.PLANNING}>Planning</TabsTrigger>
-          <TabsTrigger value={PROJECT_VIEW.IN_PROGRESS}>In Progress</TabsTrigger>
-          <TabsTrigger value={PROJECT_VIEW.COMPLETED}>Completed</TabsTrigger>
-          <TabsTrigger value={PROJECT_VIEW.BY_STATUS}>By Status</TabsTrigger>
-          <TabsTrigger value={PROJECT_VIEW.BY_AREA}>By Area</TabsTrigger>
-          <TabsTrigger value={PROJECT_VIEW.BY_GOAL}>By Goal</TabsTrigger>
+          <TabsTrigger value={PROJECT_VIEW.ALL}>
+            <LayoutGrid className="mr-1.5 size-3.5" />
+            All
+          </TabsTrigger>
+          <TabsTrigger value={PROJECT_VIEW.INBOX}>
+            <Inbox className="mr-1.5 size-3.5" />
+            Inbox
+          </TabsTrigger>
+          <TabsTrigger value={PROJECT_VIEW.PLANNING}>
+            <Pencil className="mr-1.5 size-3.5" />
+            Planning
+          </TabsTrigger>
+          <TabsTrigger value={PROJECT_VIEW.IN_PROGRESS}>
+            <Activity className="mr-1.5 size-3.5" />
+            In Progress
+          </TabsTrigger>
+          <TabsTrigger value={PROJECT_VIEW.COMPLETED}>
+            <CheckSquare className="mr-1.5 size-3.5" />
+            Completed
+          </TabsTrigger>
+          <TabsTrigger value={PROJECT_VIEW.BY_STATUS}>
+            <Layers className="mr-1.5 size-3.5" />
+            By Status
+          </TabsTrigger>
+          <TabsTrigger value={PROJECT_VIEW.BY_AREA}>
+            <MapIcon className="mr-1.5 size-3.5" />
+            By Area
+          </TabsTrigger>
+          <TabsTrigger value={PROJECT_VIEW.BY_GOAL}>
+            <Target className="mr-1.5 size-3.5" />
+            By Goal
+          </TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.ARCHIVE}>
-            <Archive className="mr-1 size-4" />
+            <Archive className="mr-1.5 size-3.5" />
             Archive
           </TabsTrigger>
         </TabsList>
