@@ -22,7 +22,7 @@ import { PriorityBadge } from "@/components/entities/priority-badge";
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
-import { ResourceRow } from "@/components/entities/resource-row";
+import { ResourceTable } from "@/components/entities/resource-table";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskListItem } from "@/components/entities/task-list-item";
 import { EmptyState } from "@/components/views/empty-state";
@@ -609,6 +609,15 @@ export default function GoalDetailPage() {
 
               {/* Badges row */}
               <div className="flex flex-wrap items-center gap-2">
+                {getGoalLinkedAreaIds(goal).map((areaId) => {
+                  const area = areas.find((a) => a.id === areaId);
+                  if (!area) return null;
+                  return (
+                    <Badge key={areaId} variant="outline" className="text-xs">
+                      {area.icon ? `${area.icon} ` : ""}{area.name}
+                    </Badge>
+                  );
+                })}
                 <Badge variant="outline" className={cn("text-xs", PRIORITY_COLORS[goal.priority])}>
                   {goal.priority}
                 </Badge>
@@ -1023,19 +1032,10 @@ export default function GoalDetailPage() {
           createLabel="New Resource"
         >
           {filteredResources.length > 0 ? (
-            <div className="rounded-lg border bg-card">
-              {filteredResources.map((resource) => (
-                <ResourceRow
-                  key={resource.id}
-                  resource={resource}
-                  areaName={resource.area_id ? areaNames.get(resource.area_id) ?? undefined : undefined}
-                  onToggleFavorite={handleResourceToggleFavorite}
-                  onArchive={handleResourceArchive}
-                  onUnarchive={handleResourceUnarchive}
-                  onEdit={handleResourceEdit}
-                />
-              ))}
-            </div>
+            <ResourceTable
+              resources={filteredResources}
+              onToggleFavorite={handleResourceToggleFavorite}
+            />
           ) : null}
         </GoalDetailSection>
       </div>
