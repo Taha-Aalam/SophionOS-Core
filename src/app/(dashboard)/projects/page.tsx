@@ -8,6 +8,7 @@ import { Archive, Folder, Plus } from "lucide-react";
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
 import { EmptyState } from "@/components/views/empty-state";
+import { ProjectsByAreaView, type ProjectsByAreaGroup } from "@/components/views/projects-by-area-view";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -61,6 +62,7 @@ export default function ProjectsPage() {
   const [activeView, setActiveView] = useState(PROJECT_VIEW.ALL);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [defaultAreaIds, setDefaultAreaIds] = useState<string[]>([]);
 
   const { data: activeProjectResults = [], isLoading: isLoadingActiveProjects } = useProjects({
     status: "all",
@@ -93,6 +95,28 @@ export default function ProjectsPage() {
   const taskStatsByProject = useMemo(() => buildProjectTaskStats(tasks), [tasks]);
   const projectsByStatus = useMemo(() => groupProjectsByStatus(activeProjects), [activeProjects]);
   const projectsByArea = useMemo(() => groupProjectsByArea(activeProjects), [activeProjects]);
+  const groupedByAreaGroups = useMemo((): ProjectsByAreaGroup[] => {
+    const byAreaId: Record<string, Project[]> = {};
+    for (const project of activeProjects) {
+      const ids = getProjectLinkedAreaIds(project);
+      if (ids.length === 0) {
+        const current = byAreaId["unassigned"] ?? [];
+        current.push(project);
+        byAreaId["unassigned"] = current;
+      } else {
+        for (const areaId of ids) {
+          const current = byAreaId[areaId] ?? [];
+          current.push(project);
+          byAreaId[areaId] = current;
+        }
+      }
+    }
+    return Object.entries(byAreaId).map(([areaId, projects]) => ({
+      areaId,
+      areaName: areaId === "unassigned" ? "Unassigned" : (areaNames.get(areaId) ?? areaId),
+      projects,
+    }));
+  }, [activeProjects, areaNames]);
 
   const rollupsByProject = useMemo(() => {
     const result = new Map<string, { goalCount: number; taskCount: number; noteCount: number; resourceCount: number }>();
@@ -282,41 +306,20 @@ export default function ProjectsPage() {
           )}
         </TabsContent>
 
-        <TabsContent value={PROJECT_VIEW.BY_AREA} className="mt-6 space-y-8">
-          {Object.keys(projectsByArea).length === 0 ? (
-            <EmptyState
-              icon={Folder}
-              title="No projects by area"
-              description="Projects grouped by area will appear here once you create them."
-              actionLabel="Create Project"
-              onAction={handleCreate}
-            />
-          ) : (
-            Object.entries(projectsByArea).map(([areaId, projects]) => (
-              <div key={areaId}>
-                <h2 className="mb-3 text-lg font-semibold">
-                  {areaId === "unassigned" ? "Unassigned" : areaNames.get(areaId)}
-                  <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    {projects.length} {projects.length === 1 ? "project" : "projects"}
-                  </span>
-                </h2>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {projects.map((project) => (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      areaName={getAreaName(project.area_id, areaNames)}
-                      areaNames={getProjectAreaNames(project, areaNames)}
-                      taskStats={taskStatsByProject.get(project.id)}
-                      duplicateIndex={duplicateIndices.get(project.id)}
-                      onEdit={handleEdit}
-                      rollups={rollupsByProject.get(project.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))
-          )}
+        <TabsContent value={PROJECT_VIEW.BY_AREA} className="mt-6">
+          <ProjectsByAreaView
+            groups={groupedByAreaGroups}
+            areaNames={areaNames}
+            taskStatsByProject={taskStatsByProject}
+            duplicateIndices={duplicateIndices}
+            rollupsByProject={rollupsByProject}
+            isLoading={isLoadingProjects}
+            onEdit={handleEdit}
+            onCreateProject={(areaId) => {
+              setDefaultAreaIds([areaId]);
+              setIsDialogOpen(true);
+            }}
+          />
         </TabsContent>
 
         <TabsContent value={PROJECT_VIEW.BY_STATUS} className="mt-6">
@@ -342,8 +345,12 @@ export default function ProjectsPage() {
 
       <ProjectDialog
         open={isDialogOpen}
-        onOpenChange={handleDialogOpenChange}
+        onOpenChange={(open) => {
+          handleDialogOpenChange(open);
+          if (!open) setDefaultAreaIds([]);
+        }}
         project={editingProject}
+        defaultAreaIds={editingProject ? undefined : defaultAreaIds}
       />
     </div>
   );
