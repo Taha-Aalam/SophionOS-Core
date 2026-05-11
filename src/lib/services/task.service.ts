@@ -149,6 +149,18 @@ async function hydrateSingleTaskGoalLinks(task: Task): Promise<Task> {
   return hydrated;
 }
 
+async function parallelHydrateTasks(tasks: Task[]): Promise<Task[]> {
+  if (tasks.length === 0) return tasks;
+  const [withAreas, withGoals] = await Promise.all([
+    hydrateTaskAreaLinks(tasks),
+    hydrateTaskGoalLinks(tasks),
+  ]);
+  return withAreas.map((task, i) => ({
+    ...task,
+    linkedGoalIds: withGoals[i]?.linkedGoalIds ?? [],
+  }));
+}
+
 // ─── Goal ID helpers ──────────────────────────────────────────────────────────
 
 function extractGoalIds(input: { goal_ids?: string[] }): {
@@ -177,8 +189,7 @@ export const taskService = {
       throw new DatabaseError(error.message);
     }
 
-    const tasksWithAreas = await hydrateTaskAreaLinks(data || []);
-    return hydrateTaskGoalLinks(tasksWithAreas);
+    return parallelHydrateTasks(data || []);
   },
 
   async getById(userId: string, id: string): Promise<Task> {
@@ -323,8 +334,7 @@ export const taskService = {
     const { data, error } = await query;
     if (error) throw new DatabaseError(error.message);
 
-    const tasksWithAreas = await hydrateTaskAreaLinks(data || []);
-    return hydrateTaskGoalLinks(tasksWithAreas);
+    return parallelHydrateTasks(data || []);
   },
 
   async getOverdue(userId: string): Promise<Task[]> {
@@ -340,8 +350,7 @@ export const taskService = {
 
     if (error) throw new DatabaseError(error.message);
 
-    const tasksWithAreas = await hydrateTaskAreaLinks(data || []);
-    return hydrateTaskGoalLinks(tasksWithAreas);
+    return parallelHydrateTasks(data || []);
   },
 
   async getFocused(userId: string): Promise<Task[]> {
@@ -356,8 +365,7 @@ export const taskService = {
 
     if (error) throw new DatabaseError(error.message);
 
-    const tasksWithAreas = await hydrateTaskAreaLinks(data || []);
-    return hydrateTaskGoalLinks(tasksWithAreas);
+    return parallelHydrateTasks(data || []);
   },
 
   async uncomplete(userId: string, id: string): Promise<Task> {
@@ -485,8 +493,7 @@ export const taskService = {
     if (error) throw new DatabaseError(error.message);
 
     const tasks = (data ?? []).map((r) => r.task as unknown as Task).filter(Boolean);
-    const tasksWithAreas = await hydrateTaskAreaLinks(tasks);
-    return hydrateTaskGoalLinks(tasksWithAreas);
+    return parallelHydrateTasks(tasks);
   },
 
   async touch(userId: string, id: string): Promise<Task> {
