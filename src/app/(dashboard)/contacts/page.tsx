@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Building2, Plus, Star, Target, Users } from "lucide-react";
+import { Building2, Clock, FolderKanban, Plus, Star, Target, Users } from "lucide-react";
 
 import { ContactDialog } from "@/components/entities/contact-dialog";
 import { ContactListItem } from "@/components/entities/contact-list-item";
@@ -156,15 +156,19 @@ export default function ContactsPage() {
             All
           </TabsTrigger>
           <TabsTrigger value="fav" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Star className="mr-1.5 size-3.5" />
             Fav.
           </TabsTrigger>
           <TabsTrigger value="by-group" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Users className="mr-1.5 size-3.5" />
             By Group
           </TabsTrigger>
           <TabsTrigger value="by-project" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <FolderKanban className="mr-1.5 size-3.5" />
             By Project
           </TabsTrigger>
           <TabsTrigger value="follow-up" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Clock className="mr-1.5 size-3.5" />
             Follow-up
           </TabsTrigger>
         </TabsList>

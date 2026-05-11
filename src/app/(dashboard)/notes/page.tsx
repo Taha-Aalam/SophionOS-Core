@@ -721,16 +721,6 @@ export default function NotesPage() {
               />
             ) : (
               <div className="rounded-lg border border-border">
-                {/* Select all checkbox */}
-                <div className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5">
-                  <Checkbox
-                    checked={
-                      selectedIds.size === visibleNotes.length &&
-                      visibleNotes.length > 0
-                    }
-                    onCheckedChange={toggleAll}
-                  />
-                </div>
                 {visibleNotes.map((note) => {
                   const isSelected = selectedIds.has(note.id);
                   const linkedAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
