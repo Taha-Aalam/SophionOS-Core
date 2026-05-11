@@ -289,83 +289,83 @@ export default function TasksPage() {
           <TabsList className="flex h-auto flex-nowrap gap-0 bg-transparent p-0">
             <TabsTrigger
               value={TASK_VIEW.ALL}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               All
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.INBOX}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <InboxIcon className="mr-1.5 size-3.5" />
               Inbox
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.UPCOMING}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <Clock className="mr-1.5 size-3.5" />
               Upcoming
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.OVERDUE}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <AlertTriangle className="mr-1.5 size-3.5" />
               Overdue
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.COMPLETED}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <CheckSquare className="mr-1.5 size-3.5" />
               Completed
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.FOCUS}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <Star className="mr-1.5 size-3.5" />
               Focus
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.SMART_PRIORITY}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <Zap className="mr-1.5 size-3.5" />
               Smart Priority
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.CALENDAR}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <CalendarDays className="mr-1.5 size-3.5" />
               Calendar
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.BY_AREA}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <Layers className="mr-1.5 size-3.5" />
               By Area
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.BY_GOAL}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <Target className="mr-1.5 size-3.5" />
               By Goal
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.BY_PROJECT}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <FolderKanban className="mr-1.5 size-3.5" />
               By Project
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.ARCHIVE}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               <Archive className="mr-1.5 size-3.5" />
               Archive
