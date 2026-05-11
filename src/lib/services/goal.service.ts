@@ -249,12 +249,22 @@ export const goalService = {
       throw new DatabaseError(error.message);
     }
 
-    let goals = await hydrateGoalAreaLinks(data || []);
+    const rawGoals = data || [];
+    const [goalsWithAreas, goalsWithProgress] = await Promise.all([
+      hydrateGoalAreaLinks(rawGoals),
+      hydrateGoalProgress(rawGoals),
+    ]);
+
+    let goals = goalsWithAreas.map((goal, i) => ({
+      ...goal,
+      progress: goalsWithProgress[i]?.progress ?? goal.progress,
+    }));
+
     if (filters.areaId) {
       goals = goals.filter((goal) => goalMatchesAreaId(goal, filters.areaId));
     }
 
-    return hydrateGoalProgress(goals);
+    return goals;
   },
 
   async getById(userId: string, id: string): Promise<Goal> {
