@@ -60,6 +60,13 @@ function getProjectAreaNames(project: Project, areaNames: Map<string, string>): 
     .filter((name): name is string => Boolean(name));
 }
 
+function getProjectAreaIcons(
+  project: Project,
+  areaIcons: Map<string, string | null>,
+): (string | null)[] {
+  return getProjectLinkedAreaIds(project).map((id) => areaIcons.get(id) ?? null);
+}
+
 export default function ProjectsPage() {
   const router = useRouter();
   const [activeView, setActiveView] = useState(PROJECT_VIEW.ALL);
@@ -95,6 +102,10 @@ export default function ProjectsPage() {
   );
   const areaNames = useMemo(
     () => new Map(areas.map((area) => [area.id, area.name])),
+    [areas],
+  );
+  const areaIconsMap = useMemo(
+    () => new Map(areas.map((area) => [area.id, (area.icon as string | null | undefined) ?? null])),
     [areas],
   );
   const taskStatsByProject = useMemo(() => buildProjectTaskStats(tasks), [tasks]);
@@ -217,6 +228,7 @@ export default function ProjectsPage() {
             project={project}
             areaName={getAreaName(project.area_id, areaNames)}
             areaNames={getProjectAreaNames(project, areaNames)}
+            areaIcons={getProjectAreaIcons(project, areaIconsMap)}
             taskStats={taskStatsByProject.get(project.id)}
             duplicateIndex={duplicateIndices.get(project.id)}
             onEdit={handleEdit}
