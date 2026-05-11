@@ -205,7 +205,12 @@ export interface UpdateTopicInput {
   favorite?: boolean;
 }
 
-export type Contact = DatabaseTable<"contacts">;
+export interface Contact extends DatabaseTable<"contacts"> {
+  linkedAreaIds?: string[];
+  linkedGoalIds?: string[];
+  linkedProjectIds?: string[];
+  linkedTaskIds?: string[];
+}
 
 export type ContactProject = DatabaseTable<"contact_projects">;
 
@@ -229,6 +234,10 @@ export interface CreateContactInput {
   favorite?: boolean;
   notes?: string | null;
   metadata?: Json;
+  area_ids?: string[];
+  goal_ids?: string[];
+  project_ids?: string[];
+  task_ids?: string[];
 }
 
 export interface UpdateContactInput extends Partial<CreateContactInput> {
