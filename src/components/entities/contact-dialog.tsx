@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { X } from "lucide-react";
 
@@ -9,6 +9,8 @@ import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -130,6 +132,26 @@ export function ContactDialog({
   const { data: allProjects = [] } = useProjects({ status: "all" });
   const { data: allTasks = [] } = useTasks();
 
+  const { data: goalProjectRelations = [], isLoading: isLoadingGPRelations } = useQuery({
+    queryKey: ["goal-project-relations"],
+    queryFn: async () => {
+      const { data } = await createClient().from("goal_projects").select("goal_id, project_id");
+      return data ?? [];
+    },
+    enabled: open,
+  });
+
+  const { data: goalTaskRelations = [], isLoading: isLoadingGTRelations } = useQuery({
+    queryKey: ["goal-task-relations"],
+    queryFn: async () => {
+      const { data } = await createClient().from("goal_tasks").select("goal_id, task_id");
+      return data ?? [];
+    },
+    enabled: open,
+  });
+
+  const isRelationsLoading = isLoadingGPRelations || isLoadingGTRelations;
+
   const activeAreas = allAreas.filter((a) => !a.archive);
   const activeGoals = allGoals.filter((g) => !g.is_archived);
   const activeProjects = allProjects.filter((p) => !p.is_archived);
@@ -138,6 +160,186 @@ export function ContactDialog({
   const goalIds: string[] = form.watch("goal_ids") ?? [];
   const projectIds: string[] = form.watch("project_ids") ?? [];
   const taskIds: string[] = form.watch("task_ids") ?? [];
+
+  const goalProjectIdsMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const row of goalProjectRelations) {
+      const current = map.get(row.goal_id) ?? [];
+      current.push(row.project_id);
+      map.set(row.goal_id, current);
+    }
+    return map;
+  }, [goalProjectRelations]);
+
+  const projectGoalIdsMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const row of goalProjectRelations) {
+      const current = map.get(row.project_id) ?? [];
+      current.push(row.goal_id);
+      map.set(row.project_id, current);
+    }
+    return map;
+  }, [goalProjectRelations]);
+
+  const goalTaskIdsMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const row of goalTaskRelations) {
+      const current = map.get(row.goal_id) ?? [];
+      current.push(row.task_id);
+      map.set(row.goal_id, current);
+    }
+    return map;
+  }, [goalTaskRelations]);
+
+  const taskGoalIdsMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const row of goalTaskRelations) {
+      const current = map.get(row.task_id) ?? [];
+      current.push(row.goal_id);
+      map.set(row.task_id, current);
+    }
+    return map;
+  }, [goalTaskRelations]);
+
+  const selectedTasks = useMemo(
+    () => allTasks.filter((t) => taskIds.includes(t.id)),
+    [taskIds, allTasks],
+  );
+
+  const selectedGoals = useMemo(
+    () => allGoals.filter((g) => goalIds.includes(g.id)),
+    [goalIds, allGoals],
+  );
+
+  const selectedProjects = useMemo(
+    () => activeProjects.filter((p) => projectIds.includes(p.id)),
+    [projectIds, activeProjects],
+  );
+
+  const visibleAreas = useMemo(() => {
+    if (taskIds.length > 0) {
+      const taskAreaIds = new Set(
+        selectedTasks.flatMap((t) => t.linkedAreaIds ?? (t.area_id ? [t.area_id] : [])),
+      );
+      return activeAreas.filter((a) => taskAreaIds.has(a.id));
+    }
+    if (goalIds.length > 0) {
+      const goalAreaIds = new Set(
+        selectedGoals.flatMap((g) => g.linkedAreaIds ?? (g.area_id ? [g.area_id] : [])),
+      );
+      return activeAreas.filter((a) => goalAreaIds.has(a.id));
+    }
+    if (projectIds.length > 0) {
+      const projectAreaIds = new Set(
+        selectedProjects.flatMap((p) => p.linkedAreaIds ?? (p.area_id ? [p.area_id] : [])),
+      );
+      return activeAreas.filter((a) => projectAreaIds.has(a.id));
+    }
+    return activeAreas;
+  }, [activeAreas, taskIds, goalIds, projectIds, selectedTasks, selectedGoals, selectedProjects]);
+
+  const filteredProjects = useMemo(() => {
+    if (taskIds.length > 0) {
+      const taskProjectIds = new Set(
+        selectedTasks.map((t) => t.project_id).filter(Boolean) as string[],
+      );
+      return activeProjects.filter((p) => taskProjectIds.has(p.id));
+    }
+    if (goalIds.length > 0) {
+      const linkedProjectIds = new Set<string>();
+      for (const goalId of goalIds) {
+        (goalProjectIdsMap.get(goalId) ?? []).forEach((id) => linkedProjectIds.add(id));
+      }
+      return activeProjects.filter((p) => linkedProjectIds.has(p.id));
+    }
+    if (areaIds.length > 0) {
+      const selectedAreaIds = new Set(areaIds);
+      return activeProjects.filter((p) => {
+        const projectAreaIds = new Set(p.linkedAreaIds ?? (p.area_id ? [p.area_id] : []));
+        return Array.from(selectedAreaIds).some((id) => projectAreaIds.has(id));
+      });
+    }
+    return activeProjects;
+  }, [activeProjects, taskIds, goalIds, areaIds, selectedTasks, goalProjectIdsMap]);
+
+  const filteredGoals = useMemo(() => {
+    if (taskIds.length > 0) {
+      const linkedGoalIds = new Set<string>();
+      for (const taskId of taskIds) {
+        (taskGoalIdsMap.get(taskId) ?? []).forEach((id) => linkedGoalIds.add(id));
+      }
+      for (const task of selectedTasks) {
+        if (task.project_id) {
+          (projectGoalIdsMap.get(task.project_id) ?? []).forEach((id) => linkedGoalIds.add(id));
+        }
+      }
+      return activeGoals.filter((g) => linkedGoalIds.has(g.id));
+    }
+    if (projectIds.length > 0) {
+      const linkedGoalIds = new Set<string>();
+      for (const projectId of projectIds) {
+        (projectGoalIdsMap.get(projectId) ?? []).forEach((id) => linkedGoalIds.add(id));
+      }
+      return activeGoals.filter((g) => linkedGoalIds.has(g.id));
+    }
+    if (areaIds.length > 0) {
+      const selectedAreaIds = new Set(areaIds);
+      return activeGoals.filter((g) => {
+        const goalAreaIds = new Set(g.linkedAreaIds ?? (g.area_id ? [g.area_id] : []));
+        return Array.from(selectedAreaIds).some((id) => goalAreaIds.has(id));
+      });
+    }
+    return activeGoals;
+  }, [activeGoals, taskIds, projectIds, areaIds, selectedTasks, taskGoalIdsMap, projectGoalIdsMap]);
+
+  const filteredTasks = useMemo(() => {
+    if (goalIds.length > 0) {
+      const linkedTaskIds = new Set<string>();
+      for (const goalId of goalIds) {
+        (goalTaskIdsMap.get(goalId) ?? []).forEach((id) => linkedTaskIds.add(id));
+      }
+      return allTasks.filter((t) => linkedTaskIds.has(t.id));
+    }
+    if (projectIds.length > 0) {
+      return allTasks.filter((t) => t.project_id != null && projectIds.includes(t.project_id));
+    }
+    if (areaIds.length > 0) {
+      const selectedAreaIds = new Set(areaIds);
+      return allTasks.filter((t) => {
+        const taskAreaIds = new Set(t.linkedAreaIds ?? (t.area_id ? [t.area_id] : []));
+        return Array.from(selectedAreaIds).some((id) => taskAreaIds.has(id));
+      });
+    }
+    return allTasks;
+  }, [allTasks, goalIds, projectIds, areaIds, goalTaskIdsMap]);
+
+  useEffect(() => {
+    if (isRelationsLoading) return;
+    const valid = areaIds.filter((id) => visibleAreas.some((a) => a.id === id));
+    if (valid.length !== areaIds.length) form.setValue("area_ids", valid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleAreas, isRelationsLoading]);
+
+  useEffect(() => {
+    if (isRelationsLoading) return;
+    const valid = projectIds.filter((id) => filteredProjects.some((p) => p.id === id));
+    if (valid.length !== projectIds.length) form.setValue("project_ids", valid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredProjects, isRelationsLoading]);
+
+  useEffect(() => {
+    if (isRelationsLoading) return;
+    const valid = goalIds.filter((id) => filteredGoals.some((g) => g.id === id));
+    if (valid.length !== goalIds.length) form.setValue("goal_ids", valid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredGoals, isRelationsLoading]);
+
+  useEffect(() => {
+    if (isRelationsLoading) return;
+    const valid = taskIds.filter((id) => filteredTasks.some((t) => t.id === id));
+    if (valid.length !== taskIds.length) form.setValue("task_ids", valid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredTasks, isRelationsLoading]);
 
   const toggleId = (
     field: "area_ids" | "goal_ids" | "project_ids" | "task_ids",
@@ -303,10 +505,10 @@ export function ContactDialog({
                         Clear selection
                       </DropdownMenuItem>
                       <ScrollArea className="max-h-56">
-                        {activeAreas.length === 0 ? (
+                        {visibleAreas.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">No areas.</div>
                         ) : (
-                          activeAreas.map((area) => (
+                          visibleAreas.map((area) => (
                             <DropdownMenuItem
                               key={area.id}
                               onClick={() => toggleId("area_ids", area.id)}
@@ -357,10 +559,10 @@ export function ContactDialog({
                         Clear selection
                       </DropdownMenuItem>
                       <ScrollArea className="max-h-56">
-                        {activeGoals.length === 0 ? (
+                        {filteredGoals.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">No goals.</div>
                         ) : (
-                          activeGoals.map((goal) => (
+                          filteredGoals.map((goal) => (
                             <DropdownMenuItem
                               key={goal.id}
                               onClick={() => toggleId("goal_ids", goal.id)}
@@ -412,10 +614,10 @@ export function ContactDialog({
                         Clear selection
                       </DropdownMenuItem>
                       <ScrollArea className="max-h-56">
-                        {activeProjects.length === 0 ? (
+                        {filteredProjects.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">No projects.</div>
                         ) : (
-                          activeProjects.map((project) => (
+                          filteredProjects.map((project) => (
                             <DropdownMenuItem
                               key={project.id}
                               onClick={() => toggleId("project_ids", project.id)}
@@ -464,10 +666,10 @@ export function ContactDialog({
                         Clear selection
                       </DropdownMenuItem>
                       <ScrollArea className="max-h-56">
-                        {allTasks.length === 0 ? (
+                        {filteredTasks.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">No tasks.</div>
                         ) : (
-                          allTasks.map((task) => (
+                          filteredTasks.map((task) => (
                             <DropdownMenuItem
                               key={task.id}
                               onClick={() => toggleId("task_ids", task.id)}
