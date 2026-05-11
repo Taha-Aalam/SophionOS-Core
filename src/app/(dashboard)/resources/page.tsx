@@ -68,7 +68,10 @@ export default function ResourcesPage() {
   const archiveResource = useArchiveResource();
   const unarchiveResource = useUnarchiveResource();
 
-  const areaNames = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
+  const areaMap = useMemo(
+    () => new Map(areas.map((a) => [a.id, { name: a.name, icon: a.icon ?? null }])),
+    [areas],
+  );
   const goalNames = useMemo(() => new Map(goals.map((g) => [g.id, g.name])), [goals]);
   const projectNames = useMemo(() => new Map(projects.map((p) => [p.id, p.name])), [projects]);
   const taskNames = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks]);
@@ -597,30 +600,16 @@ export default function ResourcesPage() {
               />
             ) : (
               <div className="rounded-lg border border-border">
-                {/* Header */}
-                <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-3 py-2">
-                  <span className="w-20 text-xs font-medium text-muted-foreground">Status</span>
-                  <span className="flex-1 text-xs font-medium text-muted-foreground">Name</span>
-                  <span className="w-24 text-xs font-medium text-muted-foreground hidden md:inline">Topic</span>
-                  <span className="w-20 text-xs font-medium text-muted-foreground hidden sm:inline">Type</span>
-                  <span className="w-24 text-xs font-medium text-muted-foreground hidden lg:inline">Area</span>
-                  <span className="w-24 text-xs font-medium text-muted-foreground hidden xl:inline">Goals</span>
-                  <span className="w-24 text-xs font-medium text-muted-foreground hidden xl:inline">Projects</span>
-                  <span className="w-24 text-xs font-medium text-muted-foreground hidden xl:inline">Tasks</span>
-                  <span className="w-8" />
-                  <span className="w-8" />
-                  <span className="w-8" />
-                </div>
                 {/* Rows */}
                 {filtered.map((resource) => (
                   <ResourceRow
                     key={resource.id}
                     resource={resource}
-                    areaName={
+                    areas={
                       resource.linkedAreaIds && resource.linkedAreaIds.length > 0
-                        ? resource.linkedAreaIds.map((id) => areaNames.get(id)).filter((n): n is string => Boolean(n))
+                        ? resource.linkedAreaIds.map((id) => areaMap.get(id)).filter((a): a is { name: string; icon: string | null } => Boolean(a))
                         : resource.area_id
-                          ? [areaNames.get(resource.area_id)].filter((n): n is string => Boolean(n))
+                          ? [areaMap.get(resource.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a))
                           : undefined
                     }
                     goalNames={
@@ -676,22 +665,18 @@ export default function ResourcesPage() {
                 const name = topicNames.get(topicId) ?? "Unknown";
                 return (
                   <div key={topicId} className="rounded-lg border border-border">
-                    <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2">
-                      <Badge variant="secondary" className="text-xs">{name}</Badge>
-                      <span className="text-xs text-muted-foreground">{resources.length} resources</span>
-                    </div>
                     <div className="divide-y divide-border">
                       {resources.map((resource) => (
                         <ResourceRow
                           key={resource.id}
                           resource={resource}
-                          areaName={
-                            resource.linkedAreaIds && resource.linkedAreaIds.length > 0
-                              ? resource.linkedAreaIds.map((id) => areaNames.get(id)).filter((n): n is string => Boolean(n))
-                              : resource.area_id
-                                ? [areaNames.get(resource.area_id)].filter((n): n is string => Boolean(n))
-                                : undefined
-                          }
+areas={
+                              resource.linkedAreaIds && resource.linkedAreaIds.length > 0
+                                ? resource.linkedAreaIds.map((id) => areaMap.get(id)).filter((a): a is { name: string; icon: string | null } => Boolean(a))
+                                : resource.area_id
+                                  ? [areaMap.get(resource.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a))
+                                  : undefined
+                            }
                           goalNames={
                             resource.linkedGoalIds && resource.linkedGoalIds.length > 0
                               ? resource.linkedGoalIds.map((id) => goalNames.get(id)).filter((n): n is string => Boolean(n))

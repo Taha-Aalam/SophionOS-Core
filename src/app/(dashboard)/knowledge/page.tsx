@@ -213,6 +213,10 @@ export default function KnowledgeHubPage() {
 
   // ── derived maps ─────────────────────────────────────────────────────────
   const areaNames = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
+  const areaMap = useMemo(
+    () => new Map(areas.map((a) => [a.id, { name: a.name, icon: a.icon ?? null }])),
+    [areas],
+  );
   const projNames = useMemo(() => new Map(projects.map((p) => [p.id, p.name])), [projects]);
   const topicNames = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
   const goalNames = useMemo(() => new Map(goals.map((g) => [g.id, g.name])), [goals]);
@@ -601,7 +605,7 @@ export default function KnowledgeHubPage() {
           <ResourceRow
             key={r.id}
             resource={r}
-            areaName={r.area_id ? areaNames.get(r.area_id) : undefined}
+            areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a)) : undefined}
             projectName={r.project_id ? projNames.get(r.project_id) : undefined}
             topicName={r.topic_id ? topicNames.get(r.topic_id) : undefined}
             onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
@@ -981,7 +985,7 @@ export default function KnowledgeHubPage() {
                                 <ResourceRow
                                   key={r.id}
                                   resource={r}
-                                  areaName={r.area_id ? areaNames.get(r.area_id) : undefined}
+areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a)) : undefined}
                                   projectName={r.project_id ? projNames.get(r.project_id) : undefined}
                                   topicName={tname}
                                   onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}

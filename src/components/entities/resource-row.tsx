@@ -35,9 +35,14 @@ const TYPE_COLORS: Record<string, string> = {
   tool: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300",
 };
 
+interface AreaInfo {
+  name: string;
+  icon?: string | null;
+}
+
 interface ResourceRowProps {
   resource: Resource;
-  areaName?: string | string[];
+  areas?: AreaInfo[];
   goalNames?: string | string[];
   projectName?: string;
   taskNames?: string | string[];
@@ -51,7 +56,7 @@ interface ResourceRowProps {
 
 export function ResourceRow({
   resource,
-  areaName,
+  areas = [],
   goalNames,
   projectName,
   taskNames,
@@ -71,12 +76,6 @@ export function ResourceRow({
   const handleEdit = () => {
     onEdit?.(resource);
   };
-
-  const areaNameList = Array.isArray(areaName)
-    ? areaName
-    : areaName
-      ? [areaName]
-      : [];
 
   const goalNameList = Array.isArray(goalNames)
     ? goalNames
@@ -124,15 +123,19 @@ export function ResourceRow({
             {topicName}
           </Badge>
         )}
-        {areaNameList.slice(0, 1).map((name) => (
-          <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
-            <LucideMap className="size-3" />
-            {name}
+        {areas.slice(0, 1).map((area) => (
+          <Badge key={area.name} variant="outline" className="gap-1 text-xs font-normal">
+            {area.icon ? (
+              <span className="text-xs leading-none">{area.icon}</span>
+            ) : (
+              <LucideMap className="size-3" />
+            )}
+            {area.name}
           </Badge>
         ))}
-        {areaNameList.length > 1 && (
+        {areas.length > 1 && (
           <Badge variant="outline" className="text-xs font-normal">
-            +{areaNameList.length - 1}
+            +{areas.length - 1}
           </Badge>
         )}
         {goalNameList.slice(0, 1).map((name) => (
