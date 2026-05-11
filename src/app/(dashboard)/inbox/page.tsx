@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import {
   CheckSquare,
+  FolderKanban,
   Inbox as InboxIcon,
   Link,
   NotebookPen,
@@ -21,14 +22,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
 import { useAreas } from "@/lib/hooks/use-areas";
-import { useInboxNotes, useInboxTasks, useInboxResources } from "@/lib/hooks/use-inbox";
+import { useInboxNotes, useInboxProjects, useInboxTasks, useInboxResources } from "@/lib/hooks/use-inbox";
 import { useUpdateNote } from "@/lib/hooks/use-notes";
-import { useProjects } from "@/lib/hooks/use-projects";
+import { useProjects, useUpdateProject } from "@/lib/hooks/use-projects";
 import { useUpdateResource } from "@/lib/hooks/use-resources";
 import { useTopics } from "@/lib/hooks/use-topics";
 import { useUpdateTask } from "@/lib/hooks/use-tasks";
-import type { Note, Resource, Task } from "@/lib/types/domain.types";
-import { NOTE_STATUS, RESOURCE_STATUS, TASK_STATUS } from "@/lib/utils/constants";
+import type { Note, Project, Resource, Task } from "@/lib/types/domain.types";
+import { NOTE_STATUS, PROJECT_STATUS, RESOURCE_STATUS, TASK_STATUS } from "@/lib/utils/constants";
 import { relativeTime } from "@/lib/utils/dates";
 import { cn } from "@/lib/utils";
 
@@ -472,6 +473,144 @@ function ResourceProcessForm({
   );
 }
 
+// ─── Project processing form ─────────────────────────────────────────────────
+
+interface ProjectProcessFormProps {
+  project: Project;
+  areaOptions: { id: string; name: string }[];
+  onClose: () => void;
+}
+
+function ProjectProcessForm({ project, areaOptions, onClose }: ProjectProcessFormProps) {
+  const updateProject = useUpdateProject();
+  const [areaId, setAreaId] = useState(project.area_id ?? UNSET);
+  const [status, setStatus] = useState<string>(PROJECT_STATUS.ACTIVE);
+
+  const handleSave = () => {
+    updateProject.mutate(
+      {
+        id: project.id,
+        input: {
+          area_id: areaId === UNSET ? null : areaId,
+          status: status as Project["status"],
+        },
+      },
+      { onSuccess: onClose },
+    );
+  };
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 p-3">
+      <Select value={areaId} onValueChange={(v) => setAreaId(v ?? UNSET)}>
+        <SelectTrigger className="h-8 w-[140px] text-xs">
+          <SelectValue placeholder="Area" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={UNSET}>No area</SelectItem>
+          {areaOptions.map((a) => (
+            <SelectItem key={a.id} value={a.id}>
+              {a.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={status} onValueChange={(v) => setStatus(v ?? PROJECT_STATUS.ACTIVE)}>
+        <SelectTrigger className="h-8 w-[130px] text-xs">
+          <SelectValue placeholder="Move to" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={PROJECT_STATUS.ACTIVE}>Active</SelectItem>
+          <SelectItem value={PROJECT_STATUS.ON_HOLD}>On Hold</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <div className="flex items-center gap-1.5">
+        <Button
+          size="sm"
+          className="h-8 text-xs"
+          onClick={handleSave}
+          disabled={updateProject.isPending}
+        >
+          Process
+        </Button>
+        <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={onClose}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Inbox project row ───────────────────────────────────────────────────────
+
+interface InboxProjectRowProps {
+  project: Project;
+  areaName?: string;
+  areaOptions: { id: string; name: string }[];
+  expanded: boolean;
+  onExpand: () => void;
+  onCollapse: () => void;
+}
+
+function InboxProjectRow({
+  project,
+  areaName,
+  areaOptions,
+  expanded,
+  onExpand,
+  onCollapse,
+}: InboxProjectRowProps) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border border-border/60 bg-card p-3 transition-colors",
+        expanded && "border-primary/40 bg-accent/20",
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <Badge
+          variant="secondary"
+          className="shrink-0 gap-1 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
+        >
+          <FolderKanban className="size-3" />
+          project
+        </Badge>
+
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">{project.name}</span>
+
+        <div className="flex shrink-0 items-center gap-2">
+          {areaName && (
+            <span className="hidden text-xs text-muted-foreground sm:block">{areaName}</span>
+          )}
+          <span className="text-xs text-muted-foreground">{relativeTime(project.created_at)}</span>
+          {expanded ? (
+            <button
+              onClick={onCollapse}
+              className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+              aria-label="Cancel"
+            >
+              <X className="size-3.5" />
+            </button>
+          ) : (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onExpand}>
+              Process
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {expanded && (
+        <ProjectProcessForm
+          project={project}
+          areaOptions={areaOptions}
+          onClose={onCollapse}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Inbox resource row ──────────────────────────────────────────────────────
 
 interface InboxResourceRowProps {
@@ -562,6 +701,7 @@ function InboxItemSkeleton() {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
+  const { data: inboxProjects = [], isLoading: projectsLoading } = useInboxProjects();
   const { data: inboxTasks, isLoading: tasksLoading } = useInboxTasks();
   const { data: inboxNotes = [], isLoading: notesLoading } = useInboxNotes();
   const { data: inboxResources = [], isLoading: resourcesLoading } = useInboxResources();
@@ -571,8 +711,8 @@ export default function InboxPage() {
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const isLoading = tasksLoading || notesLoading || resourcesLoading;
-  const totalCount = inboxTasks.length + inboxNotes.length + inboxResources.length;
+  const isLoading = projectsLoading || tasksLoading || notesLoading || resourcesLoading;
+  const totalCount = inboxProjects.length + inboxTasks.length + inboxNotes.length + inboxResources.length;
 
   const areaOptions = useMemo(
     () =>
@@ -636,79 +776,102 @@ export default function InboxPage() {
           />
         ) : (
           <>
-            {inboxTasks.length > 0 && (
-              <section className="flex flex-col gap-2">
-                <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  <CheckSquare className="size-3.5" />
-                  Tasks
-                  <span className="ml-0.5 font-normal normal-case">({inboxTasks.length})</span>
-                </h2>
-                <div className="flex flex-col gap-2">
-                  {inboxTasks.map((task) => (
-                    <InboxTaskRow
-                      key={task.id}
-                      task={task}
-                      areaName={task.area_id ? areaMap.get(task.area_id) : undefined}
-                      areaOptions={areaOptions}
-                      projectOptions={projectOptions}
-                      expanded={expandedId === task.id}
-                      onExpand={() => setExpandedId(task.id)}
-                      onCollapse={() => setExpandedId(null)}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
+              {inboxProjects.length > 0 && (
+                <section className="flex flex-col gap-2">
+                  <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <FolderKanban className="size-3.5" />
+                    Projects
+                    <span className="ml-0.5 font-normal normal-case">({inboxProjects.length})</span>
+                  </h2>
+                  <div className="flex flex-col gap-2">
+                    {inboxProjects.map((project) => (
+                      <InboxProjectRow
+                        key={project.id}
+                        project={project}
+                        areaName={project.area_id ? areaMap.get(project.area_id) : undefined}
+                        areaOptions={areaOptions}
+                        expanded={expandedId === project.id}
+                        onExpand={() => setExpandedId(project.id)}
+                        onCollapse={() => setExpandedId(null)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
 
-            {inboxNotes.length > 0 && (
-              <section className="flex flex-col gap-2">
-                <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  <NotebookPen className="size-3.5" />
-                  Notes
-                  <span className="ml-0.5 font-normal normal-case">({inboxNotes.length})</span>
-                </h2>
-                <div className="flex flex-col gap-2">
-                  {inboxNotes.map((note) => (
-                    <InboxNoteRow
-                      key={note.id}
-                      note={note}
-                      areaName={note.area_id ? areaMap.get(note.area_id) : undefined}
-                      areaOptions={areaOptions}
-                      projectOptions={projectOptions}
-                      expanded={expandedId === note.id}
-                      onExpand={() => setExpandedId(note.id)}
-                      onCollapse={() => setExpandedId(null)}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
+              {inboxTasks.length > 0 && (
+                <section className="flex flex-col gap-2">
+                  <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <CheckSquare className="size-3.5" />
+                    Tasks
+                    <span className="ml-0.5 font-normal normal-case">({inboxTasks.length})</span>
+                  </h2>
+                  <div className="flex flex-col gap-2">
+                    {inboxTasks.map((task) => (
+                      <InboxTaskRow
+                        key={task.id}
+                        task={task}
+                        areaName={task.area_id ? areaMap.get(task.area_id) : undefined}
+                        areaOptions={areaOptions}
+                        projectOptions={projectOptions}
+                        expanded={expandedId === task.id}
+                        onExpand={() => setExpandedId(task.id)}
+                        onCollapse={() => setExpandedId(null)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
 
-            {inboxResources.length > 0 && (
-              <section className="flex flex-col gap-2">
-                <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  <Link className="size-3.5" />
-                  Resources
-                  <span className="ml-0.5 font-normal normal-case">({inboxResources.length})</span>
-                </h2>
-                <div className="flex flex-col gap-2">
-                  {inboxResources.map((resource) => (
-                    <InboxResourceRow
-                      key={resource.id}
-                      resource={resource}
-                      areaName={resource.area_id ? areaMap.get(resource.area_id) : undefined}
-                      areaOptions={areaOptions}
-                      projectOptions={projectOptions}
-                      topicOptions={topicOptions}
-                      expanded={expandedId === resource.id}
-                      onExpand={() => setExpandedId(resource.id)}
-                      onCollapse={() => setExpandedId(null)}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-          </>
+              {inboxNotes.length > 0 && (
+                <section className="flex flex-col gap-2">
+                  <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <NotebookPen className="size-3.5" />
+                    Notes
+                    <span className="ml-0.5 font-normal normal-case">({inboxNotes.length})</span>
+                  </h2>
+                  <div className="flex flex-col gap-2">
+                    {inboxNotes.map((note) => (
+                      <InboxNoteRow
+                        key={note.id}
+                        note={note}
+                        areaName={note.area_id ? areaMap.get(note.area_id) : undefined}
+                        areaOptions={areaOptions}
+                        projectOptions={projectOptions}
+                        expanded={expandedId === note.id}
+                        onExpand={() => setExpandedId(note.id)}
+                        onCollapse={() => setExpandedId(null)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {inboxResources.length > 0 && (
+                <section className="flex flex-col gap-2">
+                  <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Link className="size-3.5" />
+                    Resources
+                    <span className="ml-0.5 font-normal normal-case">({inboxResources.length})</span>
+                  </h2>
+                  <div className="flex flex-col gap-2">
+                    {inboxResources.map((resource) => (
+                      <InboxResourceRow
+                        key={resource.id}
+                        resource={resource}
+                        areaName={resource.area_id ? areaMap.get(resource.area_id) : undefined}
+                        areaOptions={areaOptions}
+                        projectOptions={projectOptions}
+                        topicOptions={topicOptions}
+                        expanded={expandedId === resource.id}
+                        onExpand={() => setExpandedId(resource.id)}
+                        onCollapse={() => setExpandedId(null)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
         )}
       </div>
     </div>
