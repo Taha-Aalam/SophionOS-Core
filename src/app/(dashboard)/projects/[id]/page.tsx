@@ -9,7 +9,6 @@ import {
   ChevronRightIcon,
   Edit,
   Link as LinkIcon,
-  NotebookPen,
   Plus,
   Target,
   Trash2,
@@ -18,9 +17,12 @@ import {
 } from "lucide-react";
 
 import { ContactDialog } from "@/components/entities/contact-dialog";
+import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
-import { NoteEditorDialog } from "@/components/entities/note-editor-dialog";
+import { TaskListItem } from "@/components/entities/task-list-item";
 import { ProjectDialog } from "@/components/entities/project-dialog";
+import { ResourceDialog } from "@/components/entities/resource-dialog";
+import { ResourceTable } from "@/components/entities/resource-table";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +49,7 @@ import {
   useUnlinkContactFromProject,
 } from "@/lib/hooks/use-contacts";
 import { useGoals } from "@/lib/hooks/use-goals";
-import { useNotesByProject } from "@/lib/hooks/use-notes";
+import { useNotesByProject, useToggleFavoriteNote } from "@/lib/hooks/use-notes";
 import {
   useDeleteProject,
   useLinkProjectToArea,
@@ -64,12 +66,19 @@ import {
   useToggleFavoriteResource,
 } from "@/lib/hooks/use-resources";
 import { useTasks } from "@/lib/hooks/use-tasks";
+import {
+  useCompleteTask,
+  useFocusTask,
+  useUpdateTask,
+  useDeleteTask,
+} from "@/lib/hooks/use-tasks";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
+import { filterProjectDialogGoals } from "@/lib/utils/project-dialog-filters";
 import { getProjectDueState, getProjectLinkedAreaIds, getProjectStatusLabel } from "@/lib/utils/projects";
-import { resolveBackNavigation, getReturnToFromSearchParams } from "@/lib/utils/return-to";
+import { resolveBackNavigation, getReturnToFromSearchParams, encodeReturnTo } from "@/lib/utils/return-to";
 
 const PRIORITY_COLORS: Record<string, string> = {
   urgent: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
@@ -109,11 +118,12 @@ export default function ProjectDetailPage() {
   const [isLinkContactOpen, setIsLinkContactOpen] = useState(false);
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
-  const [isNewNoteOpen, setIsNewNoteOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<typeof tasks[number] | null>(null);
+  const [isEditTaskOpen, setIsEditTaskOpen] = useState(false);
   const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const [isLinkAreaOpen, setIsLinkAreaOpen] = useState(false);
-  const [goalTab, setGoalTab] = useState("all");
+  const [goalTab, setGoalTab] = useState("active");
   const [taskTab, setTaskTab] = useState("all");
   const [noteTab, setNoteTab] = useState("all");
   const [contactTab, setContactTab] = useState("all");
@@ -148,6 +158,11 @@ export default function ProjectDetailPage() {
   const createContact = useCreateContact();
   const createResource = useCreateResource();
   const toggleFavoriteResource = useToggleFavoriteResource();
+  const toggleFavoriteNote = useToggleFavoriteNote();
+  const completeTask = useCompleteTask();
+  const focusTask = useFocusTask();
+  const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
 
   useEffect(() => {
     if (project) {
@@ -190,7 +205,11 @@ export default function ProjectDetailPage() {
         .filter((area): area is NonNullable<typeof area> => Boolean(area)),
     [eligibleAreaIds, areas],
   );
-  const unlinkedGoals = useMemo(
+  const unlinkedGoals = useMemo(() => {
+    const activeUnlinkedGoals = goals.filter((goal) => !goal.is_archived && !linkedGoalIds.has(goal.id));
+    return filterProjectDialogGoals(activeUnlinkedGoals, projectLinkedAreaIds);
+  }, [goals, linkedGoalIds, projectLinkedAreaIds]);
+  const totalActiveUnlinkedGoals = useMemo(
     () => goals.filter((goal) => !goal.is_archived && !linkedGoalIds.has(goal.id)),
     [goals, linkedGoalIds],
   );
@@ -232,21 +251,35 @@ export default function ProjectDetailPage() {
 
   const goalTabs = useMemo(
     () => [
-      { value: "all", label: "All", count: linkedGoals.length },
       {
         value: "active",
         label: "Active",
         count: linkedGoals.filter((goal) => !goal.is_completed && !goal.is_archived).length,
       },
       {
+        value: "short",
+        label: "Short Term",
+        count: linkedGoals.filter((goal) => goal.term === "short" && !goal.is_completed && !goal.is_archived).length,
+      },
+      {
+        value: "mid",
+        label: "Mid Term",
+        count: linkedGoals.filter((goal) => goal.term === "mid" && !goal.is_completed && !goal.is_archived).length,
+      },
+      {
+        value: "long",
+        label: "Long Term",
+        count: linkedGoals.filter((goal) => goal.term === "long" && !goal.is_completed && !goal.is_archived).length,
+      },
+      {
+        value: "inactive",
+        label: "Inactive",
+        count: linkedGoals.filter((goal) => goal.is_archived).length,
+      },
+      {
         value: "completed",
         label: "Completed",
         count: linkedGoals.filter((goal) => goal.is_completed && !goal.is_archived).length,
-      },
-      {
-        value: "archived",
-        label: "Archive",
-        count: linkedGoals.filter((goal) => goal.is_archived).length,
       },
     ],
     [linkedGoals],
@@ -255,12 +288,18 @@ export default function ProjectDetailPage() {
     switch (goalTab) {
       case "active":
         return linkedGoals.filter((goal) => !goal.is_completed && !goal.is_archived);
+      case "short":
+        return linkedGoals.filter((goal) => goal.term === "short" && !goal.is_completed && !goal.is_archived);
+      case "mid":
+        return linkedGoals.filter((goal) => goal.term === "mid" && !goal.is_completed && !goal.is_archived);
+      case "long":
+        return linkedGoals.filter((goal) => goal.term === "long" && !goal.is_completed && !goal.is_archived);
+      case "inactive":
+        return linkedGoals.filter((goal) => goal.is_archived);
       case "completed":
         return linkedGoals.filter((goal) => goal.is_completed && !goal.is_archived);
-      case "archived":
-        return linkedGoals.filter((goal) => goal.is_archived);
       default:
-        return linkedGoals;
+        return linkedGoals.filter((goal) => !goal.is_completed && !goal.is_archived);
     }
   }, [goalTab, linkedGoals]);
 
@@ -268,9 +307,32 @@ export default function ProjectDetailPage() {
     () => [
       { value: "all", label: "All", count: linkedTasks.length },
       {
+        value: "inbox",
+        label: "Inbox",
+        count: linkedTasks.filter((task) => task.status === "inbox" && !task.is_completed).length,
+      },
+      {
         value: "upcoming",
         label: "Upcoming",
-        count: linkedTasks.filter((task) => !task.is_completed).length,
+        count: linkedTasks.filter((task) => task.status !== "inbox" && task.status !== "completed" && !task.is_completed).length,
+      },
+      {
+        value: "overdue",
+        label: "Overdue",
+        count: linkedTasks.filter((task) => {
+          if (!task.due_date || task.is_completed) return false;
+          return new Date(task.due_date) < new Date();
+        }).length,
+      },
+      {
+        value: "by_area",
+        label: "By Area",
+        count: linkedTasks.filter((task) => task.area_id).length,
+      },
+      {
+        value: "by_goal",
+        label: "By Goal",
+        count: linkedGoals.length > 0 ? linkedTasks.length : 0,
       },
       {
         value: "completed",
@@ -278,12 +340,23 @@ export default function ProjectDetailPage() {
         count: linkedTasks.filter((task) => task.is_completed).length,
       },
     ],
-    [linkedTasks],
+    [linkedTasks, linkedGoals],
   );
   const filteredTasks = useMemo(() => {
     switch (taskTab) {
+      case "inbox":
+        return linkedTasks.filter((task) => task.status === "inbox" && !task.is_completed);
       case "upcoming":
-        return linkedTasks.filter((task) => !task.is_completed);
+        return linkedTasks.filter((task) => task.status !== "inbox" && task.status !== "completed" && !task.is_completed);
+      case "overdue":
+        return linkedTasks.filter((task) => {
+          if (!task.due_date || task.is_completed) return false;
+          return new Date(task.due_date) < new Date();
+        });
+      case "by_area":
+        return linkedTasks.filter((task) => task.area_id);
+      case "by_goal":
+        return linkedTasks;
       case "completed":
         return linkedTasks.filter((task) => task.is_completed);
       default:
@@ -295,13 +368,23 @@ export default function ProjectDetailPage() {
     () => [
       { value: "all", label: "All", count: linkedNotes.length },
       {
-        value: "favorite",
-        label: "Favorite",
-        count: linkedNotes.filter((note) => note.favorite).length,
+        value: "inbox",
+        label: "Inbox",
+        count: linkedNotes.filter((note) => note.status === "inbox").length,
+      },
+      {
+        value: "to_review",
+        label: "To Review",
+        count: linkedNotes.filter((note) => note.status === "to_review").length,
+      },
+      {
+        value: "active",
+        label: "Active",
+        count: linkedNotes.filter((note) => note.status === "active" && !note.is_archived).length,
       },
       {
         value: "archived",
-        label: "Archived",
+        label: "Archive",
         count: linkedNotes.filter((note) => note.is_archived).length,
       },
     ],
@@ -309,8 +392,12 @@ export default function ProjectDetailPage() {
   );
   const filteredNotes = useMemo(() => {
     switch (noteTab) {
-      case "favorite":
-        return linkedNotes.filter((note) => note.favorite);
+      case "inbox":
+        return linkedNotes.filter((note) => note.status === "inbox");
+      case "to_review":
+        return linkedNotes.filter((note) => note.status === "to_review");
+      case "active":
+        return linkedNotes.filter((note) => note.status === "active" && !note.is_archived);
       case "archived":
         return linkedNotes.filter((note) => note.is_archived);
       default:
@@ -345,14 +432,6 @@ export default function ProjectDetailPage() {
     }
   }, [contactTab, linkedContacts]);
 
-  const resourceTypesInProject = useMemo(() => {
-    const types = new Set<string>();
-    for (const resource of linkedResources) {
-      types.add(resource.type);
-    }
-    return Array.from(types);
-  }, [linkedResources]);
-
   const resourceTabs = useMemo(
     () => [
       { value: "all", label: "All", count: linkedResources.length },
@@ -369,16 +448,11 @@ export default function ProjectDetailPage() {
       {
         value: "active",
         label: "Active",
-        count: linkedResources.filter((r) => r.status === "active").length,
-      },
-      {
-        value: "favorites",
-        label: "Favorites",
-        count: linkedResources.filter((r) => r.favorite).length,
+        count: linkedResources.filter((r) => r.status === "active" && !r.is_archived).length,
       },
       {
         value: "archived",
-        label: "Archived",
+        label: "Archive",
         count: linkedResources.filter((r) => r.is_archived).length,
       },
     ],
@@ -386,19 +460,13 @@ export default function ProjectDetailPage() {
   );
 
   const filteredResources = useMemo(() => {
-    if (resourceTab.startsWith("type:")) {
-      const type = resourceTab.slice(5);
-      return linkedResources.filter((r) => r.type === type);
-    }
     switch (resourceTab) {
       case "inbox":
         return linkedResources.filter((r) => r.status === "inbox");
       case "to_review":
         return linkedResources.filter((r) => r.status === "to_review");
       case "active":
-        return linkedResources.filter((r) => r.status === "active");
-      case "favorites":
-        return linkedResources.filter((r) => r.favorite);
+        return linkedResources.filter((r) => r.status === "active" && !r.is_archived);
       case "archived":
         return linkedResources.filter((r) => r.is_archived);
       default:
@@ -464,6 +532,13 @@ export default function ProjectDetailPage() {
     router.push("/projects");
   };
 
+  const handleNoteToggleFavorite = useCallback(
+    (noteId: string, favorite: boolean) => {
+      toggleFavoriteNote.mutate({ id: noteId, favorite });
+    },
+    [toggleFavoriteNote],
+  );
+
   const handleLinkArea = async (areaId: string) => {
     if (!resolvedProjectId) {
       return;
@@ -489,6 +564,42 @@ export default function ProjectDetailPage() {
 
     await unlinkProjectFromGoal.mutateAsync({ goalId, projectId: resolvedProjectId });
   };
+
+  const handleTaskCompletion = useCallback(
+    async (taskId: string, _isCompleted: boolean) => {
+      await completeTask.mutateAsync(taskId);
+    },
+    [completeTask],
+  );
+
+  const handleTaskFocus = useCallback(
+    async (taskId: string, isFocused: boolean) => {
+      await focusTask.mutateAsync({ id: taskId, is_focused: isFocused });
+    },
+    [focusTask],
+  );
+
+  const handleTaskNameSave = useCallback(
+    async (taskId: string, name: string) => {
+      await updateTask.mutateAsync({ id: taskId, input: { name } });
+    },
+    [updateTask],
+  );
+
+  const handleTaskDelete = useCallback(
+    async (taskId: string) => {
+      await deleteTask.mutateAsync(taskId);
+    },
+    [deleteTask],
+  );
+
+  const handleTaskEdit = useCallback(
+    (task: typeof tasks[number]) => {
+      setEditingTask(task);
+      setIsEditTaskOpen(true);
+    },
+    [],
+  );
 
   const handleLinkContact = async (contactId: string) => {
     if (!resolvedProjectId) {
@@ -593,9 +704,7 @@ export default function ProjectDetailPage() {
           <ArrowLeft className="size-3.5" />
         </Button>
         <span>/</span>
-        <button className="hover:text-foreground" onClick={() => router.push(resolveBackNavigation(projectReturnTo, "/projects"))}>
-          Projects
-        </button>
+        <span>Projects</span>
         <span>/</span>
         <span className="text-foreground">{project.name}</span>
       </div>
@@ -857,43 +966,31 @@ export default function ProjectDetailPage() {
           createLabel="Link Goal"
         >
           {filteredGoals.length > 0 ? (
-            <div className="space-y-3">
-              {filteredGoals.map((goal) => (
-                <div
-                  key={goal.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => router.push(buildGoalDetailHref(goal))}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      router.push(buildGoalDetailHref(goal));
-                    }
-                  }}
-                  className="flex w-full cursor-pointer items-center justify-between rounded-lg border p-4 text-left transition-colors hover:bg-muted/40"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Target className="size-4 text-muted-foreground" />
-                      <p className="truncate font-medium">{goal.name}</p>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {goal.term} term
-                      {goal.description ? ` - ${goal.description}` : ""}
-                    </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {filteredGoals.map((goal) => {
+                const linkedAreaNames = linkedAreas.map((a) => a.name).filter(Boolean);
+                const areaName = linkedAreaNames.length > 0 ? linkedAreaNames[0] : undefined;
+                return (
+                  <div key={goal.id} className="relative">
+                    <GoalCard
+                      goal={goal}
+                      areaName={areaName}
+                      onEdit={() => router.push(buildGoalDetailHref(goal))}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-2 top-2"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleUnlinkGoal(goal.id);
+                      }}
+                    >
+                      <Unlink className="size-3" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleUnlinkGoal(goal.id);
-                    }}
-                  >
-                    <Unlink className="size-3" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : null}
         </GoalDetailSection>
@@ -913,32 +1010,20 @@ export default function ProjectDetailPage() {
           createLabel="New Task"
         >
           {filteredTasks.length > 0 ? (
-            <div className="space-y-3">
-              {filteredTasks.map((task) => {
-                const taskDueState = getProjectDueState(task.due_date);
-
-                return (
-                  <div key={task.id} className="rounded-lg border p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">{task.name}</p>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          <span className="uppercase">{task.priority}</span>
-                          <span>{task.status}</span>
-                          <span
-                            className={cn(
-                              taskDueState.isOverdue && "text-red-600 dark:text-red-400",
-                            )}
-                          >
-                            {taskDueState.label}
-                          </span>
-                        </div>
-                      </div>
-                      {task.is_completed ? <Badge variant="outline">Completed</Badge> : null}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="rounded-lg border bg-card">
+              {filteredTasks.map((task) => (
+                <TaskListItem
+                  key={task.id}
+                  task={task}
+                  linkedAreaNames={linkedAreas.map((a) => a.name)}
+                  projectName={project?.name}
+                  onCompletionToggle={handleTaskCompletion}
+                  onFocusToggle={handleTaskFocus}
+                  onNameSave={handleTaskNameSave}
+                  onDelete={handleTaskDelete}
+                  onEdit={handleTaskEdit}
+                />
+              ))}
             </div>
           ) : null}
         </GoalDetailSection>
@@ -954,28 +1039,68 @@ export default function ProjectDetailPage() {
           isLoading={isLoadingNotes}
           emptyTitle="No linked notes"
           emptyDescription="Notes linked to this project will show up here."
-          onCreateNew={() => setIsNewNoteOpen(true)}
+          onCreateNew={() => {
+              const noteReturnTo = `/projects/${project?.id}`;
+              const params = new URLSearchParams();
+              params.set("returnTo", encodeReturnTo(noteReturnTo));
+              if (project?.id) {
+                params.set("projectId", project.id);
+              }
+              if (projectLinkedAreaIds.length > 0) {
+                params.set("areaIds", projectLinkedAreaIds.join(","));
+              }
+              if (linkedGoalIdsArray.length > 0) {
+                params.set("goalIds", linkedGoalIdsArray.join(","));
+              }
+              router.push(`/notes/new?${params.toString()}`);
+            }}
           createLabel="New Note"
         >
           {filteredNotes.length > 0 ? (
-            <div className="space-y-2">
-              {filteredNotes.map((note) => (
-                <button
-                  key={note.id}
-                  type="button"
-                  onClick={() => router.push(`/notes/${note.slug ?? note.id}`)}
-                  className="flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/40"
-                >
-                  <NotebookPen className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{note.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {note.status.replace("_", " ")}
-                      {note.notebook ? ` - ${note.notebook}` : ""}
-                    </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {filteredNotes.map((note) => {
+                const noteReturnTo = `/projects/${project?.id}`;
+                return (
+                  <div
+                    key={note.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => router.push(`/notes/${note.slug ?? note.id}?returnTo=${encodeReturnTo(noteReturnTo)}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        router.push(`/notes/${note.slug ?? note.id}?returnTo=${encodeReturnTo(noteReturnTo)}`);
+                      }
+                    }}
+                    className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30 cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="truncate font-semibold">{note.name}</h3>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleNoteToggleFavorite(note.id, !note.favorite);
+                        }}
+                        className={cn(
+                          "shrink-0 text-sm",
+                          note.favorite ? "text-rose-500" : "text-muted-foreground",
+                        )}
+                      >
+                        {note.favorite ? "★" : "☆"}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant="secondary" className="text-xs">
+                        {note.status}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {note.type}
+                      </Badge>
+                    </div>
                   </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           ) : null}
         </GoalDetailSection>
@@ -985,10 +1110,7 @@ export default function ProjectDetailPage() {
         <GoalDetailSection
           id="resources"
           entityType="resources"
-          tabs={[
-            ...resourceTabs,
-            ...resourceTypesInProject.map((type) => ({ value: `type:${type}`, label: type })),
-          ]}
+          tabs={resourceTabs}
           activeTab={resourceTab}
           onTabChange={setResourceTab}
           isLoading={isLoadingResources}
@@ -998,68 +1120,12 @@ export default function ProjectDetailPage() {
           createLabel="New Resource"
         >
           {filteredResources.length > 0 ? (
-            <div className="rounded-lg border bg-card">
-              <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-3 py-2">
-                <span className="w-20 text-xs font-medium text-muted-foreground">Status</span>
-                <span className="flex-1 text-xs font-medium text-muted-foreground">Name</span>
-                <span className="hidden w-20 text-xs font-medium text-muted-foreground sm:inline">
-                  Type
-                </span>
-              </div>
-              {filteredResources.map((resource) => (
-                <div
-                  key={resource.id}
-                  className="flex items-center gap-3 border-b border-border/40 px-3 py-2.5 hover:bg-muted/30"
-                >
-                  <Badge
-                    variant="secondary"
-                    className={cn(
-                      "w-20 text-xs",
-                      resource.status === "inbox" &&
-                        "bg-slate-100 text-slate-700 dark:bg-slate-800",
-                      resource.status === "to_review" &&
-                        "bg-amber-100 text-amber-700 dark:bg-amber-900",
-                      resource.status === "active" &&
-                        "bg-green-100 text-green-700 dark:bg-green-900",
-                    )}
-                  >
-                    {resource.status.replace("_", " ")}
-                  </Badge>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{resource.name}</p>
-                    {resource.url && (
-                      <a
-                        href={resource.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="truncate text-xs text-muted-foreground hover:text-primary"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {resource.url}
-                      </a>
-                    )}
-                  </div>
-                  <Badge variant="outline" className="hidden w-20 text-xs sm:inline">
-                    {resource.type}
-                  </Badge>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      toggleFavoriteResource.mutate({
-                        id: resource.id,
-                        favorite: !resource.favorite,
-                      })
-                    }
-                    className={cn(
-                      "shrink-0 text-sm",
-                      resource.favorite ? "text-rose-500" : "text-muted-foreground/40",
-                    )}
-                  >
-                    {resource.favorite ? "★" : "☆"}
-                  </button>
-                </div>
-              ))}
-            </div>
+            <ResourceTable
+              resources={filteredResources}
+              onToggleFavorite={(id, favorite) =>
+                toggleFavoriteResource.mutate({ id, favorite })
+              }
+            />
           ) : null}
         </GoalDetailSection>
       </div>
@@ -1169,9 +1235,15 @@ export default function ProjectDetailPage() {
             <DialogDescription>Attach an existing goal to this project.</DialogDescription>
           </DialogHeader>
           {unlinkedGoals.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              All active goals are already linked to this project.
-            </p>
+            totalActiveUnlinkedGoals.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                All active goals are already linked to this project.
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No goals found in the areas linked to this project. Link an area to the project first, or create a goal in a linked area.
+              </p>
+            )
           ) : (
             <div className="space-y-2">
               {unlinkedGoals.map((goal) => (
@@ -1259,13 +1331,18 @@ export default function ProjectDetailPage() {
         onSuccess={() => setIsNewTaskOpen(false)}
       />
 
-      <NoteEditorDialog
-        open={isNewNoteOpen}
-        onOpenChange={setIsNewNoteOpen}
-        note={null}
-        projectId={project.id}
-        areaId={projectLinkedAreaIds[0] ?? null}
-        onSuccess={() => setIsNewNoteOpen(false)}
+      <TaskDialog
+        open={isEditTaskOpen}
+        onOpenChange={(open) => !open && setEditingTask(null)}
+        task={editingTask}
+        projectScoped={{
+          projectId: project.id,
+          projectName: project.name,
+          areaId: project.area_id ?? null,
+          linkedAreaIds: projectLinkedAreaIds,
+          linkedGoalIds: linkedGoalIdsArray,
+        }}
+        onSuccess={() => setEditingTask(null)}
       />
 
       <ProjectDialog open={isEditOpen} onOpenChange={setIsEditOpen} project={project} />
@@ -1278,125 +1355,18 @@ export default function ProjectDetailPage() {
         onSubmit={handleCreateContactSubmit}
       />
 
-      <Dialog open={isNewResourceOpen} onOpenChange={setIsNewResourceOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>New Resource</DialogTitle>
-            <DialogDescription>Attach a new resource to this project.</DialogDescription>
-          </DialogHeader>
-          <ProjectResourceForm
-            projectId={project.id}
-            isPending={createResource.isPending}
-            onSubmit={async (input) => {
-              await createResource.mutateAsync(input);
-              setIsNewResourceOpen(false);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+<ResourceDialog
+        open={isNewResourceOpen}
+        onOpenChange={setIsNewResourceOpen}
+        initialProjectId={project.id}
+        initialAreaIds={projectLinkedAreaIds}
+        initialGoalIds={linkedGoalIdsArray}
+        onSubmit={async (input) => {
+          await createResource.mutateAsync(input as Parameters<typeof createResource.mutateAsync>[0]);
+          setIsNewResourceOpen(false);
+        }}
+isPending={createResource.isPending}
+      />
     </div>
-  );
-}
-
-function ProjectResourceForm({
-  onSubmit,
-  isPending,
-  projectId,
-}: {
-  onSubmit: (input: {
-    name: string;
-    url?: string;
-    type:
-      | "website"
-      | "article"
-      | "video"
-      | "document"
-      | "podcast"
-      | "social_media"
-      | "tool";
-    status: "inbox" | "to_review" | "active";
-    project_id?: string;
-  }) => Promise<void>;
-  isPending: boolean;
-  projectId: string;
-}) {
-  const [name, setName] = useState("");
-  const [url, setUrl] = useState("");
-  const [type, setType] = useState<
-    "website" | "article" | "video" | "document" | "podcast" | "social_media" | "tool"
-  >("website");
-  const [status, setStatus] = useState<"inbox" | "to_review" | "active">("inbox");
-
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault();
-    if (!name.trim() || !url.trim()) return;
-    onSubmit({
-      name: name.trim(),
-      url: url.trim(),
-      type,
-      status,
-      project_id: projectId,
-    });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4 py-4">
-      <div className="space-y-2">
-        <Label htmlFor="proj-res-name">Name</Label>
-        <Input
-          id="proj-res-name"
-          placeholder="My favorite article"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="proj-res-url">URL *</Label>
-        <Input
-          id="proj-res-url"
-          type="url"
-          placeholder="https://..."
-          value={url}
-          onChange={(event) => setUrl(event.target.value)}
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="proj-res-type">Type</Label>
-          <select
-            id="proj-res-type"
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-            value={type}
-            onChange={(event) => setType(event.target.value as typeof type)}
-          >
-            <option value="website">Website</option>
-            <option value="article">Article</option>
-            <option value="video">Video</option>
-            <option value="document">Document</option>
-            <option value="podcast">Podcast</option>
-            <option value="social_media">Social Media</option>
-            <option value="tool">Tool</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="proj-res-status">Status</Label>
-          <select
-            id="proj-res-status"
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-            value={status}
-            onChange={(event) => setStatus(event.target.value as typeof status)}
-          >
-            <option value="inbox">Inbox</option>
-            <option value="to_review">To Review</option>
-            <option value="active">Active</option>
-          </select>
-        </div>
-      </div>
-      <div className="flex justify-end gap-3">
-        <Button type="submit" disabled={!name.trim() || !url.trim() || isPending}>
-          {isPending ? "Creating..." : "Create Resource"}
-        </Button>
-      </div>
-    </form>
   );
 }

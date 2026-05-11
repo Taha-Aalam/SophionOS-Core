@@ -130,6 +130,7 @@ export default function AreaDetailPage() {
     const projects = areaData?.projects;
     if (!projects) return [];
     if (projectTab === "all") return projects;
+    if (projectTab === "inbox") return projects.filter((p) => p.status === "planning");
     if (projectTab === "planning") return projects.filter((p) => p.status === "planning");
     if (projectTab === "active") return projects.filter((p) => p.status === "active");
     if (projectTab === "completed") return projects.filter((p) => p.status === "completed");
@@ -503,6 +504,7 @@ export default function AreaDetailPage() {
           entityType="projects"
           tabs={[
             { value: "all", label: "All", count: rollups.projectCount },
+            { value: "inbox", label: "Inbox" },
             { value: "planning", label: "Planning" },
             { value: "active", label: "In Progress" },
             { value: "completed", label: "Completed" },

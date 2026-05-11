@@ -63,6 +63,42 @@ describe("filterProjectDialogGoals", () => {
   });
 });
 
+describe("filterProjectDialogGoals with linkedAreaIds (project-detail use case)", () => {
+  const projectAreas = ["a1", "a2"];
+
+  const goalsWithLinkedAreas = [
+    { id: "g1", name: "Goal with primary area", area_id: "a1", linkedAreaIds: [] },
+    { id: "g2", name: "Goal with linked secondary area", area_id: "a3", linkedAreaIds: ["a2"] },
+    { id: "g3", name: "Goal with no matching areas", area_id: "a4", linkedAreaIds: ["a5"] },
+    { id: "g4", name: "Goal from unrelated area", area_id: "a6", linkedAreaIds: [] },
+  ];
+
+  it("returns goals whose primary area_id intersects project areas", () => {
+    const filtered = filterProjectDialogGoals(goalsWithLinkedAreas, projectAreas);
+    expect(filtered.map((g) => g.id)).toContain("g1");
+  });
+
+  it("returns goals whose linkedAreaIds intersect project areas (primary area not in project)", () => {
+    const filtered = filterProjectDialogGoals(goalsWithLinkedAreas, projectAreas);
+    expect(filtered.map((g) => g.id)).toContain("g2");
+  });
+
+  it("excludes goals whose primary and linked areas are outside project area set", () => {
+    const filtered = filterProjectDialogGoals(goalsWithLinkedAreas, projectAreas);
+    expect(filtered.map((g) => g.id)).not.toContain("g3");
+    expect(filtered.map((g) => g.id)).not.toContain("g4");
+  });
+
+  it("returns all goals when no project areas are selected", () => {
+    expect(filterProjectDialogGoals(goalsWithLinkedAreas, [])).toEqual(goalsWithLinkedAreas);
+  });
+
+  it("handles empty linkedAreaIds array (same as undefined)", () => {
+    const filtered = filterProjectDialogGoals(goalsWithLinkedAreas, ["a1"]);
+    expect(filtered.map((g) => g.id)).toContain("g1");
+  });
+});
+
 describe("filterProjectDialogAreas", () => {
   const areas = [
     { id: "a1", name: "Area 1" },
