@@ -24,18 +24,21 @@ function invalidateProjectGraph(queryClient: ReturnType<typeof useQueryClient>):
   ]);
 }
 
-export function useProjects(filters: {
-  term?: string;
-  priority?: string;
-  areaId?: string;
-  status?: ProjectStatus | "all";
-}) {
+export function useProjects(
+  filters: {
+    term?: string;
+    priority?: string;
+    areaId?: string;
+    status?: ProjectStatus | "all";
+  },
+  options?: { enabled?: boolean },
+) {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: [PROJECTS_QUERY_KEY, filters],
     queryFn: () => projectService.list(user!.id, filters),
-    enabled: !!user,
+    enabled: !!user && (options?.enabled ?? true),
   });
 }
 

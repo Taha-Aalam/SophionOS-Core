@@ -55,12 +55,12 @@ export function CommandPalette() {
   const { commandPaletteOpen, closeCommandPalette, toggleCommandPalette } = useUIStore();
   const [query, setQuery] = useState("");
 
-  const { data: tasks = [] } = useTasks();
-  const { data: goals = [] } = useGoals({ status: "all" });
-  const { data: projects = [] } = useProjects({ status: "all" });
-  const { data: notes = [] } = useNotes();
-  const { data: resources = [] } = useResources({ status: "all" });
-  const { data: contacts = [] } = useContacts();
+  const { data: tasks = [] } = useTasks({ enabled: commandPaletteOpen });
+  const { data: goals = [] } = useGoals({ status: "all" }, { enabled: commandPaletteOpen });
+  const { data: projects = [] } = useProjects({ status: "all" }, { enabled: commandPaletteOpen });
+  const { data: notes = [] } = useNotes(undefined, { enabled: commandPaletteOpen });
+  const { data: resources = [] } = useResources({ status: "all" }, { enabled: commandPaletteOpen });
+  const { data: contacts = [] } = useContacts(undefined, { enabled: commandPaletteOpen });
 
   const createTask = useCreateTask();
   const createNote = useCreateNote();

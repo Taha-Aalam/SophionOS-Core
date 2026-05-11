@@ -169,13 +169,13 @@ export interface GoalQueryFilters {
   status?: GoalStatusFilter;
 }
 
-export function useGoals(filters: GoalQueryFilters) {
+export function useGoals(filters: GoalQueryFilters, options?: { enabled?: boolean }) {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: [GOALS_QUERY_KEY, filters],
     queryFn: () => goalService.list(user!.id, filters),
-    enabled: !!user,
+    enabled: !!user && (options?.enabled ?? true),
   });
 }
 

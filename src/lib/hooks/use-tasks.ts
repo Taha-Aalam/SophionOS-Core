@@ -22,13 +22,13 @@ function invalidateTaskGraph(queryClient: ReturnType<typeof useQueryClient>): Pr
   ]);
 }
 
-export function useTasks() {
+export function useTasks(options?: { enabled?: boolean }) {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: [TASKS_QUERY_KEY],
     queryFn: () => taskService.list(user!.id),
-    enabled: !!user,
+    enabled: !!user && (options?.enabled ?? true),
   });
 }
 

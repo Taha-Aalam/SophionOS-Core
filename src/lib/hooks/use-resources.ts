@@ -13,19 +13,22 @@ import type { ResourceStatus } from "@/lib/utils/constants";
 
 export const RESOURCES_QUERY_KEY = "resources";
 
-export function useResources(filters?: {
-  status?: ResourceStatus | "all";
-  favorite?: boolean;
-  areaId?: string;
-  projectId?: string;
-  topicId?: string;
-}) {
+export function useResources(
+  filters?: {
+    status?: ResourceStatus | "all";
+    favorite?: boolean;
+    areaId?: string;
+    projectId?: string;
+    topicId?: string;
+  },
+  options?: { enabled?: boolean },
+) {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: [RESOURCES_QUERY_KEY, "list", user?.id ?? null, filters ?? {}],
     queryFn: () => resourceService.list(user!.id, filters),
-    enabled: !!user,
+    enabled: !!user && (options?.enabled ?? true),
   });
 }
 
