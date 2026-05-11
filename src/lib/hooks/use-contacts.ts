@@ -11,13 +11,16 @@ import type {
 
 export const CONTACTS_QUERY_KEY = "contacts";
 
-export function useContacts(filters?: { group?: string; archive?: boolean }) {
+export function useContacts(
+  filters?: { group?: string; archive?: boolean },
+  options?: { enabled?: boolean },
+) {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: [CONTACTS_QUERY_KEY, filters],
     queryFn: () => contactService.list(user!.id, filters),
-    enabled: !!user,
+    enabled: !!user && (options?.enabled ?? true),
   });
 }
 

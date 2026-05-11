@@ -12,21 +12,23 @@ import type { NoteStatus } from "@/lib/utils/constants";
 
 export const NOTES_QUERY_KEY = "notes";
 
-export function useNotes(filters?: {
-  status?: NoteStatus | "all";
-  favorite?: boolean;
-  notebook?: string;
-  areaId?: string;
-  projectId?: string;
-  includeArchived?: boolean;
-}) {
+export function useNotes(
+  filters?: {
+    status?: NoteStatus | "all";
+    favorite?: boolean;
+    notebook?: string;
+    areaId?: string;
+    projectId?: string;
+    includeArchived?: boolean;
+  },
+  options?: { enabled?: boolean },
+) {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: [NOTES_QUERY_KEY, "list", user?.id ?? null, filters ?? {}],
     queryFn: () => noteService.list(user!.id, filters),
-    enabled: !!user,
-    refetchOnMount: true,
+    enabled: !!user && (options?.enabled ?? true),
   });
 }
 
