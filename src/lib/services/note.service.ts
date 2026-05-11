@@ -467,7 +467,29 @@ export const noteService = {
   },
 
   async listByProject(userId: string, projectId: string): Promise<Note[]> {
-    return this.list(userId, { projectId });
+    const { data: links, error: linksError } = await createClient()
+      .from("note_projects")
+      .select("note_id")
+      .eq("project_id", projectId);
+
+    if (linksError) {
+      if (linksError.code === "42P01") return [];
+      throw new DatabaseError(linksError.message);
+    }
+
+    const noteIds = (links ?? []).map((l) => l.note_id);
+    if (noteIds.length === 0) return [];
+
+    const { data, error } = await createClient()
+      .from("notes")
+      .select(NOTE_SELECT)
+      .eq("user_id", userId)
+      .eq("is_archived", false)
+      .in("id", noteIds)
+      .order("updated_at", { ascending: false });
+
+    if (error) throw new DatabaseError(error.message);
+    return hydrateNoteRelations(data ?? []);
   },
 
   async listNotebooks(userId: string): Promise<string[]> {
