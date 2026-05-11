@@ -153,7 +153,9 @@ export default function ProjectsPage() {
     for (const project of allProjects) {
       const linkedGoalIds = (project as unknown as { linkedGoalIds?: string[] }).linkedGoalIds ?? [];
       const goalCount = linkedGoalIds.length;
-      const noteCount = notes.filter((n) => n.project_id === project.id).length;
+      const noteCount = notes.filter(
+        (n) => n.project_id === project.id || n.linkedProjectIds?.includes(project.id),
+      ).length;
       const resourceCount = resources.filter((r) => r.project_id === project.id).length;
       const taskCount = tasks.filter((t) => t.project_id === project.id && !t.is_archived).length;
       result.set(project.id, { goalCount, taskCount, noteCount, resourceCount });

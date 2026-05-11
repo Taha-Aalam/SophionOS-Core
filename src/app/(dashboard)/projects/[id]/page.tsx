@@ -985,7 +985,7 @@ export default function ProjectDetailPage() {
                       areaName={areaName}
                       onEdit={() =>
                         router.push(
-                          `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(`/projects/${project.id}`)}`,
+                          `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(`/projects/${project.slug ?? project.id}`)}`,
                         )
                       }
                     />
@@ -1028,6 +1028,7 @@ export default function ProjectDetailPage() {
                   key={task.id}
                   task={task}
                   linkedAreaNames={linkedAreas.map((a) => a.name)}
+                  linkedAreaIcons={linkedAreas.map((a) => a.icon ?? null)}
                   projectName={project?.name}
                   onCompletionToggle={handleTaskCompletion}
                   onFocusToggle={handleTaskFocus}
@@ -1052,7 +1053,7 @@ export default function ProjectDetailPage() {
           emptyTitle="No linked notes"
           emptyDescription="Notes linked to this project will show up here."
           onCreateNew={() => {
-              const noteReturnTo = `/projects/${project?.id}`;
+              const noteReturnTo = `/projects/${project?.slug ?? project?.id}`;
               const params = new URLSearchParams();
               params.set("returnTo", encodeReturnTo(noteReturnTo));
               if (project?.id) {
@@ -1071,7 +1072,7 @@ export default function ProjectDetailPage() {
           {filteredNotes.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {filteredNotes.map((note) => {
-                const noteReturnTo = `/projects/${project?.id}`;
+                const noteReturnTo = `/projects/${project?.slug ?? project?.id}`;
                 return (
                   <div
                     key={note.id}

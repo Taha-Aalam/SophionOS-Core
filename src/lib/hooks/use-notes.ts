@@ -195,7 +195,18 @@ export function useCreateNote() {
 
   return useMutation({
     mutationFn: (input: CreateNoteInput) => noteService.create(user!.id, input),
-    onSuccess: async () => {
+    onSuccess: async (note: Note) => {
+      const projectIds = note.linkedProjectIds ?? [];
+      for (const projectId of projectIds) {
+        queryClient.setQueriesData<Note[]>(
+          { queryKey: [NOTES_QUERY_KEY, "byProject", user?.id ?? null, projectId] },
+          (current) => {
+            if (!Array.isArray(current)) return [note];
+            if (current.some((n) => n.id === note.id)) return current;
+            return [note, ...current];
+          },
+        );
+      }
       await invalidateNoteGraph(queryClient);
       queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
       toast.success("Note created");
