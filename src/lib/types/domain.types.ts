@@ -32,6 +32,7 @@ export interface Resource extends DatabaseTable<"resources"> {
 export interface Topic extends Omit<DatabaseTable<"topics">, "area_id"> {
   area_id: string | null;
   inactive: boolean;
+  slug?: string | null;
 }
 
 export interface TopicArea {
@@ -195,6 +196,8 @@ export type UpdateResourceInput = Partial<CreateResourceInput>;
 
 export interface CreateTopicInput {
   area_ids?: string[];
+  note_ids?: string[];
+  resource_ids?: string[];
   name: string;
   favorite?: boolean;
 }
@@ -202,6 +205,8 @@ export interface CreateTopicInput {
 export interface UpdateTopicInput {
   name?: string;
   area_ids?: string[];
+  note_ids?: string[];
+  resource_ids?: string[];
   favorite?: boolean;
 }
 

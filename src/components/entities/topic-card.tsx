@@ -35,7 +35,7 @@ const TopicCardComponent = ({
         "group cursor-pointer transition-all hover:ring-2 hover:ring-primary/20",
         topic.inactive && "opacity-60"
       )}
-      onClick={() => router.push(`/topics/${topic.id}`)}
+      onClick={() => router.push(`/topics/${topic.slug ?? topic.id}`)}
     >
       <CardContent className={cn("p-4", !compact && "p-5")}>
         <div className="flex items-start justify-between gap-2">
