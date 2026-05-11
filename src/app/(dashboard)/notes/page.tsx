@@ -815,8 +815,11 @@ export default function NotesPage() {
                         )}
                         {linkedAreas.slice(0, 2).map((area) => (
                           <Badge key={area.id} variant="outline" className="gap-1 text-xs font-normal">
-                            <LucideMap className="size-3" />
-                            {area.icon ? `${area.icon} ` : ""}
+                            {area.icon ? (
+                              <span className="text-xs leading-none">{area.icon}</span>
+                            ) : (
+                              <LucideMap className="size-3" />
+                            )}
                             {area.name}
                           </Badge>
                         ))}
