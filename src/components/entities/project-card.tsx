@@ -32,6 +32,7 @@ interface ProjectCardProps {
    * `+N` overflow chip). Falls back to `areaName` for backwards compatibility.
    */
   areaNames?: string[];
+  areaIcons?: (string | null)[];
   taskStats?: ProjectTaskStats;
   duplicateIndex?: number;
   onEdit?: (project: Project) => void;
@@ -52,6 +53,7 @@ export function ProjectCard({
   project,
   areaName,
   areaNames,
+  areaIcons,
   taskStats,
   duplicateIndex,
   onEdit,
@@ -116,7 +118,11 @@ export function ProjectCard({
                   variant="secondary"
                   className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0"
                 >
-                  <Map className="size-2.5 shrink-0" />
+                  {areaIcons?.[index] ? (
+                    <span className="text-[10px] leading-none">{areaIcons[index]}</span>
+                  ) : (
+                    <Map className="size-2.5 shrink-0" />
+                  )}
                   {name}
                 </Badge>
               ))}
