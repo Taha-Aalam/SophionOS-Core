@@ -1,11 +1,20 @@
 "use client";
 
 import React from "react";
-import { ExternalLink, Heart, HeartOff, Archive, ArchiveRestore } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  CheckSquare,
+  ExternalLink,
+  Folder,
+  Heart,
+  HeartOff,
+  Map as LucideMap,
+  Tag,
+  Target,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { Resource } from "@/lib/types/domain.types";
 import type { ResourceStatus, ResourceType } from "@/lib/utils/constants";
@@ -82,14 +91,7 @@ export function ResourceRow({
       : [];
 
   return (
-    <div className="group flex items-center gap-3 border-b border-border px-3 py-3 transition-colors hover:bg-accent/30 min-h-0">
-      {/* Status */}
-      <div className="w-20 self-center">
-        <Badge variant="secondary" className={cn("text-xs truncate max-w-full", STATUS_COLORS[resource.status])}>
-          {resource.status.replace("_", " ")}
-        </Badge>
-      </div>
-
+    <div className="group flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30">
       {/* Name */}
       <div className="min-w-0 flex-1 self-center">
         <button
@@ -102,56 +104,65 @@ export function ResourceRow({
         </button>
       </div>
 
-      {/* Topic */}
-      <div className="w-24 hidden md:inline-flex items-center self-center">
-        {topicName ? (
-          <Badge variant="outline" className="text-xs whitespace-normal h-auto min-h-5 max-w-full">
-            {topicName}
-          </Badge>
-        ) : null}
-      </div>
-
-      {/* Type */}
-      <div className="w-20 hidden sm:inline-flex self-center">
-        <Badge variant="secondary" className={cn("text-xs truncate max-w-full", TYPE_COLORS[resource.type])}>
+      {/* Metadata cluster */}
+      <div className="hidden md:flex shrink-0 items-center gap-1.5 flex-wrap">
+        <Badge
+          variant="outline"
+          className={cn("text-[10px] uppercase", STATUS_COLORS[resource.status])}
+        >
+          {resource.status.replace("_", " ")}
+        </Badge>
+        <Badge
+          variant="secondary"
+          className={cn("text-xs", TYPE_COLORS[resource.type])}
+        >
           {resource.type.replace("_", " ")}
         </Badge>
-      </div>
-
-      {/* Areas */}
-      <div className="w-24 hidden lg:flex flex-wrap gap-1 items-center min-h-0">
-        {areaNameList.map((name) => (
-          <Badge key={name} variant="outline" className="text-xs whitespace-normal h-auto min-h-5 max-w-full">
+        {topicName && (
+          <Badge variant="outline" className="gap-1 text-xs font-normal">
+            <Tag className="size-3" />
+            {topicName}
+          </Badge>
+        )}
+        {areaNameList.slice(0, 1).map((name) => (
+          <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
+            <LucideMap className="size-3" />
             {name}
           </Badge>
         ))}
-      </div>
-
-      {/* Goals */}
-      <div className="w-24 hidden xl:flex flex-wrap gap-1 items-center min-h-0">
-        {goalNameList.map((name) => (
-          <Badge key={name} variant="outline" className="text-xs whitespace-normal h-auto min-h-5 max-w-full">
+        {areaNameList.length > 1 && (
+          <Badge variant="outline" className="text-xs font-normal">
+            +{areaNameList.length - 1}
+          </Badge>
+        )}
+        {goalNameList.slice(0, 1).map((name) => (
+          <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
+            <Target className="size-3" />
             {name}
           </Badge>
         ))}
-      </div>
-
-      {/* Projects */}
-      <div className="w-24 hidden xl:inline-flex items-center self-center">
-        {projectName ? (
-          <Badge variant="outline" className="text-xs whitespace-normal h-auto min-h-5 max-w-full">
+        {goalNameList.length > 1 && (
+          <Badge variant="outline" className="text-xs font-normal">
+            +{goalNameList.length - 1}
+          </Badge>
+        )}
+        {projectName && (
+          <Badge variant="outline" className="gap-1 text-xs font-normal">
+            <Folder className="size-3" />
             {projectName}
           </Badge>
-        ) : null}
-      </div>
-
-      {/* Tasks */}
-      <div className="w-24 hidden xl:flex flex-wrap gap-1 items-center min-h-0">
-        {taskNameList.map((name) => (
-          <Badge key={name} variant="outline" className="text-xs whitespace-normal h-auto min-h-5 max-w-full">
+        )}
+        {taskNameList.slice(0, 1).map((name) => (
+          <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
+            <CheckSquare className="size-3" />
             {name}
           </Badge>
         ))}
+        {taskNameList.length > 1 && (
+          <Badge variant="outline" className="text-xs font-normal">
+            +{taskNameList.length - 1}
+          </Badge>
+        )}
       </div>
 
       {/* Open Link */}
@@ -221,15 +232,9 @@ export function ResourceRow({
 
 export function ResourceRowSkeleton() {
   return (
-    <div className="flex items-center gap-3 border-b border-border px-3 py-3">
-      <div className="h-5 w-20 animate-pulse rounded-full bg-muted" />
+    <div className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5">
       <div className="h-5 flex-1 animate-pulse rounded bg-muted" />
-      <div className="h-5 w-24 animate-pulse rounded bg-muted hidden md:inline-flex" />
-      <div className="h-5 w-20 animate-pulse rounded-full bg-muted hidden sm:inline-flex" />
-      <div className="h-5 w-24 animate-pulse rounded bg-muted hidden lg:inline-flex" />
-      <div className="h-5 w-24 animate-pulse rounded bg-muted hidden xl:inline-flex" />
-      <div className="h-5 w-24 animate-pulse rounded bg-muted hidden xl:inline-flex" />
-      <div className="h-5 w-24 animate-pulse rounded bg-muted hidden xl:inline-flex" />
+      <div className="h-5 w-48 animate-pulse rounded bg-muted hidden md:inline-flex" />
       <div className="size-8 animate-pulse rounded bg-muted" />
       <div className="size-8 animate-pulse rounded bg-muted" />
       <div className="size-8 animate-pulse rounded bg-muted" />
