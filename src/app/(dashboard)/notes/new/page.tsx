@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save } from "lucide-react";
 
 import { NoteEditor } from "@/components/entities/note-editor";
@@ -11,8 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
-import { useCreateNote, useNoteTypes } from "@/lib/hooks/use-notes";
-import { useProjects } from "@/lib/hooks/use-projects";
+import { NOTES_QUERY_KEY, useCreateNote, useNoteTypes } from "@/lib/hooks/use-notes";
+import { PROJECTS_QUERY_KEY, useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { NOTE_STATUS, NOTE_TYPE, type NoteStatus } from "@/lib/utils/constants";
 import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
@@ -25,6 +26,7 @@ function parseMultiValue(param: string | null): string[] {
 export default function NewNotePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const createNote = useCreateNote();
 
   const prefilledAreaId = searchParams.get("areaId");
@@ -117,6 +119,10 @@ export default function NewNotePage() {
       favorite,
       pin,
     });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] }),
+      queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] }),
+    ]);
     const noteUrl = `/notes/${note.slug ?? note.id}`;
     if (noteReturnTo) {
       router.push(`${noteUrl}?returnTo=${encodeURIComponent(noteReturnTo)}`);

@@ -3,6 +3,7 @@
 import React from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Resource } from "@/lib/types/domain.types";
 
@@ -79,6 +80,20 @@ export function ResourceTable({
           >
             {resource.favorite ? "★" : "☆"}
           </button>
+          {resource.url ? (
+            <a
+              href={resource.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="shrink-0 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground/40 hover:bg-accent hover:text-foreground"
+              title="Open in new tab"
+            >
+              <ExternalLink className="size-3.5" />
+            </a>
+          ) : (
+            <span className="size-7" />
+          )}
         </div>
       ))}
     </div>

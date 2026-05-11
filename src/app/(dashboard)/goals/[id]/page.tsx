@@ -219,6 +219,7 @@ export default function GoalDetailPage() {
   // Derived
   const goal = goalData?.goal;
   const areaNames = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
+  const areaIcons = useMemo(() => new Map(areas.map((a) => [a.id, a.icon ?? null])), [areas]);
   const getProjectAreaNames = useCallback(
     (project: Project) =>
       getProjectLinkedAreaIds(project)
@@ -903,7 +904,8 @@ export default function GoalDetailPage() {
                               <TaskListItem
                                 key={task.id}
                                 task={task}
-                                areaName={task.area_id ? areaNames.get(task.area_id) ?? null : null}
+                                linkedAreaNames={task.area_id && areaNames.get(task.area_id) ? [areaNames.get(task.area_id)!] : []}
+                                linkedAreaIcons={task.area_id ? [areaIcons.get(task.area_id) ?? null] : []}
                                 projectName={null}
                                 onCompletionToggle={handleTaskCompletion}
                                 onFocusToggle={handleTaskFocus}
@@ -925,7 +927,8 @@ export default function GoalDetailPage() {
                     <TaskListItem
                       key={task.id}
                       task={task}
-                      areaName={task.area_id ? areaNames.get(task.area_id) ?? null : null}
+                      linkedAreaNames={task.area_id && areaNames.get(task.area_id) ? [areaNames.get(task.area_id)!] : []}
+                      linkedAreaIcons={task.area_id ? [areaIcons.get(task.area_id) ?? null] : []}
                       projectName={
                         task.project_id
                           ? allProjects.find((p) => p.id === task.project_id)?.name ?? null
