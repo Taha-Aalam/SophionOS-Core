@@ -28,7 +28,6 @@ const TopicCardComponent = ({
 }: TopicCardProps) => {
   const router = useRouter();
   const linkedAreas = topic.linkedAreaIds ?? [];
-  const totalCount = topic.notesCount + topic.resourcesCount;
 
   return (
     <Card
@@ -110,23 +109,28 @@ const TopicCardComponent = ({
         </div>
 
         {!compact && (
-          <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
-            {topic.notesCount > 0 && (
-              <span className="text-xs">📝 {topic.notesCount} {topic.notesCount === 1 ? "Note" : "Notes"}</span>
-            )}
-            {topic.resourcesCount > 0 && (
-              <span className="text-xs">🔗 {topic.resourcesCount} {topic.resourcesCount === 1 ? "Resource" : "Resources"}</span>
-            )}
-            {totalCount === 0 && (
-              <span className="text-xs text-muted-foreground">No linked items</span>
-            )}
+          <div className="mt-3 flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm">
+              <span className="font-medium text-amber-600 dark:text-amber-400">{topic.notesCount}</span>
+              <span className="text-muted-foreground">Notes</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm">
+              <span className="font-medium text-violet-600 dark:text-violet-400">{topic.resourcesCount}</span>
+              <span className="text-muted-foreground">Resources</span>
+            </div>
           </div>
         )}
 
         {compact && (
-          <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-            <span>📝 {topic.notesCount}</span>
-            <span>🔗 {topic.resourcesCount}</span>
+          <div className="mt-2 flex items-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs">
+              <span className="font-medium text-amber-600 dark:text-amber-400">{topic.notesCount}</span>
+              <span className="text-muted-foreground">Notes</span>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs">
+              <span className="font-medium text-violet-600 dark:text-violet-400">{topic.resourcesCount}</span>
+              <span className="text-muted-foreground">Resources</span>
+            </div>
           </div>
         )}
       </CardContent>
