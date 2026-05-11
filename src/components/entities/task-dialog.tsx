@@ -601,7 +601,7 @@ export function TaskDialog({
                 <FormItem>
                   <div className="flex items-center justify-between">
                     <FormLabel>Areas</FormLabel>
-                    {scopedAreas.length > 1 && (
+                    {scopedAreas.length > 0 && (
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           className={buttonVariants({ variant: "outline", size: "sm" })}
@@ -644,61 +644,41 @@ export function TaskDialog({
                       </DropdownMenu>
                     )}
                   </div>
-                  {(() => {
-                    if (scopedCandidateIds.length === 0 || scopedAreas.length === 0) {
-                      return (
-                        <div
-                          className="flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
-                          aria-readonly="true"
-                          data-testid="task-dialog-area-locked"
-                        >
-                          {isScopedAreasLoading ? "Loading area…" : "Inherited from project"}
-                        </div>
-                      );
-                    }
-
-                    if (scopedAreas.length === 1) {
-                      return (
-                        <div
-                          className="flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
-                          aria-readonly="true"
-                          data-testid="task-dialog-area-locked"
-                        >
-                          {`${scopedAreas[0].icon ? `${scopedAreas[0].icon} ` : ""}${scopedAreas[0].name} (from project)`}
-                        </div>
-                      );
-                    }
-
-                    if (selectedAreaIds.length === 0) return null;
-
-                    return (
-                      <div className="flex flex-wrap gap-2 pt-2">
-                        {selectedAreaIds
-                          .map((id) => scopedAreas.find((area) => area.id === id))
-                          .filter(Boolean)
-                          .map((area) => (
-                            <Badge
-                              key={area!.id}
-                              variant="secondary"
-                              className="flex items-center gap-1"
+                  {scopedCandidateIds.length === 0 || scopedAreas.length === 0 ? (
+                    <div
+                      className="flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+                      aria-readonly="true"
+                      data-testid="task-dialog-area-locked"
+                    >
+                      {isScopedAreasLoading ? "Loading area…" : "Inherited from project"}
+                    </div>
+                  ) : selectedAreaIds.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {selectedAreaIds
+                        .map((id) => scopedAreas.find((area) => area.id === id))
+                        .filter(Boolean)
+                        .map((area) => (
+                          <Badge
+                            key={area!.id}
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
+                            {area!.icon ? `${area!.icon} ` : ""}
+                            {area!.name}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextAreaIds = selectedAreaIds.filter((id) => id !== area!.id);
+                                form.setValue("area_ids", nextAreaIds, { shouldDirty: true });
+                              }}
+                              className="ml-1 rounded-full p-0.5 hover:bg-muted"
                             >
-                              {area!.icon ? `${area!.icon} ` : ""}
-                              {area!.name}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const nextAreaIds = selectedAreaIds.filter((id) => id !== area!.id);
-                                  form.setValue("area_ids", nextAreaIds, { shouldDirty: true });
-                                }}
-                                className="ml-1 rounded-full p-0.5 hover:bg-muted"
-                              >
-                                <X className="size-3" />
-                              </button>
-                            </Badge>
-                          ))}
-                      </div>
-                    );
-                  })()}
+                              <X className="size-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                    </div>
+                  ) : null}
                   <FormMessage>{form.formState.errors.area_ids?.message}</FormMessage>
                 </FormItem>
               ) : (

@@ -30,17 +30,17 @@ describe("buildProjectDetailHref", () => {
   });
 
   it("falls back to slugified name when slug is null", () => {
-    const project = buildProject({ slug: null, name: "My Project" });
+    const project = buildProject({ slug: undefined, name: "My Project" });
     expect(buildProjectDetailHref(project)).toBe("/projects/my-project");
   });
 
   it("uses the slugified name for unnamed projects", () => {
-    const project = buildProject({ slug: null, name: "Build the App!" });
+    const project = buildProject({ slug: undefined, name: "Build the App!" });
     expect(buildProjectDetailHref(project)).toBe("/projects/build-the-app");
   });
 
   it("handles special characters in name", () => {
-    const project = buildProject({ slug: null, name: "Build & Test (Phase 1)" });
+    const project = buildProject({ slug: undefined, name: "Build & Test (Phase 1)" });
     expect(buildProjectDetailHref(project)).toBe("/projects/build-test-phase-1");
   });
 });

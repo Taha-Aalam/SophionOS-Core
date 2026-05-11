@@ -17,6 +17,11 @@ import { useTasks } from "@/lib/hooks/use-tasks";
 import { NOTE_STATUS, NOTE_TYPE, type NoteStatus } from "@/lib/utils/constants";
 import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
 
+function parseMultiValue(param: string | null): string[] {
+  if (!param) return [];
+  return param.split(",").filter(Boolean);
+}
+
 export default function NewNotePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -24,6 +29,9 @@ export default function NewNotePage() {
 
   const prefilledAreaId = searchParams.get("areaId");
   const prefilledGoalId = searchParams.get("goalId");
+  const prefilledAreaIds = searchParams.get("areaIds");
+  const prefilledGoalIds = searchParams.get("goalIds");
+  const prefilledProjectId = searchParams.get("projectId");
   const noteReturnTo = decodeReturnTo(searchParams.get("returnTo") || "");
 
   const { data: areas = [], isLoading: areasLoading } = useAreas();
@@ -49,20 +57,49 @@ export default function NewNotePage() {
     if (initialized.current) return;
     initialized.current = true;
     const url = new URL(window.location.href);
+
+    const newAreaIds: string[] = [];
+    const newGoalIds: string[] = [];
+    const newProjectIds: string[] = [];
+
     if (prefilledAreaId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAreaIds([prefilledAreaId]);
+      newAreaIds.push(prefilledAreaId);
       url.searchParams.delete("areaId");
     }
     if (prefilledGoalId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setGoalIds([prefilledGoalId]);
+      newGoalIds.push(prefilledGoalId);
       url.searchParams.delete("goalId");
     }
-    if (prefilledAreaId || prefilledGoalId) {
+    if (prefilledAreaIds) {
+      newAreaIds.push(...parseMultiValue(prefilledAreaIds));
+      url.searchParams.delete("areaIds");
+    }
+    if (prefilledGoalIds) {
+      newGoalIds.push(...parseMultiValue(prefilledGoalIds));
+      url.searchParams.delete("goalIds");
+    }
+    if (prefilledProjectId) {
+      newProjectIds.push(prefilledProjectId);
+      url.searchParams.delete("projectId");
+    }
+
+    if (newAreaIds.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAreaIds([...newAreaIds]);
+    }
+    if (newGoalIds.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setGoalIds([...newGoalIds]);
+    }
+    if (newProjectIds.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProjectIds([...newProjectIds]);
+    }
+
+    if (prefilledAreaId || prefilledGoalId || prefilledAreaIds || prefilledGoalIds || prefilledProjectId) {
       window.history.replaceState({}, "", url.toString());
     }
-  }, [prefilledAreaId, prefilledGoalId]);
+  }, [prefilledAreaId, prefilledGoalId, prefilledAreaIds, prefilledGoalIds, prefilledProjectId]);
 
   const isLoading = areasLoading || goalsLoading || projectsLoading || tasksLoading || typesLoading;
 

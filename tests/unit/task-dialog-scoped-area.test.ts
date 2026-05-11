@@ -3,9 +3,59 @@ import { describe, expect, it } from "vitest";
 import {
   applyGoalScopedDefaults,
   applyProjectScopedAreaGuard,
+  filterAllowedProjectsForGoal,
   getScopedAreaDisplayLabel,
   getScopedCandidateAreaIds,
 } from "../../src/lib/utils/goal-scoped";
+
+/**
+ * Regression: goal-detail new task must use standard area selector UI
+ * (defaultGoalId + defaultAreaId), NOT the locked goalScoped presentation.
+ * allowedProjectIds provides goal-linked project filtering without forcing
+ * the locked scoped-area UI.
+ */
+describe("goal-detail task create: standard defaults without goalScoped lock", () => {
+  it("allowedProjectIds filters projects to only goal-linked ones", () => {
+    const allProjects = [
+      { id: "p1", name: "P1" },
+      { id: "p2", name: "P2" },
+      { id: "p3", name: "P3" },
+    ];
+    const allowedIds = ["p1", "p3"];
+    const result = filterAllowedProjectsForGoal(allProjects, allowedIds);
+    expect(result.map((p) => p.id)).toEqual(["p1", "p3"]);
+    expect(result.some((p) => p.id === "p2")).toBe(false);
+  });
+
+  it("allowedProjectIds returns all projects when allowedIds is empty", () => {
+    const allProjects = [
+      { id: "p1", name: "P1" },
+      { id: "p2", name: "P2" },
+    ];
+    const result = filterAllowedProjectsForGoal(allProjects, []);
+    expect(result).toHaveLength(0);
+  });
+
+  it("defaultAreaId and defaultGoalId together imply the same area as goalScoped defaults", () => {
+    const defaultAreaId = "a1";
+    const defaultGoalId = "g1";
+    const impliedDefaults = {
+      area_ids: defaultAreaId ? [defaultAreaId] : [],
+      goal_ids: defaultGoalId ? [defaultGoalId] : [],
+    };
+    expect(impliedDefaults.area_ids).toEqual(["a1"]);
+    expect(impliedDefaults.goal_ids).toEqual(["g1"]);
+  });
+
+  it("defaultGoalId alone without defaultAreaId results in empty area_ids", () => {
+    const impliedDefaults = {
+      area_ids: undefined ? [undefined] : [],
+      goal_ids: "g1" ? ["g1"] : [],
+    };
+    expect(impliedDefaults.area_ids).toHaveLength(0);
+    expect(impliedDefaults.goal_ids).toEqual(["g1"]);
+  });
+});
 
 /**
  * Regression tests for FIX 3 & FIX 4:

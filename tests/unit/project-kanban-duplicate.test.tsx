@@ -81,6 +81,18 @@ vi.mock("@/lib/hooks/use-tasks", () => ({
   useTasks: () => mockUseTasks(),
 }));
 
+vi.mock("@/lib/hooks/use-goals", () => ({
+  useGoals: () => ({ data: [] }),
+}));
+
+vi.mock("@/lib/hooks/use-notes", () => ({
+  useNotes: () => ({ data: [] }),
+}));
+
+vi.mock("@/lib/hooks/use-resources", () => ({
+  useResources: () => ({ data: [] }),
+}));
+
 vi.mock("@/components/entities/project-card", () => ({
   ProjectCard: ({ project }: { project: { name: string } }) => <div>{project.name}</div>,
 }));

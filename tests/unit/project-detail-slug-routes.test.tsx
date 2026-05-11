@@ -42,6 +42,7 @@ vi.mock("@/lib/hooks/use-projects", () => ({
     capturedHookArgs["useProjectWithRelations"] = [id];
     return { data: { goal_ids: [] } };
   },
+  useProjects: () => ({ data: [] }),
   useUpdateProject: () => ({ mutateAsync: vi.fn() }),
   useDeleteProject: () => ({ mutateAsync: vi.fn() }),
   useLinkProjectToGoal: () => ({ mutateAsync: vi.fn() }),
@@ -60,6 +61,14 @@ vi.mock("@/lib/hooks/use-goals", () => ({
 
 vi.mock("@/lib/hooks/use-tasks", () => ({
   useTasks: () => ({ data: [], isLoading: false }),
+  useCompleteTask: () => ({ mutateAsync: vi.fn() }),
+  useFocusTask: () => ({ mutateAsync: vi.fn() }),
+  useUpdateTask: () => ({ mutateAsync: vi.fn() }),
+  useDeleteTask: () => ({ mutateAsync: vi.fn() }),
+}));
+
+vi.mock("@/lib/hooks/use-topics", () => ({
+  useTopics: () => ({ data: [] }),
 }));
 
 vi.mock("@/lib/hooks/use-notes", () => ({
@@ -67,6 +76,7 @@ vi.mock("@/lib/hooks/use-notes", () => ({
     capturedHookArgs["useNotesByProject"] = [id];
     return { data: [], isLoading: false };
   },
+  useToggleFavoriteNote: () => ({ mutate: vi.fn() }),
 }));
 
 vi.mock("@/lib/hooks/use-contacts", () => ({
@@ -99,6 +109,10 @@ vi.mock("@/components/entities/contact-dialog", () => ({
 
 vi.mock("@/components/entities/task-dialog", () => ({
   TaskDialog: () => null,
+}));
+
+vi.mock("@/components/entities/resource-dialog", () => ({
+  ResourceDialog: () => null,
 }));
 
 vi.mock("@/components/entities/note-editor-dialog", () => ({
