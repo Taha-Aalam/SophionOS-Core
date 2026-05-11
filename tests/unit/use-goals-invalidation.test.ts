@@ -65,7 +65,7 @@ describe("goal mutation cache invalidation", () => {
     getQueriesData.mockReturnValue([]);
   });
 
-  it("useUpdateGoal invalidates goals, areas, and goal-detail", async () => {
+  it("useUpdateGoal invalidates goals and goal-detail (not areas — update doesn't change area counts)", async () => {
     useUpdateGoal();
     const opts = captureOptions();
     await opts.onSettled?.();
@@ -74,9 +74,11 @@ describe("goal mutation cache invalidation", () => {
     expect(calls).toEqual(
       expect.arrayContaining([
         { queryKey: ["goals"] },
-        { queryKey: ["areas"] },
         { queryKey: ["goal-detail"] },
       ]),
+    );
+    expect(calls).not.toEqual(
+      expect.arrayContaining([{ queryKey: ["areas"] }]),
     );
   });
 

@@ -10,7 +10,6 @@ import type { Area, Goal, Note, Project, Task } from "@/lib/types/domain.types";
 import { goalMatchesAreaId } from "@/lib/utils/goals";
 import { projectMatchesAreaId } from "@/lib/utils/projects";
 import { taskMatchesAreaId } from "@/lib/utils/tasks";
-import { noteMatchesAreaId } from "@/lib/utils/notes";
 
 export const AREA_DETAIL_QUERY_KEY = "area-detail";
 
@@ -48,13 +47,13 @@ export function useAreaDetail(areaIdentifier: string) {
         goalService.list(userId, { status: "all" }),
         projectService.list(userId, { status: "all" }),
         taskService.list(userId),
-        noteService.list(userId),
+        noteService.listByArea(userId, areaId),
       ]);
 
       const linkedGoals = goalsResult.filter((g) => goalMatchesAreaId(g, areaId));
       const linkedProjects = projectsResult.filter((p) => projectMatchesAreaId(p, areaId));
       const linkedTasks = tasksResult.filter((t) => taskMatchesAreaId(t, areaId));
-      const linkedNotes = notesResult.filter((n) => noteMatchesAreaId(n, areaId));
+      const linkedNotes = notesResult;
 
       return {
         area,
