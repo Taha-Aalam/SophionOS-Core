@@ -151,12 +151,22 @@ export default function ContactsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="fav">Fav.</TabsTrigger>
-          <TabsTrigger value="by-group">By Group</TabsTrigger>
-          <TabsTrigger value="by-project">By Project</TabsTrigger>
-          <TabsTrigger value="follow-up">Follow-up</TabsTrigger>
+        <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            All
+          </TabsTrigger>
+          <TabsTrigger value="fav" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            Fav.
+          </TabsTrigger>
+          <TabsTrigger value="by-group" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            By Group
+          </TabsTrigger>
+          <TabsTrigger value="by-project" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            By Project
+          </TabsTrigger>
+          <TabsTrigger value="follow-up" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            Follow-up
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="mt-4">
