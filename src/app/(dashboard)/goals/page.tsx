@@ -43,6 +43,10 @@ export default function GoalsPage() {
       ),
     [areas],
   );
+  const areaIconsById = useMemo(
+    () => new Map(areas.map((area) => [area.id, (area.icon as string | null | undefined) ?? null])),
+    [areas],
+  );
 
   // Compute duplicate occurrence index per goal name (real duplicates only)
   const duplicateIndices = useMemo(() => {
@@ -174,12 +178,16 @@ export default function GoalsPage() {
             const linkedAreaNames = getGoalLinkedAreaIds(goal)
               .map((id) => areaNamesById.get(id))
               .filter((name): name is string => Boolean(name));
+            const linkedAreaIcons = getGoalLinkedAreaIds(goal).map(
+              (id) => areaIconsById.get(id) ?? null,
+            );
             return (
               <GoalCard
                 key={goal.id}
                 goal={goal}
                 areaName={goal.area_id ? areaNamesById.get(goal.area_id) : "Unassigned"}
                 areaNames={linkedAreaNames}
+                areaIcons={linkedAreaIcons}
                 duplicateIndex={duplicateIndices.get(goal.id)}
                 onEdit={() => {
                   router.push(buildGoalDetailHref(goal));
