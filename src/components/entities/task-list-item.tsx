@@ -75,12 +75,13 @@ export function TaskListItem({
       )}
       onClick={() => onEdit?.(task)}
     >
-      <Checkbox
-        checked={task.is_completed}
-        onCheckedChange={(checked) => onCompletionToggle(task.id, checked === true)}
-        className="shrink-0"
-        onClick={(e) => e.stopPropagation()}
-      />
+      <span onClick={(e) => e.stopPropagation()}>
+        <Checkbox
+          checked={task.is_completed}
+          onCheckedChange={(checked) => onCompletionToggle(task.id, checked === true)}
+          className="shrink-0"
+        />
+      </span>
 
       {showSmartPriority ? (
         <SmartPriorityBadge score={task.smart_priority} className="hidden sm:inline-flex" />
