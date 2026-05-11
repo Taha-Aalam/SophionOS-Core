@@ -91,6 +91,22 @@ export function ResourceRow({
 
   return (
     <div className="group flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30">
+      {/* Status + Type — LEFT of name */}
+      <div className="hidden md:flex shrink-0 items-center gap-1">
+        <Badge
+          variant="outline"
+          className={cn("text-[10px] uppercase", STATUS_COLORS[resource.status])}
+        >
+          {resource.status.replace("_", " ")}
+        </Badge>
+        <Badge
+          variant="secondary"
+          className={cn("text-xs", TYPE_COLORS[resource.type])}
+        >
+          {resource.type.replace("_", " ")}
+        </Badge>
+      </div>
+
       {/* Name */}
       <div className="min-w-0 flex-1 self-center">
         <button
@@ -105,18 +121,6 @@ export function ResourceRow({
 
       {/* Metadata cluster */}
       <div className="hidden md:flex shrink-0 items-center gap-1.5 flex-wrap">
-        <Badge
-          variant="outline"
-          className={cn("text-[10px] uppercase", STATUS_COLORS[resource.status])}
-        >
-          {resource.status.replace("_", " ")}
-        </Badge>
-        <Badge
-          variant="secondary"
-          className={cn("text-xs", TYPE_COLORS[resource.type])}
-        >
-          {resource.type.replace("_", " ")}
-        </Badge>
         {topicName && (
           <Badge variant="outline" className="gap-1 text-xs font-normal">
             <Tag className="size-3" />
