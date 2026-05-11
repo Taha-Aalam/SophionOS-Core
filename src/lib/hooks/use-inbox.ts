@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 
 import { useNotes } from "@/lib/hooks/use-notes";
+import { useProjects } from "@/lib/hooks/use-projects";
 import { useResources } from "@/lib/hooks/use-resources";
 import { useTasks } from "@/lib/hooks/use-tasks";
-import { NOTE_STATUS, RESOURCE_STATUS, TASK_STATUS } from "@/lib/utils/constants";
+import { NOTE_STATUS, PROJECT_STATUS, RESOURCE_STATUS, TASK_STATUS } from "@/lib/utils/constants";
 
 export function useInboxTasks() {
   const query = useTasks();
@@ -25,4 +26,8 @@ export function useInboxNotes() {
 export function useInboxResources() {
   const query = useResources({ status: RESOURCE_STATUS.INBOX });
   return query;
+}
+
+export function useInboxProjects() {
+  return useProjects({ status: PROJECT_STATUS.PLANNING });
 }
