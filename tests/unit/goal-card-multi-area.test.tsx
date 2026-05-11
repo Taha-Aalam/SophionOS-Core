@@ -62,3 +62,40 @@ describe("GoalCard multi-area display", () => {
     expect(html).toContain("Unassigned");
   });
 });
+
+describe("GoalCard area icon rendering", () => {
+  it("renders provided area icon text when areaIcons supplied", () => {
+    const html = renderToStaticMarkup(
+      <GoalCard
+        goal={createGoal()}
+        areaNames={["Health", "Career"]}
+        areaIcons={["🏃", "💼"]}
+      />,
+    );
+    expect(html).toContain("🏃");
+    expect(html).toContain("💼");
+    expect(html).toContain("Health");
+    expect(html).toContain("Career");
+  });
+
+  it("falls back to Map icon when areaIcons not provided", () => {
+    const html = renderToStaticMarkup(
+      <GoalCard goal={createGoal()} areaNames={["Health"]} />,
+    );
+    expect(html).toContain("Health");
+    expect(html).not.toContain("🏃");
+  });
+
+  it("uses null-safe fallback per-slot when some icons are null", () => {
+    const html = renderToStaticMarkup(
+      <GoalCard
+        goal={createGoal()}
+        areaNames={["Health", "Career"]}
+        areaIcons={[null, "💼"]}
+      />,
+    );
+    expect(html).toContain("💼");
+    expect(html).toContain("Health");
+    expect(html).toContain("Career");
+  });
+});

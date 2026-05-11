@@ -16,6 +16,7 @@ interface GoalCardProps {
    * `+N` overflow chip). Falls back to `areaName` for backwards compatibility.
    */
   areaNames?: string[];
+  areaIcons?: (string | null)[];
   onEdit?: (goal: Goal) => void;
   duplicateIndex?: number;
 }
@@ -68,7 +69,7 @@ function calculateDueState(targetDate: string | null): { text: string; isOverdue
   };
 }
 
-export function GoalCard({ goal, areaName, areaNames, onEdit, duplicateIndex }: GoalCardProps) {
+export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplicateIndex }: GoalCardProps) {
   const dueState = calculateDueState(goal.target_date);
   const resolvedAreaNames = (() => {
     if (areaNames && areaNames.length > 0) {
@@ -112,7 +113,11 @@ export function GoalCard({ goal, areaName, areaNames, onEdit, duplicateIndex }: 
                   variant="secondary"
                   className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0"
                 >
-                  <Map className="size-2.5 shrink-0" />
+                  {areaIcons?.[index] ? (
+                    <span className="text-[10px] leading-none">{areaIcons[index]}</span>
+                  ) : (
+                    <Map className="size-2.5 shrink-0" />
+                  )}
                   {name}
                 </Badge>
               ))}
