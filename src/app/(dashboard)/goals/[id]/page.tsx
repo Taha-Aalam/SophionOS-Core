@@ -1035,6 +1035,7 @@ export default function GoalDetailPage() {
             <ResourceTable
               resources={filteredResources}
               onToggleFavorite={handleResourceToggleFavorite}
+              onEdit={handleResourceEdit}
             />
           ) : null}
         </GoalDetailSection>
