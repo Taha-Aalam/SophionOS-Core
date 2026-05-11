@@ -5,17 +5,22 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Archive,
   BookOpen,
+  Calendar,
+  CheckSquare,
   ChevronDownIcon,
   Clock,
   Filter,
+  Folder,
   FolderOpen,
   Inbox as InboxIcon,
+  Map as LucideMap,
   NotebookPen,
   Pin,
   Plus,
   Search,
   Star,
   Tag,
+  Target,
   Trash2,
 } from "lucide-react";
 
@@ -36,14 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NoteArchiveToggle } from "@/components/entities/note-archive-toggle";
 import { EmptyState } from "@/components/views/empty-state";
@@ -77,8 +75,6 @@ import {
   NOTES_EMPTY_VALUE,
   NOTES_LOADING_LABEL,
   NOTES_PAGE_SHELL_CLASS_NAME,
-  NOTES_RELATION_BADGE_CLASS_NAME,
-  NOTES_RELATION_BADGE_LIMIT_CLASS_NAME,
   NOTES_SEARCH_PLACEHOLDER,
   NOTES_TABLE_WRAPPER_CLASS_NAME,
   NOTES_TABS_LIST_CLASS_NAME,
@@ -724,295 +720,206 @@ export default function NotesPage() {
                 onAction={() => router.push("/notes/new")}
               />
             ) : (
-              <div className={NOTES_TABLE_WRAPPER_CLASS_NAME}>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-10">
+              <div className="rounded-lg border border-border">
+                {/* Select all checkbox */}
+                <div className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5">
+                  <Checkbox
+                    checked={
+                      selectedIds.size === visibleNotes.length &&
+                      visibleNotes.length > 0
+                    }
+                    onCheckedChange={toggleAll}
+                  />
+                </div>
+                {visibleNotes.map((note) => {
+                  const isSelected = selectedIds.has(note.id);
+                  const linkedAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                    .map((id) => areaMap.get(id))
+                    .filter((a): a is NonNullable<typeof a> => Boolean(a));
+                  const linkedGoals = getNoteLinkedGoalIds(note)
+                    .map((id) => goalMap.get(id))
+                    .filter((g): g is NonNullable<typeof g> => Boolean(g));
+                  const linkedProjects = getNoteLinkedProjectIds(note)
+                    .map((id) => projectMap.get(id))
+                    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+                  const linkedTasks = (note.linkedTaskIds ?? [])
+                    .map((id) => taskMap.get(id))
+                    .filter((t): t is NonNullable<typeof t> => Boolean(t));
+                  return (
+                    <div
+                      key={note.id}
+                      className={cn(
+                        "group flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30 cursor-pointer",
+                        isSelected && "bg-muted/50",
+                      )}
+                      onClick={() =>
+                        router.push(`/notes/${note.slug ?? note.id}`)
+                      }
+                    >
+                      {/* Checkbox */}
+                      <div onClick={(e) => e.stopPropagation()} className="shrink-0">
                         <Checkbox
-                          checked={
-                            selectedIds.size === visibleNotes.length &&
-                            visibleNotes.length > 0
-                          }
-                          onCheckedChange={toggleAll}
+                          checked={isSelected}
+                          onCheckedChange={() => toggleSelect(note.id)}
                         />
-                      </TableHead>
-                      <TableHead className="w-8" />
-                      <TableHead>Name</TableHead>
-                      <TableHead className="hidden sm:table-cell w-24">Type</TableHead>
-                      <TableHead className="hidden sm:table-cell w-28">Status</TableHead>
-                      <TableHead className="hidden md:table-cell w-32">Notebook</TableHead>
-                      <TableHead className="hidden lg:table-cell w-32">Areas</TableHead>
-                      <TableHead className="hidden md:table-cell w-40">Goals</TableHead>
-                      <TableHead className="hidden lg:table-cell w-32">Projects</TableHead>
-                      <TableHead className="hidden lg:table-cell w-32">Tasks</TableHead>
-                      <TableHead className="hidden sm:table-cell w-24">Updated</TableHead>
-                      <TableHead className="w-8" />
-                      <TableHead className="w-24" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {visibleNotes.map((note) => {
-                      const isSelected = selectedIds.has(note.id);
-                      const linkedAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
-                        .map((id) => areaMap.get(id))
-                        .filter((a): a is NonNullable<typeof a> => Boolean(a));
-                      const linkedGoals = getNoteLinkedGoalIds(note)
-                        .map((id) => goalMap.get(id))
-                        .filter((g): g is NonNullable<typeof g> => Boolean(g));
-                      const linkedProjects = getNoteLinkedProjectIds(note)
-                        .map((id) => projectMap.get(id))
-                        .filter((p): p is NonNullable<typeof p> => Boolean(p));
-                      const linkedTasks = (note.linkedTaskIds ?? [])
-                        .map((id) => taskMap.get(id))
-                        .filter((t): t is NonNullable<typeof t> => Boolean(t));
-                      return (
-                        <TableRow
-                          key={note.id}
-                          className={cn(
-                            "group cursor-pointer",
-                            isSelected && "bg-muted/50",
-                          )}
+                      </div>
+
+                      {/* Pin button */}
+                      <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                        <button
+                          type="button"
                           onClick={() =>
-                            router.push(`/notes/${note.slug ?? note.id}`)
+                            updateNote.mutate({
+                              id: note.id,
+                              input: { pin: !note.pin },
+                            })
                           }
+                          className={cn(
+                            "rounded p-1 transition-colors",
+                            note.pin
+                              ? "text-primary"
+                              : "text-muted-foreground opacity-0 group-hover:opacity-100",
+                          )}
+                          title={note.pin ? "Unpin" : "Pin"}
                         >
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleSelect(note.id)}
-                            />
-                          </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateNote.mutate({
-                                  id: note.id,
-                                  input: { pin: !note.pin },
-                                })
-                              }
-                              className={cn(
-                                "rounded p-1 transition-colors",
-                                note.pin
-                                  ? "text-primary"
-                                  : "text-muted-foreground opacity-0 group-hover:opacity-100",
-                              )}
-                              title={note.pin ? "Unpin" : "Pin"}
-                            >
-                              <Pin
-                                className={cn(
-                                  "size-3.5",
-                                  note.pin && "fill-current",
-                                )}
-                              />
-                            </button>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{note.name}</span>
-                              {note.favorite && (
-                                <Star className="size-3 fill-amber-500 text-amber-500" />
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell">
-                            <Badge variant="secondary" className="text-xs">
-                              {note.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell">
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-[10px] uppercase",
-                                statusColors[note.status],
-                              )}
-                            >
-                              {note.status.replace("_", " ")}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            {note.notebook ? (
-                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <BookOpen className="size-3" />
-                                {note.notebook}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">
-                                {NOTES_EMPTY_VALUE}
-                              </span>
+                          <Pin
+                            className={cn(
+                              "size-3.5",
+                              note.pin && "fill-current",
                             )}
-                          </TableCell>
-                          <TableCell className="hidden lg:table-cell">
-                            <div className="flex flex-wrap gap-1">
-                              {linkedAreas.length === 0 ? (
-                                <span className="text-xs text-muted-foreground">
-                                  {NOTES_EMPTY_VALUE}
-                                </span>
-                              ) : (
-                                linkedAreas.slice(0, 2).map((area) => (
-                                  <Badge
-                                    key={area.id}
-                                    variant="outline"
-                                    className={NOTES_RELATION_BADGE_CLASS_NAME}
-                                  >
-                                    {area.icon ? `${area.icon} ` : ""}
-                                    {area.name}
-                                  </Badge>
-                                ))
-                              )}
-                              {linkedAreas.length > 2 && (
-                                <Badge
-                                  variant="outline"
-                                  className={NOTES_RELATION_BADGE_LIMIT_CLASS_NAME}
-                                >
-                                  +{linkedAreas.length - 2}
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            <div className="flex flex-wrap gap-1">
-                              {linkedGoals.length === 0 ? (
-                                <span className="text-xs text-muted-foreground">
-                                  {NOTES_EMPTY_VALUE}
-                                </span>
-                              ) : (
-                                linkedGoals.slice(0, 2).map((goal) => (
-                                  <Badge
-                                    key={goal.id}
-                                    variant="outline"
-                                    className={NOTES_RELATION_BADGE_CLASS_NAME}
-                                  >
-                                    {goal.name}
-                                  </Badge>
-                                ))
-                              )}
-                              {linkedGoals.length > 2 && (
-                                <Badge
-                                  variant="outline"
-                                  className={NOTES_RELATION_BADGE_LIMIT_CLASS_NAME}
-                                >
-                                  +{linkedGoals.length - 2}
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden lg:table-cell">
-                            <div className="flex flex-wrap gap-1">
-                              {linkedProjects.length === 0 ? (
-                                <span className="text-xs text-muted-foreground">
-                                  {NOTES_EMPTY_VALUE}
-                                </span>
-                              ) : (
-                                linkedProjects.slice(0, 2).map((project) => (
-                                  <Badge
-                                    key={project.id}
-                                    variant="outline"
-                                    className={NOTES_RELATION_BADGE_CLASS_NAME}
-                                  >
-                                    {project.name}
-                                  </Badge>
-                                ))
-                              )}
-                              {linkedProjects.length > 2 && (
-                                <Badge
-                                  variant="outline"
-                                  className={NOTES_RELATION_BADGE_LIMIT_CLASS_NAME}
-                                >
-                                  +{linkedProjects.length - 2}
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden lg:table-cell">
-                            <div className="flex flex-wrap gap-1">
-                              {linkedTasks.length === 0 ? (
-                                <span className="text-xs text-muted-foreground">
-                                  {NOTES_EMPTY_VALUE}
-                                </span>
-                              ) : (
-                                linkedTasks.slice(0, 2).map((task) => (
-                                  <Badge
-                                    key={task.id}
-                                    variant="outline"
-                                    className={NOTES_RELATION_BADGE_CLASS_NAME}
-                                  >
-                                    {task.name}
-                                  </Badge>
-                                ))
-                              )}
-                              {linkedTasks.length > 2 && (
-                                <Badge
-                                  variant="outline"
-                                  className={NOTES_RELATION_BADGE_LIMIT_CLASS_NAME}
-                                >
-                                  +{linkedTasks.length - 2}
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
-                            {new Date(note.updated_at).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "short",
-                                day: "numeric",
-                              },
-                            )}
-                          </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateNote.mutate({
-                                  id: note.id,
-                                  input: {
-                                    favorite: !note.favorite,
-                                  },
-                                })
-                              }
-                              className={cn(
-                                "rounded p-1 transition-colors",
-                                note.favorite
-                                  ? "text-amber-500"
-                                  : "text-muted-foreground opacity-0 group-hover:opacity-100",
-                              )}
-                              title={
-                                note.favorite ? "Unfavorite" : "Favorite"
-                              }
-                            >
-                              <Star
-                                className={cn(
-                                  "size-3.5",
-                                  note.favorite && "fill-current",
-                                )}
-                              />
-                            </button>
-                          </TableCell>
-                          <TableCell className="w-24">
-                            <NoteArchiveToggle
-                              isArchived={note.is_archived}
-                              mode="row"
-                              disabled={archiveNote.isPending || restoreNote.isPending}
-                              onClick={(e) => {
-                                e.stopPropagation();
+                          />
+                        </button>
+                      </div>
 
-                                if (note.is_archived) {
-                                  restoreNote.mutate(note.id);
-                                  return;
-                                }
+                      {/* Name */}
+                      <div className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">{note.name}</span>
+                      </div>
 
-                                archiveNote.mutate(note.id);
-                              }}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                      {/* Metadata cluster */}
+                      <div className="hidden md:flex shrink-0 items-center gap-1.5 flex-wrap">
+                        <Badge variant="secondary" className="text-xs">
+                          {note.type}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className={cn("text-[10px] uppercase", statusColors[note.status])}
+                        >
+                          {note.status.replace("_", " ")}
+                        </Badge>
+                        {note.notebook && (
+                          <Badge variant="outline" className="gap-1 text-xs font-normal">
+                            <BookOpen className="size-3" />
+                            {note.notebook}
+                          </Badge>
+                        )}
+                        {linkedAreas.slice(0, 2).map((area) => (
+                          <Badge key={area.id} variant="outline" className="gap-1 text-xs font-normal">
+                            <LucideMap className="size-3" />
+                            {area.icon ? `${area.icon} ` : ""}
+                            {area.name}
+                          </Badge>
+                        ))}
+                        {linkedAreas.length > 2 && (
+                          <Badge variant="outline" className="text-xs font-normal">
+                            +{linkedAreas.length - 2}
+                          </Badge>
+                        )}
+                        {linkedGoals.slice(0, 1).map((goal) => (
+                          <Badge key={goal.id} variant="outline" className="gap-1 text-xs font-normal">
+                            <Target className="size-3" />
+                            {goal.name}
+                          </Badge>
+                        ))}
+                        {linkedGoals.length > 1 && (
+                          <Badge variant="outline" className="text-xs font-normal">
+                            +{linkedGoals.length - 1}
+                          </Badge>
+                        )}
+                        {linkedProjects.slice(0, 1).map((project) => (
+                          <Badge key={project.id} variant="outline" className="gap-1 text-xs font-normal">
+                            <Folder className="size-3" />
+                            {project.name}
+                          </Badge>
+                        ))}
+                        {linkedProjects.length > 1 && (
+                          <Badge variant="outline" className="text-xs font-normal">
+                            +{linkedProjects.length - 1}
+                          </Badge>
+                        )}
+                        {linkedTasks.slice(0, 1).map((task) => (
+                          <Badge key={task.id} variant="outline" className="gap-1 text-xs font-normal">
+                            <CheckSquare className="size-3" />
+                            {task.name}
+                          </Badge>
+                        ))}
+                        {linkedTasks.length > 1 && (
+                          <Badge variant="outline" className="text-xs font-normal">
+                            +{linkedTasks.length - 1}
+                          </Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(note.updated_at).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+
+                      {/* Star/Favorite button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateNote.mutate({
+                            id: note.id,
+                            input: {
+                              favorite: !note.favorite,
+                            },
+                          });
+                        }}
+                        className={cn(
+                          "shrink-0 rounded-md p-1.5 transition-colors",
+                          note.favorite
+                            ? "text-amber-500"
+                            : "text-muted-foreground/20 opacity-0 hover:text-amber-400 group-hover:opacity-100",
+                        )}
+                        title={
+                          note.favorite ? "Unfavorite" : "Favorite"
+                        }
+                      >
+                        <Star
+                          className={cn(
+                            "size-4",
+                            note.favorite && "fill-current",
+                          )}
+                        />
+                      </button>
+
+                      {/* Archive/Restore */}
+                      <div
+                        className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <NoteArchiveToggle
+                          isArchived={note.is_archived}
+                          mode="row"
+                          disabled={archiveNote.isPending || restoreNote.isPending}
+                          onClick={(e) => {
+                            e.stopPropagation();
+
+                            if (note.is_archived) {
+                              restoreNote.mutate(note.id);
+                              return;
+                            }
+
+                            archiveNote.mutate(note.id);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
