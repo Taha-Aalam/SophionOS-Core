@@ -7,8 +7,6 @@ import { useTheme } from "next-themes";
 
 import { breadcrumbLabels } from "@/components/layout/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
-import { useGoals } from "@/lib/hooks/use-goals";
-import { useNotes } from "@/lib/hooks/use-notes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -20,35 +18,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUIStore } from "@/lib/stores/ui.store";
-import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUUID = (value: string) => UUID_RE.test(value);
-
-function useGoalSlugLabel(slug: string): string | null {
-  const { data: allGoals = [] } = useGoals({ status: "all" });
-  const matchedGoal = allGoals.find(
-    (g) => (g.slug ?? buildGoalDetailHref(g).split("/").pop()) === slug,
-  );
-  return matchedGoal?.name ?? null;
-}
-
-function GoalSlugSegment({ slug }: { slug: string }) {
-  const resolved = useGoalSlugLabel(slug);
-  return <>{resolved ?? slug}</>;
-}
-
-function useNoteSlugLabel(slug: string): string | null {
-  const { data: allNotes = [] } = useNotes({ status: "all" });
-  const matched = allNotes.find((n) => n.slug === slug || n.id === slug);
-  return matched?.name ?? null;
-}
-
-function NoteSlugSegment({ slug }: { slug: string }) {
-  const resolved = useNoteSlugLabel(slug);
-  return <>{resolved ?? slug}</>;
-}
 
 function Breadcrumb() {
   const pathname = usePathname();
@@ -67,11 +40,11 @@ function Breadcrumb() {
           label = pageTitle || "Details";
         }
 
-        // For /goals/<slug> — resolve slug to real goal name (only when on a goals route)
+        // For /goals/<slug> — use page title set by detail page, fallback to raw slug while loading
         const isGoalsSlugSegment =
           segments[0] === "goals" && index === 1 && !isUUID(segment);
         if (isGoalsSlugSegment) {
-          label = <GoalSlugSegment slug={segment} />;
+          label = pageTitle || segment;
         }
 
         // For /projects/<slug-or-uuid> — prefer current page title
@@ -79,12 +52,10 @@ function Breadcrumb() {
           label = pageTitle;
         }
 
-        // For /notes/<slug-or-uuid> — prefer current page title, fallback to slug resolution
+        // For /notes/<slug-or-uuid> — use page title set by detail page, fallback to raw slug while loading
         const isNotesSegment = segments[0] === "notes" && index === 1;
-        if (isNotesSegment && pageTitle) {
-          label = pageTitle;
-        } else if (isNotesSegment && !isUUID(segment)) {
-          label = <NoteSlugSegment slug={segment} />;
+        if (isNotesSegment) {
+          label = pageTitle || segment;
         }
 
         return (
