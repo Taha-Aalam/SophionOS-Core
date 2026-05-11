@@ -24,9 +24,14 @@ export const createContactSchema = z
     favorite: z.boolean().default(false),
     notes: nullableStringSchema,
     metadata: metadataSchema,
-  })
-  .strict();
+    // link ID arrays — stripped before DB insert, handled by junction-table sync
+    area_ids: z.array(z.string().uuid()).optional(),
+    goal_ids: z.array(z.string().uuid()).optional(),
+    project_ids: z.array(z.string().uuid()).optional(),
+    task_ids: z.array(z.string().uuid()).optional(),
+  });
+// Note: no .strict() so extra fields don't cause errors
 
 export const updateContactSchema = createContactSchema.partial().extend({
   archive: z.boolean().optional(),
-}).strict();
+});
