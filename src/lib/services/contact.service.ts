@@ -34,6 +34,66 @@ function computeDaysSinceInteraction(lastInteractionAt: string | null | undefine
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
+async function syncContactLinks(
+  contactId: string,
+  links: {
+    area_ids?: string[];
+    goal_ids?: string[];
+    project_ids?: string[];
+    task_ids?: string[];
+  },
+): Promise<void> {
+  const client = createClient();
+
+  if (links.area_ids !== undefined) {
+    await client.from("contact_areas").delete().eq("contact_id", contactId);
+    if (links.area_ids.length > 0) {
+      await client
+        .from("contact_areas")
+        .insert(links.area_ids.map((area_id) => ({ contact_id: contactId, area_id })));
+    }
+  }
+
+  if (links.goal_ids !== undefined) {
+    await client.from("contact_goals").delete().eq("contact_id", contactId);
+    if (links.goal_ids.length > 0) {
+      await client
+        .from("contact_goals")
+        .insert(links.goal_ids.map((goal_id) => ({ contact_id: contactId, goal_id })));
+    }
+  }
+
+  if (links.project_ids !== undefined) {
+    await client.from("contact_projects").delete().eq("contact_id", contactId);
+    if (links.project_ids.length > 0) {
+      await client
+        .from("contact_projects")
+        .insert(
+          links.project_ids.map((project_id) => ({
+            contact_id: contactId,
+            project_id,
+            role_in_project: null,
+          })),
+        );
+    }
+  }
+
+  if (links.task_ids !== undefined) {
+    await client.from("contact_tasks").delete().eq("contact_id", contactId);
+    if (links.task_ids.length > 0) {
+      await client
+        .from("contact_tasks")
+        .insert(
+          links.task_ids.map((task_id) => ({
+            contact_id: contactId,
+            task_id,
+            role_in_task: null,
+          })),
+        );
+    }
+  }
+}
+
 export const contactService = {
   computeFollowUpStatus,
   computeDaysSinceInteraction,
@@ -58,7 +118,53 @@ export const contactService = {
 
     const { data, error } = await query;
     if (error) throw new DatabaseError(error.message);
-    return data || [];
+    if (!data || data.length === 0) return [];
+
+    const contactIds = data.map((c) => c.id);
+    const client = createClient();
+
+    const [areasRes, goalsRes, projectsRes, tasksRes] = await Promise.all([
+      client.from("contact_areas").select("contact_id, area_id").in("contact_id", contactIds),
+      client.from("contact_goals").select("contact_id, goal_id").in("contact_id", contactIds),
+      client.from("contact_projects").select("contact_id, project_id").in("contact_id", contactIds),
+      client.from("contact_tasks").select("contact_id, task_id").in("contact_id", contactIds),
+    ]);
+
+    const areaIdsByContact = new Map<string, string[]>();
+    for (const row of (areasRes.data ?? [])) {
+      const current = areaIdsByContact.get(row.contact_id) ?? [];
+      current.push(row.area_id);
+      areaIdsByContact.set(row.contact_id, current);
+    }
+
+    const goalIdsByContact = new Map<string, string[]>();
+    for (const row of (goalsRes.data ?? [])) {
+      const current = goalIdsByContact.get(row.contact_id) ?? [];
+      current.push(row.goal_id);
+      goalIdsByContact.set(row.contact_id, current);
+    }
+
+    const projectIdsByContact = new Map<string, string[]>();
+    for (const row of (projectsRes.data ?? [])) {
+      const current = projectIdsByContact.get(row.contact_id) ?? [];
+      current.push(row.project_id);
+      projectIdsByContact.set(row.contact_id, current);
+    }
+
+    const taskIdsByContact = new Map<string, string[]>();
+    for (const row of (tasksRes.data ?? [])) {
+      const current = taskIdsByContact.get(row.contact_id) ?? [];
+      current.push(row.task_id);
+      taskIdsByContact.set(row.contact_id, current);
+    }
+
+    return data.map((contact) => ({
+      ...contact,
+      linkedAreaIds: areaIdsByContact.get(contact.id) ?? [],
+      linkedGoalIds: goalIdsByContact.get(contact.id) ?? [],
+      linkedProjectIds: projectIdsByContact.get(contact.id) ?? [],
+      linkedTaskIds: taskIdsByContact.get(contact.id) ?? [],
+    }));
   },
 
   async getById(userId: string, id: string): Promise<Contact> {
@@ -78,25 +184,54 @@ export const contactService = {
 
   async create(userId: string, input: CreateContactInput): Promise<Contact> {
     const validated = createContactSchema.parse(input);
+    // Strip link arrays from DB payload
+    const { area_ids, goal_ids, project_ids, task_ids, ...dbPayload } = validated as typeof validated & {
+      area_ids?: string[];
+      goal_ids?: string[];
+      project_ids?: string[];
+      task_ids?: string[];
+    };
+
     const { data, error } = await createClient()
       .from("contacts")
-      .insert({ ...validated, user_id: userId })
+      .insert({ ...dbPayload, user_id: userId })
       .select(CONTACT_SELECT)
       .single();
 
     if (error) throw new DatabaseError(error.message);
-    return data;
+
+    await syncContactLinks(data.id, {
+      area_ids: area_ids ?? input.area_ids ?? [],
+      goal_ids: goal_ids ?? input.goal_ids ?? [],
+      project_ids: project_ids ?? input.project_ids ?? [],
+      task_ids: task_ids ?? input.task_ids ?? [],
+    });
+
+    return {
+      ...data,
+      linkedAreaIds: input.area_ids ?? [],
+      linkedGoalIds: input.goal_ids ?? [],
+      linkedProjectIds: input.project_ids ?? [],
+      linkedTaskIds: input.task_ids ?? [],
+    };
   },
 
   async update(userId: string, id: string, input: UpdateContactInput): Promise<Contact> {
     const validated = updateContactSchema.parse(input);
-    const hasUpdates = Object.keys(validated).length > 0;
+    const { area_ids, goal_ids, project_ids, task_ids, ...dbPayload } = validated as typeof validated & {
+      area_ids?: string[];
+      goal_ids?: string[];
+      project_ids?: string[];
+      task_ids?: string[];
+    };
+
+    const hasUpdates = Object.keys(dbPayload).length > 0;
 
     const contact = hasUpdates
       ? await (async () => {
           const { data, error } = await createClient()
             .from("contacts")
-            .update(validated)
+            .update(dbPayload)
             .eq("user_id", userId)
             .eq("id", id)
             .select(CONTACT_SELECT)
@@ -109,6 +244,13 @@ export const contactService = {
           return data;
         })()
       : await this.getById(userId, id);
+
+    await syncContactLinks(id, {
+      ...(area_ids !== undefined && { area_ids }),
+      ...(goal_ids !== undefined && { goal_ids }),
+      ...(project_ids !== undefined && { project_ids }),
+      ...(task_ids !== undefined && { task_ids }),
+    });
 
     return contact;
   },
