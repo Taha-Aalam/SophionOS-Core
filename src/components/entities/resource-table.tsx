@@ -15,11 +15,13 @@ const STATUS_COLORS: Record<string, string> = {
 interface ResourceTableProps {
   resources: Resource[];
   onToggleFavorite: (id: string, favorite: boolean) => void;
+  onEdit?: (resource: Resource) => void;
 }
 
 export function ResourceTable({
   resources,
   onToggleFavorite,
+  onEdit,
 }: ResourceTableProps) {
   return (
     <div className="rounded-lg border bg-card">
@@ -33,7 +35,11 @@ export function ResourceTable({
       {resources.map((resource) => (
         <div
           key={resource.id}
-          className="flex items-center gap-3 border-b border-border/40 px-3 py-2.5 hover:bg-muted/30"
+          role={onEdit ? "button" : undefined}
+          tabIndex={onEdit ? 0 : undefined}
+          onClick={onEdit ? () => onEdit(resource) : undefined}
+          onKeyDown={onEdit ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onEdit(resource); } } : undefined}
+          className={`flex items-center gap-3 border-b border-border/40 px-3 py-2.5 hover:bg-muted/30${onEdit ? " cursor-pointer" : ""}`}
         >
           <Badge
             variant="secondary"
