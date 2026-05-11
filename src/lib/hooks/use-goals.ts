@@ -31,6 +31,16 @@ function invalidateGoalGraph(
   ]);
 }
 
+// Narrow invalidation for mutations that don't affect area counts
+function invalidateGoalCoreGraph(
+  queryClient: ReturnType<typeof useQueryClient>,
+): Promise<unknown[]> {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] }),
+  ]);
+}
+
 interface GoalMutationContext {
   previousGoalDetails: Array<[readonly unknown[], GoalDetailData | undefined]>;
   previousGoals: Array<[readonly unknown[], Goal | Goal[] | undefined]>;
@@ -222,7 +232,7 @@ export function useUpdateGoal() {
       toast.error(error.message || "Failed to update goal");
     },
     onSettled: async () => {
-      await invalidateGoalGraph(queryClient);
+      await invalidateGoalCoreGraph(queryClient);
     },
   });
 }
@@ -244,7 +254,7 @@ export function useArchiveGoal() {
       toast.error(error.message || "Failed to archive goal");
     },
     onSettled: async () => {
-      await invalidateGoalGraph(queryClient);
+      await invalidateGoalCoreGraph(queryClient);
     },
   });
 }
@@ -269,7 +279,7 @@ export function useCompleteGoal() {
       toast.error(error.message || "Failed to complete goal");
     },
     onSettled: async () => {
-      await invalidateGoalGraph(queryClient);
+      await invalidateGoalCoreGraph(queryClient);
     },
   });
 }
@@ -291,7 +301,7 @@ export function useRestoreGoal() {
       toast.error(error.message || "Failed to restore goal");
     },
     onSettled: async () => {
-      await invalidateGoalGraph(queryClient);
+      await invalidateGoalCoreGraph(queryClient);
     },
   });
 }
