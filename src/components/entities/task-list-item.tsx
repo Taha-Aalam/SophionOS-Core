@@ -113,19 +113,16 @@ export function TaskListItem({
       </div>
 
       <div className="hidden shrink-0 items-center gap-2.5 md:flex">
-        {displayAreaNames.length > 0 && (
-          <Badge variant="outline" className="gap-1 text-xs font-normal">
-            {linkedAreaIcons?.[0] ? (
-              <span className="text-xs leading-none">{linkedAreaIcons[0]}</span>
+        {displayAreaNames.map((name, index) => (
+          <Badge key={`area-${index}`} variant="outline" className="gap-1 text-xs font-normal">
+            {linkedAreaIcons?.[index] ? (
+              <span className="text-xs leading-none">{linkedAreaIcons[index]}</span>
             ) : (
               <Map className="size-3" />
             )}
-            {displayAreaNames[0]}
-            {displayAreaNames.length > 1 && (
-              <span className="ml-0.5 text-muted-foreground">+{displayAreaNames.length - 1}</span>
-            )}
+            {name}
           </Badge>
-        )}
+        ))}
         {displayGoalNames.length > 0 && (
           <Badge variant="outline" className="gap-1 text-xs font-normal">
             <Target className="size-3" />
