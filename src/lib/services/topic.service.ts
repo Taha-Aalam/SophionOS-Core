@@ -2,9 +2,10 @@ import { createClient } from "../supabase/client";
 import type { CreateTopicInput, Topic, UpdateTopicInput } from "../types/domain.types";
 import { createTopicSchema, updateTopicSchema } from "../validators/topic.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
+import { generateSlug } from "../utils";
 
 const TOPIC_SELECT =
-  "id, user_id, area_id, name, favorite, inactive, metadata, created_at, updated_at";
+  "id, user_id, area_id, name, slug, favorite, inactive, metadata, created_at, updated_at";
 
 export interface TopicWithCounts extends Topic {
   notesCount: number;
@@ -54,12 +55,32 @@ export const topicService = {
     return enriched[0];
   },
 
+  async getByIdentifier(userId: string, identifier: string): Promise<TopicWithCounts> {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+
+    if (!isUuid) {
+      const { data, error } = await createClient()
+        .from("topics")
+        .select(TOPIC_SELECT)
+        .eq("user_id", userId)
+        .eq("slug", identifier)
+        .maybeSingle();
+
+      if (!error && data) {
+        const enriched = await this.enrichWithCounts([data as TopicWithCounts]);
+        return enriched[0];
+      }
+    }
+
+    return this.getById(userId, identifier);
+  },
+
   async create(userId: string, input: CreateTopicInput): Promise<TopicWithCounts> {
     const validated = createTopicSchema.parse(input);
 
     const { data: topic, error } = await createClient()
       .from("topics")
-      .insert({ name: validated.name, favorite: validated.favorite, user_id: userId })
+      .insert({ name: validated.name, slug: generateSlug(validated.name), favorite: validated.favorite, user_id: userId })
       .select(TOPIC_SELECT)
       .single();
 
@@ -87,6 +108,14 @@ export const topicService = {
       resourcesCount: 0,
       linkedAreaIds: validated.area_ids ?? [],
     };
+
+    if (validated.note_ids?.length) {
+      await this.linkNotes(enriched.id, validated.note_ids);
+    }
+    if (validated.resource_ids?.length) {
+      await this.linkResources(enriched.id, validated.resource_ids);
+    }
+
     return enriched;
   },
 
@@ -95,7 +124,10 @@ export const topicService = {
 
     const { data: topic, error } = await createClient()
       .from("topics")
-      .update({ name: validated.name, favorite: validated.favorite })
+      .update({
+        ...(validated.name !== undefined && { name: validated.name, slug: generateSlug(validated.name) }),
+        ...(validated.favorite !== undefined && { favorite: validated.favorite }),
+      })
       .eq("user_id", userId)
       .eq("id", id)
       .select(TOPIC_SELECT)
@@ -135,6 +167,14 @@ export const topicService = {
       resourcesCount: 0,
       linkedAreaIds: validated.area_ids ?? [],
     };
+
+    if (validated.note_ids?.length) {
+      await this.linkNotes(id, validated.note_ids);
+    }
+    if (validated.resource_ids?.length) {
+      await this.linkResources(id, validated.resource_ids);
+    }
+
     return enriched;
   },
 
@@ -255,6 +295,24 @@ export const topicService = {
     }
 
     return (data || []).map((row) => row.area_id as string);
+  },
+
+  async linkNotes(topicId: string, noteIds: string[]): Promise<void> {
+    if (noteIds.length === 0) return;
+    const { error } = await createClient()
+      .from("notes")
+      .update({ topic_id: topicId })
+      .in("id", noteIds);
+    if (error) throw new DatabaseError(error.message);
+  },
+
+  async linkResources(topicId: string, resourceIds: string[]): Promise<void> {
+    if (resourceIds.length === 0) return;
+    const { error } = await createClient()
+      .from("resources")
+      .update({ topic_id: topicId })
+      .in("id", resourceIds);
+    if (error) throw new DatabaseError(error.message);
   },
 
   async getNotesForTopic(userId: string, topicId: string) {

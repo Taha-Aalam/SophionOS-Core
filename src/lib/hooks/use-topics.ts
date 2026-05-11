@@ -32,7 +32,7 @@ export function useTopic(id: string) {
   return useQuery({
     queryKey: [TOPICS_QUERY_KEY, "detail", user?.id ?? null, id],
     queryFn: async () => {
-      const topic = await topicService.getById(user!.id, id);
+      const topic = await topicService.getByIdentifier(user!.id, id);
       const counts = await topicService.enrichWithCounts([topic]);
       return counts[0];
     },
