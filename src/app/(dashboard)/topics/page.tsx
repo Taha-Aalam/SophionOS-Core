@@ -1,11 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Tag, FilePlus, Heart, Globe, LayoutGrid } from "lucide-react";
+import { Tag, FilePlus, Heart, Globe, LayoutGrid, X } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -28,16 +36,20 @@ import {
   useToggleFavoriteTopic,
 } from "@/lib/hooks/use-topics";
 import { useAreas } from "@/lib/hooks/use-areas";
+import { useNotes } from "@/lib/hooks/use-notes";
+import { useResources } from "@/lib/hooks/use-resources";
 import type { TopicWithCounts } from "@/lib/services/topic.service";
 import { cn } from "@/lib/utils";
 
 interface TopicForm {
   name: string;
   area_ids: string[];
+  note_ids: string[];
+  resource_ids: string[];
   favorite: boolean;
 }
 
-const defaultForm: TopicForm = { name: "", area_ids: [], favorite: false };
+const defaultForm: TopicForm = { name: "", area_ids: [], note_ids: [], resource_ids: [], favorite: false };
 
 function TopicCardSkeleton() {
   return (
@@ -76,6 +88,14 @@ export default function TopicsPage() {
   const updateTopic = useUpdateTopic();
   const deleteTopic = useDeleteTopic();
   const toggleFavorite = useToggleFavoriteTopic();
+
+  const selectedAreaId = form.area_ids[0] ?? "";
+  const { data: availableNotes = [] } = useNotes(
+    selectedAreaId ? { areaId: selectedAreaId, includeArchived: false } : { includeArchived: false }
+  );
+  const { data: availableResources = [] } = useResources(
+    selectedAreaId ? { areaId: selectedAreaId } : {}
+  );
 
   const areaNames = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
 
@@ -151,6 +171,8 @@ export default function TopicsPage() {
     await createTopic.mutateAsync({
       name: form.name,
       area_ids: form.area_ids,
+      note_ids: form.note_ids,
+      resource_ids: form.resource_ids,
       favorite: form.favorite,
     });
     setForm(defaultForm);
@@ -162,6 +184,8 @@ export default function TopicsPage() {
     setForm({
       name: topic.name,
       area_ids: topic.linkedAreaIds ?? [],
+      note_ids: [],
+      resource_ids: [],
       favorite: topic.favorite,
     });
   };
@@ -173,6 +197,8 @@ export default function TopicsPage() {
       input: {
         name: form.name,
         area_ids: form.area_ids,
+        note_ids: form.note_ids,
+        resource_ids: form.resource_ids,
         favorite: form.favorite,
       },
     });
@@ -196,6 +222,24 @@ export default function TopicsPage() {
       area_ids: prev.area_ids.includes(areaId)
         ? prev.area_ids.filter((id) => id !== areaId)
         : [...prev.area_ids, areaId],
+    }));
+  };
+
+  const handleNoteToggle = (noteId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      note_ids: prev.note_ids.includes(noteId)
+        ? prev.note_ids.filter((id) => id !== noteId)
+        : [...prev.note_ids, noteId],
+    }));
+  };
+
+  const handleResourceToggle = (resourceId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      resource_ids: prev.resource_ids.includes(resourceId)
+        ? prev.resource_ids.filter((id) => id !== resourceId)
+        : [...prev.resource_ids, resourceId],
     }));
   };
 
@@ -398,26 +442,159 @@ export default function TopicsPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label>Linked Areas</Label>
-                <div className="flex flex-wrap gap-2">
-                  {areas.map((area) => (
-                    <button
-                      key={area.id}
-                      type="button"
-                      onClick={() => handleAreaToggle(area.id)}
-                      className={cn(
-                        "rounded-full border px-3 py-1 text-sm transition-colors",
-                        form.area_ids.includes(area.id)
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-muted/50 text-muted-foreground hover:border-primary/40"
-                      )}
-                    >
-                      {area.name}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <Label>Linked Areas</Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                      {form.area_ids.length === 0 ? "Select areas..." : `${form.area_ids.length} selected`}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuItem onClick={() => setForm((prev) => ({ ...prev, area_ids: [] }))}>
+                        Clear selection
+                      </DropdownMenuItem>
+                      <ScrollArea className="max-h-56">
+                        {areas.map((area) => {
+                          const isSelected = form.area_ids.includes(area.id);
+                          return (
+                            <DropdownMenuItem
+                              key={area.id}
+                              onClick={() => handleAreaToggle(area.id)}
+                              className="flex items-center gap-2"
+                            >
+                              <Checkbox checked={isSelected} />
+                              {area.name}
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </ScrollArea>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
+                {form.area_ids.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {form.area_ids
+                      .map((id) => areas.find((a) => a.id === id))
+                      .filter((a): a is NonNullable<typeof a> => Boolean(a))
+                      .map((area) => (
+                        <Badge key={area.id} variant="secondary" className="flex items-center gap-1">
+                          {area.name}
+                          <button
+                            type="button"
+                            onClick={() => handleAreaToggle(area.id)}
+                            className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                  </div>
+                )}
                 {areas.length === 0 && (
                   <p className="text-sm text-muted-foreground">No areas available</p>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label>Link Notes</Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                      {form.note_ids.length === 0 ? "Select notes..." : `${form.note_ids.length} selected`}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-64">
+                      <DropdownMenuItem onClick={() => setForm((prev) => ({ ...prev, note_ids: [] }))}>
+                        Clear selection
+                      </DropdownMenuItem>
+                      <ScrollArea className="max-h-56">
+                        {availableNotes.length === 0 ? (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                            {selectedAreaId ? "No notes in selected area." : "No notes available."}
+                          </div>
+                        ) : (
+                          availableNotes.map((note) => (
+                            <DropdownMenuItem
+                              key={note.id}
+                              onClick={() => handleNoteToggle(note.id)}
+                              className="flex items-center gap-2"
+                            >
+                              <Checkbox checked={form.note_ids.includes(note.id)} />
+                              <span className="truncate">{note.name}</span>
+                            </DropdownMenuItem>
+                          ))
+                        )}
+                      </ScrollArea>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                {form.note_ids.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {form.note_ids
+                      .map((id) => availableNotes.find((n) => n.id === id))
+                      .filter((n): n is NonNullable<typeof n> => Boolean(n))
+                      .map((note) => (
+                        <Badge key={note.id} variant="secondary" className="flex items-center gap-1">
+                          <span className="truncate max-w-[120px]">{note.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleNoteToggle(note.id)}
+                            className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                  </div>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label>Link Resources</Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                      {form.resource_ids.length === 0 ? "Select resources..." : `${form.resource_ids.length} selected`}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-64">
+                      <DropdownMenuItem onClick={() => setForm((prev) => ({ ...prev, resource_ids: [] }))}>
+                        Clear selection
+                      </DropdownMenuItem>
+                      <ScrollArea className="max-h-56">
+                        {availableResources.length === 0 ? (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                            {selectedAreaId ? "No resources in selected area." : "No resources available."}
+                          </div>
+                        ) : (
+                          availableResources.map((resource) => (
+                            <DropdownMenuItem
+                              key={resource.id}
+                              onClick={() => handleResourceToggle(resource.id)}
+                              className="flex items-center gap-2"
+                            >
+                              <Checkbox checked={form.resource_ids.includes(resource.id)} />
+                              <span className="truncate">{resource.name}</span>
+                            </DropdownMenuItem>
+                          ))
+                        )}
+                      </ScrollArea>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                {form.resource_ids.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {form.resource_ids
+                      .map((id) => availableResources.find((r) => r.id === id))
+                      .filter((r): r is NonNullable<typeof r> => Boolean(r))
+                      .map((resource) => (
+                        <Badge key={resource.id} variant="secondary" className="flex items-center gap-1">
+                          <span className="truncate max-w-[120px]">{resource.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleResourceToggle(resource.id)}
+                            className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-2">
