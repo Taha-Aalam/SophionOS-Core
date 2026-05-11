@@ -791,6 +791,19 @@ export default function NotesPage() {
                         </button>
                       </div>
 
+                      {/* Status + Type — LEFT of name */}
+                      <div className="hidden md:flex shrink-0 items-center gap-1">
+                        <Badge
+                          variant="outline"
+                          className={cn("text-[10px] uppercase", statusColors[note.status])}
+                        >
+                          {note.status.replace("_", " ")}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {note.type}
+                        </Badge>
+                      </div>
+
                       {/* Name */}
                       <div className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{note.name}</span>
@@ -798,15 +811,6 @@ export default function NotesPage() {
 
                       {/* Metadata cluster */}
                       <div className="hidden md:flex shrink-0 items-center gap-1.5 flex-wrap">
-                        <Badge variant="secondary" className="text-xs">
-                          {note.type}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className={cn("text-[10px] uppercase", statusColors[note.status])}
-                        >
-                          {note.status.replace("_", " ")}
-                        </Badge>
                         {note.notebook && (
                           <Badge variant="outline" className="gap-1 text-xs font-normal">
                             <BookOpen className="size-3" />
