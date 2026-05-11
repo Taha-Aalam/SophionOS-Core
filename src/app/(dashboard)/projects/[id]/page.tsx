@@ -985,7 +985,11 @@ export default function ProjectDetailPage() {
                     <GoalCard
                       goal={goal}
                       areaName={areaName}
-                      onEdit={() => router.push(buildGoalDetailHref(goal))}
+                      onEdit={() =>
+                        router.push(
+                          `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(`/projects/${project.id}`)}`,
+                        )
+                      }
                     />
                     <Button
                       variant="ghost"
