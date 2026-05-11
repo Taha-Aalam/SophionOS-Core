@@ -22,6 +22,16 @@ function invalidateTaskGraph(queryClient: ReturnType<typeof useQueryClient>): Pr
   ]);
 }
 
+// Narrow invalidation for mutations that don't affect area/goal/project counts
+function invalidateTaskCoreGraph(
+  queryClient: ReturnType<typeof useQueryClient>,
+): Promise<unknown[]> {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: [TASKS_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [DASHBOARD_QUERY_KEY] }),
+  ]);
+}
+
 export function useTasks(options?: { enabled?: boolean }) {
   const { user } = useAuth();
 
@@ -77,7 +87,7 @@ export function useUpdateTask() {
     mutationFn: ({ id, input }: { id: string; input: UpdateTaskInput }) =>
       taskService.update(user!.id, id, input),
     onSuccess: async () => {
-      await invalidateTaskGraph(queryClient);
+      await invalidateTaskCoreGraph(queryClient);
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to update task");
@@ -151,7 +161,8 @@ export function useCompleteTask() {
       toast.error("Failed to complete task");
     },
     onSettled: async () => {
-      await invalidateTaskGraph(queryClient);
+      await invalidateTaskCoreGraph(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
     },
   });
 }
@@ -185,7 +196,7 @@ export function useFocusTask() {
       }
     },
     onSettled: async () => {
-      await invalidateTaskGraph(queryClient);
+      await invalidateTaskCoreGraph(queryClient);
     },
   });
 }
@@ -250,8 +261,7 @@ export function useCompleteTaskWithGoalRefresh() {
       toast.error("Failed to complete task");
     },
     onSettled: async () => {
-      await invalidateTaskGraph(queryClient);
-      // Also invalidate goal detail queries so completion % updates in real time
+      await invalidateTaskCoreGraph(queryClient);
       queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
     },
   });
