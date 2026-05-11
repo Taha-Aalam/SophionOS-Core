@@ -270,8 +270,8 @@ export default function ResourcesPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="all">
+        <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             All
             {countForTab("all") > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
@@ -279,7 +279,7 @@ export default function ResourcesPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="inbox">
+          <TabsTrigger value="inbox" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             Inbox
             {countForTab("inbox") > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
@@ -287,7 +287,7 @@ export default function ResourcesPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="to_review">
+          <TabsTrigger value="to_review" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             To Review
             {countForTab("to_review") > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
@@ -295,7 +295,7 @@ export default function ResourcesPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="active">
+          <TabsTrigger value="active" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             Active
             {countForTab("active") > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
@@ -303,7 +303,7 @@ export default function ResourcesPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="favorites">
+          <TabsTrigger value="favorites" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Heart className="mr-1 size-3" />
             Favorites
             {countForTab("favorites") > 0 && (
@@ -312,8 +312,10 @@ export default function ResourcesPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="by_topics">By Topics</TabsTrigger>
-          <TabsTrigger value="archive">
+          <TabsTrigger value="by_topics" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            By Topics
+          </TabsTrigger>
+          <TabsTrigger value="archive" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             Archive
             {archivedResources.length > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
