@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Tag, FilePlus, Heart, Globe, LayoutGrid, Table2 } from "lucide-react";
+import { Tag, FilePlus, Heart, Globe, LayoutGrid } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -61,31 +61,7 @@ function TopicCardSkeleton() {
   );
 }
 
-function TopicTableSkeleton() {
-  return (
-    <div className="rounded-lg border border-border">
-      <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-3 py-2">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-4 w-16" />
-        <Skeleton className="h-4 w-16" />
-        <div className="ml-auto flex gap-2">
-          <Skeleton className="size-8" />
-          <Skeleton className="size-8" />
-        </div>
-      </div>
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 border-b border-border px-3 py-3">
-          <Skeleton className="size-8 rounded-lg" />
-          <Skeleton className="h-4 w-40" />
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-4 w-16" />
-        </div>
-      ))}
-    </div>
-  );
-}
+
 
 export default function TopicsPage() {
   const [tab, setTab] = useState("active");
@@ -311,10 +287,7 @@ export default function TopicsPage() {
             All
             {countLabel(topics.length)}
           </TabsTrigger>
-          <TabsTrigger value="all_table" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-            <Table2 className="mr-1 size-3" />
-            All (table)
-          </TabsTrigger>
+          
         </TabsList>
 
         {/* Active */}
@@ -392,100 +365,7 @@ export default function TopicsPage() {
           )}
         </TabsContent>
 
-        {/* All - Table */}
-        <TabsContent value="all_table" className="mt-4">
-          {isLoading ? (
-            <TopicTableSkeleton />
-          ) : topics.length === 0 ? (
-            <EmptyState
-              icon={Table2}
-              title="No topics yet"
-              description="Create your first topic to see it in the table"
-              actionLabel="New Topic"
-              onAction={() => setIsCreateOpen(true)}
-            />
-          ) : (
-            <div className="rounded-lg border border-border">
-              {/* Header */}
-              <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground">
-                <span className="w-8" />
-                <span className="flex-1">Name</span>
-                <span className="w-40">Areas</span>
-                <span className="w-16 text-center">Notes</span>
-                <span className="w-20 text-center">Resources</span>
-                <span className="w-8" />
-                <span className="w-8" />
-              </div>
-              {/* Rows */}
-              {topics.map((topic) => (
-                <div
-                  key={topic.id}
-                  className="flex items-center gap-3 border-b border-border/60 px-3 py-3 hover:bg-accent/30 transition-colors"
-                >
-                  <div className="w-8">
-                    <Tag className="size-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">
-                      {topic.name}
-                      {(duplicateIndices.get(topic.id) ?? 0) > 1 && (
-                        <span className="ml-2 text-xs font-normal text-muted-foreground">
-                          copy {duplicateIndices.get(topic.id)}
-                        </span>
-                      )}
-                    </p>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      {topic.inactive && (
-                        <Badge variant="outline" className="text-xs text-muted-foreground">Inactive</Badge>
-                      )}
-                      {topic.favorite && <Heart className="size-3 fill-rose-500 text-rose-500" />}
-                    </div>
-                  </div>
-                  <div className="w-40 flex flex-wrap gap-1">
-                    {(topic.linkedAreaIds ?? []).slice(0, 2).map((areaId) => {
-                      const name = areaNames.get(areaId);
-                      if (!name) return null;
-                      return (
-                        <Badge key={areaId} variant="secondary" className="text-xs">
-                          {name}
-                        </Badge>
-                      );
-                    })}
-                    {(topic.linkedAreaIds ?? []).length > 2 && (
-                      <Badge variant="outline" className="text-xs text-muted-foreground">
-                        +{(topic.linkedAreaIds ?? []).length - 2}
-                      </Badge>
-                    )}
-                    {(topic.linkedAreaIds ?? []).length === 0 && (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </div>
-                  <span className="w-16 text-center text-sm">{topic.notesCount}</span>
-                  <span className="w-20 text-center text-sm">{topic.resourcesCount}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => handleToggleFavorite(topic.id, !topic.favorite)}
-                  >
-                    {topic.favorite ? (
-                      <Heart className="size-4 fill-rose-500 text-rose-500" />
-                    ) : (
-                      <Heart className="size-4 text-muted-foreground" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => handleDelete(topic)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <span className="size-4 text-sm">🗑️</span>
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
+        
       </Tabs>
 
       {/* Create/Edit Dialog */}
