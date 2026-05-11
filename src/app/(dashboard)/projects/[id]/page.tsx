@@ -120,7 +120,6 @@ export default function ProjectDetailPage() {
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<typeof tasks[number] | null>(null);
-  const [isEditTaskOpen, setIsEditTaskOpen] = useState(false);
   const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<typeof linkedResources[number] | null>(null);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
@@ -599,7 +598,6 @@ export default function ProjectDetailPage() {
   const handleTaskEdit = useCallback(
     (task: typeof tasks[number]) => {
       setEditingTask(task);
-      setIsEditTaskOpen(true);
     },
     [],
   );
@@ -1347,8 +1345,8 @@ export default function ProjectDetailPage() {
       />
 
       <TaskDialog
-        open={isEditTaskOpen}
-        onOpenChange={(open) => !open && setEditingTask(null)}
+        open={!!editingTask}
+        onOpenChange={(open) => { if (!open) setEditingTask(null); }}
         task={editingTask}
         projectScoped={{
           projectId: project.id,
