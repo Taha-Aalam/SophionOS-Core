@@ -288,30 +288,30 @@ export default function TopicsPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="active">
+        <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsTrigger value="active" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             Active
             {countLabel(activeTopics.length)}
           </TabsTrigger>
-          <TabsTrigger value="favorite">
+          <TabsTrigger value="favorite" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Heart className="mr-1 size-3" />
             Favorite
             {countLabel(favoriteTopics.length)}
           </TabsTrigger>
-          <TabsTrigger value="inactive">
+          <TabsTrigger value="inactive" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             Inactive
             {countLabel(inactiveTopics.length)}
           </TabsTrigger>
-          <TabsTrigger value="by_area">
+          <TabsTrigger value="by_area" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Globe className="mr-1 size-3" />
             By Area
           </TabsTrigger>
-          <TabsTrigger value="all">
+          <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <LayoutGrid className="mr-1 size-3" />
             All
             {countLabel(topics.length)}
           </TabsTrigger>
-          <TabsTrigger value="all_table">
+          <TabsTrigger value="all_table" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Table2 className="mr-1 size-3" />
             All (table)
           </TabsTrigger>

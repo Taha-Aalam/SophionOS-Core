@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { FilePlus, Globe, Heart, Filter, ChevronDownIcon } from "lucide-react";
+import { Archive, ChevronDownIcon, Eye, FilePlus, Filter, Globe, Heart, Inbox as InboxIcon, Tag, Zap } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -280,6 +280,7 @@ export default function ResourcesPage() {
             )}
           </TabsTrigger>
           <TabsTrigger value="inbox" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <InboxIcon className="mr-1.5 size-3.5" />
             Inbox
             {countForTab("inbox") > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
@@ -288,6 +289,7 @@ export default function ResourcesPage() {
             )}
           </TabsTrigger>
           <TabsTrigger value="to_review" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Eye className="mr-1.5 size-3.5" />
             To Review
             {countForTab("to_review") > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
@@ -296,6 +298,7 @@ export default function ResourcesPage() {
             )}
           </TabsTrigger>
           <TabsTrigger value="active" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Zap className="mr-1.5 size-3.5" />
             Active
             {countForTab("active") > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
@@ -304,7 +307,7 @@ export default function ResourcesPage() {
             )}
           </TabsTrigger>
           <TabsTrigger value="favorites" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-            <Heart className="mr-1 size-3" />
+            <Heart className="mr-1.5 size-3.5" />
             Favorites
             {countForTab("favorites") > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
@@ -313,9 +316,11 @@ export default function ResourcesPage() {
             )}
           </TabsTrigger>
           <TabsTrigger value="by_topics" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Tag className="mr-1.5 size-3.5" />
             By Topics
           </TabsTrigger>
           <TabsTrigger value="archive" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Archive className="mr-1.5 size-3.5" />
             Archive
             {archivedResources.length > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
