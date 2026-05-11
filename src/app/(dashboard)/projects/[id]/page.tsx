@@ -64,6 +64,7 @@ import {
   useCreateResource,
   useResourcesByProject,
   useToggleFavoriteResource,
+  useUpdateResource,
 } from "@/lib/hooks/use-resources";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import {
@@ -121,6 +122,7 @@ export default function ProjectDetailPage() {
   const [editingTask, setEditingTask] = useState<typeof tasks[number] | null>(null);
   const [isEditTaskOpen, setIsEditTaskOpen] = useState(false);
   const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
+  const [editingResource, setEditingResource] = useState<typeof linkedResources[number] | null>(null);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const [isLinkAreaOpen, setIsLinkAreaOpen] = useState(false);
   const [goalTab, setGoalTab] = useState("active");
@@ -157,6 +159,7 @@ export default function ProjectDetailPage() {
   const unlinkContactFromProject = useUnlinkContactFromProject();
   const createContact = useCreateContact();
   const createResource = useCreateResource();
+  const updateResource = useUpdateResource();
   const toggleFavoriteResource = useToggleFavoriteResource();
   const toggleFavoriteNote = useToggleFavoriteNote();
   const completeTask = useCompleteTask();
@@ -597,6 +600,13 @@ export default function ProjectDetailPage() {
     (task: typeof tasks[number]) => {
       setEditingTask(task);
       setIsEditTaskOpen(true);
+    },
+    [],
+  );
+
+  const handleResourceEdit = useCallback(
+    (resource: typeof linkedResources[number]) => {
+      setEditingResource(resource);
     },
     [],
   );
@@ -1125,6 +1135,7 @@ export default function ProjectDetailPage() {
               onToggleFavorite={(id, favorite) =>
                 toggleFavoriteResource.mutate({ id, favorite })
               }
+              onEdit={handleResourceEdit}
             />
           ) : null}
         </GoalDetailSection>
@@ -1366,6 +1377,19 @@ export default function ProjectDetailPage() {
           setIsNewResourceOpen(false);
         }}
 isPending={createResource.isPending}
+      />
+
+      <ResourceDialog
+        open={!!editingResource}
+        onOpenChange={(open) => { if (!open) setEditingResource(null); }}
+        resource={editingResource}
+        onSubmit={async (input) => {
+          if (editingResource) {
+            await updateResource.mutateAsync({ id: editingResource.id, input });
+          }
+          setEditingResource(null);
+        }}
+        isPending={updateResource.isPending}
       />
     </div>
   );
