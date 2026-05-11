@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { startTransition, useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -14,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -436,182 +438,251 @@ export function ResourceDialog({
               onBlur={handleUrlBlur}
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="res-type">Type</Label>
-            <Select value={type} onValueChange={(v) => setType(v as Resource["type"])}>
-              <SelectTrigger id="res-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {RESOURCE_TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="res-status">Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as ResourceStatus)}>
-              <SelectTrigger id="res-status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {RESOURCE_STATUS_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="res-type">Type</Label>
+              <Select value={type} onValueChange={(v) => setType(v as Resource["type"])}>
+                <SelectTrigger id="res-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RESOURCE_TYPE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="res-status">Status</Label>
+              <Select value={status} onValueChange={(v) => setStatus(v as ResourceStatus)}>
+                <SelectTrigger id="res-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RESOURCE_STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Areas — multi-select */}
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label>Areas</Label>
+          {/* Area + Goals row */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Areas — multi-select */}
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label>Areas</Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                    {areaIds.length === 0 ? "Select areas..." : `${areaIds.length} selected`}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuItem onClick={() => setAreaIds([])}>Clear selection</DropdownMenuItem>
+                    <ScrollArea className="max-h-56">
+                      {visibleAreas.length === 0 ? (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                          {taskIds.length > 0 || goalIds.length > 0 || projectId
+                            ? "No areas match selection."
+                            : "No areas available."}
+                        </div>
+                      ) : (
+                        visibleAreas.map((area) => (
+                          <DropdownMenuItem
+                            key={area.id}
+                            onClick={() => toggleArea(area.id)}
+                            className="flex items-center gap-2"
+                          >
+                            <Checkbox checked={areaIds.includes(area.id)} />
+                            {area.icon ? `${area.icon} ` : ""}{area.name}
+                          </DropdownMenuItem>
+                        ))
+                      )}
+                    </ScrollArea>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               {areaIds.length > 0 && (
-                <Badge variant="secondary">{areaIds.length} selected</Badge>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {areaIds
+                    .map((id) => areas.find((a) => a.id === id))
+                    .filter((a): a is NonNullable<typeof a> => Boolean(a))
+                    .map((area) => (
+                      <Badge key={area.id} variant="secondary" className="flex items-center gap-1">
+                        {area.icon ? `${area.icon} ` : ""}{area.name}
+                        <button type="button" onClick={() => toggleArea(area.id)} className="ml-1 rounded-full p-0.5 hover:bg-muted">
+                          <X className="size-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                </div>
               )}
             </div>
-            <ScrollArea className="h-32 rounded-md border">
-              <div className="space-y-2 p-3">
-                {visibleAreas.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {(taskIds.length > 0 || goalIds.length > 0 || projectId)
-                      ? "No areas match the current selection."
-                      : "No active areas available."}
-                  </p>
-                ) : (
-                  visibleAreas.map((area) => {
-                    const checked = areaIds.includes(area.id);
-                    return (
-                      <label
-                        key={area.id}
-                        className="flex cursor-pointer items-center gap-3 rounded-md px-1 py-1 transition-colors hover:bg-muted/40"
-                      >
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={() => toggleArea(area.id)}
-                        />
-                        <span className="text-sm">
-                          {area.icon ? `${area.icon} ` : ""}{area.name}
-                        </span>
-                      </label>
-                    );
-                  })
-                )}
+
+            {/* Goals — multi-select */}
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label>Goals</Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                    {goalIds.length === 0 ? "Select goals..." : `${goalIds.length} selected`}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuItem onClick={() => setGoalIds([])}>Clear selection</DropdownMenuItem>
+                    <ScrollArea className="max-h-56">
+                      {filteredGoals.length === 0 ? (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                          {taskIds.length > 0 || projectId || areaIds.length > 0
+                            ? "No goals match selection."
+                            : "No goals available."}
+                        </div>
+                      ) : (
+                        filteredGoals.map((goal) => (
+                          <DropdownMenuItem
+                            key={goal.id}
+                            onClick={() => toggleGoal(goal.id)}
+                            className="flex items-center gap-2"
+                          >
+                            <Checkbox checked={goalIds.includes(goal.id)} />
+                            {goal.name}
+                          </DropdownMenuItem>
+                        ))
+                      )}
+                    </ScrollArea>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-            </ScrollArea>
-          </div>
-
-          {/* Project — single select with cross-filtering */}
-          <div className="grid gap-2">
-            <Label htmlFor="res-project">Project</Label>
-            <Select
-              value={projectId}
-              onValueChange={(v) => {
-                const nextId = v ?? "";
-                setProjectId(nextId);
-                const project = nextId ? projects.find((p) => p.id === nextId) : null;
-                if (project?.area_id) {
-                  setAreaIds((prev) => {
-                    if (!prev.includes(project.area_id!)) {
-                      return [...prev, project.area_id!];
-                    }
-                    return prev;
-                  });
-                }
-              }}
-            >
-              <SelectTrigger id="res-project">
-                <SelectValue placeholder="None">
-                  {selectedProject ? selectedProject.name : undefined}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {filteredProjects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Goals — multi-select */}
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label>Goals</Label>
               {goalIds.length > 0 && (
-                <Badge variant="secondary">{goalIds.length} selected</Badge>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {goalIds
+                    .map((id) => goals.find((g) => g.id === id))
+                    .filter((g): g is NonNullable<typeof g> => Boolean(g))
+                    .map((goal) => (
+                      <Badge key={goal.id} variant="secondary" className="flex items-center gap-1">
+                        {goal.name}
+                        <button type="button" onClick={() => toggleGoal(goal.id)} className="ml-1 rounded-full p-0.5 hover:bg-muted">
+                          <X className="size-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                </div>
               )}
             </div>
-            <ScrollArea className="h-32 rounded-md border">
-              <div className="space-y-2 p-3">
-                {filteredGoals.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {(taskIds.length > 0 || projectId || areaIds.length > 0)
-                      ? "No goals match the current selection."
-                      : "No goals available."}
-                  </p>
-                ) : (
-                  filteredGoals.map((goal) => {
-                    const checked = goalIds.includes(goal.id);
-                    return (
-                      <label
-                        key={goal.id}
-                        className="flex cursor-pointer items-center gap-3 rounded-md px-1 py-1 transition-colors hover:bg-muted/40"
-                      >
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={() => toggleGoal(goal.id)}
-                        />
-                        <span className="text-sm">{goal.name}</span>
-                      </label>
-                    );
-                  })
-                )}
-              </div>
-            </ScrollArea>
           </div>
 
-          {/* Tasks — multi-select */}
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label>Tasks</Label>
-              {taskIds.length > 0 && (
-                <Badge variant="secondary">{taskIds.length} selected</Badge>
+          {/* Project + Tasks row */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Project — single select with DropdownMenu style */}
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label>Project</Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                    {!projectId ? "Select project..." : (selectedProject?.name ?? "...")}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuItem
+                      onClick={() => setProjectId("")}
+                      className="flex items-center gap-2"
+                    >
+                      <span className="text-muted-foreground">None</span>
+                    </DropdownMenuItem>
+                    <ScrollArea className="max-h-56">
+                      {filteredProjects.length === 0 ? (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                          No projects available.
+                        </div>
+                      ) : (
+                        filteredProjects.map((project) => (
+                          <DropdownMenuItem
+                            key={project.id}
+                            onClick={() => {
+                              const nextId = projectId === project.id ? "" : project.id;
+                              setProjectId(nextId);
+                              if (nextId && project.area_id) {
+                                setAreaIds((prev) =>
+                                  prev.includes(project.area_id!)
+                                    ? prev
+                                    : [...prev, project.area_id!],
+                                );
+                              }
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <Checkbox checked={projectId === project.id} />
+                            {project.name}
+                          </DropdownMenuItem>
+                        ))
+                      )}
+                    </ScrollArea>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              {selectedProject && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    {selectedProject.name}
+                    <button type="button" onClick={() => setProjectId("")} className="ml-1 rounded-full p-0.5 hover:bg-muted">
+                      <X className="size-3" />
+                    </button>
+                  </Badge>
+                </div>
               )}
             </div>
-            <ScrollArea className="h-32 rounded-md border">
-              <div className="space-y-2 p-3">
-                {filteredTasks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {(goalIds.length > 0 || projectId || areaIds.length > 0)
-                      ? "No tasks match the current selection."
-                      : "No tasks available."}
-                  </p>
-                ) : (
-                  filteredTasks.map((task) => {
-                    const checked = taskIds.includes(task.id);
-                    return (
-                      <label
-                        key={task.id}
-                        className="flex cursor-pointer items-center gap-3 rounded-md px-1 py-1 transition-colors hover:bg-muted/40"
-                      >
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={() => toggleTask(task.id)}
-                        />
-                        <span className="text-sm">{task.name}</span>
-                      </label>
-                    );
-                  })
-                )}
+
+            {/* Tasks — multi-select */}
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label>Tasks</Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                    {taskIds.length === 0 ? "Select tasks..." : `${taskIds.length} selected`}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuItem onClick={() => setTaskIds([])}>Clear selection</DropdownMenuItem>
+                    <ScrollArea className="max-h-56">
+                      {filteredTasks.length === 0 ? (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                          {goalIds.length > 0 || projectId || areaIds.length > 0
+                            ? "No tasks match selection."
+                            : "No tasks available."}
+                        </div>
+                      ) : (
+                        filteredTasks.map((task) => (
+                          <DropdownMenuItem
+                            key={task.id}
+                            onClick={() => toggleTask(task.id)}
+                            className="flex items-center gap-2"
+                          >
+                            <Checkbox checked={taskIds.includes(task.id)} />
+                            {task.name}
+                          </DropdownMenuItem>
+                        ))
+                      )}
+                    </ScrollArea>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-            </ScrollArea>
+              {taskIds.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {taskIds
+                    .map((id) => tasks.find((t) => t.id === id))
+                    .filter((t): t is NonNullable<typeof t> => Boolean(t))
+                    .map((task) => (
+                      <Badge key={task.id} variant="secondary" className="flex items-center gap-1">
+                        {task.name}
+                        <button type="button" onClick={() => toggleTask(task.id)} className="ml-1 rounded-full p-0.5 hover:bg-muted">
+                          <X className="size-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Topic — single select */}
