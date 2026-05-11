@@ -25,6 +25,10 @@ function buildCreateInput(values: {
   website: string;
   follow_up_interval_days: string;
   notes: string;
+  area_ids?: string[];
+  goal_ids?: string[];
+  project_ids?: string[];
+  task_ids?: string[];
 }): CreateContactInput {
   return {
     name: values.name,
@@ -41,6 +45,10 @@ function buildCreateInput(values: {
         ? parseInt(values.follow_up_interval_days, 10)
         : 14,
     notes: values.notes || null,
+    area_ids: values.area_ids ?? [],
+    goal_ids: values.goal_ids ?? [],
+    project_ids: values.project_ids ?? [],
+    task_ids: values.task_ids ?? [],
   };
 }
 
@@ -83,6 +91,10 @@ export default function ContactsPage() {
     website: string;
     follow_up_interval_days: string;
     notes: string;
+    area_ids: string[];
+    goal_ids: string[];
+    project_ids: string[];
+    task_ids: string[];
   }) => {
     const input = buildCreateInput(values);
     if (editingContact) {
