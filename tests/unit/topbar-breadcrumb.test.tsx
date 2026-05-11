@@ -71,15 +71,22 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
 }));
 
 describe("Topbar breadcrumb slug resolution", () => {
-  it("renders goal name when /goals/<slug> matches a known goal", () => {
+  it("renders pageTitle for goal slug route when pageTitle is set", () => {
     mockUsePathname.mockReturnValue("/goals/step-20-command-center");
-    mockUseGoalsData.mockReturnValue([
-      { id: "goal-uuid-1", name: "Step 20 Command Center", slug: "step-20-command-center" },
-    ]);
-    mockUseUIStorePageTitle.mockReturnValue(null);
+    mockUseGoalsData.mockReturnValue([]);
+    mockUseUIStorePageTitle.mockReturnValue("Step 20 Command Center");
 
     const html = renderToStaticMarkup(<Topbar />);
     expect(html).toContain("Step 20 Command Center");
+  });
+
+  it("renders raw slug when on /goals/<slug> and pageTitle is not yet set", () => {
+    mockUsePathname.mockReturnValue("/goals/step-20-command-center");
+    mockUseGoalsData.mockReturnValue([]);
+    mockUseUIStorePageTitle.mockReturnValue(null);
+
+    const html = renderToStaticMarkup(<Topbar />);
+    expect(html).toContain("step-20-command-center");
   });
 
   it("renders 'goals' for /goals (no slug)", () => {
@@ -102,16 +109,13 @@ describe("Topbar breadcrumb slug resolution", () => {
     expect(html).toContain("Goal Detail");
   });
 
-  it("renders goal name for 'test-4' slug as 'Test 4' (no copy badge)", () => {
+  it("renders raw slug for 'test-4' when pageTitle not set (loading state)", () => {
     mockUsePathname.mockReturnValue("/goals/test-4");
-    mockUseGoalsData.mockReturnValue([
-      { id: "goal-uuid-1", name: "Test 4", slug: "test-4" },
-    ]);
+    mockUseGoalsData.mockReturnValue([]);
     mockUseUIStorePageTitle.mockReturnValue(null);
 
     const html = renderToStaticMarkup(<Topbar />);
-    expect(html).toContain("Test 4");
-    // copy badges appear on GoalCard, not breadcrumb — breadcrumb should show name only
+    expect(html).toContain("test-4");
     expect(html).not.toContain("copy");
   });
 
