@@ -32,6 +32,7 @@ export interface Resource extends DatabaseTable<"resources"> {
 export interface Topic extends Omit<DatabaseTable<"topics">, "area_id"> {
   area_id: string | null;
   inactive: boolean;
+  is_archived: boolean;
   slug?: string | null;
 }
 

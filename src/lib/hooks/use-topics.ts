@@ -178,6 +178,48 @@ export function useDeleteTopic() {
   });
 }
 
+export function useArchiveTopic() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => topicService.archive(user!.id, id),
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: [TOPICS_QUERY_KEY] });
+      toast.success("Topic archived");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to archive topic");
+    },
+  });
+}
+
+export function useRestoreTopic() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => topicService.restore(user!.id, id),
+    onSuccess: async () => {
+      await invalidateTopicGraph(queryClient);
+      toast.success("Topic restored");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to restore topic");
+    },
+  });
+}
+
+export function useArchivedTopics() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [TOPICS_QUERY_KEY, "archived", user?.id ?? null],
+    queryFn: async () => topicService.listArchived(user!.id),
+    enabled: !!user,
+  });
+}
+
 export function useNotesForTopic(topicId: string) {
   const { user } = useAuth();
 

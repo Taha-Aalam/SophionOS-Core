@@ -5,7 +5,7 @@ import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
 
 const TOPIC_SELECT =
-  "id, user_id, area_id, name, slug, favorite, inactive, metadata, created_at, updated_at";
+  "id, user_id, area_id, name, slug, favorite, inactive, is_archived, metadata, created_at, updated_at";
 
 export interface TopicWithCounts extends Topic {
   notesCount: number;
@@ -25,6 +25,7 @@ export const topicService = {
       .from("topics")
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
+      .eq("is_archived", false)
       .order("name");
 
     if (error) {
@@ -190,6 +191,35 @@ export const topicService = {
     }
   },
 
+  async archive(userId: string, id: string): Promise<void> {
+    const { error } = await createClient()
+      .from("topics")
+      .update({ is_archived: true })
+      .eq("user_id", userId)
+      .eq("id", id);
+    if (error) throw new DatabaseError(error.message);
+  },
+
+  async restore(userId: string, id: string): Promise<void> {
+    const { error } = await createClient()
+      .from("topics")
+      .update({ is_archived: false })
+      .eq("user_id", userId)
+      .eq("id", id);
+    if (error) throw new DatabaseError(error.message);
+  },
+
+  async listArchived(userId: string): Promise<TopicWithCounts[]> {
+    const { data, error } = await createClient()
+      .from("topics")
+      .select(TOPIC_SELECT)
+      .eq("user_id", userId)
+      .eq("is_archived", true)
+      .order("name");
+    if (error) throw new DatabaseError(error.message);
+    return this.enrichWithCounts((data || []) as TopicWithCounts[]);
+  },
+
   async getActive(userId: string): Promise<TopicWithCounts[]> {
     const { data, error } = await createClient()
       .from("topics")
@@ -318,10 +348,9 @@ export const topicService = {
   async getNotesForTopic(userId: string, topicId: string) {
     const { data, error } = await createClient()
       .from("notes")
-      .select("id, user_id, area_id, project_id, topic_id, name, content, type, status, notebook, favorite, pin, is_archived, metadata, created_at, updated_at")
+      .select("id, user_id, area_id, project_id, topic_id, name, slug, content, type, status, notebook, favorite, pin, is_archived, metadata, created_at, updated_at")
       .eq("user_id", userId)
       .eq("topic_id", topicId)
-      .eq("is_archived", false)
       .order("updated_at", { ascending: false });
 
     if (error) {

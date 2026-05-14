@@ -1,34 +1,78 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Heart, HeartOff, Globe, NotebookPen, Link, Edit2, Trash2, Tag } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  Heart,
+  Globe,
+  Tag,
+  Trash2,
+  Archive,
+  Plus,
+} from "lucide-react";
 
+import { GoalDetailSection } from "@/components/entities/goal-detail-section";
+import { ResourceTable } from "@/components/entities/resource-table";
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useTopic, useNotesForTopic, useResourcesForTopic, useToggleFavoriteTopic, useDeleteTopic } from "@/lib/hooks/use-topics";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  useTopic,
+  useNotesForTopic,
+  useResourcesForTopic,
+  useToggleFavoriteTopic,
+  useDeleteTopic,
+  useUpdateTopic,
+  useArchiveTopic,
+} from "@/lib/hooks/use-topics";
+import { useToggleFavoriteResource, useResources } from "@/lib/hooks/use-resources";
+import { useNotes } from "@/lib/hooks/use-notes";
 import { useAreas } from "@/lib/hooks/use-areas";
-import { useAuth } from "@/components/providers/auth-provider";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 
 export default function TopicDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
-  const userId = user?.id;
   const topicId = params.id as string;
   const { setPageTitle } = useUIStore();
 
+  const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
+  const [noteTab, setNoteTab] = useState("all");
+  const [resourceTab, setResourceTab] = useState("all");
+  const [isLinkNoteOpen, setIsLinkNoteOpen] = useState(false);
+  const [isLinkResourceOpen, setIsLinkResourceOpen] = useState(false);
+  const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
+  const [selectedResourceIds, setSelectedResourceIds] = useState<string[]>([]);
+
   const { data: topic, isLoading: topicLoading } = useTopic(topicId);
-  const { data: notes = [], isLoading: notesLoading } = useNotesForTopic(topicId);
-  const { data: resources = [], isLoading: resourcesLoading } = useResourcesForTopic(topicId);
+  const resolvedTopicId = topic?.id ?? "";
+  const { data: notes = [], isLoading: notesLoading } = useNotesForTopic(resolvedTopicId);
+  const { data: resources = [], isLoading: resourcesLoading } = useResourcesForTopic(resolvedTopicId);
   const { data: areas = [] } = useAreas();
   const toggleFavorite = useToggleFavoriteTopic();
   const deleteTopic = useDeleteTopic();
+  const updateTopic = useUpdateTopic();
+  const archiveTopic = useArchiveTopic();
+  const toggleFavoriteResource = useToggleFavoriteResource();
+  const { data: allNotes = [] } = useNotes({ includeArchived: false });
+  const { data: allResources = [] } = useResources({});
 
   const areaNames = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
 
@@ -52,10 +96,79 @@ export default function TopicDetailPage() {
     }
   };
 
-  const linkedAreaNames = useMemo(() => {
+  const handleArchive = async () => {
+    if (!topic) return;
+    await archiveTopic.mutateAsync(topic.id);
+    router.push("/topics");
+  };
+
+  const handleLinkNotes = async () => {
+    if (!topic || selectedNoteIds.length === 0) return;
+    await updateTopic.mutateAsync({ id: topic.id, input: { note_ids: selectedNoteIds } });
+    setSelectedNoteIds([]);
+    setIsLinkNoteOpen(false);
+  };
+
+  const handleLinkResources = async () => {
+    if (!topic || selectedResourceIds.length === 0) return;
+    await updateTopic.mutateAsync({ id: topic.id, input: { resource_ids: selectedResourceIds } });
+    setSelectedResourceIds([]);
+    setIsLinkResourceOpen(false);
+  };
+
+  const linkedAreas = useMemo(() => {
     if (!topic?.linkedAreaIds) return [];
-    return topic.linkedAreaIds.map((id) => areaNames.get(id)).filter(Boolean) as string[];
-  }, [topic, areaNames]);
+    return topic.linkedAreaIds
+      .map((id) => {
+        const area = areas.find((a) => a.id === id);
+        return area ? { id, name: area.name, icon: (area.icon as string | null | undefined) ?? null } : null;
+      })
+      .filter(Boolean) as { id: string; name: string; icon: string | null }[];
+  }, [topic, areas]);
+
+  const linkedAreaNames = useMemo(() => linkedAreas.map((a) => a.name), [linkedAreas]);
+
+  const linkableNotes = useMemo(() => {
+    if (!topic?.linkedAreaIds?.length) return allNotes;
+    return allNotes.filter((n) => topic.linkedAreaIds!.includes(n.area_id ?? ""));
+  }, [allNotes, topic]);
+
+  const linkableResources = useMemo(() => {
+    if (!topic?.linkedAreaIds?.length) return allResources;
+    return allResources.filter((r) => topic.linkedAreaIds!.includes(r.area_id ?? ""));
+  }, [allResources, topic]);
+
+  const noteTabs = useMemo(() => [
+    { value: "all", label: "All", count: notes.length },
+    { value: "active", label: "Active", count: notes.filter((n) => n.status === "active" && !n.is_archived).length },
+    { value: "archived", label: "Archived", count: notes.filter((n) => n.is_archived).length },
+  ], [notes]);
+
+  const filteredNotes = useMemo(() => {
+    switch (noteTab) {
+      case "active": return notes.filter((n) => n.status === "active" && !n.is_archived);
+      case "archived": return notes.filter((n) => n.is_archived);
+      default: return notes;
+    }
+  }, [notes, noteTab]);
+
+  const resourceTabs = useMemo(() => [
+    { value: "all", label: "All", count: resources.length },
+    { value: "inbox", label: "Inbox", count: resources.filter((r) => r.status === "inbox").length },
+    { value: "to_review", label: "To Review", count: resources.filter((r) => r.status === "to_review").length },
+    { value: "active", label: "Active", count: resources.filter((r) => r.status === "active" && !r.is_archived).length },
+    { value: "archived", label: "Archived", count: resources.filter((r) => r.is_archived).length },
+  ], [resources]);
+
+  const filteredResources = useMemo(() => {
+    switch (resourceTab) {
+      case "inbox": return resources.filter((r) => r.status === "inbox");
+      case "to_review": return resources.filter((r) => r.status === "to_review");
+      case "active": return resources.filter((r) => r.status === "active" && !r.is_archived);
+      case "archived": return resources.filter((r) => r.is_archived);
+      default: return resources;
+    }
+  }, [resources, resourceTab]);
 
   if (topicLoading) {
     return (
@@ -87,178 +200,301 @@ export default function TopicDetailPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon-sm" onClick={() => router.push("/topics")}>
-          <ArrowLeft className="size-4" />
+    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-6"
+          onClick={() => router.push("/topics")}
+        >
+          <ArrowLeft className="size-3.5" />
         </Button>
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center text-xl shrink-0">
-            <Tag className="size-5 text-muted-foreground" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight truncate">{topic.name}</h1>
-              {topic.inactive && (
-                <Badge variant="outline" className="text-xs text-muted-foreground">
-                  Inactive
-                </Badge>
+        <span>/</span>
+        <span>Topics</span>
+        <span>/</span>
+        <span className="text-foreground">{topic.name}</span>
+      </div>
+
+      {/* Header card */}
+      <div className="rounded-xl border bg-card">
+        <div className="flex items-start justify-between gap-4 p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center shrink-0">
+              <Tag className="size-6 text-muted-foreground" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-3xl font-bold tracking-tight">{topic.name}</h1>
+                {topic.inactive && (
+                  <Badge variant="outline" className="text-xs text-muted-foreground">Inactive</Badge>
+                )}
+                {topic.favorite && (
+                  <Heart className="size-4 fill-rose-500 text-rose-500" />
+                )}
+              </div>
+              {linkedAreas.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Globe className="size-3.5 text-muted-foreground" />
+                  {linkedAreas.map((area) => (
+                    <Badge key={area.id} variant="secondary" className="text-xs">
+                      {area.icon ? <span className="mr-0.5 text-[10px] leading-none">{area.icon}</span> : null}
+                      {area.name}
+                    </Badge>
+                  ))}
+                </div>
               )}
             </div>
-            {linkedAreaNames.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                <Globe className="size-3.5 text-muted-foreground" />
-                {linkedAreaNames.map((name) => (
-                  <Badge key={name} variant="secondary" className="text-xs">
-                    {name}
-                  </Badge>
-                ))}
-              </div>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsPropertiesOpen((v) => !v)}
+            className="gap-1 shrink-0"
+          >
+            Properties
+            {isPropertiesOpen ? (
+              <ChevronDownIcon className="size-3.5" />
+            ) : (
+              <ChevronRightIcon className="size-3.5" />
             )}
+          </Button>
+        </div>
+
+        {/* Rollup counts */}
+        <div className="flex flex-wrap items-center gap-4 px-6 pb-4">
+          <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm">
+            <span className="font-medium text-purple-600 dark:text-purple-400">{notes.length}</span>
+            <span className="text-muted-foreground">Notes</span>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm">
+            <span className="font-medium text-orange-600 dark:text-orange-400">{resources.length}</span>
+            <span className="text-muted-foreground">Resources</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleToggleFavorite}
-          >
-            {topic.favorite ? (
-              <>
-                <Heart className="size-4 mr-2 fill-rose-500 text-rose-500" />
-                Favorited
-              </>
-            ) : (
-              <>
-                <HeartOff className="size-4 mr-2" />
-                Favorite
-              </>
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDelete}
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="size-4 mr-2" />
-            Delete
-          </Button>
-        </div>
+
+        {/* Properties panel */}
+        {isPropertiesOpen && (
+          <>
+            <Separator />
+            <div className="space-y-4 p-6">
+              <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Areas</Label>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {linkedAreas.length > 0 ? (
+                      linkedAreas.map((area) => (
+                        <Badge key={area.id} variant="secondary">
+                          {area.icon ? <span className="mr-0.5 text-[10px] leading-none">{area.icon}</span> : null}
+                          {area.name}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Unassigned</span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <p className="mt-1 font-medium">{topic.inactive ? "Inactive" : "Active"}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Favorite</Label>
+                  <p className="mt-1 font-medium">{topic.favorite ? "Yes" : "No"}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-2">
+                <Button variant="outline" size="sm" onClick={handleToggleFavorite}>
+                  <Heart className={cn("size-4 mr-2", topic.favorite && "fill-rose-500 text-rose-500")} />
+                  {topic.favorite ? "Unfavorite" : "Favorite"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { setSelectedNoteIds([]); setIsLinkNoteOpen(true); }}>
+                  <Plus className="size-4 mr-2" />
+                  Link Note
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { setSelectedResourceIds([]); setIsLinkResourceOpen(true); }}>
+                  <Plus className="size-4 mr-2" />
+                  Link Resource
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleArchive} disabled={archiveTopic.isPending}>
+                  <Archive className="size-4 mr-2" />
+                  Archive
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDelete}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="size-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <NotebookPen className="size-4 text-muted-foreground" />
-              Notes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{notes.length}</p>
-            <p className="text-xs text-muted-foreground">Linked notes</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Link className="size-4 text-muted-foreground" />
-              Resources
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{resources.length}</p>
-            <p className="text-xs text-muted-foreground">Linked resources</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Globe className="size-4 text-muted-foreground" />
-              Areas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{linkedAreaNames.length}</p>
-            <p className="text-xs text-muted-foreground">Linked areas</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Notes section */}
+      <GoalDetailSection
+        id="notes"
+        entityType="notes"
+        tabs={noteTabs}
+        activeTab={noteTab}
+        onTabChange={setNoteTab}
+        isLoading={notesLoading}
+        emptyTitle="No linked notes"
+        emptyDescription="Notes linked to this topic will appear here."
+        onCreateNew={() => { setSelectedNoteIds([]); setIsLinkNoteOpen(true); }}
+        createLabel="Link Note"
+      >
+        {filteredNotes.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {filteredNotes.map((note) => (
+              <div
+                key={note.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => router.push(`/notes/${note.slug ?? note.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(`/notes/${note.slug ?? note.id}`);
+                  }
+                }}
+                className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30 cursor-pointer"
+              >
+                <h3 className="truncate font-semibold">{note.name}</h3>
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge variant="secondary" className="text-xs">{note.status}</Badge>
+                  <Badge variant="outline" className="text-xs">{note.type}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </GoalDetailSection>
 
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Linked Notes</h2>
-        <Card>
-          <CardContent className="p-4">
-            {notesLoading ? (
-              <div className="h-32 rounded-xl bg-muted animate-pulse" />
-            ) : notes.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No notes linked to this topic yet
-              </p>
+      {/* Resources section */}
+      <GoalDetailSection
+        id="resources"
+        entityType="resources"
+        tabs={resourceTabs}
+        activeTab={resourceTab}
+        onTabChange={setResourceTab}
+        isLoading={resourcesLoading}
+        emptyTitle="No linked resources"
+        emptyDescription="Resources linked to this topic will appear here."
+        onCreateNew={() => { setSelectedResourceIds([]); setIsLinkResourceOpen(true); }}
+        createLabel="Link Resource"
+      >
+        {filteredResources.length > 0 ? (
+          <ResourceTable
+            resources={filteredResources}
+            onToggleFavorite={(id, favorite) =>
+              toggleFavoriteResource.mutate({ id, favorite })
+            }
+          />
+        ) : null}
+      </GoalDetailSection>
+
+      {/* Link Note dialog */}
+      <Dialog open={isLinkNoteOpen} onOpenChange={(open) => { if (!open) { setIsLinkNoteOpen(false); setSelectedNoteIds([]); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link Note</DialogTitle>
+            <DialogDescription>
+              Select notes to link to this topic.
+              {topic.linkedAreaIds?.length ? " Showing notes from linked areas only." : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-72">
+            {linkableNotes.length === 0 ? (
+              <p className="text-sm text-muted-foreground px-1 py-2">No notes available.</p>
             ) : (
-              <div className="space-y-2">
-                {notes.map((note) => (
-                  <button
+              <div className="flex flex-col gap-1 py-1">
+                {linkableNotes.map((note) => (
+                  <label
                     key={note.id}
-                    type="button"
-                    onClick={() => router.push(`/notes/${note.id}`)}
-                    className="flex w-full items-start gap-3 rounded-lg border border-border/60 px-4 py-3 text-left transition-colors hover:bg-accent/30"
+                    className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted cursor-pointer"
                   >
-                    <NotebookPen className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{note.name}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                        <Badge variant="secondary" className="text-xs">{note.status}</Badge>
-                        {note.notebook && <span>{note.notebook}</span>}
-                        {note.area_id && areaNames.get(note.area_id) && (
-                          <span>{areaNames.get(note.area_id)}</span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
+                    <Checkbox
+                      checked={selectedNoteIds.includes(note.id)}
+                      onCheckedChange={(checked) =>
+                        setSelectedNoteIds((prev) =>
+                          checked ? [...prev, note.id] : prev.filter((id) => id !== note.id)
+                        )
+                      }
+                    />
+                    <span className="text-sm truncate">{note.name}</span>
+                  </label>
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </ScrollArea>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsLinkNoteOpen(false); setSelectedNoteIds([]); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleLinkNotes}
+              disabled={selectedNoteIds.length === 0 || updateTopic.isPending}
+            >
+              Link {selectedNoteIds.length > 0 ? `(${selectedNoteIds.length})` : ""}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        <h2 className="text-lg font-semibold">Linked Resources</h2>
-        <Card>
-          <CardContent className="p-4">
-            {resourcesLoading ? (
-              <div className="h-32 rounded-xl bg-muted animate-pulse" />
-            ) : resources.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No resources linked to this topic yet
-              </p>
+      {/* Link Resource dialog */}
+      <Dialog open={isLinkResourceOpen} onOpenChange={(open) => { if (!open) { setIsLinkResourceOpen(false); setSelectedResourceIds([]); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link Resource</DialogTitle>
+            <DialogDescription>
+              Select resources to link to this topic.
+              {topic.linkedAreaIds?.length ? " Showing resources from linked areas only." : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-72">
+            {linkableResources.length === 0 ? (
+              <p className="text-sm text-muted-foreground px-1 py-2">No resources available.</p>
             ) : (
-              <div className="space-y-2">
-                {resources.map((resource) => (
-                  <a
+              <div className="flex flex-col gap-1 py-1">
+                {linkableResources.map((resource) => (
+                  <label
                     key={resource.id}
-                    href={resource.url ?? "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex w-full items-start gap-3 rounded-lg border border-border/60 px-4 py-3 text-left transition-colors hover:bg-accent/30"
+                    className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted cursor-pointer"
                   >
-                    <Link className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{resource.name}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                        <Badge variant="secondary" className="text-xs">{resource.type}</Badge>
-                        {resource.url && (
-                          <span className="truncate">{new URL(resource.url).hostname}</span>
-                        )}
-                      </div>
-                    </div>
-                  </a>
+                    <Checkbox
+                      checked={selectedResourceIds.includes(resource.id)}
+                      onCheckedChange={(checked) =>
+                        setSelectedResourceIds((prev) =>
+                          checked ? [...prev, resource.id] : prev.filter((id) => id !== resource.id)
+                        )
+                      }
+                    />
+                    <span className="text-sm truncate">{resource.name}</span>
+                  </label>
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </ScrollArea>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsLinkResourceOpen(false); setSelectedResourceIds([]); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleLinkResources}
+              disabled={selectedResourceIds.length === 0 || updateTopic.isPending}
+            >
+              Link {selectedResourceIds.length > 0 ? `(${selectedResourceIds.length})` : ""}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
