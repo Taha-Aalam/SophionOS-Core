@@ -2,7 +2,7 @@
 
 import React, { memo } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, HeartOff, Tag } from "lucide-react";
+import { Heart, HeartOff, Tag, Pencil, Archive, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,18 +12,24 @@ import { cn } from "@/lib/utils";
 interface TopicCardProps {
   topic: TopicWithCounts;
   areaNames?: Map<string, string>;
+  areaIcons?: Map<string, string | null>;
   duplicateIndex?: number;
   onToggleFavorite?: (id: string, favorite: boolean) => void;
   onEdit?: (topic: TopicWithCounts) => void;
+  onArchive?: (topic: TopicWithCounts) => void;
+  onRestore?: (topic: TopicWithCounts) => void;
   compact?: boolean;
 }
 
 const TopicCardComponent = ({
   topic,
   areaNames = new Map(),
+  areaIcons = new Map(),
   duplicateIndex,
   onToggleFavorite,
   onEdit,
+  onArchive,
+  onRestore,
   compact = false,
 }: TopicCardProps) => {
   const router = useRouter();
@@ -61,8 +67,10 @@ const TopicCardComponent = ({
                 {linkedAreas.slice(0, compact ? 1 : 3).map((areaId) => {
                   const areaName = areaNames.get(areaId);
                   if (!areaName) return null;
+                  const icon = areaIcons.get(areaId);
                   return (
                     <Badge key={areaId} variant="secondary" className="text-xs">
+                      {icon ? <span className="mr-0.5 text-[10px] leading-none">{icon}</span> : null}
                       {areaName}
                     </Badge>
                   );
@@ -102,7 +110,33 @@ const TopicCardComponent = ({
                 }}
                 aria-label="Edit topic"
               >
-                <span className="size-4 text-muted-foreground text-sm">✏️</span>
+                <Pencil className="size-4" />
+              </Button>
+            )}
+            {onArchive && !topic.is_archived && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onArchive(topic);
+                }}
+                aria-label="Archive topic"
+              >
+                <Archive className="size-4 text-muted-foreground" />
+              </Button>
+            )}
+            {onRestore && topic.is_archived && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRestore(topic);
+                }}
+                aria-label="Restore topic"
+              >
+                <RotateCcw className="size-4 text-muted-foreground" />
               </Button>
             )}
           </div>
@@ -144,10 +178,12 @@ export const TopicCard = memo(TopicCardComponent, (prev, next) => {
     prev.topic.name === next.topic.name &&
     prev.topic.favorite === next.topic.favorite &&
     prev.topic.inactive === next.topic.inactive &&
+    prev.topic.is_archived === next.topic.is_archived &&
     prev.topic.notesCount === next.topic.notesCount &&
     prev.topic.resourcesCount === next.topic.resourcesCount &&
     prev.duplicateIndex === next.duplicateIndex &&
     prev.areaNames === next.areaNames &&
+    prev.areaIcons === next.areaIcons &&
     prev.compact === next.compact
   );
 });

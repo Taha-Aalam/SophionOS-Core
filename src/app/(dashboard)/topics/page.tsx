@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Tag, FilePlus, Heart, Globe, LayoutGrid, X } from "lucide-react";
+import { Tag, FilePlus, Heart, Globe, LayoutGrid, X, Archive } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,9 @@ import {
   useUpdateTopic,
   useDeleteTopic,
   useToggleFavoriteTopic,
+  useArchiveTopic,
+  useRestoreTopic,
+  useArchivedTopics,
 } from "@/lib/hooks/use-topics";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useNotes } from "@/lib/hooks/use-notes";
@@ -88,16 +91,77 @@ export default function TopicsPage() {
   const updateTopic = useUpdateTopic();
   const deleteTopic = useDeleteTopic();
   const toggleFavorite = useToggleFavoriteTopic();
+  const archiveTopic = useArchiveTopic();
+  const restoreTopic = useRestoreTopic();
+  const { data: archivedTopics = [] } = useArchivedTopics();
 
-  const selectedAreaId = form.area_ids[0] ?? "";
-  const { data: availableNotes = [] } = useNotes(
-    selectedAreaId ? { areaId: selectedAreaId, includeArchived: false } : { includeArchived: false }
-  );
-  const { data: availableResources = [] } = useResources(
-    selectedAreaId ? { areaId: selectedAreaId } : {}
-  );
+  const { data: allNotes = [] } = useNotes({ includeArchived: false });
+  const { data: allResources = [] } = useResources({});
+
+  const availableNotes = useMemo(() => {
+    if (form.resource_ids.length > 0) {
+      const selectedResources = form.resource_ids
+        .map((id) => allResources.find((r) => r.id === id))
+        .filter(Boolean) as typeof allResources;
+      const allowedAreaIds = new Set(selectedResources.map((r) => r.area_id).filter(Boolean) as string[]);
+      const allowedProjectIds = new Set(selectedResources.map((r) => r.project_id).filter(Boolean) as string[]);
+      if (allowedAreaIds.size === 0 && allowedProjectIds.size === 0) return allNotes;
+      return allNotes.filter((n) =>
+        (n.area_id && allowedAreaIds.has(n.area_id)) ||
+        (n.project_id && allowedProjectIds.has(n.project_id))
+      );
+    }
+    if (form.area_ids.length > 0) {
+      return allNotes.filter((n) => form.area_ids.includes(n.area_id ?? ""));
+    }
+    return allNotes;
+  }, [allNotes, allResources, form.resource_ids, form.area_ids]);
+
+  const availableResources = useMemo(() => {
+    if (form.note_ids.length > 0) {
+      const selectedNotes = form.note_ids
+        .map((id) => allNotes.find((n) => n.id === id))
+        .filter(Boolean) as typeof allNotes;
+      const allowedAreaIds = new Set(selectedNotes.map((n) => n.area_id).filter(Boolean) as string[]);
+      const allowedProjectIds = new Set(selectedNotes.map((n) => n.project_id).filter(Boolean) as string[]);
+      if (allowedAreaIds.size === 0 && allowedProjectIds.size === 0) return allResources;
+      return allResources.filter((r) =>
+        (r.area_id && allowedAreaIds.has(r.area_id)) ||
+        (r.project_id && allowedProjectIds.has(r.project_id))
+      );
+    }
+    if (form.area_ids.length > 0) {
+      return allResources.filter((r) => form.area_ids.includes(r.area_id ?? ""));
+    }
+    return allResources;
+  }, [allResources, allNotes, form.note_ids, form.area_ids]);
+
+  const filteredAreas = useMemo(() => {
+    if (form.note_ids.length > 0) {
+      const allowedAreaIds = new Set(
+        form.note_ids
+          .map((id) => availableNotes.find((n) => n.id === id)?.area_id)
+          .filter((id): id is string => Boolean(id))
+      );
+      return allowedAreaIds.size > 0 ? areas.filter((a) => allowedAreaIds.has(a.id)) : areas;
+    }
+    if (form.resource_ids.length > 0) {
+      const allowedAreaIds = new Set(
+        form.resource_ids
+          .map((id) => availableResources.find((r) => r.id === id)?.area_id)
+          .filter((id): id is string => Boolean(id))
+      );
+      return allowedAreaIds.size > 0 ? areas.filter((a) => allowedAreaIds.has(a.id)) : areas;
+    }
+    return areas;
+  }, [areas, form.note_ids, form.resource_ids, availableNotes, availableResources]);
 
   const areaNames = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
+
+  const areaIcons = useMemo(
+    () => new Map(areas.map((a) => [a.id, (a.icon as string | null | undefined) ?? null])),
+    [areas]
+  );
 
   const activeTopics = useMemo(
     () => topics.filter((t) => !t.inactive),
@@ -216,6 +280,14 @@ export default function TopicsPage() {
     }
   };
 
+  const handleArchive = (topic: TopicWithCounts) => {
+    archiveTopic.mutate(topic.id);
+  };
+
+  const handleRestore = (topic: TopicWithCounts) => {
+    restoreTopic.mutate(topic.id);
+  };
+
   const handleAreaToggle = (areaId: string) => {
     setForm((prev) => ({
       ...prev,
@@ -276,9 +348,11 @@ export default function TopicsPage() {
             key={topic.id}
             topic={topic}
             areaNames={areaNames}
+            areaIcons={areaIcons}
             duplicateIndex={duplicateIndices.get(topic.id)}
             onToggleFavorite={handleToggleFavorite}
             onEdit={handleEdit}
+            onArchive={handleArchive}
           />
         ))}
       </div>
@@ -330,6 +404,11 @@ export default function TopicsPage() {
             <LayoutGrid className="mr-1 size-3" />
             All
             {countLabel(topics.length)}
+          </TabsTrigger>
+          <TabsTrigger value="archived" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Archive className="mr-1 size-3" />
+            Archived
+            {countLabel(archivedTopics.length)}
           </TabsTrigger>
           
         </TabsList>
@@ -387,6 +466,7 @@ export default function TopicsPage() {
                         key={topic.id}
                         topic={topic}
                         areaNames={areaNames}
+                        areaIcons={areaIcons}
                         duplicateIndex={duplicateIndices.get(topic.id)}
                         onToggleFavorite={handleToggleFavorite}
                         onEdit={handleEdit}
@@ -406,6 +486,35 @@ export default function TopicsPage() {
             "No topics yet",
             "Create your first topic to get started",
             () => setIsCreateOpen(true)
+          )}
+        </TabsContent>
+
+        {/* Archived */}
+        <TabsContent value="archived" className="mt-4">
+          {isLoading ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => <TopicCardSkeleton key={i} />)}
+            </div>
+          ) : archivedTopics.length === 0 ? (
+            <EmptyState
+              icon={Archive}
+              title="No archived topics"
+              description="Archived topics will appear here"
+            />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {archivedTopics.map((topic) => (
+                <TopicCard
+                  key={topic.id}
+                  topic={topic}
+                  areaNames={areaNames}
+                  areaIcons={areaIcons}
+                  duplicateIndex={duplicateIndices.get(topic.id)}
+                  onToggleFavorite={handleToggleFavorite}
+                  onRestore={handleRestore}
+                />
+              ))}
+            </div>
           )}
         </TabsContent>
 
@@ -453,19 +562,28 @@ export default function TopicsPage() {
                         Clear selection
                       </DropdownMenuItem>
                       <ScrollArea className="max-h-56">
-                        {areas.map((area) => {
-                          const isSelected = form.area_ids.includes(area.id);
-                          return (
-                            <DropdownMenuItem
-                              key={area.id}
-                              onClick={() => handleAreaToggle(area.id)}
-                              className="flex items-center gap-2"
-                            >
-                              <Checkbox checked={isSelected} />
-                              {area.name}
-                            </DropdownMenuItem>
-                          );
-                        })}
+                        {filteredAreas.length === 0 ? (
+                          <p className="text-sm text-muted-foreground px-2 py-1.5">
+                            {form.note_ids.length > 0 || form.resource_ids.length > 0
+                              ? "No areas match selected items"
+                              : "No areas available"}
+                          </p>
+                        ) : (
+                          filteredAreas.map((area) => {
+                            const isSelected = form.area_ids.includes(area.id);
+                            return (
+                              <DropdownMenuItem
+                                key={area.id}
+                                onSelect={(e) => e.preventDefault()}
+                                onClick={() => handleAreaToggle(area.id)}
+                                className="flex items-center gap-2"
+                              >
+                                <Checkbox checked={isSelected} readOnly />
+                                {area.name}
+                              </DropdownMenuItem>
+                            );
+                          })
+                        )}
                       </ScrollArea>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -507,16 +625,17 @@ export default function TopicsPage() {
                       <ScrollArea className="max-h-56">
                         {availableNotes.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                            {selectedAreaId ? "No notes in selected area." : "No notes available."}
+                            No notes available.
                           </div>
                         ) : (
                           availableNotes.map((note) => (
                             <DropdownMenuItem
                               key={note.id}
+                              onSelect={(e) => e.preventDefault()}
                               onClick={() => handleNoteToggle(note.id)}
                               className="flex items-center gap-2"
                             >
-                              <Checkbox checked={form.note_ids.includes(note.id)} />
+                              <Checkbox checked={form.note_ids.includes(note.id)} readOnly />
                               <span className="truncate">{note.name}</span>
                             </DropdownMenuItem>
                           ))
@@ -559,16 +678,17 @@ export default function TopicsPage() {
                       <ScrollArea className="max-h-56">
                         {availableResources.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                            {selectedAreaId ? "No resources in selected area." : "No resources available."}
+                            No resources available.
                           </div>
                         ) : (
                           availableResources.map((resource) => (
                             <DropdownMenuItem
                               key={resource.id}
+                              onSelect={(e) => e.preventDefault()}
                               onClick={() => handleResourceToggle(resource.id)}
                               className="flex items-center gap-2"
                             >
-                              <Checkbox checked={form.resource_ids.includes(resource.id)} />
+                              <Checkbox checked={form.resource_ids.includes(resource.id)} readOnly />
                               <span className="truncate">{resource.name}</span>
                             </DropdownMenuItem>
                           ))
