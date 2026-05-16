@@ -167,6 +167,42 @@ export function useCompleteTask() {
   });
 }
 
+export function useUncompleteTask() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => taskService.uncomplete(user!.id, id),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: [TASKS_QUERY_KEY] });
+      const previousData = queryClient.getQueriesData<Task[]>({ queryKey: [TASKS_QUERY_KEY] });
+
+      queryClient.setQueriesData<Task[]>({ queryKey: [TASKS_QUERY_KEY] }, (old) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((task) =>
+          task.id === id
+            ? { ...task, completed_at: null, is_completed: false }
+            : task,
+        );
+      });
+
+      return { previousData };
+    },
+    onError: (_error, _id, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      toast.error("Failed to restore task");
+    },
+    onSettled: async () => {
+      await invalidateTaskGraph(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
+    },
+  });
+}
+
 export function useFocusTask() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
