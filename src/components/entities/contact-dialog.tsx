@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { X } from "lucide-react";
+import { toast } from "sonner";
 
 import { Contact } from "@/lib/types/domain.types";
+import { useAuth } from "@/components/providers/auth-provider";
+import { CONTACT_GROUPS } from "@/lib/constants/contact-groups";
+import { contactService } from "@/lib/services/contact.service";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
-import { useQuery } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
+import { useContactRelationshipOptions } from "@/lib/hooks/use-contact-relationship-options";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,22 +42,20 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-const CONTACT_GROUPS = [
-  "Client",
-  "Team Member",
-  "Vendor",
-  "Mentor",
-  "Collaborator",
-  "Partner",
-];
+export interface ContactDialogDefaults {
+  group?: string;
+  area_ids?: string[];
+  goal_ids?: string[];
+  project_ids?: string[];
+  task_ids?: string[];
+}
 
 interface ContactDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contact?: Contact | null;
+  defaults?: ContactDialogDefaults;
   onSubmit?: (values: ContactFormValues) => void;
-  /** When true, phone and email are required fields. */
-  requireContactDetails?: boolean;
 }
 
 interface ContactFormValues {
@@ -66,6 +67,7 @@ interface ContactFormValues {
   email: string;
   linkedin: string;
   website: string;
+  image_url: string;
   follow_up_interval_days: string;
   notes: string;
   area_ids: string[];
@@ -83,6 +85,7 @@ const EMPTY_FORM_VALUES: ContactFormValues = {
   email: "",
   linkedin: "",
   website: "",
+  image_url: "",
   follow_up_interval_days: "14",
   notes: "",
   area_ids: [],
@@ -107,6 +110,7 @@ function buildContactFormValues(contact: Contact | null | undefined): ContactFor
     email: contact.email ?? "",
     linkedin: contact.linkedin ?? "",
     website: contact.website ?? "",
+    image_url: contact.image_url ?? "",
     follow_up_interval_days: intervalStr,
     notes: contact.notes ?? "",
     area_ids: contact.linkedAreaIds ?? [],
@@ -116,230 +120,114 @@ function buildContactFormValues(contact: Contact | null | undefined): ContactFor
   };
 }
 
+function mergeContactFormDefaults(defaults?: ContactDialogDefaults): ContactFormValues {
+  return {
+    ...EMPTY_FORM_VALUES,
+    ...defaults,
+    area_ids: defaults?.area_ids ?? [],
+    goal_ids: defaults?.goal_ids ?? [],
+    project_ids: defaults?.project_ids ?? [],
+    task_ids: defaults?.task_ids ?? [],
+  };
+}
+
 export function ContactDialog({
   open,
   onOpenChange,
   contact,
+  defaults,
   onSubmit,
-  requireContactDetails = false,
 }: ContactDialogProps) {
   const form = useForm<ContactFormValues>({
     defaultValues: EMPTY_FORM_VALUES,
   });
+
+  const { user } = useAuth();
+  const [isUploading, setIsUploading] = useState(false);
+  const [isRemovingImage, setIsRemovingImage] = useState(false);
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUploadPreview(contact?.image_url ?? null);
+  }, [contact?.image_url]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const tempId = contact?.id ?? crypto.randomUUID();
+      const url = await contactService.uploadContactImage(user!.id, tempId, file);
+      form.setValue("image_url", url);
+      setUploadPreview(url);
+    } catch {
+      toast.error("Failed to upload image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    if (!uploadPreview) return;
+
+    try {
+      setIsRemovingImage(true);
+      await contactService.deleteContactImage(uploadPreview);
+      form.setValue("image_url", "");
+      setUploadPreview(null);
+      toast.success("Profile image removed");
+    } catch {
+      toast.error("Failed to remove image");
+    } finally {
+      setIsRemovingImage(false);
+    }
+  };
 
   const { data: allAreas = [] } = useAreas();
   const { data: allGoals = [] } = useGoals({ status: "all" });
   const { data: allProjects = [] } = useProjects({ status: "all" });
   const { data: allTasks = [] } = useTasks();
 
-  const { data: goalProjectRelations = [], isLoading: isLoadingGPRelations } = useQuery({
-    queryKey: ["goal-project-relations"],
-    queryFn: async () => {
-      const { data } = await createClient().from("goal_projects").select("goal_id, project_id");
-      return data ?? [];
-    },
-    enabled: open,
-  });
-
-  const { data: goalTaskRelations = [], isLoading: isLoadingGTRelations } = useQuery({
-    queryKey: ["goal-task-relations"],
-    queryFn: async () => {
-      const { data } = await createClient().from("goal_tasks").select("goal_id, task_id");
-      return data ?? [];
-    },
-    enabled: open,
-  });
-
-  const isRelationsLoading = isLoadingGPRelations || isLoadingGTRelations;
-
-  const activeAreas = allAreas.filter((a) => !a.archive);
-  const activeGoals = allGoals.filter((g) => !g.is_archived);
-  const activeProjects = allProjects.filter((p) => !p.is_archived);
-
   const areaIds: string[] = form.watch("area_ids") ?? [];
   const goalIds: string[] = form.watch("goal_ids") ?? [];
   const projectIds: string[] = form.watch("project_ids") ?? [];
   const taskIds: string[] = form.watch("task_ids") ?? [];
 
-  const goalProjectIdsMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const row of goalProjectRelations) {
-      const current = map.get(row.goal_id) ?? [];
-      current.push(row.project_id);
-      map.set(row.goal_id, current);
-    }
-    return map;
-  }, [goalProjectRelations]);
+  const {
+    visibleAreas,
+    filteredGoals,
+    filteredProjects,
+    filteredTasks,
+    isRelationsLoading,
+    cleanSelections,
+  } = useContactRelationshipOptions({
+    allAreas,
+    allGoals,
+    allProjects,
+    allTasks,
+    selectedAreaIds: areaIds,
+    selectedGoalIds: goalIds,
+    selectedProjectIds: projectIds,
+    selectedTaskIds: taskIds,
+    enabled: open,
+  });
 
-  const projectGoalIdsMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const row of goalProjectRelations) {
-      const current = map.get(row.project_id) ?? [];
-      current.push(row.goal_id);
-      map.set(row.project_id, current);
-    }
-    return map;
-  }, [goalProjectRelations]);
+  const activeAreas = allAreas.filter((a) => !a.archive);
+  const activeGoals = allGoals.filter((g) => !g.is_archived);
+  const activeProjects = allProjects.filter((p) => !p.is_archived);
 
-  const goalTaskIdsMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const row of goalTaskRelations) {
-      const current = map.get(row.goal_id) ?? [];
-      current.push(row.task_id);
-      map.set(row.goal_id, current);
-    }
-    return map;
-  }, [goalTaskRelations]);
-
-  const taskGoalIdsMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const row of goalTaskRelations) {
-      const current = map.get(row.task_id) ?? [];
-      current.push(row.goal_id);
-      map.set(row.task_id, current);
-    }
-    return map;
-  }, [goalTaskRelations]);
-
-  const selectedTasks = useMemo(
-    () => allTasks.filter((t) => taskIds.includes(t.id)),
-    [taskIds, allTasks],
-  );
-
-  const selectedGoals = useMemo(
-    () => allGoals.filter((g) => goalIds.includes(g.id)),
-    [goalIds, allGoals],
-  );
-
-  const selectedProjects = useMemo(
-    () => activeProjects.filter((p) => projectIds.includes(p.id)),
-    [projectIds, activeProjects],
-  );
-
-  const visibleAreas = useMemo(() => {
-    if (taskIds.length > 0) {
-      const taskAreaIds = new Set(
-        selectedTasks.flatMap((t) => t.linkedAreaIds ?? (t.area_id ? [t.area_id] : [])),
-      );
-      return activeAreas.filter((a) => taskAreaIds.has(a.id));
-    }
-    if (goalIds.length > 0) {
-      const goalAreaIds = new Set(
-        selectedGoals.flatMap((g) => g.linkedAreaIds ?? (g.area_id ? [g.area_id] : [])),
-      );
-      return activeAreas.filter((a) => goalAreaIds.has(a.id));
-    }
-    if (projectIds.length > 0) {
-      const projectAreaIds = new Set(
-        selectedProjects.flatMap((p) => p.linkedAreaIds ?? (p.area_id ? [p.area_id] : [])),
-      );
-      return activeAreas.filter((a) => projectAreaIds.has(a.id));
-    }
-    return activeAreas;
-  }, [activeAreas, taskIds, goalIds, projectIds, selectedTasks, selectedGoals, selectedProjects]);
-
-  const filteredProjects = useMemo(() => {
-    if (taskIds.length > 0) {
-      const taskProjectIds = new Set(
-        selectedTasks.map((t) => t.project_id).filter(Boolean) as string[],
-      );
-      return activeProjects.filter((p) => taskProjectIds.has(p.id));
-    }
-    if (goalIds.length > 0) {
-      const linkedProjectIds = new Set<string>();
-      for (const goalId of goalIds) {
-        (goalProjectIdsMap.get(goalId) ?? []).forEach((id) => linkedProjectIds.add(id));
-      }
-      return activeProjects.filter((p) => linkedProjectIds.has(p.id));
-    }
-    if (areaIds.length > 0) {
-      const selectedAreaIds = new Set(areaIds);
-      return activeProjects.filter((p) => {
-        const projectAreaIds = new Set(p.linkedAreaIds ?? (p.area_id ? [p.area_id] : []));
-        return Array.from(selectedAreaIds).some((id) => projectAreaIds.has(id));
-      });
-    }
-    return activeProjects;
-  }, [activeProjects, taskIds, goalIds, areaIds, selectedTasks, goalProjectIdsMap]);
-
-  const filteredGoals = useMemo(() => {
-    if (taskIds.length > 0) {
-      const linkedGoalIds = new Set<string>();
-      for (const taskId of taskIds) {
-        (taskGoalIdsMap.get(taskId) ?? []).forEach((id) => linkedGoalIds.add(id));
-      }
-      for (const task of selectedTasks) {
-        if (task.project_id) {
-          (projectGoalIdsMap.get(task.project_id) ?? []).forEach((id) => linkedGoalIds.add(id));
-        }
-      }
-      return activeGoals.filter((g) => linkedGoalIds.has(g.id));
-    }
-    if (projectIds.length > 0) {
-      const linkedGoalIds = new Set<string>();
-      for (const projectId of projectIds) {
-        (projectGoalIdsMap.get(projectId) ?? []).forEach((id) => linkedGoalIds.add(id));
-      }
-      return activeGoals.filter((g) => linkedGoalIds.has(g.id));
-    }
-    if (areaIds.length > 0) {
-      const selectedAreaIds = new Set(areaIds);
-      return activeGoals.filter((g) => {
-        const goalAreaIds = new Set(g.linkedAreaIds ?? (g.area_id ? [g.area_id] : []));
-        return Array.from(selectedAreaIds).some((id) => goalAreaIds.has(id));
-      });
-    }
-    return activeGoals;
-  }, [activeGoals, taskIds, projectIds, areaIds, selectedTasks, taskGoalIdsMap, projectGoalIdsMap]);
-
-  const filteredTasks = useMemo(() => {
-    if (goalIds.length > 0) {
-      const linkedTaskIds = new Set<string>();
-      for (const goalId of goalIds) {
-        (goalTaskIdsMap.get(goalId) ?? []).forEach((id) => linkedTaskIds.add(id));
-      }
-      return allTasks.filter((t) => linkedTaskIds.has(t.id));
-    }
-    if (projectIds.length > 0) {
-      return allTasks.filter((t) => t.project_id != null && projectIds.includes(t.project_id));
-    }
-    if (areaIds.length > 0) {
-      const selectedAreaIds = new Set(areaIds);
-      return allTasks.filter((t) => {
-        const taskAreaIds = new Set(t.linkedAreaIds ?? (t.area_id ? [t.area_id] : []));
-        return Array.from(selectedAreaIds).some((id) => taskAreaIds.has(id));
-      });
-    }
-    return allTasks;
-  }, [allTasks, goalIds, projectIds, areaIds, goalTaskIdsMap]);
-
+  // Clean up invalid selections when filters change
   useEffect(() => {
     if (isRelationsLoading) return;
-    const valid = areaIds.filter((id) => visibleAreas.some((a) => a.id === id));
-    if (valid.length !== areaIds.length) form.setValue("area_ids", valid);
+    const cleaned = cleanSelections();
+    if (!cleaned.changed) return;
+    if (cleaned.areaIds.length !== areaIds.length) form.setValue("area_ids", cleaned.areaIds);
+    if (cleaned.goalIds.length !== goalIds.length) form.setValue("goal_ids", cleaned.goalIds);
+    if (cleaned.projectIds.length !== projectIds.length) form.setValue("project_ids", cleaned.projectIds);
+    if (cleaned.taskIds.length !== taskIds.length) form.setValue("task_ids", cleaned.taskIds);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleAreas, isRelationsLoading]);
-
-  useEffect(() => {
-    if (isRelationsLoading) return;
-    const valid = projectIds.filter((id) => filteredProjects.some((p) => p.id === id));
-    if (valid.length !== projectIds.length) form.setValue("project_ids", valid);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredProjects, isRelationsLoading]);
-
-  useEffect(() => {
-    if (isRelationsLoading) return;
-    const valid = goalIds.filter((id) => filteredGoals.some((g) => g.id === id));
-    if (valid.length !== goalIds.length) form.setValue("goal_ids", valid);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredGoals, isRelationsLoading]);
-
-  useEffect(() => {
-    if (isRelationsLoading) return;
-    const valid = taskIds.filter((id) => filteredTasks.some((t) => t.id === id));
-    if (valid.length !== taskIds.length) form.setValue("task_ids", valid);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredTasks, isRelationsLoading]);
+  }, [visibleAreas, filteredGoals, filteredProjects, filteredTasks, isRelationsLoading]);
 
   const toggleId = (
     field: "area_ids" | "goal_ids" | "project_ids" | "task_ids",
@@ -352,23 +240,21 @@ export function ContactDialog({
 
   useEffect(() => {
     if (!open) return;
-    form.reset(buildContactFormValues(contact));
-  }, [open, contact, form]);
+    form.reset(contact ? buildContactFormValues(contact) : mergeContactFormDefaults(defaults));
+  }, [open, contact, defaults, form]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     form.clearErrors();
-    if (requireContactDetails) {
-      let hasError = false;
-      if (!values.phone.trim()) {
-        form.setError("phone", { message: "Phone is required" });
-        hasError = true;
-      }
-      if (!values.email.trim()) {
-        form.setError("email", { message: "Email is required" });
-        hasError = true;
-      }
-      if (hasError) return;
+    let hasError = false;
+    if (!values.phone.trim()) {
+      form.setError("phone", { message: "Phone is required" });
+      hasError = true;
     }
+    if (!values.email.trim()) {
+      form.setError("email", { message: "Email is required" });
+      hasError = true;
+    }
+    if (hasError) return;
     onSubmit?.(values);
     onOpenChange(false);
   });
@@ -433,7 +319,7 @@ export function ContactDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <FormItem>
-                <FormLabel>{requireContactDetails ? "Phone *" : "Phone"}</FormLabel>
+                <FormLabel>Phone *</FormLabel>
                 <FormControl>
                   <Input type="tel" placeholder="+1 555 000 0000" {...form.register("phone")} />
                 </FormControl>
@@ -441,7 +327,7 @@ export function ContactDialog({
               </FormItem>
 
               <FormItem>
-                <FormLabel>{requireContactDetails ? "Email *" : "Email"}</FormLabel>
+                <FormLabel>Email *</FormLabel>
                 <FormControl>
                   <Input type="email" placeholder="email@example.com" {...form.register("email")} />
                 </FormControl>
@@ -511,10 +397,13 @@ export function ContactDialog({
                           visibleAreas.map((area) => (
                             <DropdownMenuItem
                               key={area.id}
-                              onClick={() => toggleId("area_ids", area.id)}
+                              onSelect={(e) => e.preventDefault()}
                               className="flex items-center gap-2"
                             >
-                              <Checkbox checked={areaIds.includes(area.id)} />
+                              <Checkbox
+                                checked={areaIds.includes(area.id)}
+                                onCheckedChange={() => toggleId("area_ids", area.id)}
+                              />
                               {area.icon ? `${area.icon} ` : ""}
                               {area.name}
                             </DropdownMenuItem>
@@ -565,10 +454,13 @@ export function ContactDialog({
                           filteredGoals.map((goal) => (
                             <DropdownMenuItem
                               key={goal.id}
-                              onClick={() => toggleId("goal_ids", goal.id)}
+                              onSelect={(e) => e.preventDefault()}
                               className="flex items-center gap-2"
                             >
-                              <Checkbox checked={goalIds.includes(goal.id)} />
+                              <Checkbox
+                                checked={goalIds.includes(goal.id)}
+                                onCheckedChange={() => toggleId("goal_ids", goal.id)}
+                              />
                               {goal.name}
                             </DropdownMenuItem>
                           ))
@@ -620,10 +512,13 @@ export function ContactDialog({
                           filteredProjects.map((project) => (
                             <DropdownMenuItem
                               key={project.id}
-                              onClick={() => toggleId("project_ids", project.id)}
+                              onSelect={(e) => e.preventDefault()}
                               className="flex items-center gap-2"
                             >
-                              <Checkbox checked={projectIds.includes(project.id)} />
+                              <Checkbox
+                                checked={projectIds.includes(project.id)}
+                                onCheckedChange={() => toggleId("project_ids", project.id)}
+                              />
                               {project.name}
                             </DropdownMenuItem>
                           ))
@@ -672,10 +567,13 @@ export function ContactDialog({
                           filteredTasks.map((task) => (
                             <DropdownMenuItem
                               key={task.id}
-                              onClick={() => toggleId("task_ids", task.id)}
+                              onSelect={(e) => e.preventDefault()}
                               className="flex items-center gap-2"
                             >
-                              <Checkbox checked={taskIds.includes(task.id)} />
+                              <Checkbox
+                                checked={taskIds.includes(task.id)}
+                                onCheckedChange={() => toggleId("task_ids", task.id)}
+                              />
                               {task.name}
                             </DropdownMenuItem>
                           ))
@@ -713,11 +611,53 @@ export function ContactDialog({
               </FormControl>
             </FormItem>
 
+            <FormItem>
+              <FormLabel>Profile Image</FormLabel>
+              <FormControl>
+                <div className="flex flex-col gap-2">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handleFileChange}
+                    disabled={isUploading}
+                    className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-muted/80 disabled:opacity-50"
+                  />
+                  {isUploading && (
+                    <p className="text-xs text-muted-foreground">Uploading…</p>
+                  )}
+                  {uploadPreview && !isUploading && (
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 overflow-hidden rounded-full bg-muted shrink-0">
+                        <img
+                          src={uploadPreview}
+                          alt="Preview"
+                          className="size-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground">Image preview</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRemoveImage}
+                          disabled={isUploading || isRemovingImage}
+                        >
+                          Remove Image
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </FormControl>
+            </FormItem>
+
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={isUploading || isRemovingImage}>
                 {contact ? "Update Contact" : "Create Contact"}
               </Button>
             </div>
