@@ -25,6 +25,8 @@ interface AreaCardProps {
   isRestoring?: boolean;
   onDelete?: (area: Area) => void;
   isDeleting?: boolean;
+  /** When provided, appended as ?returnTo= to the area detail navigation. */
+  returnTo?: string | null;
 }
 
 const AREA_TYPE_COLORS: Record<string, string> = {
@@ -48,9 +50,18 @@ const AreaCardComponent = ({
   isRestoring = false,
   onDelete,
   isDeleting = false,
+  returnTo,
 }: AreaCardProps) => {
   const router = useRouter();
   const isArchived = area.archive;
+
+  const areaHref = (() => {
+    const base = `/areas/${area.slug || area.id}`;
+    if (returnTo) {
+      return `${base}?returnTo=${encodeURIComponent(returnTo)}`;
+    }
+    return base;
+  })();
   const isInactive = area.inactive;
   const areaType = normalizeAreaType(area.type);
 
@@ -60,7 +71,7 @@ const AreaCardComponent = ({
         "cursor-pointer transition-all hover:ring-2 hover:ring-primary/20",
         isArchived && "opacity-60 grayscale"
       )}
-      onClick={() => !isArchived && router.push(`/areas/${area.slug || area.id}`)}
+      onClick={() => !isArchived && router.push(areaHref)}
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
@@ -233,6 +244,7 @@ export const AreaCard = memo(AreaCardComponent, (prevProps, nextProps) => {
     prevProps.duplicateIndex === nextProps.duplicateIndex &&
     prevProps.isArchiving === nextProps.isArchiving &&
     prevProps.isRestoring === nextProps.isRestoring &&
-    prevProps.isDeleting === nextProps.isDeleting
+    prevProps.isDeleting === nextProps.isDeleting &&
+    prevProps.returnTo === nextProps.returnTo
   );
 });
