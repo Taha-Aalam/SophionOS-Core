@@ -47,6 +47,18 @@ describe("isValidReturnTo", () => {
     expect(isValidReturnTo("/resources")).toBe(true);
   });
 
+  it("accepts /contacts", () => {
+    expect(isValidReturnTo("/contacts")).toBe(true);
+  });
+
+  it("accepts /contacts/slug", () => {
+    expect(isValidReturnTo("/contacts/john-doe")).toBe(true);
+  });
+
+  it("rejects /contacts/new", () => {
+    expect(isValidReturnTo("/contacts/new")).toBe(false);
+  });
+
   it("rejects /areas/new", () => {
     expect(isValidReturnTo("/areas/new")).toBe(false);
   });
@@ -211,6 +223,16 @@ describe("resolveGoalDetailNavigation", () => {
 
     expect(resolveGoalDetailNavigation(params, "/goals/my-goal")).toEqual({
       breadcrumbTarget: "/projects/my-project",
+      nestedReturnTo: "/goals/my-goal",
+    });
+  });
+
+  it("uses contact returnTo for breadcrumbs when navigating from contact detail", () => {
+    const params = new URLSearchParams();
+    params.set("returnTo", encodeReturnTo("/contacts/john-doe"));
+
+    expect(resolveGoalDetailNavigation(params, "/goals/my-goal")).toEqual({
+      breadcrumbTarget: "/contacts/john-doe",
       nestedReturnTo: "/goals/my-goal",
     });
   });
