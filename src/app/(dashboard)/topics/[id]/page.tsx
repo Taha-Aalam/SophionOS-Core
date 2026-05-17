@@ -139,34 +139,42 @@ export default function TopicDetailPage() {
   }, [allResources, topic]);
 
   const noteTabs = useMemo(() => [
-    { value: "all", label: "All", count: notes.length },
+    { value: "all", label: "All", count: notes.filter((n) => !n.is_archived).length },
+    { value: "inbox", label: "Inbox", count: notes.filter((n) => n.status === "inbox" && !n.is_archived).length },
+    { value: "to_review", label: "To Review", count: notes.filter((n) => n.status === "to_review" && !n.is_archived).length },
     { value: "active", label: "Active", count: notes.filter((n) => n.status === "active" && !n.is_archived).length },
+    { value: "saved", label: "Saved", count: notes.filter((n) => n.status === "saved" && !n.is_archived).length },
     { value: "archived", label: "Archived", count: notes.filter((n) => n.is_archived).length },
   ], [notes]);
 
   const filteredNotes = useMemo(() => {
     switch (noteTab) {
+      case "inbox": return notes.filter((n) => n.status === "inbox" && !n.is_archived);
+      case "to_review": return notes.filter((n) => n.status === "to_review" && !n.is_archived);
       case "active": return notes.filter((n) => n.status === "active" && !n.is_archived);
+      case "saved": return notes.filter((n) => n.status === "saved" && !n.is_archived);
       case "archived": return notes.filter((n) => n.is_archived);
-      default: return notes;
+      default: return notes.filter((n) => !n.is_archived);
     }
   }, [notes, noteTab]);
 
   const resourceTabs = useMemo(() => [
-    { value: "all", label: "All", count: resources.length },
-    { value: "inbox", label: "Inbox", count: resources.filter((r) => r.status === "inbox").length },
-    { value: "to_review", label: "To Review", count: resources.filter((r) => r.status === "to_review").length },
+    { value: "all", label: "All", count: resources.filter((r) => !r.is_archived).length },
+    { value: "inbox", label: "Inbox", count: resources.filter((r) => r.status === "inbox" && !r.is_archived).length },
+    { value: "to_review", label: "To Review", count: resources.filter((r) => r.status === "to_review" && !r.is_archived).length },
     { value: "active", label: "Active", count: resources.filter((r) => r.status === "active" && !r.is_archived).length },
+    { value: "saved", label: "Saved", count: resources.filter((r) => r.status === "saved" && !r.is_archived).length },
     { value: "archived", label: "Archived", count: resources.filter((r) => r.is_archived).length },
   ], [resources]);
 
   const filteredResources = useMemo(() => {
     switch (resourceTab) {
-      case "inbox": return resources.filter((r) => r.status === "inbox");
-      case "to_review": return resources.filter((r) => r.status === "to_review");
+      case "inbox": return resources.filter((r) => r.status === "inbox" && !r.is_archived);
+      case "to_review": return resources.filter((r) => r.status === "to_review" && !r.is_archived);
       case "active": return resources.filter((r) => r.status === "active" && !r.is_archived);
+      case "saved": return resources.filter((r) => r.status === "saved" && !r.is_archived);
       case "archived": return resources.filter((r) => r.is_archived);
-      default: return resources;
+      default: return resources.filter((r) => !r.is_archived);
     }
   }, [resources, resourceTab]);
 
