@@ -15,7 +15,7 @@ import {
 import { ContactCard } from "@/components/entities/contact-card";
 import { ContactDialog } from "@/components/entities/contact-dialog";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
-import { GoalCard } from "@/components/entities/goal-card";
+import { GoalCard, type GoalCardRollups } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
@@ -38,6 +38,10 @@ import {
   useCreateContact,
   useLinkContactToArea,
   useUnlinkContactFromArea,
+  useToggleContactFavorite,
+  useArchiveContact,
+  useDeleteContact,
+  useUpdateContact,
 } from "@/lib/hooks/use-contacts";
 import { useAreaDetail } from "@/lib/hooks/use-area-detail";
 import { useArchiveArea, useRestoreArea, useUpdateArea } from "@/lib/hooks/use-areas";
@@ -52,12 +56,21 @@ import {
   useUpdateResource,
 } from "@/lib/hooks/use-resources";
 import { type Contact, type CreateResourceInput, type Resource, type Task } from "@/lib/types/domain.types";
-import { RESOURCE_STATUS } from "@/lib/utils/constants";
+import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { buildReturnTo, encodeReturnTo, getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
+import { buildProjectTaskStats } from "@/lib/utils/projects";
+
+const NOTE_STATUS_COLORS: Record<string, string> = {
+  [NOTE_STATUS.INBOX]: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  [NOTE_STATUS.TO_REVIEW]: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+  [NOTE_STATUS.ACTIVE]: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  [NOTE_STATUS.SAVED]: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  [NOTE_STATUS.ARCHIVE]: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+};
 
 const AREA_TYPE_COLORS: Record<string, string> = {
   Business: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
@@ -91,6 +104,8 @@ export default function AreaDetailPage() {
   const [resourceTab, setResourceTab] = useState("all");
   const [contactTab, setContactTab] = useState("all");
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
+  const [isEditContactOpen, setIsEditContactOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
@@ -105,7 +120,7 @@ export default function AreaDetailPage() {
   const resourcesRef = useRef<HTMLDivElement>(null);
   const peopleRef = useRef<HTMLDivElement>(null);
 
-  const { data: areaData, isLoading } = useAreaDetail(areaIdentifier);
+  const { data: areaData, isLoading, refetch: refetchAreaDetail } = useAreaDetail(areaIdentifier);
   const { data: allContacts = [] } = useContacts();
 
   const archiveArea = useArchiveArea(userId);
@@ -120,11 +135,34 @@ export default function AreaDetailPage() {
   const createResource = useCreateResource();
   const updateResource = useUpdateResource();
   const toggleFavoriteResource = useToggleFavoriteResource();
+  const toggleContactFavorite = useToggleContactFavorite();
+  const archiveContact = useArchiveContact();
+  const deleteContact = useDeleteContact();
+  const updateContact = useUpdateContact();
 
   const area = areaData?.area;
   const { data: areaContactLinks = [] } = useContactByArea(area?.id ?? "");
   const rollups = areaData?.rollups ?? { goalCount: 0, projectCount: 0, taskCount: 0, noteCount: 0, resourceCount: 0 };
   const linkedResources = useMemo(() => areaData?.resources ?? [], [areaData?.resources]);
+
+  const projectTaskStats = useMemo(
+    () => buildProjectTaskStats(areaData?.tasks ?? []),
+    [areaData?.tasks],
+  );
+
+  const projectRollups = useMemo(() => {
+    const result = new Map<string, { goalCount: number; taskCount: number; noteCount: number; resourceCount: number }>();
+    for (const project of areaData?.projects ?? []) {
+      const linkedGoalIds = (project as unknown as { linkedGoalIds?: string[] }).linkedGoalIds ?? [];
+      result.set(project.id, {
+        goalCount: linkedGoalIds.length,
+        taskCount: (areaData?.tasks ?? []).filter((t) => t.project_id === project.id && !t.is_archived).length,
+        noteCount: (areaData?.notes ?? []).filter((n) => n.project_id === project.id || (n as unknown as { linkedProjectIds?: string[] }).linkedProjectIds?.includes(project.id)).length,
+        resourceCount: (areaData?.resources ?? []).filter((r) => r.project_id === project.id).length,
+      });
+    }
+    return result;
+  }, [areaData?.projects, areaData?.tasks, areaData?.notes, areaData?.resources]);
 
   const areaStatus = area ? classifyAreaStatus(area) : "active";
   const areaType = area ? normalizeAreaType(area.type) : "Personal";
@@ -334,6 +372,64 @@ export default function AreaDetailPage() {
       {
         onSuccess: (createdContact: Contact) => {
           linkContactToArea.mutate({ contactId: createdContact.id, areaId: area!.id });
+        },
+      },
+    );
+  };
+
+  const handleContactEdit = (contact: Contact) => {
+    setEditingContact(contact);
+    setIsEditContactOpen(true);
+  };
+
+  const handleContactDelete = (contactId: string) => {
+    deleteContact.mutate(contactId);
+  };
+
+  const handleContactToggleFavorite = (contactId: string) => {
+    toggleContactFavorite.mutate(contactId);
+  };
+
+  const handleContactArchive = (contactId: string, archive: boolean) => {
+    archiveContact.mutate({ id: contactId, archive });
+  };
+
+  const handleEditContactSubmit = (values: {
+    name: string;
+    role: string;
+    organization: string;
+    group: string;
+    phone: string;
+    email: string;
+    linkedin: string;
+    website: string;
+    follow_up_interval_days: string;
+    notes: string;
+  }) => {
+    if (!editingContact) return;
+    updateContact.mutate(
+      {
+        id: editingContact.id,
+        input: {
+          name: values.name,
+          role: values.role || null,
+          organization: values.organization || null,
+          group: values.group || null,
+          phone: values.phone || null,
+          email: values.email || null,
+          linkedin: values.linkedin || null,
+          website: values.website || null,
+          follow_up_interval_days:
+            values.follow_up_interval_days && values.follow_up_interval_days !== "none"
+              ? parseInt(values.follow_up_interval_days, 10)
+              : null,
+          notes: values.notes || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          setIsEditContactOpen(false);
+          setEditingContact(null);
         },
       },
     );
@@ -624,7 +720,19 @@ export default function AreaDetailPage() {
                     key={goal.id}
                     goal={goal}
                     areaName={area.name}
+                    areaNames={[area.name]}
+                    areaIcons={[area.icon ?? null]}
                     onEdit={() => router.push(`${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(goalReturnTo)}`)}
+                    rollups={
+                      goal.projectCount !== undefined
+                        ? {
+                            projectCount: goal.projectCount,
+                            taskCount: goal.taskCount ?? 0,
+                            noteCount: goal.noteCount ?? 0,
+                            resourceCount: goal.resourceCount ?? 0,
+                          }
+                        : undefined
+                    }
                   />
                 );
               })}
@@ -663,6 +771,10 @@ export default function AreaDetailPage() {
                     key={project.id}
                     project={project}
                     areaName={area.name}
+                    areaNames={[area.name]}
+                    areaIcons={[area.icon ?? null]}
+                    taskStats={projectTaskStats.get(project.id)}
+                    rollups={projectRollups.get(project.id)}
                     returnTo={projectReturnTo}
                   />
                 );
@@ -753,7 +865,7 @@ export default function AreaDetailPage() {
                       <h3 className="truncate font-semibold">{note.name}</h3>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className={cn("text-xs", NOTE_STATUS_COLORS[note.status])}>
                         {note.status}
                       </Badge>
                       <Badge variant="outline" className="text-xs">
@@ -819,11 +931,18 @@ export default function AreaDetailPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {filteredContacts.map((contact) => (
                 <div key={contact.id} className="relative">
-                  <ContactCard contact={contact} />
+                  <ContactCard
+                    contact={contact}
+                    onEdit={handleContactEdit}
+                    onDelete={handleContactDelete}
+                    onToggleFavorite={handleContactToggleFavorite}
+                    onArchive={handleContactArchive}
+                  />
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute right-2 top-2"
+                    className="absolute right-2 bottom-2"
+                    title="Unlink from area"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleUnlinkContact(contact.id);
@@ -894,6 +1013,7 @@ export default function AreaDetailPage() {
           if (!open) setEditingTask(null);
         }}
         task={editingTask}
+        onSuccess={() => refetchAreaDetail()}
         onDelete={(id) => {
           handleTaskDelete(id);
           setEditingTask(null);
@@ -909,6 +1029,17 @@ export default function AreaDetailPage() {
         contact={null}
         defaults={{ area_ids: area?.id ? [area.id] : [] }}
         onSubmit={handleCreateContactSubmit}
+      />
+
+      {/* Contact Edit Dialog */}
+      <ContactDialog
+        open={isEditContactOpen}
+        onOpenChange={(open) => {
+          setIsEditContactOpen(open);
+          if (!open) setEditingContact(null);
+        }}
+        contact={editingContact}
+        onSubmit={handleEditContactSubmit}
       />
 
       {/* Inline Resource Creation */}
