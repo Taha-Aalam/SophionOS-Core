@@ -35,6 +35,7 @@ interface NoteEditorDialogProps {
   goalId?: string;
   projectId?: string;
   areaId?: string | null;
+  topicId?: string;
   returnTo?: string | null;
   onSuccess?: () => void;
 }
@@ -44,6 +45,7 @@ interface NoteEditorDialogFormProps {
   goalId?: string;
   projectId?: string;
   areaId?: string | null;
+  topicId?: string;
   returnTo?: string | null;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
@@ -54,6 +56,7 @@ function NoteEditorDialogForm({
   goalId,
   projectId,
   areaId,
+  topicId,
   returnTo,
   onOpenChange,
   onSuccess,
@@ -84,6 +87,10 @@ function NoteEditorDialogForm({
 
       if (areaId) {
         createInput.area_id = areaId;
+      }
+
+      if (topicId) {
+        createInput.topic_id = topicId;
       }
 
       const newNote = await createNote.mutateAsync(createInput);
@@ -139,10 +146,11 @@ export function NoteEditorDialog({
   goalId,
   projectId,
   areaId,
+  topicId,
   returnTo,
   onSuccess,
 }: NoteEditorDialogProps) {
-  const formKey = `${note?.id ?? "new"}-${goalId ?? "no-goal"}-${projectId ?? "no-project"}-${open ? "open" : "closed"}`;
+  const formKey = `${note?.id ?? "new"}-${goalId ?? "no-goal"}-${projectId ?? "no-project"}-${topicId ?? "no-topic"}-${open ? "open" : "closed"}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -154,6 +162,7 @@ export function NoteEditorDialog({
             goalId={goalId}
             projectId={projectId}
             areaId={areaId}
+            topicId={topicId}
             returnTo={returnTo}
             onOpenChange={onOpenChange}
             onSuccess={onSuccess}

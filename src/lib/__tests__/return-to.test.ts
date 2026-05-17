@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildNoteDetailUrl,
   buildReturnTo,
   decodeReturnTo,
   encodeReturnTo,
@@ -212,5 +213,25 @@ describe("resolveGoalDetailNavigation", () => {
       breadcrumbTarget: "/projects/my-project",
       nestedReturnTo: "/goals/my-goal",
     });
+  });
+});
+
+describe("buildNoteDetailUrl", () => {
+  it("returns plain note URL when returnTo is null", () => {
+    expect(buildNoteDetailUrl("my-slug", null)).toBe("/notes/my-slug");
+  });
+
+  it("appends encoded returnTo when a topic path is provided", () => {
+    const url = buildNoteDetailUrl("my-slug", "/topics/abc-123");
+    expect(url).toContain("/notes/my-slug");
+    const searchParams = new URL("http://x" + url).searchParams;
+    expect(decodeReturnTo(searchParams.get("returnTo")!)).toBe("/topics/abc-123");
+  });
+
+  it("appends encoded returnTo for a note UUID identifier", () => {
+    const url = buildNoteDetailUrl("550e8400-e29b-41d4-a716-446655440000", "/topics/topic-123");
+    expect(url).toContain("/notes/550e8400-e29b-41d4-a716-446655440000");
+    const searchParams = new URL("http://x" + url).searchParams;
+    expect(decodeReturnTo(searchParams.get("returnTo")!)).toBe("/topics/topic-123");
   });
 });

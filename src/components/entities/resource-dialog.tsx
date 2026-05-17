@@ -61,6 +61,7 @@ interface ResourceDialogProps {
   initialGoalIds?: string[];
   initialAreaIds?: string[];
   initialProjectId?: string;
+  initialTopicId?: string;
 }
 
 export function ResourceDialog({
@@ -72,6 +73,7 @@ export function ResourceDialog({
   initialGoalIds,
   initialAreaIds,
   initialProjectId,
+  initialTopicId,
 }: ResourceDialogProps) {
   const isEdit = !!resource;
   const { data: areas = [] } = useAreas();
@@ -173,12 +175,12 @@ export function ResourceDialog({
         setStatus(RESOURCE_STATUS.INBOX);
         setAreaIds(initialAreaIds ?? []);
         setProjectId(initialProjectId ?? "");
-        setTopicId("");
+        setTopicId(initialTopicId ?? "");
         setGoalIds(initialGoalIds ?? []);
         setTaskIds([]);
       });
     }
-  }, [open, resource, initialGoalIds, initialAreaIds, initialProjectId]);
+  }, [open, resource, initialGoalIds, initialAreaIds, initialProjectId, initialTopicId]);
 
   const handleUrlBlur = () => {
     if (url && !name) {
