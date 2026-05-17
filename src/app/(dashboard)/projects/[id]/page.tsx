@@ -17,7 +17,7 @@ import {
 
 import { ContactCard } from "@/components/entities/contact-card";
 import { ContactDialog } from "@/components/entities/contact-dialog";
-import { GoalCard } from "@/components/entities/goal-card";
+import { GoalCard, type GoalCardRollups } from "@/components/entities/goal-card";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { TaskListItem } from "@/components/entities/task-list-item";
 import { ProjectDialog } from "@/components/entities/project-dialog";
@@ -45,8 +45,12 @@ import {
   useContactByProject,
   useContacts,
   useCreateContact,
+  useDeleteContact,
   useLinkContactToProject,
+  useToggleContactFavorite,
+  useArchiveContact,
   useUnlinkContactFromProject,
+  useUpdateContact,
 } from "@/lib/hooks/use-contacts";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useNotesByProject, useToggleFavoriteNote } from "@/lib/hooks/use-notes";
@@ -85,6 +89,14 @@ import { filterProjectDialogGoals } from "@/lib/utils/project-dialog-filters";
 import { getProjectDueState, getProjectLinkedAreaIds, getProjectStatusLabel } from "@/lib/utils/projects";
 import { resolveBackNavigation, getReturnToFromSearchParams, encodeReturnTo } from "@/lib/utils/return-to";
 
+const NOTE_STATUS_COLORS: Record<string, string> = {
+  inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  saved: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  archive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+};
+
 const PRIORITY_COLORS: Record<string, string> = {
   urgent: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
   high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
@@ -121,6 +133,7 @@ export default function ProjectDetailPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isLinkGoalOpen, setIsLinkGoalOpen] = useState(false);
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<typeof allContacts[number] | null>(null);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<typeof tasks[number] | null>(null);
   const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
@@ -160,6 +173,10 @@ export default function ProjectDetailPage() {
   const linkContactToProject = useLinkContactToProject();
   const unlinkContactFromProject = useUnlinkContactFromProject();
   const createContact = useCreateContact();
+  const updateContact = useUpdateContact();
+  const deleteContact = useDeleteContact();
+  const toggleContactFavorite = useToggleContactFavorite();
+  const archiveContact = useArchiveContact();
   const createResource = useCreateResource();
   const updateResource = useUpdateResource();
   const toggleFavoriteResource = useToggleFavoriteResource();
@@ -686,6 +703,22 @@ export default function ProjectDetailPage() {
     await unlinkContactFromProject.mutateAsync({ contactId, projectId: resolvedProjectId });
   };
 
+  const handleContactEdit = useCallback((contact: typeof allContacts[number]) => {
+    setEditingContact(contact);
+  }, []);
+
+  const handleContactDelete = useCallback(async (id: string) => {
+    await deleteContact.mutateAsync(id);
+  }, [deleteContact]);
+
+  const handleContactToggleFavorite = useCallback(async (id: string) => {
+    await toggleContactFavorite.mutateAsync(id);
+  }, [toggleContactFavorite]);
+
+  const handleContactArchive = useCallback(async (id: string, archive: boolean) => {
+    await archiveContact.mutateAsync({ id, archive });
+  }, [archiveContact]);
+
   if (isLoadingProject) {
     return (
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
@@ -983,17 +1016,33 @@ export default function ProjectDetailPage() {
           {filteredGoals.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {filteredGoals.map((goal) => {
-                const linkedAreaNames = linkedAreas.map((a) => a.name).filter(Boolean);
-                const areaName = linkedAreaNames.length > 0 ? linkedAreaNames[0] : undefined;
+                const goalAreaIds = getGoalLinkedAreaIds(goal);
+                const goalAreaNames = goalAreaIds
+                  .map((id) => areas.find((a) => a.id === id)?.name)
+                  .filter((name): name is string => Boolean(name));
+                const goalAreaIcons = goalAreaIds.map(
+                  (id) => areas.find((a) => a.id === id)?.icon ?? null,
+                );
                 return (
                   <div key={goal.id} className="relative">
                     <GoalCard
                       goal={goal}
-                      areaName={areaName}
+                      areaNames={goalAreaNames.length > 0 ? goalAreaNames : undefined}
+                      areaIcons={goalAreaIcons}
                       onEdit={() =>
                         router.push(
                           `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(`/projects/${project.slug ?? project.id}`)}`,
                         )
+                      }
+                      rollups={
+                        goal.projectCount !== undefined
+                          ? {
+                              projectCount: goal.projectCount,
+                              taskCount: goal.taskCount ?? 0,
+                              noteCount: goal.noteCount ?? 0,
+                              resourceCount: goal.resourceCount ?? 0,
+                            }
+                          : undefined
                       }
                     />
                     <Button
@@ -1111,7 +1160,7 @@ export default function ProjectDetailPage() {
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className={cn("text-xs", NOTE_STATUS_COLORS[note.status])}>
                         {note.status}
                       </Badge>
                       <Badge variant="outline" className="text-xs">
@@ -1168,11 +1217,17 @@ export default function ProjectDetailPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {filteredContacts.map((contact) => (
                 <div key={contact.id} className="relative">
-                  <ContactCard contact={contact} />
+                  <ContactCard
+                    contact={contact}
+                    onEdit={handleContactEdit}
+                    onDelete={handleContactDelete}
+                    onToggleFavorite={handleContactToggleFavorite}
+                    onArchive={handleContactArchive}
+                  />
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute right-2 top-2"
+                    className="absolute right-2 top-2 z-10"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleUnlinkContact(contact.id);
@@ -1321,6 +1376,34 @@ export default function ProjectDetailPage() {
         contact={null}
         defaults={{ project_ids: project?.id ? [project.id] : [] }}
         onSubmit={handleCreateContactSubmit}
+      />
+
+      {/* Contact Edit Dialog */}
+      <ContactDialog
+        open={!!editingContact}
+        onOpenChange={(open) => { if (!open) setEditingContact(null); }}
+        contact={editingContact}
+        onSubmit={(values) => {
+          if (!editingContact) return;
+          updateContact.mutate({
+            id: editingContact.id,
+            input: {
+              name: values.name,
+              role: values.role || null,
+              organization: values.organization || null,
+              group: values.group || null,
+              phone: values.phone || null,
+              email: values.email || null,
+              linkedin: values.linkedin || null,
+              website: values.website || null,
+              follow_up_interval_days:
+                values.follow_up_interval_days && values.follow_up_interval_days !== "none"
+                  ? parseInt(values.follow_up_interval_days, 10)
+                  : null,
+              notes: values.notes || null,
+            },
+          });
+        }}
       />
 
 <ResourceDialog
