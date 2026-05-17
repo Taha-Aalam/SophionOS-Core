@@ -8,6 +8,13 @@ import { cn } from '@/lib/utils';
 import { Goal } from '@/lib/types/domain.types';
 import ProgressRing from '@/components/charts/progress-ring';
 
+export interface GoalCardRollups {
+  projectCount: number;
+  taskCount: number;
+  noteCount: number;
+  resourceCount: number;
+}
+
 interface GoalCardProps {
   goal: Goal;
   areaName?: string;
@@ -19,6 +26,7 @@ interface GoalCardProps {
   areaIcons?: (string | null)[];
   onEdit?: (goal: Goal) => void;
   duplicateIndex?: number;
+  rollups?: GoalCardRollups;
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -69,7 +77,7 @@ function calculateDueState(targetDate: string | null): { text: string; isOverdue
   };
 }
 
-export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplicateIndex }: GoalCardProps) {
+export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplicateIndex, rollups }: GoalCardProps) {
   const dueState = calculateDueState(goal.target_date);
   const resolvedAreaNames = (() => {
     if (areaNames && areaNames.length > 0) {
@@ -141,6 +149,27 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplica
               <p className="mt-3 line-clamp-2 text-xs text-muted-foreground">
                 {goal.description}
               </p>
+            )}
+
+            {rollups && (
+              <div className="mt-3 flex items-center gap-3 text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1 whitespace-nowrap" title="Projects">
+                  <span className="text-xs">📁</span>
+                  <span>{rollups.projectCount}</span>
+                </span>
+                <span className="flex items-center gap-1 whitespace-nowrap" title="Tasks">
+                  <span className="text-xs">☑️</span>
+                  <span>{rollups.taskCount}</span>
+                </span>
+                <span className="flex items-center gap-1 whitespace-nowrap" title="Notes">
+                  <span className="text-xs">📝</span>
+                  <span>{rollups.noteCount}</span>
+                </span>
+                <span className="flex items-center gap-1 whitespace-nowrap" title="Resources">
+                  <span className="text-xs">🔗</span>
+                  <span>{rollups.resourceCount}</span>
+                </span>
+              </div>
             )}
           </div>
 
