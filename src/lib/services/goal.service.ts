@@ -204,6 +204,34 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
   }));
 }
 
+async function hydrateGoalRollupCounts(goals: Goal[]): Promise<Goal[]> {
+  if (goals.length === 0) return goals;
+  const goalIds = goals.map((g) => g.id);
+
+  const [
+    { data: projectLinks },
+    { data: taskLinks },
+    { data: noteLinks },
+    { data: resourceLinks },
+  ] = await Promise.all([
+    createClient().from("goal_projects").select("goal_id").in("goal_id", goalIds),
+    createClient().from("goal_tasks").select("goal_id").in("goal_id", goalIds),
+    createClient().from("goal_notes").select("goal_id").in("goal_id", goalIds),
+    createClient().from("goal_resources").select("goal_id").in("goal_id", goalIds),
+  ]);
+
+  const countFor = (links: { goal_id: string }[] | null, id: string): number =>
+    (links ?? []).filter((r) => r.goal_id === id).length;
+
+  return goals.map((goal) => ({
+    ...goal,
+    projectCount: countFor(projectLinks, goal.id),
+    taskCount: countFor(taskLinks, goal.id),
+    noteCount: countFor(noteLinks, goal.id),
+    resourceCount: countFor(resourceLinks, goal.id),
+  }));
+}
+
 async function hydrateSingleGoalProgress(goal: Goal): Promise<Goal> {
   const [hydratedGoal] = await hydrateGoalProgress([goal]);
   return hydratedGoal;
@@ -250,14 +278,19 @@ export const goalService = {
     }
 
     const rawGoals = data || [];
-    const [goalsWithAreas, goalsWithProgress] = await Promise.all([
+    const [goalsWithAreas, goalsWithProgress, goalsWithRollups] = await Promise.all([
       hydrateGoalAreaLinks(rawGoals),
       hydrateGoalProgress(rawGoals),
+      hydrateGoalRollupCounts(rawGoals),
     ]);
 
     let goals = goalsWithAreas.map((goal, i) => ({
       ...goal,
       progress: goalsWithProgress[i]?.progress ?? goal.progress,
+      projectCount: goalsWithRollups[i]?.projectCount,
+      taskCount: goalsWithRollups[i]?.taskCount,
+      noteCount: goalsWithRollups[i]?.noteCount,
+      resourceCount: goalsWithRollups[i]?.resourceCount,
     }));
 
     if (filters.areaId) {
