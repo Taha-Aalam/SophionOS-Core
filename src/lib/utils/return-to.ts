@@ -1,5 +1,6 @@
 const VALID_RETURN_ORIGINS = [
   "/areas",
+  "/contacts",
   "/goals",
   "/notes",
   "/projects",
