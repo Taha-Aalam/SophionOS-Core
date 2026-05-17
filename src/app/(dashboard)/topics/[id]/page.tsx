@@ -44,7 +44,6 @@ import {
 import { useToggleFavoriteResource, useResources, useCreateResource, useUpdateResource } from "@/lib/hooks/use-resources";
 import { buildNoteDetailUrl } from "@/lib/utils/return-to";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
-import { NoteEditorDialog } from "@/components/entities/note-editor-dialog";
 import type { Resource, CreateResourceInput, UpdateResourceInput } from "@/lib/types/domain.types";
 import { useNotes } from "@/lib/hooks/use-notes";
 import { useAreas } from "@/lib/hooks/use-areas";
@@ -66,7 +65,6 @@ export default function TopicDetailPage() {
   const [selectedResourceIds, setSelectedResourceIds] = useState<string[]>([]);
   const [isResourceDialogOpen, setIsResourceDialogOpen] = useState(false);
   const [editResource, setEditResource] = useState<Resource | null>(null);
-  const [isNewNoteOpen, setIsNewNoteOpen] = useState(false);
 
   const { data: topic, isLoading: topicLoading } = useTopic(topicId);
   const resolvedTopicId = topic?.id ?? "";
@@ -134,6 +132,15 @@ export default function TopicDetailPage() {
     setIsResourceDialogOpen(false);
     setEditResource(null);
   };
+
+  const handleNewNote = useCallback(() => {
+    const params = new URLSearchParams({ returnTo: `/topics/${topicId}` });
+    if (topic?.linkedAreaIds && topic.linkedAreaIds.length > 0) {
+      params.set("areaIds", topic.linkedAreaIds.join(","));
+    }
+    params.set("topicId", topicId);
+    router.push(`/notes/new?${params.toString()}`);
+  }, [router, topicId, topic]);
 
   const linkedAreas = useMemo(() => {
     if (!topic?.linkedAreaIds) return [];
@@ -337,7 +344,7 @@ export default function TopicDetailPage() {
                   <Heart className={cn("size-4 mr-2", topic.favorite && "fill-rose-500 text-rose-500")} />
                   {topic.favorite ? "Unfavorite" : "Favorite"}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setIsNewNoteOpen(true)}>
+                <Button variant="outline" size="sm" onClick={handleNewNote}>
                   <Plus className="size-4 mr-2" />
                   New Note
                 </Button>
@@ -382,7 +389,7 @@ export default function TopicDetailPage() {
         isLoading={notesLoading}
         emptyTitle="No linked notes"
         emptyDescription="Notes linked to this topic will appear here."
-        onCreateNew={() => setIsNewNoteOpen(true)}
+        onCreateNew={handleNewNote}
         createLabel="New Note"
         onLinkExisting={() => { setSelectedNoteIds([]); setIsLinkNoteOpen(true); }}
         linkLabel="Link Note"
@@ -545,19 +552,11 @@ export default function TopicDetailPage() {
         }}
         resource={editResource}
         initialTopicId={topicId}
+        initialAreaIds={topic.linkedAreaIds}
         onSubmit={handleResourceSubmit}
         isPending={createResource.isPending || updateResource.isPending}
       />
 
-      {/* New note dialog */}
-      <NoteEditorDialog
-        open={isNewNoteOpen}
-        onOpenChange={setIsNewNoteOpen}
-        note={null}
-        topicId={topicId}
-        returnTo={`/topics/${topicId}`}
-        onSuccess={() => setIsNewNoteOpen(false)}
-      />
     </div>
   );
 }
