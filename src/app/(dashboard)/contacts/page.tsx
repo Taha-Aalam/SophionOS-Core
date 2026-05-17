@@ -1,18 +1,31 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Building2, Clock, FolderKanban, Plus, Star, Target, Users } from "lucide-react";
+import { Archive, Clock, FolderKanban, Map as MapIcon, Plus, RotateCcw, Star, Target as GoalIcon, Users } from "lucide-react";
 
-import { ContactDialog } from "@/components/entities/contact-dialog";
-import { ContactListItem } from "@/components/entities/contact-list-item";
+import { ContactCard } from "@/components/entities/contact-card";
+import { ContactDialog, type ContactDialogDefaults } from "@/components/entities/contact-dialog";
+import { ContactsByCategoryView } from "@/components/views/contacts-by-category-view";
+import { ContactsFollowUpView } from "@/components/views/contacts-follow-up-view";
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useContacts, useContactsByProject, useCreateContact, useDeleteContact, useLogInteraction, useToggleContactFavorite, useUpdateContact } from "@/lib/hooks/use-contacts";
+import { useAreas } from "@/lib/hooks/use-areas";
+import { useContacts, useContactsByArea, useContactsByGoal, useContactsByProject, useCreateContact, useDeleteContact, useToggleContactFavorite, useUpdateContact, useArchiveContact } from "@/lib/hooks/use-contacts";
+import { useGoals } from "@/lib/hooks/use-goals";
+import { useProjects } from "@/lib/hooks/use-projects";
 import type { Contact, CreateContactInput } from "@/lib/types/domain.types";
 import { contactService } from "@/lib/services/contact.service";
+import {
+  buildAreaSections,
+  buildFollowUpSections,
+  buildGoalSections,
+  buildGroupSections,
+  buildProjectSections,
+} from "@/lib/utils/contact-category-sections";
+import type { ContactCategorySection } from "@/lib/utils/contact-category-sections";
 
 function buildCreateInput(values: {
   name: string;
@@ -23,6 +36,7 @@ function buildCreateInput(values: {
   email: string;
   linkedin: string;
   website: string;
+  image_url: string;
   follow_up_interval_days: string;
   notes: string;
   area_ids?: string[];
@@ -39,6 +53,7 @@ function buildCreateInput(values: {
     email: values.email || null,
     linkedin: values.linkedin || null,
     website: values.website || null,
+    image_url: values.image_url || null,
     follow_up_interval_days: values.follow_up_interval_days === "none"
       ? null
       : values.follow_up_interval_days
@@ -53,18 +68,28 @@ function buildCreateInput(values: {
 }
 
 export default function ContactsPage() {
-  const [activeTab, setActiveTab] = useState<"all" | "fav" | "by-group" | "by-project" | "follow-up">("all");
+  const [activeTab, setActiveTab] = useState<
+    "all" | "favorite" | "follow-up" | "by-group" | "by-project" | "by-area" | "by-goal" | "archive"
+  >("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [createDefaults, setCreateDefaults] = useState<ContactDialogDefaults | undefined>(undefined);
 
   const { data: allContacts = [], isLoading } = useContacts();
+  const { data: archivedContacts = [], isLoading: isLoadingArchived } = useContacts({ archive: true });
   const { data: byProject = [], isLoading: isLoadingByProject } = useContactsByProject();
+  const { data: byArea = [], isLoading: isLoadingByArea } = useContactsByArea();
+  const { data: byGoal = [], isLoading: isLoadingByGoal } = useContactsByGoal();
+
+  const { data: areas = [] } = useAreas();
+  const { data: goals = [] } = useGoals({});
+  const { data: projects = [] } = useProjects({});
 
   const createContact = useCreateContact();
   const updateContact = useUpdateContact();
   const deleteContact = useDeleteContact();
-  const logInteraction = useLogInteraction();
   const toggleFavorite = useToggleContactFavorite();
+  const archiveContact = useArchiveContact();
 
   const favContacts = useMemo(
     () => allContacts.filter((c) => c.favorite),
@@ -73,12 +98,15 @@ export default function ContactsPage() {
 
   const groupedContacts = useMemo(() => contactService.getByGroupSync(allContacts), [allContacts]);
 
-  const followUpContacts = useMemo(
-    () => allContacts.filter(
-      (c) => contactService.computeFollowUpStatus(c.last_interaction_at, c.follow_up_interval_days) === "FOLLOW UP",
-    ),
+  const followUpSections = useMemo(
+    () => buildFollowUpSections(allContacts),
     [allContacts],
   );
+
+  const groupSections = useMemo(() => buildGroupSections(groupedContacts), [groupedContacts]);
+  const projectSections = useMemo(() => buildProjectSections(projects, byProject), [projects, byProject]);
+  const areaSections = useMemo(() => buildAreaSections(areas, byArea), [areas, byArea]);
+  const goalSections = useMemo(() => buildGoalSections(goals, byGoal), [goals, byGoal]);
 
   const handleSubmit = (values: {
     name: string;
@@ -89,6 +117,7 @@ export default function ContactsPage() {
     email: string;
     linkedin: string;
     website: string;
+    image_url: string;
     follow_up_interval_days: string;
     notes: string;
     area_ids: string[];
@@ -114,12 +143,32 @@ export default function ContactsPage() {
     deleteContact.mutate(id);
   };
 
-  const handleLogInteraction = (id: string) => {
-    logInteraction.mutate(id);
-  };
-
   const handleToggleFavorite = (id: string) => {
     toggleFavorite.mutate(id);
+  };
+
+  const handleArchive = (id: string, archive: boolean) => {
+    archiveContact.mutate({ id, archive });
+  };
+
+  const handleCreateInSection = (section: ContactCategorySection) => {
+    const defaults: ContactDialogDefaults = {};
+    const category = section.id.split(":")[0];
+    const entityId = section.id.split(":")[1];
+
+    if (category === "group") {
+      defaults.group = entityId;
+    } else if (category === "project") {
+      defaults.project_ids = [entityId];
+    } else if (category === "area") {
+      defaults.area_ids = [entityId];
+    } else if (category === "goal") {
+      defaults.goal_ids = [entityId];
+    }
+
+    setCreateDefaults(defaults);
+    setEditingContact(null);
+    setIsDialogOpen(true);
   };
 
   if (isLoading) {
@@ -155,9 +204,13 @@ export default function ContactsPage() {
           <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             All
           </TabsTrigger>
-          <TabsTrigger value="fav" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value="favorite" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Star className="mr-1.5 size-3.5" />
-            Fav.
+            Favorite
+          </TabsTrigger>
+          <TabsTrigger value="follow-up" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Clock className="mr-1.5 size-3.5" />
+            Follow-up
           </TabsTrigger>
           <TabsTrigger value="by-group" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Users className="mr-1.5 size-3.5" />
@@ -167,9 +220,17 @@ export default function ContactsPage() {
             <FolderKanban className="mr-1.5 size-3.5" />
             By Project
           </TabsTrigger>
-          <TabsTrigger value="follow-up" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-            <Clock className="mr-1.5 size-3.5" />
-            Follow-up
+          <TabsTrigger value="by-area" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <MapIcon className="mr-1.5 size-3.5" />
+            By Area
+          </TabsTrigger>
+          <TabsTrigger value="by-goal" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <GoalIcon className="mr-1.5 size-3.5" />
+            By Goal
+          </TabsTrigger>
+          <TabsTrigger value="archive" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Archive className="mr-1.5 size-3.5" />
+            Archive
           </TabsTrigger>
         </TabsList>
 
@@ -186,22 +247,22 @@ export default function ContactsPage() {
               }}
             />
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {allContacts.map((contact) => (
-                <ContactListItem
+                <ContactCard
                   key={contact.id}
                   contact={contact}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
-                  onLogInteraction={handleLogInteraction}
                   onToggleFavorite={handleToggleFavorite}
+                  onArchive={handleArchive}
                 />
               ))}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="fav" className="mt-4">
+        <TabsContent value="favorite" className="mt-4">
           {favContacts.length === 0 ? (
             <EmptyState
               icon={Star}
@@ -209,110 +270,124 @@ export default function ContactsPage() {
               description="Star contacts to see them here."
             />
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {favContacts.map((contact) => (
-                <ContactListItem
+                <ContactCard
                   key={contact.id}
                   contact={contact}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
-                  onLogInteraction={handleLogInteraction}
                   onToggleFavorite={handleToggleFavorite}
+                  onArchive={handleArchive}
                 />
               ))}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="by-group" className="mt-4">
-          {Object.keys(groupedContacts).length === 0 ? (
-            <EmptyState
-              icon={Building2}
-              title="No grouped contacts"
-              description="Assign groups to your contacts to see them organized here."
-            />
-          ) : (
-            <div className="space-y-6">
-              {Object.entries(groupedContacts).map(([group, contacts]) => (
-                <div key={group}>
-                  <div className="mb-2 flex items-center gap-2">
-                    <h3 className="font-semibold">{group}</h3>
-                    <Badge variant="secondary">{contacts.length}</Badge>
-                  </div>
-                  <div className="space-y-2">
-                    {contacts.map((contact) => (
-                      <ContactListItem
-                        key={contact.id}
-                        contact={contact}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onLogInteraction={handleLogInteraction}
-                        onToggleFavorite={handleToggleFavorite}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="by-project" className="mt-4">
-          {isLoadingByProject ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
-          ) : byProject.length === 0 ? (
-            <EmptyState
-              icon={Target}
-              title="No project-linked contacts"
-              description="Link contacts to projects from the project detail page to see them here."
-            />
-          ) : (
-            <div className="space-y-6">
-              {byProject.map(({ projectId, projectName, contacts }) => (
-                <div key={projectId}>
-                  <div className="mb-2 flex items-center gap-2">
-                    <h3 className="font-semibold">{projectName}</h3>
-                    <Badge variant="secondary">{contacts.length}</Badge>
-                  </div>
-                  <div className="space-y-2">
-                    {contacts.map((contact) => (
-                      <ContactListItem
-                        key={contact.id}
-                        contact={contact}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onLogInteraction={handleLogInteraction}
-                        onToggleFavorite={handleToggleFavorite}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
         <TabsContent value="follow-up" className="mt-4">
-          {followUpContacts.length === 0 ? (
+          {followUpSections.length === 0 ? (
             <EmptyState
-              icon={Target}
+              icon={Clock}
               title="All caught up"
               description="No contacts need follow-up right now."
             />
           ) : (
-            <div className="space-y-2">
-              {followUpContacts.map((contact) => (
-                <ContactListItem
+            <ContactsFollowUpView
+              sections={followUpSections}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onToggleFavorite={handleToggleFavorite}
+              onArchive={handleArchive}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="by-group" className="mt-4">
+          <ContactsByCategoryView
+            sections={groupSections}
+            onCreateInSection={handleCreateInSection}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onToggleFavorite={handleToggleFavorite}
+            onArchive={handleArchive}
+          />
+        </TabsContent>
+
+        <TabsContent value="by-project" className="mt-4">
+          {isLoadingByProject ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-40 w-full" />
+              ))}
+            </div>
+          ) : (
+            <ContactsByCategoryView
+              sections={projectSections}
+              onCreateInSection={handleCreateInSection}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onToggleFavorite={handleToggleFavorite}
+              onArchive={handleArchive}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="by-area" className="mt-4">
+          {isLoadingByArea ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full" />)}
+            </div>
+          ) : (
+            <ContactsByCategoryView
+              sections={areaSections}
+              onCreateInSection={handleCreateInSection}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onToggleFavorite={handleToggleFavorite}
+              onArchive={handleArchive}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="by-goal" className="mt-4">
+          {isLoadingByGoal ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full" />)}
+            </div>
+          ) : (
+            <ContactsByCategoryView
+              sections={goalSections}
+              onCreateInSection={handleCreateInSection}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onToggleFavorite={handleToggleFavorite}
+              onArchive={handleArchive}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="archive" className="mt-4">
+          {isLoadingArchived ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full" />)}
+            </div>
+          ) : archivedContacts.length === 0 ? (
+            <EmptyState
+              icon={Archive}
+              title="No archived contacts"
+              description="Archived contacts will appear here."
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {archivedContacts.map((contact) => (
+                <ContactCard
                   key={contact.id}
                   contact={contact}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
-                  onLogInteraction={handleLogInteraction}
                   onToggleFavorite={handleToggleFavorite}
+                  onArchive={handleArchive}
                 />
               ))}
             </div>
@@ -324,9 +399,13 @@ export default function ContactsPage() {
         open={isDialogOpen}
         onOpenChange={(open) => {
           setIsDialogOpen(open);
-          if (!open) setEditingContact(null);
+          if (!open) {
+            setEditingContact(null);
+            setCreateDefaults(undefined);
+          }
         }}
         contact={editingContact}
+        defaults={createDefaults}
         onSubmit={handleSubmit}
       />
     </div>

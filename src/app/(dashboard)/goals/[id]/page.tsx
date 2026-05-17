@@ -16,6 +16,8 @@ import {
   Unlink,
 } from "lucide-react";
 
+import { ContactCard } from "@/components/entities/contact-card";
+import { ContactDialog } from "@/components/entities/contact-dialog";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { PriorityBadge } from "@/components/entities/priority-badge";
@@ -36,6 +38,13 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAreas } from "@/lib/hooks/use-areas";
+import {
+  useContacts,
+  useContactByGoal,
+  useCreateContact,
+  useLinkContactToGoal,
+  useUnlinkContactFromGoal,
+} from "@/lib/hooks/use-contacts";
 import { useGoalDetail } from "@/lib/hooks/use-goal-detail";
 import {
   useDeleteGoal,
@@ -53,7 +62,7 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import { useToggleFavoriteNote } from "@/lib/hooks/use-notes";
 import { useToggleFavoriteResource, useCreateResource, useUpdateResource } from "@/lib/hooks/use-resources";
 import { cn } from "@/lib/utils";
-import type { CreateResourceInput, Project, Resource, Task } from "@/lib/types/domain.types";
+import type { Contact, CreateResourceInput, Project, Resource, Task } from "@/lib/types/domain.types";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { calculateGoalProgress, getGoalLinkedAreaIds } from "@/lib/utils/goals";
@@ -185,6 +194,8 @@ export default function GoalDetailPage() {
   const [taskTab, setTaskTab] = useState("all");
   const [noteTab, setNoteTab] = useState("all");
   const [resourceTab, setResourceTab] = useState("all");
+  const [contactTab, setContactTab] = useState("all");
+  const [isNewContactOpen, setIsNewContactOpen] = useState(false);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
@@ -196,11 +207,15 @@ export default function GoalDetailPage() {
   const tasksRef = useRef<HTMLDivElement>(null);
   const notesRef = useRef<HTMLDivElement>(null);
   const resourcesRef = useRef<HTMLDivElement>(null);
+  const peopleRef = useRef<HTMLDivElement>(null);
 
   // Queries
   const { data: goalData, isLoading } = useGoalDetail(goalId);
+  const resolvedGoalId = goalData?.goal.id ?? "";
   const { data: areas = [] } = useAreas();
   const { data: allProjects = [] } = useProjects({ status: "all" });
+  const { data: allContacts = [] } = useContacts();
+  const { data: goalContactLinks = [] } = useContactByGoal(resolvedGoalId);
 
   // Mutations
   const updateGoal = useUpdateGoal();
@@ -215,6 +230,9 @@ export default function GoalDetailPage() {
   const toggleFavoriteResource = useToggleFavoriteResource();
   const createResource = useCreateResource();
   const updateResource = useUpdateResource();
+  const linkContactToGoal = useLinkContactToGoal();
+  const unlinkContactFromGoal = useUnlinkContactFromGoal();
+  const createContact = useCreateContact();
 
   // Derived
   const goal = goalData?.goal;
@@ -252,6 +270,45 @@ export default function GoalDetailPage() {
   );
   const dueState = goal ? calculateDueState(goal.target_date) : null;
 
+  const linkedContactIds = useMemo(
+    () => new Set(goalContactLinks.map((link) => link.contact_id)),
+    [goalContactLinks],
+  );
+  const linkedContacts = useMemo(
+    () => allContacts.filter((c) => linkedContactIds.has(c.id)),
+    [allContacts, linkedContactIds],
+  );
+  const contactTabs = useMemo(
+    () => [
+      { value: "all", label: "All", count: linkedContacts.length },
+      { value: "favorite", label: "Favorite", count: linkedContacts.filter((c) => c.favorite).length },
+      { value: "follow_up", label: "Follow-up", count: linkedContacts.filter((c) => !!c.follow_up_interval_days).length },
+      { value: "by_group", label: "By Group", count: linkedContacts.filter((c) => !!c.group).length },
+      { value: "by_project", label: "By Project", count: linkedContacts.filter((c) => (c.linkedProjectIds?.length ?? 0) > 0).length },
+      { value: "by_area", label: "By Area", count: linkedContacts.filter((c) => (c.linkedAreaIds?.length ?? 0) > 0).length },
+      { value: "archived", label: "Archive", count: linkedContacts.filter((c) => c.archive).length },
+    ],
+    [linkedContacts],
+  );
+  const filteredContacts = useMemo(() => {
+    switch (contactTab) {
+      case "favorite":
+        return linkedContacts.filter((c) => c.favorite);
+      case "follow_up":
+        return linkedContacts.filter((c) => !!c.follow_up_interval_days);
+      case "by_group":
+        return linkedContacts.filter((c) => !!c.group);
+      case "by_project":
+        return linkedContacts.filter((c) => (c.linkedProjectIds?.length ?? 0) > 0);
+      case "by_area":
+        return linkedContacts.filter((c) => (c.linkedAreaIds?.length ?? 0) > 0);
+      case "archived":
+        return linkedContacts.filter((c) => c.archive);
+      default:
+        return linkedContacts;
+    }
+  }, [contactTab, linkedContacts]);
+
   // Sync page title with goal name
   useEffect(() => {
     if (goal) {
@@ -271,6 +328,7 @@ export default function GoalDetailPage() {
     { value: "inbox", label: "Inbox" },
     { value: "to_review", label: "To Review" },
     { value: "active", label: "Active" },
+    { value: "saved", label: "Saved" },
     { value: "archived", label: "Archive" },
   ];
 
@@ -284,6 +342,8 @@ export default function GoalDetailPage() {
         return notes.filter((n) => n.status === NOTE_STATUS.TO_REVIEW);
       case "active":
         return notes.filter((n) => n.status === NOTE_STATUS.ACTIVE);
+      case "saved":
+        return notes.filter((n) => n.status === NOTE_STATUS.SAVED);
       case "archived":
         return notes.filter((n) => n.is_archived);
       default:
@@ -297,6 +357,7 @@ export default function GoalDetailPage() {
     { value: "inbox", label: "Inbox" },
     { value: "to_review", label: "To Review" },
     { value: "active", label: "Active" },
+    { value: "saved", label: "Saved" },
     { value: "archived", label: "Archive" },
   ];
 
@@ -310,6 +371,8 @@ export default function GoalDetailPage() {
         return resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW);
       case "active":
         return resources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE);
+      case "saved":
+        return resources.filter((r) => r.status === RESOURCE_STATUS.SAVED);
       case "archived":
         return resources.filter((r) => r.is_archived);
       default:
@@ -507,6 +570,57 @@ export default function GoalDetailPage() {
   const handleResourceUnarchive = useCallback((_id: string) => {
     // Unarchive not implemented in goal detail
   }, []);
+
+  const handleUnlinkContact = useCallback(async (contactId: string) => {
+    if (!goal) {
+      return;
+    }
+
+    await unlinkContactFromGoal.mutateAsync({ contactId, goalId: goal.id });
+  }, [goal, unlinkContactFromGoal]);
+
+  const handleCreateContactSubmit = useCallback(
+    (values: {
+      name: string;
+      role: string;
+      organization: string;
+      group: string;
+      phone: string;
+      email: string;
+      linkedin: string;
+      website: string;
+      follow_up_interval_days: string;
+      notes: string;
+    }) => {
+      if (!goal) {
+        return;
+      }
+
+      createContact.mutate(
+        {
+          name: values.name,
+          role: values.role || null,
+          organization: values.organization || null,
+          group: values.group || null,
+          phone: values.phone || null,
+          email: values.email || null,
+          linkedin: values.linkedin || null,
+          website: values.website || null,
+          follow_up_interval_days:
+            values.follow_up_interval_days && values.follow_up_interval_days !== "none"
+              ? parseInt(values.follow_up_interval_days, 10)
+              : null,
+          notes: values.notes || null,
+        },
+        {
+          onSuccess: (createdContact: Contact) => {
+            linkContactToGoal.mutate({ contactId: createdContact.id, goalId: goal.id });
+          },
+        },
+      );
+    },
+    [createContact, goal, linkContactToGoal],
+  );
 
   const handleDeleteGoal = useCallback(async () => {
     if (!goal) {
@@ -1044,6 +1158,43 @@ export default function GoalDetailPage() {
         </GoalDetailSection>
       </div>
 
+      {/* People Section */}
+      <div ref={peopleRef}>
+        <GoalDetailSection
+          id="people"
+          entityType="people"
+          tabs={contactTabs}
+          activeTab={contactTab}
+          onTabChange={setContactTab}
+          isLoading={isLoading}
+          emptyTitle="No people linked to this goal"
+          emptyDescription="Add people to track relationships that contribute to this goal."
+          onCreateNew={() => setIsNewContactOpen(true)}
+          createLabel="New Contact"
+        >
+          {filteredContacts.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {filteredContacts.map((contact) => (
+                <div key={contact.id} className="relative">
+                  <ContactCard contact={contact} />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUnlinkContact(contact.id);
+                    }}
+                  >
+                    <Unlink className="size-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </GoalDetailSection>
+      </div>
+
       {/* Edit Goal Dialog */}
       <GoalDialog
         open={isEditOpen}
@@ -1166,6 +1317,15 @@ export default function GoalDetailPage() {
           setEditingResource(null);
         }}
         isPending={updateResource.isPending}
+      />
+
+      {/* Inline Contact Creation */}
+      <ContactDialog
+        open={isNewContactOpen}
+        onOpenChange={setIsNewContactOpen}
+        contact={null}
+        defaults={{ goal_ids: goal?.id ? [goal.id] : [] }}
+        onSubmit={handleCreateContactSubmit}
       />
     </div>
   );

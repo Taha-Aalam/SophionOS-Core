@@ -13,9 +13,9 @@ import {
   Target,
   Trash2,
   Unlink,
-  Users,
 } from "lucide-react";
 
+import { ContactCard } from "@/components/entities/contact-card";
 import { ContactDialog } from "@/components/entities/contact-dialog";
 import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
@@ -67,12 +67,16 @@ import {
   useUpdateResource,
 } from "@/lib/hooks/use-resources";
 import { useTasks } from "@/lib/hooks/use-tasks";
+import { useQueryClient } from "@tanstack/react-query";
+
 import {
   useCompleteTask,
   useFocusTask,
   useUpdateTask,
   useDeleteTask,
+  useUncompleteTask,
 } from "@/lib/hooks/use-tasks";
+import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
@@ -116,7 +120,6 @@ export default function ProjectDetailPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isLinkGoalOpen, setIsLinkGoalOpen] = useState(false);
-  const [isLinkContactOpen, setIsLinkContactOpen] = useState(false);
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<typeof tasks[number] | null>(null);
@@ -162,6 +165,8 @@ export default function ProjectDetailPage() {
   const toggleFavoriteResource = useToggleFavoriteResource();
   const toggleFavoriteNote = useToggleFavoriteNote();
   const completeTask = useCompleteTask();
+  const uncompleteTask = useUncompleteTask();
+  const queryClient = useQueryClient();
   const focusTask = useFocusTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
@@ -227,11 +232,6 @@ export default function ProjectDetailPage() {
     () => allContacts.filter((contact) => linkedContactIds.has(contact.id)),
     [allContacts, linkedContactIds],
   );
-  const unlinkedContacts = useMemo(
-    () => allContacts.filter((contact) => !linkedContactIds.has(contact.id)),
-    [allContacts, linkedContactIds],
-  );
-
   const completedTaskCount = useMemo(
     () => linkedTasks.filter((task) => task.is_completed).length,
     [linkedTasks],
@@ -385,6 +385,11 @@ export default function ProjectDetailPage() {
         count: linkedNotes.filter((note) => note.status === "active" && !note.is_archived).length,
       },
       {
+        value: "saved",
+        label: "Saved",
+        count: linkedNotes.filter((note) => note.status === "saved").length,
+      },
+      {
         value: "archived",
         label: "Archive",
         count: linkedNotes.filter((note) => note.is_archived).length,
@@ -400,6 +405,8 @@ export default function ProjectDetailPage() {
         return linkedNotes.filter((note) => note.status === "to_review");
       case "active":
         return linkedNotes.filter((note) => note.status === "active" && !note.is_archived);
+      case "saved":
+        return linkedNotes.filter((note) => note.status === "saved");
       case "archived":
         return linkedNotes.filter((note) => note.is_archived);
       default:
@@ -410,25 +417,29 @@ export default function ProjectDetailPage() {
   const contactTabs = useMemo(
     () => [
       { value: "all", label: "All", count: linkedContacts.length },
-      {
-        value: "favorite",
-        label: "Favorite",
-        count: linkedContacts.filter((contact) => contact.favorite).length,
-      },
-      {
-        value: "archived",
-        label: "Archived",
-        count: linkedContacts.filter((contact) => contact.archive).length,
-      },
+      { value: "favorite", label: "Favorite", count: linkedContacts.filter((c) => c.favorite).length },
+      { value: "follow_up", label: "Follow-up", count: linkedContacts.filter((c) => !!c.follow_up_interval_days).length },
+      { value: "by_group", label: "By Group", count: linkedContacts.filter((c) => !!c.group).length },
+      { value: "by_area", label: "By Area", count: linkedContacts.filter((c) => (c.linkedAreaIds?.length ?? 0) > 0).length },
+      { value: "by_goal", label: "By Goal", count: linkedContacts.filter((c) => (c.linkedGoalIds?.length ?? 0) > 0).length },
+      { value: "archived", label: "Archive", count: linkedContacts.filter((c) => c.archive).length },
     ],
     [linkedContacts],
   );
   const filteredContacts = useMemo(() => {
     switch (contactTab) {
       case "favorite":
-        return linkedContacts.filter((contact) => contact.favorite);
+        return linkedContacts.filter((c) => c.favorite);
+      case "follow_up":
+        return linkedContacts.filter((c) => !!c.follow_up_interval_days);
+      case "by_group":
+        return linkedContacts.filter((c) => !!c.group);
+      case "by_area":
+        return linkedContacts.filter((c) => (c.linkedAreaIds?.length ?? 0) > 0);
+      case "by_goal":
+        return linkedContacts.filter((c) => (c.linkedGoalIds?.length ?? 0) > 0);
       case "archived":
-        return linkedContacts.filter((contact) => contact.archive);
+        return linkedContacts.filter((c) => c.archive);
       default:
         return linkedContacts;
     }
@@ -453,6 +464,11 @@ export default function ProjectDetailPage() {
         count: linkedResources.filter((r) => r.status === "active" && !r.is_archived).length,
       },
       {
+        value: "saved",
+        label: "Saved",
+        count: linkedResources.filter((r) => r.status === "saved").length,
+      },
+      {
         value: "archived",
         label: "Archive",
         count: linkedResources.filter((r) => r.is_archived).length,
@@ -469,6 +485,8 @@ export default function ProjectDetailPage() {
         return linkedResources.filter((r) => r.status === "to_review");
       case "active":
         return linkedResources.filter((r) => r.status === "active" && !r.is_archived);
+      case "saved":
+        return linkedResources.filter((r) => r.status === "saved");
       case "archived":
         return linkedResources.filter((r) => r.is_archived);
       default:
@@ -568,10 +586,15 @@ export default function ProjectDetailPage() {
   };
 
   const handleTaskCompletion = useCallback(
-    async (taskId: string, _isCompleted: boolean) => {
-      await completeTask.mutateAsync(taskId);
+    async (taskId: string, isCompleted: boolean) => {
+      if (isCompleted) {
+        await completeTask.mutateAsync(taskId);
+        queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] });
+      } else {
+        await uncompleteTask.mutateAsync(taskId);
+      }
     },
-    [completeTask],
+    [completeTask, uncompleteTask, queryClient],
   );
 
   const handleTaskFocus = useCallback(
@@ -608,15 +631,6 @@ export default function ProjectDetailPage() {
     },
     [],
   );
-
-  const handleLinkContact = async (contactId: string) => {
-    if (!resolvedProjectId) {
-      return;
-    }
-
-    await linkContactToProject.mutateAsync({ contactId, projectId: resolvedProjectId });
-    setIsLinkContactOpen(false);
-  };
 
   const handleCreateContactSubmit = useCallback(
     (values: {
@@ -833,13 +847,6 @@ export default function ProjectDetailPage() {
               {linkedResources.length}
             </span>
             <span className="text-muted-foreground">Resources</span>
-          </button>
-          <button
-            onClick={() => scrollToSection("people")}
-            className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
-          >
-            <span className="font-medium text-sky-600 dark:text-sky-400">{linkedContacts.length}</span>
-            <span className="text-muted-foreground">People</span>
           </button>
         </div>
 
@@ -1158,43 +1165,23 @@ export default function ProjectDetailPage() {
           createLabel="New Contact"
         >
           {filteredContacts.length > 0 ? (
-            <div className="space-y-3">
-              <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsLinkContactOpen(true)}
-                  className="gap-1.5"
-                >
-                  <LinkIcon className="size-3.5" />
-                  Link Existing Contact
-                </Button>
-              </div>
-              {filteredContacts.map((contact) => {
-                const link = projectContactLinks.find((item) => item.contact_id === contact.id);
-
-                return (
-                  <div
-                    key={contact.id}
-                    className="flex items-center justify-between rounded-lg border p-4"
+            <div className="grid gap-3 sm:grid-cols-2">
+              {filteredContacts.map((contact) => (
+                <div key={contact.id} className="relative">
+                  <ContactCard contact={contact} />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUnlinkContact(contact.id);
+                    }}
                   >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{contact.name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {[contact.role, contact.organization].filter(Boolean).join(" - ")}
-                        {link?.role_in_project ? ` - ${link.role_in_project}` : ""}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleUnlinkContact(contact.id)}
-                    >
-                      <Unlink className="size-3" />
-                    </Button>
-                  </div>
-                );
-              })}
+                    <Unlink className="size-3" />
+                  </Button>
+                </div>
+              ))}
             </div>
           ) : null}
         </GoalDetailSection>
@@ -1299,39 +1286,6 @@ export default function ProjectDetailPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isLinkContactOpen} onOpenChange={setIsLinkContactOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Link Contact</DialogTitle>
-            <DialogDescription>Add a contact to this project.</DialogDescription>
-          </DialogHeader>
-          {unlinkedContacts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              All contacts are already linked to this project.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {unlinkedContacts.map((contact) => (
-                <button
-                  key={contact.id}
-                  type="button"
-                  onClick={() => handleLinkContact(contact.id)}
-                  className="flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/40"
-                >
-                  <Users className="mt-0.5 size-4 text-muted-foreground" />
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{contact.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {[contact.role, contact.organization].filter(Boolean).join(" - ")}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
       <TaskDialog
         open={isNewTaskOpen}
         onOpenChange={setIsNewTaskOpen}
@@ -1365,7 +1319,7 @@ export default function ProjectDetailPage() {
         open={isNewContactOpen}
         onOpenChange={setIsNewContactOpen}
         contact={null}
-        requireContactDetails
+        defaults={{ project_ids: project?.id ? [project.id] : [] }}
         onSubmit={handleCreateContactSubmit}
       />
 

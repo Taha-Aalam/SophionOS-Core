@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 
-import { Target, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
@@ -340,6 +340,77 @@ export function ProjectDialog({
               <FormMessage>{form.formState.errors.description?.message}</FormMessage>
             </FormItem>
 
+            {/* Row 1: Status | Priority */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={PROJECT_STATUS.PLANNING}>Planning</SelectItem>
+                        <SelectItem value={PROJECT_STATUS.ACTIVE}>In Progress</SelectItem>
+                        <SelectItem value={PROJECT_STATUS.COMPLETED}>Completed</SelectItem>
+                        <SelectItem value={PROJECT_STATUS.ON_HOLD}>On Hold</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FormMessage>{form.formState.errors.status?.message}</FormMessage>
+              </FormItem>
+
+              <FormItem>
+                <FormLabel>Priority</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
+                        <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
+                        <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
+                        <SelectItem value={PRIORITY.URGENT}>Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FormMessage>{form.formState.errors.priority?.message}</FormMessage>
+              </FormItem>
+            </div>
+
+            {/* Row 2: Start Date | Due Date */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FormItem>
+                <FormLabel>Start Date</FormLabel>
+                <FormControl>
+                  <Input type="date" min={!project ? todayStr : undefined} {...form.register("start_date")} />
+                </FormControl>
+                <FormMessage>{form.formState.errors.start_date?.message}</FormMessage>
+              </FormItem>
+
+              <FormItem>
+                <FormLabel>Due Date</FormLabel>
+                <FormControl>
+                  <Input type="date" min={dueDateMin} {...form.register("due_date")} />
+                </FormControl>
+                <FormMessage>{form.formState.errors.due_date?.message}</FormMessage>
+              </FormItem>
+            </div>
+
+            {/* Row 3: Area | Goals (compact dropdown) */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {isGoalScoped ? (
                 <FormItem>
@@ -369,7 +440,7 @@ export function ProjectDialog({
                           : `${selectedAreaIds.length} selected`}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-56">
-                        <DropdownMenuItem onClick={() => form.setValue("area_ids", [])}>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => form.setValue("area_ids", [])}>
                           Clear selection
                         </DropdownMenuItem>
                         <ScrollArea className="max-h-56">
@@ -378,6 +449,7 @@ export function ProjectDialog({
                             return (
                               <DropdownMenuItem
                                 key={area.id}
+                                onSelect={(e) => e.preventDefault()}
                                 onClick={() => handleAreaToggle(area.id, !isSelected)}
                                 className="flex items-center gap-2"
                               >
@@ -416,143 +488,76 @@ export function ProjectDialog({
                 </FormItem>
               )}
 
-              <FormItem>
-                <FormLabel>Priority</FormLabel>
-                <Controller
-                  control={form.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
-                        <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
-                        <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
-                        <SelectItem value={PRIORITY.URGENT}>Urgent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <FormMessage>{form.formState.errors.priority?.message}</FormMessage>
-              </FormItem>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Controller
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={PROJECT_STATUS.PLANNING}>Planning</SelectItem>
-                        <SelectItem value={PROJECT_STATUS.ACTIVE}>In Progress</SelectItem>
-                        <SelectItem value={PROJECT_STATUS.COMPLETED}>Completed</SelectItem>
-                        <SelectItem value={PROJECT_STATUS.ON_HOLD}>On Hold</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <FormMessage>{form.formState.errors.status?.message}</FormMessage>
-              </FormItem>
-
-              <FormItem>
-                <FormLabel>Start Date</FormLabel>
-                <FormControl>
-                  <Input type="date" min={!project ? todayStr : undefined} {...form.register("start_date")} />
-                </FormControl>
-                <FormMessage>{form.formState.errors.start_date?.message}</FormMessage>
-              </FormItem>
-
-              <FormItem>
-                <FormLabel>Due Date</FormLabel>
-                <FormControl>
-                  <Input type="date" min={dueDateMin} {...form.register("due_date")} />
-                </FormControl>
-                <FormMessage>{form.formState.errors.due_date?.message}</FormMessage>
-              </FormItem>
-            </div>
-
-            {isGoalScoped ? (
-              <FormItem>
-                <FormLabel>Linked Goal</FormLabel>
-                <div
-                  className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
-                  data-testid="project-dialog-goal-locked"
-                >
-                  Locked to current goal
-                  <Badge variant="secondary">1 linked</Badge>
-                </div>
-              </FormItem>
-            ) : (
-            <FormItem>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <FormLabel>Linked Goals</FormLabel>
-                  <p className="text-sm text-muted-foreground">
-                    Select the goals this project contributes to.
-                  </p>
-                </div>
-                <Badge variant="secondary">
-                  {selectedGoalIds.length} linked
-                </Badge>
-              </div>
-
-              {isLoadingRelations && project ? (
-                <div className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
-                  Loading linked goals...
-                </div>
-              ) : visibleGoals.length === 0 ? (
-                <div className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
-                  {selectedAreaIds.length > 0
-                    ? "No active goals in the selected areas. Select different areas to see more goals."
-                    : "No active goals are available yet."}
-                </div>
-              ) : (
-                <ScrollArea className="h-52 rounded-lg border">
-                  <div className="space-y-2 p-3">
-                    {visibleGoals.map((goal) => (
-                      <label
-                        key={goal.id}
-                        className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/40"
-                      >
-                        <Checkbox
-                          checked={selectedGoalIds.includes(goal.id)}
-                          onCheckedChange={(checked) => handleGoalToggle(goal.id, Boolean(checked))}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <Target className="size-4 text-muted-foreground" />
-                            <span className="truncate font-medium">{goal.name}</span>
-                            <Badge variant="outline" className="text-[10px] uppercase">
-                              {goal.term}
-                            </Badge>
-                          </div>
-                          {goal.description && (
-                            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                              {goal.description}
-                            </p>
-                          )}
-                        </div>
-                      </label>
-                    ))}
+              {isGoalScoped ? (
+                <FormItem>
+                  <FormLabel>Linked Goal</FormLabel>
+                  <div
+                    className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+                    data-testid="project-dialog-goal-locked"
+                  >
+                    Locked to current goal
+                    <Badge variant="secondary">1 linked</Badge>
                   </div>
-                </ScrollArea>
+                </FormItem>
+              ) : (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Goals</FormLabel>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                        {selectedGoalIds.length === 0 ? "Select goals..." : `${selectedGoalIds.length} selected`}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-56">
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => form.setValue("goal_ids", [])}>
+                          Clear selection
+                        </DropdownMenuItem>
+                        <ScrollArea className="max-h-56">
+                          {visibleGoals.length === 0 ? (
+                            <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                              {selectedAreaIds.length > 0
+                                ? "No goals in selected areas."
+                                : "No active goals available."}
+                            </div>
+                          ) : (
+                            visibleGoals.map((goal) => (
+                              <DropdownMenuItem
+                                key={goal.id}
+                                onSelect={(e) => e.preventDefault()}
+                                onClick={() => handleGoalToggle(goal.id, !selectedGoalIds.includes(goal.id))}
+                                className="flex items-center gap-2"
+                              >
+                                <Checkbox checked={selectedGoalIds.includes(goal.id)} />
+                                {goal.name}
+                              </DropdownMenuItem>
+                            ))
+                          )}
+                        </ScrollArea>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  {selectedGoalIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {selectedGoalIds
+                        .map((id) => visibleGoals.find((g) => g.id === id) ?? activeGoals.find((g) => g.id === id))
+                        .filter((g): g is NonNullable<typeof g> => Boolean(g))
+                        .map((goal) => (
+                          <Badge key={goal.id} variant="secondary" className="flex items-center gap-1">
+                            {goal.name}
+                            <button
+                              type="button"
+                              onClick={() => handleGoalToggle(goal.id, false)}
+                              className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                            >
+                              <X className="size-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                    </div>
+                  )}
+                  <FormMessage>{form.formState.errors.goal_ids?.message}</FormMessage>
+                </FormItem>
               )}
-
-              <FormMessage>{form.formState.errors.goal_ids?.message}</FormMessage>
-            </FormItem>
-            )}
+            </div>
 
             <div className="flex justify-end gap-3 pt-2">
               <Button

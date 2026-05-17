@@ -6,7 +6,8 @@ import { goalService } from "@/lib/services/goal.service";
 import { noteService } from "@/lib/services/note.service";
 import { projectService } from "@/lib/services/project.service";
 import { taskService } from "@/lib/services/task.service";
-import type { Area, Goal, Note, Project, Task } from "@/lib/types/domain.types";
+import { resourceService } from "@/lib/services/resource.service";
+import type { Area, Goal, Note, Project, Resource, Task } from "@/lib/types/domain.types";
 import { goalMatchesAreaId } from "@/lib/utils/goals";
 import { projectMatchesAreaId } from "@/lib/utils/projects";
 import { taskMatchesAreaId } from "@/lib/utils/tasks";
@@ -19,11 +20,13 @@ export interface AreaDetailData {
   projects: Project[];
   tasks: Task[];
   notes: Note[];
+  resources: Resource[];
   rollups: {
     goalCount: number;
     projectCount: number;
     taskCount: number;
     noteCount: number;
+    resourceCount: number;
   };
 }
 
@@ -43,11 +46,12 @@ export function useAreaDetail(areaIdentifier: string) {
       
       const areaId = area.id;
 
-      const [goalsResult, projectsResult, tasksResult, notesResult] = await Promise.all([
+      const [goalsResult, projectsResult, tasksResult, notesResult, resourcesResult] = await Promise.all([
         goalService.list(userId, { status: "all" }),
         projectService.list(userId, { status: "all" }),
         taskService.list(userId),
         noteService.listByArea(userId, areaId),
+        resourceService.listByArea(userId, areaId),
       ]);
 
       const linkedGoals = goalsResult.filter((g) => goalMatchesAreaId(g, areaId));
@@ -61,11 +65,13 @@ export function useAreaDetail(areaIdentifier: string) {
         projects: linkedProjects,
         tasks: linkedTasks,
         notes: linkedNotes,
+        resources: resourcesResult,
         rollups: {
           goalCount: linkedGoals.length,
           projectCount: linkedProjects.length,
           taskCount: linkedTasks.length,
           noteCount: linkedNotes.length,
+          resourceCount: resourcesResult.length,
         },
       };
     },

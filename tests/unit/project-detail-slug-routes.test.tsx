@@ -57,11 +57,17 @@ vi.mock("@/lib/hooks/use-areas", () => ({
 
 vi.mock("@/lib/hooks/use-goals", () => ({
   useGoals: () => ({ data: [], isLoading: false }),
+  GOALS_QUERY_KEY: "goals",
+}));
+
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
 
 vi.mock("@/lib/hooks/use-tasks", () => ({
   useTasks: () => ({ data: [], isLoading: false }),
   useCompleteTask: () => ({ mutateAsync: vi.fn() }),
+  useUncompleteTask: () => ({ mutateAsync: vi.fn() }),
   useFocusTask: () => ({ mutateAsync: vi.fn() }),
   useUpdateTask: () => ({ mutateAsync: vi.fn() }),
   useDeleteTask: () => ({ mutateAsync: vi.fn() }),
@@ -97,6 +103,7 @@ vi.mock("@/lib/hooks/use-resources", () => ({
   },
   useCreateResource: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
   useToggleFavoriteResource: () => ({ mutate: vi.fn() }),
+  useUpdateResource: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
 }));
 
 vi.mock("@/components/entities/project-dialog", () => ({

@@ -109,6 +109,7 @@ function CollapsibleSection({
                 projectsCount={rollupsByAreaId?.get(area.id)?.projectsCount}
                 tasksCount={rollupsByAreaId?.get(area.id)?.tasksCount}
                 notesCount={rollupsByAreaId?.get(area.id)?.notesCount}
+                resourcesCount={rollupsByAreaId?.get(area.id)?.resourcesCount}
                 duplicateIndex={duplicateIndices?.get(area.id)}
                 onEdit={onEdit}
                 onArchive={onArchive}

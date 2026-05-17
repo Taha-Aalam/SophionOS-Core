@@ -1,4 +1,4 @@
-import type { Area, Goal, Note, Project, Task } from "@/lib/types/domain.types";
+import type { Area, Goal, Note, Project, Resource, Task } from "@/lib/types/domain.types";
 import { goalMatchesAreaId } from "@/lib/utils/goals";
 import { noteMatchesAreaId } from "@/lib/utils/notes";
 
@@ -14,6 +14,7 @@ export interface AreaRollups {
   projectsCount: number;
   tasksCount: number;
   notesCount: number;
+  resourcesCount: number;
 }
 
 export function normalizeAreaType(type: string | null | undefined): string {
@@ -77,8 +78,9 @@ export function getAreaRollups(params: {
   projects: Project[];
   tasks: Task[];
   notes?: Note[];
+  resources?: Resource[];
 }): AreaRollups {
-  const { areaId, goals, projects, tasks, notes = [] } = params;
+  const { areaId, goals, projects, tasks, notes = [], resources = [] } = params;
 
   return {
     goalsCount: goals.filter((goal) => goalMatchesAreaId(goal, areaId) && !goal.is_archived)
@@ -89,5 +91,6 @@ export function getAreaRollups(params: {
       (task) => task.area_id === areaId && !task.is_archived && !task.is_completed,
     ).length,
     notesCount: notes.filter((note) => noteMatchesAreaId(note, areaId) && !note.is_archived).length,
+    resourcesCount: resources.filter((resource) => resource.area_id === areaId && !resource.is_archived).length,
   };
 }

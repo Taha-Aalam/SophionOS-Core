@@ -9,13 +9,18 @@ import {
   Edit,
   Target,
   Trash2,
+  Unlink,
 } from "lucide-react";
 
+import { ContactCard } from "@/components/entities/contact-card";
+import { ContactDialog } from "@/components/entities/contact-dialog";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
+import { ResourceDialog } from "@/components/entities/resource-dialog";
+import { ResourceTable } from "@/components/entities/resource-table";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskListItem } from "@/components/entities/task-list-item";
 import { EmptyState } from "@/components/views/empty-state";
@@ -27,6 +32,13 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/auth-provider";
+import {
+  useContacts,
+  useContactByArea,
+  useCreateContact,
+  useLinkContactToArea,
+  useUnlinkContactFromArea,
+} from "@/lib/hooks/use-contacts";
 import { useAreaDetail } from "@/lib/hooks/use-area-detail";
 import { useArchiveArea, useRestoreArea, useUpdateArea } from "@/lib/hooks/use-areas";
 import {
@@ -34,7 +46,13 @@ import {
   useDeleteTask,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
-import { type Task } from "@/lib/types/domain.types";
+import {
+  useCreateResource,
+  useToggleFavoriteResource,
+  useUpdateResource,
+} from "@/lib/hooks/use-resources";
+import { type Contact, type CreateResourceInput, type Resource, type Task } from "@/lib/types/domain.types";
+import { RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";
@@ -67,6 +85,11 @@ export default function AreaDetailPage() {
   const [projectTab, setProjectTab] = useState("all");
   const [taskTab, setTaskTab] = useState("all");
   const [noteTab, setNoteTab] = useState("all");
+  const [resourceTab, setResourceTab] = useState("all");
+  const [contactTab, setContactTab] = useState("all");
+  const [isNewContactOpen, setIsNewContactOpen] = useState(false);
+  const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
+  const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
@@ -76,8 +99,11 @@ export default function AreaDetailPage() {
   const projectsRef = useRef<HTMLDivElement>(null);
   const tasksRef = useRef<HTMLDivElement>(null);
   const notesRef = useRef<HTMLDivElement>(null);
+  const resourcesRef = useRef<HTMLDivElement>(null);
+  const peopleRef = useRef<HTMLDivElement>(null);
 
   const { data: areaData, isLoading } = useAreaDetail(areaIdentifier);
+  const { data: allContacts = [] } = useContacts();
 
   const archiveArea = useArchiveArea(userId);
   const restoreArea = useRestoreArea(userId);
@@ -85,9 +111,17 @@ export default function AreaDetailPage() {
   const completeTask = useCompleteTaskWithGoalRefresh();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const linkContactToArea = useLinkContactToArea();
+  const unlinkContactFromArea = useUnlinkContactFromArea();
+  const createContact = useCreateContact();
+  const createResource = useCreateResource();
+  const updateResource = useUpdateResource();
+  const toggleFavoriteResource = useToggleFavoriteResource();
 
   const area = areaData?.area;
-  const rollups = areaData?.rollups ?? { goalCount: 0, projectCount: 0, taskCount: 0, noteCount: 0 };
+  const { data: areaContactLinks = [] } = useContactByArea(area?.id ?? "");
+  const rollups = areaData?.rollups ?? { goalCount: 0, projectCount: 0, taskCount: 0, noteCount: 0, resourceCount: 0 };
+  const linkedResources = useMemo(() => areaData?.resources ?? [], [areaData?.resources]);
 
   const areaStatus = area ? classifyAreaStatus(area) : "active";
   const areaType = area ? normalizeAreaType(area.type) : "Personal";
@@ -163,9 +197,59 @@ export default function AreaDetailPage() {
     if (noteTab === "inbox") return notes.filter((n) => n.status === "inbox");
     if (noteTab === "to_review") return notes.filter((n) => n.status === "to_review");
     if (noteTab === "active") return notes.filter((n) => n.status === "active" && !n.is_archived);
+    if (noteTab === "saved") return notes.filter((n) => n.status === "saved");
     if (noteTab === "archived") return notes.filter((n) => n.is_archived);
     return notes;
   }, [areaData?.notes, noteTab]);
+
+  const filteredResources = useMemo(() => {
+    if (resourceTab === "all") return linkedResources;
+    if (resourceTab === "inbox") return linkedResources.filter((r) => r.status === RESOURCE_STATUS.INBOX);
+    if (resourceTab === "to_review") return linkedResources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW);
+    if (resourceTab === "active") return linkedResources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE && !r.is_archived);
+    if (resourceTab === "saved") return linkedResources.filter((r) => r.status === RESOURCE_STATUS.SAVED);
+    if (resourceTab === "archived") return linkedResources.filter((r) => r.is_archived);
+    return linkedResources;
+  }, [linkedResources, resourceTab]);
+
+  const linkedContactIds = useMemo(
+    () => new Set(areaContactLinks.map((link) => link.contact_id)),
+    [areaContactLinks],
+  );
+  const linkedContacts = useMemo(
+    () => allContacts.filter((c) => linkedContactIds.has(c.id)),
+    [allContacts, linkedContactIds],
+  );
+  const contactTabs = useMemo(
+    () => [
+      { value: "all", label: "All", count: linkedContacts.length },
+      { value: "favorite", label: "Favorite", count: linkedContacts.filter((c) => c.favorite).length },
+      { value: "follow_up", label: "Follow-up", count: linkedContacts.filter((c) => !!c.follow_up_interval_days).length },
+      { value: "by_group", label: "By Group", count: linkedContacts.filter((c) => !!c.group).length },
+      { value: "by_project", label: "By Project", count: linkedContacts.filter((c) => (c.linkedProjectIds?.length ?? 0) > 0).length },
+      { value: "by_area", label: "By Area", count: linkedContacts.filter((c) => (c.linkedAreaIds?.length ?? 0) > 0).length },
+      { value: "archived", label: "Archive", count: linkedContacts.filter((c) => c.archive).length },
+    ],
+    [linkedContacts],
+  );
+  const filteredContacts = useMemo(() => {
+    switch (contactTab) {
+      case "favorite":
+        return linkedContacts.filter((c) => c.favorite);
+      case "follow_up":
+        return linkedContacts.filter((c) => !!c.follow_up_interval_days);
+      case "by_group":
+        return linkedContacts.filter((c) => !!c.group);
+      case "by_project":
+        return linkedContacts.filter((c) => (c.linkedProjectIds?.length ?? 0) > 0);
+      case "by_area":
+        return linkedContacts.filter((c) => (c.linkedAreaIds?.length ?? 0) > 0);
+      case "archived":
+        return linkedContacts.filter((c) => c.archive);
+      default:
+        return linkedContacts;
+    }
+  }, [contactTab, linkedContacts]);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -210,6 +294,46 @@ export default function AreaDetailPage() {
 
   const handleTaskDelete = async (taskId: string) => {
     await deleteTask.mutateAsync(taskId);
+  };
+
+  const handleUnlinkContact = async (contactId: string) => {
+    await unlinkContactFromArea.mutateAsync({ contactId, areaId: area!.id });
+  };
+
+  const handleCreateContactSubmit = (values: {
+    name: string;
+    role: string;
+    organization: string;
+    group: string;
+    phone: string;
+    email: string;
+    linkedin: string;
+    website: string;
+    follow_up_interval_days: string;
+    notes: string;
+  }) => {
+    createContact.mutate(
+      {
+        name: values.name,
+        role: values.role || null,
+        organization: values.organization || null,
+        group: values.group || null,
+        phone: values.phone || null,
+        email: values.email || null,
+        linkedin: values.linkedin || null,
+        website: values.website || null,
+        follow_up_interval_days:
+          values.follow_up_interval_days && values.follow_up_interval_days !== "none"
+            ? parseInt(values.follow_up_interval_days, 10)
+            : null,
+        notes: values.notes || null,
+      },
+      {
+        onSuccess: (createdContact: Contact) => {
+          linkContactToArea.mutate({ contactId: createdContact.id, areaId: area!.id });
+        },
+      },
+    );
   };
 
   if (isLoading) {
@@ -362,6 +486,15 @@ export default function AreaDetailPage() {
               {rollups.noteCount}
             </span>
             <span className="text-muted-foreground">Notes</span>
+          </button>
+          <button
+            onClick={() => scrollToSection("resources")}
+            className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
+          >
+            <span className="font-medium text-orange-600 dark:text-orange-400">
+              {rollups.resourceCount}
+            </span>
+            <span className="text-muted-foreground">Resources</span>
           </button>
         </div>
 
@@ -591,6 +724,7 @@ export default function AreaDetailPage() {
             { value: "inbox", label: "Inbox" },
             { value: "to_review", label: "To Review" },
             { value: "active", label: "Active" },
+            { value: "saved", label: "Saved" },
             { value: "archived", label: "Archive" },
           ]}
           activeTab={noteTab}
@@ -626,6 +760,76 @@ export default function AreaDetailPage() {
                   </button>
                 );
               })}
+            </div>
+          ) : null}
+        </GoalDetailSection>
+      </div>
+
+      {/* Linked Resources Section */}
+      <div ref={resourcesRef}>
+        <GoalDetailSection
+          id="resources"
+          entityType="resources"
+          tabs={[
+            { value: "all", label: "All", count: rollups.resourceCount },
+            { value: "inbox", label: "Inbox" },
+            { value: "to_review", label: "To Review" },
+            { value: "active", label: "Active" },
+            { value: "saved", label: "Saved" },
+            { value: "archived", label: "Archive" },
+          ]}
+          activeTab={resourceTab}
+          onTabChange={setResourceTab}
+          isLoading={isLoading}
+          emptyTitle="No resources linked to this area"
+          emptyDescription="Add resources to track external references for this area."
+          onCreateNew={() => setIsNewResourceOpen(true)}
+          createLabel="New Resource"
+        >
+          {filteredResources.length > 0 ? (
+            <ResourceTable
+              resources={filteredResources}
+              onToggleFavorite={(id, favorite) =>
+                toggleFavoriteResource.mutate({ id, favorite })
+              }
+              onEdit={(resource) => setEditingResource(resource)}
+            />
+          ) : null}
+        </GoalDetailSection>
+      </div>
+
+      {/* People Section */}
+      <div ref={peopleRef}>
+        <GoalDetailSection
+          id="people"
+          entityType="people"
+          tabs={contactTabs}
+          activeTab={contactTab}
+          onTabChange={setContactTab}
+          isLoading={isLoading}
+          emptyTitle="No people linked to this area"
+          emptyDescription="Add people to track relationships that contribute to this area."
+          onCreateNew={() => setIsNewContactOpen(true)}
+          createLabel="New Contact"
+        >
+          {filteredContacts.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {filteredContacts.map((contact) => (
+                <div key={contact.id} className="relative">
+                  <ContactCard contact={contact} />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUnlinkContact(contact.id);
+                    }}
+                  >
+                    <Unlink className="size-3" />
+                  </Button>
+                </div>
+              ))}
             </div>
           ) : null}
         </GoalDetailSection>
@@ -694,6 +898,41 @@ export default function AreaDetailPage() {
       />
 
       {/* Note creation navigates directly to /notes/new */}
+
+      {/* Inline Contact Creation */}
+      <ContactDialog
+        open={isNewContactOpen}
+        onOpenChange={setIsNewContactOpen}
+        contact={null}
+        defaults={{ area_ids: area?.id ? [area.id] : [] }}
+        onSubmit={handleCreateContactSubmit}
+      />
+
+      {/* Inline Resource Creation */}
+      <ResourceDialog
+        open={isNewResourceOpen}
+        onOpenChange={setIsNewResourceOpen}
+        initialAreaIds={area?.id ? [area.id] : []}
+        onSubmit={async (input) => {
+          await createResource.mutateAsync(input as CreateResourceInput);
+          setIsNewResourceOpen(false);
+        }}
+        isPending={createResource.isPending}
+      />
+
+      {/* Resource Edit Dialog */}
+      <ResourceDialog
+        open={!!editingResource}
+        onOpenChange={(open) => { if (!open) setEditingResource(null); }}
+        resource={editingResource}
+        onSubmit={async (input) => {
+          if (editingResource) {
+            await updateResource.mutateAsync({ id: editingResource.id, input });
+          }
+          setEditingResource(null);
+        }}
+        isPending={updateResource.isPending}
+      />
     </div>
   );
 }

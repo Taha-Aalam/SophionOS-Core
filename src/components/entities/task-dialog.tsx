@@ -109,8 +109,6 @@ interface TaskFormValues {
   status: Task["status"];
 }
 
-const UNASSIGNED_AREA_VALUE = "__unassigned_area__";
-const UNASSIGNED_PROJECT_VALUE = "__unassigned_project__";
 
 const EMPTY_FORM_VALUES: TaskFormValues = {
   area_ids: [],
@@ -319,12 +317,17 @@ export function TaskDialog({
 
   const selectedAreaIds = form.watch("area_ids") ?? [];
   const selectedGoalIds = form.watch("goal_ids") ?? [];
+  const selectedProjectId = form.watch("project_id");
   const isPending = createTask.isPending || updateTask.isPending;
 
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
 
     const invalidGoalIds = selectedGoalIds.filter((goalId) => {
+      if (selectedProjectId) {
+        const proj = projectById.get(selectedProjectId);
+        if (proj?.linkedGoalIds?.length && !proj.linkedGoalIds.includes(goalId)) return true;
+      }
       const goal = allGoals.find((g) => g.id === goalId);
       if (!goal) return true;
       if (selectedAreaIds.length === 0) return false;
@@ -339,13 +342,21 @@ export function TaskDialog({
         shouldValidate: true,
       });
     }
-  }, [selectedAreaIds, allGoals, selectedGoalIds, form, isGoalScoped, isProjectScoped]);
+  }, [selectedAreaIds, selectedProjectId, allGoals, selectedGoalIds, form, isGoalScoped, isProjectScoped, projectById]);
 
   /** Goals visible in the goal selector — restricted to project-linked goals when project-scoped, or area-linked goals when an area is selected. */
   const visibleGoals = useMemo(() => {
     if (isProjectScoped && projectScoped?.linkedGoalIds?.length) {
       const allowedSet = new Set(projectScoped.linkedGoalIds);
       return goals.filter((goal) => allowedSet.has(goal.id));
+    }
+
+    if (!isGoalScoped && !isProjectScoped && selectedProjectId) {
+      const proj = projectById.get(selectedProjectId);
+      if (proj?.linkedGoalIds?.length) {
+        const allowedSet = new Set(proj.linkedGoalIds);
+        return goals.filter((goal) => allowedSet.has(goal.id));
+      }
     }
 
     if (!isGoalScoped && selectedAreaIds.length > 0) {
@@ -355,7 +366,7 @@ export function TaskDialog({
     }
 
     return goals;
-  }, [isGoalScoped, isProjectScoped, projectScoped, goals, selectedAreaIds]);
+  }, [isGoalScoped, isProjectScoped, projectScoped, goals, selectedAreaIds, selectedProjectId, projectById]);
 
   const filteredProjects = useMemo(() => {
     if (isGoalScoped && goalScoped) {
@@ -366,6 +377,13 @@ export function TaskDialog({
       return filterAllowedProjectsForGoal(projects, allowedProjectIds);
     }
 
+    if (selectedGoalIds.length > 0) {
+      const selectedGoalSet = new Set(selectedGoalIds);
+      return projects.filter((project) =>
+        project.linkedGoalIds?.some((gId) => selectedGoalSet.has(gId)),
+      );
+    }
+
     if (selectedAreaIds.length === 0) {
       return projects;
     }
@@ -373,11 +391,21 @@ export function TaskDialog({
     return projects.filter((project) =>
       selectedAreaIds.includes(project.area_id ?? ""),
     );
-  }, [goalScoped, isGoalScoped, projects, selectedAreaIds, allowedProjectIds]);
+  }, [goalScoped, isGoalScoped, projects, selectedAreaIds, selectedGoalIds, allowedProjectIds]);
 
   /** Areas visible in the area selector — restricted to goal-linked areas when goals are selected. */
   const visibleAreas = useMemo(() => {
     if (selectedGoalIds.length === 0) {
+      if (selectedProjectId) {
+        const proj = projectById.get(selectedProjectId);
+        if (proj) {
+          const projAreaIds = new Set([
+            ...(proj.linkedAreaIds ?? []),
+            ...(proj.area_id ? [proj.area_id] : []),
+          ]);
+          return areas.filter((area) => projAreaIds.has(area.id));
+        }
+      }
       return areas;
     }
 
@@ -392,12 +420,22 @@ export function TaskDialog({
     }
 
     return areas.filter((area) => allowedAreaIds.has(area.id));
-  }, [areas, goals, selectedGoalIds]);
+  }, [areas, goals, selectedGoalIds, selectedProjectId, projectById]);
 
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
 
     const invalidAreaIds = selectedAreaIds.filter((areaId) => {
+      if (selectedProjectId) {
+        const proj = projectById.get(selectedProjectId);
+        if (proj) {
+          const projAreaIds = new Set([
+            ...(proj.linkedAreaIds ?? []),
+            ...(proj.area_id ? [proj.area_id] : []),
+          ]);
+          if (!projAreaIds.has(areaId)) return true;
+        }
+      }
       if (selectedGoalIds.length === 0) return false;
       return !selectedGoalIds.some((goalId) => {
         const goal = allGoals.find((g) => g.id === goalId);
@@ -414,7 +452,7 @@ export function TaskDialog({
         shouldValidate: true,
       });
     }
-  }, [selectedGoalIds, allGoals, selectedAreaIds, form, isGoalScoped, isProjectScoped]);
+  }, [selectedGoalIds, selectedProjectId, allGoals, selectedAreaIds, form, isGoalScoped, isProjectScoped, projectById]);
 
   const handleGoalToggle = (goalId: string, checked: boolean) => {
     const nextGoalIds = checked
@@ -522,7 +560,73 @@ export function TaskDialog({
               <FormMessage>{form.formState.errors.description?.message}</FormMessage>
             </FormItem>
 
+            {/* Row 1: Status | Priority */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={TASK_STATUS.INBOX}>Inbox</SelectItem>
+                        <SelectItem value={TASK_STATUS.TODO}>To Do</SelectItem>
+                        <SelectItem value={TASK_STATUS.IN_PROGRESS}>In Progress</SelectItem>
+                        <SelectItem value={TASK_STATUS.COMPLETED}>Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FormMessage>{form.formState.errors.status?.message}</FormMessage>
+              </FormItem>
+
+              <FormItem>
+                <FormLabel>Priority</FormLabel>
+                <Controller
+                  control={form.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
+                        <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
+                        <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
+                        <SelectItem value={PRIORITY.URGENT}>Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FormMessage>{form.formState.errors.priority?.message}</FormMessage>
+              </FormItem>
+            </div>
+
+            {/* Row 2: Due Date (full width) */}
+            <FormItem>
+              <FormLabel>Due Date</FormLabel>
+              <FormControl>
+                <Input
+                  type="date"
+                  min={!task ? new Date().toISOString().split("T")[0] : undefined}
+                  {...form.register("due_date")}
+                />
+              </FormControl>
+              <FormMessage>{form.formState.errors.due_date?.message}</FormMessage>
+            </FormItem>
+
+            {/* Row 3: Area | Goals (compact dropdown) */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {/* Area — all three scoped variants preserved, positional move only */}
               {isGoalScoped ? (
                 <FormItem>
                   <div className="flex items-center justify-between gap-3">
@@ -612,6 +716,7 @@ export function TaskDialog({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-56">
                           <DropdownMenuItem
+                            onSelect={(e) => e.preventDefault()}
                             onClick={() => {
                               form.setValue("area_ids", [], { shouldDirty: true });
                             }}
@@ -624,6 +729,7 @@ export function TaskDialog({
                               return (
                                 <DropdownMenuItem
                                   key={area.id}
+                                  onSelect={(e) => e.preventDefault()}
                                   onClick={() => {
                                     const nextAreaIds = isSelected
                                       ? selectedAreaIds.filter((id) => id !== area.id)
@@ -695,6 +801,7 @@ export function TaskDialog({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-56">
                         <DropdownMenuItem
+                          onSelect={(e) => e.preventDefault()}
                           onClick={() => {
                             form.setValue("area_ids", [], { shouldDirty: true });
                           }}
@@ -706,6 +813,7 @@ export function TaskDialog({
                           return (
                             <DropdownMenuItem
                               key={area.id}
+                              onSelect={(e) => e.preventDefault()}
                               onClick={() => {
                                 const nextAreaIds = checked
                                   ? selectedAreaIds.filter((id) => id !== area.id)
@@ -768,215 +876,145 @@ export function TaskDialog({
                 </FormItem>
               )}
 
-              {isProjectScoped ? (
+              {/* Goals — compact dropdown (replaces ScrollArea) */}
+              {isGoalScoped ? (
                 <FormItem>
-                  <FormLabel>Project</FormLabel>
+                  <FormLabel>Linked Goal</FormLabel>
                   <div
-                    className="flex h-9 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
-                    aria-readonly="true"
-                    data-testid="task-dialog-project-locked"
+                    className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+                    data-testid="task-dialog-goal-locked"
                   >
-                    {projectScoped?.projectName ?? "Inherited from project"}
+                    Locked to current goal
+                    <Badge variant="secondary">1 linked</Badge>
                   </div>
                 </FormItem>
               ) : (
                 <FormItem>
-                  <FormLabel>Project</FormLabel>
-                  <Controller
-                    control={form.control}
-                    name="project_id"
-                    render={({ field }) => {
-                      const selectedProject = field.value ? projectById.get(field.value) : null;
-                      return (
-                        <Select
-                          onValueChange={(value) => {
-                            const nextProjectId = value === UNASSIGNED_PROJECT_VALUE ? "" : value;
-                            field.onChange(nextProjectId);
-
-                            const project = nextProjectId
-                              ? projectById.get(nextProjectId)
-                              : null;
-                            if (project?.area_id) {
-                              const currentAreaIds = form.getValues("area_ids") ?? [];
-                              if (!currentAreaIds.includes(project.area_id)) {
-                                form.setValue("area_ids", [...currentAreaIds, project.area_id], {
-                                  shouldDirty: true,
-                                  shouldTouch: true,
-                                  shouldValidate: true,
-                                });
-                              }
-                            }
-                          }}
-                          value={field.value || UNASSIGNED_PROJECT_VALUE}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select project">
-                                {selectedProject ? selectedProject.name : undefined}
-                              </SelectValue>
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value={UNASSIGNED_PROJECT_VALUE}>Unassigned</SelectItem>
-                            {/*
-                              Always include the currently-selected project so that the
-                              trigger renders its name even when the project is filtered
-                              out by the area scope or a goal-scoped allow list.
-                            */}
-                            {selectedProject &&
-                            !filteredProjects.some((p) => p.id === selectedProject.id) ? (
-                              <SelectItem
-                                key={selectedProject.id}
-                                value={selectedProject.id}
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Goals</FormLabel>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                        {selectedGoalIds.length === 0 ? "Select goals..." : `${selectedGoalIds.length} selected`}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-56">
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => form.setValue("goal_ids", [], { shouldDirty: true })}>
+                          Clear selection
+                        </DropdownMenuItem>
+                        <ScrollArea className="max-h-56">
+                          {visibleGoals.length === 0 ? (
+                            <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                              {isProjectScoped
+                                ? "No goals linked to this project."
+                                : "No active goals available."}
+                            </div>
+                          ) : (
+                            visibleGoals.map((goal) => (
+                              <DropdownMenuItem
+                                key={goal.id}
+                                onSelect={(e) => e.preventDefault()}
+                                onClick={() => handleGoalToggle(goal.id, !selectedGoalIds.includes(goal.id))}
+                                className="flex items-center gap-2"
                               >
-                                {selectedProject.name}
-                              </SelectItem>
-                            ) : null}
-                            {filteredProjects.map((project) => (
-                              <SelectItem key={project.id} value={project.id}>
-                                {project.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      );
-                    }}
-                  />
-                  <FormMessage>{form.formState.errors.project_id?.message}</FormMessage>
+                                <Checkbox checked={selectedGoalIds.includes(goal.id)} />
+                                {goal.name}
+                              </DropdownMenuItem>
+                            ))
+                          )}
+                        </ScrollArea>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  {selectedGoalIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {selectedGoalIds
+                        .map((id) => goals.find((g) => g.id === id))
+                        .filter((g): g is NonNullable<typeof g> => Boolean(g))
+                        .map((goal) => (
+                          <Badge key={goal.id} variant="secondary" className="flex items-center gap-1">
+                            {goal.name}
+                            <button
+                              type="button"
+                              onClick={() => handleGoalToggle(goal.id, false)}
+                              className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                            >
+                              <X className="size-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                    </div>
+                  )}
+                  <FormMessage>{form.formState.errors.goal_ids?.message}</FormMessage>
                 </FormItem>
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {/* Row 4: Project (full width) */}
+            {isProjectScoped ? (
               <FormItem>
-                <FormLabel>Priority</FormLabel>
-                <Controller
-                  control={form.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
-                        <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
-                        <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
-                        <SelectItem value={PRIORITY.URGENT}>Urgent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <FormMessage>{form.formState.errors.priority?.message}</FormMessage>
-              </FormItem>
-
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Controller
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={TASK_STATUS.INBOX}>Inbox</SelectItem>
-                        <SelectItem value={TASK_STATUS.TODO}>To Do</SelectItem>
-                        <SelectItem value={TASK_STATUS.IN_PROGRESS}>In Progress</SelectItem>
-                        <SelectItem value={TASK_STATUS.COMPLETED}>Completed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <FormMessage>{form.formState.errors.status?.message}</FormMessage>
-              </FormItem>
-
-              <FormItem>
-                <FormLabel>Due Date</FormLabel>
-                <FormControl>
-                  <Input
-                    type="date"
-                    min={!task ? new Date().toISOString().split("T")[0] : undefined}
-                    {...form.register("due_date")}
-                  />
-                </FormControl>
-                <FormMessage>{form.formState.errors.due_date?.message}</FormMessage>
-              </FormItem>
-            </div>
-
-            {isGoalScoped ? (
-              <FormItem>
-                <FormLabel>Linked Goal</FormLabel>
+                <FormLabel>Project</FormLabel>
                 <div
-                  className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
-                  data-testid="task-dialog-goal-locked"
+                  className="flex h-9 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
+                  aria-readonly="true"
+                  data-testid="task-dialog-project-locked"
                 >
-                  Locked to current goal
-                  <Badge variant="secondary">1 linked</Badge>
+                  {projectScoped?.projectName ?? "Inherited from project"}
                 </div>
               </FormItem>
             ) : (
-            <FormItem>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <FormLabel>Linked Goals</FormLabel>
-                  <p className="text-sm text-muted-foreground">
-                    Smart Priority uses the actual linked goal count.
-                  </p>
+              <FormItem>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Project</FormLabel>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                      {!form.watch("project_id") ? "Select project..." : (projectById.get(form.watch("project_id"))?.name ?? "...")}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuItem
+                        onSelect={(e) => e.preventDefault()}
+                        onClick={() => form.setValue("project_id", "", { shouldDirty: true })}
+                      >
+                        None
+                      </DropdownMenuItem>
+                      <ScrollArea className="max-h-56">
+                        {filteredProjects.length === 0 ? (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No projects available.</div>
+                        ) : filteredProjects.map((project) => {
+                          const isSelected = form.watch("project_id") === project.id;
+                          return (
+                            <DropdownMenuItem
+                              key={project.id}
+                              onSelect={(e) => e.preventDefault()}
+                              onClick={() => {
+                                const nextId = isSelected ? "" : project.id;
+                                form.setValue("project_id", nextId, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <Checkbox checked={isSelected} />
+                              {project.name}
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </ScrollArea>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <Badge variant="secondary">
-                  {selectedGoalIds.length} linked
-                </Badge>
-              </div>
-              <ScrollArea className="h-40 rounded-md border">
-                <div className="space-y-3 p-3">
-                  {visibleGoals.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      {isProjectScoped
-                        ? "No goals are linked to this project yet."
-                        : "No active goals available yet."}
-                    </p>
-                  ) : (
-                    visibleGoals.map((goal) => {
-                      const checked = selectedGoalIds.includes(goal.id);
-
-                      return (
-                        <label
-                          key={goal.id}
-                          className="flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors hover:bg-muted/40"
-                        >
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(nextValue) =>
-                              handleGoalToggle(goal.id, nextValue === true)
-                            }
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="truncate font-medium">{goal.name}</span>
-                              <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
-                                {goal.term}
-                              </Badge>
-                            </div>
-                            {goal.description && (
-                              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                                {goal.description}
-                              </p>
-                            )}
-                          </div>
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
-              </ScrollArea>
-              <FormMessage>{form.formState.errors.goal_ids?.message}</FormMessage>
-            </FormItem>
+                {form.watch("project_id") && projectById.get(form.watch("project_id")) && (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      {projectById.get(form.watch("project_id"))!.name}
+                      <button
+                        type="button"
+                        onClick={() => form.setValue("project_id", "", { shouldDirty: true })}
+                        className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </Badge>
+                  </div>
+                )}
+                <FormMessage>{form.formState.errors.project_id?.message}</FormMessage>
+              </FormItem>
             )}
 
             <div className="flex flex-wrap items-center gap-6 pt-1">

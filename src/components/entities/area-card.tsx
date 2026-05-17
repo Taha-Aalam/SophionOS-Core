@@ -16,6 +16,7 @@ interface AreaCardProps {
   projectsCount?: number;
   tasksCount?: number;
   notesCount?: number;
+  resourcesCount?: number;
   duplicateIndex?: number;
   onEdit?: (area: Area) => void;
   onArchive?: (area: Area) => void;
@@ -38,6 +39,7 @@ const AreaCardComponent = ({
   projectsCount = 0,
   tasksCount = 0,
   notesCount = 0,
+  resourcesCount = 0,
   duplicateIndex,
   onEdit,
   onArchive,
@@ -201,6 +203,10 @@ const AreaCardComponent = ({
             <span className="text-xs">📝</span>
             <span>{notesCount}</span>
           </div>
+          <div className="flex items-center gap-1" title="Resources">
+            <span className="text-xs">🔗</span>
+            <span>{resourcesCount}</span>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -223,6 +229,7 @@ export const AreaCard = memo(AreaCardComponent, (prevProps, nextProps) => {
     prevProps.projectsCount === nextProps.projectsCount &&
     prevProps.tasksCount === nextProps.tasksCount &&
     prevProps.notesCount === nextProps.notesCount &&
+    prevProps.resourcesCount === nextProps.resourcesCount &&
     prevProps.duplicateIndex === nextProps.duplicateIndex &&
     prevProps.isArchiving === nextProps.isArchiving &&
     prevProps.isRestoring === nextProps.isRestoring &&

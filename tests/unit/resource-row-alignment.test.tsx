@@ -42,7 +42,7 @@ describe("ResourceRow alignment", () => {
       />,
     );
 
-    expect(html).toMatch(/class="group flex items-center gap-3 border-b border-border px-3 py-3 transition-colors hover:bg-accent\/30 min-h-0"/);
+    expect(html).toMatch(/class="group flex items-center gap-3 border-b border-border\/40 px-4 py-2\.5 transition-colors hover:bg-muted\/30"/);
     expect(html).not.toContain("group flex items-start");
   });
 });

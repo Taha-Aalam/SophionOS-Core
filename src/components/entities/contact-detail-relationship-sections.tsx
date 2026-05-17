@@ -10,7 +10,8 @@ import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { ProjectCard } from "@/components/entities/project-card";
 import { TaskListItem } from "@/components/entities/task-list-item";
 import { Button } from "@/components/ui/button";
-import type { Area, Goal, Project, Task } from "@/lib/types/domain.types";
+import type { Area, Goal, Note, Project, Task } from "@/lib/types/domain.types";
+import { noteMatchesAreaId } from "@/lib/utils/notes";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import {
   buildAreaTabs,
@@ -47,6 +48,7 @@ interface ContactDetailRelationshipSectionsProps {
   linkedGoals: Goal[];
   linkedProjects: Project[];
   linkedTasks: Task[];
+  linkedNotes: Note[];
   allAreas: Area[];
   allProjects: Project[];
   onUnlinkArea: (areaId: string) => void;
@@ -73,6 +75,7 @@ export function ContactDetailRelationshipSections({
   linkedGoals,
   linkedProjects,
   linkedTasks,
+  linkedNotes,
   allAreas,
   allProjects,
   onUnlinkArea,
@@ -97,16 +100,17 @@ export function ContactDetailRelationshipSections({
   const areaLookup = React.useMemo(() => buildAreaLookup(allAreas), [allAreas]);
 
   const areaCountsMap = React.useMemo(() => {
-    const map = new Map<string, { goals: number; projects: number; tasks: number }>();
+    const map = new Map<string, { goals: number; projects: number; tasks: number; notes: number }>();
     for (const area of linkedAreas) {
       map.set(area.id, {
         goals: linkedGoals.filter((g) => getGoalLinkedAreaIds(g).includes(area.id)).length,
         projects: linkedProjects.filter((p) => getProjectLinkedAreaIds(p).includes(area.id)).length,
         tasks: linkedTasks.filter((t) => getTaskLinkedAreaIds(t).includes(area.id)).length,
+        notes: linkedNotes.filter((n) => noteMatchesAreaId(n, area.id)).length,
       });
     }
     return map;
-  }, [linkedAreas, linkedGoals, linkedProjects, linkedTasks]);
+  }, [linkedAreas, linkedGoals, linkedProjects, linkedTasks, linkedNotes]);
 
   const areaTabs = React.useMemo(() => buildAreaTabs(linkedAreas), [linkedAreas]);
   const goalTabs = React.useMemo(() => buildGoalTabs(linkedGoals), [linkedGoals]);
@@ -156,7 +160,7 @@ export function ContactDetailRelationshipSections({
                   goalsCount={areaCountsMap.get(area.id)?.goals ?? 0}
                   projectsCount={areaCountsMap.get(area.id)?.projects ?? 0}
                   tasksCount={areaCountsMap.get(area.id)?.tasks ?? 0}
-                  notesCount={0}
+                  notesCount={areaCountsMap.get(area.id)?.notes ?? 0}
                 />
                 <Button
                   variant="ghost"

@@ -247,7 +247,56 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess
             )}
           </div>
 
-<div className="grid grid-cols-2 gap-4">
+          {/* Row 1: Term | Priority */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="goal-term">Term</Label>
+              <Select
+                value={selectedTerm}
+                onValueChange={(value) => form.setValue("term", value as Goal["term"])}
+              >
+                <SelectTrigger id="goal-term" className="w-full">
+                  <SelectValue>{selectedTermLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={GOAL_TERM.SHORT}>Short Term</SelectItem>
+                  <SelectItem value={GOAL_TERM.MID}>Mid Term</SelectItem>
+                  <SelectItem value={GOAL_TERM.LONG}>Long Term</SelectItem>
+                </SelectContent>
+              </Select>
+              {form.formState.errors.term && (
+                <p className="text-xs text-destructive">
+                  {String(form.formState.errors.term.message)}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="goal-priority">Priority</Label>
+              <Select
+                value={selectedPriority}
+                onValueChange={(value) => form.setValue("priority", value as Goal["priority"])}
+              >
+                <SelectTrigger id="goal-priority" className="w-full">
+                  <SelectValue>{selectedPriorityLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
+                  <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
+                  <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
+                  <SelectItem value={PRIORITY.URGENT}>Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+              {form.formState.errors.priority && (
+                <p className="text-xs text-destructive">
+                  {String(form.formState.errors.priority.message)}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Row 2: Area | Target Date */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="goal-area">Areas</Label>
@@ -260,7 +309,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess
                       : `${selectedAreaIds.length} selected`}
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-56">
-                    <DropdownMenuItem onClick={() => form.setValue("area_ids", [])}>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => form.setValue("area_ids", [])}>
                       Clear selection
                     </DropdownMenuItem>
                     <ScrollArea className="max-h-56">
@@ -269,6 +318,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess
                         return (
                           <DropdownMenuItem
                             key={area.id}
+                            onSelect={(e) => e.preventDefault()}
                             onClick={() => {
                               const nextAreaIds = checked
                                 ? selectedAreaIds.filter((areaId) => areaId !== area.id)
@@ -310,53 +360,6 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess
               {form.formState.errors.area_ids && (
                 <p className="text-xs text-destructive">
                   {String(form.formState.errors.area_ids.message)}
-                </p>
-              )}
-</div>
-
-            <div className="space-y-2">
-              <Label htmlFor="goal-term">Term</Label>
-              <Select
-                value={selectedTerm}
-                onValueChange={(value) => form.setValue("term", value as Goal["term"])}
-              >
-                <SelectTrigger id="goal-term" className="w-full">
-                  <SelectValue>{selectedTermLabel}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={GOAL_TERM.SHORT}>Short Term</SelectItem>
-                  <SelectItem value={GOAL_TERM.MID}>Mid Term</SelectItem>
-                  <SelectItem value={GOAL_TERM.LONG}>Long Term</SelectItem>
-                </SelectContent>
-              </Select>
-              {form.formState.errors.term && (
-                <p className="text-xs text-destructive">
-                  {String(form.formState.errors.term.message)}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="goal-priority">Priority</Label>
-              <Select
-                value={selectedPriority}
-                onValueChange={(value) => form.setValue("priority", value as Goal["priority"])}
-              >
-                <SelectTrigger id="goal-priority" className="w-full">
-                  <SelectValue>{selectedPriorityLabel}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
-                  <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
-                  <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
-                  <SelectItem value={PRIORITY.URGENT}>Urgent</SelectItem>
-                </SelectContent>
-              </Select>
-              {form.formState.errors.priority && (
-                <p className="text-xs text-destructive">
-                  {String(form.formState.errors.priority.message)}
                 </p>
               )}
             </div>
