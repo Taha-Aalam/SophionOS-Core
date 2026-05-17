@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { FileText, LucideIcon, Plus } from "lucide-react";
+import { FileText, Link as LinkIcon, LucideIcon, Plus } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,8 @@ interface TabOption {
 interface GoalDetailSectionProps {
   id: string;
   entityType: "goals" | "projects" | "tasks" | "notes" | "resources" | "people";
+  /** Optional heading override. Defaults to the capitalized entityType. */
+  heading?: string;
   tabs: TabOption[];
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -45,11 +47,14 @@ interface GoalDetailSectionProps {
   emptyDescription: string;
   onCreateNew?: () => void;
   createLabel?: string;
+  onLinkExisting?: () => void;
+  linkLabel?: string;
 }
 
 export function GoalDetailSection({
   id,
   entityType,
+  heading,
   tabs,
   activeTab,
   onTabChange,
@@ -59,6 +64,8 @@ export function GoalDetailSection({
   emptyDescription,
   onCreateNew,
   createLabel = "New",
+  onLinkExisting,
+  linkLabel = "Link Existing",
 }: GoalDetailSectionProps) {
   const accentColor = ACCENT_COLORS[entityType] ?? "bg-primary";
 
@@ -77,18 +84,29 @@ export function GoalDetailSection({
       {/* Section header */}
       <div className="flex items-center gap-3 mb-4">
         <div className={cn("h-5 w-1 rounded-full", accentColor.replace("bg-", "bg-"))} />
-        <h2 className="text-lg font-semibold capitalize">{entityType}</h2>
+        <h2 className="text-lg font-semibold capitalize">{heading ?? entityType}</h2>
         {tabs.find((t) => t.value === activeTab)?.count !== undefined && (
           <span className="text-sm text-muted-foreground">
             {tabCountMap.get(activeTab) ?? 0} total
           </span>
+        )}
+        {onLinkExisting && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onLinkExisting}
+            className="ml-auto gap-1.5"
+          >
+            <LinkIcon className="size-3.5" />
+            {linkLabel}
+          </Button>
         )}
         {onCreateNew && (
           <Button
             size="sm"
             variant="outline"
             onClick={onCreateNew}
-            className="ml-auto gap-1.5"
+            className={cn("gap-1.5", !onLinkExisting && "ml-auto")}
           >
             <Plus className="size-3.5" />
             {createLabel}
@@ -97,9 +115,9 @@ export function GoalDetailSection({
       </div>
 
       <Tabs value={activeTab} onValueChange={onTabChange}>
-        <TabsList>
+        <TabsList className="h-9">
           {tabs.map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value}>
+            <TabsTrigger key={tab.value} value={tab.value} className="text-sm px-3">
               {tab.label}
               {tab.count !== undefined && tab.count > 0 && (
                 <span className="ml-1.5 text-xs text-muted-foreground">
