@@ -15,6 +15,7 @@ import { useGoals } from "@/lib/hooks/use-goals";
 import { NOTES_QUERY_KEY, useCreateNote, useNoteTypes } from "@/lib/hooks/use-notes";
 import { PROJECTS_QUERY_KEY, useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
+import { useTopics } from "@/lib/hooks/use-topics";
 import { NOTE_STATUS, NOTE_TYPE, type NoteStatus } from "@/lib/utils/constants";
 import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
 
@@ -34,6 +35,7 @@ export default function NewNotePage() {
   const prefilledAreaIds = searchParams.get("areaIds");
   const prefilledGoalIds = searchParams.get("goalIds");
   const prefilledProjectId = searchParams.get("projectId");
+  const prefilledTopicId = searchParams.get("topicId");
   const noteReturnTo = decodeReturnTo(searchParams.get("returnTo") || "");
 
   const { data: areas = [], isLoading: areasLoading } = useAreas();
@@ -41,6 +43,7 @@ export default function NewNotePage() {
   const { data: projects = [], isLoading: projectsLoading } = useProjects({ status: "all" });
   const { data: tasks = [], isLoading: tasksLoading } = useTasks();
   const { data: noteTypes = [], isLoading: typesLoading } = useNoteTypes();
+  const { data: topics = [], isLoading: topicsLoading } = useTopics();
 
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
@@ -51,6 +54,7 @@ export default function NewNotePage() {
   const [goalIds, setGoalIds] = useState<string[]>([]);
   const [projectIds, setProjectIds] = useState<string[]>([]);
   const [taskIds, setTaskIds] = useState<string[]>([]);
+  const [topicId, setTopicId] = useState<string>("");
   const [favorite, setFavorite] = useState(false);
   const [pin, setPin] = useState(false);
 
@@ -84,6 +88,11 @@ export default function NewNotePage() {
       newProjectIds.push(prefilledProjectId);
       url.searchParams.delete("projectId");
     }
+    if (prefilledTopicId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTopicId(prefilledTopicId);
+      url.searchParams.delete("topicId");
+    }
 
     if (newAreaIds.length > 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -98,12 +107,12 @@ export default function NewNotePage() {
       setProjectIds([...newProjectIds]);
     }
 
-    if (prefilledAreaId || prefilledGoalId || prefilledAreaIds || prefilledGoalIds || prefilledProjectId) {
+    if (prefilledAreaId || prefilledGoalId || prefilledAreaIds || prefilledGoalIds || prefilledProjectId || prefilledTopicId) {
       window.history.replaceState({}, "", url.toString());
     }
-  }, [prefilledAreaId, prefilledGoalId, prefilledAreaIds, prefilledGoalIds, prefilledProjectId]);
+  }, [prefilledAreaId, prefilledGoalId, prefilledAreaIds, prefilledGoalIds, prefilledProjectId, prefilledTopicId]);
 
-  const isLoading = areasLoading || goalsLoading || projectsLoading || tasksLoading || typesLoading;
+  const isLoading = areasLoading || goalsLoading || projectsLoading || tasksLoading || typesLoading || topicsLoading;
 
   const handleSave = async () => {
     const note = await createNote.mutateAsync({
@@ -118,6 +127,7 @@ export default function NewNotePage() {
       task_ids: taskIds,
       favorite,
       pin,
+      topic_id: topicId || null,
     });
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] }),
@@ -182,6 +192,9 @@ export default function NewNotePage() {
             projects={projects}
             tasks={tasks}
             noteTypes={noteTypes}
+            topics={topics}
+            topicId={topicId}
+            onTopicIdChange={(id) => setTopicId(id ?? "")}
             status={status}
             type={type}
             notebook={notebook}

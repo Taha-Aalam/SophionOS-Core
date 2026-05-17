@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Area, Goal, Project, Task } from "@/lib/types/domain.types";
+import type { TopicWithCounts } from "@/lib/services/topic.service";
 import { NOTE_STATUS, type NoteStatus } from "@/lib/utils/constants";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +49,9 @@ interface NoteMetadataPanelProps {
   projects: Project[];
   tasks: Task[];
   noteTypes: { id: string; name: string; slug: string }[];
+  topics?: TopicWithCounts[];
+  topicId?: string;
+  onTopicIdChange?: (id: string | null) => void;
 
   status: NoteStatus;
   type: string;
@@ -79,6 +83,9 @@ export function NoteMetadataPanel({
   projects,
   tasks,
   noteTypes,
+  topics = [],
+  topicId,
+  onTopicIdChange,
   status,
   type,
   notebook,
@@ -399,6 +406,38 @@ export function NoteMetadataPanel({
           disabled={disabled}
         />
       </div>
+
+      {topics.length > 0 && onTopicIdChange && (
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Topic</Label>
+          <TopicSelector
+            topics={topics}
+            selectedId={topicId ?? null}
+            onChange={onTopicIdChange}
+            disabled={disabled}
+          />
+          {topicId && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {(() => {
+                const selected = topics.find((t) => t.id === topicId);
+                if (!selected) return null;
+                return (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <span className="max-w-[120px] truncate">{selected.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => onTopicIdChange(null)}
+                      className="rounded-full p-0.5 hover:bg-muted"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </Badge>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -515,6 +554,70 @@ function GoalSelector({
                     {goal.term}
                   </Badge>
                   {selectedSet.has(goal.id) && <Check className="size-3.5" />}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function TopicSelector({
+  topics,
+  selectedId,
+  onChange,
+  disabled,
+}: {
+  topics: TopicWithCounts[];
+  selectedId: string | null;
+  onChange: (id: string | null) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return topics;
+    return topics.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()));
+  }, [topics, query]);
+
+  const handleSelect = (id: string) => {
+    onChange(selectedId === id ? null : id);
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        role="combobox"
+        disabled={disabled}
+        className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
+      >
+        <span className="truncate">
+          {!selectedId
+            ? "Select topic..."
+            : (topics.find((t) => t.id === selectedId)?.name ?? "Select topic...")}
+        </span>
+        <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput placeholder="Search topics..." value={query} onValueChange={setQuery} />
+          <CommandList className="max-h-56 overflow-y-auto">
+            <CommandEmpty>No topics found.</CommandEmpty>
+            <CommandGroup>
+              {filtered.map((topic) => (
+                <CommandItem
+                  key={topic.id}
+                  value={topic.id}
+                  onSelect={() => handleSelect(topic.id)}
+                  className="flex items-center gap-2"
+                >
+                  <Checkbox checked={selectedId === topic.id} />
+                  <span className="flex-1 truncate text-sm">{topic.name}</span>
+                  {selectedId === topic.id && <Check className="size-3.5" />}
                 </CommandItem>
               ))}
             </CommandGroup>
