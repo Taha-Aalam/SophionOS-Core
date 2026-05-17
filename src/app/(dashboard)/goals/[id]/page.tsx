@@ -21,7 +21,7 @@ import { ContactDialog } from "@/components/entities/contact-dialog";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { PriorityBadge } from "@/components/entities/priority-badge";
-import { ProjectCard } from "@/components/entities/project-card";
+import { ProjectCard, type ProjectCardRollups } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
 import { ResourceTable } from "@/components/entities/resource-table";
@@ -42,8 +42,12 @@ import {
   useContacts,
   useContactByGoal,
   useCreateContact,
+  useDeleteContact,
   useLinkContactToGoal,
+  useToggleContactFavorite,
+  useArchiveContact,
   useUnlinkContactFromGoal,
+  useUpdateContact,
 } from "@/lib/hooks/use-contacts";
 import { useGoalDetail } from "@/lib/hooks/use-goal-detail";
 import {
@@ -68,6 +72,14 @@ import { useUIStore } from "@/lib/stores/ui.store";
 import { calculateGoalProgress, getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
 import { encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
+
+const NOTE_STATUS_COLORS: Record<string, string> = {
+  [NOTE_STATUS.INBOX]: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  [NOTE_STATUS.TO_REVIEW]: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+  [NOTE_STATUS.ACTIVE]: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  [NOTE_STATUS.SAVED]: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  [NOTE_STATUS.ARCHIVE]: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+};
 
 const TERM_LABELS: Record<string, string> = {
   short: "Short Term",
@@ -201,6 +213,7 @@ export default function GoalDetailPage() {
   const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
 
   // Refs for scroll-to-section
   const projectsRef = useRef<HTMLDivElement>(null);
@@ -233,6 +246,10 @@ export default function GoalDetailPage() {
   const linkContactToGoal = useLinkContactToGoal();
   const unlinkContactFromGoal = useUnlinkContactFromGoal();
   const createContact = useCreateContact();
+  const updateContact = useUpdateContact();
+  const deleteContact = useDeleteContact();
+  const toggleContactFavorite = useToggleContactFavorite();
+  const archiveContact = useArchiveContact();
 
   // Derived
   const goal = goalData?.goal;
@@ -244,6 +261,11 @@ export default function GoalDetailPage() {
         .map((id) => areaNames.get(id))
         .filter((name): name is string => Boolean(name)),
     [areaNames],
+  );
+  const getProjectAreaIcons = useCallback(
+    (project: Project) =>
+      getProjectLinkedAreaIds(project).map((id) => areaIcons.get(id) ?? null),
+    [areaIcons],
   );
   const linkedAreaIds = useMemo(() => (goal ? getGoalLinkedAreaIds(goal) : []), [goal]);
   const currentPagePathWithSlug = goal ? `/goals/${goal.slug ?? goal.id}` : currentPagePath;
@@ -269,6 +291,20 @@ export default function GoalDetailPage() {
     [areas, linkedAreaIds],
   );
   const dueState = goal ? calculateDueState(goal.target_date) : null;
+
+  const projectRollups = useMemo(() => {
+    if (!goalData) return new Map<string, ProjectCardRollups>();
+    const map = new Map<string, ProjectCardRollups>();
+    for (const project of goalData.projects) {
+      const taskCount = goalData.tasks.filter((t) => t.project_id === project.id).length;
+      const noteCount = goalData.notes.filter(
+        (n) => n.project_id === project.id || n.linkedProjectIds?.includes(project.id),
+      ).length;
+      const resourceCount = goalData.resources.filter((r) => r.project_id === project.id).length;
+      map.set(project.id, { goalCount: 1, taskCount, noteCount, resourceCount });
+    }
+    return map;
+  }, [goalData]);
 
   const linkedContactIds = useMemo(
     () => new Set(goalContactLinks.map((link) => link.contact_id)),
@@ -578,6 +614,22 @@ export default function GoalDetailPage() {
 
     await unlinkContactFromGoal.mutateAsync({ contactId, goalId: goal.id });
   }, [goal, unlinkContactFromGoal]);
+
+  const handleContactEdit = useCallback((contact: Contact) => {
+    setEditingContact(contact);
+  }, []);
+
+  const handleContactDelete = useCallback(async (id: string) => {
+    await deleteContact.mutateAsync(id);
+  }, [deleteContact]);
+
+  const handleContactToggleFavorite = useCallback(async (id: string) => {
+    await toggleContactFavorite.mutateAsync(id);
+  }, [toggleContactFavorite]);
+
+  const handleContactArchive = useCallback(async (id: string, archive: boolean) => {
+    await archiveContact.mutateAsync({ id, archive });
+  }, [archiveContact]);
 
   const handleCreateContactSubmit = useCallback(
     (values: {
@@ -970,7 +1022,9 @@ export default function GoalDetailPage() {
                   project={project}
                   areaName={project.area_id ? areaNames.get(project.area_id) : undefined}
                   areaNames={getProjectAreaNames(project)}
+                  areaIcons={getProjectAreaIcons(project)}
                   returnTo={currentPagePathWithSlug}
+                  rollups={projectRollups.get(project.id)}
                 />
               ))}
             </div>
@@ -1119,7 +1173,7 @@ export default function GoalDetailPage() {
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className={cn("text-xs", NOTE_STATUS_COLORS[note.status])}>
                         {note.status}
                       </Badge>
                       <Badge variant="outline" className="text-xs">
@@ -1176,11 +1230,17 @@ export default function GoalDetailPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {filteredContacts.map((contact) => (
                 <div key={contact.id} className="relative">
-                  <ContactCard contact={contact} />
+                  <ContactCard
+                    contact={contact}
+                    onEdit={handleContactEdit}
+                    onDelete={handleContactDelete}
+                    onToggleFavorite={handleContactToggleFavorite}
+                    onArchive={handleContactArchive}
+                  />
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute right-2 top-2"
+                    className="absolute right-2 top-2 z-10"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleUnlinkContact(contact.id);
@@ -1326,6 +1386,34 @@ export default function GoalDetailPage() {
         contact={null}
         defaults={{ goal_ids: goal?.id ? [goal.id] : [] }}
         onSubmit={handleCreateContactSubmit}
+      />
+
+      {/* Contact Edit Dialog */}
+      <ContactDialog
+        open={!!editingContact}
+        onOpenChange={(open) => { if (!open) setEditingContact(null); }}
+        contact={editingContact}
+        onSubmit={(values) => {
+          if (!editingContact) return;
+          updateContact.mutate({
+            id: editingContact.id,
+            input: {
+              name: values.name,
+              role: values.role || null,
+              organization: values.organization || null,
+              group: values.group || null,
+              phone: values.phone || null,
+              email: values.email || null,
+              linkedin: values.linkedin || null,
+              website: values.website || null,
+              follow_up_interval_days:
+                values.follow_up_interval_days && values.follow_up_interval_days !== "none"
+                  ? parseInt(values.follow_up_interval_days, 10)
+                  : null,
+              notes: values.notes || null,
+            },
+          });
+        }}
       />
     </div>
   );
