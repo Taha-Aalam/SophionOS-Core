@@ -161,6 +161,7 @@ export function ContactDetailRelationshipSections({
                   projectsCount={areaCountsMap.get(area.id)?.projects ?? 0}
                   tasksCount={areaCountsMap.get(area.id)?.tasks ?? 0}
                   notesCount={areaCountsMap.get(area.id)?.notes ?? 0}
+                  returnTo={returnTo}
                 />
                 <Button
                   variant="ghost"
