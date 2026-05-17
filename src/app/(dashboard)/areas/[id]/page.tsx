@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ChevronDownIcon,
@@ -57,7 +57,7 @@ import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
-import { buildReturnTo, encodeReturnTo } from "@/lib/utils/return-to";
+import { buildReturnTo, encodeReturnTo, getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
 
 const AREA_TYPE_COLORS: Record<string, string> = {
   Business: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
@@ -74,10 +74,13 @@ const STATUS_LABELS: Record<AreaStatus, string> = {
 export default function AreaDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const userId = user?.id;
   const areaIdentifier = params.id as string;
   const { setPageTitle } = useUIStore();
+  const areaReturnTo = getReturnToFromSearchParams(searchParams);
+  const backTarget = resolveBackNavigation(areaReturnTo, "/areas");
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
@@ -260,7 +263,7 @@ export default function AreaDetailPage() {
     if (!area || checked === area.archive) return;
     if (checked) {
       await archiveArea.mutateAsync(area.id);
-      router.push("/areas");
+      router.push(backTarget);
     } else {
       await restoreArea.mutateAsync(area.id);
     }
@@ -274,7 +277,7 @@ export default function AreaDetailPage() {
   const handleDeleteArea = async () => {
     if (!area) return;
     await archiveArea.mutateAsync(area.id);
-    router.push("/areas");
+    router.push(backTarget);
   };
 
   const handleTaskCompletion = async (taskId: string, completed: boolean) => {
@@ -349,7 +352,7 @@ export default function AreaDetailPage() {
   if (!area) {
     return (
       <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-        <Button variant="ghost" onClick={() => router.push("/areas")}>
+        <Button variant="ghost" onClick={() => router.push(backTarget)}>
           <ArrowLeft className="mr-2 size-4" />
           Back to Areas
         </Button>
@@ -358,7 +361,7 @@ export default function AreaDetailPage() {
           title="Area not found"
           description="This area may have been deleted or you do not have access to it."
           actionLabel="Return to Areas"
-          onAction={() => router.push("/areas")}
+          onAction={() => router.push(backTarget)}
         />
       </div>
     );
@@ -372,7 +375,7 @@ export default function AreaDetailPage() {
           variant="ghost"
           size="icon"
           className="size-6"
-          onClick={() => router.push("/areas")}
+          onClick={() => router.push(backTarget)}
         >
           <ArrowLeft className="size-3.5" />
         </Button>
