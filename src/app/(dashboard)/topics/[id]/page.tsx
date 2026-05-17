@@ -41,7 +41,11 @@ import {
   useUpdateTopic,
   useArchiveTopic,
 } from "@/lib/hooks/use-topics";
-import { useToggleFavoriteResource, useResources } from "@/lib/hooks/use-resources";
+import { useToggleFavoriteResource, useResources, useCreateResource, useUpdateResource } from "@/lib/hooks/use-resources";
+import { buildNoteDetailUrl } from "@/lib/utils/return-to";
+import { ResourceDialog } from "@/components/entities/resource-dialog";
+import { NoteEditorDialog } from "@/components/entities/note-editor-dialog";
+import type { Resource, CreateResourceInput, UpdateResourceInput } from "@/lib/types/domain.types";
 import { useNotes } from "@/lib/hooks/use-notes";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useUIStore } from "@/lib/stores/ui.store";
@@ -60,6 +64,9 @@ export default function TopicDetailPage() {
   const [isLinkResourceOpen, setIsLinkResourceOpen] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [selectedResourceIds, setSelectedResourceIds] = useState<string[]>([]);
+  const [isResourceDialogOpen, setIsResourceDialogOpen] = useState(false);
+  const [editResource, setEditResource] = useState<Resource | null>(null);
+  const [isNewNoteOpen, setIsNewNoteOpen] = useState(false);
 
   const { data: topic, isLoading: topicLoading } = useTopic(topicId);
   const resolvedTopicId = topic?.id ?? "";
@@ -71,6 +78,8 @@ export default function TopicDetailPage() {
   const updateTopic = useUpdateTopic();
   const archiveTopic = useArchiveTopic();
   const toggleFavoriteResource = useToggleFavoriteResource();
+  const createResource = useCreateResource();
+  const updateResource = useUpdateResource();
   const { data: allNotes = [] } = useNotes({ includeArchived: false });
   const { data: allResources = [] } = useResources({});
 
@@ -114,6 +123,16 @@ export default function TopicDetailPage() {
     await updateTopic.mutateAsync({ id: topic.id, input: { resource_ids: selectedResourceIds } });
     setSelectedResourceIds([]);
     setIsLinkResourceOpen(false);
+  };
+
+  const handleResourceSubmit = async (input: CreateResourceInput | UpdateResourceInput) => {
+    if (editResource) {
+      await updateResource.mutateAsync({ id: editResource.id, input: input as UpdateResourceInput });
+    } else {
+      await createResource.mutateAsync(input as CreateResourceInput);
+    }
+    setIsResourceDialogOpen(false);
+    setEditResource(null);
   };
 
   const linkedAreas = useMemo(() => {
@@ -318,9 +337,17 @@ export default function TopicDetailPage() {
                   <Heart className={cn("size-4 mr-2", topic.favorite && "fill-rose-500 text-rose-500")} />
                   {topic.favorite ? "Unfavorite" : "Favorite"}
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => setIsNewNoteOpen(true)}>
+                  <Plus className="size-4 mr-2" />
+                  New Note
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => { setSelectedNoteIds([]); setIsLinkNoteOpen(true); }}>
                   <Plus className="size-4 mr-2" />
                   Link Note
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { setEditResource(null); setIsResourceDialogOpen(true); }}>
+                  <Plus className="size-4 mr-2" />
+                  New Resource
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => { setSelectedResourceIds([]); setIsLinkResourceOpen(true); }}>
                   <Plus className="size-4 mr-2" />
@@ -355,8 +382,10 @@ export default function TopicDetailPage() {
         isLoading={notesLoading}
         emptyTitle="No linked notes"
         emptyDescription="Notes linked to this topic will appear here."
-        onCreateNew={() => { setSelectedNoteIds([]); setIsLinkNoteOpen(true); }}
-        createLabel="Link Note"
+        onCreateNew={() => setIsNewNoteOpen(true)}
+        createLabel="New Note"
+        onLinkExisting={() => { setSelectedNoteIds([]); setIsLinkNoteOpen(true); }}
+        linkLabel="Link Note"
       >
         {filteredNotes.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -365,11 +394,11 @@ export default function TopicDetailPage() {
                 key={note.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => router.push(`/notes/${note.slug ?? note.id}`)}
+                onClick={() => router.push(buildNoteDetailUrl(note.slug ?? note.id, `/topics/${topicId}`))}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    router.push(`/notes/${note.slug ?? note.id}`);
+                    router.push(buildNoteDetailUrl(note.slug ?? note.id, `/topics/${topicId}`));
                   }
                 }}
                 className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30 cursor-pointer"
@@ -395,8 +424,10 @@ export default function TopicDetailPage() {
         isLoading={resourcesLoading}
         emptyTitle="No linked resources"
         emptyDescription="Resources linked to this topic will appear here."
-        onCreateNew={() => { setSelectedResourceIds([]); setIsLinkResourceOpen(true); }}
-        createLabel="Link Resource"
+        onCreateNew={() => { setEditResource(null); setIsResourceDialogOpen(true); }}
+        createLabel="New Resource"
+        onLinkExisting={() => { setSelectedResourceIds([]); setIsLinkResourceOpen(true); }}
+        linkLabel="Link Resource"
       >
         {filteredResources.length > 0 ? (
           <ResourceTable
@@ -404,6 +435,7 @@ export default function TopicDetailPage() {
             onToggleFavorite={(id, favorite) =>
               toggleFavoriteResource.mutate({ id, favorite })
             }
+            onEdit={(resource) => { setEditResource(resource); setIsResourceDialogOpen(true); }}
           />
         ) : null}
       </GoalDetailSection>
@@ -503,6 +535,29 @@ export default function TopicDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Resource create/edit dialog */}
+      <ResourceDialog
+        open={isResourceDialogOpen}
+        onOpenChange={(open) => {
+          setIsResourceDialogOpen(open);
+          if (!open) setEditResource(null);
+        }}
+        resource={editResource}
+        initialTopicId={topicId}
+        onSubmit={handleResourceSubmit}
+        isPending={createResource.isPending || updateResource.isPending}
+      />
+
+      {/* New note dialog */}
+      <NoteEditorDialog
+        open={isNewNoteOpen}
+        onOpenChange={setIsNewNoteOpen}
+        note={null}
+        topicId={topicId}
+        returnTo={`/topics/${topicId}`}
+        onSuccess={() => setIsNewNoteOpen(false)}
+      />
     </div>
   );
 }
