@@ -235,6 +235,7 @@ export interface CreateContactInput {
   email?: string | null;
   linkedin?: string | null;
   website?: string | null;
+  image_url?: string | null;
   last_interaction_at?: string | null;
   follow_up_interval_days?: number | null;
   favorite?: boolean;
@@ -251,6 +252,19 @@ export interface UpdateContactInput extends Partial<CreateContactInput> {
 }
 
 export type FollowUpStatus = "ON TRACK" | "FOLLOW UP";
+
+export interface ContactLog {
+  id: string;
+  user_id: string;
+  contact_id: string;
+  message: string;
+  logged_at: string;
+  created_at: string;
+}
+
+export interface CreateContactLogInput {
+  message: string;
+}
 
 export interface ContactWithRelations extends Contact {
   linked_projects: Array<{

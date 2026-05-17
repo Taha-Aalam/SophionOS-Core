@@ -51,6 +51,7 @@ import {
   useUnlinkContactFromTask,
 } from "@/lib/hooks/use-contacts";
 import { useAreas } from "@/lib/hooks/use-areas";
+import { useNotes } from "@/lib/hooks/use-notes";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
@@ -63,6 +64,8 @@ import {
 import type { CreateContactInput, Task } from "@/lib/types/domain.types";
 import { contactService } from "@/lib/services/contact.service";
 import { useUIStore } from "@/lib/stores/ui.store";
+import { mergeProjectQueryResults } from "@/lib/utils/projects";
+import { resolveLinkedProjectsAcrossStatuses } from "@/lib/utils/contact-detail-relations";
 
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -181,10 +184,16 @@ export default function ContactDetailPage() {
   const unlinkArea = useUnlinkContactFromArea();
   const unlinkGoal = useUnlinkContactFromGoal();
 
-  const { data: allProjects = [] } = useProjects({});
+  const { data: activeProjects = [] } = useProjects({});
+  const { data: archivedProjects = [] } = useProjects({ status: "archived" });
   const { data: allTasks = [] } = useTasks({});
   const { data: allAreas = [] } = useAreas({});
+  const { data: allNotes = [] } = useNotes({ status: "all" });
   const { data: allGoals = [] } = useGoals({ status: "all" });
+  const allProjects = useMemo(
+    () => mergeProjectQueryResults(activeProjects, archivedProjects),
+    [activeProjects, archivedProjects],
+  );
 
   const completeTask = useCompleteTask();
   const uncompleteTask = useUncompleteTask();
@@ -212,10 +221,15 @@ export default function ContactDetailPage() {
     return allGoals.filter((g) => ids.has(g.id));
   }, [goalLinks, allGoals]);
 
-  const linkedProjects = useMemo(() => {
-    const ids = new Set(projectLinks.map((l) => l.project_id));
-    return allProjects.filter((p) => ids.has(p.id));
-  }, [projectLinks, allProjects]);
+  const linkedProjects = useMemo(
+    () =>
+      resolveLinkedProjectsAcrossStatuses(
+        projectLinks,
+        activeProjects,
+        archivedProjects,
+      ),
+    [projectLinks, activeProjects, archivedProjects],
+  );
 
   const linkedTasks = useMemo(() => {
     const ids = new Set(taskLinks.map((l) => l.task_id));
@@ -554,6 +568,7 @@ export default function ContactDetailPage() {
               linkedGoals={linkedGoals}
               linkedProjects={linkedProjects}
               linkedTasks={linkedTasks}
+              linkedNotes={allNotes}
               allAreas={allAreas}
               allProjects={allProjects}
               onUnlinkArea={(areaId) => unlinkArea.mutate({ contactId: contact.id, areaId })}

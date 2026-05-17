@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Archive, ChevronDownIcon, Eye, FilePlus, Filter, Globe, Heart, Inbox as InboxIcon, Tag, Zap } from "lucide-react";
+import { Archive, Bookmark, ChevronDownIcon, Eye, FilePlus, Filter, Globe, Heart, Inbox as InboxIcon, Tag, Zap } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -94,6 +94,9 @@ export default function ResourcesPage() {
         break;
       case "active":
         result = allResources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE);
+        break;
+      case "saved":
+        result = allResources.filter((r) => r.status === RESOURCE_STATUS.SAVED);
         break;
       case "favorites":
         result = allResources.filter((r) => r.favorite);
@@ -245,6 +248,8 @@ export default function ResourcesPage() {
         return allResources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW).length;
       case "active":
         return allResources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE).length;
+      case "saved":
+        return allResources.filter((r) => r.status === RESOURCE_STATUS.SAVED).length;
       case "favorites":
         return allResources.filter((r) => r.favorite).length;
       case "all":
@@ -303,6 +308,15 @@ export default function ResourcesPage() {
             {countForTab("active") > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
                 {countForTab("active")}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="saved" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Bookmark className="mr-1.5 size-3.5" />
+            Saved
+            {countForTab("saved") > 0 && (
+              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
+                {countForTab("saved")}
               </Badge>
             )}
           </TabsTrigger>

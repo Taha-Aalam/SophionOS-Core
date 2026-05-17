@@ -4,8 +4,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth-provider";
 import { contactService } from "@/lib/services/contact.service";
 import type {
-  Contact,
   CreateContactInput,
+  CreateContactLogInput,
   UpdateContactInput,
 } from "@/lib/types/domain.types";
 
@@ -21,6 +21,8 @@ export function useContacts(
     queryKey: [CONTACTS_QUERY_KEY, filters],
     queryFn: () => contactService.list(user!.id, filters),
     enabled: !!user && (options?.enabled ?? true),
+    staleTime: 0,
+    refetchOnMount: true,
   });
 }
 
@@ -54,6 +56,38 @@ export function useContactTaskLinks(contactId: string) {
   });
 }
 
+export function useContactAreaLinks(contactId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [CONTACTS_QUERY_KEY, contactId, "areas"],
+    queryFn: () => contactService.getAreaLinks(user!.id, contactId),
+    enabled: !!user && !!contactId,
+  });
+}
+
+export function useContactGoalLinks(contactId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [CONTACTS_QUERY_KEY, contactId, "goals"],
+    queryFn: () => contactService.getGoalLinks(user!.id, contactId),
+    enabled: !!user && !!contactId,
+  });
+}
+
+export function useContactBySlug(slug: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [CONTACTS_QUERY_KEY, "slug", slug],
+    queryFn: () => contactService.getBySlug(user!.id, slug),
+    enabled: !!user && !!slug,
+    staleTime: 0,
+    refetchOnMount: true,
+  });
+}
+
 export function useContactsByProject() {
   const { user } = useAuth();
 
@@ -61,6 +95,77 @@ export function useContactsByProject() {
     queryKey: [CONTACTS_QUERY_KEY, "by-project"],
     queryFn: () => contactService.getContactsGroupedByProject(user!.id),
     enabled: !!user,
+  });
+}
+
+export function useContactsByArea() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [CONTACTS_QUERY_KEY, "by-area"],
+    queryFn: () => contactService.getContactsGroupedByArea(user!.id),
+    enabled: !!user,
+  });
+}
+
+export function useContactsByGoal() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [CONTACTS_QUERY_KEY, "by-goal"],
+    queryFn: () => contactService.getContactsGroupedByGoal(user!.id),
+    enabled: !!user,
+  });
+}
+
+export function useContactLogs(contactId: string) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [CONTACTS_QUERY_KEY, contactId, "logs"],
+    queryFn: () => contactService.listLogs(user!.id, contactId),
+    enabled: !!user && !!contactId,
+  });
+}
+
+export function useCreateContactLog(contactId: string, slug?: string) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateContactLogInput) =>
+      contactService.createLog(user!.id, contactId, input),
+    onSuccess: (log) => {
+      // Optimistically patch last_interaction_at in all cached contact copies
+      const patchContact = (old: unknown) => {
+        if (!old) return old;
+        return { ...(old as object), last_interaction_at: log.logged_at };
+      };
+      queryClient.setQueryData([CONTACTS_QUERY_KEY, "slug", slug], patchContact);
+      queryClient.setQueryData([CONTACTS_QUERY_KEY, contactId], patchContact);
+
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY, contactId, "logs"] });
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY], refetchType: "all" });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useContactByGoal(goalId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [CONTACTS_QUERY_KEY, "goal", goalId],
+    queryFn: () => contactService.getByGoal(user!.id, goalId),
+    enabled: !!user && !!goalId,
+  });
+}
+
+export function useContactByArea(areaId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [CONTACTS_QUERY_KEY, "area", areaId],
+    queryFn: () => contactService.getByArea(user!.id, areaId),
+    enabled: !!user && !!areaId,
   });
 }
 
@@ -82,7 +187,7 @@ export function useCreateContact() {
     mutationFn: (input: CreateContactInput) =>
       contactService.create(user!.id, input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY], refetchType: "all" });
       toast.success("Contact created");
     },
     onError: (error: Error) => {
@@ -91,7 +196,7 @@ export function useCreateContact() {
   });
 }
 
-export function useUpdateContact() {
+export function useUpdateContact(slug?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -99,7 +204,10 @@ export function useUpdateContact() {
     mutationFn: ({ id, input }: { id: string; input: UpdateContactInput }) =>
       contactService.update(user!.id, id, input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY], refetchType: "all" });
+      if (slug) {
+        queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY, "slug", slug] });
+      }
       toast.success("Contact updated");
     },
     onError: (error: Error) => {
@@ -132,6 +240,23 @@ export function useToggleContactFavorite() {
     mutationFn: (id: string) => contactService.toggleFavorite(user!.id, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useArchiveContact() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, archive }: { id: string; archive: boolean }) =>
+      contactService.update(user!.id, id, { archive }),
+    onSuccess: (_, { archive }) => {
+      queryClient.removeQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+      toast.success(archive ? "Contact archived" : "Contact unarchived");
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -215,6 +340,90 @@ export function useLinkContactToTask() {
       roleInTask?: string;
     }) => contactService.linkToTask(user!.id, contactId, taskId, roleInTask),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useUnlinkContactFromTask() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ contactId, taskId }: { contactId: string; taskId: string }) =>
+      contactService.unlinkFromTask(user!.id, contactId, taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useLinkContactToArea() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ contactId, areaId }: { contactId: string; areaId: string }) =>
+      contactService.linkToArea(user!.id, contactId, areaId),
+    onSuccess: (_, { contactId }) => {
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY, contactId, "areas"] });
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useUnlinkContactFromArea() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ contactId, areaId }: { contactId: string; areaId: string }) =>
+      contactService.unlinkFromArea(user!.id, contactId, areaId),
+    onSuccess: (_, { contactId }) => {
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY, contactId, "areas"] });
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useLinkContactToGoal() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ contactId, goalId }: { contactId: string; goalId: string }) =>
+      contactService.linkToGoal(user!.id, contactId, goalId),
+    onSuccess: (_, { contactId }) => {
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY, contactId, "goals"] });
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useUnlinkContactFromGoal() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ contactId, goalId }: { contactId: string; goalId: string }) =>
+      contactService.unlinkFromGoal(user!.id, contactId, goalId),
+    onSuccess: (_, { contactId }) => {
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY, contactId, "goals"] });
       queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
     },
     onError: (error: Error) => {

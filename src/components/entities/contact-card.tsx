@@ -157,6 +157,9 @@ export function ContactCard({
           <div className="flex-1 rounded-md border bg-muted/40 px-3 py-2">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Follow-up</p>
             {(() => {
+              if (!contact.last_interaction_at && contact.follow_up_interval_days) {
+                return <p className="text-xs font-medium text-destructive">Overdue</p>;
+              }
               const daysUntil = contactService.computeDaysUntilFollowUp(
                 contact.last_interaction_at,
                 contact.follow_up_interval_days,

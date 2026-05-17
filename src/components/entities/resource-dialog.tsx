@@ -14,10 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
@@ -49,6 +49,7 @@ const RESOURCE_STATUS_OPTIONS = [
   { value: RESOURCE_STATUS.INBOX, label: "Inbox" },
   { value: RESOURCE_STATUS.TO_REVIEW, label: "To Review" },
   { value: RESOURCE_STATUS.ACTIVE, label: "Active" },
+  { value: RESOURCE_STATUS.SAVED, label: "Saved" },
 ];
 
 interface ResourceDialogProps {
@@ -240,6 +241,15 @@ export function ResourceDialog({
       return next;
     });
   };
+
+  const toggleProject = (nextProjectId: string) => {
+    const isDeselecting = projectId === nextProjectId;
+    setProjectId(isDeselecting ? "" : nextProjectId);
+  };
+
+  const relationPopoverContentClassName = "w-56 p-2";
+  const relationOptionClassName =
+    "flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
 
   // ── Derived selections ────────────────────────────────────────────────────
   const selectedProject = useMemo(() => {
@@ -477,12 +487,14 @@ export function ResourceDialog({
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
                 <Label>Areas</Label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <Popover>
+                  <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
                     {areaIds.length === 0 ? "Select areas..." : `${areaIds.length} selected`}
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56">
-                    <DropdownMenuItem onClick={() => setAreaIds([])}>Clear selection</DropdownMenuItem>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className={relationPopoverContentClassName}>
+                    <button type="button" onClick={() => setAreaIds([])} className={relationOptionClassName}>
+                      Clear selection
+                    </button>
                     <ScrollArea className="max-h-56">
                       {visibleAreas.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
@@ -492,19 +504,18 @@ export function ResourceDialog({
                         </div>
                       ) : (
                         visibleAreas.map((area) => (
-                          <DropdownMenuItem
-                            key={area.id}
-                            onClick={() => toggleArea(area.id)}
-                            className="flex items-center gap-2"
-                          >
-                            <Checkbox checked={areaIds.includes(area.id)} />
+                          <label key={area.id} className={relationOptionClassName}>
+                            <Checkbox
+                              checked={areaIds.includes(area.id)}
+                              onCheckedChange={() => toggleArea(area.id)}
+                            />
                             {area.icon ? `${area.icon} ` : ""}{area.name}
-                          </DropdownMenuItem>
+                          </label>
                         ))
                       )}
                     </ScrollArea>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  </PopoverContent>
+                </Popover>
               </div>
               {areaIds.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-1">
@@ -527,12 +538,14 @@ export function ResourceDialog({
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
                 <Label>Goals</Label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <Popover>
+                  <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
                     {goalIds.length === 0 ? "Select goals..." : `${goalIds.length} selected`}
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56">
-                    <DropdownMenuItem onClick={() => setGoalIds([])}>Clear selection</DropdownMenuItem>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className={relationPopoverContentClassName}>
+                    <button type="button" onClick={() => setGoalIds([])} className={relationOptionClassName}>
+                      Clear selection
+                    </button>
                     <ScrollArea className="max-h-56">
                       {filteredGoals.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
@@ -542,19 +555,18 @@ export function ResourceDialog({
                         </div>
                       ) : (
                         filteredGoals.map((goal) => (
-                          <DropdownMenuItem
-                            key={goal.id}
-                            onClick={() => toggleGoal(goal.id)}
-                            className="flex items-center gap-2"
-                          >
-                            <Checkbox checked={goalIds.includes(goal.id)} />
+                          <label key={goal.id} className={relationOptionClassName}>
+                            <Checkbox
+                              checked={goalIds.includes(goal.id)}
+                              onCheckedChange={() => toggleGoal(goal.id)}
+                            />
                             {goal.name}
-                          </DropdownMenuItem>
+                          </label>
                         ))
                       )}
                     </ScrollArea>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  </PopoverContent>
+                </Popover>
               </div>
               {goalIds.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-1">
@@ -580,17 +592,18 @@ export function ResourceDialog({
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
                 <Label>Project</Label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <Popover>
+                  <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
                     {!projectId ? "Select project..." : (selectedProject?.name ?? "...")}
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56">
-                    <DropdownMenuItem
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className={relationPopoverContentClassName}>
+                    <button
+                      type="button"
                       onClick={() => setProjectId("")}
-                      className="flex items-center gap-2"
+                      className={relationOptionClassName}
                     >
                       <span className="text-muted-foreground">None</span>
-                    </DropdownMenuItem>
+                    </button>
                     <ScrollArea className="max-h-56">
                       {filteredProjects.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
@@ -598,29 +611,21 @@ export function ResourceDialog({
                         </div>
                       ) : (
                         filteredProjects.map((project) => (
-                          <DropdownMenuItem
+                          <label
                             key={project.id}
-                            onClick={() => {
-                              const nextId = projectId === project.id ? "" : project.id;
-                              setProjectId(nextId);
-                              if (nextId && project.area_id) {
-                                setAreaIds((prev) =>
-                                  prev.includes(project.area_id!)
-                                    ? prev
-                                    : [...prev, project.area_id!],
-                                );
-                              }
-                            }}
-                            className="flex items-center gap-2"
+                            className={relationOptionClassName}
                           >
-                            <Checkbox checked={projectId === project.id} />
+                            <Checkbox
+                              checked={projectId === project.id}
+                              onCheckedChange={() => toggleProject(project.id)}
+                            />
                             {project.name}
-                          </DropdownMenuItem>
+                          </label>
                         ))
                       )}
                     </ScrollArea>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  </PopoverContent>
+                </Popover>
               </div>
               {selectedProject && (
                 <div className="flex flex-wrap gap-2 pt-1">
@@ -638,12 +643,14 @@ export function ResourceDialog({
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
                 <Label>Tasks</Label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <Popover>
+                  <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
                     {taskIds.length === 0 ? "Select tasks..." : `${taskIds.length} selected`}
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56">
-                    <DropdownMenuItem onClick={() => setTaskIds([])}>Clear selection</DropdownMenuItem>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className={relationPopoverContentClassName}>
+                    <button type="button" onClick={() => setTaskIds([])} className={relationOptionClassName}>
+                      Clear selection
+                    </button>
                     <ScrollArea className="max-h-56">
                       {filteredTasks.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
@@ -653,19 +660,18 @@ export function ResourceDialog({
                         </div>
                       ) : (
                         filteredTasks.map((task) => (
-                          <DropdownMenuItem
-                            key={task.id}
-                            onClick={() => toggleTask(task.id)}
-                            className="flex items-center gap-2"
-                          >
-                            <Checkbox checked={taskIds.includes(task.id)} />
+                          <label key={task.id} className={relationOptionClassName}>
+                            <Checkbox
+                              checked={taskIds.includes(task.id)}
+                              onCheckedChange={() => toggleTask(task.id)}
+                            />
                             {task.name}
-                          </DropdownMenuItem>
+                          </label>
                         ))
                       )}
                     </ScrollArea>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  </PopoverContent>
+                </Popover>
               </div>
               {taskIds.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-1">

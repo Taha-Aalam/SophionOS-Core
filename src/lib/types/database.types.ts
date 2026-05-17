@@ -496,6 +496,7 @@ export type Database = {
           id: string;
           user_id: string;
           name: string;
+          slug: string | null;
           role: string | null;
           organization: string | null;
           group: string | null;
@@ -503,6 +504,7 @@ export type Database = {
           email: string | null;
           linkedin: string | null;
           website: string | null;
+          image_url: string | null;
           last_interaction_at: string | null;
           follow_up_interval_days: number | null;
           favorite: boolean;
@@ -516,6 +518,7 @@ export type Database = {
           id?: string;
           user_id: string;
           name: string;
+          slug?: string | null;
           role?: string | null;
           organization?: string | null;
           group?: string | null;
@@ -523,6 +526,7 @@ export type Database = {
           email?: string | null;
           linkedin?: string | null;
           website?: string | null;
+          image_url?: string | null;
           last_interaction_at?: string | null;
           follow_up_interval_days?: number | null;
           favorite?: boolean;
@@ -536,6 +540,7 @@ export type Database = {
           id?: string;
           user_id?: string;
           name?: string;
+          slug?: string | null;
           role?: string | null;
           organization?: string | null;
           group?: string | null;
@@ -543,6 +548,7 @@ export type Database = {
           email?: string | null;
           linkedin?: string | null;
           website?: string | null;
+          image_url?: string | null;
           last_interaction_at?: string | null;
           follow_up_interval_days?: number | null;
           favorite?: boolean;
@@ -585,6 +591,60 @@ export type Database = {
           contact_id?: string;
           task_id?: string;
           role_in_task?: string | null;
+        };
+      };
+      contact_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          contact_id: string;
+          message: string;
+          logged_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          contact_id: string;
+          message: string;
+          logged_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          contact_id?: string;
+          message?: string;
+          logged_at?: string;
+          created_at?: string;
+        };
+      };
+      contact_areas: {
+        Row: {
+          contact_id: string;
+          area_id: string;
+        };
+        Insert: {
+          contact_id: string;
+          area_id: string;
+        };
+        Update: {
+          contact_id?: string;
+          area_id?: string;
+        };
+      };
+      contact_goals: {
+        Row: {
+          contact_id: string;
+          goal_id: string;
+        };
+        Insert: {
+          contact_id: string;
+          goal_id: string;
+        };
+        Update: {
+          contact_id?: string;
+          goal_id?: string;
         };
       };
       note_areas: {
@@ -693,11 +753,11 @@ export type Database = {
     };
     Enums: {
       goal_term: "short" | "mid" | "long";
-      note_status: "inbox" | "to_review" | "active" | "archive";
+      note_status: "inbox" | "to_review" | "active" | "archive" | "saved";
       note_type: "note" | "research" | "journal";
       priority: "low" | "medium" | "high" | "urgent";
       project_status: "planning" | "active" | "completed" | "on_hold" | "archived";
-      resource_status: "inbox" | "to_review" | "active";
+      resource_status: "inbox" | "to_review" | "active" | "saved";
       resource_type: "website" | "article" | "video" | "document" | "podcast" | "social_media" | "tool";
       task_status: "inbox" | "todo" | "in_progress" | "completed" | "archived";
     };

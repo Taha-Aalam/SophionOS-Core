@@ -16,7 +16,6 @@ import { useTasks } from "@/lib/hooks/use-tasks";
 import { useContactRelationshipOptions } from "@/lib/hooks/use-contact-relationship-options";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
@@ -395,18 +395,15 @@ export function ContactDialog({
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">No areas.</div>
                         ) : (
                           visibleAreas.map((area) => (
-                            <DropdownMenuItem
+                            <DropdownMenuCheckboxItem
                               key={area.id}
-                              onSelect={(e) => e.preventDefault()}
+                              checked={areaIds.includes(area.id)}
+                              onCheckedChange={() => toggleId("area_ids", area.id)}
                               className="flex items-center gap-2"
                             >
-                              <Checkbox
-                                checked={areaIds.includes(area.id)}
-                                onCheckedChange={() => toggleId("area_ids", area.id)}
-                              />
                               {area.icon ? `${area.icon} ` : ""}
                               {area.name}
-                            </DropdownMenuItem>
+                            </DropdownMenuCheckboxItem>
                           ))
                         )}
                       </ScrollArea>
@@ -452,17 +449,14 @@ export function ContactDialog({
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">No goals.</div>
                         ) : (
                           filteredGoals.map((goal) => (
-                            <DropdownMenuItem
+                            <DropdownMenuCheckboxItem
                               key={goal.id}
-                              onSelect={(e) => e.preventDefault()}
+                              checked={goalIds.includes(goal.id)}
+                              onCheckedChange={() => toggleId("goal_ids", goal.id)}
                               className="flex items-center gap-2"
                             >
-                              <Checkbox
-                                checked={goalIds.includes(goal.id)}
-                                onCheckedChange={() => toggleId("goal_ids", goal.id)}
-                              />
                               {goal.name}
-                            </DropdownMenuItem>
+                            </DropdownMenuCheckboxItem>
                           ))
                         )}
                       </ScrollArea>
@@ -510,17 +504,14 @@ export function ContactDialog({
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">No projects.</div>
                         ) : (
                           filteredProjects.map((project) => (
-                            <DropdownMenuItem
+                            <DropdownMenuCheckboxItem
                               key={project.id}
-                              onSelect={(e) => e.preventDefault()}
+                              checked={projectIds.includes(project.id)}
+                              onCheckedChange={() => toggleId("project_ids", project.id)}
                               className="flex items-center gap-2"
                             >
-                              <Checkbox
-                                checked={projectIds.includes(project.id)}
-                                onCheckedChange={() => toggleId("project_ids", project.id)}
-                              />
                               {project.name}
-                            </DropdownMenuItem>
+                            </DropdownMenuCheckboxItem>
                           ))
                         )}
                       </ScrollArea>
@@ -565,17 +556,14 @@ export function ContactDialog({
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">No tasks.</div>
                         ) : (
                           filteredTasks.map((task) => (
-                            <DropdownMenuItem
+                            <DropdownMenuCheckboxItem
                               key={task.id}
-                              onSelect={(e) => e.preventDefault()}
+                              checked={taskIds.includes(task.id)}
+                              onCheckedChange={() => toggleId("task_ids", task.id)}
                               className="flex items-center gap-2"
                             >
-                              <Checkbox
-                                checked={taskIds.includes(task.id)}
-                                onCheckedChange={() => toggleId("task_ids", task.id)}
-                              />
                               {task.name}
-                            </DropdownMenuItem>
+                            </DropdownMenuCheckboxItem>
                           ))
                         )}
                       </ScrollArea>

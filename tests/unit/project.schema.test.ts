@@ -14,7 +14,7 @@ describe("project schemas", () => {
       priority: PRIORITY.HIGH,
       status: PROJECT_STATUS.PLANNING,
       start_date: "",
-      due_date: "2026-05-15",
+      due_date: "2027-05-15",
       goal_ids: ["11111111-1111-4111-8111-111111111111"],
     });
 
@@ -25,7 +25,7 @@ describe("project schemas", () => {
       priority: PRIORITY.HIGH,
       status: PROJECT_STATUS.PLANNING,
       start_date: null,
-      due_date: "2026-05-15",
+      due_date: "2027-05-15",
       goal_ids: ["11111111-1111-4111-8111-111111111111"],
       progress: 0,
       is_archived: false,

@@ -5,6 +5,7 @@ export const NOTE_VIEW = {
   INBOX: "inbox",
   TO_REVIEW: "to_review",
   ACTIVE: "active",
+  SAVED: "saved",
   PINNED: "pinned",
   FAVORITE: "favorite",
   BY_PROJECT: "by_project",
@@ -85,6 +86,7 @@ export interface NoteCounts {
   inbox: number;
   to_review: number;
   active: number;
+  saved: number;
   pinned: number;
   favorite: number;
   by_project: number;
@@ -99,6 +101,7 @@ export function getNoteCounts(notes: Note[]): NoteCounts {
     inbox: notes.filter((n) => n.status === "inbox" && !n.is_archived).length,
     to_review: notes.filter((n) => n.status === "to_review" && !n.is_archived).length,
     active: notes.filter((n) => n.status === "active" && !n.is_archived).length,
+    saved: notes.filter((n) => n.status === "saved" && !n.is_archived).length,
     pinned: notes.filter((n) => n.pin && !n.is_archived).length,
     favorite: notes.filter((n) => n.favorite && !n.is_archived).length,
     by_project: notes.filter((n) => getNoteLinkedProjectIds(n).length > 0 && !n.is_archived).length,
@@ -116,6 +119,8 @@ export function getVisibleNotes(notes: Note[], view: NoteView): Note[] {
       return notes.filter((n) => n.status === "to_review" && !n.is_archived);
     case NOTE_VIEW.ACTIVE:
       return notes.filter((n) => n.status === "active" && !n.is_archived);
+    case NOTE_VIEW.SAVED:
+      return notes.filter((n) => n.status === "saved" && !n.is_archived);
     case NOTE_VIEW.PINNED:
       return notes.filter((n) => n.pin && !n.is_archived);
     case NOTE_VIEW.FAVORITE:

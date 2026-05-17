@@ -3,6 +3,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { AREAS_QUERY_KEY, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
+import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
 import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
 import { DASHBOARD_QUERY_KEY } from "@/lib/services/dashboard.service";
@@ -88,6 +89,8 @@ export function useUpdateTask() {
       taskService.update(user!.id, id, input),
     onSuccess: async () => {
       await invalidateTaskCoreGraph(queryClient);
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to update task");
@@ -161,7 +164,7 @@ export function useCompleteTask() {
       toast.error("Failed to complete task");
     },
     onSettled: async () => {
-      await invalidateTaskCoreGraph(queryClient);
+      await invalidateTaskGraph(queryClient);
       queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
     },
   });
@@ -298,7 +301,8 @@ export function useCompleteTaskWithGoalRefresh() {
     },
     onSettled: async () => {
       await invalidateTaskCoreGraph(queryClient);
-      queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
     },
   });
 }

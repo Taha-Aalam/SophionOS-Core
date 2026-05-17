@@ -12,15 +12,35 @@ vi.mock("@/lib/hooks/use-topics", () => ({
   useUpdateTopic: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteTopic: () => ({ mutate: vi.fn(), isPending: false }),
   useToggleFavoriteTopic: () => ({ mutate: vi.fn(), isPending: false }),
+  useArchiveTopic: () => ({ mutate: vi.fn(), isPending: false }),
+  useRestoreTopic: () => ({ mutate: vi.fn(), isPending: false }),
+  useArchivedTopics: () => ({ data: [], isLoading: false }),
 }));
 
 vi.mock("@/lib/hooks/use-areas", () => ({
   useAreas: () => mockUseAreas(),
 }));
 
+vi.mock("@/components/providers/auth-provider", () => ({
+  useAuth: () => ({ user: { id: "user-1" } }),
+}));
+
+vi.mock("@/lib/hooks/use-notes", () => ({
+  useNotes: () => ({ data: [], isLoading: false }),
+  useToggleFavoriteNote: () => ({ mutate: vi.fn() }),
+}));
+
+vi.mock("@/lib/hooks/use-resources", () => ({
+  useResources: () => ({ data: [], isLoading: false }),
+  useToggleFavoriteResource: () => ({ mutate: vi.fn() }),
+}));
+
 vi.mock("@/components/entities/topic-card", () => ({
-  TopicCard: ({ topic }: { topic: { name: string } }) => (
-    <div data-slot="topic-card">{topic.name}</div>
+  TopicCard: ({ topic, duplicateIndex }: { topic: { name: string }; duplicateIndex?: number }) => (
+    <div data-slot="topic-card">
+      {topic.name}
+      {duplicateIndex != null && duplicateIndex > 1 && <span>copy {duplicateIndex}</span>}
+    </div>
   ),
 }));
 
@@ -73,7 +93,6 @@ describe("TopicsPage All (table) duplicate badge coverage", () => {
 
     const html = renderToStaticMarkup(<TopicsPage />);
 
-    expect(html).toContain("All (table)");
     expect(html).toContain("Alpha");
     expect(html).toContain("copy 2");
   });

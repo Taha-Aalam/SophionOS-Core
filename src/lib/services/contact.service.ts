@@ -1,9 +1,11 @@
 import { createClient } from "../supabase/client";
 import type {
   Contact,
+  ContactLog,
   ContactProject,
   ContactTask,
   CreateContactInput,
+  CreateContactLogInput,
   FollowUpStatus,
   UpdateContactInput,
 } from "../types/domain.types";
@@ -11,7 +13,7 @@ import { createContactSchema, updateContactSchema } from "../validators/contact.
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 
 const CONTACT_SELECT =
-  "id, user_id, name, role, organization, group, phone, email, linkedin, website, last_interaction_at, follow_up_interval_days, favorite, notes, archive, metadata, created_at, updated_at";
+  "id, user_id, name, slug, role, organization, group, phone, email, linkedin, website, last_interaction_at, follow_up_interval_days, favorite, notes, archive, image_url, metadata, created_at, updated_at";
 
 function computeFollowUpStatus(
   lastInteractionAt: string | null | undefined,
@@ -31,7 +33,19 @@ function computeDaysSinceInteraction(lastInteractionAt: string | null | undefine
   const lastDate = new Date(lastInteractionAt);
   const now = new Date();
   const diffMs = now.getTime() - lastDate.getTime();
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+}
+
+function computeDaysUntilFollowUp(
+  lastInteractionAt: string | null | undefined,
+  intervalDays: number | null | undefined,
+): number | null {
+  if (!intervalDays || intervalDays === 0) return null;
+  if (!lastInteractionAt) return -intervalDays;
+  const lastDate = new Date(lastInteractionAt);
+  const now = new Date();
+  const daysSince = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+  return Math.round(intervalDays - daysSince);
 }
 
 async function syncContactLinks(
@@ -94,9 +108,49 @@ async function syncContactLinks(
   }
 }
 
+function getContactImagePath(imageUrl: string | null | undefined): string | null {
+  if (!imageUrl) return null;
+
+  const marker = "/storage/v1/object/public/contact-avatars/";
+  const index = imageUrl.indexOf(marker);
+  if (index === -1) return null;
+
+  const rawPath = imageUrl.slice(index + marker.length);
+  return rawPath ? decodeURIComponent(rawPath) : null;
+}
+
 export const contactService = {
   computeFollowUpStatus,
   computeDaysSinceInteraction,
+  computeDaysUntilFollowUp,
+  getContactImagePath,
+
+  async deleteContactImage(imageUrl: string | null | undefined): Promise<void> {
+    const path = getContactImagePath(imageUrl);
+    if (!path) return;
+
+    const { error } = await createClient()
+      .storage
+      .from("contact-avatars")
+      .remove([path]);
+
+    if (error) throw new DatabaseError(error.message);
+  },
+
+  async uploadContactImage(userId: string, contactId: string, file: File): Promise<string> {
+    const client = createClient();
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `${userId}/${contactId}.${ext}`;
+
+    const { error } = await client.storage
+      .from("contact-avatars")
+      .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (error) throw new DatabaseError(error.message);
+
+    const { data } = client.storage.from("contact-avatars").getPublicUrl(path);
+    return data.publicUrl;
+  },
 
   async list(userId: string, filters?: { group?: string; archive?: boolean }): Promise<Contact[]> {
     let query = createClient()
@@ -394,6 +448,103 @@ export const contactService = {
     return data || [];
   },
 
+  async getAreaLinks(userId: string, contactId: string): Promise<{ contact_id: string; area_id: string }[]> {
+    await this.getById(userId, contactId);
+    const { data, error } = await createClient()
+      .from("contact_areas")
+      .select("contact_id, area_id")
+      .eq("contact_id", contactId);
+
+    if (error) throw new DatabaseError(error.message);
+    return data || [];
+  },
+
+  async getGoalLinks(userId: string, contactId: string): Promise<{ contact_id: string; goal_id: string }[]> {
+    await this.getById(userId, contactId);
+    const { data, error } = await createClient()
+      .from("contact_goals")
+      .select("contact_id, goal_id")
+      .eq("contact_id", contactId);
+
+    if (error) throw new DatabaseError(error.message);
+    return data || [];
+  },
+
+  async linkToArea(userId: string, contactId: string, areaId: string): Promise<void> {
+    await this.getById(userId, contactId);
+    const { error } = await createClient()
+      .from("contact_areas")
+      .upsert(
+        { contact_id: contactId, area_id: areaId },
+        { onConflict: "contact_id,area_id" },
+      );
+    if (error) throw new DatabaseError(error.message);
+  },
+
+  async unlinkFromArea(userId: string, contactId: string, areaId: string): Promise<void> {
+    await this.getById(userId, contactId);
+    const { error } = await createClient()
+      .from("contact_areas")
+      .delete()
+      .eq("contact_id", contactId)
+      .eq("area_id", areaId);
+    if (error) throw new DatabaseError(error.message);
+  },
+
+  async linkToGoal(userId: string, contactId: string, goalId: string): Promise<void> {
+    await this.getById(userId, contactId);
+    const { error } = await createClient()
+      .from("contact_goals")
+      .upsert(
+        { contact_id: contactId, goal_id: goalId },
+        { onConflict: "contact_id,goal_id" },
+      );
+    if (error) throw new DatabaseError(error.message);
+  },
+
+  async unlinkFromGoal(userId: string, contactId: string, goalId: string): Promise<void> {
+    await this.getById(userId, contactId);
+    const { error } = await createClient()
+      .from("contact_goals")
+      .delete()
+      .eq("contact_id", contactId)
+      .eq("goal_id", goalId);
+    if (error) throw new DatabaseError(error.message);
+  },
+
+  async getBySlug(userId: string, slug: string): Promise<Contact> {
+    const { data, error } = await createClient()
+      .from("contacts")
+      .select(CONTACT_SELECT)
+      .eq("user_id", userId)
+      .eq("slug", slug)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") throw new NotFoundError("Contact", slug);
+      throw new DatabaseError(error.message);
+    }
+    return data;
+  },
+
+  async getByGoal(userId: string, goalId: string): Promise<{ contact_id: string; goal_id: string }[]> {
+    const { data, error } = await createClient()
+      .from("contact_goals")
+      .select("contact_id, goal_id")
+      .eq("goal_id", goalId);
+    if (error) throw new DatabaseError(error.message);
+    return data || [];
+  },
+
+  async getByArea(userId: string, areaId: string): Promise<{ contact_id: string; area_id: string }[]> {
+    const { data, error } = await createClient()
+      .from("contact_areas")
+      .select("contact_id, area_id")
+      .eq("area_id", areaId);
+    if (error) throw new DatabaseError(error.message);
+    return data || [];
+  },
+
   async getByProject(userId: string, projectId: string): Promise<ContactProject[]> {
     const { data, error } = await createClient()
       .from("contact_projects")
@@ -476,5 +627,96 @@ export const contactService = {
       grouped[key].push(contact);
     }
     return grouped;
+  },
+
+  async getContactsGroupedByArea(userId: string): Promise<Array<{ areaId: string; areaName: string; contacts: Contact[] }>> {
+    const client = createClient();
+    const { data: contacts } = await client
+      .from("contacts")
+      .select(`${CONTACT_SELECT}, contact_areas(area_id, areas(id, name))`)
+      .eq("user_id", userId)
+      .eq("archive", false)
+      .order("name");
+
+    if (!contacts) return [];
+
+    const areaMap = new Map<string, { areaId: string; areaName: string; contacts: Contact[] }>();
+    for (const raw of contacts) {
+      const row = raw as Record<string, unknown>;
+      const areas = (row.contact_areas as Array<Record<string, unknown>>) ?? [];
+      for (const link of areas) {
+        const areaId = link.area_id as string;
+        const areaName = (link.areas as Record<string, string>)?.name ?? areaId;
+        if (!areaMap.has(areaId)) {
+          areaMap.set(areaId, { areaId, areaName, contacts: [] });
+        }
+        const contact = Object.fromEntries(
+          Object.entries(row).filter(([k]) => k !== "contact_areas"),
+        );
+        areaMap.get(areaId)!.contacts.push(contact as unknown as Contact);
+      }
+    }
+    return Array.from(areaMap.values()).sort((a, b) => a.areaName.localeCompare(b.areaName));
+  },
+
+  async getContactsGroupedByGoal(userId: string): Promise<Array<{ goalId: string; goalName: string; contacts: Contact[] }>> {
+    const client = createClient();
+    const { data: contacts } = await client
+      .from("contacts")
+      .select(`${CONTACT_SELECT}, contact_goals(goal_id, goals(id, name))`)
+      .eq("user_id", userId)
+      .eq("archive", false)
+      .order("name");
+
+    if (!contacts) return [];
+
+    const goalMap = new Map<string, { goalId: string; goalName: string; contacts: Contact[] }>();
+    for (const raw of contacts) {
+      const row = raw as Record<string, unknown>;
+      const goals = (row.contact_goals as Array<Record<string, unknown>>) ?? [];
+      for (const link of goals) {
+        const goalId = link.goal_id as string;
+        const goalName = (link.goals as Record<string, string>)?.name ?? goalId;
+        if (!goalMap.has(goalId)) {
+          goalMap.set(goalId, { goalId, goalName, contacts: [] });
+        }
+        const contact = Object.fromEntries(
+          Object.entries(row).filter(([k]) => k !== "contact_goals"),
+        );
+        goalMap.get(goalId)!.contacts.push(contact as unknown as Contact);
+      }
+    }
+    return Array.from(goalMap.values()).sort((a, b) => a.goalName.localeCompare(b.goalName));
+  },
+
+  async listLogs(userId: string, contactId: string): Promise<ContactLog[]> {
+    const client = createClient();
+    const { data, error } = await client
+      .from("contact_logs")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("contact_id", contactId)
+      .order("logged_at", { ascending: false });
+    if (error) throw new DatabaseError(error.message);
+    return (data ?? []) as ContactLog[];
+  },
+
+  async createLog(userId: string, contactId: string, input: CreateContactLogInput): Promise<ContactLog> {
+    const client = createClient();
+    const { data, error } = await client
+      .from("contact_logs")
+      .insert({ user_id: userId, contact_id: contactId, message: input.message })
+      .select("id, contact_id, user_id, message, logged_at, created_at")
+      .single();
+    if (error) throw new DatabaseError(error.message);
+
+    // Update last_interaction_at on the contact
+    await client
+      .from("contacts")
+      .update({ last_interaction_at: data.logged_at })
+      .eq("user_id", userId)
+      .eq("id", contactId);
+
+    return data as ContactLog;
   },
 };

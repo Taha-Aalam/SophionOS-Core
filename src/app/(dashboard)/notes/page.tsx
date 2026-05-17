@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Archive,
+  Bookmark,
   BookOpen,
   Calendar,
   CheckSquare,
@@ -22,6 +23,7 @@ import {
   Tag,
   Target,
   Trash2,
+  Zap,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -87,6 +89,7 @@ const statusColors: Record<string, string> = {
   inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
   to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
   active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  saved: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
   archive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
 };
 
@@ -354,6 +357,20 @@ export default function NotesPage() {
               To Review
             </TabsTrigger>
             <TabsTrigger
+              value={NOTE_VIEW.ACTIVE}
+              className={compactTabTriggerClassName}
+            >
+              <Zap className="mr-1 size-3" />
+              Active
+            </TabsTrigger>
+            <TabsTrigger
+              value={NOTE_VIEW.SAVED}
+              className={compactTabTriggerClassName}
+            >
+              <Bookmark className="mr-1 size-3" />
+              Saved
+            </TabsTrigger>
+            <TabsTrigger
               value={NOTE_VIEW.PINNED}
               className={compactTabTriggerClassName}
             >
@@ -379,7 +396,7 @@ export default function NotesPage() {
               className={compactTabTriggerClassName}
             >
               <Tag className="mr-1 size-3" />
-              By Topic
+              By Topics
             </TabsTrigger>
             <TabsTrigger
               value={NOTE_VIEW.BY_NOTEBOOK}
@@ -393,7 +410,7 @@ export default function NotesPage() {
               className={compactTabTriggerClassName}
             >
               <Archive className="mr-1 size-3" />
-              Archived
+              Archive
             </TabsTrigger>
           </TabsList>
         </div>
@@ -425,6 +442,7 @@ export default function NotesPage() {
                 <SelectItem value="inbox">Inbox</SelectItem>
                 <SelectItem value="to_review">To Review</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="saved">Saved</SelectItem>
                 <SelectItem value="archive">Archive</SelectItem>
               </SelectContent>
             </Select>

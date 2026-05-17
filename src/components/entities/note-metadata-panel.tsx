@@ -39,7 +39,7 @@ const STATUS_OPTIONS = [
   { value: NOTE_STATUS.INBOX, label: "Inbox" },
   { value: NOTE_STATUS.TO_REVIEW, label: "To Review" },
   { value: NOTE_STATUS.ACTIVE, label: "Active" },
-  { value: NOTE_STATUS.ARCHIVE, label: "Archive" },
+  { value: NOTE_STATUS.SAVED, label: "Saved" },
 ];
 
 interface NoteMetadataPanelProps {
@@ -336,15 +336,10 @@ export function NoteMetadataPanel({
       </div>
 
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs text-muted-foreground">
-            <Target className="mr-1 inline size-3" />
-            Goals
-          </Label>
-          <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-            {goalIds.length} linked
-          </Badge>
-        </div>
+        <Label className="text-xs text-muted-foreground">
+          <Target className="mr-1 inline size-3" />
+          Goals
+        </Label>
         <GoalSelector
           goals={filteredGoals}
           selectedIds={goalIds}

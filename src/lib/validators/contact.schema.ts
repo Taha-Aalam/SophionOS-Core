@@ -19,9 +19,10 @@ export const createContactSchema = z
     email: nullableEmailSchema,
     linkedin: nullableStringSchema,
     website: nullableStringSchema,
+    image_url: nullableStringSchema,
     last_interaction_at: z.string().datetime().nullable().optional(),
     follow_up_interval_days: z.number().int().min(0).max(365).nullable().optional(),
-    favorite: z.boolean().default(false),
+    favorite: z.boolean().optional(),
     notes: nullableStringSchema,
     metadata: metadataSchema,
     // link ID arrays — stripped before DB insert, handled by junction-table sync

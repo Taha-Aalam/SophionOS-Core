@@ -58,6 +58,12 @@ function Breadcrumb() {
           label = pageTitle || segment;
         }
 
+        // For /contacts/<slug-or-uuid> — use page title set by detail page
+        const isContactsSegment = segments[0] === "contacts" && index === 1;
+        if (isContactsSegment) {
+          label = pageTitle || segment;
+        }
+
         return (
           <React.Fragment key={href}>
             {!isLast ? (
