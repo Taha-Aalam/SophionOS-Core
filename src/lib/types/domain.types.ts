@@ -9,6 +9,10 @@ export type Area = Omit<DatabaseTable<"areas">, "is_archived">;
 
 export interface Goal extends DatabaseTable<"goals"> {
   linkedAreaIds?: string[];
+  projectCount?: number;
+  taskCount?: number;
+  noteCount?: number;
+  resourceCount?: number;
 }
 
 export interface Note extends DatabaseTable<"notes"> {
