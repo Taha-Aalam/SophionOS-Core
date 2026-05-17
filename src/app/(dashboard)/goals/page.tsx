@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, CheckCircle, Clock, Flag, LayoutGrid, List as ListIcon, PauseCircle, Plus, Target } from "lucide-react";
 
-import { GoalCard } from "@/components/entities/goal-card";
+import { GoalCard, type GoalCardRollups } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { EmptyState } from "@/components/views/empty-state";
 import { Button } from "@/components/ui/button";
@@ -189,6 +189,16 @@ export default function GoalsPage() {
                 areaNames={linkedAreaNames}
                 areaIcons={linkedAreaIcons}
                 duplicateIndex={duplicateIndices.get(goal.id)}
+                rollups={
+                  goal.projectCount !== undefined
+                    ? {
+                        projectCount: goal.projectCount,
+                        taskCount: goal.taskCount ?? 0,
+                        noteCount: goal.noteCount ?? 0,
+                        resourceCount: goal.resourceCount ?? 0,
+                      }
+                    : undefined
+                }
                 onEdit={() => {
                   router.push(buildGoalDetailHref(goal));
                 }}
