@@ -9,6 +9,7 @@ import { Task } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
 
 import { PriorityBadge } from "./priority-badge";
+import { StatusBadge } from "./status-badge";
 import { SmartPriorityBadge } from "./smart-priority-badge";
 import { TaskInlineEditor } from "./task-inline-editor";
 
@@ -82,6 +83,8 @@ export function TaskListItem({
           className="shrink-0"
         />
       </span>
+
+      <StatusBadge status={task.status} className="hidden shrink-0 sm:inline-flex" />
 
       {showSmartPriority ? (
         <SmartPriorityBadge score={task.smart_priority} className="hidden sm:inline-flex" />
