@@ -34,6 +34,12 @@ import { useTopics } from "@/lib/hooks/use-topics";
 import { createClient } from "@/lib/supabase/client";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "@/lib/types/domain.types";
 import { RESOURCE_STATUS, RESOURCE_TYPE, type ResourceStatus } from "@/lib/utils/constants";
+import {
+  computeVisibleAreas,
+  computeFilteredProjects,
+  computeFilteredGoals,
+  computeFilteredTasks,
+} from "@/lib/utils/resource-dialog-filters";
 
 const RESOURCE_TYPE_OPTIONS = [
   { value: RESOURCE_TYPE.WEBSITE, label: "Website" },
@@ -267,113 +273,25 @@ export function ResourceDialog({
     return goals.filter((g) => goalIds.includes(g.id));
   }, [goalIds, goals]);
 
-  // ── Areas filtering ───────────────────────────────────────────────────────
-  // Rule: if tasks selected → only task areas
-  // Rule: if goals selected → only goal areas
-  // Rule: if project selected → only project areas
+  // ── Areas filtering (AND-intersection) ─────────────────────────────────────
   const visibleAreas = useMemo(() => {
-    if (taskIds.length > 0) {
-      const taskAreaIds = new Set(
-        selectedTasks.flatMap((t) => t.linkedAreaIds ?? [t.area_id]).filter(Boolean),
-      );
-      return areas.filter((a) => taskAreaIds.has(a.id));
-    }
-    if (goalIds.length > 0) {
-      const goalAreaIds = new Set(
-        selectedGoals.flatMap((g) => g.linkedAreaIds ?? [g.area_id]).filter(Boolean),
-      );
-      return areas.filter((a) => goalAreaIds.has(a.id));
-    }
-    if (selectedProject) {
-      const projectAreaIds = new Set(
-        selectedProject.linkedAreaIds ?? [selectedProject.area_id].filter(Boolean),
-      );
-      return areas.filter((a) => projectAreaIds.has(a.id));
-    }
-    return areas;
-  }, [areas, selectedTasks, selectedGoals, selectedProject, taskIds.length, goalIds.length]);
+    return computeVisibleAreas(areas, selectedProject, selectedGoals, selectedTasks);
+  }, [areas, selectedProject, selectedGoals, selectedTasks]);
 
-  // ── Projects filtering ─────────────────────────────────────────────────────
-  // Rule: if tasks selected → only task projects
-  // Rule: if goals selected → only goal-linked projects
-  // Rule: if areas selected → only area-linked projects
+  // ── Projects filtering (AND-intersection) ──────────────────────────────────
   const filteredProjects = useMemo(() => {
-    if (taskIds.length > 0) {
-      const taskProjectIds = new Set(selectedTasks.map((t) => t.project_id).filter(Boolean));
-      return projects.filter((p) => taskProjectIds.has(p.id));
-    }
-    if (goalIds.length > 0) {
-      const linkedProjectIds = new Set<string>();
-      for (const goalId of goalIds) {
-        (goalProjectIdsMap.get(goalId) ?? []).forEach((id) => linkedProjectIds.add(id));
-      }
-      return projects.filter((p) => linkedProjectIds.has(p.id));
-    }
-    if (areaIds.length > 0) {
-      const selectedAreaIds = new Set(areaIds);
-      return projects.filter((p) => {
-        const projectAreaIds = new Set(p.linkedAreaIds ?? [p.area_id].filter(Boolean));
-        return Array.from(selectedAreaIds).some((id) => projectAreaIds.has(id));
-      });
-    }
-    return projects;
-  }, [projects, selectedTasks, goalIds, areaIds, taskIds.length, goalProjectIdsMap]);
+    return computeFilteredProjects(projects, areaIds, goalIds, goalProjectIdsMap, selectedTasks);
+  }, [projects, areaIds, goalIds, goalProjectIdsMap, selectedTasks]);
 
-  // ── Goals filtering ──────────────────────────────────────────────────────
-  // Rule: if tasks selected → goals linked to those tasks OR to tasks' projects
-  // Rule: if project selected → goals linked to that project
-  // Rule: if areas selected → goals linked to those areas
+  // ── Goals filtering (AND-intersection) ─────────────────────────────────────
   const filteredGoals = useMemo(() => {
-    if (taskIds.length > 0) {
-      const linkedGoalIds = new Set<string>();
-      for (const taskId of taskIds) {
-        (taskGoalIdsMap.get(taskId) ?? []).forEach((id) => linkedGoalIds.add(id));
-      }
-      for (const task of selectedTasks) {
-        if (task.project_id) {
-          (projectGoalIdsMap.get(task.project_id) ?? []).forEach((id) => linkedGoalIds.add(id));
-        }
-      }
-      return goals.filter((g) => linkedGoalIds.has(g.id));
-    }
-    if (projectId) {
-      const linkedGoalIds = new Set(projectGoalIdsMap.get(projectId) ?? []);
-      return goals.filter((g) => linkedGoalIds.has(g.id));
-    }
-    if (areaIds.length > 0) {
-      const selectedAreaIds = new Set(areaIds);
-      return goals.filter((g) => {
-        const goalAreaIds = new Set(g.linkedAreaIds ?? [g.area_id].filter(Boolean));
-        return Array.from(selectedAreaIds).some((id) => goalAreaIds.has(id));
-      });
-    }
-    return goals;
-  }, [goals, taskIds, selectedTasks, projectId, areaIds, taskGoalIdsMap, projectGoalIdsMap]);
+    return computeFilteredGoals(goals, areaIds, projectId, projectGoalIdsMap, taskGoalIdsMap, selectedTasks);
+  }, [goals, areaIds, projectId, projectGoalIdsMap, taskGoalIdsMap, selectedGoals, selectedTasks]);
 
-  // ── Tasks filtering ──────────────────────────────────────────────────────
-  // Rule: if goals selected → only tasks linked to those goals
-  // Rule: if project selected → only tasks for that project
-  // Rule: if areas selected → only tasks linked to those areas
+  // ── Tasks filtering (AND-intersection) ─────────────────────────────────────
   const filteredTasks = useMemo(() => {
-    if (goalIds.length > 0) {
-      const linkedTaskIds = new Set<string>();
-      for (const goalId of goalIds) {
-        (goalTaskIdsMap.get(goalId) ?? []).forEach((id) => linkedTaskIds.add(id));
-      }
-      return tasks.filter((t) => linkedTaskIds.has(t.id));
-    }
-    if (projectId) {
-      return tasks.filter((t) => t.project_id === projectId);
-    }
-    if (areaIds.length > 0) {
-      const selectedAreaIds = new Set(areaIds);
-      return tasks.filter((t) => {
-        const taskAreaIds = new Set(t.linkedAreaIds ?? [t.area_id].filter(Boolean));
-        return Array.from(selectedAreaIds).some((id) => taskAreaIds.has(id));
-      });
-    }
-    return tasks;
-  }, [tasks, goalIds, projectId, areaIds, goalTaskIdsMap]);
+    return computeFilteredTasks(tasks, areaIds, projectId, goalIds, goalTaskIdsMap);
+  }, [tasks, areaIds, projectId, goalIds, goalTaskIdsMap]);
 
   // ── Clear invalid selections when filters change ───────────────────────────
   useEffect(() => {
