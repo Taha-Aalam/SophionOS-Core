@@ -172,9 +172,9 @@ export function ProjectCard({
           </div>
         </div>
 
-        <div className="mt-4 flex flex-col gap-2 text-[11px] text-muted-foreground">
+        <div className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               {showAllCounts && rollups ? (
                 <>
                   <span className="flex items-center gap-1 whitespace-nowrap" title="Goals">
