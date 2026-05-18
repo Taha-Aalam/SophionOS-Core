@@ -103,6 +103,7 @@ function renderSection(
     linkedNotes: [],
     allAreas: [],
     allProjects: [],
+    allResources: [],
     onUnlinkArea: noop,
     onUnlinkGoal: noop,
     onUnlinkProject: noop,
