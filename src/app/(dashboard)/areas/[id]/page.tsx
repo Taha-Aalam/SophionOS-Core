@@ -15,7 +15,7 @@ import {
 import { ContactCard } from "@/components/entities/contact-card";
 import { ContactDialog } from "@/components/entities/contact-dialog";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
-import { GoalCard, type GoalCardRollups } from "@/components/entities/goal-card";
+import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";

@@ -29,10 +29,8 @@ import { Label } from "@/components/ui/label";
 import { TopicCard } from "@/components/entities/topic-card";
 import {
   useTopics,
-  useTopic,
   useCreateTopic,
   useUpdateTopic,
-  useDeleteTopic,
   useToggleFavoriteTopic,
   useArchiveTopic,
   useRestoreTopic,
@@ -89,7 +87,6 @@ export default function TopicsPage() {
 
   const createTopic = useCreateTopic();
   const updateTopic = useUpdateTopic();
-  const deleteTopic = useDeleteTopic();
   const toggleFavorite = useToggleFavoriteTopic();
   const archiveTopic = useArchiveTopic();
   const restoreTopic = useRestoreTopic();
@@ -272,12 +269,6 @@ export default function TopicsPage() {
 
   const handleToggleFavorite = (id: string, favorite: boolean) => {
     toggleFavorite.mutate({ id, favorite });
-  };
-
-  const handleDelete = (topic: TopicWithCounts) => {
-    if (confirm(`Delete topic "${topic.name}"?`)) {
-      deleteTopic.mutate(topic.id);
-    }
   };
 
   const handleArchive = (topic: TopicWithCounts) => {

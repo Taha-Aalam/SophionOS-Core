@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -17,7 +17,7 @@ import {
 
 import { ContactCard } from "@/components/entities/contact-card";
 import { ContactDialog } from "@/components/entities/contact-dialog";
-import { GoalCard, type GoalCardRollups } from "@/components/entities/goal-card";
+import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { TaskListItem } from "@/components/entities/task-list-item";
 import { ProjectDialog } from "@/components/entities/project-dialog";

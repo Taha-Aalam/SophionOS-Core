@@ -50,6 +50,14 @@ import { useAreas } from "@/lib/hooks/use-areas";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 
+const NOTE_STATUS_COLORS: Record<string, string> = {
+  inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  saved: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  archive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+};
+
 export default function TopicDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -80,8 +88,6 @@ export default function TopicDetailPage() {
   const updateResource = useUpdateResource();
   const { data: allNotes = [] } = useNotes({ includeArchived: false });
   const { data: allResources = [] } = useResources({});
-
-  const areaNames = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
 
   useEffect(() => {
     if (topic) {
@@ -138,7 +144,7 @@ export default function TopicDetailPage() {
     if (topic?.linkedAreaIds && topic.linkedAreaIds.length > 0) {
       params.set("areaIds", topic.linkedAreaIds.join(","));
     }
-    params.set("topicId", topicId);
+    params.set("topicId", topic?.id ?? topicId);
     router.push(`/notes/new?${params.toString()}`);
   }, [router, topicId, topic]);
 
@@ -152,17 +158,19 @@ export default function TopicDetailPage() {
       .filter(Boolean) as { id: string; name: string; icon: string | null }[];
   }, [topic, areas]);
 
-  const linkedAreaNames = useMemo(() => linkedAreas.map((a) => a.name), [linkedAreas]);
-
   const linkableNotes = useMemo(() => {
-    if (!topic?.linkedAreaIds?.length) return allNotes;
-    return allNotes.filter((n) => topic.linkedAreaIds!.includes(n.area_id ?? ""));
-  }, [allNotes, topic]);
+    const linkedNoteIds = new Set(notes.map((n) => n.id));
+    const unlinked = allNotes.filter((n) => !linkedNoteIds.has(n.id));
+    if (!topic?.linkedAreaIds?.length) return unlinked;
+    return unlinked.filter((n) => topic.linkedAreaIds!.includes(n.area_id ?? ""));
+  }, [allNotes, notes, topic]);
 
   const linkableResources = useMemo(() => {
-    if (!topic?.linkedAreaIds?.length) return allResources;
-    return allResources.filter((r) => topic.linkedAreaIds!.includes(r.area_id ?? ""));
-  }, [allResources, topic]);
+    const linkedResourceIds = new Set(resources.map((r) => r.id));
+    const unlinked = allResources.filter((r) => !linkedResourceIds.has(r.id));
+    if (!topic?.linkedAreaIds?.length) return unlinked;
+    return unlinked.filter((r) => topic.linkedAreaIds!.includes(r.area_id ?? ""));
+  }, [allResources, resources, topic]);
 
   const noteTabs = useMemo(() => [
     { value: "all", label: "All", count: notes.filter((n) => !n.is_archived).length },
@@ -412,7 +420,7 @@ export default function TopicDetailPage() {
               >
                 <h3 className="truncate font-semibold">{note.name}</h3>
                 <div className="flex flex-wrap gap-1.5">
-                  <Badge variant="secondary" className="text-xs">{note.status}</Badge>
+                  <Badge variant="secondary" className={cn("text-xs", NOTE_STATUS_COLORS[note.status])}>{note.status}</Badge>
                   <Badge variant="outline" className="text-xs">{note.type}</Badge>
                 </div>
               </div>
@@ -551,7 +559,7 @@ export default function TopicDetailPage() {
           if (!open) setEditResource(null);
         }}
         resource={editResource}
-        initialTopicId={topicId}
+        initialTopicId={topic?.id ?? topicId}
         initialAreaIds={topic.linkedAreaIds}
         onSubmit={handleResourceSubmit}
         isPending={createResource.isPending || updateResource.isPending}

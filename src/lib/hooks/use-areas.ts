@@ -4,7 +4,6 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { areaService } from "@/lib/services/area.service";
-import { groupAreasByType } from "@/lib/utils/areas";
 
 import type { CreateAreaInput, UpdateAreaInput } from "@/lib/types/domain.types";
 

@@ -1,5 +1,4 @@
-import React from "react";
-import { describe, expect, it } from "vitest";
+import { expect, it } from "vitest";
 
 it("tasks page tab triggers use text-xs not text-sm", async () => {
   const fs = await import("fs/promises");

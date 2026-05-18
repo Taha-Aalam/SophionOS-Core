@@ -7,7 +7,7 @@ import type { ProjectCardRollups } from "@/components/entities/project-card";
  * This tests the rollup computation logic that should be used on the projects page.
  */
 
-const makeProject = (overrides: Partial<Project> = {}): Project =>
+const _makeProject = (_overrides: Partial<Project> = {}): Project =>
   ({
     id: "p-1",
     user_id: "user-1",

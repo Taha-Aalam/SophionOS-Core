@@ -140,7 +140,7 @@ export default function MyDayPage() {
     day: "numeric",
   });
 
-  const taskHandlers = (task: Task) => ({
+  const taskHandlers = (_task: Task) => ({
     onCompletionToggle: (id: string, isCompleted: boolean) => {
       if (isCompleted) {
         completeTask.mutate(id);

@@ -317,7 +317,7 @@ export function ResourceDialog({
       });
     }
     return projects;
-  }, [projects, selectedTasks, goalIds, areaIds, goalProjectIdsMap]);
+  }, [projects, selectedTasks, goalIds, areaIds, taskIds.length, goalProjectIdsMap]);
 
   // ── Goals filtering ──────────────────────────────────────────────────────
   // Rule: if tasks selected → goals linked to those tasks OR to tasks' projects

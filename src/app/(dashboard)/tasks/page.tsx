@@ -99,7 +99,7 @@ export default function TasksPage() {
     [allProjects],
   );
 
-  const tasks = allTasks ?? [];
+  const tasks = useMemo(() => allTasks ?? [], [allTasks]);
   const counts = useMemo(() => getTaskCounts(tasks), [tasks]);
 
   const visibleTasks = useMemo(() => {
@@ -224,11 +224,6 @@ export default function TasksPage() {
   const handleEdit = (task: Task) => {
     setEditingTask(task);
     setIsDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setEditingTask(null);
   };
 
   const hasFilters = Boolean(

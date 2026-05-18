@@ -17,7 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Resource } from "@/lib/types/domain.types";
-import type { ResourceStatus, ResourceType } from "@/lib/utils/constants";
+import type { ResourceStatus } from "@/lib/utils/constants";
 
 const STATUS_COLORS: Record<string, string> = {
   inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -67,13 +67,6 @@ export function ResourceRow({
   onUnarchive,
   onEdit,
 }: ResourceRowProps) {
-  const handleOpenLink = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (resource.url) {
-      window.open(resource.url, "_blank", "noopener,noreferrer");
-    }
-  };
-
   const handleEdit = () => {
     onEdit?.(resource);
   };

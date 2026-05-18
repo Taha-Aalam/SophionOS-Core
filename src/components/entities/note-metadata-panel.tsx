@@ -153,7 +153,7 @@ export function NoteMetadataPanel({
       }
     }
     return activeAreas.filter((a) => allowed.has(a.id));
-  }, [activeAreas, goalIds, projectIds, taskIds, activeGoals, activeProjects, tasks]);
+  }, [activeAreas, goalIds, projectIds, taskIds, goals, activeProjects, tasks]);
 
   const filteredGoals = useMemo(() => {
     const hasConstraints = areaIds.length > 0 || projectIds.length > 0 || taskIds.length > 0;

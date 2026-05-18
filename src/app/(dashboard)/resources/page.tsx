@@ -26,7 +26,6 @@ import {
   useToggleFavoriteResource,
   useUpdateResource,
   useArchivedResources,
-  useFavoriteResources,
   useArchiveResource,
   useUnarchiveResource,
 } from "@/lib/hooks/use-resources";
@@ -55,11 +54,11 @@ export default function ResourcesPage() {
 
   const { data: allResources = [], isLoading } = useResources({ status: "all" });
   const { data: archivedResources = [] } = useArchivedResources();
-  const { data: favoriteResources = [] } = useFavoriteResources();
   const { data: areas = [] } = useAreas();
   const { data: goals = [] } = useGoals({});
   const { data: projects = [] } = useProjects({ status: "all" });
-  const { data: tasks = [] } = useTasks();
+  const { data: tasksData } = useTasks();
+  const tasks = useMemo(() => tasksData ?? [], [tasksData]);
   const { data: topics = [] } = useTopics();
 
   const createResource = useCreateResource();

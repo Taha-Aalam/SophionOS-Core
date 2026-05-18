@@ -5,8 +5,6 @@ import {
   buildReturnTo,
   encodeReturnTo,
   decodeReturnTo,
-  buildNoteNewUrl,
-  buildNoteDetailUrl,
   resolveBackNavigation,
   getEffectiveReturnTo,
   getReturnToParam,
