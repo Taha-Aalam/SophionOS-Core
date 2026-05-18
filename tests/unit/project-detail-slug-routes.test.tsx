@@ -94,6 +94,10 @@ vi.mock("@/lib/hooks/use-contacts", () => ({
   useLinkContactToProject: () => ({ mutateAsync: vi.fn(), mutate: vi.fn() }),
   useUnlinkContactFromProject: () => ({ mutateAsync: vi.fn(), mutate: vi.fn() }),
   useCreateContact: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
+  useUpdateContact: () => ({ mutateAsync: vi.fn() }),
+  useDeleteContact: () => ({ mutateAsync: vi.fn() }),
+  useToggleContactFavorite: () => ({ mutateAsync: vi.fn() }),
+  useArchiveContact: () => ({ mutateAsync: vi.fn() }),
 }));
 
 vi.mock("@/lib/hooks/use-resources", () => ({
