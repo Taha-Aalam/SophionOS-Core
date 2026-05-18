@@ -24,9 +24,14 @@ import {
   type GoalScopedTaskConfig,
 } from "@/lib/utils/goal-scoped";
 import { getGoalLinkedAreaIds, goalMatchesAreaId } from "@/lib/utils/goals";
+import {
+  computeFilteredProjects,
+  computeVisibleGoals,
+} from "@/lib/utils/task-dialog-filters";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task.schema";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -194,7 +199,7 @@ export function TaskDialog({
   task,
   defaultProjectId,
   defaultAreaId,
-  defaultGoalId,
+  defaultGoalId: _defaultGoalId,
   goalId,
   goalScoped,
   projectScoped,
@@ -315,8 +320,10 @@ export function TaskDialog({
     hasHydratedRelationsRef.current = true;
   }, [open, task, taskRelations, form]);
 
-  const selectedAreaIds = form.watch("area_ids") ?? [];
-  const selectedGoalIds = form.watch("goal_ids") ?? [];
+  const watchedAreaIds = form.watch("area_ids");
+  const watchedGoalIds = form.watch("goal_ids");
+  const selectedAreaIds = useMemo(() => watchedAreaIds ?? [], [watchedAreaIds]);
+  const selectedGoalIds = useMemo(() => watchedGoalIds ?? [], [watchedGoalIds]);
   const selectedProjectId = form.watch("project_id");
   const isPending = createTask.isPending || updateTask.isPending;
 
@@ -351,18 +358,8 @@ export function TaskDialog({
       return goals.filter((goal) => allowedSet.has(goal.id));
     }
 
-    if (!isGoalScoped && !isProjectScoped && selectedProjectId) {
-      const proj = projectById.get(selectedProjectId);
-      if (proj?.linkedGoalIds?.length) {
-        const allowedSet = new Set(proj.linkedGoalIds);
-        return goals.filter((goal) => allowedSet.has(goal.id));
-      }
-    }
-
-    if (!isGoalScoped && selectedAreaIds.length > 0) {
-      return goals.filter((goal) =>
-        selectedAreaIds.some((areaId) => goalMatchesAreaId(goal, areaId)),
-      );
+    if (!isGoalScoped) {
+      return computeVisibleGoals(goals, selectedProjectId || null, selectedAreaIds, projectById);
     }
 
     return goals;
@@ -377,21 +374,22 @@ export function TaskDialog({
       return filterAllowedProjectsForGoal(projects, allowedProjectIds);
     }
 
-    if (selectedGoalIds.length > 0) {
-      const selectedGoalSet = new Set(selectedGoalIds);
-      return projects.filter((project) =>
-        project.linkedGoalIds?.some((gId) => selectedGoalSet.has(gId)),
-      );
-    }
-
-    if (selectedAreaIds.length === 0) {
-      return projects;
-    }
-
-    return projects.filter((project) =>
-      selectedAreaIds.includes(project.area_id ?? ""),
-    );
+    return computeFilteredProjects(projects, selectedGoalIds, selectedAreaIds);
   }, [goalScoped, isGoalScoped, projects, selectedAreaIds, selectedGoalIds, allowedProjectIds]);
+
+  // Clear project_id when the currently-selected project is no longer in filteredProjects
+  // (e.g. user picks a goal that the project doesn't belong to).
+  useEffect(() => {
+    if (isGoalScoped || isProjectScoped) return;
+    if (!selectedProjectId) return;
+    if (!filteredProjects.some((p) => p.id === selectedProjectId)) {
+      form.setValue("project_id", "", {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+    }
+  }, [filteredProjects, selectedProjectId, form, isGoalScoped, isProjectScoped]);
 
   /** Areas visible in the area selector — restricted to goal-linked areas when goals are selected. */
   const visibleAreas = useMemo(() => {
@@ -819,20 +817,6 @@ export function TaskDialog({
                                   ? selectedAreaIds.filter((id) => id !== area.id)
                                   : [...selectedAreaIds, area.id];
                                 form.setValue("area_ids", nextAreaIds, { shouldDirty: true });
-                                const currentProjectId = form.getValues("project_id");
-                                if (
-                                  currentProjectId &&
-                                  nextAreaIds.length > 0 &&
-                                  !nextAreaIds.includes(
-                                    projectById.get(currentProjectId)?.area_id ?? "",
-                                  )
-                                ) {
-                                  form.setValue("project_id", "", {
-                                    shouldDirty: true,
-                                    shouldTouch: true,
-                                    shouldValidate: true,
-                                  });
-                                }
                               }}
                               className="flex items-center gap-2"
                             >
@@ -951,13 +935,20 @@ export function TaskDialog({
             {/* Row 4: Project (full width) */}
             {isProjectScoped ? (
               <FormItem>
-                <FormLabel>Project</FormLabel>
-                <div
-                  className="flex h-9 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
-                  aria-readonly="true"
-                  data-testid="task-dialog-project-locked"
-                >
-                  {projectScoped?.projectName ?? "Inherited from project"}
+                <div className="flex items-center justify-between">
+                  <FormLabel>Project</FormLabel>
+                  <div
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "pointer-events-none opacity-60 cursor-default")}
+                    aria-readonly="true"
+                    data-testid="task-dialog-project-locked"
+                  >
+                    {projectScoped?.projectName ?? "Inherited from project"}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    {projectScoped?.projectName ?? "Inherited from project"}
+                  </Badge>
                 </div>
               </FormItem>
             ) : (
