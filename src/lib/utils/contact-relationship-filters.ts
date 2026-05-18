@@ -133,11 +133,11 @@ export function buildGoalTaskMaps(relations: GoalTaskRelation[]) {
 // ---------------------------------------------------------------------------
 
 /**
- * Visible areas rule precedence:
- * 1. tasks selected  → only areas linked to those tasks
- * 2. goals selected  → only areas linked to those goals
- * 3. projects selected → only areas linked to those projects
- * 4. otherwise       → all active (non-archived) areas
+ * Returns areas satisfying ALL active constraints (AND-intersection):
+ * - projects → projects' areas
+ * - goals    → goals' areas
+ * - tasks    → tasks' areas
+ * When multiple are active, areas must match ALL of them.
  */
 export function filterAreas(
   inputs: Pick<
@@ -152,27 +152,43 @@ export function filterAreas(
   const { allAreas, selectedTasks, selectedGoals, selectedProjects } = inputs;
   const activeAreas = allAreas.filter((a) => !a.archive);
 
-  if (inputs.selectedTaskIds.length > 0) {
-    const taskAreaIds = new Set(selectedTasks.flatMap(getEntityAreaIds));
-    return activeAreas.filter((a) => taskAreaIds.has(a.id));
+  const hasProjects = inputs.selectedProjectIds.length > 0;
+  const hasGoals = inputs.selectedGoalIds.length > 0;
+  const hasTasks = inputs.selectedTaskIds.length > 0;
+
+  if (!hasProjects && !hasGoals && !hasTasks) return activeAreas;
+
+  let allowed: Set<string> | null = null;
+
+  if (hasProjects) {
+    const projectAreas = new Set(selectedProjects.flatMap(getEntityAreaIds));
+    allowed = projectAreas;
   }
-  if (inputs.selectedGoalIds.length > 0) {
-    const goalAreaIds = new Set(selectedGoals.flatMap(getEntityAreaIds));
-    return activeAreas.filter((a) => goalAreaIds.has(a.id));
+
+  if (hasGoals) {
+    const goalAreas = new Set(selectedGoals.flatMap(getEntityAreaIds));
+    allowed = allowed
+      ? new Set([...allowed].filter((id) => goalAreas.has(id)))
+      : goalAreas;
   }
-  if (inputs.selectedProjectIds.length > 0) {
-    const projectAreaIds = new Set(selectedProjects.flatMap(getEntityAreaIds));
-    return activeAreas.filter((a) => projectAreaIds.has(a.id));
+
+  if (hasTasks) {
+    const taskAreas = new Set(selectedTasks.flatMap(getEntityAreaIds));
+    allowed = allowed
+      ? new Set([...allowed].filter((id) => taskAreas.has(id)))
+      : taskAreas;
   }
-  return activeAreas;
+
+  if (allowed && allowed.size === 0) return [];
+  return allowed ? activeAreas.filter((a) => allowed!.has(a.id)) : activeAreas;
 }
 
 /**
- * Filtered projects rule precedence:
- * 1. tasks selected    → only projects linked to those tasks
- * 2. goals selected    → only projects linked to those goals
- * 3. areas selected    → only projects linked to those areas
- * 4. otherwise         → all active (non-archived) projects
+ * Returns projects satisfying ALL active constraints (AND-intersection):
+ * - areas → projects' area_id/linkedAreaIds overlap selected areas
+ * - goals → projects appear in goalToProjectIds for selected goals
+ * - tasks → projects are the project_id of any selected task
+ * When multiple are active, project must match ALL of them.
  */
 export function filterProjects(
   inputs: Pick<
@@ -186,35 +202,39 @@ export function filterProjects(
   const { allProjects, selectedTasks, goalToProjectIds } = inputs;
   const activeProjects = allProjects.filter((p) => !p.is_archived);
 
-  if (inputs.selectedTaskIds.length > 0) {
-    const taskProjectIds = new Set(
-      selectedTasks.map((t) => t.project_id).filter(Boolean) as string[],
-    );
-    return activeProjects.filter((p) => taskProjectIds.has(p.id));
-  }
-  if (inputs.selectedGoalIds.length > 0) {
-    const linkedProjectIds = new Set<string>();
-    for (const goalId of inputs.selectedGoalIds) {
-      (goalToProjectIds.get(goalId) ?? []).forEach((id) => linkedProjectIds.add(id));
+  const hasAreas = inputs.selectedAreaIds.length > 0;
+  const hasGoals = inputs.selectedGoalIds.length > 0;
+  const hasTasks = inputs.selectedTaskIds.length > 0;
+
+  if (!hasAreas && !hasGoals && !hasTasks) return activeProjects;
+
+  const areaSet = new Set(inputs.selectedAreaIds);
+
+  const taskProjectIds = hasTasks
+    ? new Set(selectedTasks.map((t) => t.project_id).filter(Boolean) as string[])
+    : null;
+
+  const goalProjectIds = hasGoals
+    ? new Set(inputs.selectedGoalIds.flatMap((gId) => goalToProjectIds.get(gId) ?? []))
+    : null;
+
+  return activeProjects.filter((p) => {
+    if (hasAreas) {
+      const projectAreas = getEntityAreaIds(p);
+      if (!projectAreas.some((aId) => areaSet.has(aId))) return false;
     }
-    return activeProjects.filter((p) => linkedProjectIds.has(p.id));
-  }
-  if (inputs.selectedAreaIds.length > 0) {
-    const selectedAreaIdSet = new Set(inputs.selectedAreaIds);
-    return activeProjects.filter((p) => {
-      const projectAreaIds = new Set(getEntityAreaIds(p));
-      return Array.from(selectedAreaIdSet).some((id) => projectAreaIds.has(id));
-    });
-  }
-  return activeProjects;
+    if (hasGoals && goalProjectIds && !goalProjectIds.has(p.id)) return false;
+    if (hasTasks && taskProjectIds && !taskProjectIds.has(p.id)) return false;
+    return true;
+  });
 }
 
 /**
- * Filtered goals rule precedence:
- * 1. tasks selected    → goals linked to those tasks OR to those tasks' projects
- * 2. projects selected → goals linked to those projects
- * 3. areas selected    → goals linked to those areas
- * 4. otherwise         → all active (non-archived) goals
+ * Returns goals satisfying ALL active constraints (AND-intersection):
+ * - areas    → goals' area_id/linkedAreaIds overlap selected areas
+ * - projects → goals appear in projectToGoalIds for selected projects
+ * - tasks    → goals linked to tasks OR to tasks' projects
+ * When multiple are active, goal must match ALL of them.
  */
 export function filterGoals(
   inputs: Pick<
@@ -229,41 +249,53 @@ export function filterGoals(
   const { allGoals, selectedTasks, taskToGoalIds, projectToGoalIds } = inputs;
   const activeGoals = allGoals.filter((g) => !g.is_archived);
 
-  if (inputs.selectedTaskIds.length > 0) {
-    const linkedGoalIds = new Set<string>();
+  const hasAreas = inputs.selectedAreaIds.length > 0;
+  const hasProjects = inputs.selectedProjectIds.length > 0;
+  const hasTasks = inputs.selectedTaskIds.length > 0;
+
+  if (!hasAreas && !hasProjects && !hasTasks) return activeGoals;
+
+  const projectGoalIds = hasProjects
+    ? new Set(inputs.selectedProjectIds.flatMap((pId) => projectToGoalIds.get(pId) ?? []))
+    : null;
+  const projectConstraintActive = hasProjects && projectGoalIds!.size > 0;
+
+  // Task constraint: goals linked to tasks OR to tasks' projects
+  // Asymmetric: task→project→goal is included, but goal→project→task is not
+  const taskGoalIds = hasTasks ? new Set<string>() : null;
+  if (hasTasks) {
     for (const taskId of inputs.selectedTaskIds) {
-      (taskToGoalIds.get(taskId) ?? []).forEach((id) => linkedGoalIds.add(id));
+      for (const gId of taskToGoalIds.get(taskId) ?? []) {
+        taskGoalIds!.add(gId);
+      }
     }
     for (const task of selectedTasks) {
       if (task.project_id) {
-        (projectToGoalIds.get(task.project_id) ?? []).forEach((id) => linkedGoalIds.add(id));
+        for (const gId of projectToGoalIds.get(task.project_id) ?? []) {
+          taskGoalIds!.add(gId);
+        }
       }
     }
-    return activeGoals.filter((g) => linkedGoalIds.has(g.id));
   }
-  if (inputs.selectedProjectIds.length > 0) {
-    const linkedGoalIds = new Set<string>();
-    for (const projectId of inputs.selectedProjectIds) {
-      (projectToGoalIds.get(projectId) ?? []).forEach((id) => linkedGoalIds.add(id));
+
+  return activeGoals.filter((g) => {
+    if (projectConstraintActive && !projectGoalIds!.has(g.id)) return false;
+    if (hasTasks && taskGoalIds!.size > 0 && !taskGoalIds!.has(g.id)) return false;
+    if (hasAreas) {
+      const goalAreas = getEntityAreaIds(g);
+      if (!inputs.selectedAreaIds.some((aId) => goalAreas.includes(aId))) return false;
     }
-    return activeGoals.filter((g) => linkedGoalIds.has(g.id));
-  }
-  if (inputs.selectedAreaIds.length > 0) {
-    const selectedAreaIdSet = new Set(inputs.selectedAreaIds);
-    return activeGoals.filter((g) => {
-      const goalAreaIds = new Set(getEntityAreaIds(g));
-      return Array.from(selectedAreaIdSet).some((id) => goalAreaIds.has(id));
-    });
-  }
-  return activeGoals;
+    return true;
+  });
 }
 
 /**
- * Filtered tasks rule precedence:
- * 1. goals selected    → only tasks linked to those goals
- * 2. projects selected → only tasks for those projects
- * 3. areas selected    → only tasks linked to those areas
- * 4. otherwise         → all tasks
+ * Returns tasks satisfying ALL active constraints (AND-intersection):
+ * - areas    → tasks' area_id/linkedAreaIds overlap selected areas
+ * - projects → tasks' project_id is in selected projects
+ * - goals    → tasks appear in goalToTaskIds for selected goals
+ *              (direct links only — no indirect link through projects)
+ * When multiple are active, task must match ALL of them.
  */
 export function filterTasks(
   inputs: Pick<
@@ -275,26 +307,29 @@ export function filterTasks(
 ): TaskEntity[] {
   const { allTasks, goalToTaskIds } = inputs;
 
-  if (inputs.selectedGoalIds.length > 0) {
-    const linkedTaskIds = new Set<string>();
-    for (const goalId of inputs.selectedGoalIds) {
-      (goalToTaskIds.get(goalId) ?? []).forEach((id) => linkedTaskIds.add(id));
+  const hasAreas = inputs.selectedAreaIds.length > 0;
+  const hasProjects = inputs.selectedProjectIds.length > 0;
+  const hasGoals = inputs.selectedGoalIds.length > 0;
+
+  if (!hasAreas && !hasProjects && !hasGoals) return allTasks;
+
+  const areaSet = hasAreas ? new Set(inputs.selectedAreaIds) : null;
+  const projectSet = hasProjects ? new Set(inputs.selectedProjectIds) : null;
+
+  const goalTaskIdSet = hasGoals
+    ? new Set(inputs.selectedGoalIds.flatMap((gId) => goalToTaskIds.get(gId) ?? []))
+    : null;
+  const goalConstraintActive = hasGoals && goalTaskIdSet!.size > 0;
+
+  return allTasks.filter((t) => {
+    if (hasAreas) {
+      const taskAreas = getEntityAreaIds(t);
+      if (!taskAreas.some((aId) => areaSet!.has(aId))) return false;
     }
-    return allTasks.filter((t) => linkedTaskIds.has(t.id));
-  }
-  if (inputs.selectedProjectIds.length > 0) {
-    return allTasks.filter(
-      (t) => t.project_id != null && inputs.selectedProjectIds.includes(t.project_id),
-    );
-  }
-  if (inputs.selectedAreaIds.length > 0) {
-    const selectedAreaIdSet = new Set(inputs.selectedAreaIds);
-    return allTasks.filter((t) => {
-      const taskAreaIds = new Set(getEntityAreaIds(t));
-      return Array.from(selectedAreaIdSet).some((id) => taskAreaIds.has(id));
-    });
-  }
-  return allTasks;
+    if (hasProjects && (t.project_id == null || !projectSet!.has(t.project_id))) return false;
+    if (goalConstraintActive && !goalTaskIdSet!.has(t.id)) return false;
+    return true;
+  });
 }
 
 // ---------------------------------------------------------------------------

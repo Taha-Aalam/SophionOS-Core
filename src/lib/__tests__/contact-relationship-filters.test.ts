@@ -1,536 +1,273 @@
-import { describe, it, expect } from "vitest";
-
+// src/lib/__tests__/contact-relationship-filters.test.ts
+import { describe, expect, it } from "vitest";
 import {
-  computeFilteredOptions,
-  cleanInvalidSelections,
-  buildGoalProjectMaps,
-  buildGoalTaskMaps,
   filterAreas,
   filterProjects,
   filterGoals,
   filterTasks,
+  buildGoalProjectMaps,
+  buildGoalTaskMaps,
+  cleanInvalidSelections,
   type AreaEntity,
   type GoalEntity,
   type ProjectEntity,
   type TaskEntity,
-  type GoalProjectRelation,
-  type GoalTaskRelation,
 } from "@/lib/utils/contact-relationship-filters";
 
-// ---------------------------------------------------------------------------
-// Fixtures
-// ---------------------------------------------------------------------------
+// ── helpers ──────────────────────────────────────────────────────────────────
 
-const areas: AreaEntity[] = [
-  { id: "a1", name: "Area 1", archive: false },
-  { id: "a2", name: "Area 2", archive: false },
-  { id: "a3", name: "Area 3", archive: true },
-  { id: "a4", name: "Area 4", archive: false },
-];
-
-const goals: GoalEntity[] = [
-  { id: "g1", name: "Goal 1", is_archived: false, linkedAreaIds: ["a1"] },
-  { id: "g2", name: "Goal 2", is_archived: false, linkedAreaIds: ["a2"] },
-  { id: "g3", name: "Goal 3", is_archived: true, linkedAreaIds: ["a1"] },
-  { id: "g4", name: "Goal 4", is_archived: false, linkedAreaIds: ["a1", "a2"] },
-];
-
-const projects: ProjectEntity[] = [
-  { id: "p1", name: "Project 1", is_archived: false, linkedAreaIds: ["a1"] },
-  { id: "p2", name: "Project 2", is_archived: false, linkedAreaIds: ["a2"] },
-  { id: "p3", name: "Project 3", is_archived: true, linkedAreaIds: ["a1"] },
-  { id: "p4", name: "Project 4", is_archived: false, linkedAreaIds: ["a1", "a2"] },
-];
-
-const tasks: TaskEntity[] = [
-  { id: "t1", name: "Task 1", linkedAreaIds: ["a1"], project_id: "p1" },
-  { id: "t2", name: "Task 2", linkedAreaIds: ["a2"], project_id: "p2" },
-  { id: "t3", name: "Task 3", linkedAreaIds: ["a1"], project_id: "p1" },
-  { id: "t4", name: "Task 4", linkedAreaIds: [], project_id: null },
-];
-
-const goalProjectRelations: GoalProjectRelation[] = [
-  { goal_id: "g1", project_id: "p1" },
-  { goal_id: "g2", project_id: "p2" },
-  { goal_id: "g4", project_id: "p1" },
-  { goal_id: "g4", project_id: "p4" },
-];
-
-const goalTaskRelations: GoalTaskRelation[] = [
-  { goal_id: "g1", task_id: "t1" },
-  { goal_id: "g2", task_id: "t2" },
-  { goal_id: "g4", task_id: "t3" },
-];
-
-function makeInputs(overrides: Partial<Parameters<typeof computeFilteredOptions>[0]> = {}) {
-  return {
-    allAreas: areas,
-    allGoals: goals,
-    allProjects: projects,
-    allTasks: tasks,
-    selectedAreaIds: [],
-    selectedGoalIds: [],
-    selectedProjectIds: [],
-    selectedTaskIds: [],
-    goalProjectRelations,
-    goalTaskRelations,
-    ...overrides,
-  };
+function area(id: string, name = id): AreaEntity {
+  return { id, name };
 }
 
-// ---------------------------------------------------------------------------
-// buildGoalProjectMaps
-// ---------------------------------------------------------------------------
+function project(
+  id: string,
+  opts: { area_id?: string | null; linkedAreaIds?: string[]; name?: string } = {},
+): ProjectEntity {
+  return { id, name: opts.name ?? id, area_id: null, linkedAreaIds: [], ...opts };
+}
 
-describe("buildGoalProjectMaps", () => {
-  it("builds forward and reverse maps", () => {
-    const { goalToProjectIds, projectToGoalIds } = buildGoalProjectMaps(goalProjectRelations);
+function goal(
+  id: string,
+  opts: { area_id?: string | null; linkedAreaIds?: string[]; name?: string } = {},
+): GoalEntity {
+  return { id, name: opts.name ?? id, area_id: null, linkedAreaIds: [], ...opts };
+}
 
-    expect(goalToProjectIds.get("g1")).toEqual(["p1"]);
-    expect(goalToProjectIds.get("g4")).toEqual(["p1", "p4"]);
-    expect(projectToGoalIds.get("p1")).toEqual(["g1", "g4"]);
-    expect(projectToGoalIds.get("p2")).toEqual(["g2"]);
-  });
+function task(
+  id: string,
+  opts: { area_id?: string | null; linkedAreaIds?: string[]; project_id?: string | null; name?: string } = {},
+): TaskEntity {
+  return { id, name: opts.name ?? id, area_id: null, linkedAreaIds: [], project_id: null, ...opts };
+}
 
-  it("returns empty maps for empty input", () => {
-    const { goalToProjectIds, projectToGoalIds } = buildGoalProjectMaps([]);
-    expect(goalToProjectIds.size).toBe(0);
-    expect(projectToGoalIds.size).toBe(0);
-  });
-});
+// ── fixtures ─────────────────────────────────────────────────────────────────
 
-// ---------------------------------------------------------------------------
-// buildGoalTaskMaps
-// ---------------------------------------------------------------------------
+const A1 = area("area-1");
+const A2 = area("area-2");
+const A3 = area("area-3");
+const ALL_AREAS = [A1, A2, A3];
 
-describe("buildGoalTaskMaps", () => {
-  it("builds forward and reverse maps", () => {
-    const { goalToTaskIds, taskToGoalIds } = buildGoalTaskMaps(goalTaskRelations);
+const P1 = project("proj-1", { area_id: "area-1" });
+const P2 = project("proj-2", { area_id: "area-2" });
+const P3 = project("proj-3", { linkedAreaIds: ["area-1"] });
+const ALL_PROJECTS = [P1, P2, P3];
 
-    expect(goalToTaskIds.get("g1")).toEqual(["t1"]);
-    expect(taskToGoalIds.get("t1")).toEqual(["g1"]);
-    expect(taskToGoalIds.get("t2")).toEqual(["g2"]);
-  });
-});
+const G1 = goal("goal-1", { area_id: "area-1" });
+const G2 = goal("goal-2", { area_id: "area-2" });
+const G3 = goal("goal-3", { linkedAreaIds: ["area-1"] });
+const ALL_GOALS = [G1, G2, G3];
 
-// ---------------------------------------------------------------------------
-// filterAreas
-// ---------------------------------------------------------------------------
+const T1 = task("task-1", { area_id: "area-1", project_id: "proj-1" });
+const T2 = task("task-2", { area_id: "area-2", project_id: "proj-2" });
+const T3 = task("task-3", { linkedAreaIds: ["area-1"], project_id: "proj-3" });
+const T4 = task("task-4", { area_id: "area-1", project_id: "proj-1" }); // no direct goal link
+const ALL_TASKS = [T1, T2, T3, T4];
+
+// Relation maps
+const { goalToProjectIds, projectToGoalIds } = buildGoalProjectMaps([
+  { goal_id: "goal-1", project_id: "proj-1" },
+  { goal_id: "goal-2", project_id: "proj-2" },
+]);
+const { goalToTaskIds, taskToGoalIds } = buildGoalTaskMaps([
+  { goal_id: "goal-1", task_id: "task-1" },
+  { goal_id: "goal-2", task_id: "task-2" },
+]);
+
+// ── filterAreas ──────────────────────────────────────────────────────────────
 
 describe("filterAreas", () => {
-  it("returns all active areas when nothing is selected", () => {
-    const result = filterAreas({
-      allAreas: areas,
-      selectedAreaIds: [],
-      selectedGoalIds: [],
-      selectedProjectIds: [],
-      selectedTaskIds: [],
-      selectedTasks: [],
-      selectedGoals: [],
-      selectedProjects: [],
-    });
-    expect(result.map((a) => a.id)).toEqual(["a1", "a2", "a4"]);
+  const base = { allAreas: ALL_AREAS, selectedAreaIds: [], selectedGoalIds: [], selectedProjectIds: [], selectedTaskIds: [] };
+
+  it("returns all active areas when no constraints", () => {
+    expect(filterAreas({ ...base, selectedTasks: [], selectedGoals: [], selectedProjects: [] })).toEqual(ALL_AREAS);
   });
 
-  it("filters by tasks when tasks are selected", () => {
-    const result = filterAreas({
-      allAreas: areas,
-      selectedAreaIds: [],
-      selectedGoalIds: [],
-      selectedProjectIds: [],
-      selectedTaskIds: ["t1"],
-      selectedTasks: [tasks[0]], // t1 -> a1
-      selectedGoals: [],
-      selectedProjects: [],
-    });
-    expect(result.map((a) => a.id)).toEqual(["a1"]);
+  it("filters by projects only", () => {
+    expect(filterAreas({ ...base, selectedProjectIds: ["proj-1"], selectedTasks: [], selectedGoals: [], selectedProjects: [P1] })).toEqual([A1]);
   });
 
-  it("filters by goals when goals are selected", () => {
-    const result = filterAreas({
-      allAreas: areas,
-      selectedAreaIds: [],
-      selectedGoalIds: ["g2"],
-      selectedProjectIds: [],
-      selectedTaskIds: [],
-      selectedTasks: [],
-      selectedGoals: [goals[1]], // g2 -> a2
-      selectedProjects: [],
-    });
-    expect(result.map((a) => a.id)).toEqual(["a2"]);
+  it("filters by goals only", () => {
+    expect(filterAreas({ ...base, selectedGoalIds: ["goal-1"], selectedTasks: [], selectedGoals: [G1], selectedProjects: [] })).toEqual([A1]);
   });
 
-  it("filters by projects when projects are selected", () => {
-    const result = filterAreas({
-      allAreas: areas,
-      selectedAreaIds: [],
-      selectedGoalIds: [],
-      selectedProjectIds: ["p4"],
-      selectedTaskIds: [],
-      selectedTasks: [],
-      selectedGoals: [],
-      selectedProjects: [projects[3]], // p4 -> a1, a2
-    });
-    expect(result.map((a) => a.id)).toEqual(["a1", "a2"]);
+  it("filters by tasks only", () => {
+    expect(filterAreas({ ...base, selectedTaskIds: ["task-1"], selectedTasks: [T1], selectedGoals: [], selectedProjects: [] })).toEqual([A1]);
   });
 
-  it("tasks take precedence over goals", () => {
-    const result = filterAreas({
-      allAreas: areas,
-      selectedAreaIds: [],
-      selectedGoalIds: ["g2"], // g2 -> a2
-      selectedProjectIds: [],
-      selectedTaskIds: ["t1"], // t1 -> a1
-      selectedTasks: [tasks[0]],
-      selectedGoals: [goals[1]],
-      selectedProjects: [],
-    });
-    expect(result.map((a) => a.id)).toEqual(["a1"]);
+  it("intersects projects + goals", () => {
+    // P1 → area-1; G2 → area-2; intersection = empty
+    expect(filterAreas({ ...base, selectedProjectIds: ["proj-1"], selectedGoalIds: ["goal-2"], selectedTasks: [], selectedGoals: [G2], selectedProjects: [P1] })).toEqual([]);
+    // P1 → area-1; G1 → area-1; intersection = area-1
+    expect(filterAreas({ ...base, selectedProjectIds: ["proj-1"], selectedGoalIds: ["goal-1"], selectedTasks: [], selectedGoals: [G1], selectedProjects: [P1] })).toEqual([A1]);
+  });
+
+  it("intersects projects + tasks", () => {
+    // P1 → area-1; T2 → area-2; intersection = empty
+    expect(filterAreas({ ...base, selectedProjectIds: ["proj-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], selectedGoals: [], selectedProjects: [P1] })).toEqual([]);
+  });
+
+  it("intersects goals + tasks", () => {
+    // G1 → area-1; T2 → area-2; intersection = empty
+    expect(filterAreas({ ...base, selectedGoalIds: ["goal-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], selectedGoals: [G1], selectedProjects: [] })).toEqual([]);
+  });
+
+  it("intersects all three", () => {
+    // P1 → area-1; G1 → area-1; T1 → area-1; all match
+    expect(filterAreas({ ...base, selectedProjectIds: ["proj-1"], selectedGoalIds: ["goal-1"], selectedTaskIds: ["task-1"], selectedTasks: [T1], selectedGoals: [G1], selectedProjects: [P1] })).toEqual([A1]);
   });
 });
 
-// ---------------------------------------------------------------------------
-// filterProjects
-// ---------------------------------------------------------------------------
+// ── filterProjects ───────────────────────────────────────────────────────────
 
 describe("filterProjects", () => {
-  it("returns all active projects when nothing is selected", () => {
-    const result = filterProjects({
-      allProjects: projects,
-      selectedAreaIds: [],
-      selectedGoalIds: [],
-      selectedProjectIds: [],
-      selectedTaskIds: [],
-      selectedTasks: [],
-      goalToProjectIds: buildGoalProjectMaps(goalProjectRelations).goalToProjectIds,
-    });
-    expect(result.map((p) => p.id)).toEqual(["p1", "p2", "p4"]);
+  const base = { allProjects: ALL_PROJECTS, selectedAreaIds: [], selectedGoalIds: [], selectedProjectIds: [], selectedTaskIds: [] };
+
+  it("returns all active projects when no constraints", () => {
+    expect(filterProjects({ ...base, selectedTasks: [], goalToProjectIds })).toEqual(ALL_PROJECTS);
   });
 
-  it("filters by tasks when tasks are selected", () => {
-    const result = filterProjects({
-      allProjects: projects,
-      selectedAreaIds: [],
-      selectedGoalIds: [],
-      selectedProjectIds: [],
-      selectedTaskIds: ["t1"],
-      selectedTasks: [tasks[0]], // t1 -> p1
-      goalToProjectIds: buildGoalProjectMaps(goalProjectRelations).goalToProjectIds,
-    });
-    expect(result.map((p) => p.id)).toEqual(["p1"]);
+  it("filters by areas only", () => {
+    expect(filterProjects({ ...base, selectedAreaIds: ["area-1"], selectedTasks: [], goalToProjectIds })).toEqual([P1, P3]);
   });
 
-  it("filters by goals when goals are selected", () => {
-    const { goalToProjectIds } = buildGoalProjectMaps(goalProjectRelations);
-    const result = filterProjects({
-      allProjects: projects,
-      selectedAreaIds: [],
-      selectedGoalIds: ["g2"],
-      selectedProjectIds: [],
-      selectedTaskIds: [],
-      selectedTasks: [],
-      goalToProjectIds,
-    });
-    expect(result.map((p) => p.id)).toEqual(["p2"]);
+  it("filters by goals only", () => {
+    expect(filterProjects({ ...base, selectedGoalIds: ["goal-1"], selectedTasks: [], goalToProjectIds })).toEqual([P1]);
   });
 
-  it("filters by areas when areas are selected", () => {
-    const result = filterProjects({
-      allProjects: projects,
-      selectedAreaIds: ["a1"],
-      selectedGoalIds: [],
-      selectedProjectIds: [],
-      selectedTaskIds: [],
-      selectedTasks: [],
-      goalToProjectIds: buildGoalProjectMaps(goalProjectRelations).goalToProjectIds,
-    });
-    expect(result.map((p) => p.id)).toEqual(["p1", "p4"]);
+  it("filters by tasks only", () => {
+    expect(filterProjects({ ...base, selectedTaskIds: ["task-1"], selectedTasks: [T1], goalToProjectIds })).toEqual([P1]);
   });
 
-  it("tasks take precedence over goals", () => {
-    const { goalToProjectIds } = buildGoalProjectMaps(goalProjectRelations);
-    const result = filterProjects({
-      allProjects: projects,
-      selectedAreaIds: [],
-      selectedGoalIds: ["g2"], // g2 -> p2
-      selectedProjectIds: [],
-      selectedTaskIds: ["t1"], // t1 -> p1
-      selectedTasks: [tasks[0]],
-      goalToProjectIds,
-    });
-    expect(result.map((p) => p.id)).toEqual(["p1"]);
+  it("intersects areas + goals", () => {
+    // area-1 → P1, P3; goal-2 → P2; intersection = empty
+    expect(filterProjects({ ...base, selectedAreaIds: ["area-1"], selectedGoalIds: ["goal-2"], selectedTasks: [], goalToProjectIds })).toEqual([]);
+  });
+
+  it("intersects areas + tasks", () => {
+    // area-1 → P1, P3; T2 (proj-2) → P2; intersection = empty
+    expect(filterProjects({ ...base, selectedAreaIds: ["area-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], goalToProjectIds })).toEqual([]);
+  });
+
+  it("intersects goals + tasks", () => {
+    // goal-1 → P1; T2 (proj-2) → P2; intersection = empty
+    expect(filterProjects({ ...base, selectedGoalIds: ["goal-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], goalToProjectIds })).toEqual([]);
+  });
+
+  it("intersects all three", () => {
+    // area-1 → P1, P3; goal-1 → P1; T1 (proj-1) → P1
+    expect(filterProjects({ ...base, selectedAreaIds: ["area-1"], selectedGoalIds: ["goal-1"], selectedTaskIds: ["task-1"], selectedTasks: [T1], goalToProjectIds })).toEqual([P1]);
   });
 });
 
-// ---------------------------------------------------------------------------
-// filterGoals
-// ---------------------------------------------------------------------------
+// ── filterGoals ──────────────────────────────────────────────────────────────
 
 describe("filterGoals", () => {
-  it("returns all active goals when nothing is selected", () => {
-    const result = filterGoals({
-      allGoals: goals,
-      selectedAreaIds: [],
-      selectedGoalIds: [],
-      selectedProjectIds: [],
-      selectedTaskIds: [],
-      selectedTasks: [],
-      taskToGoalIds: buildGoalTaskMaps(goalTaskRelations).taskToGoalIds,
-      projectToGoalIds: buildGoalProjectMaps(goalProjectRelations).projectToGoalIds,
-    });
-    expect(result.map((g) => g.id)).toEqual(["g1", "g2", "g4"]);
+  const base = { allGoals: ALL_GOALS, selectedAreaIds: [], selectedGoalIds: [], selectedProjectIds: [], selectedTaskIds: [] };
+
+  it("returns all active goals when no constraints", () => {
+    expect(filterGoals({ ...base, selectedTasks: [], taskToGoalIds, projectToGoalIds })).toEqual(ALL_GOALS);
   });
 
-  it("filters by tasks when tasks are selected", () => {
-    const maps = buildGoalTaskMaps(goalTaskRelations);
-    const pmaps = buildGoalProjectMaps(goalProjectRelations);
-    const result = filterGoals({
-      allGoals: goals,
-      selectedAreaIds: [],
-      selectedGoalIds: [],
-      selectedProjectIds: [],
-      selectedTaskIds: ["t1"],
-      selectedTasks: [tasks[0]], // t1 -> g1 (direct) + t1 has project p1 -> g1, g4
-      taskToGoalIds: maps.taskToGoalIds,
-      projectToGoalIds: pmaps.projectToGoalIds,
-    });
-    expect(result.map((g) => g.id)).toEqual(expect.arrayContaining(["g1", "g4"]));
-    expect(result).toHaveLength(2);
+  it("filters by areas only", () => {
+    expect(filterGoals({ ...base, selectedAreaIds: ["area-1"], selectedTasks: [], taskToGoalIds, projectToGoalIds })).toEqual([G1, G3]);
   });
 
-  it("filters by projects when projects are selected", () => {
-    const pmaps = buildGoalProjectMaps(goalProjectRelations);
-    const result = filterGoals({
-      allGoals: goals,
-      selectedAreaIds: [],
-      selectedGoalIds: [],
-      selectedProjectIds: ["p1"],
-      selectedTaskIds: [],
-      selectedTasks: [],
-      taskToGoalIds: buildGoalTaskMaps(goalTaskRelations).taskToGoalIds,
-      projectToGoalIds: pmaps.projectToGoalIds,
-    });
-    expect(result.map((g) => g.id)).toEqual(expect.arrayContaining(["g1", "g4"]));
-    expect(result).toHaveLength(2);
+  it("filters by projects only", () => {
+    expect(filterGoals({ ...base, selectedProjectIds: ["proj-1"], selectedTasks: [], taskToGoalIds, projectToGoalIds })).toEqual([G1]);
   });
 
-  it("filters by areas when areas are selected", () => {
-    const result = filterGoals({
-      allGoals: goals,
-      selectedAreaIds: ["a2"],
-      selectedGoalIds: [],
-      selectedProjectIds: [],
-      selectedTaskIds: [],
-      selectedTasks: [],
-      taskToGoalIds: buildGoalTaskMaps(goalTaskRelations).taskToGoalIds,
-      projectToGoalIds: buildGoalProjectMaps(goalProjectRelations).projectToGoalIds,
-    });
-    expect(result.map((g) => g.id)).toEqual(expect.arrayContaining(["g2", "g4"]));
-    expect(result).toHaveLength(2);
+  it("filters by tasks only", () => {
+    expect(filterGoals({ ...base, selectedTaskIds: ["task-1"], selectedTasks: [T1], taskToGoalIds, projectToGoalIds })).toEqual([G1]);
   });
 
-  it("tasks take precedence over projects", () => {
-    const maps = buildGoalTaskMaps(goalTaskRelations);
-    const pmaps = buildGoalProjectMaps(goalProjectRelations);
-    const result = filterGoals({
-      allGoals: goals,
-      selectedAreaIds: [],
-      selectedGoalIds: [],
-      selectedProjectIds: ["p2"], // g2
-      selectedTaskIds: ["t1"],    // g1 (+ g4 via project)
-      selectedTasks: [tasks[0]],
-      taskToGoalIds: maps.taskToGoalIds,
-      projectToGoalIds: pmaps.projectToGoalIds,
-    });
-    expect(result.map((g) => g.id)).toEqual(expect.arrayContaining(["g1", "g4"]));
-    expect(result).toHaveLength(2);
+  it("includes goals linked to task's project (indirect link)", () => {
+    // T4 has no direct goal link, but project_id "proj-1" → goal-1
+    expect(filterGoals({ ...base, selectedTaskIds: ["task-4"], selectedTasks: [T4], taskToGoalIds, projectToGoalIds })).toEqual([G1]);
+  });
+
+  it("intersects areas + projects", () => {
+    // area-1 → G1, G3; proj-2 → G2; intersection = empty
+    expect(filterGoals({ ...base, selectedAreaIds: ["area-1"], selectedProjectIds: ["proj-2"], selectedTasks: [], taskToGoalIds, projectToGoalIds })).toEqual([]);
+  });
+
+  it("intersects areas + tasks", () => {
+    // area-1 → G1, G3; T2 → G2; intersection = empty
+    expect(filterGoals({ ...base, selectedAreaIds: ["area-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], taskToGoalIds, projectToGoalIds })).toEqual([]);
+  });
+
+  it("intersects projects + tasks", () => {
+    // proj-1 → G1; T2 → G2; intersection = empty
+    expect(filterGoals({ ...base, selectedProjectIds: ["proj-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], taskToGoalIds, projectToGoalIds })).toEqual([]);
+  });
+
+  it("intersects all three", () => {
+    // area-1 → G1, G3; proj-1 → G1; T1 → G1
+    expect(filterGoals({ ...base, selectedAreaIds: ["area-1"], selectedProjectIds: ["proj-1"], selectedTaskIds: ["task-1"], selectedTasks: [T1], taskToGoalIds, projectToGoalIds })).toEqual([G1]);
   });
 });
 
-// ---------------------------------------------------------------------------
-// filterTasks
-// ---------------------------------------------------------------------------
+// ── filterTasks ──────────────────────────────────────────────────────────────
 
 describe("filterTasks", () => {
-  it("returns all tasks when nothing is selected", () => {
-    const result = filterTasks({
-      allTasks: tasks,
-      selectedAreaIds: [],
-      selectedGoalIds: [],
-      selectedProjectIds: [],
-      goalToTaskIds: buildGoalTaskMaps(goalTaskRelations).goalToTaskIds,
-    });
-    expect(result).toHaveLength(4);
+  const base = { allTasks: ALL_TASKS, selectedAreaIds: [], selectedGoalIds: [], selectedProjectIds: [] };
+
+  it("returns all tasks when no constraints", () => {
+    expect(filterTasks({ ...base, goalToTaskIds })).toEqual(ALL_TASKS);
   });
 
-  it("filters by goals when goals are selected", () => {
-    const { goalToTaskIds } = buildGoalTaskMaps(goalTaskRelations);
-    const result = filterTasks({
-      allTasks: tasks,
-      selectedAreaIds: [],
-      selectedGoalIds: ["g1"],
-      selectedProjectIds: [],
-      goalToTaskIds,
-    });
-    expect(result.map((t) => t.id)).toEqual(["t1"]);
+  it("filters by areas only", () => {
+    expect(filterTasks({ ...base, selectedAreaIds: ["area-1"], goalToTaskIds })).toEqual([T1, T3, T4]);
   });
 
-  it("filters by projects when projects are selected", () => {
-    const result = filterTasks({
-      allTasks: tasks,
-      selectedAreaIds: [],
-      selectedGoalIds: [],
-      selectedProjectIds: ["p1"],
-      goalToTaskIds: buildGoalTaskMaps(goalTaskRelations).goalToTaskIds,
-    });
-    expect(result.map((t) => t.id)).toEqual(["t1", "t3"]);
+  it("filters by projects only", () => {
+    expect(filterTasks({ ...base, selectedProjectIds: ["proj-1"], goalToTaskIds })).toEqual([T1, T4]);
   });
 
-  it("filters by areas when areas are selected", () => {
-    const result = filterTasks({
-      allTasks: tasks,
-      selectedAreaIds: ["a1"],
-      selectedGoalIds: [],
-      selectedProjectIds: [],
-      goalToTaskIds: buildGoalTaskMaps(goalTaskRelations).goalToTaskIds,
-    });
-    expect(result.map((t) => t.id)).toEqual(["t1", "t3"]);
+  it("filters by goals only", () => {
+    // goal-1 directly linked to T1 only (not T4)
+    expect(filterTasks({ ...base, selectedGoalIds: ["goal-1"], goalToTaskIds })).toEqual([T1]);
   });
 
-  it("goals take precedence over projects", () => {
-    const { goalToTaskIds } = buildGoalTaskMaps(goalTaskRelations);
-    const result = filterTasks({
-      allTasks: tasks,
-      selectedAreaIds: [],
-      selectedGoalIds: ["g1"], // t1
-      selectedProjectIds: ["p1"], // t1, t3
-      goalToTaskIds,
-    });
-    expect(result.map((t) => t.id)).toEqual(["t1"]);
+  it("intersects areas + projects", () => {
+    // area-1 → T1, T3, T4; proj-2 → T2; intersection = empty
+    expect(filterTasks({ ...base, selectedAreaIds: ["area-1"], selectedProjectIds: ["proj-2"], goalToTaskIds })).toEqual([]);
+  });
+
+  it("intersects areas + goals", () => {
+    // area-1 → T1, T3, T4; goal-2 → T2; intersection = empty
+    expect(filterTasks({ ...base, selectedAreaIds: ["area-1"], selectedGoalIds: ["goal-2"], goalToTaskIds })).toEqual([]);
+  });
+
+  it("intersects projects + goals", () => {
+    // proj-1 → T1, T4; goal-2 → T2; intersection = empty
+    expect(filterTasks({ ...base, selectedProjectIds: ["proj-1"], selectedGoalIds: ["goal-2"], goalToTaskIds })).toEqual([]);
+  });
+
+  it("intersects all three", () => {
+    // area-1 → T1, T3, T4; proj-1 → T1, T4; goal-1 → T1
+    expect(filterTasks({ ...base, selectedAreaIds: ["area-1"], selectedProjectIds: ["proj-1"], selectedGoalIds: ["goal-1"], goalToTaskIds })).toEqual([T1]);
   });
 });
 
-// ---------------------------------------------------------------------------
-// cleanInvalidSelections
-// ---------------------------------------------------------------------------
+// ── cleanInvalidSelections ──────────────────────────────────────────────────
 
 describe("cleanInvalidSelections", () => {
-  it("returns same ids when all selections are valid", () => {
-    const filtered = computeFilteredOptions(makeInputs());
+  it("returns unchanged when all selections valid", () => {
     const result = cleanInvalidSelections(
-      { selectedAreaIds: ["a1"], selectedGoalIds: ["g1"], selectedProjectIds: ["p1"], selectedTaskIds: ["t1"] },
-      filtered,
-    );
-    expect(result.changed).toBe(false);
-    expect(result.areaIds).toEqual(["a1"]);
-    expect(result.goalIds).toEqual(["g1"]);
-    expect(result.projectIds).toEqual(["p1"]);
-    expect(result.taskIds).toEqual(["t1"]);
-  });
-
-  it("removes area ids that are not in visible areas", () => {
-    const filtered = computeFilteredOptions(makeInputs({ selectedTaskIds: ["t1"] })); // t1 -> a1 only
-    const result = cleanInvalidSelections(
-      { selectedAreaIds: ["a1", "a2"], selectedGoalIds: [], selectedProjectIds: [], selectedTaskIds: ["t1"] },
-      filtered,
-    );
-    expect(result.changed).toBe(true);
-    expect(result.areaIds).toEqual(["a1"]);
-  });
-
-  it("removes goal ids that are not in filtered goals", () => {
-    const filtered = computeFilteredOptions(makeInputs({ selectedAreaIds: ["a2"] })); // a2 -> g2, g4
-    const result = cleanInvalidSelections(
-      { selectedAreaIds: ["a2"], selectedGoalIds: ["g1", "g2"], selectedProjectIds: [], selectedTaskIds: [] },
-      filtered,
-    );
-    expect(result.changed).toBe(true);
-    expect(result.goalIds).toEqual(["g2"]);
-  });
-
-  it("removes project ids that are not in filtered projects", () => {
-    const filtered = computeFilteredOptions(makeInputs({ selectedGoalIds: ["g1"] })); // g1 -> p1
-    const result = cleanInvalidSelections(
-      { selectedAreaIds: [], selectedGoalIds: ["g1"], selectedProjectIds: ["p1", "p2"], selectedTaskIds: [] },
-      filtered,
-    );
-    expect(result.changed).toBe(true);
-    expect(result.projectIds).toEqual(["p1"]);
-  });
-
-  it("removes task ids that are not in filtered tasks", () => {
-    const filtered = computeFilteredOptions(makeInputs({ selectedGoalIds: ["g1"] })); // g1 -> t1
-    const result = cleanInvalidSelections(
-      { selectedAreaIds: [], selectedGoalIds: ["g1"], selectedProjectIds: [], selectedTaskIds: ["t1", "t2"] },
-      filtered,
-    );
-    expect(result.changed).toBe(true);
-    expect(result.taskIds).toEqual(["t1"]);
-  });
-
-  it("handles empty selections without error", () => {
-    const filtered = computeFilteredOptions(makeInputs());
-    const result = cleanInvalidSelections(
-      { selectedAreaIds: [], selectedGoalIds: [], selectedProjectIds: [], selectedTaskIds: [] },
-      filtered,
+      { selectedAreaIds: ["area-1"], selectedGoalIds: ["goal-1"], selectedProjectIds: ["proj-1"], selectedTaskIds: ["task-1"] },
+      { visibleAreas: [A1], filteredGoals: [G1], filteredProjects: [P1], filteredTasks: [T1] },
     );
     expect(result.changed).toBe(false);
   });
-});
 
-// ---------------------------------------------------------------------------
-// computeFilteredOptions (integration)
-// ---------------------------------------------------------------------------
-
-describe("computeFilteredOptions", () => {
-  it("returns all active entities when nothing is selected", () => {
-    const result = computeFilteredOptions(makeInputs());
-    expect(result.visibleAreas.map((a) => a.id)).toEqual(["a1", "a2", "a4"]);
-    expect(result.filteredGoals.map((g) => g.id)).toEqual(["g1", "g2", "g4"]);
-    expect(result.filteredProjects.map((p) => p.id)).toEqual(["p1", "p2", "p4"]);
-    expect(result.filteredTasks.map((t) => t.id)).toEqual(["t1", "t2", "t3", "t4"]);
-  });
-
-  it("filters everything correctly when tasks are selected", () => {
-    const result = computeFilteredOptions(makeInputs({ selectedTaskIds: ["t1"] }));
-    // t1 -> a1
-    expect(result.visibleAreas.map((a) => a.id)).toEqual(["a1"]);
-    // t1 -> p1
-    expect(result.filteredProjects.map((p) => p.id)).toEqual(["p1"]);
-    // t1 -> g1 (direct) + g1 -> p1 -> g4
-    expect(result.filteredGoals.map((g) => g.id)).toEqual(expect.arrayContaining(["g1", "g4"]));
-    // No goals are explicitly selected, so all tasks remain (filter is input-driven, not cascading)
-    expect(result.filteredTasks).toHaveLength(4);
-  });
-
-  it("filters everything correctly when goals are selected", () => {
-    const result = computeFilteredOptions(makeInputs({ selectedGoalIds: ["g1"] }));
-    // g1 -> a1
-    expect(result.visibleAreas.map((a) => a.id)).toEqual(["a1"]);
-    // g1 -> p1
-    expect(result.filteredProjects.map((p) => p.id)).toEqual(["p1"]);
-    // No filter on goals when only goals are selected — all active goals remain
-    expect(result.filteredGoals.map((g) => g.id)).toEqual(["g1", "g2", "g4"]);
-    // g1 -> t1
-    expect(result.filteredTasks.map((t) => t.id)).toEqual(["t1"]);
-  });
-
-  it("filters everything correctly when areas are selected", () => {
-    const result = computeFilteredOptions(makeInputs({ selectedAreaIds: ["a2"] }));
-    // No filter on areas when only areas are selected — all active areas remain
-    expect(result.visibleAreas.map((a) => a.id)).toEqual(["a1", "a2", "a4"]);
-    // a2 -> g2, g4
-    expect(result.filteredGoals.map((g) => g.id)).toEqual(expect.arrayContaining(["g2", "g4"]));
-    // a2 -> p2, p4
-    expect(result.filteredProjects.map((p) => p.id)).toEqual(expect.arrayContaining(["p2", "p4"]));
-    // a2 -> t2
-    expect(result.filteredTasks.map((t) => t.id)).toEqual(["t2"]);
-  });
-
-  it("excludes archived entities from results", () => {
-    const result = computeFilteredOptions(makeInputs());
-    expect(result.visibleAreas.some((a) => a.id === "a3")).toBe(false);
-    expect(result.filteredGoals.some((g) => g.id === "g3")).toBe(false);
-    expect(result.filteredProjects.some((p) => p.id === "p3")).toBe(false);
+  it("strips stale selections", () => {
+    const result = cleanInvalidSelections(
+      { selectedAreaIds: ["area-1", "area-99"], selectedGoalIds: ["goal-1"], selectedProjectIds: ["proj-99"], selectedTaskIds: ["task-1"] },
+      { visibleAreas: [A1], filteredGoals: [G1], filteredProjects: [P1], filteredTasks: [T1] },
+    );
+    expect(result.changed).toBe(true);
+    expect(result.areaIds).toEqual(["area-1"]);
+    expect(result.projectIds).toEqual([]);
   });
 });
