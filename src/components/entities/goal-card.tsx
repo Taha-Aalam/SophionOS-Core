@@ -152,7 +152,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplica
             )}
 
             {rollups && (
-              <div className="mt-3 flex items-center gap-3 text-[11px] text-muted-foreground">
+              <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1 whitespace-nowrap" title="Projects">
                   <span className="text-xs">📁</span>
                   <span>{rollups.projectCount}</span>
