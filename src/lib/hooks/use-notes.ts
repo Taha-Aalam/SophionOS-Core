@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth-provider";
 import { AREAS_QUERY_KEY, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
+import { TOPICS_QUERY_KEY } from "@/lib/hooks/use-topics";
 import { noteService } from "@/lib/services/note.service";
 import type { CreateNoteInput, Note, UpdateNoteInput } from "@/lib/types/domain.types";
 import type { NoteStatus } from "@/lib/utils/constants";
@@ -29,6 +30,7 @@ export function useNotes(
     queryKey: [NOTES_QUERY_KEY, "list", user?.id ?? null, filters ?? {}],
     queryFn: () => noteService.list(user!.id, filters),
     enabled: !!user && (options?.enabled ?? true),
+    refetchOnMount: true,
   });
 }
 
@@ -69,6 +71,7 @@ export function useNotesByProject(projectId: string) {
     queryKey: [NOTES_QUERY_KEY, "byProject", user?.id ?? null, projectId],
     queryFn: () => noteService.listByProject(user!.id, projectId),
     enabled: !!user && !!projectId,
+    refetchOnMount: true,
   });
 }
 
@@ -94,7 +97,6 @@ export function useNotesByGoal(goalId: string) {
 
 export function useLinkNoteToGoal() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: ({ noteId, goalId }: { noteId: string; goalId: string }) =>
@@ -152,7 +154,6 @@ export function useTogglePinNote() {
 
 export function useUnlinkNoteFromGoal() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: ({ noteId, goalId }: { noteId: string; goalId: string }) =>
@@ -188,6 +189,8 @@ function invalidateNoteGraph(
     queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: ["goal-detail"] }),
   ]);
 }
 

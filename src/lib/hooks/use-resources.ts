@@ -4,6 +4,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth-provider";
 import { formatValidationMessage } from "@/lib/api/error-handler";
 import { resourceService } from "@/lib/services/resource.service";
+import { TOPICS_QUERY_KEY } from "@/lib/hooks/use-topics";
+import { AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-area-detail";
+import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
 import type {
   CreateResourceInput,
   Resource,
@@ -84,7 +87,6 @@ export function useResourcesByGoal(goalId: string) {
 
 export function useLinkResourceToGoal() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: ({ resourceId, goalId }: { resourceId: string; goalId: string }) =>
@@ -101,7 +103,6 @@ export function useLinkResourceToGoal() {
 
 export function useUnlinkResourceFromGoal() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: ({ resourceId, goalId }: { resourceId: string; goalId: string }) =>
@@ -145,6 +146,8 @@ export function useCreateResource() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
+      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
       toast.success("Resource created");
     },
     onError: (error: Error) => {
@@ -183,6 +186,9 @@ export function useUpdateResource() {
         updated,
       );
       await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
       toast.success("Resource updated");
     },
     onError: (error: Error) => {

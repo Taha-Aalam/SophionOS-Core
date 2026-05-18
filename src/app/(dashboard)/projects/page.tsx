@@ -39,7 +39,6 @@ import { type Project } from "@/lib/types/domain.types";
 import {
   buildProjectTaskStats,
   getProjectLinkedAreaIds,
-  groupProjectsByArea,
   groupProjectsByStatus,
   mergeProjectQueryResults,
   PROJECT_VIEW,
@@ -110,7 +109,6 @@ export default function ProjectsPage() {
   );
   const taskStatsByProject = useMemo(() => buildProjectTaskStats(tasks), [tasks]);
   const projectsByStatus = useMemo(() => groupProjectsByStatus(activeProjects), [activeProjects]);
-  const projectsByArea = useMemo(() => groupProjectsByArea(activeProjects), [activeProjects]);
   const groupedByAreaGroups = useMemo((): ProjectsByAreaGroup[] => {
     const byAreaId: Record<string, Project[]> = {};
     for (const project of activeProjects) {

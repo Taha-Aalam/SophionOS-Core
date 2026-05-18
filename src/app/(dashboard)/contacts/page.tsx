@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Archive, Clock, FolderKanban, Map as MapIcon, Plus, RotateCcw, Star, Target as GoalIcon, Users } from "lucide-react";
+import { Archive, Clock, FolderKanban, Map as MapIcon, Plus, Star, Target as GoalIcon, Users } from "lucide-react";
 
 import { ContactCard } from "@/components/entities/contact-card";
 import { ContactDialog, type ContactDialogDefaults } from "@/components/entities/contact-dialog";

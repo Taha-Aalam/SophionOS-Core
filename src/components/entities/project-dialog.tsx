@@ -139,7 +139,7 @@ export function ProjectDialog({
   const isGoalScoped = Boolean(goalScoped) && !project;
   const { data: allAreas = [] } = useAreas();
   const { data: allGoals = [] } = useGoals({ status: "all" });
-  const { data: projectRelations, isLoading: isLoadingRelations } = useProjectWithRelations(
+  const { data: projectRelations, isLoading: _isLoadingRelations } = useProjectWithRelations(
     project?.id ?? "",
   );
   const createMutation = useCreateProject();

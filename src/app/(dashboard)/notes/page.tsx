@@ -6,7 +6,6 @@ import {
   Archive,
   Bookmark,
   BookOpen,
-  Calendar,
   CheckSquare,
   ChevronDownIcon,
   Clock,
@@ -74,11 +73,9 @@ import {
 } from "@/lib/utils/notes";
 import {
   formatNotesSummary,
-  NOTES_EMPTY_VALUE,
   NOTES_LOADING_LABEL,
   NOTES_PAGE_SHELL_CLASS_NAME,
   NOTES_SEARCH_PLACEHOLDER,
-  NOTES_TABLE_WRAPPER_CLASS_NAME,
   NOTES_TABS_LIST_CLASS_NAME,
 } from "@/lib/utils/note-page-display";
 
@@ -272,14 +269,6 @@ export default function NotesPage() {
     if (next.has(id)) next.delete(id);
     else next.add(id);
     setSelectedIds(next);
-  };
-
-  const toggleAll = () => {
-    if (selectedIds.size === visibleNotes.length && visibleNotes.length > 0) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(visibleNotes.map((n) => n.id)));
-    }
   };
 
   const handleArchiveSelected = async () => {

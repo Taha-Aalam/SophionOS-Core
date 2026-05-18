@@ -10,7 +10,6 @@ import {
   ChevronRightIcon,
   Edit,
   Link as LinkIcon,
-  Plus,
   Target,
   Trash2,
   Unlink,
@@ -598,14 +597,6 @@ export default function GoalDetailPage() {
     },
     [toggleFavoriteResource],
   );
-
-  const handleResourceArchive = useCallback((_id: string) => {
-    // Archive not implemented in goal detail
-  }, []);
-
-  const handleResourceUnarchive = useCallback((_id: string) => {
-    // Unarchive not implemented in goal detail
-  }, []);
 
   const handleUnlinkContact = useCallback(async (contactId: string) => {
     if (!goal) {

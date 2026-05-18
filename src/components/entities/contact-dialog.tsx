@@ -616,6 +616,7 @@ export function ContactDialog({
                   {uploadPreview && !isUploading && (
                     <div className="flex items-center gap-3">
                       <div className="size-10 overflow-hidden rounded-full bg-muted shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={uploadPreview}
                           alt="Preview"

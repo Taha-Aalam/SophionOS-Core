@@ -34,7 +34,7 @@ interface TasksByGroupViewProps {
 function CollapsibleTaskGroup({
   group,
   areaMap,
-  goalMap,
+  goalMap: _goalMap,
   projectMap,
   onCompletionToggle,
   onFocusToggle,

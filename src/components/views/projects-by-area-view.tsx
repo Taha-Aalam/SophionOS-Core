@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { ProjectCard, type ProjectCardRollups } from "@/components/entities/project-card";
 import { GalleryGrid } from "@/components/views/gallery-grid";
 import type { Project } from "@/lib/types/domain.types";

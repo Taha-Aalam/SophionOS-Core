@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Archive, Mail, Phone, Star, Trash2, User2 } from "lucide-react";
 
@@ -48,11 +49,7 @@ export function ContactCard({
             {/* Avatar circle */}
             <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-muted">
               {contact.image_url ? (
-                <img
-                  src={contact.image_url}
-                  alt={contact.name}
-                  className="w-full h-full object-cover"
-                />
+                <Image src={contact.image_url} alt={contact.name} fill className="object-cover" unoptimized />
               ) : (
                 <User2 className="size-5 text-muted-foreground" />
               )}

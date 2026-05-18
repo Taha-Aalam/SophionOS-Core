@@ -88,14 +88,16 @@ export function CalendarView({ tasks, onTaskClick }: CalendarViewProps) {
     setMonth((currentMonth) => currentMonth + 1);
   };
 
-  const cells: (number | null)[] = [
-    ...Array<null>(firstDayOfWeek).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
-  ];
-
-  while (cells.length % 7 !== 0) {
-    cells.push(null);
-  }
+  const cells = useMemo(() => {
+    const result: (number | null)[] = [
+      ...Array<null>(firstDayOfWeek).fill(null),
+      ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
+    ];
+    while (result.length % 7 !== 0) {
+      result.push(null);
+    }
+    return result;
+  }, [firstDayOfWeek, daysInMonth]);
 
   const visibleMonthTaskCount = useMemo(
     () =>

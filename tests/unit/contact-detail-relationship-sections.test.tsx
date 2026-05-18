@@ -86,7 +86,7 @@ const { ContactDetailRelationshipSections } = await import(
 );
 
 const noop = () => {};
-const noopStr = (_: string) => {};
+const noopStr = (_arg: string) => {};
 
 function renderSection(
   overrides: Partial<

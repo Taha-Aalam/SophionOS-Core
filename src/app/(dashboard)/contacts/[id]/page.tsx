@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import {
   Archive,
@@ -52,6 +53,7 @@ import {
 } from "@/lib/hooks/use-contacts";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useNotes } from "@/lib/hooks/use-notes";
+import { useResources } from "@/lib/hooks/use-resources";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
@@ -189,6 +191,7 @@ export default function ContactDetailPage() {
   const { data: allTasks = [] } = useTasks({});
   const { data: allAreas = [] } = useAreas({});
   const { data: allNotes = [] } = useNotes({ status: "all" });
+  const { data: allResources = [] } = useResources({ status: "all" });
   const { data: allGoals = [] } = useGoals({ status: "all" });
   const allProjects = useMemo(
     () => mergeProjectQueryResults(activeProjects, archivedProjects),
@@ -366,7 +369,7 @@ export default function ContactDetailPage() {
             {/* Avatar */}
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center shrink-0 ring-2 ring-border overflow-hidden">
               {contact.image_url ? (
-                <img src={contact.image_url} alt={contact.name} className="w-full h-full object-cover" />
+                <Image src={contact.image_url} alt={contact.name} fill className="object-cover" unoptimized />
               ) : (
                 <span className="text-2xl font-semibold text-muted-foreground">
                   {contact.name.charAt(0).toUpperCase()}
@@ -569,6 +572,7 @@ export default function ContactDetailPage() {
               linkedProjects={linkedProjects}
               linkedTasks={linkedTasks}
               linkedNotes={allNotes}
+              allResources={allResources}
               allAreas={allAreas}
               allProjects={allProjects}
               onUnlinkArea={(areaId) => unlinkArea.mutate({ contactId: contact.id, areaId })}

@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { useController, useFormContext } from "react-hook-form";
 import type { Control, FieldValues } from "react-hook-form";
 

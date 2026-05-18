@@ -95,15 +95,12 @@ export default function NewNotePage() {
     }
 
     if (newAreaIds.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAreaIds([...newAreaIds]);
     }
     if (newGoalIds.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setGoalIds([...newGoalIds]);
     }
     if (newProjectIds.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProjectIds([...newProjectIds]);
     }
 

@@ -61,12 +61,8 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import {
   useArchiveNoteWithUndo,
   useCreateNote,
-  useNoteByIdentifier,
   useNotes,
-  useNotesByGoal,
-  useNotesByNotebook,
   useNotebooks,
-  useRelatedNotes,
   useRestoreNote,
   useToggleFavoriteNote,
   useTogglePinNote,

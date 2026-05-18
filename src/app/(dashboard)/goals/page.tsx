@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, CheckCircle, Clock, Flag, LayoutGrid, List as ListIcon, PauseCircle, Plus, Target } from "lucide-react";
 
-import { GoalCard, type GoalCardRollups } from "@/components/entities/goal-card";
+import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { EmptyState } from "@/components/views/empty-state";
 import { Button } from "@/components/ui/button";
