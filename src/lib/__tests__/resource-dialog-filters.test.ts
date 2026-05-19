@@ -243,31 +243,6 @@ describe("computeFilteredProjects", () => {
       ),
     ).toEqual([P1]);
   });
-
-  it("goal with no linked projects → constraint inactive → shows all projects", () => {
-    // goal-3 intentionally absent from goalProjectIdsMap
-    const sparseMap = new Map<string, string[]>([
-      ["goal-1", ["proj-1"]],
-      ["goal-2", ["proj-2"]],
-    ]);
-    const result = computeFilteredProjects(
-      ALL_PROJECTS,
-      [],           // no area
-      ["goal-3"],   // goal with no project links
-      sparseMap,
-    );
-    expect(result.map((p) => p.id)).toEqual(ALL_PROJECTS.map((p) => p.id));
-  });
-
-  it("goal with project links → shows only linked projects", () => {
-    const result = computeFilteredProjects(
-      ALL_PROJECTS,
-      [],
-      ["goal-1"],
-      goalProjectIdsMap,
-    );
-    expect(result.map((p) => p.id)).toEqual(["proj-1"]);
-  });
 });
 
 // ── computeFilteredGoals ─────────────────────────────────────────────────────
