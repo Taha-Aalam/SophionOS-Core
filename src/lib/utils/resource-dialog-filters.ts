@@ -118,7 +118,6 @@ export function computeFilteredProjects<T extends FilterableProject>(
         selectedGoalIds.flatMap((gId) => goalProjectIdsMap.get(gId) ?? []),
       )
     : null;
-  const goalConstraintActive = hasGoals && goalProjectIds !== null && goalProjectIds.size > 0;
 
   return projects.filter((project) => {
     if (hasAreas) {
@@ -126,7 +125,9 @@ export function computeFilteredProjects<T extends FilterableProject>(
       if (!projectAreas.some((aId) => areaSet.has(aId))) return false;
     }
 
-    if (goalConstraintActive && !goalProjectIds!.has(project.id)) return false;
+    if (hasGoals && goalProjectIds) {
+      if (!goalProjectIds.has(project.id)) return false;
+    }
 
     if (hasTasks && taskProjectIds) {
       if (!taskProjectIds.has(project.id)) return false;
