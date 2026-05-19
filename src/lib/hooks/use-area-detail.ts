@@ -76,5 +76,6 @@ export function useAreaDetail(areaIdentifier: string) {
       };
     },
     enabled: !!user && !!areaIdentifier,
+    refetchOnMount: true,
   });
 }

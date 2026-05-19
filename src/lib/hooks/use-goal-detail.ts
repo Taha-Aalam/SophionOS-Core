@@ -114,5 +114,6 @@ export function useGoalDetail(goalId: string, filters?: GoalDetailFilters) {
       };
     },
     enabled: !!user && !!goalId,
+    refetchOnMount: true,
   });
 }

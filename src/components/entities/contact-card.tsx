@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/types/domain.types";
 import { contactService } from "@/lib/services/contact.service";
+import { encodeReturnTo } from "@/lib/utils/return-to";
 
 const GROUP_COLORS: Record<string, string> = {
   Client: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
@@ -26,6 +27,7 @@ interface ContactCardProps {
   onDelete?: (id: string) => void;
   onToggleFavorite?: (id: string) => void;
   onArchive?: (id: string, archive: boolean) => void;
+  returnTo?: string;
 }
 
 export function ContactCard({
@@ -34,6 +36,7 @@ export function ContactCard({
   onDelete,
   onToggleFavorite,
   onArchive,
+  returnTo,
 }: ContactCardProps) {
   const router = useRouter();
   const groupColor = contact.group ? GROUP_COLORS[contact.group] ?? "" : "";
@@ -41,7 +44,10 @@ export function ContactCard({
   return (
     <Card
       className="cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 h-full flex flex-col"
-      onClick={() => router.push(`/contacts/${contact.slug ?? contact.id}`)}
+      onClick={() => {
+        const base = `/contacts/${contact.slug ?? contact.id}`;
+        router.push(returnTo ? `${base}?returnTo=${encodeReturnTo(returnTo)}` : base);
+      }}
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">

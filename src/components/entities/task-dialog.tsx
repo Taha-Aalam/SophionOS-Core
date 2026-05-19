@@ -23,9 +23,10 @@ import {
   getScopedCandidateAreaIds,
   type GoalScopedTaskConfig,
 } from "@/lib/utils/goal-scoped";
-import { getGoalLinkedAreaIds, goalMatchesAreaId } from "@/lib/utils/goals";
+import { goalMatchesAreaId } from "@/lib/utils/goals";
 import {
   computeFilteredProjects,
+  computeVisibleAreas,
   computeVisibleGoals,
 } from "@/lib/utils/task-dialog-filters";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task.schema";
@@ -391,34 +392,18 @@ export function TaskDialog({
     }
   }, [filteredProjects, selectedProjectId, form, isGoalScoped, isProjectScoped]);
 
-  /** Areas visible in the area selector — restricted to goal-linked areas when goals are selected. */
-  const visibleAreas = useMemo(() => {
-    if (selectedGoalIds.length === 0) {
-      if (selectedProjectId) {
-        const proj = projectById.get(selectedProjectId);
-        if (proj) {
-          const projAreaIds = new Set([
-            ...(proj.linkedAreaIds ?? []),
-            ...(proj.area_id ? [proj.area_id] : []),
-          ]);
-          return areas.filter((area) => projAreaIds.has(area.id));
-        }
-      }
-      return areas;
-    }
-
-    const allowedAreaIds = new Set<string>();
-    for (const goalId of selectedGoalIds) {
-      const goal = goals.find((g) => g.id === goalId);
-      if (goal) {
-        for (const areaId of getGoalLinkedAreaIds(goal)) {
-          allowedAreaIds.add(areaId);
-        }
-      }
-    }
-
-    return areas.filter((area) => allowedAreaIds.has(area.id));
-  }, [areas, goals, selectedGoalIds, selectedProjectId, projectById]);
+  /** Areas visible in the area selector — AND-intersection of goal and project areas. */
+  const visibleAreas = useMemo(
+    () =>
+      computeVisibleAreas(
+        areas,
+        selectedGoalIds,
+        selectedProjectId || null,
+        projectById,
+        goals,
+      ),
+    [areas, selectedGoalIds, selectedProjectId, projectById, goals],
+  );
 
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
@@ -576,7 +561,6 @@ export function TaskDialog({
                         <SelectItem value={TASK_STATUS.INBOX}>Inbox</SelectItem>
                         <SelectItem value={TASK_STATUS.TODO}>To Do</SelectItem>
                         <SelectItem value={TASK_STATUS.IN_PROGRESS}>In Progress</SelectItem>
-                        <SelectItem value={TASK_STATUS.COMPLETED}>Completed</SelectItem>
                       </SelectContent>
                     </Select>
                   )}

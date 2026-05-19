@@ -6,6 +6,7 @@ const resourceStatusValues = [
   RESOURCE_STATUS.INBOX,
   RESOURCE_STATUS.TO_REVIEW,
   RESOURCE_STATUS.ACTIVE,
+  RESOURCE_STATUS.SAVED,
 ] as const;
 
 const resourceTypeValues = [

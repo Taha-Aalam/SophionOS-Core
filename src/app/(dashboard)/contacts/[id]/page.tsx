@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Archive,
   ArrowLeft,
@@ -68,6 +68,7 @@ import { contactService } from "@/lib/services/contact.service";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { mergeProjectQueryResults } from "@/lib/utils/projects";
 import { resolveLinkedProjectsAcrossStatuses } from "@/lib/utils/contact-detail-relations";
+import { getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
 
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -160,7 +161,10 @@ function buildCreateInput(values: {
 export default function ContactDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const contactSlug = params.id as string;
+  const contactReturnToParam = getReturnToFromSearchParams(searchParams);
+  const backTarget = resolveBackNavigation(contactReturnToParam, "/contacts");
 
   const { setPageTitle } = useUIStore();
   const { data: contact, isLoading, error } = useContactBySlug(contactSlug);
@@ -288,7 +292,7 @@ export default function ContactDetailPage() {
           title="Contact not found"
           description="This contact may have been deleted or the link is incorrect."
           actionLabel="Back to Contacts"
-          onAction={() => router.push("/contacts")}
+          onAction={() => router.push(backTarget)}
         />
       </div>
     );
@@ -352,7 +356,7 @@ export default function ContactDetailPage() {
             variant="ghost"
             size="icon"
             className="size-6"
-            onClick={() => router.push("/contacts")}
+            onClick={() => router.push(backTarget)}
           >
             <ArrowLeft className="size-3.5" />
           </Button>

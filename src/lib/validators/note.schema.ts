@@ -6,6 +6,7 @@ const noteStatusValues = [
   NOTE_STATUS.INBOX,
   NOTE_STATUS.TO_REVIEW,
   NOTE_STATUS.ACTIVE,
+  NOTE_STATUS.SAVED,
   NOTE_STATUS.ARCHIVE,
 ] as const;
 

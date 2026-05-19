@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils";
 import type { Resource } from "@/lib/types/domain.types";
 
 const STATUS_COLORS: Record<string, string> = {
-  inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800",
-  to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900",
-  active: "bg-green-100 text-green-700 dark:bg-green-900",
+  inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  saved: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
 };
 
 interface ResourceTableProps {
@@ -43,9 +44,9 @@ export function ResourceTable({
           className={`flex items-center gap-3 border-b border-border/40 px-3 py-2.5 hover:bg-muted/30${onEdit ? " cursor-pointer" : ""}`}
         >
           <Badge
-            variant="secondary"
+            variant="outline"
             className={cn(
-              "w-20 text-xs",
+              "w-20 text-[10px] uppercase",
               STATUS_COLORS[resource.status],
             )}
           >

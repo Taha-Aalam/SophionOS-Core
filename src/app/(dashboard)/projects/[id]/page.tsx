@@ -87,7 +87,7 @@ import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { filterProjectDialogGoals } from "@/lib/utils/project-dialog-filters";
 import { getProjectDueState, getProjectLinkedAreaIds, getProjectStatusLabel } from "@/lib/utils/projects";
-import { resolveBackNavigation, getReturnToFromSearchParams, encodeReturnTo } from "@/lib/utils/return-to";
+import { buildReturnTo, resolveBackNavigation, getReturnToFromSearchParams, encodeReturnTo } from "@/lib/utils/return-to";
 
 const NOTE_STATUS_COLORS: Record<string, string> = {
   inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -1223,6 +1223,7 @@ export default function ProjectDetailPage() {
                     onDelete={handleContactDelete}
                     onToggleFavorite={handleContactToggleFavorite}
                     onArchive={handleContactArchive}
+                    returnTo={buildReturnTo(`/projects/${project.slug ?? project.id}`)}
                   />
                   <Button
                     variant="ghost"

@@ -83,3 +83,57 @@ export function computeVisibleGoals<T extends FilterableGoal>(
     return true;
   });
 }
+
+interface FilterableArea {
+  id: string;
+}
+
+/**
+ * Returns areas satisfying ALL active constraints (AND-intersection):
+ * - goals   → union of all selected goals' linked areas
+ * - project → project's area_id + linkedAreaIds
+ * When both goals and project are active, areas must appear in BOTH sets.
+ */
+export function computeVisibleAreas<T extends FilterableArea>(
+  areas: T[],
+  selectedGoalIds: string[],
+  selectedProjectId: string | null | undefined,
+  projectById: Map<string, FilterableProject>,
+  goals: FilterableGoal[],
+): T[] {
+  const hasGoals = selectedGoalIds.length > 0;
+  const hasProject = Boolean(selectedProjectId);
+
+  if (!hasGoals && !hasProject) return areas;
+
+  let allowed: Set<string> | null = null;
+
+  if (hasProject) {
+    const proj = projectById.get(selectedProjectId!);
+    if (proj) {
+      const projAreas = [proj.area_id, ...(proj.linkedAreaIds ?? [])].filter(
+        (id): id is string => Boolean(id),
+      );
+      allowed = new Set(projAreas);
+    }
+  }
+
+  if (hasGoals) {
+    const goalAreaSet = new Set<string>();
+    for (const goalId of selectedGoalIds) {
+      const goal = goals.find((g) => g.id === goalId);
+      if (goal) {
+        const aIds = [goal.area_id, ...(goal.linkedAreaIds ?? [])].filter(
+          (id): id is string => Boolean(id),
+        );
+        for (const aId of aIds) goalAreaSet.add(aId);
+      }
+    }
+    allowed = allowed
+      ? new Set([...allowed].filter((id) => goalAreaSet.has(id)))
+      : goalAreaSet;
+  }
+
+  if (allowed && allowed.size === 0) return [];
+  return allowed ? areas.filter((a) => allowed!.has(a.id)) : areas;
+}
