@@ -450,3 +450,38 @@ describe("computeFilteredTasks", () => {
     ).toEqual([T1]);
   });
 });
+
+// ── computeFilteredGoals — task constraint ──────────────────────────────────
+
+describe("computeFilteredGoals — task constraint", () => {
+  it("selected task filters goals to those linked to that task", () => {
+    // taskGoalIdsMap: task-1 → goal-1, task-2 → goal-2
+    const selectedTasks = [T1]; // T1 → proj-1, linked to goal-1
+    const result = computeFilteredGoals(
+      ALL_GOALS,
+      [],           // no areas
+      null,         // no project
+      projectGoalIdsMap,
+      taskGoalIdsMap,
+      selectedTasks,
+    );
+    // Only goal-1 is linked to task-1
+    expect(result.map((g) => g.id)).toContain("goal-1");
+    expect(result.map((g) => g.id)).not.toContain("goal-2");
+  });
+
+  it("passing goals where tasks expected produces incorrect results (proves the resource-dialog bug)", () => {
+    // This documents that passing Goal[] as selectedTasks misidentifies the constraint
+    const wrongArg = [G1]; // G1 has id="goal-1", not a task
+    const result = computeFilteredGoals(
+      ALL_GOALS,
+      [],
+      null,
+      projectGoalIdsMap,
+      taskGoalIdsMap,
+      wrongArg as never, // force wrong type like resource-dialog did
+    );
+    // goal-1 ID not in taskGoalIdsMap keys → constraint sees empty set → returns all goals
+    expect(result.length).toBe(ALL_GOALS.length);
+  });
+});
