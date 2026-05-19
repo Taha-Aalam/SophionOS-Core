@@ -286,7 +286,7 @@ export function ResourceDialog({
   // ── Goals filtering (AND-intersection) ─────────────────────────────────────
   const filteredGoals = useMemo(() => {
     return computeFilteredGoals(goals, areaIds, projectId, projectGoalIdsMap, taskGoalIdsMap, selectedTasks);
-  }, [goals, areaIds, projectId, projectGoalIdsMap, taskGoalIdsMap, selectedGoals, selectedTasks]);
+  }, [goals, areaIds, projectId, projectGoalIdsMap, taskGoalIdsMap, selectedTasks]);
 
   // ── Tasks filtering (AND-intersection) ─────────────────────────────────────
   const filteredTasks = useMemo(() => {
