@@ -367,7 +367,7 @@ export default function ContactDetailPage() {
           {/* Header with avatar, name, role, and actions */}
           <div className="flex items-start gap-4 p-6">
             {/* Avatar */}
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center shrink-0 ring-2 ring-border overflow-hidden">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center shrink-0 ring-2 ring-border overflow-hidden relative">
               {contact.image_url ? (
                 <Image src={contact.image_url} alt={contact.name} fill className="object-cover" unoptimized />
               ) : (
