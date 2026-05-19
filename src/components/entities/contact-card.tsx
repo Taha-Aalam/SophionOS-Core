@@ -47,7 +47,7 @@ export function ContactCard({
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
             {/* Avatar circle */}
-            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-muted">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-muted relative">
               {contact.image_url ? (
                 <Image src={contact.image_url} alt={contact.name} fill className="object-cover" unoptimized />
               ) : (
