@@ -158,6 +158,36 @@ describe("filterProjects", () => {
     // area-1 → P1, P3; goal-1 → P1; T1 (proj-1) → P1
     expect(filterProjects({ ...base, selectedAreaIds: ["area-1"], selectedGoalIds: ["goal-1"], selectedTaskIds: ["task-1"], selectedTasks: [T1], goalToProjectIds })).toEqual([P1]);
   });
+
+  it("goal with no linked projects → constraint inactive → shows all projects", () => {
+    // G3 has no entries in goalToProjectIds
+    const { goalToProjectIds: sparseMap } = buildGoalProjectMaps([
+      { goal_id: "goal-1", project_id: "proj-1" },
+      { goal_id: "goal-2", project_id: "proj-2" },
+      // goal-3 intentionally absent
+    ]);
+    const result = filterProjects({
+      ...base,
+      selectedGoalIds: ["goal-3"],
+      selectedTasks: [],
+      goalToProjectIds: sparseMap,
+    });
+    // G3 has no project links → constraint must be inactive → all active projects returned
+    expect(result.map((p) => p.id)).toEqual(ALL_PROJECTS.map((p) => p.id));
+  });
+
+  it("goal with project links + no area → shows only linked projects", () => {
+    const { goalToProjectIds: sparseMap } = buildGoalProjectMaps([
+      { goal_id: "goal-1", project_id: "proj-1" },
+    ]);
+    const result = filterProjects({
+      ...base,
+      selectedGoalIds: ["goal-1"],
+      selectedTasks: [],
+      goalToProjectIds: sparseMap,
+    });
+    expect(result.map((p) => p.id)).toEqual(["proj-1"]);
+  });
 });
 
 // ── filterGoals ──────────────────────────────────────────────────────────────
