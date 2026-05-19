@@ -217,13 +217,14 @@ export function filterProjects(
   const goalProjectIds = hasGoals
     ? new Set(inputs.selectedGoalIds.flatMap((gId) => goalToProjectIds.get(gId) ?? []))
     : null;
+  const goalConstraintActive = hasGoals && goalProjectIds !== null && goalProjectIds.size > 0;
 
   return activeProjects.filter((p) => {
     if (hasAreas) {
       const projectAreas = getEntityAreaIds(p);
       if (!projectAreas.some((aId) => areaSet.has(aId))) return false;
     }
-    if (hasGoals && goalProjectIds && !goalProjectIds.has(p.id)) return false;
+    if (goalConstraintActive && !goalProjectIds!.has(p.id)) return false;
     if (hasTasks && taskProjectIds && !taskProjectIds.has(p.id)) return false;
     return true;
   });
