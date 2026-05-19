@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeFilteredProjects,
   computeVisibleGoals,
+  computeVisibleAreas,
 } from "@/lib/utils/task-dialog-filters";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -141,5 +142,61 @@ describe("computeVisibleGoals", () => {
   it("excludes goal that is not in project linkedGoalIds even if it matches area", () => {
     // P2 is only linked to G2; G1 is also in A1, but should NOT appear
     expect(computeVisibleGoals(ALL_GOALS, P2.id, [A1], projectById)).not.toContainEqual(GOAL_1);
+  });
+});
+
+// ── computeVisibleAreas ───────────────────────────────────────────────────────
+
+type A = { id: string };
+
+function area(id: string): A {
+  return { id };
+}
+
+const AR1 = area("area-1");
+const AR2 = area("area-2");
+const AR3 = area("area-3");
+
+// G1 is in AR1; G2 is in AR2; P1 is in AR1+AR2; P2 is in AR3
+const G1_a = goal(G1, "area-1");
+const G2_a = goal(G2, "area-2");
+const P1_a = project("proj-1", "area-1", [], ["area-2"]); // area-1 via area_id, area-2 via linkedAreaIds
+const P2_a = project("proj-2", "area-3");
+
+const projectByIdA = new Map([
+  [P1_a.id, P1_a],
+  [P2_a.id, P2_a],
+]);
+const goalsA = [G1_a, G2_a];
+const allAreas = [AR1, AR2, AR3];
+
+describe("computeVisibleAreas", () => {
+  it("returns all areas when no constraints", () => {
+    expect(computeVisibleAreas(allAreas, [], null, projectByIdA, goalsA)).toEqual(allAreas);
+  });
+
+  it("goal only — returns areas linked to selected goals", () => {
+    // G1 links to AR1
+    expect(computeVisibleAreas(allAreas, [G1], null, projectByIdA, goalsA)).toEqual([AR1]);
+  });
+
+  it("project only — returns areas linked to selected project", () => {
+    // P1 links to AR1 + AR2
+    expect(computeVisibleAreas(allAreas, [], P1_a.id, projectByIdA, goalsA)).toEqual([AR1, AR2]);
+  });
+
+  it("goal + project — AND-intersection of their areas", () => {
+    // G1 → AR1; P1 → AR1+AR2; intersection → AR1 only
+    expect(computeVisibleAreas(allAreas, [G1], P1_a.id, projectByIdA, goalsA)).toEqual([AR1]);
+  });
+
+  it("goal + project with no shared areas — returns empty", () => {
+    // G1 → AR1; P2 → AR3; no overlap
+    expect(computeVisibleAreas(allAreas, [G1], P2_a.id, projectByIdA, goalsA)).toEqual([]);
+  });
+
+  it("multiple goals — union of goal areas, then AND with project", () => {
+    // G1 → AR1; G2 → AR2; union → AR1+AR2; P1 → AR1+AR2; intersection → AR1+AR2
+    expect(computeVisibleAreas(allAreas, [G1, G2], P1_a.id, projectByIdA, goalsA)).toEqual([AR1, AR2]);
   });
 });

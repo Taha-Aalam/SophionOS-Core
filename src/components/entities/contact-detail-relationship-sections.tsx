@@ -10,7 +10,7 @@ import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { ProjectCard } from "@/components/entities/project-card";
 import { TaskListItem } from "@/components/entities/task-list-item";
 import { Button } from "@/components/ui/button";
-import type { Area, Goal, Note, Project, Task } from "@/lib/types/domain.types";
+import type { Area, Goal, Note, Project, Resource, Task } from "@/lib/types/domain.types";
 import { noteMatchesAreaId } from "@/lib/utils/notes";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import {
@@ -49,6 +49,7 @@ interface ContactDetailRelationshipSectionsProps {
   linkedProjects: Project[];
   linkedTasks: Task[];
   linkedNotes: Note[];
+  allResources: Resource[];
   allAreas: Area[];
   allProjects: Project[];
   onUnlinkArea: (areaId: string) => void;
@@ -76,6 +77,7 @@ export function ContactDetailRelationshipSections({
   linkedProjects,
   linkedTasks,
   linkedNotes,
+  allResources,
   allAreas,
   allProjects,
   onUnlinkArea,
@@ -100,17 +102,18 @@ export function ContactDetailRelationshipSections({
   const areaLookup = React.useMemo(() => buildAreaLookup(allAreas), [allAreas]);
 
   const areaCountsMap = React.useMemo(() => {
-    const map = new Map<string, { goals: number; projects: number; tasks: number; notes: number }>();
+    const map = new Map<string, { goals: number; projects: number; tasks: number; notes: number; resources: number }>();
     for (const area of linkedAreas) {
       map.set(area.id, {
         goals: linkedGoals.filter((g) => getGoalLinkedAreaIds(g).includes(area.id)).length,
         projects: linkedProjects.filter((p) => getProjectLinkedAreaIds(p).includes(area.id)).length,
         tasks: linkedTasks.filter((t) => getTaskLinkedAreaIds(t).includes(area.id)).length,
         notes: linkedNotes.filter((n) => noteMatchesAreaId(n, area.id)).length,
+        resources: allResources.filter((r) => r.area_id === area.id && !r.is_archived).length,
       });
     }
     return map;
-  }, [linkedAreas, linkedGoals, linkedProjects, linkedTasks, linkedNotes]);
+  }, [linkedAreas, linkedGoals, linkedProjects, linkedTasks, linkedNotes, allResources]);
 
   const areaTabs = React.useMemo(() => buildAreaTabs(linkedAreas), [linkedAreas]);
   const goalTabs = React.useMemo(() => buildGoalTabs(linkedGoals), [linkedGoals]);
@@ -161,6 +164,7 @@ export function ContactDetailRelationshipSections({
                   projectsCount={areaCountsMap.get(area.id)?.projects ?? 0}
                   tasksCount={areaCountsMap.get(area.id)?.tasks ?? 0}
                   notesCount={areaCountsMap.get(area.id)?.notes ?? 0}
+                  resourcesCount={areaCountsMap.get(area.id)?.resources ?? 0}
                   returnTo={returnTo}
                 />
                 <Button

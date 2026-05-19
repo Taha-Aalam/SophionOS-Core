@@ -70,7 +70,7 @@ import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { calculateGoalProgress, getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
-import { encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
+import { buildReturnTo, encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 
 const NOTE_STATUS_COLORS: Record<string, string> = {
   [NOTE_STATUS.INBOX]: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -1227,6 +1227,7 @@ export default function GoalDetailPage() {
                     onDelete={handleContactDelete}
                     onToggleFavorite={handleContactToggleFavorite}
                     onArchive={handleContactArchive}
+                    returnTo={buildReturnTo(`/goals/${goalId}`)}
                   />
                   <Button
                     variant="ghost"

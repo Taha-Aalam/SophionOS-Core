@@ -227,6 +227,7 @@ export function useNotesForTopic(topicId: string) {
     queryKey: [TOPICS_QUERY_KEY, "notes", user?.id ?? null, topicId],
     queryFn: () => topicService.getNotesForTopic(user!.id, topicId),
     enabled: !!user && !!topicId,
+    refetchOnMount: true,
   });
 }
 

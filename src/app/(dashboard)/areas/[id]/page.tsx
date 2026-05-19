@@ -937,6 +937,7 @@ export default function AreaDetailPage() {
                     onDelete={handleContactDelete}
                     onToggleFavorite={handleContactToggleFavorite}
                     onArchive={handleContactArchive}
+                    returnTo={buildReturnTo(`/areas/${area.slug ?? area.id}`)}
                   />
                   <Button
                     variant="ghost"
