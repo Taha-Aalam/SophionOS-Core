@@ -192,6 +192,10 @@ describe("goalService", () => {
         if (table === "goal_tasks") return goalTasksTable;
         if (table === "goal_notes") return emptyTable;
         if (table === "goal_resources") return emptyTable;
+        if (table === "tasks") return emptyTable;
+        if (table === "notes") return emptyTable;
+        if (table === "note_projects") return emptyTable;
+        if (table === "resources") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -263,6 +267,10 @@ describe("goalService", () => {
         if (table === "goal_areas") return emptyTable;
         if (table === "goal_notes") return emptyTable;
         if (table === "goal_resources") return emptyTable;
+        if (table === "tasks") return emptyTable;
+        if (table === "notes") return emptyTable;
+        if (table === "note_projects") return emptyTable;
+        if (table === "resources") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };

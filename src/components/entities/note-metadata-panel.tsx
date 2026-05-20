@@ -36,6 +36,15 @@ import { cn } from "@/lib/utils";
 import { NoteTaskSelector } from "./note-task-selector";
 import { NoteTypeCombobox } from "./note-type-combobox";
 
+function filterByIntersection<T extends { id: string }>(
+  candidates: T[],
+  sets: Set<string>[],
+): T[] {
+  const applicable = sets.filter((s) => s.size > 0);
+  if (applicable.length === 0) return candidates;
+  return candidates.filter((item) => applicable.every((s) => s.has(item.id)));
+}
+
 const STATUS_OPTIONS = [
   { value: NOTE_STATUS.INBOX, label: "Inbox" },
   { value: NOTE_STATUS.TO_REVIEW, label: "To Review" },
@@ -136,84 +145,96 @@ export function NoteMetadataPanel({
   const filteredAreas = useMemo(() => {
     const hasConstraints = goalIds.length > 0 || projectIds.length > 0 || taskIds.length > 0;
     if (!hasConstraints) return activeAreas;
-    const allowed = new Set<string>();
+    const fromGoals = new Set<string>();
     for (const gId of goalIds) {
       const goal = goals.find((g) => g.id === gId);
-      for (const aId of goal?.linkedAreaIds ?? []) allowed.add(aId);
+      for (const aId of goal?.linkedAreaIds ?? []) fromGoals.add(aId);
     }
+    const fromProjects = new Set<string>();
     for (const pId of projectIds) {
       const proj = activeProjects.find((p) => p.id === pId);
-      for (const aId of proj?.linkedAreaIds ?? []) allowed.add(aId);
+      for (const aId of proj?.linkedAreaIds ?? []) fromProjects.add(aId);
     }
+    const fromTasks = new Set<string>();
     for (const tId of taskIds) {
       const task = tasks.find((t) => t.id === tId);
       if (task?.project_id) {
         const proj = activeProjects.find((p) => p.id === task.project_id);
-        for (const aId of proj?.linkedAreaIds ?? []) allowed.add(aId);
+        for (const aId of proj?.linkedAreaIds ?? []) fromTasks.add(aId);
       }
     }
-    return activeAreas.filter((a) => allowed.has(a.id));
+    return filterByIntersection(activeAreas, [fromGoals, fromProjects, fromTasks]);
   }, [activeAreas, goalIds, projectIds, taskIds, goals, activeProjects, tasks]);
 
   const filteredGoals = useMemo(() => {
     const hasConstraints = areaIds.length > 0 || projectIds.length > 0 || taskIds.length > 0;
     if (!hasConstraints) return activeGoals;
-    const allowed = new Set<string>();
+    const fromAreas = new Set<string>();
     for (const aId of areaIds) {
       for (const g of activeGoals) {
-        if (g.linkedAreaIds?.includes(aId)) allowed.add(g.id);
+        if (g.linkedAreaIds?.includes(aId)) fromAreas.add(g.id);
       }
     }
+    const fromProjects = new Set<string>();
     for (const pId of projectIds) {
       const proj = activeProjects.find((p) => p.id === pId);
-      for (const gId of proj?.linkedGoalIds ?? []) allowed.add(gId);
+      for (const gId of proj?.linkedGoalIds ?? []) fromProjects.add(gId);
     }
+    const fromTasks = new Set<string>();
     for (const tId of taskIds) {
       const task = tasks.find((t) => t.id === tId);
       if (task?.project_id) {
         const proj = activeProjects.find((p) => p.id === task.project_id);
-        for (const gId of proj?.linkedGoalIds ?? []) allowed.add(gId);
+        for (const gId of proj?.linkedGoalIds ?? []) fromTasks.add(gId);
       }
     }
-    return activeGoals.filter((g) => allowed.has(g.id));
+    return filterByIntersection(activeGoals, [fromAreas, fromProjects, fromTasks]);
   }, [activeGoals, areaIds, projectIds, taskIds, activeProjects, tasks]);
 
   const filteredProjects = useMemo(() => {
     const hasConstraints = areaIds.length > 0 || goalIds.length > 0 || taskIds.length > 0;
     if (!hasConstraints) return activeProjects;
-    const allowed = new Set<string>();
+    const fromAreas = new Set<string>();
     for (const aId of areaIds) {
       for (const p of activeProjects) {
-        if (p.linkedAreaIds?.includes(aId)) allowed.add(p.id);
+        if (p.linkedAreaIds?.includes(aId)) fromAreas.add(p.id);
       }
     }
+    const fromGoals = new Set<string>();
     for (const gId of goalIds) {
       for (const p of activeProjects) {
-        if (p.linkedGoalIds?.includes(gId)) allowed.add(p.id);
+        if (p.linkedGoalIds?.includes(gId)) fromGoals.add(p.id);
       }
     }
+    const fromTasks = new Set<string>();
     for (const tId of taskIds) {
       const task = tasks.find((t) => t.id === tId);
-      if (task?.project_id) allowed.add(task.project_id);
+      if (task?.project_id) fromTasks.add(task.project_id);
     }
-    return activeProjects.filter((p) => allowed.has(p.id));
+    return filterByIntersection(activeProjects, [fromAreas, fromGoals, fromTasks]);
   }, [activeProjects, areaIds, goalIds, taskIds, tasks]);
 
   const filteredTasks = useMemo(() => {
     const hasConstraints = areaIds.length > 0 || goalIds.length > 0 || projectIds.length > 0;
     if (!hasConstraints) return tasks;
-    const allowedProjectIds = new Set<string>(projectIds);
+    const fromAreas = new Set<string>();
     for (const aId of areaIds) {
       for (const p of activeProjects) {
-        if (p.linkedAreaIds?.includes(aId)) allowedProjectIds.add(p.id);
+        if (p.linkedAreaIds?.includes(aId)) fromAreas.add(p.id);
       }
     }
+    const fromGoals = new Set<string>();
     for (const gId of goalIds) {
       for (const p of activeProjects) {
-        if (p.linkedGoalIds?.includes(gId)) allowedProjectIds.add(p.id);
+        if (p.linkedGoalIds?.includes(gId)) fromGoals.add(p.id);
       }
     }
-    return tasks.filter((t) => t.project_id !== null && allowedProjectIds.has(t.project_id!));
+    const fromProjects = new Set<string>(projectIds);
+    const applicable = [fromAreas, fromGoals, fromProjects].filter((s) => s.size > 0);
+    if (applicable.length === 0) return tasks;
+    return tasks.filter(
+      (t) => t.project_id !== null && applicable.every((s) => s.has(t.project_id!)),
+    );
   }, [tasks, areaIds, goalIds, projectIds, activeProjects]);
 
   const toggleArea = (areaId: string) => {

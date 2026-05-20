@@ -13,11 +13,14 @@ import { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
 export const TASKS_QUERY_KEY = "tasks";
 
 function invalidateTaskGraph(queryClient: ReturnType<typeof useQueryClient>): Promise<unknown[]> {
+  // Derived-progress list caches (areas/goals/projects) need refetchType: "all" because the
+  // global query-provider sets refetchOnMount: false — without it, invalidated-but-inactive
+  // queries stay stale until manual refresh when the user navigates back.
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: [TASKS_QUERY_KEY] }),
-    queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] }),
-    queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] }),
-    queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY], refetchType: "all" }),
+    queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY], refetchType: "all" }),
+    queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY], refetchType: "all" }),
     queryClient.invalidateQueries({ queryKey: [DASHBOARD_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
   ]);
@@ -300,7 +303,7 @@ export function useCompleteTaskWithGoalRefresh() {
       toast.error("Failed to complete task");
     },
     onSettled: async () => {
-      await invalidateTaskCoreGraph(queryClient);
+      await invalidateTaskGraph(queryClient);
       queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
     },

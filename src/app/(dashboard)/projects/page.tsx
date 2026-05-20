@@ -37,12 +37,13 @@ import { useResources } from "@/lib/hooks/use-resources";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { type Project } from "@/lib/types/domain.types";
 import {
-  buildProjectTaskStats,
+  buildProjectCompletionStats,
   getProjectLinkedAreaIds,
   groupProjectsByStatus,
   mergeProjectQueryResults,
   PROJECT_VIEW,
 } from "@/lib/utils/projects";
+import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { buildProjectDetailHref } from "@/lib/utils/project-urls";
 
 function getAreaName(areaId: string | null, areaNames: Map<string, string>): string | undefined {
@@ -107,7 +108,10 @@ export default function ProjectsPage() {
     () => new Map(areas.map((area) => [area.id, (area.icon as string | null | undefined) ?? null])),
     [areas],
   );
-  const taskStatsByProject = useMemo(() => buildProjectTaskStats(tasks), [tasks]);
+  const taskStatsByProject = useMemo(
+    () => buildProjectCompletionStats(tasks, notes, resources),
+    [tasks, notes, resources],
+  );
   const projectsByStatus = useMemo(() => groupProjectsByStatus(activeProjects), [activeProjects]);
   const groupedByAreaGroups = useMemo((): ProjectsByAreaGroup[] => {
     const byAreaId: Record<string, Project[]> = {};
@@ -146,20 +150,39 @@ export default function ProjectsPage() {
     }));
   }, [activeProjects, goalMap]);
 
+  const activeGoalIdSet = useMemo(
+    () => new Set(allGoals.filter((g) => !g.is_completed && !g.is_archived).map((g) => g.id)),
+    [allGoals],
+  );
+
   const rollupsByProject = useMemo(() => {
     const result = new Map<string, { goalCount: number; taskCount: number; noteCount: number; resourceCount: number }>();
     for (const project of allProjects) {
       const linkedGoalIds = (project as unknown as { linkedGoalIds?: string[] }).linkedGoalIds ?? [];
-      const goalCount = linkedGoalIds.length;
+      const goalCount = linkedGoalIds.filter((id) => activeGoalIdSet.has(id)).length;
       const noteCount = notes.filter(
-        (n) => n.project_id === project.id || n.linkedProjectIds?.includes(project.id),
+        (n) =>
+          (n.project_id === project.id || n.linkedProjectIds?.includes(project.id)) &&
+          !n.is_archived &&
+          (n.status === NOTE_STATUS.INBOX ||
+            n.status === NOTE_STATUS.TO_REVIEW ||
+            n.status === NOTE_STATUS.ACTIVE),
       ).length;
-      const resourceCount = resources.filter((r) => r.project_id === project.id).length;
-      const taskCount = tasks.filter((t) => t.project_id === project.id && !t.is_archived).length;
+      const resourceCount = resources.filter(
+        (r) =>
+          r.project_id === project.id &&
+          !r.is_archived &&
+          (r.status === RESOURCE_STATUS.INBOX ||
+            r.status === RESOURCE_STATUS.TO_REVIEW ||
+            r.status === RESOURCE_STATUS.ACTIVE),
+      ).length;
+      const taskCount = tasks.filter(
+        (t) => t.project_id === project.id && !t.is_archived && !t.is_completed,
+      ).length;
       result.set(project.id, { goalCount, taskCount, noteCount, resourceCount });
     }
     return result;
-  }, [allProjects, notes, resources, tasks]);
+  }, [allProjects, notes, resources, tasks, activeGoalIdSet]);
 
   const duplicateIndices = useMemo(() => {
     const result = new Map<string, number>();

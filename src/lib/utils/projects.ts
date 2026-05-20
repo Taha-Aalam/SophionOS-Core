@@ -1,5 +1,5 @@
-import type { Project, Task } from "@/lib/types/domain.types";
-import { PROJECT_STATUS, type ProjectStatus } from "@/lib/utils/constants";
+import type { Note, Project, Resource, Task } from "@/lib/types/domain.types";
+import { NOTE_STATUS, PROJECT_STATUS, RESOURCE_STATUS, type ProjectStatus } from "@/lib/utils/constants";
 
 type ProjectWithAreaLinks = Pick<Project, "area_id"> & { linkedAreaIds?: string[] };
 
@@ -160,6 +160,44 @@ export function buildProjectTaskStats(tasks: Task[]): Map<string, ProjectTaskSta
     };
 
     stats.set(task.project_id, nextStats);
+  }
+
+  return stats;
+}
+
+export function buildProjectCompletionStats(
+  tasks: Task[],
+  notes: Note[],
+  resources: Resource[],
+): Map<string, ProjectTaskStats> {
+  const stats = new Map<string, ProjectTaskStats>();
+
+  const bump = (projectId: string, done: boolean) => {
+    const cur = stats.get(projectId) ?? { completed: 0, total: 0 };
+    stats.set(projectId, {
+      completed: cur.completed + (done ? 1 : 0),
+      total: cur.total + 1,
+    });
+  };
+
+  for (const task of tasks) {
+    if (!task.project_id || task.is_archived) continue;
+    bump(task.project_id, task.is_completed);
+  }
+
+  for (const note of notes) {
+    if (note.is_archived || note.status === NOTE_STATUS.ARCHIVE) continue;
+    const projectIds = new Set<string>();
+    if (note.project_id) projectIds.add(note.project_id);
+    for (const pid of note.linkedProjectIds ?? []) projectIds.add(pid);
+    for (const pid of projectIds) {
+      bump(pid, note.status === NOTE_STATUS.SAVED);
+    }
+  }
+
+  for (const resource of resources) {
+    if (!resource.project_id || resource.is_archived) continue;
+    bump(resource.project_id, resource.status === RESOURCE_STATUS.SAVED);
   }
 
   return stats;

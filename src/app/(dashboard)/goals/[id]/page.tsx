@@ -68,7 +68,7 @@ import { cn } from "@/lib/utils";
 import type { Contact, CreateResourceInput, Project, Resource, Task } from "@/lib/types/domain.types";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUIStore } from "@/lib/stores/ui.store";
-import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
+import { calculateGoalProgress, getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { buildProjectCompletionStats, getProjectLinkedAreaIds } from "@/lib/utils/projects";
 import { buildReturnTo, encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 
@@ -375,7 +375,33 @@ export default function GoalDetailPage() {
     return () => setPageTitle("");
   }, [goal, setPageTitle]);
 
-  const goalProgressPercent = goal?.progress ?? 0;
+  // Compute goal progress client-side so it stays in sync with the project cards
+  // on this page. Both use the same goalData.tasks/notes/resources as their source,
+  // which eliminates the mismatch caused by the DB trigger that only counts tasks
+  // when updating project.progress.
+  const goalProgressPercent = useMemo(() => {
+    if (!goal || !goalData) return goal?.progress ?? 0;
+    const goalProjectIds = new Set(goalData.projects.map((p) => p.id));
+    const projectsWithLiveProgress = goalData.projects.map((p) => {
+      const stats = taskStatsByProject.get(p.id);
+      if (!stats || stats.total === 0) return p;
+      return { ...p, progress: Math.round((stats.completed / stats.total) * 100) };
+    });
+    const unlinkedTasks = goalData.tasks.filter(
+      (t) => !t.project_id || !goalProjectIds.has(t.project_id),
+    );
+    const unlinkedNotes = goalData.notes.filter((n) => {
+      if (n.project_id && goalProjectIds.has(n.project_id)) return false;
+      for (const pid of n.linkedProjectIds ?? []) {
+        if (goalProjectIds.has(pid)) return false;
+      }
+      return true;
+    });
+    const unlinkedResources = goalData.resources.filter(
+      (r) => !r.project_id || !goalProjectIds.has(r.project_id),
+    );
+    return calculateGoalProgress(goal, projectsWithLiveProgress, unlinkedTasks, unlinkedNotes, unlinkedResources);
+  }, [goal, goalData, taskStatsByProject]);
 
   // Static note tabs — no dynamic type tabs on goal detail
   const noteTabs = [
@@ -772,8 +798,8 @@ export default function GoalDetailPage() {
                   stroke="currentColor"
                   strokeWidth="6"
                   fill="transparent"
-                  strokeDasharray={64 * 2 * Math.PI}
-                  strokeDashoffset={64 * 2 * Math.PI * (1 - goalProgressPercent / 100)}
+                  strokeDasharray={32 * 2 * Math.PI}
+                  strokeDashoffset={32 * 2 * Math.PI * (1 - goalProgressPercent / 100)}
                   strokeLinecap="round"
                   className="text-primary transition-all duration-500"
                 />

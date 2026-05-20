@@ -27,7 +27,7 @@ import {
   buildAreaLookup,
 } from "@/lib/utils/contact-detail-relations";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
-import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
+import { buildProjectCompletionStats, getProjectLinkedAreaIds } from "@/lib/utils/projects";
 import { getTaskLinkedAreaIds } from "@/lib/utils/tasks";
 import { encodeReturnTo } from "@/lib/utils/return-to";
 
@@ -101,6 +101,11 @@ export function ContactDetailRelationshipSections({
   const router = useRouter();
   const areaLookup = React.useMemo(() => buildAreaLookup(allAreas), [allAreas]);
 
+  const taskStatsByProject = React.useMemo(
+    () => buildProjectCompletionStats(linkedTasks, linkedNotes, allResources),
+    [linkedTasks, linkedNotes, allResources],
+  );
+
   const areaCountsMap = React.useMemo(() => {
     const map = new Map<string, { goals: number; projects: number; tasks: number; notes: number; resources: number }>();
     for (const area of linkedAreas) {
@@ -114,6 +119,35 @@ export function ContactDetailRelationshipSections({
     }
     return map;
   }, [linkedAreas, linkedGoals, linkedProjects, linkedTasks, linkedNotes, allResources]);
+
+  const goalAreaIconsMap = React.useMemo(() => {
+    const map = new Map<string, (string | null)[]>();
+    for (const goal of linkedGoals) {
+      const areaIds = getGoalLinkedAreaIds(goal);
+      map.set(goal.id, getAreaIconsForEntity(areaIds, areaLookup));
+    }
+    return map;
+  }, [linkedGoals, areaLookup]);
+
+  const rollupsByProject = React.useMemo(() => {
+    const result = new Map<string, { goalCount: number; taskCount: number; noteCount: number; resourceCount: number }>();
+    const activeGoalIdSet = new Set(linkedGoals.filter((g) => !g.is_archived && !g.is_completed).map((g) => g.id));
+    for (const project of linkedProjects) {
+      const linkedGoalIds = (project as unknown as { linkedGoalIds?: string[] }).linkedGoalIds ?? [];
+      const goalCount = linkedGoalIds.filter((id) => activeGoalIdSet.has(id)).length;
+      const taskCount = linkedTasks.filter(
+        (t) => t.project_id === project.id && !t.is_archived && !t.is_completed,
+      ).length;
+      const noteCount = linkedNotes.filter(
+        (n) => (n.project_id === project.id || n.linkedProjectIds?.includes(project.id)) && !n.is_archived,
+      ).length;
+      const resourceCount = allResources.filter(
+        (r) => r.project_id === project.id && !r.is_archived,
+      ).length;
+      result.set(project.id, { goalCount, taskCount, noteCount, resourceCount });
+    }
+    return result;
+  }, [linkedProjects, linkedGoals, linkedTasks, linkedNotes, allResources]);
 
   const areaTabs = React.useMemo(() => buildAreaTabs(linkedAreas), [linkedAreas]);
   const goalTabs = React.useMemo(() => buildGoalTabs(linkedGoals), [linkedGoals]);
@@ -205,6 +239,17 @@ export function ContactDetailRelationshipSections({
                   <GoalCard
                     goal={goal}
                     areaNames={areaNames}
+                    areaIcons={goalAreaIconsMap.get(goal.id)}
+                    rollups={
+                      goal.projectCount !== undefined
+                        ? {
+                            projectCount: goal.projectCount,
+                            taskCount: goal.taskCount ?? 0,
+                            noteCount: goal.noteCount ?? 0,
+                            resourceCount: goal.resourceCount ?? 0,
+                          }
+                        : undefined
+                    }
                     onEdit={() =>
                       router.push(
                         `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(returnTo)}`,
@@ -253,6 +298,8 @@ export function ContactDetailRelationshipSections({
                     areaNames={areaNames}
                     areaIcons={areaIcons}
                     returnTo={returnTo}
+                    taskStats={taskStatsByProject.get(project.id)}
+                    rollups={rollupsByProject.get(project.id)}
                   />
                   <Button
                     variant="ghost"
