@@ -146,7 +146,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplica
             </div>
 
             {goal.description && (
-              <p className="mt-3 line-clamp-2 text-xs text-muted-foreground">
+              <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
                 {goal.description}
               </p>
             )}
