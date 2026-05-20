@@ -87,6 +87,7 @@ import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { filterProjectDialogGoals } from "@/lib/utils/project-dialog-filters";
 import { getProjectDueState, getProjectLinkedAreaIds, getProjectStatusLabel } from "@/lib/utils/projects";
+import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { buildReturnTo, resolveBackNavigation, getReturnToFromSearchParams, encodeReturnTo } from "@/lib/utils/return-to";
 
 const NOTE_STATUS_COLORS: Record<string, string> = {
@@ -249,19 +250,66 @@ export default function ProjectDetailPage() {
     () => allContacts.filter((contact) => linkedContactIds.has(contact.id)),
     [allContacts, linkedContactIds],
   );
+  const activeNotes = useMemo(
+    () => linkedNotes.filter((n) => !n.is_archived),
+    [linkedNotes],
+  );
+  const activeResources = useMemo(
+    () => linkedResources.filter((r) => !r.is_archived),
+    [linkedResources],
+  );
   const completedTaskCount = useMemo(
-    () => linkedTasks.filter((task) => task.is_completed).length,
+    () => linkedTasks.filter((t) => t.is_completed).length,
     [linkedTasks],
   );
+  const completedNoteCount = useMemo(
+    () => activeNotes.filter((n) => n.status === NOTE_STATUS.SAVED).length,
+    [activeNotes],
+  );
+  const completedResourceCount = useMemo(
+    () => activeResources.filter((r) => r.status === RESOURCE_STATUS.SAVED).length,
+    [activeResources],
+  );
+  const totalItemCount = linkedTasks.length + activeNotes.length + activeResources.length;
+  const totalCompleted = completedTaskCount + completedNoteCount + completedResourceCount;
   const progressPercent = useMemo(
     () =>
       getProjectProgressPercent(
-        completedTaskCount,
-        linkedTasks.length,
+        totalCompleted,
+        totalItemCount,
         project?.progress ?? 0,
         project?.status ?? "planning",
       ),
-    [completedTaskCount, linkedTasks.length, project?.progress, project?.status],
+    [totalCompleted, totalItemCount, project?.progress, project?.status],
+  );
+
+  const activeTaskCount = useMemo(
+    () => linkedTasks.filter((t) => !t.is_completed).length,
+    [linkedTasks],
+  );
+  const activeNoteCount = useMemo(
+    () =>
+      linkedNotes.filter(
+        (n) =>
+          n.status === NOTE_STATUS.INBOX ||
+          n.status === NOTE_STATUS.TO_REVIEW ||
+          n.status === NOTE_STATUS.ACTIVE,
+      ).length,
+    [linkedNotes],
+  );
+  const activeResourceCount = useMemo(
+    () =>
+      linkedResources.filter(
+        (r) =>
+          r.status === RESOURCE_STATUS.INBOX ||
+          r.status === RESOURCE_STATUS.TO_REVIEW ||
+          r.status === RESOURCE_STATUS.ACTIVE,
+      ).length,
+    [linkedResources],
+  );
+  const activeGoalCount = useMemo(
+    () => linkedGoals.filter((g) => !g.is_completed && !g.is_archived).length,
+    [linkedGoals],
   );
   const dueState = useMemo(
     () => getProjectDueState(project?.due_date ?? null),
@@ -541,8 +589,8 @@ export default function ProjectDetailPage() {
       const nextStatus = checked ? "completed" : "active";
       const nextProgress = checked
         ? 100
-        : linkedTasks.length > 0
-          ? Math.round((completedTaskCount / linkedTasks.length) * 100)
+        : totalItemCount > 0
+          ? Math.round((totalCompleted / totalItemCount) * 100)
           : 0;
 
       if (project.status === nextStatus && project.progress === nextProgress) {
@@ -785,8 +833,8 @@ export default function ProjectDetailPage() {
                   stroke="currentColor"
                   strokeWidth="6"
                   fill="transparent"
-                  strokeDasharray={64 * 2 * Math.PI}
-                  strokeDashoffset={64 * 2 * Math.PI * (1 - progressPercent / 100)}
+                  strokeDasharray={32 * 2 * Math.PI}
+                  strokeDashoffset={32 * 2 * Math.PI * (1 - progressPercent / 100)}
                   strokeLinecap="round"
                   className="text-primary transition-all duration-500"
                 />
@@ -855,21 +903,21 @@ export default function ProjectDetailPage() {
             onClick={() => scrollToSection("goals")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
-            <span className="font-medium text-blue-600 dark:text-blue-400">{linkedGoals.length}</span>
+            <span className="font-medium text-blue-600 dark:text-blue-400">{activeGoalCount}</span>
             <span className="text-muted-foreground">Goals</span>
           </button>
           <button
             onClick={() => scrollToSection("tasks")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
-            <span className="font-medium text-green-600 dark:text-green-400">{linkedTasks.length}</span>
+            <span className="font-medium text-green-600 dark:text-green-400">{activeTaskCount}</span>
             <span className="text-muted-foreground">Tasks</span>
           </button>
           <button
             onClick={() => scrollToSection("notes")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
-            <span className="font-medium text-purple-600 dark:text-purple-400">{linkedNotes.length}</span>
+            <span className="font-medium text-purple-600 dark:text-purple-400">{activeNoteCount}</span>
             <span className="text-muted-foreground">Notes</span>
           </button>
           <button
@@ -877,7 +925,7 @@ export default function ProjectDetailPage() {
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
             <span className="font-medium text-orange-600 dark:text-orange-400">
-              {linkedResources.length}
+              {activeResourceCount}
             </span>
             <span className="text-muted-foreground">Resources</span>
           </button>

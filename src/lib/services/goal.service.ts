@@ -232,7 +232,8 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
     resourcesByGoalId.set(link.goal_id, current);
   }
 
-  // Fetch junction-table project links for notes (note_projects) to detect multi-project notes
+  // For goal-linked notes: fetch their note_projects junction entries to detect
+  // which goal projects they belong to (for unlinked-item filtering below).
   const allNoteIds = [...notesByGoalId.values()].flat().map((n) => n.id);
   const noteProjectIdsByNoteId = new Map<string, Set<string>>();
   if (allNoteIds.length > 0) {
@@ -250,6 +251,96 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
     }
   }
 
+  // Collect all project IDs across every goal being processed, then fetch ALL
+  // tasks/notes/resources for those projects. This gives us live project progress
+  // that matches what buildProjectCompletionStats computes on the client — which
+  // looks at ALL project items, not just those also linked to the goal.
+  const allGoalProjectIds = [
+    ...new Set([...projectsByGoalId.values()].flat().map((p) => p.id)),
+  ];
+
+  type ProjectItemTask = { is_completed: boolean; is_archived: boolean };
+  type ProjectItemNote = { id: string; status: string; is_archived: boolean };
+  type ProjectItemResource = { status: string; is_archived: boolean };
+
+  const projectTasksByProjectId = new Map<string, ProjectItemTask[]>();
+  const projectNotesByProjectId = new Map<string, ProjectItemNote[]>();
+  const projectResourcesByProjectId = new Map<string, ProjectItemResource[]>();
+
+  if (allGoalProjectIds.length > 0) {
+    const [
+      { data: allProjTasks, error: projTaskError },
+      { data: allProjDirectNotes, error: projNoteError },
+      { data: allProjNoteJunctions, error: projNoteJunctionError },
+      { data: allProjResources, error: projResourceError },
+    ] = await Promise.all([
+      createClient()
+        .from("tasks")
+        .select("project_id, is_completed, is_archived")
+        .in("project_id", allGoalProjectIds),
+      createClient()
+        .from("notes")
+        .select("id, project_id, status, is_archived")
+        .in("project_id", allGoalProjectIds),
+      createClient()
+        .from("note_projects")
+        .select("project_id, note:notes(id, status, is_archived)")
+        .in("project_id", allGoalProjectIds),
+      createClient()
+        .from("resources")
+        .select("project_id, status, is_archived")
+        .in("project_id", allGoalProjectIds),
+    ]);
+
+    if (projTaskError) throw new DatabaseError(projTaskError.message);
+    if (projNoteError) throw new DatabaseError(projNoteError.message);
+    if (projResourceError) throw new DatabaseError(projResourceError.message);
+    if (projNoteJunctionError && projNoteJunctionError.code !== "42P01") {
+      throw new DatabaseError(projNoteJunctionError.message);
+    }
+
+    for (const t of allProjTasks ?? []) {
+      if (!t.project_id) continue;
+      const arr = projectTasksByProjectId.get(t.project_id) ?? [];
+      arr.push({ is_completed: t.is_completed, is_archived: t.is_archived });
+      projectTasksByProjectId.set(t.project_id, arr);
+    }
+
+    // Build projectNotesByProjectId: first from direct FK, then from junction entries.
+    // Track seen note IDs per project to avoid double-counting.
+    const seenNotesByProject = new Map<string, Set<string>>();
+    for (const n of allProjDirectNotes ?? []) {
+      if (!n.project_id) continue;
+      const arr = projectNotesByProjectId.get(n.project_id) ?? [];
+      const seen = seenNotesByProject.get(n.project_id) ?? new Set<string>();
+      if (!seen.has(n.id)) {
+        arr.push({ id: n.id, status: n.status as string, is_archived: n.is_archived });
+        seen.add(n.id);
+      }
+      projectNotesByProjectId.set(n.project_id, arr);
+      seenNotesByProject.set(n.project_id, seen);
+    }
+    for (const jlink of allProjNoteJunctions ?? []) {
+      const note = Array.isArray(jlink.note) ? jlink.note[0] : jlink.note;
+      if (!note || !jlink.project_id) continue;
+      const arr = projectNotesByProjectId.get(jlink.project_id) ?? [];
+      const seen = seenNotesByProject.get(jlink.project_id) ?? new Set<string>();
+      if (!seen.has(note.id)) {
+        arr.push({ id: note.id, status: note.status as string, is_archived: note.is_archived });
+        seen.add(note.id);
+      }
+      projectNotesByProjectId.set(jlink.project_id, arr);
+      seenNotesByProject.set(jlink.project_id, seen);
+    }
+
+    for (const r of allProjResources ?? []) {
+      if (!r.project_id) continue;
+      const arr = projectResourcesByProjectId.get(r.project_id) ?? [];
+      arr.push({ status: r.status as string, is_archived: r.is_archived });
+      projectResourcesByProjectId.set(r.project_id, arr);
+    }
+  }
+
   return goals.map((goal) => {
     const goalProjects = projectsByGoalId.get(goal.id) ?? [];
     const goalProjectIds = new Set(goalProjects.map((p) => p.id));
@@ -258,6 +349,29 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
     const allNotes = notesByGoalId.get(goal.id) ?? [];
     const allResources = resourcesByGoalId.get(goal.id) ?? [];
 
+    // Compute live progress for each project from ALL its items (not just goal-linked
+    // ones). This mirrors buildProjectCompletionStats used by project cards in the UI.
+    const goalProjectsWithLiveProgress = goalProjects.map((p) => {
+      const pTasks = (projectTasksByProjectId.get(p.id) ?? []).filter((t) => !t.is_archived);
+      const pNotes = (projectNotesByProjectId.get(p.id) ?? []).filter(
+        (n) => !n.is_archived && n.status !== "archive",
+      );
+      const pResources = (projectResourcesByProjectId.get(p.id) ?? []).filter(
+        (r) => !r.is_archived,
+      );
+      const pTotal = pTasks.length + pNotes.length + pResources.length;
+      if (pTotal === 0) {
+        return p;
+      }
+      const pCompleted =
+        pTasks.filter((t) => t.is_completed).length +
+        pNotes.filter((n) => n.status === "saved").length +
+        pResources.filter((r) => r.status === "saved").length;
+      return { ...p, progress: Math.round((pCompleted / pTotal) * 100) };
+    });
+
+    // "Unlinked" items: goal-linked items NOT covered by any goal-linked project.
+    // These count directly in the goal's own progress (not through a project).
     const unlinkedTasks =
       goalProjectIds.size === 0
         ? allTasks
@@ -286,7 +400,7 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
       ...goal,
       progress: calculateGoalProgress(
         goal,
-        goalProjects,
+        goalProjectsWithLiveProgress,
         unlinkedTasks,
         unlinkedNotes,
         unlinkedResources,
