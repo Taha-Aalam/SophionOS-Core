@@ -1,7 +1,5 @@
 import type { Goal, Note, Project, Resource, Task } from "@/lib/types/domain.types";
 
-import { PROJECT_STATUS } from "./constants";
-
 export type GoalTermFilter = "all" | "short" | "mid" | "long";
 export type GoalStatusFilter = "active" | "all" | "archived" | "completed" | "inactive";
 export type GoalView = "active" | "completed" | "inactive" | "long" | "mid" | "short";
