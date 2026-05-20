@@ -101,11 +101,17 @@ describe("goalService", () => {
       select: vi.fn().mockReturnThis(),
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
+    const emptyTable = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    };
     const mockClient = {
       from: vi.fn((table: string) => {
         if (table === "goals") return goalsTable;
         if (table === "goal_projects") return goalProjectsTable;
         if (table === "goal_tasks") return goalTasksTable;
+        if (table === "goal_notes") return emptyTable;
+        if (table === "goal_resources") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -175,11 +181,17 @@ describe("goalService", () => {
       select: vi.fn().mockReturnThis(),
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
+    const emptyTable = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    };
     const mockClient = {
       from: vi.fn((table: string) => {
         if (table === "goals") return goalsTable;
         if (table === "goal_projects") return goalProjectsTable;
         if (table === "goal_tasks") return goalTasksTable;
+        if (table === "goal_notes") return emptyTable;
+        if (table === "goal_resources") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -380,11 +392,17 @@ describe("goalService", () => {
       select: vi.fn().mockReturnThis(),
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
+    const emptyTable = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    };
     const mockClient = {
       from: vi.fn((table: string) => {
         if (table === "goals") return goalsTable;
         if (table === "goal_projects") return goalProjectsTable;
         if (table === "goal_tasks") return goalTasksTable;
+        if (table === "goal_notes") return emptyTable;
+        if (table === "goal_resources") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
