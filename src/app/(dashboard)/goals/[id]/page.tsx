@@ -69,7 +69,7 @@ import type { Contact, CreateResourceInput, Project, Resource, Task } from "@/li
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { calculateGoalProgress, getGoalLinkedAreaIds } from "@/lib/utils/goals";
-import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
+import { buildProjectCompletionStats, getProjectLinkedAreaIds } from "@/lib/utils/projects";
 import { buildReturnTo, encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 
 const NOTE_STATUS_COLORS: Record<string, string> = {
@@ -295,15 +295,38 @@ export default function GoalDetailPage() {
     if (!goalData) return new Map<string, ProjectCardRollups>();
     const map = new Map<string, ProjectCardRollups>();
     for (const project of goalData.projects) {
-      const taskCount = goalData.tasks.filter((t) => t.project_id === project.id).length;
-      const noteCount = goalData.notes.filter(
-        (n) => n.project_id === project.id || n.linkedProjectIds?.includes(project.id),
+      const taskCount = goalData.tasks.filter(
+        (t) => t.project_id === project.id && !t.is_archived && !t.is_completed,
       ).length;
-      const resourceCount = goalData.resources.filter((r) => r.project_id === project.id).length;
+      const noteCount = goalData.notes.filter(
+        (n) =>
+          (n.project_id === project.id || n.linkedProjectIds?.includes(project.id)) &&
+          !n.is_archived &&
+          (n.status === NOTE_STATUS.INBOX ||
+            n.status === NOTE_STATUS.TO_REVIEW ||
+            n.status === NOTE_STATUS.ACTIVE),
+      ).length;
+      const resourceCount = goalData.resources.filter(
+        (r) =>
+          r.project_id === project.id &&
+          !r.is_archived &&
+          (r.status === RESOURCE_STATUS.INBOX ||
+            r.status === RESOURCE_STATUS.TO_REVIEW ||
+            r.status === RESOURCE_STATUS.ACTIVE),
+      ).length;
+      // goalCount = 1: we are on this goal's page, it is by definition active
       map.set(project.id, { goalCount: 1, taskCount, noteCount, resourceCount });
     }
     return map;
   }, [goalData]);
+
+  const taskStatsByProject = useMemo(
+    () =>
+      goalData
+        ? buildProjectCompletionStats(goalData.tasks, goalData.notes, goalData.resources)
+        : new Map(),
+    [goalData],
+  );
 
   const linkedContactIds = useMemo(
     () => new Set(goalContactLinks.map((link) => link.contact_id)),
@@ -354,7 +377,7 @@ export default function GoalDetailPage() {
 
   const goalProgressPercent = useMemo(() => {
     if (!goal || !goalData) return 0;
-    return calculateGoalProgress(goal, goalData.projects, goalData.tasks);
+    return calculateGoalProgress(goal, goalData.projects, goalData.tasks, goalData.notes, goalData.resources);
   }, [goal, goalData]);
 
   // Static note tabs — no dynamic type tabs on goal detail
@@ -1015,6 +1038,7 @@ export default function GoalDetailPage() {
                   areaNames={getProjectAreaNames(project)}
                   areaIcons={getProjectAreaIcons(project)}
                   returnTo={currentPagePathWithSlug}
+                  taskStats={taskStatsByProject.get(project.id)}
                   rollups={projectRollups.get(project.id)}
                 />
               ))}
