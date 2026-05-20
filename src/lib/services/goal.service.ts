@@ -152,108 +152,147 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
   ] = await Promise.all([
     createClient()
       .from("goal_projects")
-      .select("goal_id, project:projects(status, is_archived)")
+      .select("goal_id, project:projects(id, status, is_archived, progress)")
       .in("goal_id", goalIds),
     createClient()
       .from("goal_tasks")
-      .select("goal_id, task:tasks(is_completed, is_archived)")
+      .select("goal_id, task:tasks(is_completed, is_archived, project_id)")
       .in("goal_id", goalIds),
     createClient()
       .from("goal_notes")
-      .select("goal_id, note:notes(status, is_archived)")
+      .select("goal_id, note:notes(id, status, is_archived, project_id)")
       .in("goal_id", goalIds),
     createClient()
       .from("goal_resources")
-      .select("goal_id, resource:resources(status, is_archived)")
+      .select("goal_id, resource:resources(status, is_archived, project_id)")
       .in("goal_id", goalIds),
   ]);
 
-  if (projectError) {
-    throw new DatabaseError(projectError.message);
-  }
+  if (projectError) throw new DatabaseError(projectError.message);
+  if (taskError) throw new DatabaseError(taskError.message);
+  if (noteError) throw new DatabaseError(noteError.message);
+  if (resourceError) throw new DatabaseError(resourceError.message);
 
-  if (taskError) {
-    throw new DatabaseError(taskError.message);
-  }
+  type ProjectEntry = Pick<Project, "is_archived" | "status" | "progress"> & { id: string };
+  type TaskEntry = Pick<Task, "is_archived" | "is_completed" | "project_id">;
+  type NoteEntry = Pick<Note, "is_archived" | "status"> & { id: string; project_id: string | null };
+  type ResourceEntry = Pick<Resource, "is_archived" | "status"> & { project_id: string | null };
 
-  if (noteError) {
-    throw new DatabaseError(noteError.message);
-  }
-
-  if (resourceError) {
-    throw new DatabaseError(resourceError.message);
-  }
-
-  const projectsByGoalId = new Map<string, Array<Pick<Project, "is_archived" | "status">>>();
+  const projectsByGoalId = new Map<string, ProjectEntry[]>();
   for (const link of projectLinks ?? []) {
-    const linkedProject = Array.isArray(link.project) ? link.project[0] : link.project;
-    if (!linkedProject) {
-      continue;
-    }
-
-    const currentProjects = projectsByGoalId.get(link.goal_id) ?? [];
-    currentProjects.push({
-      is_archived: linkedProject.is_archived,
-      status: linkedProject.status as Project["status"],
+    const p = Array.isArray(link.project) ? link.project[0] : link.project;
+    if (!p) continue;
+    const current = projectsByGoalId.get(link.goal_id) ?? [];
+    current.push({
+      id: p.id,
+      is_archived: p.is_archived,
+      status: p.status as Project["status"],
+      progress: p.progress,
     });
-    projectsByGoalId.set(link.goal_id, currentProjects);
+    projectsByGoalId.set(link.goal_id, current);
   }
 
-  const tasksByGoalId = new Map<string, Array<Pick<Task, "is_archived" | "is_completed">>>();
+  const tasksByGoalId = new Map<string, TaskEntry[]>();
   for (const link of taskLinks ?? []) {
-    const linkedTask = Array.isArray(link.task) ? link.task[0] : link.task;
-    if (!linkedTask) {
-      continue;
-    }
-
-    const currentTasks = tasksByGoalId.get(link.goal_id) ?? [];
-    currentTasks.push({
-      is_archived: linkedTask.is_archived,
-      is_completed: linkedTask.is_completed,
+    const t = Array.isArray(link.task) ? link.task[0] : link.task;
+    if (!t) continue;
+    const current = tasksByGoalId.get(link.goal_id) ?? [];
+    current.push({
+      is_archived: t.is_archived,
+      is_completed: t.is_completed,
+      project_id: t.project_id,
     });
-    tasksByGoalId.set(link.goal_id, currentTasks);
+    tasksByGoalId.set(link.goal_id, current);
   }
 
-  const notesByGoalId = new Map<string, Array<Pick<Note, "is_archived" | "status">>>();
+  const notesByGoalId = new Map<string, NoteEntry[]>();
   for (const link of noteLinks ?? []) {
-    const linkedNote = Array.isArray(link.note) ? link.note[0] : link.note;
-    if (!linkedNote) {
-      continue;
-    }
-
-    const currentNotes = notesByGoalId.get(link.goal_id) ?? [];
-    currentNotes.push({
-      is_archived: linkedNote.is_archived,
-      status: linkedNote.status as Note["status"],
+    const n = Array.isArray(link.note) ? link.note[0] : link.note;
+    if (!n) continue;
+    const current = notesByGoalId.get(link.goal_id) ?? [];
+    current.push({
+      id: n.id,
+      is_archived: n.is_archived,
+      status: n.status as Note["status"],
+      project_id: n.project_id,
     });
-    notesByGoalId.set(link.goal_id, currentNotes);
+    notesByGoalId.set(link.goal_id, current);
   }
 
-  const resourcesByGoalId = new Map<string, Array<Pick<Resource, "is_archived" | "status">>>();
+  const resourcesByGoalId = new Map<string, ResourceEntry[]>();
   for (const link of resourceLinks ?? []) {
-    const linkedResource = Array.isArray(link.resource) ? link.resource[0] : link.resource;
-    if (!linkedResource) {
-      continue;
-    }
-
-    const currentResources = resourcesByGoalId.get(link.goal_id) ?? [];
-    currentResources.push({
-      is_archived: linkedResource.is_archived,
-      status: linkedResource.status as Resource["status"],
+    const r = Array.isArray(link.resource) ? link.resource[0] : link.resource;
+    if (!r) continue;
+    const current = resourcesByGoalId.get(link.goal_id) ?? [];
+    current.push({
+      is_archived: r.is_archived,
+      status: r.status as Resource["status"],
+      project_id: r.project_id,
     });
-    resourcesByGoalId.set(link.goal_id, currentResources);
+    resourcesByGoalId.set(link.goal_id, current);
   }
 
-  return goals.map((goal) => ({
-    ...goal,
-    progress: calculateGoalProgress(
-      goal,
-      projectsByGoalId.get(goal.id),
-      tasksByGoalId.get(goal.id),
-      notesByGoalId.get(goal.id),
-      resourcesByGoalId.get(goal.id),
-    ),
-  }));
+  // Fetch junction-table project links for notes (note_projects) to detect multi-project notes
+  const allNoteIds = [...notesByGoalId.values()].flat().map((n) => n.id);
+  const noteProjectIdsByNoteId = new Map<string, Set<string>>();
+  if (allNoteIds.length > 0) {
+    const { data: noteProjectData, error: noteProjectError } = await createClient()
+      .from("note_projects")
+      .select("note_id, project_id")
+      .in("note_id", allNoteIds);
+    if (noteProjectError && noteProjectError.code !== "42P01") {
+      throw new DatabaseError(noteProjectError.message);
+    }
+    for (const row of noteProjectData ?? []) {
+      const set = noteProjectIdsByNoteId.get(row.note_id) ?? new Set<string>();
+      set.add(row.project_id);
+      noteProjectIdsByNoteId.set(row.note_id, set);
+    }
+  }
+
+  return goals.map((goal) => {
+    const goalProjects = projectsByGoalId.get(goal.id) ?? [];
+    const goalProjectIds = new Set(goalProjects.map((p) => p.id));
+
+    const allTasks = tasksByGoalId.get(goal.id) ?? [];
+    const allNotes = notesByGoalId.get(goal.id) ?? [];
+    const allResources = resourcesByGoalId.get(goal.id) ?? [];
+
+    const unlinkedTasks =
+      goalProjectIds.size === 0
+        ? allTasks
+        : allTasks.filter((t) => !t.project_id || !goalProjectIds.has(t.project_id));
+
+    const unlinkedNotes =
+      goalProjectIds.size === 0
+        ? allNotes
+        : allNotes.filter((n) => {
+            if (n.project_id && goalProjectIds.has(n.project_id)) return false;
+            const junctionIds = noteProjectIdsByNoteId.get(n.id);
+            if (junctionIds) {
+              for (const pid of junctionIds) {
+                if (goalProjectIds.has(pid)) return false;
+              }
+            }
+            return true;
+          });
+
+    const unlinkedResources =
+      goalProjectIds.size === 0
+        ? allResources
+        : allResources.filter((r) => !r.project_id || !goalProjectIds.has(r.project_id));
+
+    return {
+      ...goal,
+      progress: calculateGoalProgress(
+        goal,
+        goalProjects,
+        unlinkedTasks,
+        unlinkedNotes,
+        unlinkedResources,
+      ),
+    };
+  });
 }
 
 async function hydrateGoalRollupCounts(goals: Goal[]): Promise<Goal[]> {
