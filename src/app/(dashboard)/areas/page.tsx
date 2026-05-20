@@ -224,6 +224,7 @@ export default function AreasPage() {
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
                   notesCount={rollupsByAreaId.get(area.id)?.notesCount}
                   resourcesCount={rollupsByAreaId.get(area.id)?.resourcesCount}
+                  progress={rollupsByAreaId.get(area.id)?.progress}
                   duplicateIndex={duplicateIndices.get(area.id)}
                   onEdit={handleOpenEdit}
                   onArchive={handleArchive}
@@ -262,6 +263,7 @@ export default function AreasPage() {
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
                   notesCount={rollupsByAreaId.get(area.id)?.notesCount}
                   resourcesCount={rollupsByAreaId.get(area.id)?.resourcesCount}
+                  progress={rollupsByAreaId.get(area.id)?.progress}
                   duplicateIndex={duplicateIndices.get(area.id)}
                   onEdit={handleOpenEdit}
                   onArchive={handleArchive}
@@ -305,6 +307,7 @@ export default function AreasPage() {
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
                   notesCount={rollupsByAreaId.get(area.id)?.notesCount}
                   resourcesCount={rollupsByAreaId.get(area.id)?.resourcesCount}
+                  progress={rollupsByAreaId.get(area.id)?.progress}
                   duplicateIndex={duplicateIndices.get(area.id)}
                   onEdit={!area.archive ? handleOpenEdit : undefined}
                   onArchive={handleArchive}
@@ -343,6 +346,7 @@ export default function AreasPage() {
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
                   notesCount={rollupsByAreaId.get(area.id)?.notesCount}
                   resourcesCount={rollupsByAreaId.get(area.id)?.resourcesCount}
+                  progress={rollupsByAreaId.get(area.id)?.progress}
                   duplicateIndex={duplicateIndices.get(area.id)}
                   onArchive={handleArchive}
                   isArchiving={archiveArea.isPending}
