@@ -22,6 +22,10 @@ export interface GoalDetailData {
     completedTaskCount: number;
     noteCount: number;
     resourceCount: number;
+    activeProjectCount: number;
+    activeTaskCount: number;
+    activeNoteCount: number;
+    activeResourceCount: number;
   };
 }
 
@@ -110,6 +114,16 @@ export function useGoalDetail(goalId: string, filters?: GoalDetailFilters) {
           completedTaskCount,
           noteCount: notesResult.length,
           resourceCount: resourcesResult.length,
+          activeProjectCount: projectsResult.filter(
+            (p) => !p.is_archived && p.status !== "completed",
+          ).length,
+          activeTaskCount: tasksResult.filter((t) => !t.is_archived && !t.is_completed).length,
+          activeNoteCount: notesResult.filter(
+            (n) => !n.is_archived && n.status !== "archive" && n.status !== "saved",
+          ).length,
+          activeResourceCount: resourcesResult.filter(
+            (r) => !r.is_archived && r.status !== "saved",
+          ).length,
         },
       };
     },
