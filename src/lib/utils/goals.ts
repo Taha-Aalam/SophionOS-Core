@@ -151,7 +151,7 @@ export function mergeGoalIntoFilteredList(
 
 export function calculateGoalProgress(
   goal: Pick<Goal, "is_completed" | "progress">,
-  projects: Array<Pick<Project, "is_archived" | "status">> = [],
+  projects: Array<Pick<Project, "is_archived" | "status" | "progress">> = [],
   tasks: Array<Pick<Task, "is_archived" | "is_completed">> = [],
   notes: Array<Pick<Note, "is_archived" | "status">> = [],
   resources: Array<Pick<Resource, "is_archived" | "status">> = [],
@@ -169,7 +169,7 @@ export function calculateGoalProgress(
   if (total === 0) return goal.progress;
 
   const completed =
-    activeProjects.filter((p) => p.status === "completed").length +
+    activeProjects.reduce((sum, p) => sum + p.progress / 100, 0) +
     activeTasks.filter((t) => t.is_completed).length +
     activeNotes.filter((n) => n.status === "saved").length +
     activeResources.filter((r) => r.status === "saved").length;
