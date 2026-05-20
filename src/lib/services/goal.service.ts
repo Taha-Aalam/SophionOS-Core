@@ -325,6 +325,11 @@ async function hydrateSingleGoalAreaLinks(goal: Goal): Promise<Goal> {
   return hydratedGoal;
 }
 
+async function hydrateSingleGoalRollupCounts(goal: Goal): Promise<Goal> {
+  const [hydratedGoal] = await hydrateGoalRollupCounts([goal]);
+  return hydratedGoal;
+}
+
 export const goalService = {
   async list(
     userId: string,
@@ -527,7 +532,9 @@ export const goalService = {
       await this.replaceAreaLinks(userId, id, areaIds);
     }
 
-    return hydrateSingleGoalAreaLinks(await hydrateSingleGoalProgress(data));
+    return hydrateSingleGoalRollupCounts(
+      await hydrateSingleGoalAreaLinks(await hydrateSingleGoalProgress(data)),
+    );
   },
 
   async countByArea(userId: string, areaId: string): Promise<number> {
