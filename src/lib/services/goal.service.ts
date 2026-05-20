@@ -261,27 +261,58 @@ async function hydrateGoalRollupCounts(goals: Goal[]): Promise<Goal[]> {
   const goalIds = goals.map((g) => g.id);
 
   const [
-    { data: projectLinks },
-    { data: taskLinks },
-    { data: noteLinks },
-    { data: resourceLinks },
+    { data: projectLinks, error: projectError },
+    { data: taskLinks, error: taskError },
+    { data: noteLinks, error: noteError },
+    { data: resourceLinks, error: resourceError },
   ] = await Promise.all([
-    createClient().from("goal_projects").select("goal_id").in("goal_id", goalIds),
-    createClient().from("goal_tasks").select("goal_id").in("goal_id", goalIds),
-    createClient().from("goal_notes").select("goal_id").in("goal_id", goalIds),
-    createClient().from("goal_resources").select("goal_id").in("goal_id", goalIds),
+    createClient()
+      .from("goal_projects")
+      .select("goal_id, project:projects(status, is_archived)")
+      .in("goal_id", goalIds),
+    createClient()
+      .from("goal_tasks")
+      .select("goal_id, task:tasks(is_completed, is_archived)")
+      .in("goal_id", goalIds),
+    createClient()
+      .from("goal_notes")
+      .select("goal_id, note:notes(status, is_archived)")
+      .in("goal_id", goalIds),
+    createClient()
+      .from("goal_resources")
+      .select("goal_id, resource:resources(status, is_archived)")
+      .in("goal_id", goalIds),
   ]);
 
-  const countFor = (links: { goal_id: string }[] | null, id: string): number =>
-    (links ?? []).filter((r) => r.goal_id === id).length;
+  if (projectError) throw new DatabaseError(projectError.message);
+  if (taskError) throw new DatabaseError(taskError.message);
+  if (noteError) throw new DatabaseError(noteError.message);
+  if (resourceError) throw new DatabaseError(resourceError.message);
 
-  return goals.map((goal) => ({
-    ...goal,
-    projectCount: countFor(projectLinks, goal.id),
-    taskCount: countFor(taskLinks, goal.id),
-    noteCount: countFor(noteLinks, goal.id),
-    resourceCount: countFor(resourceLinks, goal.id),
-  }));
+  const countFor = (
+    links: Array<{ goal_id: string } & Record<string, unknown>> | null,
+    goalId: string,
+    entityKey: string,
+    isActive: (entity: Record<string, unknown>) => boolean,
+  ): number =>
+    (links ?? []).filter((link) => {
+      if (link.goal_id !== goalId) return false;
+      const entity = Array.isArray(link[entityKey])
+        ? (link[entityKey] as Record<string, unknown>[])[0]
+        : (link[entityKey] as Record<string, unknown> | undefined);
+      return entity != null && isActive(entity);
+    }).length;
+
+  return goals.map((goal) => {
+    const id = goal.id;
+    return {
+      ...goal,
+      projectCount: countFor(projectLinks, id, "project", (e) => !e.is_archived && e.status !== "completed"),
+      taskCount: countFor(taskLinks, id, "task", (e) => !e.is_archived && !e.is_completed),
+      noteCount: countFor(noteLinks, id, "note", (e) => !e.is_archived && e.status !== "archive" && e.status !== "saved"),
+      resourceCount: countFor(resourceLinks, id, "resource", (e) => !e.is_archived && e.status !== "saved"),
+    };
+  });
 }
 
 async function hydrateSingleGoalProgress(goal: Goal): Promise<Goal> {
