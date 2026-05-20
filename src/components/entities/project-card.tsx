@@ -143,7 +143,7 @@ export function ProjectCard({
             </div>
 
             {project.description && (
-              <p className="mt-3 line-clamp-2 text-xs text-muted-foreground">
+              <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
                 {project.description}
               </p>
             )}
