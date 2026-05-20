@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Area } from "@/lib/types/domain.types";
-import { normalizeAreaType, type AreaProgress } from "@/lib/utils/areas";
-import { ProgressBar } from "@/components/ui/progress-bar";
+import { normalizeAreaType } from "@/lib/utils/areas";
 
 interface AreaCardProps {
   area: Area;
@@ -18,7 +17,6 @@ interface AreaCardProps {
   tasksCount?: number;
   notesCount?: number;
   resourcesCount?: number;
-  progress?: AreaProgress;
   duplicateIndex?: number;
   onEdit?: (area: Area) => void;
   onArchive?: (area: Area) => void;
@@ -44,7 +42,6 @@ const AreaCardComponent = ({
   tasksCount = 0,
   notesCount = 0,
   resourcesCount = 0,
-  progress,
   duplicateIndex,
   onEdit,
   onArchive,
@@ -222,9 +219,6 @@ const AreaCardComponent = ({
             <span>{resourcesCount}</span>
           </div>
         </div>
-        {progress && progress.total > 0 && (
-          <ProgressBar percentage={progress.percentage} className="mt-2" />
-        )}
       </CardContent>
     </Card>
   );
@@ -247,7 +241,6 @@ export const AreaCard = memo(AreaCardComponent, (prevProps, nextProps) => {
     prevProps.tasksCount === nextProps.tasksCount &&
     prevProps.notesCount === nextProps.notesCount &&
     prevProps.resourcesCount === nextProps.resourcesCount &&
-    prevProps.progress?.percentage === nextProps.progress?.percentage &&
     prevProps.duplicateIndex === nextProps.duplicateIndex &&
     prevProps.isArchiving === nextProps.isArchiving &&
     prevProps.isRestoring === nextProps.isRestoring &&

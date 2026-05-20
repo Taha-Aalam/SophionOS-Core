@@ -30,7 +30,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ProgressBar } from "@/components/ui/progress-bar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
@@ -143,7 +142,7 @@ export default function AreaDetailPage() {
 
   const area = areaData?.area;
   const { data: areaContactLinks = [] } = useContactByArea(area?.id ?? "");
-  const rollups = areaData?.rollups ?? { goalCount: 0, projectCount: 0, taskCount: 0, noteCount: 0, resourceCount: 0, progress: { completed: 0, total: 0, percentage: 0 } };
+  const rollups = areaData?.rollups ?? { goalCount: 0, projectCount: 0, taskCount: 0, noteCount: 0, resourceCount: 0 };
   const linkedResources = useMemo(() => areaData?.resources ?? [], [areaData?.resources]);
 
   const projectTaskStats = useMemo(
@@ -622,9 +621,6 @@ export default function AreaDetailPage() {
             <span className="text-muted-foreground">Resources</span>
           </button>
         </div>
-        {rollups.progress && rollups.progress.total > 0 && (
-          <ProgressBar percentage={rollups.progress.percentage} className="px-6 pb-4" />
-        )}
 
         {/* Collapsible Properties Panel */}
         {isPropertiesOpen && (
