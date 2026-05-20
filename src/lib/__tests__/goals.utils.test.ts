@@ -63,8 +63,8 @@ describe("getAreaRollups", () => {
   });
 });
 
-function buildProject(overrides: Partial<{ is_archived: boolean; status: "active" | "archived" | "completed" | "planning" | "on_hold" }> = {}) {
-  return { is_archived: false, status: "active" as const, ...overrides };
+function buildProject(overrides: Partial<{ is_archived: boolean; status: "active" | "archived" | "completed" | "planning" | "on_hold"; progress: number }> = {}) {
+  return { is_archived: false, status: "active" as const, progress: 0, ...overrides };
 }
 
 function buildTask(overrides: Partial<{ is_archived: boolean; is_completed: boolean }> = {}) {
@@ -88,8 +88,8 @@ describe("calculateGoalProgress", () => {
     expect(calculateGoalProgress({ is_completed: false, progress: 42 })).toBe(42);
   });
 
-  it("counts all item types proportionally — 1 project(done) + 4 tasks(2 done) + 2 notes(1 done) + 4 resources(2 done) = 6/11 ≈ 55%", () => {
-    const projects = [buildProject({ status: "completed" })];
+  it("counts all item types proportionally — 1 project(progress=100) + 4 tasks(2 done) + 2 notes(1 done) + 4 resources(2 done) = 6/11 ≈ 55%", () => {
+    const projects = [buildProject({ progress: 100 })];
     const tasks = [
       buildTask({ is_completed: true }),
       buildTask({ is_completed: true }),
@@ -108,8 +108,8 @@ describe("calculateGoalProgress", () => {
 
   it("excludes archived projects from total and completed", () => {
     const projects = [
-      buildProject({ status: "completed" }),
-      buildProject({ is_archived: true, status: "completed" }),
+      buildProject({ progress: 100 }),
+      buildProject({ is_archived: true, progress: 100 }),
     ];
     expect(calculateGoalProgress({ is_completed: false, progress: 0 }, projects)).toBe(100);
   });
@@ -143,5 +143,26 @@ describe("calculateGoalProgress", () => {
   it("falls back to goal.progress when all items are archived/excluded", () => {
     const notes = [buildNote({ is_archived: true })];
     expect(calculateGoalProgress({ is_completed: false, progress: 37 }, [], [], notes)).toBe(37);
+  });
+
+  it("uses fractional project progress — 1 project at 50% = 50%", () => {
+    const projects = [buildProject({ progress: 50 })];
+    expect(calculateGoalProgress({ is_completed: false, progress: 0 }, projects)).toBe(50);
+  });
+
+  it("averages two project progresses when only projects present — 60% + 80% = 70%", () => {
+    const projects = [buildProject({ progress: 60 }), buildProject({ progress: 80 })];
+    expect(calculateGoalProgress({ is_completed: false, progress: 0 }, projects)).toBe(70);
+  });
+
+  it("mixes fractional project with unlinked tasks — 1 project(60%) + 2 tasks(1 done) = 1.6/3 ≈ 53%", () => {
+    const projects = [buildProject({ progress: 60 })];
+    const tasks = [buildTask({ is_completed: true }), buildTask()];
+    expect(calculateGoalProgress({ is_completed: false, progress: 0 }, projects, tasks)).toBe(53);
+  });
+
+  it("project at 0% contributes 0 to progress", () => {
+    const projects = [buildProject({ progress: 0 })];
+    expect(calculateGoalProgress({ is_completed: false, progress: 0 }, projects)).toBe(0);
   });
 });
