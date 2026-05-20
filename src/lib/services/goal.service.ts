@@ -1,5 +1,5 @@
 import { createClient } from "../supabase/client";
-import type { CreateGoalInput, Goal, Project, Task, UpdateGoalInput } from "../types/domain.types";
+import type { CreateGoalInput, Goal, Note, Project, Resource, Task, UpdateGoalInput } from "../types/domain.types";
 import {
   calculateGoalProgress,
   goalMatchesAreaId,
@@ -144,17 +144,29 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
 
   const goalIds = goals.map((goal) => goal.id);
 
-  const [{ data: projectLinks, error: projectError }, { data: taskLinks, error: taskError }] =
-    await Promise.all([
-      createClient()
-        .from("goal_projects")
-        .select("goal_id, project:projects(status, is_archived)")
-        .in("goal_id", goalIds),
-      createClient()
-        .from("goal_tasks")
-        .select("goal_id, task:tasks(is_completed, is_archived)")
-        .in("goal_id", goalIds),
-    ]);
+  const [
+    { data: projectLinks, error: projectError },
+    { data: taskLinks, error: taskError },
+    { data: noteLinks, error: noteError },
+    { data: resourceLinks, error: resourceError },
+  ] = await Promise.all([
+    createClient()
+      .from("goal_projects")
+      .select("goal_id, project:projects(status, is_archived)")
+      .in("goal_id", goalIds),
+    createClient()
+      .from("goal_tasks")
+      .select("goal_id, task:tasks(is_completed, is_archived)")
+      .in("goal_id", goalIds),
+    createClient()
+      .from("goal_notes")
+      .select("goal_id, note:notes(status, is_archived)")
+      .in("goal_id", goalIds),
+    createClient()
+      .from("goal_resources")
+      .select("goal_id, resource:resources(status, is_archived)")
+      .in("goal_id", goalIds),
+  ]);
 
   if (projectError) {
     throw new DatabaseError(projectError.message);
@@ -162,6 +174,14 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
 
   if (taskError) {
     throw new DatabaseError(taskError.message);
+  }
+
+  if (noteError) {
+    throw new DatabaseError(noteError.message);
+  }
+
+  if (resourceError) {
+    throw new DatabaseError(resourceError.message);
   }
 
   const projectsByGoalId = new Map<string, Array<Pick<Project, "is_archived" | "status">>>();
@@ -194,12 +214,44 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
     tasksByGoalId.set(link.goal_id, currentTasks);
   }
 
+  const notesByGoalId = new Map<string, Array<Pick<Note, "is_archived" | "status">>>();
+  for (const link of noteLinks ?? []) {
+    const linkedNote = Array.isArray(link.note) ? link.note[0] : link.note;
+    if (!linkedNote) {
+      continue;
+    }
+
+    const currentNotes = notesByGoalId.get(link.goal_id) ?? [];
+    currentNotes.push({
+      is_archived: linkedNote.is_archived,
+      status: linkedNote.status as Note["status"],
+    });
+    notesByGoalId.set(link.goal_id, currentNotes);
+  }
+
+  const resourcesByGoalId = new Map<string, Array<Pick<Resource, "is_archived" | "status">>>();
+  for (const link of resourceLinks ?? []) {
+    const linkedResource = Array.isArray(link.resource) ? link.resource[0] : link.resource;
+    if (!linkedResource) {
+      continue;
+    }
+
+    const currentResources = resourcesByGoalId.get(link.goal_id) ?? [];
+    currentResources.push({
+      is_archived: linkedResource.is_archived,
+      status: linkedResource.status as Resource["status"],
+    });
+    resourcesByGoalId.set(link.goal_id, currentResources);
+  }
+
   return goals.map((goal) => ({
     ...goal,
     progress: calculateGoalProgress(
       goal,
       projectsByGoalId.get(goal.id),
       tasksByGoalId.get(goal.id),
+      notesByGoalId.get(goal.id),
+      resourcesByGoalId.get(goal.id),
     ),
   }));
 }
