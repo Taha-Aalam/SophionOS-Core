@@ -150,27 +150,6 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplica
                 {goal.description}
               </p>
             )}
-
-            {rollups && (
-              <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1 whitespace-nowrap" title="Projects">
-                  <span className="text-xs">📁</span>
-                  <span>{rollups.projectCount}</span>
-                </span>
-                <span className="flex items-center gap-1 whitespace-nowrap" title="Tasks">
-                  <span className="text-xs">☑️</span>
-                  <span>{rollups.taskCount}</span>
-                </span>
-                <span className="flex items-center gap-1 whitespace-nowrap" title="Notes">
-                  <span className="text-xs">📝</span>
-                  <span>{rollups.noteCount}</span>
-                </span>
-                <span className="flex items-center gap-1 whitespace-nowrap" title="Resources">
-                  <span className="text-xs">🔗</span>
-                  <span>{rollups.resourceCount}</span>
-                </span>
-              </div>
-            )}
           </div>
 
           <ProgressRing
@@ -180,6 +159,27 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplica
             className="shrink-0"
           />
         </div>
+
+        {rollups && (
+          <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1 whitespace-nowrap" title="Projects">
+              <span className="text-xs">📁</span>
+              <span>{rollups.projectCount}</span>
+            </span>
+            <span className="flex items-center gap-1 whitespace-nowrap" title="Tasks">
+              <span className="text-xs">☑️</span>
+              <span>{rollups.taskCount}</span>
+            </span>
+            <span className="flex items-center gap-1 whitespace-nowrap" title="Notes">
+              <span className="text-xs">📝</span>
+              <span>{rollups.noteCount}</span>
+            </span>
+            <span className="flex items-center gap-1 whitespace-nowrap" title="Resources">
+              <span className="text-xs">🔗</span>
+              <span>{rollups.resourceCount}</span>
+            </span>
+          </div>
+        )}
 
         <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
           <div className="flex items-center gap-1">
