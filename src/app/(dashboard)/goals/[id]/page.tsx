@@ -854,7 +854,7 @@ export default function GoalDetailPage() {
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
             <span className="font-medium text-blue-600 dark:text-blue-400">
-              {goalData?.rollups.projectCount ?? 0}
+              {goalData?.rollups.activeProjectCount ?? 0}
             </span>
             <span className="text-muted-foreground">Projects</span>
           </button>
@@ -863,7 +863,7 @@ export default function GoalDetailPage() {
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
             <span className="font-medium text-green-600 dark:text-green-400">
-              {goalData?.rollups.taskCount ?? 0}
+              {goalData?.rollups.activeTaskCount ?? 0}
             </span>
             <span className="text-muted-foreground">Tasks</span>
           </button>
@@ -872,7 +872,7 @@ export default function GoalDetailPage() {
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
             <span className="font-medium text-purple-600 dark:text-purple-400">
-              {goalData?.rollups.noteCount ?? 0}
+              {goalData?.rollups.activeNoteCount ?? 0}
             </span>
             <span className="text-muted-foreground">Notes</span>
           </button>
@@ -881,7 +881,7 @@ export default function GoalDetailPage() {
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
             <span className="font-medium text-orange-600 dark:text-orange-400">
-              {goalData?.rollups.resourceCount ?? 0}
+              {goalData?.rollups.activeResourceCount ?? 0}
             </span>
             <span className="text-muted-foreground">Resources</span>
           </button>
