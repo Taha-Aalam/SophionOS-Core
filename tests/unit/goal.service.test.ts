@@ -171,8 +171,8 @@ describe("goalService", () => {
       select: vi.fn().mockReturnThis(),
       in: vi.fn().mockResolvedValue({
         data: [
-          { goal_id: "goal-1", project: { is_archived: false, status: "active" } },
-          { goal_id: "goal-1", project: { is_archived: false, status: "completed" } },
+          { goal_id: "goal-1", project: { id: "proj-1", is_archived: false, status: "active", progress: 0 } },
+          { goal_id: "goal-1", project: { id: "proj-2", is_archived: false, status: "completed", progress: 100 } },
         ],
         error: null,
       }),
@@ -233,7 +233,7 @@ describe("goalService", () => {
         data: [
           {
             goal_id: goal.id,
-            project: [{ is_archived: false, status: "completed" }],
+            project: [{ id: "proj-1", is_archived: false, status: "completed", progress: 100 }],
           },
         ],
         error: null,
