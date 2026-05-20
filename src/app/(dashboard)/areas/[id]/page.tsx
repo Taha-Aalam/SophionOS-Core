@@ -30,6 +30,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { ProgressBar } from "@/components/ui/progress-bar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
@@ -62,7 +63,7 @@ import { cn } from "@/lib/utils";
 import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { buildReturnTo, encodeReturnTo, getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
-import { buildProjectTaskStats } from "@/lib/utils/projects";
+import { buildProjectCompletionStats } from "@/lib/utils/projects";
 
 const NOTE_STATUS_COLORS: Record<string, string> = {
   [NOTE_STATUS.INBOX]: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -142,12 +143,21 @@ export default function AreaDetailPage() {
 
   const area = areaData?.area;
   const { data: areaContactLinks = [] } = useContactByArea(area?.id ?? "");
-  const rollups = areaData?.rollups ?? { goalCount: 0, projectCount: 0, taskCount: 0, noteCount: 0, resourceCount: 0 };
+  const rollups = areaData?.rollups ?? { goalCount: 0, projectCount: 0, taskCount: 0, noteCount: 0, resourceCount: 0, progress: { completed: 0, total: 0, percentage: 0 } };
   const linkedResources = useMemo(() => areaData?.resources ?? [], [areaData?.resources]);
 
   const projectTaskStats = useMemo(
-    () => buildProjectTaskStats(areaData?.tasks ?? []),
-    [areaData?.tasks],
+    () => buildProjectCompletionStats(
+      areaData?.tasks ?? [],
+      areaData?.notes ?? [],
+      areaData?.resources ?? [],
+    ),
+    [areaData?.tasks, areaData?.notes, areaData?.resources],
+  );
+
+  const activeGoalIdSet = useMemo(
+    () => new Set((areaData?.goals ?? []).filter((g) => !g.is_completed && !g.is_archived).map((g) => g.id)),
+    [areaData?.goals],
   );
 
   const projectRollups = useMemo(() => {
@@ -155,14 +165,30 @@ export default function AreaDetailPage() {
     for (const project of areaData?.projects ?? []) {
       const linkedGoalIds = (project as unknown as { linkedGoalIds?: string[] }).linkedGoalIds ?? [];
       result.set(project.id, {
-        goalCount: linkedGoalIds.length,
-        taskCount: (areaData?.tasks ?? []).filter((t) => t.project_id === project.id && !t.is_archived).length,
-        noteCount: (areaData?.notes ?? []).filter((n) => n.project_id === project.id || (n as unknown as { linkedProjectIds?: string[] }).linkedProjectIds?.includes(project.id)).length,
-        resourceCount: (areaData?.resources ?? []).filter((r) => r.project_id === project.id).length,
+        goalCount: linkedGoalIds.filter((id) => activeGoalIdSet.has(id)).length,
+        taskCount: (areaData?.tasks ?? []).filter(
+          (t) => t.project_id === project.id && !t.is_archived && !t.is_completed,
+        ).length,
+        noteCount: (areaData?.notes ?? []).filter(
+          (n) =>
+            (n.project_id === project.id || (n as unknown as { linkedProjectIds?: string[] }).linkedProjectIds?.includes(project.id)) &&
+            !n.is_archived &&
+            (n.status === NOTE_STATUS.INBOX ||
+              n.status === NOTE_STATUS.TO_REVIEW ||
+              n.status === NOTE_STATUS.ACTIVE),
+        ).length,
+        resourceCount: (areaData?.resources ?? []).filter(
+          (r) =>
+            r.project_id === project.id &&
+            !r.is_archived &&
+            (r.status === RESOURCE_STATUS.INBOX ||
+              r.status === RESOURCE_STATUS.TO_REVIEW ||
+              r.status === RESOURCE_STATUS.ACTIVE),
+        ).length,
       });
     }
     return result;
-  }, [areaData?.projects, areaData?.tasks, areaData?.notes, areaData?.resources]);
+  }, [areaData?.projects, areaData?.tasks, areaData?.notes, areaData?.resources, activeGoalIdSet]);
 
   const areaStatus = area ? classifyAreaStatus(area) : "active";
   const areaType = area ? normalizeAreaType(area.type) : "Personal";
@@ -596,6 +622,9 @@ export default function AreaDetailPage() {
             <span className="text-muted-foreground">Resources</span>
           </button>
         </div>
+        {rollups.progress && rollups.progress.total > 0 && (
+          <ProgressBar percentage={rollups.progress.percentage} className="px-6 pb-4" />
+        )}
 
         {/* Collapsible Properties Panel */}
         {isPropertiesOpen && (
