@@ -1,4 +1,4 @@
-import type { Goal, Project, Task } from "@/lib/types/domain.types";
+import type { Goal, Note, Project, Resource, Task } from "@/lib/types/domain.types";
 
 import { PROJECT_STATUS } from "./constants";
 
@@ -155,24 +155,26 @@ export function calculateGoalProgress(
   goal: Pick<Goal, "is_completed" | "progress">,
   projects: Array<Pick<Project, "is_archived" | "status">> = [],
   tasks: Array<Pick<Task, "is_archived" | "is_completed">> = [],
+  notes: Array<Pick<Note, "is_archived" | "status">> = [],
+  resources: Array<Pick<Resource, "is_archived" | "status">> = [],
 ): number {
-  if (goal.is_completed) {
-    return 100;
-  }
+  if (goal.is_completed) return 100;
 
-  const activeProjects = projects.filter((project) => !project.is_archived);
-  if (activeProjects.length > 0) {
-    const completedProjects = activeProjects.filter(
-      (project) => project.status === PROJECT_STATUS.COMPLETED,
-    ).length;
-    return Math.round((completedProjects / activeProjects.length) * 100);
-  }
+  const activeProjects = projects.filter((p) => !p.is_archived);
+  const activeTasks = tasks.filter((t) => !t.is_archived);
+  const activeNotes = notes.filter((n) => !n.is_archived && n.status !== "archive");
+  const activeResources = resources.filter((r) => !r.is_archived);
 
-  const activeTasks = tasks.filter((task) => !task.is_archived);
-  if (activeTasks.length > 0) {
-    const completedTasks = activeTasks.filter((task) => task.is_completed).length;
-    return Math.round((completedTasks / activeTasks.length) * 100);
-  }
+  const total =
+    activeProjects.length + activeTasks.length + activeNotes.length + activeResources.length;
 
-  return goal.progress;
+  if (total === 0) return goal.progress;
+
+  const completed =
+    activeProjects.filter((p) => p.status === "completed").length +
+    activeTasks.filter((t) => t.is_completed).length +
+    activeNotes.filter((n) => n.status === "saved").length +
+    activeResources.filter((r) => r.status === "saved").length;
+
+  return Math.round((completed / total) * 100);
 }

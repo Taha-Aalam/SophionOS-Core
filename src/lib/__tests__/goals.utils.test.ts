@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Goal } from "@/lib/types/domain.types";
 import { getAreaRollups } from "@/lib/utils/areas";
-import { goalMatchesFilters } from "@/lib/utils/goals";
+import { calculateGoalProgress, goalMatchesFilters } from "@/lib/utils/goals";
 
 function buildGoal(overrides: Partial<Goal> & { linkedAreaIds?: string[] } = {}): Goal {
   return {
@@ -60,5 +60,88 @@ describe("getAreaRollups", () => {
     });
 
     expect(rollups.goalsCount).toBe(1);
+  });
+});
+
+function buildProject(overrides: Partial<{ is_archived: boolean; status: "active" | "archived" | "completed" | "planning" | "on_hold" }> = {}) {
+  return { is_archived: false, status: "active" as const, ...overrides };
+}
+
+function buildTask(overrides: Partial<{ is_archived: boolean; is_completed: boolean }> = {}) {
+  return { is_archived: false, is_completed: false, ...overrides };
+}
+
+function buildNote(overrides: Partial<{ is_archived: boolean; status: "active" | "inbox" | "to_review" | "archive" | "saved" }> = {}) {
+  return { is_archived: false, status: "inbox" as const, ...overrides };
+}
+
+function buildResource(overrides: Partial<{ is_archived: boolean; status: "active" | "inbox" | "to_review" | "saved" }> = {}) {
+  return { is_archived: false, status: "inbox" as const, ...overrides };
+}
+
+describe("calculateGoalProgress", () => {
+  it("returns 100 when goal is already completed", () => {
+    expect(calculateGoalProgress({ is_completed: true, progress: 50 })).toBe(100);
+  });
+
+  it("returns goal.progress when no tracked items", () => {
+    expect(calculateGoalProgress({ is_completed: false, progress: 42 })).toBe(42);
+  });
+
+  it("counts all item types proportionally — 1 project(done) + 4 tasks(2 done) + 2 notes(1 done) + 4 resources(2 done) = 6/11 ≈ 55%", () => {
+    const projects = [buildProject({ status: "completed" })];
+    const tasks = [
+      buildTask({ is_completed: true }),
+      buildTask({ is_completed: true }),
+      buildTask(),
+      buildTask(),
+    ];
+    const notes = [buildNote({ status: "saved" }), buildNote()];
+    const resources = [
+      buildResource({ status: "saved" }),
+      buildResource({ status: "saved" }),
+      buildResource(),
+      buildResource(),
+    ];
+    expect(calculateGoalProgress({ is_completed: false, progress: 0 }, projects, tasks, notes, resources)).toBe(55);
+  });
+
+  it("excludes archived projects from total and completed", () => {
+    const projects = [
+      buildProject({ status: "completed" }),
+      buildProject({ is_archived: true, status: "completed" }),
+    ];
+    expect(calculateGoalProgress({ is_completed: false, progress: 0 }, projects)).toBe(100);
+  });
+
+  it("excludes archived tasks", () => {
+    const tasks = [
+      buildTask({ is_completed: true }),
+      buildTask({ is_archived: true, is_completed: true }),
+    ];
+    expect(calculateGoalProgress({ is_completed: false, progress: 0 }, [], tasks)).toBe(100);
+  });
+
+  it("excludes notes with status archive", () => {
+    const notes = [
+      buildNote({ status: "saved" }),
+      buildNote({ status: "archive" }),
+    ];
+    expect(calculateGoalProgress({ is_completed: false, progress: 0 }, [], [], notes)).toBe(100);
+  });
+
+  it("excludes archived notes (is_archived=true)", () => {
+    const notes = [buildNote({ status: "saved" }), buildNote({ is_archived: true })];
+    expect(calculateGoalProgress({ is_completed: false, progress: 0 }, [], [], notes)).toBe(100);
+  });
+
+  it("excludes archived resources", () => {
+    const resources = [buildResource({ status: "saved" }), buildResource({ is_archived: true })];
+    expect(calculateGoalProgress({ is_completed: false, progress: 0 }, [], [], [], resources)).toBe(100);
+  });
+
+  it("falls back to goal.progress when all items are archived/excluded", () => {
+    const notes = [buildNote({ is_archived: true })];
+    expect(calculateGoalProgress({ is_completed: false, progress: 37 }, [], [], notes)).toBe(37);
   });
 });
