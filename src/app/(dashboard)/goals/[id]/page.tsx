@@ -68,7 +68,7 @@ import { cn } from "@/lib/utils";
 import type { Contact, CreateResourceInput, Project, Resource, Task } from "@/lib/types/domain.types";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUIStore } from "@/lib/stores/ui.store";
-import { calculateGoalProgress, getGoalLinkedAreaIds } from "@/lib/utils/goals";
+import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { buildProjectCompletionStats, getProjectLinkedAreaIds } from "@/lib/utils/projects";
 import { buildReturnTo, encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 
@@ -375,10 +375,7 @@ export default function GoalDetailPage() {
     return () => setPageTitle("");
   }, [goal, setPageTitle]);
 
-  const goalProgressPercent = useMemo(() => {
-    if (!goal || !goalData) return 0;
-    return calculateGoalProgress(goal, goalData.projects, goalData.tasks, goalData.notes, goalData.resources);
-  }, [goal, goalData]);
+  const goalProgressPercent = goal?.progress ?? 0;
 
   // Static note tabs — no dynamic type tabs on goal detail
   const noteTabs = [

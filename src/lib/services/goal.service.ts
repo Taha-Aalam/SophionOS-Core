@@ -443,7 +443,9 @@ export const goalService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateSingleGoalAreaLinks(data);
+    const areaHydrated = await hydrateSingleGoalAreaLinks(data);
+    const [progressHydrated] = await hydrateGoalProgress([areaHydrated]);
+    return progressHydrated;
   },
 
   async getBySlug(userId: string, slug: string): Promise<Goal> {
@@ -461,7 +463,9 @@ export const goalService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateSingleGoalAreaLinks(data);
+    const areaHydrated = await hydrateSingleGoalAreaLinks(data);
+    const [progressHydrated] = await hydrateGoalProgress([areaHydrated]);
+    return progressHydrated;
   },
 
   async getByIdentifier(userId: string, identifier: string): Promise<Goal> {
