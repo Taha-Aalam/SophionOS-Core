@@ -142,6 +142,8 @@ async function optimisticallyPatchGoal(
       { ...currentGoal, is_completed: false, progress: 0 },
       goalDetailData.projects,
       goalDetailData.tasks,
+      goalDetailData.notes,
+      goalDetailData.resources,
     );
   } else if (patch.is_completed === false && patch.progress === undefined) {
     nextPatch.progress = 0;
