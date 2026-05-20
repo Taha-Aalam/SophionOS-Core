@@ -38,6 +38,7 @@ import {
   getAreaRollups,
   getSuggestedAreaTypes,
   groupAreasByType,
+  isAreaEffectivelyInactive,
   normalizeAreaType,
 } from "@/lib/utils/areas";
 
@@ -62,17 +63,6 @@ export default function AreasPage() {
   const restoreArea = useRestoreArea(userId);
   const deleteArea = useDeleteArea(userId);
 
-  const areasByStatus = useMemo(
-    () => ({
-      active: areas.filter((area) => classifyAreaStatus(area) === "active"),
-      inactive: areas.filter((area) => classifyAreaStatus(area) === "inactive"),
-      archived: areas.filter((area) => classifyAreaStatus(area) === "archived"),
-    }),
-    [areas],
-  );
-
-  const groupedAreas = useMemo(() => groupAreasByType(areas), [areas]);
-  const suggestedTypes = useMemo(() => getSuggestedAreaTypes(areas), [areas]);
   const rollupsByAreaId = useMemo(() => {
     return new Map(
       areas.map((area) => [
@@ -88,6 +78,24 @@ export default function AreasPage() {
       ]),
     );
   }, [areas, goals, projects, tasks, notes, resources]);
+
+  const areasByStatus = useMemo(
+    () => ({
+      active: areas.filter(
+        (area) =>
+          classifyAreaStatus(area) === "active" &&
+          !isAreaEffectivelyInactive(area, rollupsByAreaId.get(area.id)),
+      ),
+      inactive: areas.filter((area) =>
+        isAreaEffectivelyInactive(area, rollupsByAreaId.get(area.id)),
+      ),
+      archived: areas.filter((area) => classifyAreaStatus(area) === "archived"),
+    }),
+    [areas, rollupsByAreaId],
+  );
+
+  const groupedAreas = useMemo(() => groupAreasByType(areas), [areas]);
+  const suggestedTypes = useMemo(() => getSuggestedAreaTypes(areas), [areas]);
 
   const duplicateIndices = useMemo(() => {
     const result = new Map<string, number>();
@@ -224,7 +232,6 @@ export default function AreasPage() {
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
                   notesCount={rollupsByAreaId.get(area.id)?.notesCount}
                   resourcesCount={rollupsByAreaId.get(area.id)?.resourcesCount}
-                  progress={rollupsByAreaId.get(area.id)?.progress}
                   duplicateIndex={duplicateIndices.get(area.id)}
                   onEdit={handleOpenEdit}
                   onArchive={handleArchive}
@@ -250,7 +257,7 @@ export default function AreasPage() {
             <EmptyState
               icon={MapIcon}
               title="No inactive areas"
-              description="Areas with no active goals, projects, or open tasks will appear here"
+              description="Areas with no active goals, projects, tasks, notes, or resources will appear here"
             />
           ) : (
             <GalleryGrid>
@@ -263,7 +270,6 @@ export default function AreasPage() {
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
                   notesCount={rollupsByAreaId.get(area.id)?.notesCount}
                   resourcesCount={rollupsByAreaId.get(area.id)?.resourcesCount}
-                  progress={rollupsByAreaId.get(area.id)?.progress}
                   duplicateIndex={duplicateIndices.get(area.id)}
                   onEdit={handleOpenEdit}
                   onArchive={handleArchive}
@@ -307,7 +313,6 @@ export default function AreasPage() {
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
                   notesCount={rollupsByAreaId.get(area.id)?.notesCount}
                   resourcesCount={rollupsByAreaId.get(area.id)?.resourcesCount}
-                  progress={rollupsByAreaId.get(area.id)?.progress}
                   duplicateIndex={duplicateIndices.get(area.id)}
                   onEdit={!area.archive ? handleOpenEdit : undefined}
                   onArchive={handleArchive}
@@ -346,7 +351,6 @@ export default function AreasPage() {
                   tasksCount={rollupsByAreaId.get(area.id)?.tasksCount}
                   notesCount={rollupsByAreaId.get(area.id)?.notesCount}
                   resourcesCount={rollupsByAreaId.get(area.id)?.resourcesCount}
-                  progress={rollupsByAreaId.get(area.id)?.progress}
                   duplicateIndex={duplicateIndices.get(area.id)}
                   onArchive={handleArchive}
                   isArchiving={archiveArea.isPending}

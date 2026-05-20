@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   classifyAreaStatus,
-  getAreaProgress,
   getAreaRollups,
   groupAreasByType,
   normalizeAreaType,
@@ -194,67 +193,5 @@ describe("getAreaRollups", () => {
     ];
     const { resourcesCount } = getAreaRollups({ areaId: AREA_ID, goals: [], projects: [], tasks: [], notes: [], resources });
     expect(resourcesCount).toBe(3);
-  });
-});
-
-describe("getAreaProgress", () => {
-  const AREA_ID = "area-1";
-
-  it("returns 0 percentage when no items linked", () => {
-    const result = getAreaProgress({ areaId: AREA_ID, goals: [], projects: [], tasks: [], notes: [], resources: [] });
-    expect(result).toEqual({ completed: 0, total: 0, percentage: 0 });
-  });
-
-  it("counts completed goals (is_completed) towards completed, excludes archived from total", () => {
-    const goals = [
-      makeGoal({ id: "g-active", is_completed: false }),
-      makeGoal({ id: "g-done", is_completed: true }),
-      makeGoal({ id: "g-arch", is_archived: true }),
-    ];
-    const result = getAreaProgress({ areaId: AREA_ID, goals, projects: [], tasks: [], notes: [], resources: [] });
-    expect(result.total).toBe(2);
-    expect(result.completed).toBe(1);
-    expect(result.percentage).toBe(50);
-  });
-
-  it("counts completed projects (status=completed) towards completed", () => {
-    const projects = [
-      makeProject({ id: "p-active", status: "active" }),
-      makeProject({ id: "p-done", status: "completed" }),
-    ];
-    const result = getAreaProgress({ areaId: AREA_ID, goals: [], projects, tasks: [], notes: [], resources: [] });
-    expect(result.total).toBe(2);
-    expect(result.completed).toBe(1);
-    expect(result.percentage).toBe(50);
-  });
-
-  it("counts saved notes towards completed; excludes is_archived and status=archive from total", () => {
-    const notes = [
-      makeNote({ id: "n-inbox", status: "inbox" }),
-      makeNote({ id: "n-saved", status: "saved" }),
-      makeNote({ id: "n-arch-status", status: "archive" }),
-      makeNote({ id: "n-is-arch", is_archived: true }),
-    ];
-    const result = getAreaProgress({ areaId: AREA_ID, goals: [], projects: [], tasks: [], notes, resources: [] });
-    expect(result.total).toBe(2);
-    expect(result.completed).toBe(1);
-  });
-
-  it("counts saved resources towards completed", () => {
-    const resources = [
-      makeResource({ id: "r-inbox", status: "inbox" }),
-      makeResource({ id: "r-saved", status: "saved" }),
-    ];
-    const result = getAreaProgress({ areaId: AREA_ID, goals: [], projects: [], tasks: [], notes: [], resources });
-    expect(result.total).toBe(2);
-    expect(result.completed).toBe(1);
-    expect(result.percentage).toBe(50);
-  });
-
-  it("returns 100 percentage when all items completed", () => {
-    const goals = [makeGoal({ is_completed: true })];
-    const tasks = [makeTask({ is_completed: true })];
-    const result = getAreaProgress({ areaId: AREA_ID, goals, projects: [], tasks, notes: [], resources: [] });
-    expect(result.percentage).toBe(100);
   });
 });

@@ -12,7 +12,6 @@ import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { goalMatchesAreaId } from "@/lib/utils/goals";
 import { projectMatchesAreaId } from "@/lib/utils/projects";
 import { taskMatchesAreaId } from "@/lib/utils/tasks";
-import { type AreaProgress, getAreaProgress } from "@/lib/utils/areas";
 
 export const AREA_DETAIL_QUERY_KEY = "area-detail";
 
@@ -32,7 +31,6 @@ export interface AreaDetailData {
     taskCount: number;
     noteCount: number;
     resourceCount: number;
-    progress: AreaProgress;
   };
 }
 
@@ -86,14 +84,6 @@ export function useAreaDetail(areaIdentifier: string) {
               !r.is_archived &&
               ACTIVE_RESOURCE_STATUSES.has(r.status),
           ).length,
-          progress: getAreaProgress({
-            areaId,
-            goals: linkedGoals,
-            projects: linkedProjects,
-            tasks: linkedTasks,
-            notes: linkedNotes,
-            resources: resourcesResult,
-          }),
         },
       };
     },

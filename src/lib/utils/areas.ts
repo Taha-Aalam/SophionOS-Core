@@ -16,17 +16,10 @@ export interface AreaRollups {
   tasksCount: number;
   notesCount: number;
   resourcesCount: number;
-  progress?: AreaProgress;
 }
 
-export interface AreaProgress {
-  completed: number;
-  total: number;
-  percentage: number;
-}
-
-const ACTIVE_NOTE_STATUSES = new Set([NOTE_STATUS.INBOX, NOTE_STATUS.TO_REVIEW, NOTE_STATUS.ACTIVE]);
-const ACTIVE_RESOURCE_STATUSES = new Set([RESOURCE_STATUS.INBOX, RESOURCE_STATUS.TO_REVIEW, RESOURCE_STATUS.ACTIVE]);
+const ACTIVE_NOTE_STATUSES: Set<string> = new Set([NOTE_STATUS.INBOX, NOTE_STATUS.TO_REVIEW, NOTE_STATUS.ACTIVE]);
+const ACTIVE_RESOURCE_STATUSES: Set<string> = new Set([RESOURCE_STATUS.INBOX, RESOURCE_STATUS.TO_REVIEW, RESOURCE_STATUS.ACTIVE]);
 
 export function normalizeAreaType(type: string | null | undefined): string {
   const value = type?.trim();
@@ -49,6 +42,26 @@ export function classifyAreaStatus(area: Pick<Area, "archive" | "inactive">): Ar
   }
 
   return area.inactive ? "inactive" : "active";
+}
+
+/**
+ * Returns true when an area should appear in the inactive tab:
+ * either explicitly marked inactive, or all active rollup counts are zero.
+ */
+export function isAreaEffectivelyInactive(
+  area: Pick<Area, "archive" | "inactive">,
+  rollups?: AreaRollups,
+): boolean {
+  if (area.archive) return false;
+  if (area.inactive) return true;
+  if (!rollups) return false;
+  return (
+    rollups.goalsCount === 0 &&
+    rollups.projectsCount === 0 &&
+    rollups.tasksCount === 0 &&
+    rollups.notesCount === 0 &&
+    rollups.resourcesCount === 0
+  );
 }
 
 export function groupAreasByType(areas: Area[]): GroupedAreas[] {
@@ -107,62 +120,13 @@ export function getAreaRollups(params: {
       (note) =>
         noteMatchesAreaId(note, areaId) &&
         !note.is_archived &&
-        ACTIVE_NOTE_STATUSES.has(note.status as typeof NOTE_STATUS[keyof typeof NOTE_STATUS]),
+        ACTIVE_NOTE_STATUSES.has(note.status),
     ).length,
     resourcesCount: resources.filter(
       (resource) =>
         resource.area_id === areaId &&
         !resource.is_archived &&
-        ACTIVE_RESOURCE_STATUSES.has(resource.status as typeof RESOURCE_STATUS[keyof typeof RESOURCE_STATUS]),
+        ACTIVE_RESOURCE_STATUSES.has(resource.status),
     ).length,
-    progress: getAreaProgress(params),
-  };
-}
-
-export function getAreaProgress(params: {
-  areaId: string;
-  goals: Goal[];
-  projects: Project[];
-  tasks: Task[];
-  notes?: Note[];
-  resources?: Resource[];
-}): AreaProgress {
-  const { areaId, goals, projects, tasks, notes = [], resources = [] } = params;
-
-  const areaGoals = goals.filter((g) => goalMatchesAreaId(g, areaId) && !g.is_archived);
-  const areaProjects = projects.filter((p) => p.area_id === areaId && !p.is_archived);
-  const areaTasks = tasks.filter((t) => t.area_id === areaId && !t.is_archived);
-  const areaNotes = notes.filter(
-    (n) =>
-      noteMatchesAreaId(n, areaId) &&
-      !n.is_archived &&
-      n.status !== NOTE_STATUS.ARCHIVE,
-  );
-  const areaResources = resources.filter(
-    (r) => r.area_id === areaId && !r.is_archived,
-  );
-
-  const total =
-    areaGoals.length +
-    areaProjects.length +
-    areaTasks.length +
-    areaNotes.length +
-    areaResources.length;
-
-  if (total === 0) {
-    return { completed: 0, total: 0, percentage: 0 };
-  }
-
-  const completed =
-    areaGoals.filter((g) => g.is_completed).length +
-    areaProjects.filter((p) => p.status === "completed").length +
-    areaTasks.filter((t) => t.is_completed).length +
-    areaNotes.filter((n) => n.status === NOTE_STATUS.SAVED).length +
-    areaResources.filter((r) => r.status === RESOURCE_STATUS.SAVED).length;
-
-  return {
-    completed,
-    total,
-    percentage: Math.round((completed / total) * 100),
   };
 }
