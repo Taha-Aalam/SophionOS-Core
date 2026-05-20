@@ -283,8 +283,8 @@ describe("goal mutation cache invalidation", () => {
           {
             goal: currentGoal,
             projects: [
-              { is_archived: false, status: "active" },
-              { is_archived: false, status: "completed" },
+              { is_archived: false, status: "active", progress: 0 },
+              { is_archived: false, status: "completed", progress: 100 },
             ],
             tasks: [],
             notes: [],

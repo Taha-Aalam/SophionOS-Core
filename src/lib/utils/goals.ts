@@ -169,7 +169,7 @@ export function calculateGoalProgress(
   if (total === 0) return goal.progress;
 
   const completed =
-    activeProjects.reduce((sum, p) => sum + p.progress / 100, 0) +
+    activeProjects.reduce((sum, p) => sum + (p.progress ?? 0) / 100, 0) +
     activeTasks.filter((t) => t.is_completed).length +
     activeNotes.filter((n) => n.status === "saved").length +
     activeResources.filter((r) => r.status === "saved").length;

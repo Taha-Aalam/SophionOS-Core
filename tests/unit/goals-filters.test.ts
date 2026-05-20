@@ -109,8 +109,8 @@ describe("goal view filters", () => {
       calculateGoalProgress(
         { is_completed: false, progress: 100 },
         [
-          { is_archived: false, status: "active" },
-          { is_archived: false, status: "completed" },
+          { is_archived: false, status: "active", progress: 0 },
+          { is_archived: false, status: "completed", progress: 100 },
         ],
         [],
       ),
