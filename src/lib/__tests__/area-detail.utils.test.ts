@@ -111,6 +111,18 @@ describe("area-detail helpers", () => {
     expect(result.map((project) => project.id)).toEqual(["p1"]);
   });
 
+  it("returns archived area projects only in the archived tab", () => {
+    const result = getFilteredAreaProjects(
+      [
+        { id: "p1", is_archived: false, status: "active" },
+        { id: "p2", is_archived: true, status: "completed" },
+      ] as never,
+      "archived",
+    );
+
+    expect(result.map((project) => project.id)).toEqual(["p2"]);
+  });
+
   // ── task grouping ──────────────────────────────────────────────────────────
 
   it("groups area tasks by linked goal", () => {

@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
+import { calculateGoalProgress } from "@/lib/utils/goals"
+
 const AREA_SELECT =
   "id, user_id, name, description, icon, color, type, metadata, inactive, archive, slug, created_at, updated_at"
 const GOAL_SELECT =
@@ -52,7 +54,7 @@ async function hydrateGoalRollupCounts(supabase: SupabaseClient, goals: any[]): 
   const [projectLinks, taskLinks, noteLinks, resourceLinks] = await Promise.all([
     supabase
       .from("goal_projects")
-      .select("goal_id, project:projects(status, is_archived)")
+      .select("goal_id, project:projects(status, is_archived, progress)")
       .in("goal_id", goalIds)
       .then((r) => r.data ?? []),
     supabase
@@ -72,48 +74,48 @@ async function hydrateGoalRollupCounts(supabase: SupabaseClient, goals: any[]): 
       .then((r) => r.data ?? []),
   ])
 
-  const countFor = (
+  const entitiesForGoal = (
     links: Array<{ goal_id: string } & Record<string, unknown>>,
     goalId: string,
     entityKey: string,
+  ): Record<string, unknown>[] =>
+    links
+      .filter((link) => link.goal_id === goalId)
+      .map((link) => {
+        const entity = Array.isArray(link[entityKey])
+          ? (link[entityKey] as Record<string, unknown>[])[0]
+          : (link[entityKey] as Record<string, unknown> | undefined)
+        return entity
+      })
+      .filter((e): e is Record<string, unknown> => e != null)
+
+  const countFor = (
+    entities: Record<string, unknown>[],
     isActive: (entity: Record<string, unknown>) => boolean,
-  ): number =>
-    links.filter((link) => {
-      if (link.goal_id !== goalId) return false
-      const entity = Array.isArray(link[entityKey])
-        ? (link[entityKey] as Record<string, unknown>[])[0]
-        : (link[entityKey] as Record<string, unknown> | undefined)
-      return entity != null && isActive(entity)
-    }).length
+  ): number => entities.filter(isActive).length
 
   return goals.map((goal) => {
     const id = goal.id as string
+    const projects = entitiesForGoal(projectLinks as Array<{ goal_id: string } & Record<string, unknown>>, id, "project")
+    const tasks = entitiesForGoal(taskLinks as Array<{ goal_id: string } & Record<string, unknown>>, id, "task")
+    const notes = entitiesForGoal(noteLinks as Array<{ goal_id: string } & Record<string, unknown>>, id, "note")
+    const resources = entitiesForGoal(resourceLinks as Array<{ goal_id: string } & Record<string, unknown>>, id, "resource")
+
+    const hydratedProgress = calculateGoalProgress(
+      { is_completed: goal.is_completed, progress: goal.progress },
+      projects as unknown as Parameters<typeof calculateGoalProgress>[1],
+      tasks as unknown as Parameters<typeof calculateGoalProgress>[2],
+      notes as unknown as Parameters<typeof calculateGoalProgress>[3],
+      resources as unknown as Parameters<typeof calculateGoalProgress>[4],
+    )
+
     return {
       ...goal,
-      projectCount: countFor(
-        projectLinks as Array<{ goal_id: string } & Record<string, unknown>>,
-        id,
-        "project",
-        (e) => !e.is_archived && e.status !== "completed",
-      ),
-      taskCount: countFor(
-        taskLinks as Array<{ goal_id: string } & Record<string, unknown>>,
-        id,
-        "task",
-        (e) => !e.is_archived && !e.is_completed,
-      ),
-      noteCount: countFor(
-        noteLinks as Array<{ goal_id: string } & Record<string, unknown>>,
-        id,
-        "note",
-        (e) => !e.is_archived && e.status !== "archive" && e.status !== "saved",
-      ),
-      resourceCount: countFor(
-        resourceLinks as Array<{ goal_id: string } & Record<string, unknown>>,
-        id,
-        "resource",
-        (e) => !e.is_archived && e.status !== "saved",
-      ),
+      progress: hydratedProgress,
+      projectCount: countFor(projects, (e) => !e.is_archived && e.status !== "completed"),
+      taskCount: countFor(tasks, (e) => !e.is_archived && !e.is_completed),
+      noteCount: countFor(notes, (e) => !e.is_archived && e.status !== "archive" && e.status !== "saved"),
+      resourceCount: countFor(resources, (e) => !e.is_archived && e.status !== "saved"),
     }
   })
 }
