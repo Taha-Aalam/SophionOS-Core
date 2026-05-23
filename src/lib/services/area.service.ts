@@ -34,14 +34,13 @@ function isUuid(value: string): boolean {
 export const areaService = {
   async list(
     userId?: string,
-    filters?: { inactive?: boolean; archive?: boolean; limit?: number; offset?: number },
+    filters?: { inactive?: boolean; archive?: boolean },
   ): Promise<AreaSelect[]> {
-    const { inactive, archive, limit = 50, offset = 0 } = filters ?? {};
+    const { inactive, archive } = filters ?? {};
     let query = createClient()
       .from("areas")
       .select(AREA_SELECT)
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+      .order("created_at", { ascending: false });
 
     if (userId) {
       query = query.eq("user_id", userId);
