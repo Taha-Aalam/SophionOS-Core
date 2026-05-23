@@ -61,15 +61,21 @@ export function useAreaDetail(areaIdentifier: string) {
         tasksResult,
         archivedTasksResult,
         allNotesResult,
-        allResourcesResult,
+        activeResourcesResult,
+        archivedResourcesResult,
       ] = await Promise.all([
         goalService.list(userId, { status: "all" }),
         projectService.list(userId, { status: "all" }),
         taskService.list(userId),
         taskService.listArchived(userId),
-        noteService.list(userId, { status: "all" }),
+        noteService.list(userId, { status: "all", includeArchived: true }),
         resourceService.list(userId, { status: "all" }),
+        resourceService.listArchived(userId),
       ]);
+
+      const allResourcesResult = [...activeResourcesResult, ...archivedResourcesResult].filter(
+        (resource, index, list) => list.findIndex((candidate) => candidate.id === resource.id) === index,
+      );
 
       // Filter every collection junction-aware so cards, tabs, and rollups all
       // agree on what counts as "linked to this area" — matches goal-card,

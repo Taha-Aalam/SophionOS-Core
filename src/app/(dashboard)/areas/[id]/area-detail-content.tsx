@@ -34,7 +34,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
   useContacts,
-  useContactByArea,
   useCreateContact,
   useLinkContactToArea,
   useUnlinkContactFromArea,
@@ -186,7 +185,6 @@ export function AreaDetailContent() {
     return map;
   }, [areaData?.projects]);
 
-  const { data: areaContactLinks = [] } = useContactByArea(area?.id ?? "");
   const rollups = areaData?.rollups ?? { goalCount: 0, projectCount: 0, taskCount: 0, noteCount: 0, resourceCount: 0 };
   const linkedResources = useMemo(() => areaData?.resources ?? [], [areaData?.resources]);
 
@@ -304,17 +302,19 @@ export function AreaDetailContent() {
     return nonArchived;
   }, [linkedResources, resourceTab]);
 
-  const linkedContactIds = useMemo(
-    () => new Set(areaContactLinks.map((link) => link.contact_id)),
-    [areaContactLinks],
-  );
   const linkedContacts = useMemo(
-    () => allContacts.filter((c) => linkedContactIds.has(c.id)),
-    [allContacts, linkedContactIds],
+    () =>
+      area?.id
+        ? allContacts.filter((contact) => (contact.linkedAreaIds ?? []).includes(area.id))
+        : [],
+    [allContacts, area?.id],
   );
   const linkedArchivedContacts = useMemo(
-    () => archivedContactsAll.filter((c) => linkedContactIds.has(c.id)),
-    [archivedContactsAll, linkedContactIds],
+    () =>
+      area?.id
+        ? archivedContactsAll.filter((contact) => (contact.linkedAreaIds ?? []).includes(area.id))
+        : [],
+    [archivedContactsAll, area?.id],
   );
   const allLinkedContacts = useMemo(
     () => [...linkedContacts, ...linkedArchivedContacts],
