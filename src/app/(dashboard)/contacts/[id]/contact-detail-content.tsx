@@ -58,8 +58,10 @@ import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
   useTasks,
+  useArchiveTask,
   useCompleteTask,
   useFocusTask,
+  useRestoreTask,
   useUpdateTask,
   useUncompleteTask,
 } from "@/lib/hooks/use-tasks";
@@ -206,6 +208,8 @@ export function ContactDetailContent() {
   const uncompleteTask = useUncompleteTask();
   const focusTask = useFocusTask();
   const updateTask = useUpdateTask();
+  const archiveTask = useArchiveTask();
+  const restoreTask = useRestoreTask();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -273,6 +277,17 @@ export function ContactDetailContent() {
   const handleTaskEdit = useCallback((task: Task) => {
     setEditingTask(task);
   }, []);
+
+  const handleTaskArchiveToggle = useCallback(
+    async (task: Task) => {
+      if (task.is_archived) {
+        await restoreTask.mutateAsync(task.id);
+      } else {
+        await archiveTask.mutateAsync(task.id);
+      }
+    },
+    [archiveTask, restoreTask],
+  );
 
   if (isLoading) {
     return (
@@ -689,6 +704,10 @@ export function ContactDetailContent() {
           if (!open) setEditingTask(null);
         }}
         task={editingTask ?? undefined}
+        onArchiveToggle={(task) => {
+          handleTaskArchiveToggle(task);
+          setEditingTask(null);
+        }}
       />
     </div>
   );
