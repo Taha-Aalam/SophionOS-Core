@@ -99,6 +99,25 @@ describe('taskService', () => {
     });
   });
 
+  it('clears is_archived on restore()', async () => {
+    const mockData = { id: taskId, is_archived: false };
+    const mockClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+    } as any;
+
+    vi.mocked(createClient).mockImplementation(() => mockClient);
+
+    const result = await taskService.restore(userId, taskId);
+    expect(result).toEqual(mockData);
+    expect(mockClient.update).toHaveBeenCalledWith({
+      is_archived: false,
+    });
+  });
+
   it('creates a task and links selected goals', async () => {
     const input = {
       name: 'Task with goals',
