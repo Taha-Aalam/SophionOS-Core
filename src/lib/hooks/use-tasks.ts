@@ -3,6 +3,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { AREAS_QUERY_KEY, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
+import { CONTACTS_QUERY_KEY } from "@/lib/hooks/use-contacts";
 import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
 import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
@@ -21,8 +22,10 @@ function invalidateTaskGraph(queryClient: ReturnType<typeof useQueryClient>): Pr
     queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY], refetchType: "all" }),
     queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY], refetchType: "all" }),
     queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY], refetchType: "all" }),
+    queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY], refetchType: "all" }),
     queryClient.invalidateQueries({ queryKey: [DASHBOARD_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] }),
   ]);
 }
 
@@ -101,7 +104,12 @@ export function useUpdateTask() {
   });
 }
 
+/** @deprecated Use `useArchiveTask` instead. Kept as alias for backwards compat. */
 export function useDeleteTask() {
+  return useArchiveTask();
+}
+
+export function useArchiveTask() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -113,6 +121,22 @@ export function useDeleteTask() {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to archive task");
+    },
+  });
+}
+
+export function useRestoreTask() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => taskService.restore(user!.id, id),
+    onSuccess: async () => {
+      await invalidateTaskGraph(queryClient);
+      toast.success("Task restored");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to restore task");
     },
   });
 }

@@ -417,6 +417,23 @@ export const taskService = {
     return data;
   },
 
+  async restore(userId: string, id: string): Promise<Task> {
+    const { data, error } = await createClient()
+      .from("tasks")
+      .update({ is_archived: false })
+      .eq("user_id", userId)
+      .eq("id", id)
+      .select(TASK_SELECT)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") throw new NotFoundError("Task", id);
+      throw new DatabaseError(error.message);
+    }
+
+    return data;
+  },
+
   async getWithRelations(
     _userId: string,
     id: string,
