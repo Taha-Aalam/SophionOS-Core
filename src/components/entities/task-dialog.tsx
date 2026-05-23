@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
-import { Trash2, X } from "lucide-react";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAreas, useAreasByIds } from "@/lib/hooks/use-areas";
@@ -41,6 +41,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { TaskArchiveToggle } from "./task-archive-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,7 +97,9 @@ interface TaskDialogProps {
   projectScoped?: ProjectScopedTaskConfig;
   allowedProjectIds?: string[];
   onSuccess?: () => void;
+  /** @deprecated Use onArchiveToggle instead. */
   onDelete?: (id: string) => void;
+  onArchiveToggle?: (task: Task) => void;
 }
 
 interface TaskFormValues {
@@ -207,6 +210,7 @@ export function TaskDialog({
   allowedProjectIds,
   onSuccess,
   onDelete,
+  onArchiveToggle,
 }: TaskDialogProps) {
   const isGoalScoped = Boolean(goalScoped) && !task;
   const isProjectScoped = Boolean(projectScoped) && !task && !isGoalScoped;
@@ -1037,20 +1041,22 @@ export function TaskDialog({
             </div>
 
             <div className="flex items-center justify-between gap-3 pt-4">
-              {task && onDelete && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  disabled={isPending}
-                  onClick={() => {
-                    onDelete(task.id);
-                    onOpenChange(false);
-                  }}
-                >
-                  <Trash2 className="mr-1 size-4" />
-                  Delete
-                </Button>
+              {task && (onArchiveToggle || onDelete) && (
+                <span>
+                  <TaskArchiveToggle
+                    isArchived={task.is_archived}
+                    mode="detail"
+                    disabled={isPending}
+                    onClick={() => {
+                      if (onArchiveToggle) {
+                        onArchiveToggle(task);
+                      } else {
+                        onDelete!(task.id);
+                      }
+                      onOpenChange(false);
+                    }}
+                  />
+                </span>
               )}
               <div className="ml-auto flex gap-3">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
