@@ -49,6 +49,16 @@ export function useTasks(options?: { enabled?: boolean }) {
   });
 }
 
+export function useArchivedTasks(options?: { enabled?: boolean }) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: [TASKS_QUERY_KEY, "archived"],
+    queryFn: () => taskService.listArchived(user!.id),
+    enabled: !!user && (options?.enabled ?? true),
+  });
+}
+
 export function useTask(id: string) {
   const { user } = useAuth();
 
