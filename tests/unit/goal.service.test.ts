@@ -423,4 +423,105 @@ describe("goalService", () => {
     expect(result.progress).toBe(0);
     expect(result.is_completed).toBe(false);
   });
+
+  it("hydrates projectCount/taskCount/noteCount/resourceCount on getById so the goal detail page header matches goal cards everywhere", async () => {
+    const goalRow = {
+      area_id: null,
+      created_at: "2026-04-28T10:00:00.000Z",
+      description: null,
+      id: "goal-detail-rollups",
+      is_archived: false,
+      is_completed: false,
+      name: "Goal Detail Rollups",
+      priority: "medium",
+      progress: 0,
+      slug: "goal-detail-rollups",
+      target_date: null,
+      term: GOAL_TERM.SHORT,
+      updated_at: "2026-04-28T10:00:00.000Z",
+      user_id: userId,
+    };
+
+    const goalsTable = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: goalRow, error: null }),
+    };
+    const goalProjectsTable = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({
+        data: [
+          { goal_id: goalRow.id, project: { id: "p-active", is_archived: false, status: "active", progress: 0 } },
+          { goal_id: goalRow.id, project: { id: "p-done", is_archived: false, status: "completed", progress: 100 } },
+          { goal_id: goalRow.id, project: { id: "p-arch", is_archived: true, status: "active", progress: 0 } },
+        ],
+        error: null,
+      }),
+    };
+    const goalTasksTable = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({
+        data: [
+          { goal_id: goalRow.id, task: { is_archived: false, is_completed: false } },
+          { goal_id: goalRow.id, task: { is_archived: false, is_completed: false } },
+          { goal_id: goalRow.id, task: { is_archived: false, is_completed: true } },
+          { goal_id: goalRow.id, task: { is_archived: true, is_completed: false } },
+        ],
+        error: null,
+      }),
+    };
+    const goalNotesTable = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({
+        data: [
+          { goal_id: goalRow.id, note: { id: "n1", is_archived: false, status: "inbox" } },
+          { goal_id: goalRow.id, note: { id: "n2", is_archived: false, status: "saved" } },
+          { goal_id: goalRow.id, note: { id: "n3", is_archived: false, status: "archive" } },
+        ],
+        error: null,
+      }),
+    };
+    const goalResourcesTable = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({
+        data: [
+          { goal_id: goalRow.id, resource: { is_archived: false, status: "active" } },
+          { goal_id: goalRow.id, resource: { is_archived: false, status: "saved" } },
+        ],
+        error: null,
+      }),
+    };
+    const emptyTable = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    };
+    const mockClient = {
+      from: vi.fn((table: string) => {
+        if (table === "goals") return goalsTable;
+        if (table === "goal_projects") return goalProjectsTable;
+        if (table === "goal_tasks") return goalTasksTable;
+        if (table === "goal_notes") return goalNotesTable;
+        if (table === "goal_resources") return goalResourcesTable;
+        if (table === "goal_areas") return emptyTable;
+        if (table === "tasks") return emptyTable;
+        if (table === "notes") return emptyTable;
+        if (table === "note_projects") return emptyTable;
+        if (table === "resources") return emptyTable;
+        throw new Error(`Unexpected table: ${table}`);
+      }),
+    };
+
+    vi.mocked(createClient).mockImplementation(() => mockClient as never);
+
+    const result = await goalService.getById(userId, goalRow.id);
+
+    // Active project: !archived && status !== "completed" → only p-active counts.
+    expect(result.projectCount).toBe(1);
+    // Active task: !archived && !is_completed → 2 tasks.
+    expect(result.taskCount).toBe(2);
+    // Active note: !archived && status not in {archive, saved} → only n1.
+    expect(result.noteCount).toBe(1);
+    // Active resource: !archived && status !== "saved" → only the "active" one.
+    expect(result.resourceCount).toBe(1);
+  });
 });

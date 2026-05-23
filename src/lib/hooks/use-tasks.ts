@@ -218,7 +218,9 @@ export function useFocusTask() {
       taskService.update(user!.id, id, { is_focused }),
     onMutate: async ({ id, is_focused }) => {
       await queryClient.cancelQueries({ queryKey: [TASKS_QUERY_KEY] });
+      await queryClient.cancelQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
       const previousData = queryClient.getQueriesData<Task[]>({ queryKey: [TASKS_QUERY_KEY] });
+      const previousAreaDetailData = queryClient.getQueriesData<unknown>({ queryKey: [AREA_DETAIL_QUERY_KEY] });
 
       queryClient.setQueriesData<Task[]>({ queryKey: [TASKS_QUERY_KEY] }, (old) => {
         if (!Array.isArray(old)) {
@@ -228,11 +230,31 @@ export function useFocusTask() {
         return old.map((task) => (task.id === id ? { ...task, is_focused } : task));
       });
 
-      return { previousData };
+      // Optimistically update the area-detail cache so the focus icon
+      // updates instantly on the area detail page.
+      queryClient.setQueriesData<{ tasks?: Task[]; archivedTasks?: Task[] } | undefined>(
+        { queryKey: [AREA_DETAIL_QUERY_KEY] },
+        (old) => {
+          if (!old) return old;
+          const patchTask = (t: Task) => (t.id === id ? { ...t, is_focused } : t);
+          return {
+            ...old,
+            tasks: old.tasks ? old.tasks.map(patchTask) : old.tasks,
+            archivedTasks: old.archivedTasks ? old.archivedTasks.map(patchTask) : old.archivedTasks,
+          };
+        },
+      );
+
+      return { previousData, previousAreaDetailData };
     },
     onError: (_error, _vars, context) => {
       if (context?.previousData) {
         context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      if (context?.previousAreaDetailData) {
+        context.previousAreaDetailData.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);
         });
       }

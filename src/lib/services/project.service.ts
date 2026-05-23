@@ -227,9 +227,262 @@ async function hydrateProjectGoalLinks(projects: Project[]): Promise<Project[]> 
   }));
 }
 
+async function hydrateProjectProgress(projects: Project[]): Promise<Project[]> {
+  if (projects.length === 0) return projects;
+
+  const projectIds = projects.map((p) => p.id);
+  const supabase = createClient();
+
+  const [
+    { data: taskRows },
+    { data: noteRows },
+    { data: noteJunctionRows },
+    { data: resourceRows },
+  ] = await Promise.all([
+    supabase
+      .from("tasks")
+      .select("project_id, is_completed, is_archived")
+      .in("project_id", projectIds),
+    supabase
+      .from("notes")
+      .select("id, project_id, status, is_archived")
+      .in("project_id", projectIds),
+    supabase
+      .from("note_projects")
+      .select("project_id, note:notes(id, status, is_archived)")
+      .in("project_id", projectIds),
+    supabase
+      .from("resources")
+      .select("project_id, status, is_archived")
+      .in("project_id", projectIds),
+  ]);
+
+  // Build per-project completion stats matching buildProjectCompletionStats
+  // semantics: tasks (any status, !archived), notes (status !== "archive" &&
+  // !archived, distinct via project_id OR junction), resources (!archived).
+  // "Completed" means task.is_completed, note.status === "saved", or
+  // resource.status === "saved".
+  const completedByProject = new Map<string, number>();
+  const totalByProject = new Map<string, number>();
+  const seenNotesByProject = new Map<string, Set<string>>();
+
+  const bump = (projectId: string, done: boolean) => {
+    completedByProject.set(projectId, (completedByProject.get(projectId) ?? 0) + (done ? 1 : 0));
+    totalByProject.set(projectId, (totalByProject.get(projectId) ?? 0) + 1);
+  };
+
+  for (const t of (taskRows ?? []) as Array<{
+    project_id: string | null;
+    is_completed: boolean;
+    is_archived: boolean;
+  }>) {
+    if (!t.project_id || t.is_archived) continue;
+    bump(t.project_id, t.is_completed);
+  }
+
+  for (const n of (noteRows ?? []) as Array<{
+    id: string;
+    project_id: string | null;
+    status: string;
+    is_archived: boolean;
+  }>) {
+    if (!n.project_id || n.is_archived || n.status === "archive") continue;
+    const seen = seenNotesByProject.get(n.project_id) ?? new Set<string>();
+    if (seen.has(n.id)) continue;
+    seen.add(n.id);
+    seenNotesByProject.set(n.project_id, seen);
+    bump(n.project_id, n.status === "saved");
+  }
+
+  for (const link of (noteJunctionRows ?? []) as Array<{
+    project_id: string;
+    note:
+      | { id: string; status: string; is_archived: boolean }
+      | { id: string; status: string; is_archived: boolean }[]
+      | null;
+  }>) {
+    const note = Array.isArray(link.note) ? link.note[0] : link.note;
+    if (!note || note.is_archived || note.status === "archive") continue;
+    const seen = seenNotesByProject.get(link.project_id) ?? new Set<string>();
+    if (seen.has(note.id)) continue;
+    seen.add(note.id);
+    seenNotesByProject.set(link.project_id, seen);
+    bump(link.project_id, note.status === "saved");
+  }
+
+  for (const r of (resourceRows ?? []) as Array<{
+    project_id: string | null;
+    status: string;
+    is_archived: boolean;
+  }>) {
+    if (!r.project_id || r.is_archived) continue;
+    bump(r.project_id, r.status === "saved");
+  }
+
+  return projects.map((project) => {
+    if (project.status === "completed") {
+      return { ...project, progress: 100 };
+    }
+    const total = totalByProject.get(project.id) ?? 0;
+    if (total === 0) {
+      // Keep stored progress when there are no items to derive from.
+      return { ...project, progress: project.progress ?? 0 };
+    }
+    const completed = completedByProject.get(project.id) ?? 0;
+    return { ...project, progress: Math.round((completed / total) * 100) };
+  });
+}
+
+async function hydrateProjectRollupCounts(projects: Project[]): Promise<Project[]> {
+  if (projects.length === 0) return projects;
+
+  const projectIds = projects.map((p) => p.id);
+  const supabase = createClient();
+
+  // Collect goal IDs linked to any of these projects so we can filter them by
+  // active status (matches every inline `activeGoalIdSet` predicate:
+  // !is_completed && !is_archived).
+  const linkedGoalIdsByProject = new Map<string, string[]>();
+  for (const project of projects) {
+    linkedGoalIdsByProject.set(project.id, project.linkedGoalIds ?? []);
+  }
+  const allGoalIds = Array.from(
+    new Set(Array.from(linkedGoalIdsByProject.values()).flat()),
+  );
+
+  const [
+    activeGoalsResult,
+    { data: taskRows },
+    { data: noteRows },
+    { data: noteJunctionRows },
+    { data: resourceRows },
+  ] = await Promise.all([
+    allGoalIds.length > 0
+      ? supabase
+          .from("goals")
+          .select("id, is_completed, is_archived")
+          .in("id", allGoalIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; is_completed: boolean; is_archived: boolean }> }),
+    supabase
+      .from("tasks")
+      .select("project_id, is_completed, is_archived")
+      .in("project_id", projectIds),
+    supabase
+      .from("notes")
+      .select("id, project_id, status, is_archived")
+      .in("project_id", projectIds),
+    supabase
+      .from("note_projects")
+      .select("project_id, note:notes(id, status, is_archived)")
+      .in("project_id", projectIds),
+    supabase
+      .from("resources")
+      .select("project_id, status, is_archived")
+      .in("project_id", projectIds),
+  ]);
+
+  const activeGoalIdSet = new Set(
+    ((activeGoalsResult as { data?: Array<{ id: string; is_completed: boolean; is_archived: boolean }> }).data ?? [])
+      .filter((g) => !g.is_completed && !g.is_archived)
+      .map((g) => g.id),
+  );
+
+  const taskCountByProject = new Map<string, number>();
+  for (const t of (taskRows ?? []) as Array<{
+    project_id: string | null;
+    is_completed: boolean;
+    is_archived: boolean;
+  }>) {
+    if (!t.project_id || t.is_archived || t.is_completed) continue;
+    taskCountByProject.set(t.project_id, (taskCountByProject.get(t.project_id) ?? 0) + 1);
+  }
+
+  const NOTE_ACTIVE = new Set(["inbox", "to_review", "active"]);
+  const noteCountByProject = new Map<string, number>();
+  const seenNotesByProject = new Map<string, Set<string>>();
+  for (const n of (noteRows ?? []) as Array<{
+    id: string;
+    project_id: string | null;
+    status: string;
+    is_archived: boolean;
+  }>) {
+    if (!n.project_id || n.is_archived || !NOTE_ACTIVE.has(n.status)) continue;
+    const seen = seenNotesByProject.get(n.project_id) ?? new Set<string>();
+    if (seen.has(n.id)) continue;
+    seen.add(n.id);
+    seenNotesByProject.set(n.project_id, seen);
+    noteCountByProject.set(n.project_id, (noteCountByProject.get(n.project_id) ?? 0) + 1);
+  }
+  for (const link of (noteJunctionRows ?? []) as Array<{
+    project_id: string;
+    note:
+      | { id: string; status: string; is_archived: boolean }
+      | { id: string; status: string; is_archived: boolean }[]
+      | null;
+  }>) {
+    const note = Array.isArray(link.note) ? link.note[0] : link.note;
+    if (!note || note.is_archived || !NOTE_ACTIVE.has(note.status)) continue;
+    const seen = seenNotesByProject.get(link.project_id) ?? new Set<string>();
+    if (seen.has(note.id)) continue;
+    seen.add(note.id);
+    seenNotesByProject.set(link.project_id, seen);
+    noteCountByProject.set(
+      link.project_id,
+      (noteCountByProject.get(link.project_id) ?? 0) + 1,
+    );
+  }
+
+  const RESOURCE_ACTIVE = new Set(["inbox", "to_review", "active"]);
+  const resourceCountByProject = new Map<string, number>();
+  for (const r of (resourceRows ?? []) as Array<{
+    project_id: string | null;
+    status: string;
+    is_archived: boolean;
+  }>) {
+    if (!r.project_id || r.is_archived || !RESOURCE_ACTIVE.has(r.status)) continue;
+    resourceCountByProject.set(
+      r.project_id,
+      (resourceCountByProject.get(r.project_id) ?? 0) + 1,
+    );
+  }
+
+  return projects.map((project) => {
+    const goalCount = (linkedGoalIdsByProject.get(project.id) ?? []).filter((id) =>
+      activeGoalIdSet.has(id),
+    ).length;
+    return {
+      ...project,
+      goalCount,
+      taskCount: taskCountByProject.get(project.id) ?? 0,
+      noteCount: noteCountByProject.get(project.id) ?? 0,
+      resourceCount: resourceCountByProject.get(project.id) ?? 0,
+    };
+  });
+}
+
 async function hydrateProjectRelations(projects: Project[]): Promise<Project[]> {
+  if (projects.length === 0) return projects;
   const withAreas = await hydrateProjectAreaLinks(projects);
-  return hydrateProjectGoalLinks(withAreas);
+  const withGoals = await hydrateProjectGoalLinks(withAreas);
+  // Progress + rollup counts depend only on the project IDs, so they can run
+  // in parallel with each other once we have linkedGoalIds for the rollups.
+  const [withProgress, withRollups] = await Promise.all([
+    hydrateProjectProgress(withGoals),
+    hydrateProjectRollupCounts(withGoals),
+  ]);
+  // Merge rollup counts into the progress-hydrated array so we keep both.
+  const rollupsById = new Map(withRollups.map((p) => [p.id, p]));
+  return withProgress.map((p) => {
+    const r = rollupsById.get(p.id);
+    if (!r) return p;
+    return {
+      ...p,
+      goalCount: r.goalCount,
+      taskCount: r.taskCount,
+      noteCount: r.noteCount,
+      resourceCount: r.resourceCount,
+    };
+  });
 }
 
 async function hydrateSingleProjectRelations(project: Project): Promise<Project> {

@@ -192,6 +192,21 @@ export const taskService = {
     return parallelHydrateTasks(data || []);
   },
 
+  async listArchived(userId: string): Promise<Task[]> {
+    const { data, error } = await createClient()
+      .from("tasks")
+      .select(TASK_SELECT)
+      .eq("user_id", userId)
+      .eq("is_archived", true)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    return parallelHydrateTasks(data || []);
+  },
+
   async getById(userId: string, id: string): Promise<Task> {
     const { data, error } = await createClient()
       .from("tasks")

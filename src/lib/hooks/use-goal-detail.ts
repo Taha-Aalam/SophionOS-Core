@@ -128,6 +128,10 @@ export function useGoalDetail(goalId: string, filters?: GoalDetailFilters) {
       };
     },
     enabled: !!user && !!goalId,
-    refetchOnMount: true,
+    // Force refetch on every mount so detail cards always show freshly
+    // hydrated correlation rollups + progress, regardless of the global
+    // staleTime applied to the cached prefetch payload.
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 }

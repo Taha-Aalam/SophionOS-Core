@@ -4,10 +4,9 @@ import React, { useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ProjectCard, type ProjectCardRollups } from "@/components/entities/project-card";
+import { ProjectCard } from "@/components/entities/project-card";
 import { GalleryGrid } from "@/components/views/gallery-grid";
 import type { Project } from "@/lib/types/domain.types";
-import type { ProjectTaskStats } from "@/lib/utils/projects";
 
 export interface ProjectsByAreaGroup {
   areaId: string;
@@ -18,9 +17,7 @@ export interface ProjectsByAreaGroup {
 interface ProjectsByAreaViewProps {
   groups: ProjectsByAreaGroup[];
   areaNames: Map<string, string>;
-  taskStatsByProject: Map<string, ProjectTaskStats>;
   duplicateIndices: Map<string, number>;
-  rollupsByProject?: Map<string, ProjectCardRollups>;
   isLoading?: boolean;
   onEdit: (project: Project) => void;
   onCreateProject: (areaId: string) => void;
@@ -29,17 +26,13 @@ interface ProjectsByAreaViewProps {
 function CollapsibleAreaSection({
   group,
   areaNames,
-  taskStatsByProject,
   duplicateIndices,
-  rollupsByProject,
   onEdit,
   onCreateProject,
 }: {
   group: ProjectsByAreaGroup;
   areaNames: Map<string, string>;
-  taskStatsByProject: Map<string, ProjectTaskStats>;
   duplicateIndices: Map<string, number>;
-  rollupsByProject?: Map<string, ProjectCardRollups>;
   onEdit: (project: Project) => void;
   onCreateProject: (areaId: string) => void;
 }) {
@@ -102,10 +95,8 @@ function CollapsibleAreaSection({
                   .map((id) => areaNames.get(id))
                   .filter((n): n is string => Boolean(n))
               }
-              taskStats={taskStatsByProject.get(project.id)}
               duplicateIndex={duplicateIndices.get(project.id)}
               onEdit={onEdit}
-              rollups={rollupsByProject?.get(project.id)}
             />
           ))}
           {group.areaId !== "unassigned" && (
@@ -126,9 +117,7 @@ function CollapsibleAreaSection({
 export function ProjectsByAreaView({
   groups,
   areaNames,
-  taskStatsByProject,
   duplicateIndices,
-  rollupsByProject,
   isLoading,
   onEdit,
   onCreateProject,
@@ -165,9 +154,7 @@ export function ProjectsByAreaView({
           key={group.areaId}
           group={group}
           areaNames={areaNames}
-          taskStatsByProject={taskStatsByProject}
           duplicateIndices={duplicateIndices}
-          rollupsByProject={rollupsByProject}
           onEdit={onEdit}
           onCreateProject={onCreateProject}
         />

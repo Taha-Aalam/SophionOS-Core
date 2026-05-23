@@ -42,7 +42,7 @@ describe("goal view filters", () => {
     expect(getGoalViewFromFilters({ status: "active", term: "mid" })).toBe("mid");
     expect(getGoalViewFromFilters({ status: "active", term: "long" })).toBe("long");
     expect(getGoalViewFromFilters({ status: "inactive", term: "all" })).toBe("inactive");
-    expect(getGoalViewFromFilters({ status: "archived", term: "all" })).toBe("inactive");
+    expect(getGoalViewFromFilters({ status: "archived", term: "all" })).toBe("archive");
     expect(getGoalViewFromFilters({ status: "completed", term: "all" })).toBe("completed");
   });
 

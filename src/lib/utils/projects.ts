@@ -23,6 +23,7 @@ export const PROJECT_VIEW = {
   INBOX: "inbox",
   PLANNING: "planning",
   IN_PROGRESS: "in-progress",
+  ON_HOLD: "on-hold",
   COMPLETED: "completed",
   BY_STATUS: "by-status",
   BY_AREA: "by-area",
@@ -72,6 +73,8 @@ export function getProjectFiltersForView(view: ProjectView): {
       return { includeArchived: false, status: PROJECT_STATUS.PLANNING };
     case PROJECT_VIEW.IN_PROGRESS:
       return { includeArchived: false, status: PROJECT_STATUS.ACTIVE };
+    case PROJECT_VIEW.ON_HOLD:
+      return { includeArchived: false, status: PROJECT_STATUS.ON_HOLD };
     case PROJECT_VIEW.COMPLETED:
       return { includeArchived: false, status: PROJECT_STATUS.COMPLETED };
     case PROJECT_VIEW.ARCHIVE:
@@ -99,6 +102,10 @@ export function getProjectViewFromFilters(filters: {
 
   if (filters.status === PROJECT_STATUS.COMPLETED) {
     return PROJECT_VIEW.COMPLETED;
+  }
+
+  if (filters.status === PROJECT_STATUS.ON_HOLD) {
+    return PROJECT_VIEW.ON_HOLD;
   }
 
   return PROJECT_VIEW.ALL;

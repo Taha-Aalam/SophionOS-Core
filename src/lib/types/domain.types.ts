@@ -25,6 +25,10 @@ export interface Note extends DatabaseTable<"notes"> {
 export interface Project extends DatabaseTable<"projects"> {
   linkedAreaIds?: string[];
   linkedGoalIds?: string[];
+  goalCount?: number;
+  taskCount?: number;
+  noteCount?: number;
+  resourceCount?: number;
 }
 
 export interface Resource extends DatabaseTable<"resources"> {

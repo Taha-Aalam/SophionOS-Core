@@ -2,7 +2,7 @@ import type { Goal, Note, Project, Resource, Task } from "@/lib/types/domain.typ
 
 export type GoalTermFilter = "all" | "short" | "mid" | "long";
 export type GoalStatusFilter = "active" | "all" | "archived" | "completed" | "inactive";
-export type GoalView = "active" | "completed" | "inactive" | "long" | "mid" | "short";
+export type GoalView = "active" | "archive" | "completed" | "inactive" | "long" | "mid" | "short";
 
 export interface GoalViewFilters {
   status: GoalStatusFilter;
@@ -43,13 +43,13 @@ const GOAL_VIEW_FILTERS: Record<GoalView, GoalViewFilters> = {
     status: "completed",
     term: "all",
   },
+  archive: {
+    status: "archived",
+    term: "all",
+  },
 };
 
 export function normalizeGoalStatusFilter(status: GoalStatusFilter): GoalStatusFilter {
-  if (status === "archived") {
-    return "inactive";
-  }
-
   return status;
 }
 
@@ -62,6 +62,10 @@ export function getGoalFiltersForView(view: GoalView): GoalViewFilters {
 }
 
 export function getGoalViewFromFilters(filters: GoalViewFilters): GoalView {
+  if (filters.status === "archived") {
+    return "archive";
+  }
+
   const normalizedStatus = normalizeGoalStatusFilter(filters.status);
 
   if (normalizedStatus === "completed") {
@@ -106,9 +110,27 @@ export function goalMatchesFilters(
   goal: Goal,
   filters: GoalListFilters = {},
 ): boolean {
+  // Check archived status BEFORE normalization so archive view works correctly
+  if (filters.status === "archived") {
+    return goal.is_archived;
+  }
+
   const normalizedStatus = normalizeGoalStatusFilter(filters.status ?? "all");
 
-  if (normalizedStatus === "active" && (goal.is_completed || goal.is_archived)) {
+  // Auto-inactive: goal with no linked items, not archived/completed
+  const countsHydrated =
+    goal.projectCount !== undefined &&
+    goal.taskCount !== undefined &&
+    goal.noteCount !== undefined &&
+    goal.resourceCount !== undefined;
+  const totalLinked =
+    (goal.projectCount ?? 0) +
+    (goal.taskCount ?? 0) +
+    (goal.noteCount ?? 0) +
+    (goal.resourceCount ?? 0);
+  const isAutoInactive = countsHydrated && totalLinked === 0 && !goal.is_archived && !goal.is_completed;
+
+  if (normalizedStatus === "active" && (goal.is_completed || goal.is_archived || isAutoInactive)) {
     return false;
   }
 
@@ -116,7 +138,7 @@ export function goalMatchesFilters(
     return false;
   }
 
-  if (normalizedStatus === "inactive" && !goal.is_archived) {
+  if (normalizedStatus === "inactive" && !isAutoInactive) {
     return false;
   }
 

@@ -2,6 +2,8 @@ import type { Area, Goal, Note, Project, Resource, Task } from "@/lib/types/doma
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { goalMatchesAreaId } from "@/lib/utils/goals";
 import { noteMatchesAreaId } from "@/lib/utils/notes";
+import { projectMatchesAreaId } from "@/lib/utils/projects";
+import { taskMatchesAreaId } from "@/lib/utils/tasks";
 
 export type AreaStatus = "active" | "inactive" | "archived";
 
@@ -96,6 +98,21 @@ export function getSuggestedAreaTypes(areas: Area[]): string[] {
   );
 }
 
+/**
+ * Returns the linked area IDs for a resource, falling back to the primary
+ * `area_id` when the optional `linkedAreaIds` array isn't hydrated.
+ */
+function getResourceLinkedAreaIds(resource: Resource): string[] {
+  if (resource.linkedAreaIds && resource.linkedAreaIds.length > 0) {
+    return resource.linkedAreaIds;
+  }
+  return resource.area_id ? [resource.area_id] : [];
+}
+
+function resourceMatchesAreaId(resource: Resource, areaId: string): boolean {
+  return getResourceLinkedAreaIds(resource).includes(areaId);
+}
+
 export function getAreaRollups(params: {
   areaId: string;
   goals: Goal[];
@@ -111,10 +128,14 @@ export function getAreaRollups(params: {
       (goal) => goalMatchesAreaId(goal, areaId) && !goal.is_archived && !goal.is_completed,
     ).length,
     projectsCount: projects.filter(
-      (project) => project.area_id === areaId && !project.is_archived && project.status !== "completed",
+      (project) =>
+        projectMatchesAreaId(project, areaId) &&
+        !project.is_archived &&
+        project.status !== "completed",
     ).length,
     tasksCount: tasks.filter(
-      (task) => task.area_id === areaId && !task.is_archived && !task.is_completed,
+      (task) =>
+        taskMatchesAreaId(task, areaId) && !task.is_archived && !task.is_completed,
     ).length,
     notesCount: notes.filter(
       (note) =>
@@ -124,7 +145,7 @@ export function getAreaRollups(params: {
     ).length,
     resourcesCount: resources.filter(
       (resource) =>
-        resource.area_id === areaId &&
+        resourceMatchesAreaId(resource, areaId) &&
         !resource.is_archived &&
         ACTIVE_RESOURCE_STATUSES.has(resource.status),
     ).length,

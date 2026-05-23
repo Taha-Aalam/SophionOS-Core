@@ -193,7 +193,10 @@ export function ResourceRow({
       <div className="w-8 flex justify-center self-center">
         <button
           type="button"
-          onClick={() => onToggleFavorite(resource.id, !resource.favorite)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite(resource.id, !resource.favorite);
+          }}
           className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
           title={resource.favorite ? "Remove from favorites" : "Add to favorites"}
         >

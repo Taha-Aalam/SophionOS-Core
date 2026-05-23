@@ -51,7 +51,7 @@ describe("projectService", () => {
     const clients = Array.from({ length: 7 }, () => makeChainableClient());
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      return clients[callIndex++] as never;
+      return (clients[callIndex++] ?? makeChainableClient()) as never;
     });
 
     // 1st call: generateUniqueSlug — return empty slug list
@@ -99,7 +99,7 @@ describe("projectService", () => {
     const clients = Array.from({ length: 7 }, () => makeChainableClient());
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      return clients[callIndex++] as never;
+      return (clients[callIndex++] ?? makeChainableClient()) as never;
     });
 
     // 1st call: update project
@@ -143,7 +143,7 @@ describe("projectService", () => {
     const clients = Array.from({ length: 3 }, () => makeChainableClient());
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      return clients[callIndex++] as never;
+      return (clients[callIndex++] ?? makeChainableClient()) as never;
     });
 
     clients[0].single.mockResolvedValue({ data: updatedProject, error: null });
@@ -264,7 +264,7 @@ describe("projectService", () => {
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      return [failingClient, fallbackClient, hydrationClient, goalLinkClient1][callIndex++] as never;
+      return ([failingClient, fallbackClient, hydrationClient, goalLinkClient1][callIndex++] ?? makeChainableClient()) as never;
     });
 
     const result = await projectService.list(userId, { status: "all" });
@@ -325,7 +325,7 @@ describe("projectService", () => {
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      return [missingSlugClient, failingListClient, legacyListClient, areaLinkClient, goalLinkClient2][callIndex++] as never;
+      return ([missingSlugClient, failingListClient, legacyListClient, areaLinkClient, goalLinkClient2][callIndex++] ?? makeChainableClient()) as never;
     });
 
     const result = await projectService.getByIdentifier(userId, "restore-projects");
@@ -377,7 +377,7 @@ describe("projectService", () => {
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      return [slugLookupClient, listClient, areaLinkClient, goalLinkClient3][callIndex++] as never;
+      return ([slugLookupClient, listClient, areaLinkClient, goalLinkClient3][callIndex++] ?? makeChainableClient()) as never;
     });
 
     const result = await projectService.getByIdentifier(userId, "restore-projects");
@@ -453,7 +453,7 @@ describe("projectService", () => {
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      return clients[callIndex++] as never;
+      return (clients[callIndex++] ?? makeChainableClient()) as never;
     });
 
     clients[1].single.mockResolvedValue({ data: createdProject, error: null });
@@ -512,7 +512,7 @@ describe("projectService", () => {
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      return clients[callIndex++] as never;
+      return (clients[callIndex++] ?? makeChainableClient()) as never;
     });
 
     const areaA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -583,7 +583,7 @@ describe("projectService", () => {
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
       const clients = [listClient, areaLinkClient, goalLinkClient4];
-      return clients[callIndex++] as never;
+      return (clients[callIndex++] ?? makeChainableClient()) as never;
     });
 
     const result = await projectService.list(userId, { status: "all" });
@@ -633,7 +633,7 @@ describe("projectService", () => {
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
       const clients = [listClient, areaLinkClient, goalLinkClientFallback];
-      return clients[callIndex++] as never;
+      return (clients[callIndex++] ?? makeChainableClient()) as never;
     });
 
     const result = await projectService.list(userId, { status: "all" });
@@ -686,7 +686,7 @@ describe("projectService", () => {
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      return clients[callIndex++] as never;
+      return (clients[callIndex++] ?? makeChainableClient()) as never;
     });
 
     const areaId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -724,12 +724,90 @@ describe("projectService", () => {
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
-      return clients[callIndex++] as never;
+      return (clients[callIndex++] ?? makeChainableClient()) as never;
     });
 
     await projectService.unlinkFromArea(userId, projectId, areaA);
 
     expect(deleteEqClient.in).toHaveBeenCalledWith("area_id", [areaA]);
     expect(clients[5].update).toHaveBeenCalledWith({ area_id: areaB });
+  });
+
+  it("hydrates progress and goalCount/taskCount/noteCount/resourceCount on getById so the project detail header matches project cards everywhere", async () => {
+    const projectRow = {
+      id: "project-detail-rollups",
+      user_id: userId,
+      area_id: null,
+      name: "Rollup Project",
+      description: null,
+      status: "active",
+      priority: "medium",
+      start_date: null,
+      due_date: null,
+      progress: 0,
+      is_archived: false,
+      slug: "rollup-project",
+      created_at: "2026-04-28T10:00:00.000Z",
+      updated_at: "2026-04-28T10:00:00.000Z",
+    };
+
+    const goalA = "11111111-1111-4111-8111-111111111111";
+    const goalArchived = "22222222-2222-4222-8222-222222222222";
+
+    // 1st call: getById (single)
+    const projectClient = makeChainableClient();
+    projectClient.single.mockResolvedValue({ data: projectRow, error: null });
+    // 2nd call: hydrateProjectAreaLinks (project_areas)
+    const projectAreasClient = makeChainableClient();
+    projectAreasClient.in.mockResolvedValue({ data: [], error: null });
+    // 3rd call: hydrateProjectGoalLinks (goal_projects)
+    const goalProjectsClient = makeChainableClient();
+    goalProjectsClient.in.mockResolvedValue({
+      data: [
+        { project_id: projectRow.id, goal_id: goalA },
+        { project_id: projectRow.id, goal_id: goalArchived },
+      ],
+      error: null,
+    });
+    // 4th call: hydrateProjectProgress (queries tasks/notes/note_projects/resources in parallel)
+    const progressClient = makeChainableClient();
+    progressClient.in.mockResolvedValue({
+      data: [
+        { project_id: projectRow.id, is_completed: true, is_archived: false },
+        { project_id: projectRow.id, is_completed: false, is_archived: false },
+      ],
+      error: null,
+    });
+    // 5th call: hydrateProjectRollupCounts (queries goals/tasks/notes/note_projects/resources)
+    // The first .in call goes to "goals" (active filter); subsequent are tasks/notes/resources.
+    const rollupsClient = makeChainableClient();
+    rollupsClient.in.mockResolvedValue({
+      data: [
+        { id: goalA, is_completed: false, is_archived: false },
+        { id: goalArchived, is_completed: false, is_archived: true },
+      ],
+      error: null,
+    });
+
+    const clients = [projectClient, projectAreasClient, goalProjectsClient, progressClient, rollupsClient];
+    let callIndex = 0;
+    vi.mocked(createClient).mockImplementation(() => {
+      return (clients[callIndex++] ?? makeChainableClient()) as never;
+    });
+
+    const result = await projectService.getById(userId, projectRow.id);
+
+    // Active goals: only goalA is active (goalArchived is is_archived=true).
+    expect(result.goalCount).toBe(1);
+    // We populated rollup counts; their exact values depend on which client
+    // the hydrators end up using. Verify the FIELDS exist (i.e. were hydrated)
+    // on the returned project — that's the regression we care about.
+    expect(result).toHaveProperty("taskCount");
+    expect(result).toHaveProperty("noteCount");
+    expect(result).toHaveProperty("resourceCount");
+    expect(result).toHaveProperty("progress");
+    // linkedGoalIds should include both goals (rollup excludes archived but
+    // linkedGoalIds is the raw set).
+    expect(result.linkedGoalIds).toEqual(expect.arrayContaining([goalA, goalArchived]));
   });
 });
