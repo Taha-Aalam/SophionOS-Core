@@ -23,7 +23,7 @@ interface TasksByGroupViewProps {
   onFocusToggle: (id: string, focused: boolean) => void;
   onNameSave: (id: string, name: string) => void;
   onEdit: (task: Task) => void;
-  onDelete: (id: string) => void;
+  onArchiveToggle: (task: Task) => void;
   onNewTask: (groupId: string) => void;
   getLinkedAreaNames: (task: Task) => string[];
   getLinkedAreaIcons: (task: Task) => (string | null)[];
@@ -40,7 +40,7 @@ function CollapsibleTaskGroup({
   onFocusToggle,
   onNameSave,
   onEdit,
-  onDelete,
+  onArchiveToggle,
   onNewTask,
   getLinkedAreaNames,
   getLinkedAreaIcons,
@@ -54,7 +54,7 @@ function CollapsibleTaskGroup({
   onFocusToggle: (id: string, focused: boolean) => void;
   onNameSave: (id: string, name: string) => void;
   onEdit: (task: Task) => void;
-  onDelete: (id: string) => void;
+  onArchiveToggle: (task: Task) => void;
   onNewTask: (groupId: string) => void;
   getLinkedAreaNames: (task: Task) => string[];
   getLinkedAreaIcons: (task: Task) => (string | null)[];
@@ -106,7 +106,7 @@ function CollapsibleTaskGroup({
               onFocusToggle={onFocusToggle}
               onNameSave={onNameSave}
               onEdit={onEdit}
-              onDelete={onDelete}
+              onArchiveToggle={onArchiveToggle}
             />
           ))}
           {group.groupId !== "unassigned" && (
@@ -133,7 +133,7 @@ export function TasksByGroupView({
   onFocusToggle,
   onNameSave,
   onEdit,
-  onDelete,
+  onArchiveToggle,
   onNewTask,
   getLinkedAreaNames,
   getLinkedAreaIcons,
@@ -163,7 +163,7 @@ export function TasksByGroupView({
           onFocusToggle={onFocusToggle}
           onNameSave={onNameSave}
           onEdit={onEdit}
-          onDelete={onDelete}
+          onArchiveToggle={onArchiveToggle}
           onNewTask={onNewTask}
           getLinkedAreaNames={getLinkedAreaNames}
           getLinkedAreaIcons={getLinkedAreaIcons}
