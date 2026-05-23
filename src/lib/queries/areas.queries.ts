@@ -11,7 +11,6 @@ export async function serverFetchAreas(
     .from("areas")
     .select(AREA_SELECT)
     .eq("user_id", userId)
-    .eq("archive", false)
     .order("created_at", { ascending: false })
 
   return data ?? []
