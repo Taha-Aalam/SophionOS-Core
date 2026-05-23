@@ -206,8 +206,27 @@ export function useArchiveResource() {
 
   return useMutation({
     mutationFn: (id: string) => resourceService.archive(user!.id, id),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      queryClient.setQueriesData(
+        { queryKey: [AREA_DETAIL_QUERY_KEY] },
+        (old: unknown) => {
+          if (!old || typeof old !== "object") return old;
+          const data = old as { resources?: Resource[]; archivedResources?: Resource[] };
+          const archived = data.resources?.find((r) => r.id === id);
+          return {
+            ...data,
+            resources: data.resources?.filter((r) => r.id !== id) ?? [],
+            archivedResources: archived
+              ? [...(data.archivedResources ?? []), { ...archived, is_archived: true }]
+              : data.archivedResources ?? [],
+          };
+        },
+      );
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] });
       toast.success("Resource archived");
     },
@@ -223,8 +242,27 @@ export function useUnarchiveResource() {
 
   return useMutation({
     mutationFn: (id: string) => resourceService.unarchive(user!.id, id),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      queryClient.setQueriesData(
+        { queryKey: [AREA_DETAIL_QUERY_KEY] },
+        (old: unknown) => {
+          if (!old || typeof old !== "object") return old;
+          const data = old as { resources?: Resource[]; archivedResources?: Resource[] };
+          const restored = data.archivedResources?.find((r) => r.id === id);
+          return {
+            ...data,
+            resources: restored
+              ? [...(data.resources ?? []), { ...restored, is_archived: false }]
+              : data.resources ?? [],
+            archivedResources: data.archivedResources?.filter((r) => r.id !== id) ?? [],
+          };
+        },
+      );
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] });
       toast.success("Resource restored");
     },
