@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Archive, Calendar, Folder, Map, Pencil, Star, Target } from "lucide-react";
+import { Calendar, Folder, Map, Pencil, Star, Target } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { PriorityBadge } from "./priority-badge";
 import { StatusBadge } from "./status-badge";
 import { SmartPriorityBadge } from "./smart-priority-badge";
+import { TaskArchiveToggle } from "./task-archive-toggle";
 import { TaskInlineEditor } from "./task-inline-editor";
 
 interface TaskListItemProps {
@@ -26,6 +27,8 @@ interface TaskListItemProps {
   onFocusToggle: (id: string, focused: boolean) => void;
   onNameSave: (id: string, name: string) => void;
   onEdit?: (task: Task) => void;
+  onArchiveToggle?: (task: Task) => void;
+  /** @deprecated Use `onArchiveToggle` instead. Kept as transitional alias. */
   onDelete?: (id: string) => void;
 }
 
@@ -62,6 +65,7 @@ export function TaskListItem({
   onFocusToggle,
   onNameSave,
   onEdit,
+  onArchiveToggle,
   onDelete,
 }: TaskListItemProps) {
   const displayAreaNames = linkedAreaNames && linkedAreaNames.length > 0 ? linkedAreaNames : (areaName ? [areaName] : []);
@@ -169,17 +173,20 @@ export function TaskListItem({
             <Pencil className="size-3.5" />
           </button>
         )}
-        {onDelete && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(task.id);
-            }}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
-            aria-label="Archive task"
-          >
-            <Archive className="size-3.5" />
-          </button>
+        {(onArchiveToggle || onDelete) && (
+          <span onClick={(e) => e.stopPropagation()}>
+            <TaskArchiveToggle
+              isArchived={task.is_archived}
+              mode="row"
+              onClick={() => {
+                if (onArchiveToggle) {
+                  onArchiveToggle(task);
+                } else {
+                  onDelete!(task.id);
+                }
+              }}
+            />
+          </span>
         )}
       </div>
 
