@@ -46,9 +46,10 @@ import {
 import { useAreaDetail, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-area-detail";
 import { useAreas, useArchiveArea, useRestoreArea, useUpdateArea } from "@/lib/hooks/use-areas";
 import {
+  useArchiveTask,
   useCompleteTaskWithGoalRefresh,
-  useDeleteTask,
   useFocusTask,
+  useRestoreTask,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import {
@@ -135,7 +136,8 @@ export function AreaDetailContent() {
   const updateArea = useUpdateArea(userId);
   const completeTask = useCompleteTaskWithGoalRefresh();
   const updateTask = useUpdateTask();
-  const deleteTask = useDeleteTask();
+  const archiveTask = useArchiveTask();
+  const restoreTask = useRestoreTask();
   const focusTask = useFocusTask();
   const linkContactToArea = useLinkContactToArea();
   const unlinkContactFromArea = useUnlinkContactFromArea();
@@ -396,8 +398,12 @@ export function AreaDetailContent() {
     await updateTask.mutateAsync({ id: taskId, input: { name } });
   };
 
-  const handleTaskDelete = async (taskId: string) => {
-    await deleteTask.mutateAsync(taskId);
+  const handleTaskArchiveToggle = async (task: Task) => {
+    if (task.is_archived) {
+      await restoreTask.mutateAsync(task.id);
+    } else {
+      await archiveTask.mutateAsync(task.id);
+    }
   };
 
   const handleTaskFocus = async (taskId: string, focused: boolean) => {
@@ -911,7 +917,7 @@ export function AreaDetailContent() {
                     onCompletionToggle={handleTaskCompletion}
                     onFocusToggle={handleTaskFocus}
                     onNameSave={handleTaskNameSave}
-                    onDelete={handleTaskDelete}
+                    onArchiveToggle={handleTaskArchiveToggle}
                     onEdit={(task) => {
                       setEditingTask(task);
                       setIsTaskEditOpen(true);
@@ -1139,8 +1145,8 @@ export function AreaDetailContent() {
         }}
         task={editingTask}
         onSuccess={() => refetchAreaDetail()}
-        onDelete={(id) => {
-          handleTaskDelete(id);
+        onArchiveToggle={(task) => {
+          handleTaskArchiveToggle(task);
           setEditingTask(null);
         }}
       />

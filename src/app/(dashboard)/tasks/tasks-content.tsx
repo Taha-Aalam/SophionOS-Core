@@ -40,9 +40,10 @@ import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
+  useArchiveTask,
   useCompleteTask,
-  useDeleteTask,
   useFocusTask,
+  useRestoreTask,
   useTasks,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
@@ -84,7 +85,19 @@ export function TasksContent() {
   const completeTask = useCompleteTask();
   const focusTask = useFocusTask();
   const updateTask = useUpdateTask();
-  const deleteTask = useDeleteTask();
+  const archiveTask = useArchiveTask();
+  const restoreTask = useRestoreTask();
+
+  const handleArchiveToggle = useCallback(
+    (task: Task) => {
+      if (task.is_archived) {
+        restoreTask.mutate(task.id);
+      } else {
+        archiveTask.mutate(task.id);
+      }
+    },
+    [archiveTask, restoreTask],
+  );
 
   const areaMap = useMemo(
     () => new Map(allAreas?.map((area) => [area.id, area]) ?? []),
@@ -659,7 +672,7 @@ export function TasksContent() {
                     onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
                     onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
                     onEdit={handleEdit}
-                    onDelete={(id) => deleteTask.mutate(id)}
+                    onArchiveToggle={handleArchiveToggle}
                   />
                 ))}
               </div>
@@ -680,7 +693,7 @@ export function TasksContent() {
             onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
             onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
             onEdit={handleEdit}
-            onDelete={(id) => deleteTask.mutate(id)}
+            onArchiveToggle={handleArchiveToggle}
             onNewTask={(areaId) => {
               setNewTaskAreaId(areaId);
               setIsDialogOpen(true);
@@ -705,7 +718,7 @@ export function TasksContent() {
             onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
             onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
             onEdit={handleEdit}
-            onDelete={(id) => deleteTask.mutate(id)}
+            onArchiveToggle={handleArchiveToggle}
             onNewTask={(goalId) => {
               setNewTaskGoalId(goalId);
               setIsDialogOpen(true);
@@ -730,7 +743,7 @@ export function TasksContent() {
             onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
             onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
             onEdit={handleEdit}
-            onDelete={(id) => deleteTask.mutate(id)}
+            onArchiveToggle={handleArchiveToggle}
             onNewTask={(projectId) => {
               setNewTaskProjectId(projectId);
               setIsDialogOpen(true);
@@ -771,7 +784,7 @@ export function TasksContent() {
                   onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
                   onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
                   onEdit={handleEdit}
-                  onDelete={(id) => deleteTask.mutate(id)}
+                  onArchiveToggle={handleArchiveToggle}
                 />
               ))}
             </div>
@@ -793,7 +806,7 @@ export function TasksContent() {
         defaultAreaId={newTaskAreaId}
         defaultGoalId={newTaskGoalId}
         defaultProjectId={newTaskProjectId}
-        onDelete={(id) => deleteTask.mutate(id)}
+        onArchiveToggle={handleArchiveToggle}
       />
     </div>
   );
