@@ -11,7 +11,7 @@ import type { Area, Goal, Note, Project, Resource, Task } from "@/lib/types/doma
 import { getAreaRollups } from "@/lib/utils/areas";
 import { goalMatchesAreaId } from "@/lib/utils/goals";
 import { noteMatchesAreaId } from "@/lib/utils/notes";
-import { projectMatchesAreaId } from "@/lib/utils/projects";
+import { mergeProjectQueryResults, projectMatchesAreaId } from "@/lib/utils/projects";
 import { taskMatchesAreaId } from "@/lib/utils/tasks";
 
 export const AREA_DETAIL_QUERY_KEY = "area-detail";
@@ -57,7 +57,8 @@ export function useAreaDetail(areaIdentifier: string) {
 
       const [
         goalsResult,
-        projectsResult,
+        activeProjectsResult,
+        archivedProjectsResult,
         tasksResult,
         archivedTasksResult,
         allNotesResult,
@@ -66,6 +67,7 @@ export function useAreaDetail(areaIdentifier: string) {
       ] = await Promise.all([
         goalService.list(userId, { status: "all" }),
         projectService.list(userId, { status: "all" }),
+        projectService.list(userId, { status: "archived" }),
         taskService.list(userId),
         taskService.listArchived(userId),
         noteService.list(userId, { status: "all", includeArchived: true }),
@@ -73,6 +75,7 @@ export function useAreaDetail(areaIdentifier: string) {
         resourceService.listArchived(userId),
       ]);
 
+      const projectsResult = mergeProjectQueryResults(activeProjectsResult, archivedProjectsResult);
       const allResourcesResult = [...activeResourcesResult, ...archivedResourcesResult].filter(
         (resource, index, list) => list.findIndex((candidate) => candidate.id === resource.id) === index,
       );
