@@ -57,9 +57,10 @@ import {
   useUpdateGoal,
 } from "@/lib/hooks/use-goals";
 import {
+  useArchiveTask,
   useCompleteTaskWithGoalRefresh,
-  useDeleteTask,
   useFocusTask,
+  useRestoreTask,
   useTasks,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
@@ -242,7 +243,8 @@ export function GoalDetailContent() {
   const unlinkGoalFromArea = useUnlinkGoalFromArea();
   const completeTask = useCompleteTaskWithGoalRefresh();
   const updateTask = useUpdateTask();
-  const deleteTask = useDeleteTask();
+  const archiveTask = useArchiveTask();
+  const restoreTask = useRestoreTask();
   const focusTask = useFocusTask();
   const toggleFavoriteNote = useToggleFavoriteNote();
   const toggleFavoriteResource = useToggleFavoriteResource();
@@ -555,11 +557,15 @@ export function GoalDetailContent() {
     [updateTask],
   );
 
-  const handleTaskDelete = useCallback(
-    async (taskId: string) => {
-      await deleteTask.mutateAsync(taskId);
+  const handleTaskArchiveToggle = useCallback(
+    async (task: Task) => {
+      if (task.is_archived) {
+        await restoreTask.mutateAsync(task.id);
+      } else {
+        await archiveTask.mutateAsync(task.id);
+      }
     },
-    [deleteTask],
+    [archiveTask, restoreTask],
   );
 
   const handleTaskEdit = useCallback((task: Task) => {
@@ -1070,7 +1076,7 @@ export function GoalDetailContent() {
                                 onCompletionToggle={handleTaskCompletion}
                                 onFocusToggle={handleTaskFocus}
                                 onNameSave={handleTaskNameSave}
-                                onDelete={handleTaskDelete}
+                                onArchiveToggle={handleTaskArchiveToggle}
                                 onEdit={handleTaskEdit}
                               />
                             ))}
@@ -1097,7 +1103,7 @@ export function GoalDetailContent() {
                       onCompletionToggle={handleTaskCompletion}
                       onFocusToggle={handleTaskFocus}
                       onNameSave={handleTaskNameSave}
-                      onDelete={handleTaskDelete}
+                      onArchiveToggle={handleTaskArchiveToggle}
                       onEdit={handleTaskEdit}
                     />
                   ))}
@@ -1343,6 +1349,10 @@ export function GoalDetailContent() {
         defaultAreaId={goal.area_id ?? undefined}
         allowedProjectIds={allowedProjectIds}
         onSuccess={() => setEditingTask(null)}
+        onArchiveToggle={(task) => {
+          handleTaskArchiveToggle(task);
+          setEditingTask(null);
+        }}
       />
 
       {/* Inline Resource Creation */}

@@ -71,13 +71,15 @@ import {
   useUpdateResource,
 } from "@/lib/hooks/use-resources";
 import { useTasks } from "@/lib/hooks/use-tasks";
+import type { Task } from "@/lib/types/domain.types";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
+  useArchiveTask,
   useCompleteTask,
   useFocusTask,
+  useRestoreTask,
   useUpdateTask,
-  useDeleteTask,
   useUncompleteTask,
 } from "@/lib/hooks/use-tasks";
 import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
@@ -170,7 +172,8 @@ export function ProjectDetailContent() {
   const queryClient = useQueryClient();
   const focusTask = useFocusTask();
   const updateTask = useUpdateTask();
-  const deleteTask = useDeleteTask();
+  const archiveTask = useArchiveTask();
+  const restoreTask = useRestoreTask();
 
   useEffect(() => {
     if (project) {
@@ -652,11 +655,15 @@ export function ProjectDetailContent() {
     [updateTask],
   );
 
-  const handleTaskDelete = useCallback(
-    async (taskId: string) => {
-      await deleteTask.mutateAsync(taskId);
+  const handleTaskArchiveToggle = useCallback(
+    async (task: Task) => {
+      if (task.is_archived) {
+        await restoreTask.mutateAsync(task.id);
+      } else {
+        await archiveTask.mutateAsync(task.id);
+      }
     },
-    [deleteTask],
+    [archiveTask, restoreTask],
   );
 
   const handleTaskEdit = useCallback(
@@ -1104,7 +1111,7 @@ export function ProjectDetailContent() {
                   onCompletionToggle={handleTaskCompletion}
                   onFocusToggle={handleTaskFocus}
                   onNameSave={handleTaskNameSave}
-                  onDelete={handleTaskDelete}
+                  onArchiveToggle={handleTaskArchiveToggle}
                   onEdit={handleTaskEdit}
                 />
               ))}
@@ -1382,6 +1389,10 @@ export function ProjectDetailContent() {
           linkedGoalIds: linkedGoalIdsArray,
         }}
         onSuccess={() => setEditingTask(null)}
+        onArchiveToggle={(task) => {
+          handleTaskArchiveToggle(task);
+          setEditingTask(null);
+        }}
       />
 
       <ProjectDialog open={isEditOpen} onOpenChange={setIsEditOpen} project={project} />
