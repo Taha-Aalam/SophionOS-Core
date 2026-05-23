@@ -194,4 +194,40 @@ describe("getAreaRollups", () => {
     const { resourcesCount } = getAreaRollups({ areaId: AREA_ID, goals: [], projects: [], tasks: [], notes: [], resources });
     expect(resourcesCount).toBe(3);
   });
+
+  it("counts goals/projects/tasks/notes/resources linked through linkedAreaIds (junction table) even when area_id points to a different area", () => {
+    const goals = [makeGoal({ id: "g-junction", area_id: "other-area", linkedAreaIds: ["other-area", AREA_ID] })];
+    const projects = [makeProject({ id: "p-junction", area_id: "other-area", linkedAreaIds: ["other-area", AREA_ID] })];
+    const tasks = [makeTask({ id: "t-junction", area_id: "other-area", linkedAreaIds: ["other-area", AREA_ID] })];
+    const notes = [makeNote({ id: "n-junction", area_id: "other-area", linkedAreaIds: ["other-area", AREA_ID] })];
+    const resources = [makeResource({ id: "r-junction", area_id: "other-area", linkedAreaIds: ["other-area", AREA_ID] })];
+
+    const result = getAreaRollups({ areaId: AREA_ID, goals, projects, tasks, notes, resources });
+
+    expect(result).toEqual({
+      goalsCount: 1,
+      projectsCount: 1,
+      tasksCount: 1,
+      notesCount: 1,
+      resourcesCount: 1,
+    });
+  });
+
+  it("does not double-count entities whose area_id and linkedAreaIds both reference the same area", () => {
+    const goals = [makeGoal({ id: "g-1", area_id: AREA_ID, linkedAreaIds: [AREA_ID] })];
+    const projects = [makeProject({ id: "p-1", area_id: AREA_ID, linkedAreaIds: [AREA_ID] })];
+    const tasks = [makeTask({ id: "t-1", area_id: AREA_ID, linkedAreaIds: [AREA_ID] })];
+    const notes = [makeNote({ id: "n-1", area_id: AREA_ID, linkedAreaIds: [AREA_ID] })];
+    const resources = [makeResource({ id: "r-1", area_id: AREA_ID, linkedAreaIds: [AREA_ID] })];
+
+    const result = getAreaRollups({ areaId: AREA_ID, goals, projects, tasks, notes, resources });
+
+    expect(result).toEqual({
+      goalsCount: 1,
+      projectsCount: 1,
+      tasksCount: 1,
+      notesCount: 1,
+      resourcesCount: 1,
+    });
+  });
 });

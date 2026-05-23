@@ -12,7 +12,6 @@ import { type Project } from "@/lib/types/domain.types";
 import {
   getProjectDueState,
   getProjectStatusLabel,
-  type ProjectTaskStats,
 } from "@/lib/utils/projects";
 import ProgressRing from "@/components/charts/progress-ring";
 import { buildProjectDetailHref } from "@/lib/utils/project-urls";
@@ -33,12 +32,16 @@ interface ProjectCardProps {
    */
   areaNames?: string[];
   areaIcons?: (string | null)[];
-  taskStats?: ProjectTaskStats;
   duplicateIndex?: number;
   onEdit?: (project: Project) => void;
   /** When provided, appended as ?returnTo= to the project detail navigation. */
   returnTo?: string | null;
-  /** Correlation rollups for Goals, Notes, and Resources */
+  /**
+   * Correlation rollups for Goals, Tasks, Notes, and Resources. When omitted,
+   * falls back to the server-hydrated `project.{goalCount,taskCount,noteCount,
+   * resourceCount}` fields populated by `projectService` so the same project
+   * renders the same numbers on every surface.
+   */
   rollups?: ProjectCardRollups;
 }
 
@@ -54,7 +57,6 @@ export function ProjectCard({
   areaName,
   areaNames,
   areaIcons,
-  taskStats,
   duplicateIndex,
   onEdit,
   returnTo,
@@ -71,12 +73,19 @@ export function ProjectCard({
   })();
   const visibleAreaNames = resolvedAreaNames.slice(0, 2);
   const overflowAreaCount = Math.max(resolvedAreaNames.length - visibleAreaNames.length, 0);
-  const totalTasks = taskStats?.total;
-  const completedTasks = taskStats?.completed ?? 0;
-  const progress =
-    totalTasks && totalTasks > 0
-      ? Math.round((completedTasks / totalTasks) * 100)
-      : project.progress || 0;
+  // `project.progress` is hydrated by `projectService` (hydrateProjectProgress)
+  // and is the single source of truth for the ring on every surface.
+  const progress = project.progress ?? 0;
+
+  // Default to the server-hydrated rollup counts on the project object so a
+  // project renders the same correlation numbers everywhere. Callers can
+  // still override when they need scoped semantics.
+  const resolvedRollups: ProjectCardRollups = rollups ?? {
+    goalCount: project.goalCount ?? 0,
+    taskCount: project.taskCount ?? 0,
+    noteCount: project.noteCount ?? 0,
+    resourceCount: project.resourceCount ?? 0,
+  };
 
   const showAllCounts = true; // Always show all four correlation counts, even when zero
 
@@ -175,23 +184,23 @@ export function ProjectCard({
         <div className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {showAllCounts && rollups ? (
+              {showAllCounts ? (
                 <>
                   <span className="flex items-center gap-1 whitespace-nowrap" title="Goals">
                     <span className="text-xs">🎯</span>
-                    <span>{rollups.goalCount}</span>
+                    <span>{resolvedRollups.goalCount}</span>
                   </span>
                   <span className="flex items-center gap-1 whitespace-nowrap" title="Tasks">
                     <span className="text-xs">☑️</span>
-                    <span>{rollups.taskCount}</span>
+                    <span>{resolvedRollups.taskCount}</span>
                   </span>
                   <span className="flex items-center gap-1 whitespace-nowrap" title="Notes">
                     <span className="text-xs">📝</span>
-                    <span>{rollups.noteCount}</span>
+                    <span>{resolvedRollups.noteCount}</span>
                   </span>
                   <span className="flex items-center gap-1 whitespace-nowrap" title="Resources">
                     <span className="text-xs">🔗</span>
-                    <span>{rollups.resourceCount}</span>
+                    <span>{resolvedRollups.resourceCount}</span>
                   </span>
                 </>
               ) : null}

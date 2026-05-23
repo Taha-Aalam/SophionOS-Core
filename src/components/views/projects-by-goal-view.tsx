@@ -4,10 +4,9 @@ import React, { useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ProjectCard, type ProjectCardRollups } from "@/components/entities/project-card";
+import { ProjectCard } from "@/components/entities/project-card";
 import { GalleryGrid } from "@/components/views/gallery-grid";
 import type { Project } from "@/lib/types/domain.types";
-import type { ProjectTaskStats } from "@/lib/utils/projects";
 
 export interface ProjectsByGoalGroup {
   goalId: string;
@@ -18,9 +17,7 @@ export interface ProjectsByGoalGroup {
 interface ProjectsByGoalViewProps {
   groups: ProjectsByGoalGroup[];
   areaNames: Map<string, string>;
-  taskStatsByProject: Map<string, ProjectTaskStats>;
   duplicateIndices: Map<string, number>;
-  rollupsByProject?: Map<string, ProjectCardRollups>;
   isLoading?: boolean;
   onEdit: (project: Project) => void;
   onCreateProject: (goalId: string) => void;
@@ -29,17 +26,13 @@ interface ProjectsByGoalViewProps {
 function CollapsibleGoalSection({
   group,
   areaNames,
-  taskStatsByProject,
   duplicateIndices,
-  rollupsByProject,
   onEdit,
   onCreateProject,
 }: {
   group: ProjectsByGoalGroup;
   areaNames: Map<string, string>;
-  taskStatsByProject: Map<string, ProjectTaskStats>;
   duplicateIndices: Map<string, number>;
-  rollupsByProject?: Map<string, ProjectCardRollups>;
   onEdit: (project: Project) => void;
   onCreateProject: (goalId: string) => void;
 }) {
@@ -102,10 +95,8 @@ function CollapsibleGoalSection({
                   .map((id) => areaNames.get(id))
                   .filter((n): n is string => Boolean(n))
               }
-              taskStats={taskStatsByProject.get(project.id)}
               duplicateIndex={duplicateIndices.get(project.id)}
               onEdit={onEdit}
-              rollups={rollupsByProject?.get(project.id)}
             />
           ))}
           {group.goalId !== "unassigned" && (
@@ -126,9 +117,7 @@ function CollapsibleGoalSection({
 export function ProjectsByGoalView({
   groups,
   areaNames,
-  taskStatsByProject,
   duplicateIndices,
-  rollupsByProject,
   isLoading,
   onEdit,
   onCreateProject,
@@ -165,9 +154,7 @@ export function ProjectsByGoalView({
           key={group.goalId}
           group={group}
           areaNames={areaNames}
-          taskStatsByProject={taskStatsByProject}
           duplicateIndices={duplicateIndices}
-          rollupsByProject={rollupsByProject}
           onEdit={onEdit}
           onCreateProject={onCreateProject}
         />

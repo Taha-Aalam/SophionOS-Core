@@ -11,7 +11,6 @@ import { ProjectCard } from "@/components/entities/project-card";
 import { TaskListItem } from "@/components/entities/task-list-item";
 import { Button } from "@/components/ui/button";
 import type { Area, Goal, Note, Project, Resource, Task } from "@/lib/types/domain.types";
-import { noteMatchesAreaId } from "@/lib/utils/notes";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import {
   buildAreaTabs,
@@ -27,8 +26,9 @@ import {
   buildAreaLookup,
 } from "@/lib/utils/contact-detail-relations";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
-import { buildProjectCompletionStats, getProjectLinkedAreaIds } from "@/lib/utils/projects";
+import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
 import { getTaskLinkedAreaIds } from "@/lib/utils/tasks";
+import { getAreaRollups } from "@/lib/utils/areas";
 import { encodeReturnTo } from "@/lib/utils/return-to";
 
 // Re-export helpers for test access
@@ -51,7 +51,9 @@ interface ContactDetailRelationshipSectionsProps {
   linkedNotes: Note[];
   allResources: Resource[];
   allAreas: Area[];
+  allGoals: Goal[];
   allProjects: Project[];
+  allTasks: Task[];
   onUnlinkArea: (areaId: string) => void;
   onUnlinkGoal: (goalId: string) => void;
   onUnlinkProject: (projectId: string) => void;
@@ -79,7 +81,9 @@ export function ContactDetailRelationshipSections({
   linkedNotes,
   allResources,
   allAreas,
+  allGoals,
   allProjects,
+  allTasks,
   onUnlinkArea,
   onUnlinkGoal,
   onUnlinkProject,
@@ -101,24 +105,27 @@ export function ContactDetailRelationshipSections({
   const router = useRouter();
   const areaLookup = React.useMemo(() => buildAreaLookup(allAreas), [allAreas]);
 
-  const taskStatsByProject = React.useMemo(
-    () => buildProjectCompletionStats(linkedTasks, linkedNotes, allResources),
-    [linkedTasks, linkedNotes, allResources],
-  );
-
   const areaCountsMap = React.useMemo(() => {
     const map = new Map<string, { goals: number; projects: number; tasks: number; notes: number; resources: number }>();
     for (const area of linkedAreas) {
+      const rollups = getAreaRollups({
+        areaId: area.id,
+        goals: allGoals,
+        projects: allProjects,
+        tasks: allTasks,
+        notes: linkedNotes,
+        resources: allResources,
+      });
       map.set(area.id, {
-        goals: linkedGoals.filter((g) => getGoalLinkedAreaIds(g).includes(area.id)).length,
-        projects: linkedProjects.filter((p) => getProjectLinkedAreaIds(p).includes(area.id)).length,
-        tasks: linkedTasks.filter((t) => getTaskLinkedAreaIds(t).includes(area.id)).length,
-        notes: linkedNotes.filter((n) => noteMatchesAreaId(n, area.id)).length,
-        resources: allResources.filter((r) => r.area_id === area.id && !r.is_archived).length,
+        goals: rollups.goalsCount,
+        projects: rollups.projectsCount,
+        tasks: rollups.tasksCount,
+        notes: rollups.notesCount,
+        resources: rollups.resourcesCount,
       });
     }
     return map;
-  }, [linkedAreas, linkedGoals, linkedProjects, linkedTasks, linkedNotes, allResources]);
+  }, [linkedAreas, allGoals, allProjects, allTasks, linkedNotes, allResources]);
 
   const goalAreaIconsMap = React.useMemo(() => {
     const map = new Map<string, (string | null)[]>();
@@ -129,25 +136,28 @@ export function ContactDetailRelationshipSections({
     return map;
   }, [linkedGoals, areaLookup]);
 
-  const rollupsByProject = React.useMemo(() => {
-    const result = new Map<string, { goalCount: number; taskCount: number; noteCount: number; resourceCount: number }>();
-    const activeGoalIdSet = new Set(linkedGoals.filter((g) => !g.is_archived && !g.is_completed).map((g) => g.id));
-    for (const project of linkedProjects) {
-      const linkedGoalIds = (project as unknown as { linkedGoalIds?: string[] }).linkedGoalIds ?? [];
-      const goalCount = linkedGoalIds.filter((id) => activeGoalIdSet.has(id)).length;
-      const taskCount = linkedTasks.filter(
-        (t) => t.project_id === project.id && !t.is_archived && !t.is_completed,
-      ).length;
-      const noteCount = linkedNotes.filter(
-        (n) => (n.project_id === project.id || n.linkedProjectIds?.includes(project.id)) && !n.is_archived,
-      ).length;
-      const resourceCount = allResources.filter(
-        (r) => r.project_id === project.id && !r.is_archived,
-      ).length;
-      result.set(project.id, { goalCount, taskCount, noteCount, resourceCount });
+  const goalRollupsMap = React.useMemo(() => {
+    const result = new Map<string, { projectCount: number; taskCount: number; noteCount: number; resourceCount: number }>();
+    // Goals coming from useGoals({status:"all"}) are hydrated by goalService.list
+    // with accurate global rollup counts (every project/task/note/resource the
+    // goal is linked to). Use those directly; the fallback chains only run when
+    // hydration is somehow missing — in that case fall back to 0 instead of a
+    // contact-scoped recomputation that would understate or invent counts.
+    for (const goal of linkedGoals) {
+      const goalId = goal.id;
+      result.set(goalId, {
+        projectCount: goal.projectCount ?? 0,
+        taskCount: goal.taskCount ?? 0,
+        noteCount: goal.noteCount ?? 0,
+        resourceCount: goal.resourceCount ?? 0,
+      });
     }
     return result;
-  }, [linkedProjects, linkedGoals, linkedTasks, linkedNotes, allResources]);
+  }, [linkedGoals]);
+
+  // Project rollup counts and progress are hydrated server-side by
+  // projectService (hydrateProjectRollupCounts + hydrateProjectProgress) so
+  // each ProjectCard renders the same numbers across every surface.
 
   const areaTabs = React.useMemo(() => buildAreaTabs(linkedAreas), [linkedAreas]);
   const goalTabs = React.useMemo(() => buildGoalTabs(linkedGoals), [linkedGoals]);
@@ -240,16 +250,7 @@ export function ContactDetailRelationshipSections({
                     goal={goal}
                     areaNames={areaNames}
                     areaIcons={goalAreaIconsMap.get(goal.id)}
-                    rollups={
-                      goal.projectCount !== undefined
-                        ? {
-                            projectCount: goal.projectCount,
-                            taskCount: goal.taskCount ?? 0,
-                            noteCount: goal.noteCount ?? 0,
-                            resourceCount: goal.resourceCount ?? 0,
-                          }
-                        : undefined
-                    }
+                    rollups={goalRollupsMap.get(goal.id)}
                     onEdit={() =>
                       router.push(
                         `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(returnTo)}`,
@@ -298,8 +299,6 @@ export function ContactDetailRelationshipSections({
                     areaNames={areaNames}
                     areaIcons={areaIcons}
                     returnTo={returnTo}
-                    taskStats={taskStatsByProject.get(project.id)}
-                    rollups={rollupsByProject.get(project.id)}
                   />
                   <Button
                     variant="ghost"

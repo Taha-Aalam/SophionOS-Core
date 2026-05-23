@@ -1,73 +1,26 @@
-"use client";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
+import { redirect } from "next/navigation"
 
-import { useAuth } from "@/components/providers/auth-provider";
-import { useDashboardToday } from "@/lib/hooks/use-dashboard";
-import { GreetingBar } from "@/components/dashboard/greeting-bar";
-import { TodayTasksList } from "@/components/dashboard/today-tasks-list";
-import { ActiveGoalsWidget } from "@/components/dashboard/active-goals-widget";
-import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import {
-  GreetingBarSkeleton,
-  TaskListSkeleton,
-  ActiveGoalsSkeleton,
-  ActivityFeedSkeleton,
-} from "@/components/dashboard/dashboard-skeletons";
+import { createClient } from "@/lib/supabase/server"
+import { makeQueryClient } from "@/lib/queries/server-query-client"
+import { DASHBOARD_QUERY_KEY } from "@/lib/hooks/use-dashboard"
+import { serverFetchDashboardToday } from "@/lib/queries/dashboard.queries"
+import { DashboardContent } from "./dashboard-content"
 
-export default function DashboardPage() {
-  const { user } = useAuth();
-  const data = useDashboardToday();
+export default async function DashboardPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect("/login")
 
-  // When a task mutation fires (complete/focus/update), invalidateTaskGraph
-  // in use-tasks.ts invalidates the DASHBOARD_QUERY_KEY, so this query refetches.
-
-  if (!data) {
-    return (
-      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-        <GreetingBarSkeleton />
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Today&apos;s Tasks</h2>
-          <TaskListSkeleton />
-        </section>
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Active Goals</h2>
-          <ActiveGoalsSkeleton />
-        </section>
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Recent Activity</h2>
-          <ActivityFeedSkeleton />
-        </section>
-      </div>
-    );
-  }
+  const queryClient = makeQueryClient()
+  await queryClient.prefetchQuery({
+    queryKey: [DASHBOARD_QUERY_KEY, user.id, "today"],
+    queryFn: () => serverFetchDashboardToday(supabase, user.id),
+  })
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      <GreetingBar
-        userName={user?.user_metadata?.full_name}
-        tasksTodayCount={data.tasksTodayCount}
-        stats={data.stats}
-      />
-
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Today&apos;s Tasks</h2>
-        </div>
-        <TodayTasksList tasks={data.todayTasks} />
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Active Goals</h2>
-        </div>
-        <ActiveGoalsWidget goals={data.activeGoals} />
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Recent Activity</h2>
-        </div>
-        <ActivityFeed items={data.recentActivity} />
-      </section>
-    </div>
-  );
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <DashboardContent />
+    </HydrationBoundary>
+  )
 }

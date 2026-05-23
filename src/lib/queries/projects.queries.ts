@@ -7,6 +7,31 @@ export interface ProjectServerFilters {
   status?: "active" | "completed" | "paused" | "cancelled" | "all"
 }
 
+async function hydrateGoalLinks(
+  supabase: SupabaseClient,
+  projects: Record<string, unknown>[],
+): Promise<Record<string, unknown>[]> {
+  if (projects.length === 0) return projects
+  const ids = projects.map((p) => p.id as string)
+  const { data } = await supabase
+    .from("goal_projects")
+    .select("project_id, goal_id")
+    .in("project_id", ids)
+  if (!data || data.length === 0) {
+    return projects.map((p) => ({ ...p, linkedGoalIds: [] }))
+  }
+  const goalsByProject = new Map<string, string[]>()
+  for (const row of data) {
+    const list = goalsByProject.get(row.project_id) ?? []
+    list.push(row.goal_id)
+    goalsByProject.set(row.project_id, list)
+  }
+  return projects.map((p) => ({
+    ...p,
+    linkedGoalIds: goalsByProject.get(p.id as string) ?? [],
+  }))
+}
+
 export async function serverFetchProjects(
   supabase: SupabaseClient,
   userId: string,
@@ -24,5 +49,6 @@ export async function serverFetchProjects(
   }
 
   const { data } = await query
-  return data ?? []
+  const projects = data ?? []
+  return hydrateGoalLinks(supabase, projects as Record<string, unknown>[])
 }

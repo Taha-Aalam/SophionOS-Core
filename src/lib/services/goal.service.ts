@@ -559,7 +559,7 @@ export const goalService = {
 
     const areaHydrated = await hydrateSingleGoalAreaLinks(data);
     const [progressHydrated] = await hydrateGoalProgress([areaHydrated]);
-    return progressHydrated;
+    return hydrateSingleGoalRollupCounts(progressHydrated);
   },
 
   async getBySlug(userId: string, slug: string): Promise<Goal> {
@@ -579,7 +579,7 @@ export const goalService = {
 
     const areaHydrated = await hydrateSingleGoalAreaLinks(data);
     const [progressHydrated] = await hydrateGoalProgress([areaHydrated]);
-    return progressHydrated;
+    return hydrateSingleGoalRollupCounts(progressHydrated);
   },
 
   async getByIdentifier(userId: string, identifier: string): Promise<Goal> {
