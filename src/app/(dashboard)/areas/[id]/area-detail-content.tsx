@@ -13,7 +13,9 @@ import {
 } from "lucide-react";
 
 import { ContactCard } from "@/components/entities/contact-card";
-import { ContactDialog } from "@/components/entities/contact-dialog";
+import { ContactDialog, type ContactDialogDefaults } from "@/components/entities/contact-dialog";
+import { ContactsByCategoryView } from "@/components/views/contacts-by-category-view";
+import { ContactsFollowUpView } from "@/components/views/contacts-follow-up-view";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
@@ -58,6 +60,7 @@ import {
   useUnarchiveResource,
   useUpdateResource,
 } from "@/lib/hooks/use-resources";
+import { contactService } from "@/lib/services/contact.service";
 import { useQueryClient } from "@tanstack/react-query";
 import { type Contact, type CreateResourceInput, type Resource, type Task } from "@/lib/types/domain.types";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
@@ -67,7 +70,7 @@ import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/ut
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { buildReturnTo, encodeReturnTo, getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
 import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
-import { buildAreaTaskGroupsByGoal, buildAreaTaskGroupsByProject, getFilteredAreaProjects, getFilteredAreaNotes, getFilteredAreaResources } from "@/lib/utils/area-detail";
+import { buildAreaTaskGroupsByGoal, buildAreaTaskGroupsByProject, getFilteredAreaProjects, getFilteredAreaNotes, getFilteredAreaResources, buildAreaContactGoalSections, buildAreaContactProjectSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections } from "@/lib/utils/area-detail";
 
 const NOTE_STATUS_COLORS: Record<string, string> = {
   [NOTE_STATUS.INBOX]: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -111,6 +114,7 @@ export function AreaDetailContent() {
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
   const [isEditContactOpen, setIsEditContactOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [createDefaults, setCreateDefaults] = useState<ContactDialogDefaults | undefined>(undefined);
   const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
@@ -350,8 +354,8 @@ export function AreaDetailContent() {
       { value: "favorite", label: "Favorite", count: activeLinkedContacts.filter((c) => c.favorite).length },
       { value: "follow_up", label: "Follow-up", count: activeLinkedContacts.filter((c) => !!c.follow_up_interval_days).length },
       { value: "by_group", label: "By Group", count: activeLinkedContacts.filter((c) => !!c.group).length },
+      { value: "by_goal", label: "By Goal", count: activeLinkedContacts.filter((c) => (c.linkedGoalIds?.length ?? 0) > 0).length },
       { value: "by_project", label: "By Project", count: activeLinkedContacts.filter((c) => (c.linkedProjectIds?.length ?? 0) > 0).length },
-      { value: "by_area", label: "By Area", count: activeLinkedContacts.filter((c) => (c.linkedAreaIds?.length ?? 0) > 0).length },
       { value: "archived", label: "Archive", count: linkedArchivedContacts.length },
     ],
     [activeLinkedContacts, linkedArchivedContacts],
@@ -361,19 +365,99 @@ export function AreaDetailContent() {
       case "favorite":
         return activeLinkedContacts.filter((c) => c.favorite);
       case "follow_up":
-        return activeLinkedContacts.filter((c) => !!c.follow_up_interval_days);
       case "by_group":
-        return activeLinkedContacts.filter((c) => !!c.group);
+      case "by_goal":
       case "by_project":
-        return activeLinkedContacts.filter((c) => (c.linkedProjectIds?.length ?? 0) > 0);
-      case "by_area":
-        return activeLinkedContacts.filter((c) => (c.linkedAreaIds?.length ?? 0) > 0);
+        return activeLinkedContacts;
       case "archived":
         return linkedArchivedContacts;
       default:
         return activeLinkedContacts;
     }
   }, [contactTab, activeLinkedContacts, linkedArchivedContacts]);
+
+  const followUpSections = useMemo(
+    () => buildAreaContactFollowUpSections(activeLinkedContacts),
+    [activeLinkedContacts],
+  );
+  const groupSections = useMemo(
+    () => buildAreaContactGroupSections(activeLinkedContacts),
+    [activeLinkedContacts],
+  );
+  const goalSections = useMemo(
+    () => buildAreaContactGoalSections(activeLinkedContacts, areaData?.allGoals ?? []),
+    [activeLinkedContacts, areaData?.allGoals],
+  );
+  const projectSections = useMemo(
+    () => buildAreaContactProjectSections(activeLinkedContacts, areaData?.projects ?? []),
+    [activeLinkedContacts, areaData?.projects],
+  );
+
+  const handleCreateInSection = (section: { id: string; label: string; createLabel: string }) => {
+    const defaults: ContactDialogDefaults = { area_ids: area ? [area.id] : [] };
+    const category = section.id.split(":")[0];
+    const entityId = section.id.split(":")[1];
+
+    if (category === "group") {
+      defaults.group = entityId;
+    } else if (category === "project" && entityId !== "unassigned") {
+      defaults.project_ids = [entityId];
+    } else if (category === "goal" && entityId !== "unassigned") {
+      defaults.goal_ids = [entityId];
+    }
+
+    setCreateDefaults(defaults);
+    setEditingContact(null);
+    setIsNewContactOpen(true);
+  };
+
+  const handleCreateContactWithDefaults = (values: {
+    name: string;
+    role: string;
+    organization: string;
+    group: string;
+    phone: string;
+    email: string;
+    linkedin: string;
+    website: string;
+    follow_up_interval_days: string;
+    notes: string;
+  }) => {
+    createContact.mutate(
+      {
+        name: values.name,
+        role: values.role || null,
+        organization: values.organization || null,
+        group: values.group || null,
+        phone: values.phone || null,
+        email: values.email || null,
+        linkedin: values.linkedin || null,
+        website: values.website || null,
+        follow_up_interval_days:
+          values.follow_up_interval_days && values.follow_up_interval_days !== "none"
+            ? parseInt(values.follow_up_interval_days, 10)
+            : null,
+        notes: values.notes || null,
+      },
+      {
+        onSuccess: (createdContact) => {
+          if (area && createdContact) {
+            linkContactToArea.mutate({ contactId: createdContact.id, areaId: area.id });
+          }
+          const projectIds = createDefaults?.project_ids ?? [];
+          const goalIds = createDefaults?.goal_ids ?? [];
+          if (createdContact && userId && projectIds.length > 0) {
+            contactService.linkToProject(userId, createdContact.id, projectIds[0]);
+          }
+          if (createdContact && userId && goalIds.length > 0) {
+            contactService.linkToGoal(userId, createdContact.id, goalIds[0]);
+          }
+          setIsNewContactOpen(false);
+          setCreateDefaults(undefined);
+        },
+      },
+    );
+  };
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -481,42 +565,6 @@ export function AreaDetailContent() {
 
   const handleUnlinkContact = async (contactId: string) => {
     await unlinkContactFromArea.mutateAsync({ contactId, areaId: area!.id });
-  };
-
-  const handleCreateContactSubmit = (values: {
-    name: string;
-    role: string;
-    organization: string;
-    group: string;
-    phone: string;
-    email: string;
-    linkedin: string;
-    website: string;
-    follow_up_interval_days: string;
-    notes: string;
-  }) => {
-    createContact.mutate(
-      {
-        name: values.name,
-        role: values.role || null,
-        organization: values.organization || null,
-        group: values.group || null,
-        phone: values.phone || null,
-        email: values.email || null,
-        linkedin: values.linkedin || null,
-        website: values.website || null,
-        follow_up_interval_days:
-          values.follow_up_interval_days && values.follow_up_interval_days !== "none"
-            ? parseInt(values.follow_up_interval_days, 10)
-            : null,
-        notes: values.notes || null,
-      },
-      {
-        onSuccess: (createdContact: Contact) => {
-          linkContactToArea.mutate({ contactId: createdContact.id, areaId: area!.id });
-        },
-      },
-    );
   };
 
   const handleContactEdit = (contact: Contact) => {
@@ -1134,7 +1182,42 @@ export function AreaDetailContent() {
           onCreateNew={() => setIsNewContactOpen(true)}
           createLabel="New Contact"
         >
-          {filteredContacts.length > 0 ? (
+          {contactTab === "follow_up" ? (
+            <ContactsFollowUpView
+              sections={followUpSections}
+              onEdit={handleContactEdit}
+              onDelete={handleContactDelete}
+              onToggleFavorite={handleContactToggleFavorite}
+              onArchive={handleContactArchive}
+            />
+          ) : contactTab === "by_group" ? (
+            <ContactsByCategoryView
+              sections={groupSections}
+              onCreateInSection={handleCreateInSection}
+              onEdit={handleContactEdit}
+              onDelete={handleContactDelete}
+              onToggleFavorite={handleContactToggleFavorite}
+              onArchive={handleContactArchive}
+            />
+          ) : contactTab === "by_goal" ? (
+            <ContactsByCategoryView
+              sections={goalSections}
+              onCreateInSection={handleCreateInSection}
+              onEdit={handleContactEdit}
+              onDelete={handleContactDelete}
+              onToggleFavorite={handleContactToggleFavorite}
+              onArchive={handleContactArchive}
+            />
+          ) : contactTab === "by_project" ? (
+            <ContactsByCategoryView
+              sections={projectSections}
+              onCreateInSection={handleCreateInSection}
+              onEdit={handleContactEdit}
+              onDelete={handleContactDelete}
+              onToggleFavorite={handleContactToggleFavorite}
+              onArchive={handleContactArchive}
+            />
+          ) : filteredContacts.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {filteredContacts.map((contact) => (
                 <div key={contact.id} className="relative">
@@ -1239,10 +1322,13 @@ export function AreaDetailContent() {
       {/* Inline Contact Creation */}
       <ContactDialog
         open={isNewContactOpen}
-        onOpenChange={setIsNewContactOpen}
+        onOpenChange={(open) => {
+          setIsNewContactOpen(open);
+          if (!open) setCreateDefaults(undefined);
+        }}
         contact={null}
-        defaults={{ area_ids: area?.id ? [area.id] : [] }}
-        onSubmit={handleCreateContactSubmit}
+        defaults={createDefaults ?? { area_ids: area?.id ? [area.id] : [] }}
+        onSubmit={handleCreateContactWithDefaults}
       />
 
       {/* Contact Edit Dialog */}
