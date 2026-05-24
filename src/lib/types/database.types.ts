@@ -415,6 +415,20 @@ export type Database = {
           area_id?: string;
         };
       };
+      task_projects: {
+        Row: {
+          task_id: string;
+          project_id: string;
+        };
+        Insert: {
+          task_id: string;
+          project_id: string;
+        };
+        Update: {
+          task_id?: string;
+          project_id?: string;
+        };
+      };
       task_notes: {
         Row: {
           task_id: string;

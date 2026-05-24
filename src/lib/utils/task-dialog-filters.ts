@@ -137,3 +137,106 @@ export function computeVisibleAreas<T extends FilterableArea>(
   if (allowed && allowed.size === 0) return [];
   return allowed ? areas.filter((a) => allowed!.has(a.id)) : areas;
 }
+
+// ── Multi-project variants ──────────────────────────────────────────────────
+//
+// Tasks support being linked to multiple projects. The cross-field cascade
+// uses *union* semantics: a goal/area is allowed as long as at least one of
+// the selected projects supports it. Otherwise, picking two unrelated
+// projects would collapse the goal/area selector to empty even though the
+// user could legitimately link the task to either chain.
+
+/**
+ * Returns goals satisfying ALL active constraints (AND-intersection across
+ * dimensions, but UNION across selected projects):
+ *   - any selected project allows the goal (when the project has linkedGoalIds)
+ *   - the goal is in any selected area
+ */
+export function computeVisibleGoalsForProjects<T extends FilterableGoal>(
+  goals: T[],
+  selectedProjectIds: string[],
+  selectedAreaIds: string[],
+  projectById: Map<string, FilterableProject>,
+): T[] {
+  const hasProjects = selectedProjectIds.length > 0;
+  const hasAreas = selectedAreaIds.length > 0;
+
+  if (!hasProjects && !hasAreas) return goals;
+
+  // Build the goal-id allow-set across all selected projects. If any
+  // selected project has no `linkedGoalIds`, that project imposes no
+  // goal constraint, so the union is unrestricted.
+  let projectGoalSet: Set<string> | null = null;
+  let projectConstraintActive = false;
+  if (hasProjects) {
+    projectConstraintActive = true;
+    projectGoalSet = new Set();
+    for (const projectId of selectedProjectIds) {
+      const proj = projectById.get(projectId);
+      const linked = proj?.linkedGoalIds ?? [];
+      if (linked.length === 0) {
+        // This project has no recorded goal links → no constraint.
+        projectConstraintActive = false;
+        break;
+      }
+      for (const id of linked) projectGoalSet.add(id);
+    }
+  }
+
+  return goals.filter((goal) => {
+    if (projectConstraintActive && projectGoalSet && !projectGoalSet.has(goal.id)) return false;
+    if (hasAreas && !selectedAreaIds.some((aId) => goalMatchesAreaId(goal, aId))) return false;
+    return true;
+  });
+}
+
+/**
+ * Returns areas satisfying ALL active constraints (AND-intersection across
+ * dimensions, but UNION across selected projects/goals).
+ */
+export function computeVisibleAreasForProjects<T extends FilterableArea>(
+  areas: T[],
+  selectedGoalIds: string[],
+  selectedProjectIds: string[],
+  projectById: Map<string, FilterableProject>,
+  goals: FilterableGoal[],
+): T[] {
+  const hasGoals = selectedGoalIds.length > 0;
+  const hasProjects = selectedProjectIds.length > 0;
+
+  if (!hasGoals && !hasProjects) return areas;
+
+  let allowed: Set<string> | null = null;
+
+  if (hasProjects) {
+    const projectAreaSet = new Set<string>();
+    for (const projectId of selectedProjectIds) {
+      const proj = projectById.get(projectId);
+      if (!proj) continue;
+      const projAreas = [proj.area_id, ...(proj.linkedAreaIds ?? [])].filter(
+        (id): id is string => Boolean(id),
+      );
+      for (const id of projAreas) projectAreaSet.add(id);
+    }
+    allowed = projectAreaSet;
+  }
+
+  if (hasGoals) {
+    const goalAreaSet = new Set<string>();
+    for (const goalId of selectedGoalIds) {
+      const goal = goals.find((g) => g.id === goalId);
+      if (goal) {
+        const aIds = [goal.area_id, ...(goal.linkedAreaIds ?? [])].filter(
+          (id): id is string => Boolean(id),
+        );
+        for (const aId of aIds) goalAreaSet.add(aId);
+      }
+    }
+    allowed = allowed
+      ? new Set([...allowed].filter((id) => goalAreaSet.has(id)))
+      : goalAreaSet;
+  }
+
+  if (allowed && allowed.size === 0) return [];
+  return allowed ? areas.filter((a) => allowed!.has(a.id)) : areas;
+}

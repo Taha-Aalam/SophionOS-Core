@@ -59,6 +59,7 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import {
   useTasks,
   useCompleteTask,
+  useDeleteTask,
   useFocusTask,
   useUpdateTask,
   useUncompleteTask,
@@ -206,6 +207,7 @@ export function ContactDetailContent() {
   const uncompleteTask = useUncompleteTask();
   const focusTask = useFocusTask();
   const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -268,6 +270,13 @@ export function ContactDetailContent() {
       await updateTask.mutateAsync({ id: taskId, input: { name } });
     },
     [updateTask],
+  );
+
+  const handleTaskDelete = useCallback(
+    async (taskId: string) => {
+      await deleteTask.mutateAsync(taskId);
+    },
+    [deleteTask],
   );
 
   const handleTaskEdit = useCallback((task: Task) => {
@@ -689,6 +698,7 @@ export function ContactDetailContent() {
           if (!open) setEditingTask(null);
         }}
         task={editingTask ?? undefined}
+        onDelete={handleTaskDelete}
       />
     </div>
   );

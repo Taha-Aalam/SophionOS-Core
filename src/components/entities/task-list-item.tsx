@@ -21,6 +21,7 @@ interface TaskListItemProps {
   goalName?: string | null;
   linkedGoalNames?: string[];
   projectName?: string | null;
+  linkedProjectNames?: string[];
   showSmartPriority?: boolean;
   onCompletionToggle: (id: string, isCompleted: boolean) => void;
   onFocusToggle: (id: string, focused: boolean) => void;
@@ -57,6 +58,7 @@ export function TaskListItem({
   goalName,
   linkedGoalNames,
   projectName,
+  linkedProjectNames,
   showSmartPriority = false,
   onCompletionToggle,
   onFocusToggle,
@@ -66,6 +68,7 @@ export function TaskListItem({
 }: TaskListItemProps) {
   const displayAreaNames = linkedAreaNames && linkedAreaNames.length > 0 ? linkedAreaNames : (areaName ? [areaName] : []);
   const displayGoalNames = linkedGoalNames && linkedGoalNames.length > 0 ? linkedGoalNames : (goalName ? [goalName] : []);
+  const displayProjectNames = linkedProjectNames && linkedProjectNames.length > 0 ? linkedProjectNames : (projectName ? [projectName] : []);
   const dueInfo = formatDueDate(task.due_date);
 
   return (
@@ -127,21 +130,18 @@ export function TaskListItem({
             {name}
           </Badge>
         ))}
-        {displayGoalNames.length > 0 && (
-          <Badge variant="outline" className="gap-1 text-xs font-normal">
+        {displayGoalNames.map((name, index) => (
+          <Badge key={`goal-${index}`} variant="outline" className="gap-1 text-xs font-normal">
             <Target className="size-3" />
-            {displayGoalNames[0]}
-            {displayGoalNames.length > 1 && (
-              <span className="ml-0.5 text-muted-foreground">+{displayGoalNames.length - 1}</span>
-            )}
+            {name}
           </Badge>
-        )}
-        {projectName && (
-          <Badge variant="outline" className="gap-1 text-xs font-normal">
+        ))}
+        {displayProjectNames.map((name, index) => (
+          <Badge key={`project-${index}`} variant="outline" className="gap-1 text-xs font-normal">
             <Folder className="size-3" />
-            {projectName}
+            {name}
           </Badge>
-        )}
+        ))}
         {dueInfo && (
           <Badge
             variant="outline"

@@ -1343,6 +1343,7 @@ export function GoalDetailContent() {
         defaultAreaId={goal.area_id ?? undefined}
         allowedProjectIds={allowedProjectIds}
         onSuccess={() => setEditingTask(null)}
+        onDelete={handleTaskDelete}
       />
 
       {/* Inline Resource Creation */}

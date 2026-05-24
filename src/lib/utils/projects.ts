@@ -156,17 +156,19 @@ export function buildProjectTaskStats(tasks: Task[]): Map<string, ProjectTaskSta
   const stats = new Map<string, ProjectTaskStats>();
 
   for (const task of tasks) {
-    if (!task.project_id || task.is_archived) {
-      continue;
+    if (task.is_archived) continue;
+    const projectIds = new Set<string>();
+    if (task.project_id) projectIds.add(task.project_id);
+    for (const pid of task.linkedProjectIds ?? []) projectIds.add(pid);
+    if (projectIds.size === 0) continue;
+
+    for (const pid of projectIds) {
+      const current = stats.get(pid) ?? { completed: 0, total: 0 };
+      stats.set(pid, {
+        completed: current.completed + (task.is_completed ? 1 : 0),
+        total: current.total + 1,
+      });
     }
-
-    const current = stats.get(task.project_id) ?? { completed: 0, total: 0 };
-    const nextStats = {
-      completed: current.completed + (task.is_completed ? 1 : 0),
-      total: current.total + 1,
-    };
-
-    stats.set(task.project_id, nextStats);
   }
 
   return stats;
@@ -188,8 +190,13 @@ export function buildProjectCompletionStats(
   };
 
   for (const task of tasks) {
-    if (!task.project_id || task.is_archived) continue;
-    bump(task.project_id, task.is_completed);
+    if (task.is_archived) continue;
+    const projectIds = new Set<string>();
+    if (task.project_id) projectIds.add(task.project_id);
+    for (const pid of task.linkedProjectIds ?? []) projectIds.add(pid);
+    for (const pid of projectIds) {
+      bump(pid, task.is_completed);
+    }
   }
 
   for (const note of notes) {

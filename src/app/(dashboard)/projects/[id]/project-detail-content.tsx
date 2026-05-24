@@ -87,6 +87,7 @@ import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { filterProjectDialogGoals } from "@/lib/utils/project-dialog-filters";
 import { getProjectDueState, getProjectLinkedAreaIds, getProjectStatusLabel } from "@/lib/utils/projects";
+import { taskMatchesProjectId } from "@/lib/utils/tasks";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { buildReturnTo, resolveBackNavigation, getReturnToFromSearchParams, encodeReturnTo } from "@/lib/utils/return-to";
 
@@ -222,7 +223,10 @@ export function ProjectDetailContent() {
     [goals, linkedGoalIds],
   );
   const linkedTasks = useMemo(
-    () => tasks.filter((task) => task.project_id === resolvedProjectId && !task.is_archived),
+    () =>
+      tasks.filter(
+        (task) => taskMatchesProjectId(task, resolvedProjectId) && !task.is_archived,
+      ),
     [resolvedProjectId, tasks],
   );
   const linkedContactIds = useMemo(
@@ -1382,6 +1386,7 @@ export function ProjectDetailContent() {
           linkedGoalIds: linkedGoalIdsArray,
         }}
         onSuccess={() => setEditingTask(null)}
+        onDelete={handleTaskDelete}
       />
 
       <ProjectDialog open={isEditOpen} onOpenChange={setIsEditOpen} project={project} />

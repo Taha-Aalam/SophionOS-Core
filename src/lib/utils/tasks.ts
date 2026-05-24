@@ -196,6 +196,17 @@ export function taskMatchesGoalId(task: Task, goalId: string): boolean {
   return getTaskLinkedGoalIds(task).includes(goalId);
 }
 
+export function getTaskLinkedProjectIds(task: Task): string[] {
+  if (task.linkedProjectIds && task.linkedProjectIds.length > 0) {
+    return task.linkedProjectIds;
+  }
+  return task.project_id ? [task.project_id] : [];
+}
+
+export function taskMatchesProjectId(task: Task, projectId: string): boolean {
+  return getTaskLinkedProjectIds(task).includes(projectId);
+}
+
 export function getTaskCounts(tasks: Task[]): TaskCounts {
   return {
     all: tasks.filter((task) => !task.is_archived).length,

@@ -43,6 +43,7 @@ import {
   useCompleteTask,
   useDeleteTask,
   useFocusTask,
+  useArchivedTasks,
   useTasks,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
@@ -52,11 +53,13 @@ import {
   getTaskCounts,
   getTaskLinkedAreaIds,
   getTaskLinkedGoalIds,
+  getTaskLinkedProjectIds,
   getVisibleTasks,
   TASK_VIEW,
   type TaskView,
   taskMatchesAreaId,
   taskMatchesGoalId,
+  taskMatchesProjectId,
 } from "@/lib/utils/tasks";
 
 const ALL_PRIORITY_VALUE = "__all_priority__";
@@ -77,6 +80,9 @@ export function TasksContent() {
   const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
 
   const { data: allTasks, isLoading } = useTasks();
+  const { data: allArchivedTasks, isLoading: isArchivedLoading } = useArchivedTasks({
+    enabled: activeTab === TASK_VIEW.ARCHIVE,
+  });
   const { data: allAreas } = useAreas();
   const { data: allGoals } = useGoals({});
   const { data: allProjects } = useProjects({ status: "all" });
@@ -122,7 +128,9 @@ export function TasksContent() {
     }
 
     if (filterProjectIds.length > 0) {
-      result = result.filter((task) => filterProjectIds.includes(task.project_id ?? ""));
+      result = result.filter((task) =>
+        filterProjectIds.some((projectId) => taskMatchesProjectId(task, projectId)),
+      );
     }
 
     return result;
@@ -134,8 +142,8 @@ export function TasksContent() {
   );
 
   const archivedTasks = useMemo(
-    () => tasks.filter((t) => t.is_archived || t.is_completed),
-    [tasks],
+    () => allArchivedTasks ?? [],
+    [allArchivedTasks],
   );
 
   const taskGroupsByArea = useMemo((): TaskGroup[] => {
@@ -187,10 +195,18 @@ export function TasksContent() {
   const taskGroupsByProject = useMemo((): TaskGroup[] => {
     const grouped = new Map<string, Task[]>();
     for (const task of activeTasks) {
-      const projectId = task.project_id ?? "unassigned";
-      const current = grouped.get(projectId) ?? [];
-      current.push(task);
-      grouped.set(projectId, current);
+      const ids = getTaskLinkedProjectIds(task);
+      if (ids.length === 0) {
+        const current = grouped.get("unassigned") ?? [];
+        current.push(task);
+        grouped.set("unassigned", current);
+      } else {
+        for (const projectId of ids) {
+          const current = grouped.get(projectId) ?? [];
+          current.push(task);
+          grouped.set(projectId, current);
+        }
+      }
     }
     return Array.from(grouped.entries()).map(([projectId, groupTasks]) => ({
       groupId: projectId,
@@ -213,6 +229,14 @@ export function TasksContent() {
         .map((id) => goalMap.get(id)?.name)
         .filter((n): n is string => Boolean(n)),
     [goalMap],
+  );
+
+  const getLinkedProjectNames = useCallback(
+    (task: Task) =>
+      getTaskLinkedProjectIds(task)
+        .map((id) => projectMap.get(id)?.name)
+        .filter((n): n is string => Boolean(n)),
+    [projectMap],
   );
 
   const getLinkedAreaIcons = useCallback(
@@ -269,7 +293,12 @@ export function TasksContent() {
             {counts.overdue > 0 ? `${counts.overdue} overdue` : "all on track"}
           </p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
+        <Button
+          onClick={() => {
+            setEditingTask(null);
+            setIsDialogOpen(true);
+          }}
+        >
           <Plus className="size-4" />
           New Task
         </Button>
@@ -622,7 +651,10 @@ export function TasksContent() {
                 }
                 onAction={
                   tab === TASK_VIEW.ALL || tab === TASK_VIEW.INBOX
-                    ? () => setIsDialogOpen(true)
+                    ? () => {
+                        setEditingTask(null);
+                        setIsDialogOpen(true);
+                      }
                     : undefined
                 }
               />
@@ -641,6 +673,7 @@ export function TasksContent() {
                       .map((id) => goalMap.get(id)?.name)
                       .filter((n): n is string => Boolean(n))}
                     projectName={task.project_id ? projectMap.get(task.project_id)?.name : null}
+                    linkedProjectNames={getLinkedProjectNames(task)}
                     showSmartPriority={tab === TASK_VIEW.SMART_PRIORITY}
                     onCompletionToggle={(id, isCompleted) => {
                       if (isCompleted) {
@@ -682,12 +715,14 @@ export function TasksContent() {
             onEdit={handleEdit}
             onDelete={(id) => deleteTask.mutate(id)}
             onNewTask={(areaId) => {
+              setEditingTask(null);
               setNewTaskAreaId(areaId);
               setIsDialogOpen(true);
             }}
             getLinkedAreaNames={getLinkedAreaNames}
             getLinkedAreaIcons={getLinkedAreaIcons}
             getLinkedGoalNames={getLinkedGoalNames}
+            getLinkedProjectNames={getLinkedProjectNames}
             emptyMessage="Tasks will be grouped by area here."
           />
         </TabsContent>
@@ -707,12 +742,14 @@ export function TasksContent() {
             onEdit={handleEdit}
             onDelete={(id) => deleteTask.mutate(id)}
             onNewTask={(goalId) => {
+              setEditingTask(null);
               setNewTaskGoalId(goalId);
               setIsDialogOpen(true);
             }}
             getLinkedAreaNames={getLinkedAreaNames}
             getLinkedAreaIcons={getLinkedAreaIcons}
             getLinkedGoalNames={getLinkedGoalNames}
+            getLinkedProjectNames={getLinkedProjectNames}
             emptyMessage="Tasks will be grouped by goal here."
           />
         </TabsContent>
@@ -732,26 +769,28 @@ export function TasksContent() {
             onEdit={handleEdit}
             onDelete={(id) => deleteTask.mutate(id)}
             onNewTask={(projectId) => {
+              setEditingTask(null);
               setNewTaskProjectId(projectId);
               setIsDialogOpen(true);
             }}
             getLinkedAreaNames={getLinkedAreaNames}
             getLinkedAreaIcons={getLinkedAreaIcons}
             getLinkedGoalNames={getLinkedGoalNames}
+            getLinkedProjectNames={getLinkedProjectNames}
             emptyMessage="Tasks will be grouped by project here."
           />
         </TabsContent>
 
         <TabsContent value={TASK_VIEW.ARCHIVE} className="mt-0 flex-1">
-          {isLoading ? (
+          {isArchivedLoading ? (
             <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
               Loading tasks...
             </div>
           ) : archivedTasks.length === 0 ? (
             <EmptyState
-              icon={CheckSquare}
+              icon={Archive}
               title="No archived tasks"
-              description="Completed and archived tasks will appear here."
+              description="Archived tasks will appear here. Use the archive icon on a task row to archive it."
             />
           ) : (
             <div className="divide-y-0">
@@ -764,6 +803,7 @@ export function TasksContent() {
                   linkedAreaIcons={getLinkedAreaIcons(task)}
                   linkedGoalNames={getLinkedGoalNames(task)}
                   projectName={task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
+                  linkedProjectNames={getLinkedProjectNames(task)}
                   onCompletionToggle={(id, isCompleted) => {
                     if (isCompleted) { completeTask.mutate(id); return; }
                     updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
@@ -784,6 +824,12 @@ export function TasksContent() {
         onOpenChange={(open) => {
           setIsDialogOpen(open);
           if (!open) {
+            // Clear the editing task and any pre-selected scope so the next
+            // "New Task" click opens a clean create form, not the prior
+            // edit dialog. Without this, closing an edit dialog (e.g. by
+            // clicking outside) leaves `editingTask` set, and the next
+            // create-flow trigger reopens the same task in edit mode.
+            setEditingTask(null);
             setNewTaskAreaId(undefined);
             setNewTaskGoalId(undefined);
             setNewTaskProjectId(undefined);

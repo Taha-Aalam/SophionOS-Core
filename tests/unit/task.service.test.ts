@@ -214,15 +214,12 @@ describe('taskService', () => {
     } as never);
 
     expect(result).toEqual(updatedTask);
+    // Partial updates must only send the fields the caller specified.
+    // No defaults should leak into the update payload — otherwise toggling
+    // is_focused via useFocusTask would reset is_completed/is_archived/
+    // is_important/is_urgent/status/priority on the row.
     expect(updateClient.update).toHaveBeenCalledWith({
-      is_archived: false,
-      is_completed: false,
-      is_focused: false,
-      is_important: false,
-      is_urgent: false,
       name: 'Retargeted task',
-      priority: PRIORITY.MEDIUM,
-      status: TASK_STATUS.INBOX,
     });
     expect(relationInsertClient.insert).toHaveBeenCalledWith([{ goal_id: goalC, task_id: taskId }]);
     expect(relationDeleteClient.in).toHaveBeenCalledWith('goal_id', [goalA]);
@@ -246,5 +243,56 @@ describe('taskService', () => {
       completed_at: null,
       is_completed: false,
     });
+  });
+
+  it('preserves other fields when toggling is_focused only', async () => {
+    // Regression: a partial update with just { is_focused: true } must not
+    // leak default values for status/priority/other booleans into the
+    // database update payload, otherwise toggling focus would clobber the
+    // task's status, priority, archive state, completion state, etc.
+    const updatedTask = {
+      id: taskId,
+      is_focused: true,
+      user_id: userId,
+    };
+
+    const updateClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: updatedTask, error: null }),
+    } as any;
+
+    vi.mocked(createClient).mockImplementationOnce(() => updateClient);
+
+    await taskService.update(userId, taskId, { is_focused: true });
+
+    expect(updateClient.update).toHaveBeenCalledWith({ is_focused: true });
+  });
+
+  it('preserves other fields when updating name only', async () => {
+    // Regression: editing a task name (e.g. via the inline editor) must
+    // not reset is_focused, is_archived, is_completed, is_important,
+    // is_urgent, status, or priority.
+    const updatedTask = {
+      id: taskId,
+      name: 'Renamed task',
+      user_id: userId,
+    };
+
+    const updateClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: updatedTask, error: null }),
+    } as any;
+
+    vi.mocked(createClient).mockImplementationOnce(() => updateClient);
+
+    await taskService.update(userId, taskId, { name: 'Renamed task' });
+
+    expect(updateClient.update).toHaveBeenCalledWith({ name: 'Renamed task' });
   });
 });
