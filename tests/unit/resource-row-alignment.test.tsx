@@ -32,13 +32,14 @@ describe("ResourceRow alignment", () => {
     const html = renderToStaticMarkup(
       <ResourceRow
         resource={createResource()}
-        areaName={["Test Area"]}
+        areas={[{ name: "Test Area" }]}
         goalNames={["Test Multi area goal"]}
-        projectName="Test 8"
+        projectNames={["Test 8"]}
         taskNames={["Test 17"]}
         onToggleFavorite={vi.fn()}
         onArchive={vi.fn()}
         onUnarchive={vi.fn()}
+        onDelete={vi.fn()}
       />,
     );
 

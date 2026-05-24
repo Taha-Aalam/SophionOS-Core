@@ -39,6 +39,46 @@ async function hydrateAreaLinks(
   }));
 }
 
+async function hydrateGoalLinks(
+  supabase: SupabaseClient,
+  resourceIds: string[],
+): Promise<Map<string, string[]>> {
+  if (resourceIds.length === 0) return new Map();
+
+  const { data } = await supabase
+    .from("goal_resources")
+    .select("resource_id, goal_id")
+    .in("resource_id", resourceIds);
+
+  const map = new Map<string, string[]>();
+  for (const row of data ?? []) {
+    const current = map.get(row.resource_id) ?? [];
+    current.push(row.goal_id);
+    map.set(row.resource_id, current);
+  }
+  return map;
+}
+
+async function hydrateTaskLinks(
+  supabase: SupabaseClient,
+  resourceIds: string[],
+): Promise<Map<string, string[]>> {
+  if (resourceIds.length === 0) return new Map();
+
+  const { data } = await supabase
+    .from("task_resources")
+    .select("resource_id, task_id")
+    .in("resource_id", resourceIds);
+
+  const map = new Map<string, string[]>();
+  for (const row of data ?? []) {
+    const current = map.get(row.resource_id) ?? [];
+    current.push(row.task_id);
+    map.set(row.resource_id, current);
+  }
+  return map;
+}
+
 export async function serverFetchResources(
   supabase: SupabaseClient,
   userId: string,
@@ -51,10 +91,18 @@ export async function serverFetchResources(
     .order("created_at", { ascending: false });
 
   const resources = (data ?? []) as ResourceLike[];
-  const hydrated = await hydrateAreaLinks(supabase, resources);
+  const resourceIds = resources.map((r) => r.id);
+
+  const [hydratedAreas, goalIdsMap, taskIdsMap] = await Promise.all([
+    hydrateAreaLinks(supabase, resources),
+    hydrateGoalLinks(supabase, resourceIds),
+    hydrateTaskLinks(supabase, resourceIds),
+  ]);
 
   return resources.map((resource, index) => ({
     ...resource,
-    linkedAreaIds: hydrated[index]?.linkedAreaIds ?? dedupe([resource.area_id]),
+    linkedAreaIds: hydratedAreas[index]?.linkedAreaIds ?? dedupe([resource.area_id]),
+    linkedGoalIds: goalIdsMap.get(resource.id) ?? [],
+    linkedTaskIds: taskIdsMap.get(resource.id) ?? [],
   }));
 }
