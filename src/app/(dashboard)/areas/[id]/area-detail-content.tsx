@@ -193,6 +193,14 @@ export function AreaDetailContent() {
     return map;
   }, [areaData?.projects]);
 
+  const tasksById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of areaData?.tasks ?? []) {
+      if (t?.name) map.set(t.id, t.name);
+    }
+    return map;
+  }, [areaData?.tasks]);
+
   const areaMap = useMemo(() => {
     const map = new Map<string, { name: string; icon?: string | null }>();
     for (const a of allAreasList) {
@@ -1112,7 +1120,7 @@ export function AreaDetailContent() {
           id="resources"
           entityType="resources"
           tabs={[
-            { value: "all", label: "All", count: rollups.resourceCount },
+            { value: "all", label: "All" },
             { value: "inbox", label: "Inbox" },
             { value: "to_review", label: "To Review" },
             { value: "active", label: "Active" },
@@ -1147,18 +1155,23 @@ export function AreaDetailContent() {
                 const resourceProjectName = resource.project_id
                   ? projectsById.get(resource.project_id)
                   : undefined;
+                const resourceTaskNames = (resource.linkedTaskIds ?? [])
+                  .map((id) => tasksById.get(id))
+                  .filter((name): name is string => Boolean(name));
                 return (
                   <ResourceRow
                     key={resource.id}
                     resource={resource}
                     areas={resourceAreas}
                     goalNames={resourceGoalNames}
-                    projectName={resourceProjectName}
+                    projectNames={resourceProjectName ? [resourceProjectName] : []}
+                    taskNames={resourceTaskNames}
                     onToggleFavorite={(id, favorite) =>
                       toggleFavoriteResource.mutate({ id, favorite })
                     }
                     onArchive={(id) => archiveResource.mutate(id)}
                     onUnarchive={(id) => unarchiveResource.mutate(id)}
+                    onDelete={() => {}}
                     onEdit={(r) => setEditingResource(r)}
                   />
                 );

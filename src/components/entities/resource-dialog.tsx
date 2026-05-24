@@ -18,7 +18,6 @@ import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -255,7 +254,7 @@ export function ResourceDialog({
     setProjectId(isDeselecting ? "" : nextProjectId);
   };
 
-  const relationPopoverContentClassName = "w-56 p-2";
+  const relationPopoverContentClassName = "w-56 p-2 max-h-72 overflow-hidden";
   const relationOptionClassName =
     "flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
 
@@ -415,7 +414,7 @@ export function ResourceDialog({
                     <button type="button" onClick={() => setAreaIds([])} className={relationOptionClassName}>
                       Clear selection
                     </button>
-                    <ScrollArea className="max-h-56">
+                    <div className="max-h-48 overflow-y-auto">
                       {visibleAreas.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
                           {taskIds.length > 0 || goalIds.length > 0 || projectId
@@ -433,7 +432,7 @@ export function ResourceDialog({
                           </label>
                         ))
                       )}
-                    </ScrollArea>
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -466,7 +465,7 @@ export function ResourceDialog({
                     <button type="button" onClick={() => setGoalIds([])} className={relationOptionClassName}>
                       Clear selection
                     </button>
-                    <ScrollArea className="max-h-56">
+                    <div className="max-h-48 overflow-y-auto">
                       {filteredGoals.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
                           {taskIds.length > 0 || projectId || areaIds.length > 0
@@ -484,7 +483,7 @@ export function ResourceDialog({
                           </label>
                         ))
                       )}
-                    </ScrollArea>
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -524,7 +523,7 @@ export function ResourceDialog({
                     >
                       <span className="text-muted-foreground">None</span>
                     </button>
-                    <ScrollArea className="max-h-56">
+                    <div className="max-h-48 overflow-y-auto">
                       {filteredProjects.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
                           No projects available.
@@ -543,7 +542,7 @@ export function ResourceDialog({
                           </label>
                         ))
                       )}
-                    </ScrollArea>
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -571,7 +570,7 @@ export function ResourceDialog({
                     <button type="button" onClick={() => setTaskIds([])} className={relationOptionClassName}>
                       Clear selection
                     </button>
-                    <ScrollArea className="max-h-56">
+                    <div className="max-h-48 overflow-y-auto">
                       {filteredTasks.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
                           {goalIds.length > 0 || projectId || areaIds.length > 0
@@ -589,7 +588,7 @@ export function ResourceDialog({
                           </label>
                         ))
                       )}
-                    </ScrollArea>
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
