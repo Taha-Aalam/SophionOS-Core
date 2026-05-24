@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Archive, Bookmark, ChevronDownIcon, Eye, FilePlus, Filter, Globe, Heart, Inbox as InboxIcon, Tag, Zap } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Archive, Bookmark, ChevronDownIcon, Eye, FilePlus, Filter, Globe, Heart, Inbox as InboxIcon, Map as LucideMap, Tag, Zap } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
+import { ResourcesByGroupView, type ResourceGroup } from "@/components/views/resources-by-group-view";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,6 +24,7 @@ import { ResourceRow, ResourceRowSkeleton } from "@/components/entities/resource
 import { useAreas } from "@/lib/hooks/use-areas";
 import {
   useCreateResource,
+  useDeleteResource,
   useResources,
   useToggleFavoriteResource,
   useUpdateResource,
@@ -34,11 +37,20 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "@/lib/types/domain.types";
+import { createClient } from "@/lib/supabase/client";
 import { RESOURCE_STATUS, type ResourceStatus, RESOURCE_TYPE } from "@/lib/utils/constants";
+import {
+  RESOURCE_VIEW,
+  type ResourceView,
+  getResourceLinkedAreaIds,
+  getResourceLinkedGoalIds,
+  getResourceLinkedTaskIds,
+  getEffectiveResourceProjectIds,
+} from "@/lib/utils/resources";
 import { cn } from "@/lib/utils";
 
 export function ResourcesContent() {
-  const [tab, setTab] = useState<string>("all");
+  const [tab, setTab] = useState<ResourceView>(RESOURCE_VIEW.ALL);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
 
@@ -62,10 +74,19 @@ export function ResourcesContent() {
   const { data: topics = [] } = useTopics();
 
   const createResource = useCreateResource();
+  const deleteResource = useDeleteResource();
   const toggleFavorite = useToggleFavoriteResource();
   const updateResource = useUpdateResource();
   const archiveResource = useArchiveResource();
   const unarchiveResource = useUnarchiveResource();
+
+  const { data: goalProjectRelations = [] } = useQuery({
+    queryKey: ["goal-project-relations", "resources-page"],
+    queryFn: async () => {
+      const { data } = await createClient().from("goal_projects").select("goal_id, project_id");
+      return data ?? [];
+    },
+  });
 
   const areaMap = useMemo(
     () => new Map(areas.map((a) => [a.id, { name: a.name, icon: a.icon ?? null }])),
@@ -76,6 +97,41 @@ export function ResourcesContent() {
   const taskNames = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks]);
   const topicNames = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
 
+  const goalProjectIdsMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const row of goalProjectRelations) {
+      const current = map.get(row.goal_id) ?? [];
+      current.push(row.project_id);
+      map.set(row.goal_id, current);
+    }
+    return map;
+  }, [goalProjectRelations]);
+
+  const tasksById = useMemo(
+    () => new Map(tasks.map((task) => [task.id, task])),
+    [tasks],
+  );
+
+  const getAreasForResource = (resource: Resource) =>
+    getResourceLinkedAreaIds(resource)
+      .map((id) => areaMap.get(id))
+      .filter((area): area is { name: string; icon: string | null } => Boolean(area));
+
+  const getGoalNamesForResource = (resource: Resource) =>
+    getResourceLinkedGoalIds(resource)
+      .map((id) => goalNames.get(id))
+      .filter((name): name is string => Boolean(name));
+
+  const getProjectNamesForResource = (resource: Resource) =>
+    getEffectiveResourceProjectIds({ resource, tasksById, goalProjectIdsMap })
+      .map((id) => projectNames.get(id))
+      .filter((name): name is string => Boolean(name));
+
+  const getTaskNamesForResource = (resource: Resource) =>
+    getResourceLinkedTaskIds(resource)
+      .map((id) => taskNames.get(id))
+      .filter((name): name is string => Boolean(name));
+
   const activeAreas = areas.filter((area) => !area.archive);
   const activeGoals = goals.filter((goal) => !goal.is_archived);
   const activeTasks = tasks.filter((task) => !task.is_archived);
@@ -85,23 +141,29 @@ export function ResourcesContent() {
     let result = allResources;
 
     switch (tab) {
-      case "inbox":
+      case RESOURCE_VIEW.INBOX:
         result = allResources.filter((r) => r.status === RESOURCE_STATUS.INBOX);
         break;
-      case "to_review":
+      case RESOURCE_VIEW.TO_REVIEW:
         result = allResources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW);
         break;
-      case "active":
+      case RESOURCE_VIEW.ACTIVE:
         result = allResources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE);
         break;
-      case "saved":
+      case RESOURCE_VIEW.SAVED:
         result = allResources.filter((r) => r.status === RESOURCE_STATUS.SAVED);
         break;
-      case "favorites":
+      case RESOURCE_VIEW.FAVORITE:
         result = allResources.filter((r) => r.favorite);
         break;
-      case "archive":
+      case RESOURCE_VIEW.ARCHIVED:
         result = archivedResources;
+        break;
+      case RESOURCE_VIEW.BY_TOPIC:
+      case RESOURCE_VIEW.BY_AREA:
+      case RESOURCE_VIEW.BY_GOAL:
+      case RESOURCE_VIEW.BY_PROJECT:
+        result = [];
         break;
       default:
         break;
@@ -189,17 +251,74 @@ export function ResourcesContent() {
     "flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
   const filterOptionLabelClassName = "min-w-0 flex-1 whitespace-normal break-words text-sm";
 
-  const byTopic = useMemo(() => {
-    const map = new Map<string, Resource[]>();
-    for (const r of allResources) {
-      if (r.topic_id) {
-        const list = map.get(r.topic_id) ?? [];
-        list.push(r);
-        map.set(r.topic_id, list);
+  const resourceGroupsByTopic = useMemo((): ResourceGroup[] => {
+    const grouped = new Map<string, Resource[]>();
+    for (const resource of allResources.filter((item) => !item.is_archived)) {
+      const topicId = resource.topic_id ?? "unassigned";
+      const current = grouped.get(topicId) ?? [];
+      current.push(resource);
+      grouped.set(topicId, current);
+    }
+    return Array.from(grouped.entries()).map(([topicId, resources]) => ({
+      groupId: topicId,
+      groupName: topicId === "unassigned" ? "No Topic" : (topicNames.get(topicId) ?? topicId),
+      resources,
+    }));
+  }, [allResources, topicNames]);
+
+  const resourceGroupsByArea = useMemo((): ResourceGroup[] => {
+    const grouped = new Map<string, Resource[]>();
+    for (const resource of allResources.filter((item) => !item.is_archived)) {
+      const areaIds = getResourceLinkedAreaIds(resource);
+      const keys = areaIds.length > 0 ? areaIds : ["unassigned"];
+      for (const areaId of keys) {
+        const current = grouped.get(areaId) ?? [];
+        current.push(resource);
+        grouped.set(areaId, current);
       }
     }
-    return map;
-  }, [allResources]);
+    return Array.from(grouped.entries()).map(([areaId, resources]) => ({
+      groupId: areaId,
+      groupName: areaId === "unassigned" ? "No Area" : (areaMap.get(areaId)?.name ?? areaId),
+      resources,
+    }));
+  }, [allResources, areaMap]);
+
+  const resourceGroupsByGoal = useMemo((): ResourceGroup[] => {
+    const grouped = new Map<string, Resource[]>();
+    for (const resource of allResources.filter((item) => !item.is_archived)) {
+      const goalIds = getResourceLinkedGoalIds(resource);
+      const keys = goalIds.length > 0 ? goalIds : ["unassigned"];
+      for (const goalId of keys) {
+        const current = grouped.get(goalId) ?? [];
+        current.push(resource);
+        grouped.set(goalId, current);
+      }
+    }
+    return Array.from(grouped.entries()).map(([goalId, resources]) => ({
+      groupId: goalId,
+      groupName: goalId === "unassigned" ? "No Goal" : (goalNames.get(goalId) ?? goalId),
+      resources,
+    }));
+  }, [allResources, goalNames]);
+
+  const resourceGroupsByProject = useMemo((): ResourceGroup[] => {
+    const grouped = new Map<string, Resource[]>();
+    for (const resource of allResources.filter((item) => !item.is_archived)) {
+      const projectIds = getEffectiveResourceProjectIds({ resource, tasksById, goalProjectIdsMap });
+      const keys = projectIds.length > 0 ? projectIds : ["unassigned"];
+      for (const projectId of keys) {
+        const current = grouped.get(projectId) ?? [];
+        current.push(resource);
+        grouped.set(projectId, current);
+      }
+    }
+    return Array.from(grouped.entries()).map(([projectId, resources]) => ({
+      groupId: projectId,
+      groupName: projectId === "unassigned" ? "No Project" : (projectNames.get(projectId) ?? projectId),
+      resources,
+    }));
+  }, [allResources, projectNames, tasksById, goalProjectIdsMap]);
 
   const handleCreate = async (input: CreateResourceInput) => {
     await createResource.mutateAsync(input);
@@ -225,6 +344,10 @@ export function ResourcesContent() {
     unarchiveResource.mutate(id);
   };
 
+  const handleDelete = (id: string) => {
+    deleteResource.mutate(id);
+  };
+
   const handleStatusChange = (id: string, status: ResourceStatus) => {
     updateResource.mutate({ id, input: { status } });
   };
@@ -239,19 +362,21 @@ export function ResourcesContent() {
     setDialogOpen(true);
   };
 
-  const countForTab = (tabValue: string) => {
+  const countForTab = (tabValue: ResourceView) => {
     switch (tabValue) {
-      case "inbox":
+      case RESOURCE_VIEW.INBOX:
         return allResources.filter((r) => r.status === RESOURCE_STATUS.INBOX).length;
-      case "to_review":
+      case RESOURCE_VIEW.TO_REVIEW:
         return allResources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW).length;
-      case "active":
+      case RESOURCE_VIEW.ACTIVE:
         return allResources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE).length;
-      case "saved":
+      case RESOURCE_VIEW.SAVED:
         return allResources.filter((r) => r.status === RESOURCE_STATUS.SAVED).length;
-      case "favorites":
+      case RESOURCE_VIEW.FAVORITE:
         return allResources.filter((r) => r.favorite).length;
-      case "all":
+      case RESOURCE_VIEW.ARCHIVED:
+        return archivedResources.length;
+      case RESOURCE_VIEW.ALL:
         return allResources.length;
       default:
         return 0;
@@ -275,69 +400,79 @@ export function ResourcesContent() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value={RESOURCE_VIEW.ALL} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             All
-            {countForTab("all") > 0 && (
+            {countForTab(RESOURCE_VIEW.ALL) > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab("all")}
+                {countForTab(RESOURCE_VIEW.ALL)}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="inbox" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value={RESOURCE_VIEW.INBOX} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <InboxIcon className="mr-1.5 size-3.5" />
             Inbox
-            {countForTab("inbox") > 0 && (
+            {countForTab(RESOURCE_VIEW.INBOX) > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab("inbox")}
+                {countForTab(RESOURCE_VIEW.INBOX)}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="to_review" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Eye className="mr-1.5 size-3.5" />
             To Review
-            {countForTab("to_review") > 0 && (
+            {countForTab(RESOURCE_VIEW.TO_REVIEW) > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab("to_review")}
+                {countForTab(RESOURCE_VIEW.TO_REVIEW)}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="active" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value={RESOURCE_VIEW.ACTIVE} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Zap className="mr-1.5 size-3.5" />
             Active
-            {countForTab("active") > 0 && (
+            {countForTab(RESOURCE_VIEW.ACTIVE) > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab("active")}
+                {countForTab(RESOURCE_VIEW.ACTIVE)}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="saved" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value={RESOURCE_VIEW.FAVORITE} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Heart className="mr-1.5 size-3.5" />
+            Favorite
+            {countForTab(RESOURCE_VIEW.FAVORITE) > 0 && (
+              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
+                {countForTab(RESOURCE_VIEW.FAVORITE)}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Tag className="mr-1.5 size-3.5" />
+            By Topic
+          </TabsTrigger>
+          <TabsTrigger value={RESOURCE_VIEW.BY_AREA} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <LucideMap className="mr-1.5 size-3.5" />
+            By Area
+          </TabsTrigger>
+          <TabsTrigger value={RESOURCE_VIEW.BY_GOAL} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            By Goal
+          </TabsTrigger>
+          <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            By Project
+          </TabsTrigger>
+          <TabsTrigger value={RESOURCE_VIEW.SAVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Bookmark className="mr-1.5 size-3.5" />
             Saved
-            {countForTab("saved") > 0 && (
+            {countForTab(RESOURCE_VIEW.SAVED) > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab("saved")}
+                {countForTab(RESOURCE_VIEW.SAVED)}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="favorites" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-            <Heart className="mr-1.5 size-3.5" />
-            Favorites
-            {countForTab("favorites") > 0 && (
-              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab("favorites")}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="by_topics" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-            <Tag className="mr-1.5 size-3.5" />
-            By Topics
-          </TabsTrigger>
-          <TabsTrigger value="archive" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value={RESOURCE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Archive className="mr-1.5 size-3.5" />
-            Archive
-            {archivedResources.length > 0 && (
+            Archived
+            {countForTab(RESOURCE_VIEW.ARCHIVED) > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {archivedResources.length}
+                {countForTab(RESOURCE_VIEW.ARCHIVED)}
               </Badge>
             )}
           </TabsTrigger>
@@ -587,8 +722,8 @@ export function ResourcesContent() {
           </div>
         </div>
 
-        {/* Inbox, To Review, Favorites, Archive, All — table view */}
-        {["inbox", "to_review", "active", "favorites", "archive", "all"].includes(tab) && (
+        {/* Flat list views: All, Inbox, To Review, Active, Favorite, Saved, Archived */}
+        {([RESOURCE_VIEW.ALL, RESOURCE_VIEW.INBOX, RESOURCE_VIEW.TO_REVIEW, RESOURCE_VIEW.ACTIVE, RESOURCE_VIEW.FAVORITE, RESOURCE_VIEW.SAVED, RESOURCE_VIEW.ARCHIVED] as ResourceView[]).includes(tab) && (
           <TabsContent value={tab} className="mt-4">
             {isLoading ? (
               <div className="flex flex-col">
@@ -600,53 +735,41 @@ export function ResourcesContent() {
               <EmptyState
                 icon={Globe}
                 title={
-                  tab === "inbox"
+                  tab === RESOURCE_VIEW.INBOX
                     ? "No resources in inbox"
-                    : tab === "to_review"
+                    : tab === RESOURCE_VIEW.TO_REVIEW
                       ? "No resources to review"
-                      : tab === "active"
+                      : tab === RESOURCE_VIEW.ACTIVE
                         ? "No active resources"
-                        : tab === "favorites"
+                        : tab === RESOURCE_VIEW.FAVORITE
                           ? "No favorite resources"
-                          : tab === "archive"
+                          : tab === RESOURCE_VIEW.ARCHIVED
                             ? "No archived resources"
-                            : "No resources yet"
+                            : tab === RESOURCE_VIEW.SAVED
+                              ? "No saved resources"
+                              : "No resources yet"
                 }
                 description={
-                  tab === "all" ? "Add your first resource to get started" : "Try a different filter"
+                  tab === RESOURCE_VIEW.ALL ? "Add your first resource to get started" : "Try a different filter"
                 }
-                actionLabel={tab === "all" ? "New Resource" : undefined}
-                onAction={tab === "all" ? handleOpenCreate : undefined}
+                actionLabel={tab === RESOURCE_VIEW.ALL ? "New Resource" : undefined}
+                onAction={tab === RESOURCE_VIEW.ALL ? handleOpenCreate : undefined}
               />
             ) : (
               <div className="rounded-lg border border-border">
-                {/* Rows */}
                 {filtered.map((resource) => (
                   <ResourceRow
                     key={resource.id}
                     resource={resource}
-                    areas={
-                      resource.linkedAreaIds && resource.linkedAreaIds.length > 0
-                        ? resource.linkedAreaIds.map((id) => areaMap.get(id)).filter((a): a is { name: string; icon: string | null } => Boolean(a))
-                        : resource.area_id
-                          ? [areaMap.get(resource.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a))
-                          : undefined
-                    }
-                    goalNames={
-                      resource.linkedGoalIds && resource.linkedGoalIds.length > 0
-                        ? resource.linkedGoalIds.map((id) => goalNames.get(id)).filter((n): n is string => Boolean(n))
-                        : undefined
-                    }
-                    projectName={resource.project_id ? projectNames.get(resource.project_id) : undefined}
-                    taskNames={
-                      resource.linkedTaskIds && resource.linkedTaskIds.length > 0
-                        ? resource.linkedTaskIds.map((id) => taskNames.get(id)).filter((n): n is string => Boolean(n))
-                        : undefined
-                    }
+                    areas={getAreasForResource(resource)}
+                    goalNames={getGoalNamesForResource(resource)}
+                    projectNames={getProjectNamesForResource(resource)}
+                    taskNames={getTaskNamesForResource(resource)}
                     topicName={resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
                     onToggleFavorite={handleToggleFavorite}
                     onArchive={handleArchive}
                     onUnarchive={handleUnarchive}
+                    onDelete={handleDelete}
                     onStatusChange={handleStatusChange}
                     onEdit={handleEdit}
                   />
@@ -656,72 +779,73 @@ export function ResourcesContent() {
           </TabsContent>
         )}
 
-        {/* By Topics */}
-        <TabsContent value="by_topics" className="mt-4">
-          {isLoading ? (
-            <div className="flex flex-col gap-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="rounded-lg border border-border p-4">
-                  <div className="h-5 w-32 animate-pulse rounded bg-muted mb-3" />
-                  <div className="flex flex-col gap-2">
-                    {Array.from({ length: 2 }).map((_, j) => (
-                      <ResourceRowSkeleton key={j} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : byTopic.size === 0 ? (
-            <EmptyState
-              icon={Globe}
-              title="No resources linked to topics"
-              description="Link resources to topics to see them grouped here"
-              actionLabel="New Resource"
-              onAction={handleOpenCreate}
-            />
-          ) : (
-            <div className="flex flex-col gap-4">
-              {Array.from(byTopic.entries()).map(([topicId, resources]) => {
-                const name = topicNames.get(topicId) ?? "Unknown";
-                return (
-                  <div key={topicId} className="rounded-lg border border-border">
-                    <div className="divide-y divide-border">
-                      {resources.map((resource) => (
-                        <ResourceRow
-                          key={resource.id}
-                          resource={resource}
-                          areas={
-                            resource.linkedAreaIds && resource.linkedAreaIds.length > 0
-                              ? resource.linkedAreaIds.map((id) => areaMap.get(id)).filter((a): a is { name: string; icon: string | null } => Boolean(a))
-                              : resource.area_id
-                                ? [areaMap.get(resource.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a))
-                                : undefined
-                          }
-                          goalNames={
-                            resource.linkedGoalIds && resource.linkedGoalIds.length > 0
-                              ? resource.linkedGoalIds.map((id) => goalNames.get(id)).filter((n): n is string => Boolean(n))
-                              : undefined
-                          }
-                          projectName={resource.project_id ? projectNames.get(resource.project_id) : undefined}
-                          taskNames={
-                            resource.linkedTaskIds && resource.linkedTaskIds.length > 0
-                              ? resource.linkedTaskIds.map((id) => taskNames.get(id)).filter((n): n is string => Boolean(n))
-                              : undefined
-                          }
-                          topicName={name}
-                          onToggleFavorite={handleToggleFavorite}
-                          onArchive={handleArchive}
-                          onUnarchive={handleUnarchive}
-                          onStatusChange={handleStatusChange}
-                          onEdit={handleEdit}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        {/* By Topic */}
+        <TabsContent value={RESOURCE_VIEW.BY_TOPIC} className="mt-0 flex-1">
+          <ResourcesByGroupView
+            groups={resourceGroupsByTopic}
+            getAreas={getAreasForResource}
+            getGoalNames={getGoalNamesForResource}
+            getProjectNames={getProjectNamesForResource}
+            getTaskNames={getTaskNamesForResource}
+            getTopicName={(resource) => resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
+            onToggleFavorite={handleToggleFavorite}
+            onArchive={handleArchive}
+            onUnarchive={handleUnarchive}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+            emptyMessage="Resources will be grouped by topic here."
+          />
+        </TabsContent>
+
+        <TabsContent value={RESOURCE_VIEW.BY_AREA} className="mt-0 flex-1">
+          <ResourcesByGroupView
+            groups={resourceGroupsByArea}
+            getAreas={getAreasForResource}
+            getGoalNames={getGoalNamesForResource}
+            getProjectNames={getProjectNamesForResource}
+            getTaskNames={getTaskNamesForResource}
+            getTopicName={(resource) => resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
+            onToggleFavorite={handleToggleFavorite}
+            onArchive={handleArchive}
+            onUnarchive={handleUnarchive}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+            emptyMessage="Resources will be grouped by area here."
+          />
+        </TabsContent>
+
+        <TabsContent value={RESOURCE_VIEW.BY_GOAL} className="mt-0 flex-1">
+          <ResourcesByGroupView
+            groups={resourceGroupsByGoal}
+            getAreas={getAreasForResource}
+            getGoalNames={getGoalNamesForResource}
+            getProjectNames={getProjectNamesForResource}
+            getTaskNames={getTaskNamesForResource}
+            getTopicName={(resource) => resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
+            onToggleFavorite={handleToggleFavorite}
+            onArchive={handleArchive}
+            onUnarchive={handleUnarchive}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+            emptyMessage="Resources will be grouped by goal here."
+          />
+        </TabsContent>
+
+        <TabsContent value={RESOURCE_VIEW.BY_PROJECT} className="mt-0 flex-1">
+          <ResourcesByGroupView
+            groups={resourceGroupsByProject}
+            getAreas={getAreasForResource}
+            getGoalNames={getGoalNamesForResource}
+            getProjectNames={getProjectNamesForResource}
+            getTaskNames={getTaskNamesForResource}
+            getTopicName={(resource) => resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
+            onToggleFavorite={handleToggleFavorite}
+            onArchive={handleArchive}
+            onUnarchive={handleUnarchive}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+            emptyMessage="Resources will be grouped by project here."
+          />
         </TabsContent>
       </Tabs>
 

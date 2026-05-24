@@ -602,11 +602,12 @@ export default function KnowledgeHubPage() {
             key={r.id}
             resource={r}
             areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a)) : undefined}
-            projectName={r.project_id ? projNames.get(r.project_id) : undefined}
+            projectNames={r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : []}
             topicName={r.topic_id ? topicNames.get(r.topic_id) : undefined}
             onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
             onArchive={(id) => archiveResource.mutate(id)}
             onUnarchive={(id) => unarchiveResource.mutate(id)}
+            onDelete={() => {}}
             onStatusChange={(id, status) => updateResource.mutate({ id, input: { status } })}
           />
         ))}
@@ -982,11 +983,12 @@ export default function KnowledgeHubPage() {
                                   key={r.id}
                                   resource={r}
 areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a)) : undefined}
-                                  projectName={r.project_id ? projNames.get(r.project_id) : undefined}
+                                  projectNames={r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : []}
                                   topicName={tname}
                                   onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
                                   onArchive={(id) => archiveResource.mutate(id)}
                                   onUnarchive={(id) => unarchiveResource.mutate(id)}
+                                  onDelete={() => {}}
                                   onStatusChange={(id, status) => updateResource.mutate({ id, input: { status } })}
                                 />
                               ))}
