@@ -26,8 +26,8 @@ import {
 import { goalMatchesAreaId } from "@/lib/utils/goals";
 import {
   computeFilteredProjects,
-  computeVisibleAreas,
-  computeVisibleGoals,
+  computeVisibleAreasForProjects,
+  computeVisibleGoalsForProjects,
 } from "@/lib/utils/task-dialog-filters";
 import { createTaskSchema, updateTaskSchema } from "@/lib/validators/task.schema";
 import { Badge } from "@/components/ui/badge";
@@ -112,6 +112,7 @@ interface TaskFormValues {
   name: string;
   priority: Task["priority"];
   project_id: string;
+  project_ids: string[];
   status: Task["status"];
 }
 
@@ -129,6 +130,7 @@ const EMPTY_FORM_VALUES: TaskFormValues = {
   name: "",
   priority: PRIORITY.MEDIUM,
   project_id: "",
+  project_ids: [],
   status: TASK_STATUS.INBOX,
 };
 
@@ -136,6 +138,7 @@ function buildTaskFormValues(
   task: Task | null | undefined,
   goalIds: string[],
   linkedAreaIds: string[],
+  linkedProjectIds: string[],
   defaultAreaId?: string,
   defaultProjectId?: string,
   defaultGoalId?: string,
@@ -151,6 +154,7 @@ function buildTaskFormValues(
         ...EMPTY_FORM_VALUES,
         area_ids: scopedAreaIds,
         project_id: "",
+        project_ids: [],
         goal_ids: [goalScoped.goalId],
       };
     }
@@ -162,6 +166,7 @@ function buildTaskFormValues(
         ...EMPTY_FORM_VALUES,
         area_ids: scopedAreaIds,
         project_id: projectScoped.projectId,
+        project_ids: [projectScoped.projectId],
         goal_ids: projectScoped.linkedGoalIds?.length
           ? projectScoped.linkedGoalIds
           : defaultGoalId
@@ -173,9 +178,17 @@ function buildTaskFormValues(
       ...EMPTY_FORM_VALUES,
       area_ids: defaultAreaId ? [defaultAreaId] : [],
       project_id: defaultProjectId ?? "",
+      project_ids: defaultProjectId ? [defaultProjectId] : [],
       goal_ids: defaultGoalId ? [defaultGoalId] : [],
     };
   }
+
+  const resolvedProjectIds =
+    linkedProjectIds.length > 0
+      ? linkedProjectIds
+      : task.project_id
+        ? [task.project_id]
+        : [];
 
   return {
     area_ids: linkedAreaIds.length > 0 ? linkedAreaIds : (task.area_id ? [task.area_id] : []),
@@ -189,7 +202,8 @@ function buildTaskFormValues(
     is_urgent: task.is_urgent,
     name: task.name,
     priority: task.priority,
-    project_id: task.project_id ?? "",
+    project_id: resolvedProjectIds[0] ?? task.project_id ?? "",
+    project_ids: resolvedProjectIds,
     status: task.status,
   };
 }
@@ -245,6 +259,7 @@ export function TaskDialog({
   );
   const linkedGoalIds = getStableStringArray(taskRelations?.goal_ids);
   const linkedAreaIds = getStableStringArray(taskRelations?.area_ids ?? []);
+  const linkedProjectIds = getStableStringArray(taskRelations?.project_ids ?? []);
 
   const form = useForm<TaskFormValues>({
     defaultValues: EMPTY_FORM_VALUES,
@@ -276,6 +291,7 @@ export function TaskDialog({
         task,
         linkedGoalIds,
         linkedAreaIds,
+        linkedProjectIds,
         defaultAreaId,
         defaultProjectId,
         goalId,
@@ -292,6 +308,7 @@ export function TaskDialog({
     projectScoped,
     linkedGoalIds,
     linkedAreaIds,
+    linkedProjectIds,
     open,
     task,
   ]);
@@ -308,6 +325,7 @@ export function TaskDialog({
 
     const nextGoalIds = getStableStringArray(taskRelations.goal_ids);
     const nextAreaIds = getStableStringArray(taskRelations.area_ids ?? []);
+    const nextProjectIds = getStableStringArray(taskRelations.project_ids ?? []);
     form.setValue("goal_ids", nextGoalIds, {
       shouldDirty: false,
       shouldTouch: false,
@@ -318,23 +336,67 @@ export function TaskDialog({
       shouldTouch: false,
       shouldValidate: true,
     });
+    if (nextProjectIds.length > 0) {
+      form.setValue("project_ids", nextProjectIds, {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: true,
+      });
+      form.setValue("project_id", nextProjectIds[0], {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: true,
+      });
+    }
     hasHydratedRelationsRef.current = true;
   }, [open, task, taskRelations, form]);
 
   const watchedAreaIds = form.watch("area_ids");
   const watchedGoalIds = form.watch("goal_ids");
+  const watchedProjectIds = form.watch("project_ids");
   const selectedAreaIds = useMemo(() => watchedAreaIds ?? [], [watchedAreaIds]);
   const selectedGoalIds = useMemo(() => watchedGoalIds ?? [], [watchedGoalIds]);
+  const selectedProjectIds = useMemo(() => watchedProjectIds ?? [], [watchedProjectIds]);
+  // Primary project_id mirrors the first selected project for backward compat
+  // with code paths that read task.project_id directly.
   const selectedProjectId = form.watch("project_id");
   const isPending = createTask.isPending || updateTask.isPending;
+
+  // Keep the legacy single `project_id` form field in sync with the
+  // first item in `project_ids`. The service layer also sets the row's
+  // primary project_id from the first array entry, so this stays consistent
+  // across UI and persistence.
+  useEffect(() => {
+    if (isProjectScoped) return;
+    const nextPrimary = selectedProjectIds[0] ?? "";
+    if (nextPrimary !== selectedProjectId) {
+      form.setValue("project_id", nextPrimary, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+    }
+  }, [selectedProjectIds, selectedProjectId, form, isProjectScoped]);
 
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
 
     const invalidGoalIds = selectedGoalIds.filter((goalId) => {
-      if (selectedProjectId) {
-        const proj = projectById.get(selectedProjectId);
-        if (proj?.linkedGoalIds?.length && !proj.linkedGoalIds.includes(goalId)) return true;
+      // A goal is allowed if at least one selected project allows it.
+      // If no projects are selected, the project dimension imposes no
+      // constraint. If a selected project has no linkedGoalIds, treat it
+      // as unconstrained (the project simply doesn't track goal links).
+      if (selectedProjectIds.length > 0) {
+        let anyAllows = false;
+        for (const pid of selectedProjectIds) {
+          const proj = projectById.get(pid);
+          const linked = proj?.linkedGoalIds ?? [];
+          if (linked.length === 0 || linked.includes(goalId)) {
+            anyAllows = true;
+            break;
+          }
+        }
+        if (!anyAllows) return true;
       }
       const goal = allGoals.find((g) => g.id === goalId);
       if (!goal) return true;
@@ -350,7 +412,7 @@ export function TaskDialog({
         shouldValidate: true,
       });
     }
-  }, [selectedAreaIds, selectedProjectId, allGoals, selectedGoalIds, form, isGoalScoped, isProjectScoped, projectById]);
+  }, [selectedAreaIds, selectedProjectIds, allGoals, selectedGoalIds, form, isGoalScoped, isProjectScoped, projectById]);
 
   /** Goals visible in the goal selector — restricted to project-linked goals when project-scoped, or area-linked goals when an area is selected. */
   const visibleGoals = useMemo(() => {
@@ -360,11 +422,11 @@ export function TaskDialog({
     }
 
     if (!isGoalScoped) {
-      return computeVisibleGoals(goals, selectedProjectId || null, selectedAreaIds, projectById);
+      return computeVisibleGoalsForProjects(goals, selectedProjectIds, selectedAreaIds, projectById);
     }
 
     return goals;
-  }, [isGoalScoped, isProjectScoped, projectScoped, goals, selectedAreaIds, selectedProjectId, projectById]);
+  }, [isGoalScoped, isProjectScoped, projectScoped, goals, selectedAreaIds, selectedProjectIds, projectById]);
 
   const filteredProjects = useMemo(() => {
     if (isGoalScoped && goalScoped) {
@@ -378,46 +440,56 @@ export function TaskDialog({
     return computeFilteredProjects(projects, selectedGoalIds, selectedAreaIds);
   }, [goalScoped, isGoalScoped, projects, selectedAreaIds, selectedGoalIds, allowedProjectIds]);
 
-  // Clear project_id when the currently-selected project is no longer in filteredProjects
+  // Clear projects from the multi-selection that are no longer allowed
   // (e.g. user picks a goal that the project doesn't belong to).
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
-    if (!selectedProjectId) return;
-    if (!filteredProjects.some((p) => p.id === selectedProjectId)) {
-      form.setValue("project_id", "", {
+    if (selectedProjectIds.length === 0) return;
+    const allowedIds = new Set(filteredProjects.map((p) => p.id));
+    const filtered = selectedProjectIds.filter((id) => allowedIds.has(id));
+    if (filtered.length !== selectedProjectIds.length) {
+      form.setValue("project_ids", filtered, {
         shouldDirty: true,
         shouldTouch: true,
         shouldValidate: true,
       });
     }
-  }, [filteredProjects, selectedProjectId, form, isGoalScoped, isProjectScoped]);
+  }, [filteredProjects, selectedProjectIds, form, isGoalScoped, isProjectScoped]);
 
   /** Areas visible in the area selector — AND-intersection of goal and project areas. */
   const visibleAreas = useMemo(
     () =>
-      computeVisibleAreas(
+      computeVisibleAreasForProjects(
         areas,
         selectedGoalIds,
-        selectedProjectId || null,
+        selectedProjectIds,
         projectById,
         goals,
       ),
-    [areas, selectedGoalIds, selectedProjectId, projectById, goals],
+    [areas, selectedGoalIds, selectedProjectIds, projectById, goals],
   );
 
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
 
     const invalidAreaIds = selectedAreaIds.filter((areaId) => {
-      if (selectedProjectId) {
-        const proj = projectById.get(selectedProjectId);
-        if (proj) {
+      // An area is allowed if it appears in ANY selected project's chain.
+      // Empty selectedProjectIds means no project constraint.
+      if (selectedProjectIds.length > 0) {
+        let anyProjectAllows = false;
+        for (const pid of selectedProjectIds) {
+          const proj = projectById.get(pid);
+          if (!proj) continue;
           const projAreaIds = new Set([
             ...(proj.linkedAreaIds ?? []),
             ...(proj.area_id ? [proj.area_id] : []),
           ]);
-          if (!projAreaIds.has(areaId)) return true;
+          if (projAreaIds.has(areaId)) {
+            anyProjectAllows = true;
+            break;
+          }
         }
+        if (!anyProjectAllows) return true;
       }
       if (selectedGoalIds.length === 0) return false;
       return !selectedGoalIds.some((goalId) => {
@@ -435,7 +507,7 @@ export function TaskDialog({
         shouldValidate: true,
       });
     }
-  }, [selectedGoalIds, selectedProjectId, allGoals, selectedAreaIds, form, isGoalScoped, isProjectScoped, projectById]);
+  }, [selectedGoalIds, selectedProjectIds, allGoals, selectedAreaIds, form, isGoalScoped, isProjectScoped, projectById]);
 
   const handleGoalToggle = (goalId: string, checked: boolean) => {
     const nextGoalIds = checked
@@ -916,7 +988,7 @@ export function TaskDialog({
               )}
             </div>
 
-            {/* Row 4: Project (full width) */}
+            {/* Row 4: Projects (multi-select, full width) */}
             {isProjectScoped ? (
               <FormItem>
                 <div className="flex items-center justify-between">
@@ -938,30 +1010,36 @@ export function TaskDialog({
             ) : (
               <FormItem>
                 <div className="flex items-center justify-between">
-                  <FormLabel>Project</FormLabel>
+                  <FormLabel>Projects</FormLabel>
                   <DropdownMenu>
                     <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                      {!form.watch("project_id") ? "Select project..." : (projectById.get(form.watch("project_id"))?.name ?? "...")}
+                      {selectedProjectIds.length === 0
+                        ? "Select projects..."
+                        : `${selectedProjectIds.length} selected`}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56">
                       <DropdownMenuItem
                         onSelect={(e) => e.preventDefault()}
-                        onClick={() => form.setValue("project_id", "", { shouldDirty: true })}
+                        onClick={() => {
+                          form.setValue("project_ids", [], { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+                        }}
                       >
-                        None
+                        Clear selection
                       </DropdownMenuItem>
                       <ScrollArea className="max-h-56">
                         {filteredProjects.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">No projects available.</div>
                         ) : filteredProjects.map((project) => {
-                          const isSelected = form.watch("project_id") === project.id;
+                          const isSelected = selectedProjectIds.includes(project.id);
                           return (
                             <DropdownMenuItem
                               key={project.id}
                               onSelect={(e) => e.preventDefault()}
                               onClick={() => {
-                                const nextId = isSelected ? "" : project.id;
-                                form.setValue("project_id", nextId, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+                                const nextIds = isSelected
+                                  ? selectedProjectIds.filter((id) => id !== project.id)
+                                  : [...selectedProjectIds, project.id];
+                                form.setValue("project_ids", nextIds, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
                               }}
                               className="flex items-center gap-2"
                             >
@@ -974,21 +1052,29 @@ export function TaskDialog({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                {form.watch("project_id") && projectById.get(form.watch("project_id")) && (
+                {selectedProjectIds.length > 0 && (
                   <div className="flex flex-wrap gap-2 pt-2">
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      {projectById.get(form.watch("project_id"))!.name}
-                      <button
-                        type="button"
-                        onClick={() => form.setValue("project_id", "", { shouldDirty: true })}
-                        className="ml-1 rounded-full p-0.5 hover:bg-muted"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </Badge>
+                    {selectedProjectIds
+                      .map((id) => projectById.get(id))
+                      .filter((p): p is NonNullable<typeof p> => Boolean(p))
+                      .map((project) => (
+                        <Badge key={project.id} variant="secondary" className="flex items-center gap-1">
+                          {project.name}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextIds = selectedProjectIds.filter((id) => id !== project.id);
+                              form.setValue("project_ids", nextIds, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+                            }}
+                            className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </Badge>
+                      ))}
                   </div>
                 )}
-                <FormMessage>{form.formState.errors.project_id?.message}</FormMessage>
+                <FormMessage>{form.formState.errors.project_ids?.message}</FormMessage>
               </FormItem>
             )}
 

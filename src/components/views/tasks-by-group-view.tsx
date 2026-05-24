@@ -28,6 +28,7 @@ interface TasksByGroupViewProps {
   getLinkedAreaNames: (task: Task) => string[];
   getLinkedAreaIcons: (task: Task) => (string | null)[];
   getLinkedGoalNames: (task: Task) => string[];
+  getLinkedProjectNames?: (task: Task) => string[];
   emptyMessage?: string;
 }
 
@@ -45,6 +46,7 @@ function CollapsibleTaskGroup({
   getLinkedAreaNames,
   getLinkedAreaIcons,
   getLinkedGoalNames,
+  getLinkedProjectNames,
 }: {
   group: TaskGroup;
   areaMap: Map<string, { name: string; icon?: string | null }>;
@@ -59,6 +61,7 @@ function CollapsibleTaskGroup({
   getLinkedAreaNames: (task: Task) => string[];
   getLinkedAreaIcons: (task: Task) => (string | null)[];
   getLinkedGoalNames: (task: Task) => string[];
+  getLinkedProjectNames?: (task: Task) => string[];
 }) {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -102,6 +105,7 @@ function CollapsibleTaskGroup({
               linkedAreaIcons={getLinkedAreaIcons(task)}
               linkedGoalNames={getLinkedGoalNames(task)}
               projectName={task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
+              linkedProjectNames={getLinkedProjectNames?.(task)}
               onCompletionToggle={onCompletionToggle}
               onFocusToggle={onFocusToggle}
               onNameSave={onNameSave}
@@ -138,6 +142,7 @@ export function TasksByGroupView({
   getLinkedAreaNames,
   getLinkedAreaIcons,
   getLinkedGoalNames,
+  getLinkedProjectNames,
   emptyMessage = "No tasks in this view.",
 }: TasksByGroupViewProps) {
   if (groups.length === 0 || groups.every((g) => g.tasks.length === 0)) {
@@ -168,6 +173,7 @@ export function TasksByGroupView({
           getLinkedAreaNames={getLinkedAreaNames}
           getLinkedAreaIcons={getLinkedAreaIcons}
           getLinkedGoalNames={getLinkedGoalNames}
+          getLinkedProjectNames={getLinkedProjectNames}
         />
       ))}
     </div>

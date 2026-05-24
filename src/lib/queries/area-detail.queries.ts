@@ -1,11 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
-import { calculateGoalProgress } from "@/lib/utils/goals"
+import { serverFetchGoals } from "@/lib/queries/goals.queries"
 
 const AREA_SELECT =
   "id, user_id, name, description, icon, color, type, metadata, inactive, archive, slug, created_at, updated_at"
-const GOAL_SELECT =
-  "id, user_id, area_id, name, description, term, priority, target_date, progress, is_completed, is_archived, slug, created_at, updated_at"
 const PROJECT_SELECT =
   "id, user_id, area_id, name, description, status, priority, start_date, due_date, progress, is_archived, slug, created_at, updated_at"
 const TASK_SELECT =
@@ -24,100 +22,6 @@ function isUuid(v: string) {
 
 function dedupe(ids: Array<string | null | undefined>): string[] {
   return Array.from(new Set(ids.filter((x): x is string => Boolean(x))))
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function hydrateGoalAreaLinks(supabase: SupabaseClient, goals: any[]): Promise<any[]> {
-  if (goals.length === 0) return goals
-  const goalIds = goals.map((g) => g.id as string)
-  const { data } = await supabase
-    .from("goal_areas")
-    .select("goal_id, area_id")
-    .in("goal_id", goalIds)
-  const areasByGoal = new Map<string, string[]>()
-  for (const row of (data ?? []) as Array<{ goal_id: string; area_id: string }>) {
-    const list = areasByGoal.get(row.goal_id) ?? []
-    list.push(row.area_id)
-    areasByGoal.set(row.goal_id, list)
-  }
-  return goals.map((g) => ({
-    ...g,
-    linkedAreaIds: dedupe([g.area_id, ...(areasByGoal.get(g.id) ?? [])]),
-  }))
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function hydrateGoalRollupCounts(supabase: SupabaseClient, goals: any[]): Promise<any[]> {
-  if (goals.length === 0) return goals
-  const goalIds = goals.map((g) => g.id as string)
-
-  const [projectLinks, taskLinks, noteLinks, resourceLinks] = await Promise.all([
-    supabase
-      .from("goal_projects")
-      .select("goal_id, project:projects(status, is_archived, progress)")
-      .in("goal_id", goalIds)
-      .then((r) => r.data ?? []),
-    supabase
-      .from("goal_tasks")
-      .select("goal_id, task:tasks(is_completed, is_archived)")
-      .in("goal_id", goalIds)
-      .then((r) => r.data ?? []),
-    supabase
-      .from("goal_notes")
-      .select("goal_id, note:notes(status, is_archived)")
-      .in("goal_id", goalIds)
-      .then((r) => r.data ?? []),
-    supabase
-      .from("goal_resources")
-      .select("goal_id, resource:resources(status, is_archived)")
-      .in("goal_id", goalIds)
-      .then((r) => r.data ?? []),
-  ])
-
-  const entitiesForGoal = (
-    links: Array<{ goal_id: string } & Record<string, unknown>>,
-    goalId: string,
-    entityKey: string,
-  ): Record<string, unknown>[] =>
-    links
-      .filter((link) => link.goal_id === goalId)
-      .map((link) => {
-        const entity = Array.isArray(link[entityKey])
-          ? (link[entityKey] as Record<string, unknown>[])[0]
-          : (link[entityKey] as Record<string, unknown> | undefined)
-        return entity
-      })
-      .filter((e): e is Record<string, unknown> => e != null)
-
-  const countFor = (
-    entities: Record<string, unknown>[],
-    isActive: (entity: Record<string, unknown>) => boolean,
-  ): number => entities.filter(isActive).length
-
-  return goals.map((goal) => {
-    const id = goal.id as string
-    const projects = entitiesForGoal(projectLinks as Array<{ goal_id: string } & Record<string, unknown>>, id, "project")
-    const tasks = entitiesForGoal(taskLinks as Array<{ goal_id: string } & Record<string, unknown>>, id, "task")
-    const notes = entitiesForGoal(noteLinks as Array<{ goal_id: string } & Record<string, unknown>>, id, "note")
-    const resources = entitiesForGoal(resourceLinks as Array<{ goal_id: string } & Record<string, unknown>>, id, "resource")
-
-    const hydratedProgress = calculateGoalProgress(
-      { is_completed: goal.is_completed, progress: goal.progress },
-      projects as unknown as Parameters<typeof calculateGoalProgress>[1],
-      tasks as unknown as Parameters<typeof calculateGoalProgress>[2],
-      notes as unknown as Parameters<typeof calculateGoalProgress>[3],
-      resources as unknown as Parameters<typeof calculateGoalProgress>[4],
-    )
-
-    return {
-      ...goal,
-      progress: hydratedProgress,
-      projectCount: countFor(projects, (e) => !e.is_archived && e.status !== "completed"),
-      taskCount: countFor(tasks, (e) => !e.is_archived && !e.is_completed),
-      noteCount: countFor(notes, (e) => !e.is_archived && e.status !== "archive" && e.status !== "saved"),
-      resourceCount: countFor(resources, (e) => !e.is_archived && e.status !== "saved"),
-    }
-  })
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -333,28 +237,27 @@ export async function serverFetchAreaDetail(
   // (allGoals/allTasks/allNotes/allResources/archivedTasks) needed by the
   // detail content for project rollups, goal lookups, etc.
   const [
-    allGoalsResult,
     allProjectsResult,
     allTasksActiveResult,
     allTasksArchivedResult,
     allNotesResult,
     allResourcesResult,
+    allGoals,
     extraGoalIds,
     extraProjectIds,
     extraTaskIds,
   ] = await Promise.all([
-    supabase.from("goals").select(GOAL_SELECT).eq("user_id", userId),
     supabase.from("projects").select(PROJECT_SELECT).eq("user_id", userId),
     supabase.from("tasks").select(TASK_SELECT).eq("user_id", userId).eq("is_archived", false),
     supabase.from("tasks").select(TASK_SELECT).eq("user_id", userId).eq("is_archived", true),
     supabase.from("notes").select(NOTE_SELECT).eq("user_id", userId).eq("is_archived", false),
     supabase.from("resources").select(RESOURCE_SELECT).eq("user_id", userId).eq("is_archived", false),
+    serverFetchGoals(supabase, userId, { status: "all" }),
     fetchLinkedIds(supabase, "goal_areas", "goal_id", areaId),
     fetchLinkedIds(supabase, "project_areas", "project_id", areaId),
     fetchLinkedIds(supabase, "task_areas", "task_id", areaId),
   ])
 
-  const rawAllGoals = allGoalsResult.data ?? []
   const rawAllProjects = allProjectsResult.data ?? []
   const rawAllActiveTasks = allTasksActiveResult.data ?? []
   const rawAllArchivedTasks = allTasksArchivedResult.data ?? []
@@ -365,21 +268,18 @@ export async function serverFetchAreaDetail(
   // IDs and (for goals) rollup counts + progress so cards on the area detail
   // page render accurate correlation numbers on first paint.
   const [
-    allGoalsWithAreas,
     allProjects,
     allTasks,
     archivedTasks,
     allNotesWithProjects,
     allResourcesWithAreas,
   ] = await Promise.all([
-    hydrateGoalAreaLinks(supabase, rawAllGoals),
     hydrateProjectRelations(supabase, rawAllProjects),
     hydrateTaskRelations(supabase, rawAllActiveTasks),
     hydrateTaskRelations(supabase, rawAllArchivedTasks),
     hydrateNoteProjectIds(supabase, rawAllNotes),
     hydrateResourceAreaIds(supabase, rawAllResources),
   ])
-  const allGoals = await hydrateGoalRollupCounts(supabase, allGoalsWithAreas)
   const allNotes = await hydrateNoteAreaIds(supabase, allNotesWithProjects)
   const allResources = allResourcesWithAreas
 
