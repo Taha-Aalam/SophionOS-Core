@@ -22,7 +22,7 @@ import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { TaskListItem } from "@/components/entities/task-list-item";
 import { ProjectDialog } from "@/components/entities/project-dialog";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
-import { ResourceTable } from "@/components/entities/resource-table";
+import { ResourceRow } from "@/components/entities/resource-row";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -65,9 +65,11 @@ import {
   useUpdateProject,
 } from "@/lib/hooks/use-projects";
 import {
+  useArchiveResource,
   useCreateResource,
   useResourcesByProject,
   useToggleFavoriteResource,
+  useUnarchiveResource,
   useUpdateResource,
 } from "@/lib/hooks/use-resources";
 import { useTasks } from "@/lib/hooks/use-tasks";
@@ -165,6 +167,8 @@ export function ProjectDetailContent() {
   const createResource = useCreateResource();
   const updateResource = useUpdateResource();
   const toggleFavoriteResource = useToggleFavoriteResource();
+  const archiveResource = useArchiveResource();
+  const unarchiveResource = useUnarchiveResource();
   const toggleFavoriteNote = useToggleFavoriteNote();
   const completeTask = useCompleteTask();
   const uncompleteTask = useUncompleteTask();
@@ -295,6 +299,11 @@ export function ProjectDetailContent() {
     () => getProjectDueState(project?.due_date ?? null),
     [project?.due_date],
   );
+
+  const areaNamesMap = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
+  const areaIconsMap = useMemo(() => new Map(areas.map((a) => [a.id, a.icon ?? null])), [areas]);
+  const goalNamesMap = useMemo(() => new Map(goals.map((g) => [g.id, g.name])), [goals]);
+  const taskNamesMap = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks]);
 
   const goalTabs = useMemo(
     () => [
@@ -490,37 +499,14 @@ export function ProjectDetailContent() {
     }
   }, [contactTab, linkedContacts]);
 
-  const resourceTabs = useMemo(
-    () => [
-      { value: "all", label: "All", count: linkedResources.length },
-      {
-        value: "inbox",
-        label: "Inbox",
-        count: linkedResources.filter((r) => r.status === "inbox").length,
-      },
-      {
-        value: "to_review",
-        label: "To Review",
-        count: linkedResources.filter((r) => r.status === "to_review").length,
-      },
-      {
-        value: "active",
-        label: "Active",
-        count: linkedResources.filter((r) => r.status === "active" && !r.is_archived).length,
-      },
-      {
-        value: "saved",
-        label: "Saved",
-        count: linkedResources.filter((r) => r.status === "saved").length,
-      },
-      {
-        value: "archived",
-        label: "Archive",
-        count: linkedResources.filter((r) => r.is_archived).length,
-      },
-    ],
-    [linkedResources],
-  );
+  const resourceTabs = [
+    { value: "all", label: "All" },
+    { value: "inbox", label: "Inbox" },
+    { value: "to_review", label: "To Review" },
+    { value: "active", label: "Active" },
+    { value: "saved", label: "Saved" },
+    { value: "archived", label: "Archive" },
+  ];
 
   const filteredResources = useMemo(() => {
     switch (resourceTab) {
@@ -1208,13 +1194,42 @@ export function ProjectDetailContent() {
           createLabel="New Resource"
         >
           {filteredResources.length > 0 ? (
-            <ResourceTable
-              resources={filteredResources}
-              onToggleFavorite={(id, favorite) =>
-                toggleFavoriteResource.mutate({ id, favorite })
-              }
-              onEdit={handleResourceEdit}
-            />
+            <div className="rounded-lg border bg-card">
+              {filteredResources.map((resource) => {
+                const resourceAreaIds = (resource.linkedAreaIds && resource.linkedAreaIds.length > 0)
+                  ? resource.linkedAreaIds
+                  : (resource.area_id ? [resource.area_id] : []);
+                const resourceAreas = resourceAreaIds
+                  .map((id) => ({ name: areaNamesMap.get(id), icon: areaIconsMap.get(id) ?? null }))
+                  .filter((e): e is { name: string; icon: string | null } => Boolean(e.name));
+                const resourceGoalNames = (resource.linkedGoalIds ?? [])
+                  .map((id) => goalNamesMap.get(id))
+                  .filter((name): name is string => Boolean(name));
+                const resourceProjectNames = resource.project_id
+                  ? [project?.name].filter((n): n is string => Boolean(n))
+                  : [];
+                const resourceTaskNames = (resource.linkedTaskIds ?? [])
+                  .map((id) => taskNamesMap.get(id))
+                  .filter((name): name is string => Boolean(name));
+                return (
+                  <ResourceRow
+                    key={resource.id}
+                    resource={resource}
+                    areas={resourceAreas}
+                    goalNames={resourceGoalNames}
+                    projectNames={resourceProjectNames}
+                    taskNames={resourceTaskNames}
+                    onToggleFavorite={(id, favorite) =>
+                      toggleFavoriteResource.mutate({ id, favorite })
+                    }
+                    onArchive={(id) => archiveResource.mutate(id)}
+                    onUnarchive={(id) => unarchiveResource.mutate(id)}
+                    onDelete={() => {}}
+                    onEdit={handleResourceEdit}
+                  />
+                );
+              })}
+            </div>
           ) : null}
         </GoalDetailSection>
       </div>
