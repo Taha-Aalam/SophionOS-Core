@@ -149,8 +149,7 @@ export function NotesContent() {
   );
 
   const notebooks = useMemo(
-    () =>
-      Array.from(new Set(allNotes.map((n) => n.notebook).filter(Boolean))).sort(),
+    () => Array.from(new Set(allNotes.flatMap((n) => n.notebooks ?? []))).sort(),
     [allNotes],
   );
 
@@ -193,7 +192,7 @@ export function NotesContent() {
     }
 
     if (filterNotebook !== ALL_NOTEBOOK_VALUE) {
-      result = result.filter((n) => n.notebook === filterNotebook);
+      result = result.filter((n) => (n.notebooks ?? []).includes(filterNotebook));
     }
 
     return result;
@@ -283,10 +282,10 @@ export function NotesContent() {
   const noteGroupsByNotebook = useMemo((): NoteGroup[] => {
     const grouped = new Map<string, Note[]>();
     for (const note of allNotes.filter((n) => !n.is_archived)) {
-      const key = note.notebook ?? "unassigned";
-      const current = grouped.get(key) ?? [];
-      current.push(note);
-      grouped.set(key, current);
+      const keys = (note.notebooks ?? []).length > 0 ? note.notebooks! : ["unassigned"];
+      for (const key of keys) {
+        grouped.set(key, [...(grouped.get(key) ?? []), note]);
+      }
     }
     return Array.from(grouped.entries()).map(([notebook, notes]) => ({
       groupId: notebook,
@@ -473,12 +472,12 @@ export function NotesContent() {
 
         {/* Metadata cluster — all badges, no +N collapse */}
         <div className="hidden md:flex shrink-0 items-center gap-1.5 flex-wrap">
-          {note.notebook && (
-            <Badge variant="outline" className="gap-1 text-xs font-normal">
+          {(note.notebooks ?? []).map((nb) => (
+            <Badge key={nb} variant="outline" className="gap-1 text-xs font-normal">
               <BookOpen className="size-3" />
-              {note.notebook}
+              {nb}
             </Badge>
-          )}
+          ))}
           {linkedAreas.map((area) => (
             <Badge key={area.id} variant="outline" className="gap-1 text-xs font-normal">
               {area.icon ? (
