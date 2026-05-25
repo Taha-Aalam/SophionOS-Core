@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { noteService } from "@/lib/services/note.service";
+import { resourceService } from "@/lib/services/resource.service";
 import { topicService, type TopicWithCounts } from "@/lib/services/topic.service";
 import type { CreateTopicInput, UpdateTopicInput } from "@/lib/types/domain.types";
 
@@ -237,7 +238,7 @@ export function useResourcesForTopic(topicId: string) {
 
   return useQuery({
     queryKey: [TOPICS_QUERY_KEY, "resources", user?.id ?? null, topicId],
-    queryFn: () => topicService.getResourcesForTopic(user!.id, topicId),
+    queryFn: () => resourceService.listByTopic(user!.id, topicId),
     enabled: !!user && !!topicId,
   });
 }
