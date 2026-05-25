@@ -107,12 +107,12 @@ export function NoteRow({
 
       {/* Metadata cluster */}
       <div className="hidden shrink-0 flex-wrap items-center gap-1.5 md:flex">
-        {note.notebook && (
-          <Badge variant="outline" className="gap-1 text-xs font-normal">
+        {(note.notebooks ?? []).map((nb) => (
+          <Badge key={nb} variant="outline" className="gap-1 text-xs font-normal">
             <BookOpen className="size-3" />
-            {note.notebook}
+            {nb}
           </Badge>
-        )}
+        ))}
         {areas.map((area, i) => (
           <Badge key={i} variant="outline" className="gap-1 text-xs font-normal">
             {area.icon ? (

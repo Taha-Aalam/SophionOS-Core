@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
-import { NOTES_QUERY_KEY, useCreateNote, useNoteTypes } from "@/lib/hooks/use-notes";
+import { NOTES_QUERY_KEY, useCreateNote, useNotebooks, useNoteTypes } from "@/lib/hooks/use-notes";
 import { PROJECTS_QUERY_KEY, useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
@@ -45,12 +45,13 @@ export default function NewNotePage() {
   const { data: tasks = [], isLoading: tasksLoading } = useTasks();
   const { data: noteTypes = [], isLoading: typesLoading } = useNoteTypes();
   const { data: topics = [], isLoading: topicsLoading } = useTopics();
+  const { data: notebookOptions = [] } = useNotebooks();
 
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
   const [status, setStatus] = useState<NoteStatus>(NOTE_STATUS.INBOX);
   const [type, setType] = useState<string>(NOTE_TYPE.NOTE);
-  const [notebook, setNotebook] = useState<string | null>(null);
+  const [notebooks, setNotebooks] = useState<string[]>([]);
   const [areaIds, setAreaIds] = useState<string[]>([]);
   const [goalIds, setGoalIds] = useState<string[]>([]);
   const [projectIds, setProjectIds] = useState<string[]>([]);
@@ -95,8 +96,7 @@ export default function NewNotePage() {
       url.searchParams.delete("topicId");
     }
     if (prefilledNotebook) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setNotebook(prefilledNotebook);
+      setNotebooks([prefilledNotebook]);
       url.searchParams.delete("notebook");
     }
 
@@ -123,7 +123,7 @@ export default function NewNotePage() {
       content: content || null,
       status,
       type,
-      notebook,
+      notebooks,
       area_ids: areaIds,
       goal_ids: goalIds,
       project_ids: projectIds,
@@ -200,7 +200,8 @@ export default function NewNotePage() {
             onTopicIdChange={(id) => setTopicId(id ?? "")}
             status={status}
             type={type}
-            notebook={notebook}
+            notebooks={notebooks}
+            notebookOptions={notebookOptions}
             areaIds={areaIds}
             goalIds={goalIds}
             projectIds={projectIds}
@@ -209,7 +210,7 @@ export default function NewNotePage() {
             pin={pin}
             onStatusChange={setStatus}
             onTypeChange={setType}
-            onNotebookChange={setNotebook}
+            onNotebooksChange={setNotebooks}
             onAreaIdsChange={setAreaIds}
             onGoalIdsChange={setGoalIds}
             onProjectIdsChange={setProjectIds}
