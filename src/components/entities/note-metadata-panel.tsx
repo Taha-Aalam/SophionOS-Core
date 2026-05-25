@@ -14,7 +14,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -64,7 +63,8 @@ interface NoteMetadataPanelProps {
 
   status: NoteStatus;
   type: string;
-  notebook: string | null;
+  notebooks: string[];
+  notebookOptions: string[];
   areaIds: string[];
   goalIds: string[];
   projectIds: string[];
@@ -74,8 +74,7 @@ interface NoteMetadataPanelProps {
 
   onStatusChange: (status: NoteStatus) => void;
   onTypeChange: (type: string) => void;
-  onNotebookChange: (notebook: string | null) => void;
-  onNotebookBlur?: () => void;
+  onNotebooksChange: (notebooks: string[]) => void;
   onAreaIdsChange: (areaIds: string[]) => void;
   onGoalIdsChange: (goalIds: string[]) => void;
   onProjectIdsChange: (projectIds: string[]) => void;
@@ -97,7 +96,8 @@ export function NoteMetadataPanel({
   onTopicIdChange,
   status,
   type,
-  notebook,
+  notebooks,
+  notebookOptions,
   areaIds,
   goalIds,
   projectIds,
@@ -106,8 +106,7 @@ export function NoteMetadataPanel({
   pin,
   onStatusChange,
   onTypeChange,
-  onNotebookChange,
-  onNotebookBlur,
+  onNotebooksChange,
   onAreaIdsChange,
   onGoalIdsChange,
   onProjectIdsChange,
@@ -321,16 +320,31 @@ export function NoteMetadataPanel({
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">
           <BookOpen className="mr-1 inline size-3" />
-          Notebook
+          Notebooks
         </Label>
-        <Input
-          value={notebook ?? ""}
-          onChange={(e) => onNotebookChange(e.target.value.trim() || null)}
-          onBlur={onNotebookBlur}
-          placeholder="e.g. Work, Ideas…"
-          className="h-8 text-sm"
+        <NotebookSelector
+          options={notebookOptions}
+          selected={notebooks}
+          onChange={onNotebooksChange}
           disabled={disabled}
         />
+        {notebooks.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {notebooks.map((nb) => (
+              <Badge key={nb} variant="secondary" className="flex items-center gap-1">
+                <BookOpen className="size-3" />
+                <span className="max-w-[120px] truncate">{nb}</span>
+                <button
+                  type="button"
+                  onClick={() => onNotebooksChange(notebooks.filter((n) => n !== nb))}
+                  className="rounded-full p-0.5 hover:bg-muted"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="space-y-1.5">
@@ -697,6 +711,86 @@ function ProjectSelector({
                   <Checkbox checked={selectedSet.has(project.id)} />
                   <span className="flex-1 truncate text-sm">{project.name}</span>
                   {selectedSet.has(project.id) && <Check className="size-3.5" />}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function NotebookSelector({
+  options,
+  selected,
+  onChange,
+  disabled,
+}: {
+  options: string[];
+  selected: string[];
+  onChange: (notebooks: string[]) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => o.toLowerCase().includes(q));
+  }, [options, query]);
+
+  const toggle = (notebook: string) => {
+    onChange(
+      selectedSet.has(notebook)
+        ? selected.filter((n) => n !== notebook)
+        : [...selected, notebook],
+    );
+  };
+
+  const trimmed = query.trim();
+  const canCreate =
+    trimmed.length > 0 && !options.some((o) => o.toLowerCase() === trimmed.toLowerCase());
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        role="combobox"
+        disabled={disabled}
+        className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
+      >
+        <span className="truncate">
+          {selected.length === 0 ? "Select or create notebook..." : `${selected.length} selected`}
+        </span>
+        <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput placeholder="Search or create..." value={query} onValueChange={setQuery} />
+          <CommandList className="max-h-56 overflow-y-auto">
+            {canCreate && (
+              <CommandGroup>
+                <CommandItem
+                  value={`__create__${trimmed}`}
+                  onSelect={() => {
+                    toggle(trimmed);
+                    setQuery("");
+                  }}
+                >
+                  <BookOpen className="mr-2 size-3.5" />
+                  Create &ldquo;{trimmed}&rdquo;
+                </CommandItem>
+              </CommandGroup>
+            )}
+            <CommandEmpty>No notebooks found.</CommandEmpty>
+            <CommandGroup>
+              {filtered.map((nb) => (
+                <CommandItem key={nb} value={nb} onSelect={() => toggle(nb)} className="flex items-center gap-2">
+                  <Checkbox checked={selectedSet.has(nb)} />
+                  <span className="flex-1 truncate text-sm">{nb}</span>
+                  {selectedSet.has(nb) && <Check className="ml-auto size-3.5" />}
                 </CommandItem>
               ))}
             </CommandGroup>
