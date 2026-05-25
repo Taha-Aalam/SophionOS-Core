@@ -3,7 +3,7 @@ import type { UpdateNoteInput } from "../types/domain.types";
 interface NoteMetadataSnapshot {
   status: NonNullable<UpdateNoteInput["status"]>;
   type: NonNullable<UpdateNoteInput["type"]>;
-  notebook: string | null;
+  notebooks: string[];
   areaIds: string[];
   goalIds: string[];
   projectIds: string[];
@@ -19,10 +19,7 @@ export function buildNoteMetadataUpdateInput(
   return {
     status: overrides.status ?? snapshot.status,
     type: overrides.type ?? snapshot.type,
-    notebook:
-      "notebook" in overrides
-        ? (overrides.notebook?.trim() || null)
-        : (snapshot.notebook?.trim() || null),
+    notebooks: overrides.notebooks ?? snapshot.notebooks,
     area_ids: overrides.area_ids ?? snapshot.areaIds,
     goal_ids: overrides.goal_ids ?? snapshot.goalIds,
     project_ids: overrides.project_ids ?? snapshot.projectIds,
