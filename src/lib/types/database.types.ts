@@ -689,20 +689,20 @@ export type Database = {
           project_id?: string;
         };
       };
-      note_related_notes: {
+      note_notebooks: {
         Row: {
-          note_a_id: string;
-          note_b_id: string;
+          note_id: string;
+          notebook: string;
           created_at: string;
         };
         Insert: {
-          note_a_id: string;
-          note_b_id: string;
+          note_id: string;
+          notebook: string;
           created_at?: string;
         };
         Update: {
-          note_a_id?: string;
-          note_b_id?: string;
+          note_id?: string;
+          notebook?: string;
           created_at?: string;
         };
       };
