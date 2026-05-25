@@ -354,49 +354,40 @@ export function useNotesByNotebook(notebook: string) {
   });
 }
 
-export function useRelatedNotes(noteId: string) {
+export function useRelatedNotesByNotebook(noteId: string) {
   const { user } = useAuth();
-
   return useQuery({
-    queryKey: [NOTES_QUERY_KEY, "related", user?.id ?? null, noteId],
-    queryFn: () => noteService.getRelated(user!.id, noteId),
+    queryKey: [NOTES_QUERY_KEY, "relatedByNotebook", user?.id ?? null, noteId],
+    queryFn: () => noteService.getRelatedByNotebook(user!.id, noteId),
     enabled: !!user && !!noteId,
   });
 }
 
-export function useLinkRelatedNote() {
+export function useAddNotesToNotebook() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-
   return useMutation({
-    mutationFn: ({ noteAId, noteBId }: { noteAId: string; noteBId: string }) =>
-      noteService.linkRelated(user!.id, noteAId, noteBId),
+    mutationFn: ({ notebook, noteIds }: { notebook: string; noteIds: string[] }) =>
+      noteService.addNotesToNotebook(user!.id, notebook, noteIds),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY, "related"] });
-      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY, "list"] });
-      toast.success("Notes linked");
+      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
+      toast.success("Added to notebook");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to link notes");
-    },
+    onError: (error: Error) => toast.error(error.message || "Failed to add to notebook"),
   });
 }
 
-export function useUnlinkRelatedNote() {
+export function useRemoveNoteFromNotebook() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-
   return useMutation({
-    mutationFn: ({ noteAId, noteBId }: { noteAId: string; noteBId: string }) =>
-      noteService.unlinkRelated(user!.id, noteAId, noteBId),
+    mutationFn: ({ noteId, notebook }: { noteId: string; notebook: string }) =>
+      noteService.removeNoteFromNotebook(user!.id, noteId, notebook),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY, "related"] });
-      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY, "list"] });
-      toast.success("Notes unlinked");
+      queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
+      toast.success("Removed from notebook");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to unlink notes");
-    },
+    onError: (error: Error) => toast.error(error.message || "Failed to remove from notebook"),
   });
 }
 
@@ -427,14 +418,11 @@ export function useBulkUpdateNotes() {
       },
     }),
     updateNotebook: useMutation({
-      mutationFn: ({ noteIds, notebook }: { noteIds: string[]; notebook: string | null }) =>
-        noteService.bulkUpdateNotebook(user!.id, noteIds, notebook),
-      onSuccess: async () => {
-        await invalidateNoteGraph(queryClient);
-        toast.success("Notebook updated");
-      },
-      onError: (error: Error) => {
-        toast.error(error.message || "Failed to move notes");
+      mutationFn: ({ noteIds, notebook }: { noteIds: string[]; notebook: string }) =>
+        noteService.addNotesToNotebook(user!.id, notebook, noteIds),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
+        toast.success("Added to notebook");
       },
     }),
     delete: useMutation({
