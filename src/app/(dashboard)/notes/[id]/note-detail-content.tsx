@@ -1,9 +1,10 @@
 "use client";
 
-import { startTransition, useCallback, useEffect, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
+  BookOpen,
   Link2,
   NotebookPen,
   Pin,
@@ -16,7 +17,7 @@ import { NoteEditor } from "@/components/entities/note-editor";
 import { NoteMetadataPanel } from "@/components/entities/note-metadata-panel";
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -33,29 +34,34 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import {
+  useAddNotesToNotebook,
   useArchiveNote,
   useDeleteNote,
   useNoteByIdentifier,
   useNoteTypes,
+  useNotebooks,
   useNotes,
-  useRelatedNotes,
-  useLinkRelatedNote,
+  useRelatedNotesByNotebook,
+  useRemoveNoteFromNotebook,
   useRestoreNote,
-  useUnlinkRelatedNote,
   useUpdateNote,
 } from "@/lib/hooks/use-notes";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
-import type { UpdateNoteInput } from "@/lib/types/domain.types";
+import type { Note, UpdateNoteInput } from "@/lib/types/domain.types";
 import { buildNoteMetadataUpdateInput } from "@/lib/utils/note-detail-metadata";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/stores/ui.store";
@@ -84,7 +90,8 @@ export function NoteDetailContent() {
   const [localIsArchived, setLocalIsArchived] = useState(false);
   const [optimisticArchivedTarget, setOptimisticArchivedTarget] = useState<boolean | null>(null);
   const [localTitle, setLocalTitle] = useState("");
-  const [localNotebook, setLocalNotebook] = useState<string>("");
+  const [localNotebooks, setLocalNotebooks] = useState<string[]>([]);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
   const [localAreaIds, setLocalAreaIds] = useState<string[]>([]);
@@ -103,17 +110,15 @@ export function NoteDetailContent() {
   const { data: tasks = [] } = useTasks();
   const { data: noteTypes = [] } = useNoteTypes();
   const { data: allNotes = [] } = useNotes({ status: "all" });
-  const { data: relatedNotes = [] } = useRelatedNotes(note?.id ?? "");
-  const linkRelated = useLinkRelatedNote();
-  const unlinkRelated = useUnlinkRelatedNote();
+  const { data: relatedGroups = [] } = useRelatedNotesByNotebook(note?.id ?? "");
+  const { data: notebookOptions = [] } = useNotebooks();
+  const addToNotebook = useAddNotesToNotebook();
+  const removeFromNotebook = useRemoveNoteFromNotebook();
   const archiveNote = useArchiveNote();
   const restoreNote = useRestoreNote();
   const updateNote = useUpdateNote();
   const deleteNote = useDeleteNote();
   const isArchiveMutationPending = archiveNote.isPending || restoreNote.isPending;
-
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [linkQuery, setLinkQuery] = useState("");
 
   useEffect(() => {
     if (note) {
@@ -128,7 +133,7 @@ export function NoteDetailContent() {
           setLocalIsArchived(note.is_archived);
           setOptimisticArchivedTarget(null);
         }
-        setLocalNotebook(note.notebook ?? "");
+        setLocalNotebooks(note.notebooks ?? []);
         setPageTitle(note.name);
 
         // Only sync linked IDs on first load — not on refetches triggered by saves,
@@ -187,7 +192,7 @@ export function NoteDetailContent() {
         {
           status: note.status,
           type: note.type,
-          notebook: localNotebook,
+          notebooks: localNotebooks,
           areaIds: localAreaIds,
           goalIds: localGoalIds,
           projectIds: localProjectIds,
@@ -198,7 +203,7 @@ export function NoteDetailContent() {
         overrides,
       );
     },
-    [localAreaIds, localGoalIds, localNotebook, localProjectIds, localTaskIds, note],
+    [localAreaIds, localGoalIds, localNotebooks, localProjectIds, localTaskIds, note],
   );
 
   const handleMetaChange = (input: UpdateNoteInput) => {
@@ -315,72 +320,50 @@ export function NoteDetailContent() {
             className="flex-1"
           />
 
-          <div className="mt-8 space-y-3">
+          <div className="mt-8 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Related Notes</h3>
-              <Popover open={linkOpen} onOpenChange={setLinkOpen}>
-                <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  <Link2 className="mr-1.5 size-3.5" />Link Related Note
-                </PopoverTrigger>
-                <PopoverContent className="w-72 p-0" align="end">
-                  <Command shouldFilter={false}>
-                    <CommandInput placeholder="Search notes…" value={linkQuery} onValueChange={setLinkQuery} />
-                    <CommandList>
-                      <CommandEmpty>No notes found.</CommandEmpty>
-                      <CommandGroup>
-                        {allNotes
-                          .filter((n) => n.id !== note.id && !relatedNotes.some((r) => r.id === n.id))
-                          .filter((n) => n.name.toLowerCase().includes(linkQuery.toLowerCase()))
-                          .slice(0, 10)
-                          .map((n) => (
-                            <CommandItem
-                              key={n.id}
-                              value={n.id}
-                              onSelect={() => {
-                                linkRelated.mutate({ noteAId: note.id, noteBId: n.id });
-                                setLinkOpen(false);
-                                setLinkQuery("");
-                              }}
-                            >
-                              <NotebookPen className="mr-2 size-3.5" />
-                              {n.name}
-                            </CommandItem>
-                          ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <Button variant="outline" size="sm" onClick={() => setLinkDialogOpen(true)}>
+                <Link2 className="mr-1.5 size-3.5" />Link to Notebook
+              </Button>
             </div>
-            {relatedNotes.length === 0 ? (
+            {relatedGroups.length === 0 ? (
               <p className="text-sm text-muted-foreground">No related notes yet.</p>
             ) : (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {relatedNotes.map((rn) => (
-                  <div
-                    key={rn.id}
-                    className="group flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 cursor-pointer"
-                    onClick={() => router.push(`/notes/${rn.slug ?? rn.id}`)}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <NotebookPen className="size-3.5 shrink-0 text-muted-foreground" />
-                      <span className="truncate text-sm font-medium">{rn.name}</span>
-                      <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">{rn.type}</Badge>
-                    </div>
-                    <button
-                      type="button"
-                      className="rounded p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        unlinkRelated.mutate({ noteAId: note.id, noteBId: rn.id });
-                      }}
-                      title="Unlink"
-                    >
-                      <X className="size-3.5" />
-                    </button>
+              relatedGroups.map((group) => (
+                <div key={group.notebook} className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <BookOpen className="size-3.5" />
+                    {group.notebook}
                   </div>
-                ))}
-              </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {group.notes.map((rn) => (
+                      <div
+                        key={rn.id}
+                        className="group flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 cursor-pointer"
+                        onClick={() => router.push(`/notes/${rn.slug ?? rn.id}`)}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <NotebookPen className="size-3.5 shrink-0 text-muted-foreground" />
+                          <span className="truncate text-sm font-medium">{rn.name}</span>
+                          <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">{rn.type}</Badge>
+                        </div>
+                        <button
+                          type="button"
+                          className="rounded p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFromNotebook.mutate({ noteId: rn.id, notebook: group.notebook });
+                          }}
+                          title={`Remove from ${group.notebook}`}
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
@@ -398,7 +381,8 @@ export function NoteDetailContent() {
             noteTypes={noteTypes}
             status={note.status}
             type={note.type}
-            notebook={localNotebook}
+            notebooks={localNotebooks}
+            notebookOptions={notebookOptions}
             areaIds={localAreaIds}
             goalIds={localGoalIds}
             projectIds={localProjectIds}
@@ -407,13 +391,7 @@ export function NoteDetailContent() {
             pin={note.pin}
             onStatusChange={(status) => handleMetaChange({ status })}
             onTypeChange={(type) => handleMetaChange({ type })}
-            onNotebookChange={(notebook) => setLocalNotebook(notebook ?? "")}
-            onNotebookBlur={() => {
-              const next = localNotebook.trim() || null;
-              if (next !== note.notebook) {
-                handleMetaChange({ notebook: next });
-              }
-            }}
+            onNotebooksChange={(notebooks) => { setLocalNotebooks(notebooks); handleMetaChange({ notebooks }); }}
             onAreaIdsChange={(ids) => { setLocalAreaIds(ids); handleMetaChange({ area_ids: ids }); }}
             onGoalIdsChange={(ids) => { setLocalGoalIds(ids); handleMetaChange({ goal_ids: ids }); }}
             onProjectIdsChange={(ids) => { setLocalProjectIds(ids); handleMetaChange({ project_ids: ids }); }}
@@ -444,6 +422,18 @@ export function NoteDetailContent() {
         </aside>
       </div>
 
+      <LinkToNotebookDialog
+        open={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        notebookOptions={notebookOptions}
+        currentNotebooks={note.notebooks ?? []}
+        candidateNotes={allNotes.filter((n) => n.id !== note.id)}
+        onSubmit={(notebook, noteIds) => {
+          addToNotebook.mutate({ notebook, noteIds: [note.id, ...noteIds] });
+          setLinkDialogOpen(false);
+        }}
+      />
+
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <DialogContent>
           <DialogHeader>
@@ -467,5 +457,99 @@ export function NoteDetailContent() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function LinkToNotebookDialog({
+  open,
+  onOpenChange,
+  notebookOptions,
+  currentNotebooks,
+  candidateNotes,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  notebookOptions: string[];
+  currentNotebooks: string[];
+  candidateNotes: Note[];
+  onSubmit: (notebook: string, noteIds: string[]) => void;
+}) {
+  const [notebook, setNotebook] = useState<string>("");
+  const [query, setQuery] = useState("");
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (open) {
+      startTransition(() => {
+        setNotebook(currentNotebooks[0] ?? notebookOptions[0] ?? "");
+        setPicked(new Set());
+        setQuery("");
+      });
+    }
+  }, [open, currentNotebooks, notebookOptions]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return candidateNotes.filter((n) => !q || n.name.toLowerCase().includes(q)).slice(0, 50);
+  }, [candidateNotes, query]);
+
+  const togglePick = (id: string) => {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Link notes to a notebook</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Notebook</Label>
+            <Select value={notebook} onValueChange={(v) => setNotebook(v ?? "")}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select a notebook" />
+              </SelectTrigger>
+              <SelectContent>
+                {notebookOptions.map((nb) => (
+                  <SelectItem key={nb} value={nb}>{nb}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Notes to add</Label>
+            <Command shouldFilter={false} className="rounded-md border">
+              <CommandInput placeholder="Search notes…" value={query} onValueChange={setQuery} />
+              <CommandList className="max-h-56">
+                <CommandEmpty>No notes found.</CommandEmpty>
+                <CommandGroup>
+                  {filtered.map((n) => (
+                    <CommandItem key={n.id} value={n.id} onSelect={() => togglePick(n.id)} className="flex items-center gap-2">
+                      <Checkbox checked={picked.has(n.id)} />
+                      <span className="truncate text-sm">{n.name}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            disabled={!notebook || picked.size === 0}
+            onClick={() => onSubmit(notebook, Array.from(picked))}
+          >
+            Add {picked.size > 0 ? `(${picked.size})` : ""}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
