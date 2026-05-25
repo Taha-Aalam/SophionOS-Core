@@ -36,6 +36,7 @@ export default function NewNotePage() {
   const prefilledGoalIds = searchParams.get("goalIds");
   const prefilledProjectId = searchParams.get("projectId");
   const prefilledTopicId = searchParams.get("topicId");
+  const prefilledNotebook = searchParams.get("notebook");
   const noteReturnTo = decodeReturnTo(searchParams.get("returnTo") || "");
 
   const { data: areas = [], isLoading: areasLoading } = useAreas();
@@ -93,6 +94,11 @@ export default function NewNotePage() {
       setTopicId(prefilledTopicId);
       url.searchParams.delete("topicId");
     }
+    if (prefilledNotebook) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNotebook(prefilledNotebook);
+      url.searchParams.delete("notebook");
+    }
 
     if (newAreaIds.length > 0) {
       setAreaIds([...newAreaIds]);
@@ -104,10 +110,10 @@ export default function NewNotePage() {
       setProjectIds([...newProjectIds]);
     }
 
-    if (prefilledAreaId || prefilledGoalId || prefilledAreaIds || prefilledGoalIds || prefilledProjectId || prefilledTopicId) {
+    if (prefilledAreaId || prefilledGoalId || prefilledAreaIds || prefilledGoalIds || prefilledProjectId || prefilledTopicId || prefilledNotebook) {
       window.history.replaceState({}, "", url.toString());
     }
-  }, [prefilledAreaId, prefilledGoalId, prefilledAreaIds, prefilledGoalIds, prefilledProjectId, prefilledTopicId]);
+  }, [prefilledAreaId, prefilledGoalId, prefilledAreaIds, prefilledGoalIds, prefilledProjectId, prefilledTopicId, prefilledNotebook]);
 
   const isLoading = areasLoading || goalsLoading || projectsLoading || tasksLoading || typesLoading || topicsLoading;
 

@@ -270,7 +270,7 @@ export function NoteMetadataPanel({
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Status</Label>
         <Select value={status} onValueChange={(v) => onStatusChange(v as NoteStatus)} disabled={disabled}>
-          <SelectTrigger className="h-8 text-sm">
+          <SelectTrigger className="h-8 w-full text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

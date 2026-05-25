@@ -148,6 +148,9 @@ export function useTogglePinNote() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
+      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] });
     },
   });
 }
@@ -334,6 +337,9 @@ export function useToggleFavoriteNote() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
+      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] });
     },
   });
 }
