@@ -106,6 +106,16 @@ export function extractTaskIds(input: { task_ids?: string[] }): {
   };
 }
 
+export function extractNotebooks<T extends { notebooks?: string[] }>(
+  input: T,
+): { notebooks: string[]; noteInput: Omit<T, "notebooks"> } {
+  const { notebooks, ...noteInput } = input;
+  const cleaned = Array.from(
+    new Set((notebooks ?? []).map((n) => n.trim()).filter((n) => n.length > 0)),
+  );
+  return { notebooks: cleaned, noteInput };
+}
+
 export function isMissingNoteAreasTableError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const e = error as Record<string, unknown>;

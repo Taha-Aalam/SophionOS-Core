@@ -34,7 +34,7 @@ const noteBaseSchema = z
     topic_id: nullableUuidSchema,
     name: z.string().min(1, "Name is required").max(255),
     content: emptyToNull,
-    notebook: z.preprocess((v) => (v === "" ? null : v), z.string().max(100).nullable().optional()),
+    notebooks: z.array(z.string().min(1).max(100)).default([]),
     goal_ids: z.array(z.string().uuid()).default([]),
     task_ids: z.array(z.string().uuid()).default([]),
     project_ids: z.array(z.string().uuid()).default([]),
@@ -73,7 +73,7 @@ export const bulkUpdateStatusSchema = z.object({
   status: z.enum(noteStatusValues),
 });
 
-export const bulkUpdateNotebookSchema = z.object({
+export const addNotesToNotebookSchema = z.object({
   noteIds: z.array(z.string().uuid()),
-  notebook: z.string().nullable(),
+  notebook: z.string().min(1).max(100),
 });
