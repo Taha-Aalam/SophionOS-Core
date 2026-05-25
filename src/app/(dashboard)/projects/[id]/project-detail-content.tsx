@@ -496,17 +496,17 @@ export function ProjectDetailContent() {
   const filteredResources = useMemo(() => {
     switch (resourceTab) {
       case "inbox":
-        return linkedResources.filter((r) => r.status === "inbox");
+        return linkedResources.filter((r) => r.status === "inbox" && !r.is_archived);
       case "to_review":
-        return linkedResources.filter((r) => r.status === "to_review");
+        return linkedResources.filter((r) => r.status === "to_review" && !r.is_archived);
       case "active":
         return linkedResources.filter((r) => r.status === "active" && !r.is_archived);
       case "saved":
-        return linkedResources.filter((r) => r.status === "saved");
+        return linkedResources.filter((r) => r.status === "saved" && !r.is_archived);
       case "archived":
         return linkedResources.filter((r) => r.is_archived);
       default:
-        return linkedResources;
+        return linkedResources.filter((r) => !r.is_archived);
     }
   }, [linkedResources, resourceTab]);
 

@@ -413,17 +413,17 @@ export function GoalDetailContent() {
     const resources = goalData?.resources ?? [];
     switch (resourceTab) {
       case "inbox":
-        return resources.filter((r) => r.status === RESOURCE_STATUS.INBOX);
+        return resources.filter((r) => r.status === RESOURCE_STATUS.INBOX && !r.is_archived);
       case "to_review":
-        return resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW);
+        return resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW && !r.is_archived);
       case "active":
-        return resources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE);
+        return resources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE && !r.is_archived);
       case "saved":
-        return resources.filter((r) => r.status === RESOURCE_STATUS.SAVED);
+        return resources.filter((r) => r.status === RESOURCE_STATUS.SAVED && !r.is_archived);
       case "archived":
         return resources.filter((r) => r.is_archived);
       default:
-        return resources;
+        return resources.filter((r) => !r.is_archived);
     }
   }, [goalData?.resources, resourceTab]);
 

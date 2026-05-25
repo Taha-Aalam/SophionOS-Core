@@ -454,11 +454,33 @@ export const resourceService = {
   },
 
   async listByProject(userId: string, projectId: string): Promise<Resource[]> {
-    return this.list(userId, { projectId });
+    const { data, error } = await createClient()
+      .from("resources")
+      .select(RESOURCE_SELECT)
+      .eq("user_id", userId)
+      .eq("project_id", projectId)
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    return hydrateResourceRelations(data || []);
   },
 
   async listByTopic(userId: string, topicId: string): Promise<Resource[]> {
-    return this.list(userId, { topicId });
+    const { data, error } = await createClient()
+      .from("resources")
+      .select(RESOURCE_SELECT)
+      .eq("user_id", userId)
+      .eq("topic_id", topicId)
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    return hydrateResourceRelations(data || []);
   },
 
   async listFavorites(userId: string): Promise<Resource[]> {

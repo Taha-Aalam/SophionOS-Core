@@ -345,22 +345,6 @@ export const topicService = {
     if (error) throw new DatabaseError(error.message);
   },
 
-  async getResourcesForTopic(userId: string, topicId: string) {
-    const { data, error } = await createClient()
-      .from("resources")
-      .select("id, user_id, area_id, project_id, topic_id, name, url, type, status, favorite, is_archived, metadata, created_at, updated_at")
-      .eq("user_id", userId)
-      .eq("topic_id", topicId)
-      .eq("is_archived", false)
-      .order("updated_at", { ascending: false });
-
-    if (error) {
-      throw new DatabaseError(error.message);
-    }
-
-    return data || [];
-  },
-
   async enrichWithCounts(topics: TopicWithCounts[]): Promise<TopicWithCounts[]> {
     const results: TopicWithCounts[] = [];
 
