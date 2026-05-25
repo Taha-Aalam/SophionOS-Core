@@ -15,6 +15,7 @@ import {
   dedupeAreaIds,
   extractGoalIds,
   extractNoteAreaIds,
+  extractNotebooks,
   extractProjectIds,
   extractTaskIds,
   isMissingNoteAreasTableError,
@@ -229,7 +230,6 @@ export const noteService = {
     filters?: {
       status?: NoteStatus | "all";
       favorite?: boolean;
-      notebook?: string;
       areaId?: string;
       projectId?: string;
       includeArchived?: boolean;
@@ -249,9 +249,6 @@ export const noteService = {
     }
     if (filters?.favorite !== undefined) {
       query = query.eq("favorite", filters.favorite);
-    }
-    if (filters?.notebook) {
-      query = query.eq("notebook", filters.notebook);
     }
     if (filters?.areaId) {
       query = query.eq("area_id", filters.areaId);
@@ -320,7 +317,8 @@ export const noteService = {
       const { areaIds, noteInput: areaCleanedInput } = extractNoteAreaIds(validated);
       const { goalIds, noteInput: goalCleanedInput } = extractGoalIds(areaCleanedInput);
       const { projectIds, noteInput: projectCleanedInput } = extractProjectIds(goalCleanedInput);
-      const { taskIds, noteInput } = extractTaskIds(projectCleanedInput);
+      const { taskIds, noteInput: taskCleanedInput } = extractTaskIds(projectCleanedInput);
+      const { notebooks, noteInput: nbCleaned } = extractNotebooks(taskCleanedInput);
 
       if (validated.type) {
         await upsertNoteType(userId, validated.type);
@@ -334,7 +332,7 @@ export const noteService = {
       while (!data) {
         const { data: insertData, error } = await createClient()
           .from("notes")
-          .insert({ ...noteInput, user_id: userId, slug })
+          .insert({ ...nbCleaned, user_id: userId, slug })
           .select(NOTE_SELECT)
           .single();
 
@@ -368,6 +366,10 @@ export const noteService = {
         await this.replaceTaskLinks(data.id, taskIds);
       }
 
+      if (notebooks.length) {
+        await this.replaceNotebooks(data.id, notebooks);
+      }
+
       return hydrateSingleNoteRelations(data);
     } catch (e) {
       if (e instanceof ValidationError) throw e;
@@ -379,7 +381,7 @@ export const noteService = {
 
   async update(userId: string, id: string, input: UpdateNoteInput): Promise<Note> {
     try {
-      const { goal_ids, task_ids, project_ids, ...rest } = input;
+      const { goal_ids, task_ids, project_ids, notebooks, ...rest } = input;
       const goalIds = goal_ids ? Array.from(new Set(goal_ids)) : undefined;
       const taskIds = task_ids ? Array.from(new Set(task_ids)) : undefined;
       const projectIds = project_ids ? Array.from(new Set(project_ids)) : undefined;
@@ -446,6 +448,10 @@ export const noteService = {
 
       if (taskIds) {
         await this.replaceTaskLinks(id, taskIds);
+      }
+
+      if (notebooks !== undefined) {
+        await this.replaceNotebooks(id, notebooks);
       }
 
       return hydrateSingleNoteRelations(note);
@@ -531,22 +537,13 @@ export const noteService = {
 
   async listNotebooks(userId: string): Promise<string[]> {
     const { data, error } = await createClient()
-      .from("notes")
-      .select("notebook")
-      .eq("user_id", userId)
-      .eq("is_archived", false)
-      .not("notebook", "is", null);
-
-    if (error) {
-      throw new DatabaseError(error.message);
-    }
-
-    const notebooks = new Set<string>();
-    for (const row of data || []) {
-      if (row.notebook) notebooks.add(row.notebook);
-    }
-
-    return Array.from(notebooks).sort();
+      .from("note_notebooks")
+      .select("notebook, notes!inner(user_id)")
+      .eq("notes.user_id", userId);
+    if (error) throw new DatabaseError(error.message);
+    const set = new Set<string>();
+    for (const row of data ?? []) set.add(row.notebook);
+    return Array.from(set).sort();
   },
 
   async listByGoal(userId: string, goalId: string): Promise<Note[]> {
@@ -829,37 +826,6 @@ export const noteService = {
     return groups;
   },
 
-  async linkRelated(_userId: string, noteAId: string, noteBId: string): Promise<void> {
-    if (noteAId === noteBId) {
-      throw new DatabaseError("Cannot link a note to itself");
-    }
-    const a = noteAId < noteBId ? noteAId : noteBId;
-    const b = noteAId < noteBId ? noteBId : noteAId;
-
-    const { error } = await createClient()
-      .from("note_related_notes")
-      .upsert({ note_a_id: a, note_b_id: b });
-
-    if (error) {
-      throw new DatabaseError(error.message);
-    }
-  },
-
-  async unlinkRelated(_userId: string, noteAId: string, noteBId: string): Promise<void> {
-    const a = noteAId < noteBId ? noteAId : noteBId;
-    const b = noteAId < noteBId ? noteBId : noteAId;
-
-    const { error } = await createClient()
-      .from("note_related_notes")
-      .delete()
-      .eq("note_a_id", a)
-      .eq("note_b_id", b);
-
-    if (error) {
-      throw new DatabaseError(error.message);
-    }
-  },
-
   async bulkArchive(userId: string, noteIds: string[]): Promise<void> {
     if (noteIds.length === 0) return;
     const { error } = await createClient()
@@ -878,19 +844,6 @@ export const noteService = {
     const { error } = await createClient()
       .from("notes")
       .update({ status })
-      .eq("user_id", userId)
-      .in("id", noteIds);
-
-    if (error) {
-      throw new DatabaseError(error.message);
-    }
-  },
-
-  async bulkUpdateNotebook(userId: string, noteIds: string[], notebook: string | null): Promise<void> {
-    if (noteIds.length === 0) return;
-    const { error } = await createClient()
-      .from("notes")
-      .update({ notebook })
       .eq("user_id", userId)
       .in("id", noteIds);
 
@@ -1031,6 +984,46 @@ export const noteService = {
   async getNoteRelatedCounts(_userId: string, noteIds: string[]): Promise<Map<string, number>> {
     const result = new Map<string, number>();
     for (const id of noteIds) result.set(id, 0);
+    if (noteIds.length === 0) return result;
+
+    // Which notebooks do the requested notes belong to?
+    const { data: own, error: ownErr } = await createClient()
+      .from("note_notebooks")
+      .select("note_id, notebook")
+      .in("note_id", noteIds);
+    if (ownErr) throw new DatabaseError(ownErr.message);
+
+    const notebooksByNote = new Map<string, string[]>();
+    const allNotebooks = new Set<string>();
+    for (const row of own ?? []) {
+      notebooksByNote.set(row.note_id, [...(notebooksByNote.get(row.note_id) ?? []), row.notebook]);
+      allNotebooks.add(row.notebook);
+    }
+    if (allNotebooks.size === 0) return result;
+
+    // All members of those notebooks.
+    const { data: members, error: memErr } = await createClient()
+      .from("note_notebooks")
+      .select("note_id, notebook")
+      .in("notebook", Array.from(allNotebooks));
+    if (memErr) throw new DatabaseError(memErr.message);
+
+    const membersByNotebook = new Map<string, Set<string>>();
+    for (const row of members ?? []) {
+      const set = membersByNotebook.get(row.notebook) ?? new Set<string>();
+      set.add(row.note_id);
+      membersByNotebook.set(row.notebook, set);
+    }
+
+    for (const id of noteIds) {
+      const related = new Set<string>();
+      for (const nb of notebooksByNote.get(id) ?? []) {
+        for (const member of membersByNotebook.get(nb) ?? []) {
+          if (member !== id) related.add(member);
+        }
+      }
+      result.set(id, related.size);
+    }
     return result;
   },
 };

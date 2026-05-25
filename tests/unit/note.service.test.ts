@@ -266,4 +266,32 @@ describe("noteService", () => {
     expect(eqNote).toHaveBeenCalledWith("note_id", "n3");
     expect(eqNotebook).toHaveBeenCalledWith("notebook", "Ideas");
   });
+
+  it("getNoteRelatedCounts counts distinct co-notebook notes", async () => {
+    // note_notebooks rows: n1,n2,n3 in "Ideas"; n4,n5 in "Projects".
+    const rows = [
+      { note_id: "n1", notebook: "Ideas" },
+      { note_id: "n2", notebook: "Ideas" },
+      { note_id: "n3", notebook: "Ideas" },
+      { note_id: "n4", notebook: "Projects" },
+      { note_id: "n5", notebook: "Projects" },
+    ];
+    // 1) fetch notebooks for requested notes; 2) fetch all members of those notebooks
+    vi.mocked(createClient)
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        in: vi.fn().mockResolvedValue({ data: rows, error: null }),
+      } as never)
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        in: vi.fn().mockResolvedValue({ data: rows, error: null }),
+      } as never);
+
+    const counts = await noteService.getNoteRelatedCounts(userId, ["n1", "n4"]);
+
+    expect(counts.get("n1")).toBe(2); // n2, n3
+    expect(counts.get("n4")).toBe(1); // n5
+  });
 });
