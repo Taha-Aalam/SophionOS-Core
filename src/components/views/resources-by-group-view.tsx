@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDownIcon, ChevronRightIcon, Globe } from "lucide-react";
+import { ChevronDownIcon, ChevronRightIcon, Globe, Plus } from "lucide-react";
 
 import { ResourceRow } from "@/components/entities/resource-row";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ interface ResourcesByGroupViewProps {
   onUnarchive: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (resource: Resource) => void;
+  onNewResource?: (groupId: string) => void;
   emptyMessage?: string;
 }
 
@@ -41,6 +42,8 @@ function CollapsibleResourceGroup({
   onUnarchive,
   onDelete,
   onEdit,
+  onNewResource,
+  defaultOpen = true,
 }: {
   group: ResourceGroup;
   getAreas: (resource: Resource) => Array<{ name: string; icon?: string | null }>;
@@ -53,8 +56,10 @@ function CollapsibleResourceGroup({
   onUnarchive: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (resource: Resource) => void;
+  onNewResource?: (groupId: string) => void;
+  defaultOpen?: boolean;
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
     <div className="mb-6">
@@ -103,6 +108,15 @@ function CollapsibleResourceGroup({
               onEdit={onEdit}
             />
           ))}
+          {onNewResource && group.groupId !== "unassigned" && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onNewResource(group.groupId); }}
+              className="flex w-full items-center gap-2 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            >
+              <Plus className="size-4" />
+              New resource
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -121,6 +135,7 @@ export function ResourcesByGroupView({
   onUnarchive,
   onDelete,
   onEdit,
+  onNewResource,
   emptyMessage = "No resources in this view.",
 }: ResourcesByGroupViewProps) {
   if (groups.length === 0 || groups.every((g) => g.resources.length === 0)) {
@@ -133,9 +148,14 @@ export function ResourcesByGroupView({
     );
   }
 
+  const sorted = [
+    ...groups.filter((g) => g.groupId !== "unassigned"),
+    ...groups.filter((g) => g.groupId === "unassigned"),
+  ];
+
   return (
     <div className="px-6 py-4">
-      {groups.map((group) => (
+      {sorted.map((group) => (
         <CollapsibleResourceGroup
           key={group.groupId}
           group={group}
@@ -149,6 +169,8 @@ export function ResourcesByGroupView({
           onUnarchive={onUnarchive}
           onDelete={onDelete}
           onEdit={onEdit}
+          onNewResource={onNewResource}
+          defaultOpen={group.groupId !== "unassigned"}
         />
       ))}
     </div>

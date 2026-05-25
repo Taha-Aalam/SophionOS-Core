@@ -42,7 +42,7 @@ export function extractNoteAreaIds<
 } {
   const { area_ids, area_id, ...rest } = input;
 
-  if (area_ids !== undefined && area_ids.length > 0) {
+  if (area_ids !== undefined) {
     const normalizedAreaIds = dedupeAreaIds(area_ids);
     return {
       areaIds: normalizedAreaIds,

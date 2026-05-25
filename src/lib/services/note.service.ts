@@ -362,7 +362,10 @@ export const noteService = {
       const projectIds = project_ids ? Array.from(new Set(project_ids)) : undefined;
       const { areaIds, noteInput: areaCleanedInput } = extractNoteAreaIds({ ...rest, project_ids });
       const { noteInput: projectCleanedInput } = extractProjectIds(areaCleanedInput);
-      const validated = updateNoteSchema.parse(projectCleanedInput);
+      const noteInputFinal = projectIds !== undefined
+        ? { ...projectCleanedInput, project_id: projectIds[0] ?? null }
+        : projectCleanedInput;
+      const validated = updateNoteSchema.parse(noteInputFinal);
       const hasNoteUpdates = Object.keys(validated).length > 0;
 
       if (validated.type) {
@@ -406,7 +409,7 @@ export const noteService = {
             return data;
           })();
 
-      if (areaIds) {
+      if (areaIds !== undefined) {
         await this.replaceAreaLinks(id, areaIds);
       }
 
@@ -466,6 +469,18 @@ export const noteService = {
     return this.list(userId, { areaId });
   },
 
+  async listByTopic(userId: string, topicId: string): Promise<Note[]> {
+    const { data, error } = await createClient()
+      .from("notes")
+      .select(NOTE_SELECT)
+      .eq("user_id", userId)
+      .eq("topic_id", topicId)
+      .order("updated_at", { ascending: false });
+
+    if (error) throw new DatabaseError(error.message);
+    return hydrateNoteRelations(data ?? []);
+  },
+
   async listByProject(userId: string, projectId: string): Promise<Note[]> {
     const { data: links, error: linksError } = await createClient()
       .from("note_projects")
@@ -484,7 +499,6 @@ export const noteService = {
       .from("notes")
       .select(NOTE_SELECT)
       .eq("user_id", userId)
-      .eq("is_archived", false)
       .in("id", noteIds)
       .order("updated_at", { ascending: false });
 

@@ -94,6 +94,7 @@ export function NoteDetailContent() {
 
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingContent = useRef<string | null>(null);
+  const syncedNoteIdRef = useRef<string | null>(null);
 
   const { data: note, isLoading } = useNoteByIdentifier(noteId);
   const { data: areas = [] } = useAreas();
@@ -102,7 +103,7 @@ export function NoteDetailContent() {
   const { data: tasks = [] } = useTasks();
   const { data: noteTypes = [] } = useNoteTypes();
   const { data: allNotes = [] } = useNotes({ status: "all" });
-  const { data: relatedNotes = [] } = useRelatedNotes(noteId);
+  const { data: relatedNotes = [] } = useRelatedNotes(note?.id ?? "");
   const linkRelated = useLinkRelatedNote();
   const unlinkRelated = useUnlinkRelatedNote();
   const archiveNote = useArchiveNote();
@@ -116,6 +117,9 @@ export function NoteDetailContent() {
 
   useEffect(() => {
     if (note) {
+      const isFirstSync = syncedNoteIdRef.current !== note.id;
+      syncedNoteIdRef.current = note.id;
+
       startTransition(() => {
         setLocalTitle(note.name);
         if (optimisticArchivedTarget === null) {
@@ -125,11 +129,16 @@ export function NoteDetailContent() {
           setOptimisticArchivedTarget(null);
         }
         setLocalNotebook(note.notebook ?? "");
-        setLocalAreaIds(note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []));
-        setLocalGoalIds(note.linkedGoalIds ?? []);
-        setLocalProjectIds(note.linkedProjectIds ?? (note.project_id ? [note.project_id] : []));
-        setLocalTaskIds(note.linkedTaskIds ?? []);
         setPageTitle(note.name);
+
+        // Only sync linked IDs on first load — not on refetches triggered by saves,
+        // which would overwrite in-flight local edits with potentially stale server data.
+        if (isFirstSync) {
+          setLocalAreaIds(note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []));
+          setLocalGoalIds(note.linkedGoalIds ?? []);
+          setLocalProjectIds(note.linkedProjectIds ?? (note.project_id ? [note.project_id] : []));
+          setLocalTaskIds(note.linkedTaskIds ?? []);
+        }
       });
     }
     return () => setPageTitle("");
@@ -279,12 +288,13 @@ export function NoteDetailContent() {
             onClick={handleArchiveToggle}
           />
           <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-destructive hover:text-destructive"
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-destructive hover:text-destructive"
             onClick={() => setIsDeleteOpen(true)}
           >
             <Trash2 className="size-4" />
+            <span>Delete</span>
           </Button>
         </div>
       </div>
@@ -313,7 +323,7 @@ export function NoteDetailContent() {
                   <Link2 className="mr-1.5 size-3.5" />Link Related Note
                 </PopoverTrigger>
                 <PopoverContent className="w-72 p-0" align="end">
-                  <Command>
+                  <Command shouldFilter={false}>
                     <CommandInput placeholder="Search notes…" value={linkQuery} onValueChange={setLinkQuery} />
                     <CommandList>
                       <CommandEmpty>No notes found.</CommandEmpty>
@@ -325,6 +335,7 @@ export function NoteDetailContent() {
                           .map((n) => (
                             <CommandItem
                               key={n.id}
+                              value={n.id}
                               onSelect={() => {
                                 linkRelated.mutate({ noteAId: note.id, noteBId: n.id });
                                 setLinkOpen(false);
