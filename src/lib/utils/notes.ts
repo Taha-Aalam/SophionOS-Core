@@ -112,7 +112,7 @@ export function getNoteCounts(notes: Note[]): NoteCounts {
     by_goal: notes.filter((n) => getNoteLinkedGoalIds(n).length > 0 && !n.is_archived).length,
     by_project: notes.filter((n) => getNoteLinkedProjectIds(n).length > 0 && !n.is_archived).length,
     by_topic: notes.filter((n) => !!n.topic_id && !n.is_archived).length,
-    by_notebook: notes.filter((n) => !!n.notebook && !n.is_archived).length,
+    by_notebook: notes.filter((n) => (n.notebooks ?? []).length > 0 && !n.is_archived).length,
     archived: notes.filter((n) => n.is_archived).length,
   };
 }
