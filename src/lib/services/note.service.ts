@@ -25,7 +25,7 @@ import {
 } from "./note.helpers";
 
 const NOTE_SELECT =
-  "id, user_id, area_id, project_id, topic_id, name, slug, content, type, status, notebook, favorite, pin, is_archived, metadata, created_at, updated_at";
+  "id, user_id, area_id, project_id, topic_id, name, slug, content, type, status, favorite, pin, is_archived, metadata, created_at, updated_at";
 
 function withPrimaryAreaLinks(notes: Note[]): Note[] {
   return notes.map((note) => ({

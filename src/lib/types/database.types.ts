@@ -191,7 +191,6 @@ export type Database = {
           content: string | null;
           type: string;
           status: Database["public"]["Enums"]["note_status"];
-          notebook: string | null;
           favorite: boolean;
           pin: boolean;
           is_archived: boolean;
@@ -210,7 +209,6 @@ export type Database = {
           content?: string | null;
           type?: string;
           status?: Database["public"]["Enums"]["note_status"];
-          notebook?: string | null;
           favorite?: boolean;
           pin?: boolean;
           is_archived?: boolean;
@@ -229,7 +227,6 @@ export type Database = {
           content?: string | null;
           type?: string;
           status?: Database["public"]["Enums"]["note_status"];
-          notebook?: string | null;
           favorite?: boolean;
           pin?: boolean;
           is_archived?: boolean;
