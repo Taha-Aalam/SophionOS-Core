@@ -203,4 +203,67 @@ describe("noteService", () => {
   it("throws ValidationError for empty name on create", async () => {
     await expect(noteService.create(userId, { name: "" })).rejects.toThrow();
   });
+
+  it("getRelatedByNotebook groups co-notebook notes per notebook", async () => {
+    // The note under view (n1) is in notebook "Ideas". n2, n3 also in "Ideas".
+    const noteN2 = { ...baseNote, id: "n2", name: "N2" };
+    const noteN3 = { ...baseNote, id: "n3", name: "N3" };
+    // First createClient() call: fetch this note's notebooks.
+    const notebooksClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ data: [{ notebook: "Ideas" }], error: null }),
+    };
+    // Second call: members of "Ideas" (notes joined via note_notebooks).
+    const membersClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [noteN2, noteN3], error: null }),
+    };
+    vi.mocked(createClient)
+      .mockReturnValue(makeHydrationClient() as never)
+      .mockReturnValueOnce(notebooksClient as never)
+      .mockReturnValueOnce(membersClient as never);
+
+    const groups = await noteService.getRelatedByNotebook(userId, "n1");
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].notebook).toBe("Ideas");
+    expect(groups[0].notes.map((n) => n.id).sort()).toEqual(["n2", "n3"]);
+  });
+
+  it("addNotesToNotebook inserts one row per note", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnThis(),
+      upsert,
+    } as never);
+
+    await noteService.addNotesToNotebook(userId, "Ideas", ["n2", "n3"]);
+
+    expect(upsert).toHaveBeenCalledWith(
+      [
+        { note_id: "n2", notebook: "Ideas" },
+        { note_id: "n3", notebook: "Ideas" },
+      ],
+      { onConflict: "note_id,notebook" },
+    );
+  });
+
+  it("removeNoteFromNotebook deletes the single membership row", async () => {
+    const eqNotebook = vi.fn().mockResolvedValue({ error: null });
+    const eqNote = vi.fn().mockReturnValue({ eq: eqNotebook });
+    const del = vi.fn().mockReturnValue({ eq: eqNote });
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnThis(),
+      delete: del,
+    } as never);
+
+    await noteService.removeNoteFromNotebook(userId, "n3", "Ideas");
+
+    expect(del).toHaveBeenCalled();
+    expect(eqNote).toHaveBeenCalledWith("note_id", "n3");
+    expect(eqNotebook).toHaveBeenCalledWith("notebook", "Ideas");
+  });
 });

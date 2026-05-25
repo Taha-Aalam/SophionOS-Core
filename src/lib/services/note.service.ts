@@ -1,7 +1,12 @@
 import { z } from "zod";
 
 import { createClient } from "../supabase/client";
-import type { CreateNoteInput, Note, UpdateNoteInput } from "../types/domain.types";
+import type {
+  CreateNoteInput,
+  Note,
+  RelatedNotebookGroup,
+  UpdateNoteInput,
+} from "../types/domain.types";
 import { createNoteSchema, updateNoteSchema } from "../validators/note.schema";
 import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
 import type { NoteStatus } from "../utils/constants";
@@ -173,11 +178,29 @@ async function hydrateNoteProjectLinks(notes: Note[]): Promise<Note[]> {
   }
 }
 
+async function hydrateNoteNotebookLinks(notes: Note[]): Promise<Note[]> {
+  if (notes.length === 0) return notes;
+  const noteIds = notes.map((n) => n.id);
+  const { data, error } = await createClient()
+    .from("note_notebooks")
+    .select("note_id, notebook")
+    .in("note_id", noteIds);
+  if (error) {
+    throw new DatabaseError(error.message);
+  }
+  const byNote = new Map<string, string[]>();
+  for (const row of data ?? []) {
+    byNote.set(row.note_id, [...(byNote.get(row.note_id) ?? []), row.notebook]);
+  }
+  return notes.map((note) => ({ ...note, notebooks: (byNote.get(note.id) ?? []).sort() }));
+}
+
 async function hydrateNoteRelations(notes: Note[]): Promise<Note[]> {
   const withAreas = await hydrateNoteAreaLinks(notes);
   const withGoals = await hydrateNoteGoalLinks(withAreas);
   const withProjects = await hydrateNoteProjectLinks(withGoals);
-  return await hydrateNoteTaskLinks(withProjects);
+  const withTasks = await hydrateNoteTaskLinks(withProjects);
+  return await hydrateNoteNotebookLinks(withTasks);
 }
 
 async function hydrateSingleNoteRelations(note: Note): Promise<Note> {
@@ -746,11 +769,64 @@ export const noteService = {
   },
 
   async getByNotebook(userId: string, notebook: string): Promise<Note[]> {
-    return this.list(userId, { notebook });
+    const { data, error } = await createClient()
+      .from("notes")
+      .select(`${NOTE_SELECT}, note_notebooks!inner(notebook)`)
+      .eq("user_id", userId)
+      .eq("is_archived", false)
+      .eq("note_notebooks.notebook", notebook)
+      .order("updated_at", { ascending: false });
+    if (error) throw new DatabaseError(error.message);
+    // Strip the embedded join object before hydration.
+    const rows = (data ?? []).map(({ note_notebooks: _omit, ...note }) => note) as Note[];
+    return hydrateNoteRelations(rows);
   },
 
-  async getRelated(_userId: string, _noteId: string): Promise<Note[]> {
-    return [];
+  async replaceNotebooks(noteId: string, notebooks: string[]): Promise<void> {
+    const client = createClient();
+    const { error: delError } = await client.from("note_notebooks").delete().eq("note_id", noteId);
+    if (delError) throw new DatabaseError(delError.message);
+    if (notebooks.length === 0) return;
+    const rows = notebooks.map((notebook) => ({ note_id: noteId, notebook }));
+    const { error } = await client.from("note_notebooks").insert(rows);
+    if (error) throw new DatabaseError(error.message);
+  },
+
+  async addNotesToNotebook(_userId: string, notebook: string, noteIds: string[]): Promise<void> {
+    if (noteIds.length === 0) return;
+    const rows = noteIds.map((note_id) => ({ note_id, notebook }));
+    const { error } = await createClient()
+      .from("note_notebooks")
+      .upsert(rows, { onConflict: "note_id,notebook" });
+    if (error) throw new DatabaseError(error.message);
+  },
+
+  async removeNoteFromNotebook(_userId: string, noteId: string, notebook: string): Promise<void> {
+    const { error } = await createClient()
+      .from("note_notebooks")
+      .delete()
+      .eq("note_id", noteId)
+      .eq("notebook", notebook);
+    if (error) throw new DatabaseError(error.message);
+  },
+
+  async getRelatedByNotebook(userId: string, noteId: string): Promise<RelatedNotebookGroup[]> {
+    const { data: nbRows, error: nbError } = await createClient()
+      .from("note_notebooks")
+      .select("notebook")
+      .eq("note_id", noteId);
+    if (nbError) throw new DatabaseError(nbError.message);
+
+    const notebooks = Array.from(new Set((nbRows ?? []).map((r) => r.notebook))).sort();
+    if (notebooks.length === 0) return [];
+
+    const groups: RelatedNotebookGroup[] = [];
+    for (const notebook of notebooks) {
+      const members = await this.getByNotebook(userId, notebook);
+      const others = members.filter((n) => n.id !== noteId);
+      if (others.length > 0) groups.push({ notebook, notes: others });
+    }
+    return groups;
   },
 
   async linkRelated(_userId: string, noteAId: string, noteBId: string): Promise<void> {
