@@ -749,35 +749,8 @@ export const noteService = {
     return this.list(userId, { notebook });
   },
 
-  async getRelated(userId: string, noteId: string): Promise<Note[]> {
-    const { data, error } = await createClient()
-      .from("note_related_notes")
-      .select("note_a_id, note_b_id")
-      .or(`note_a_id.eq.${noteId},note_b_id.eq.${noteId}`);
-
-    if (error) {
-      throw new DatabaseError(error.message);
-    }
-
-    const relatedIds = new Set<string>();
-    for (const row of data ?? []) {
-      if (row.note_a_id !== noteId) relatedIds.add(row.note_a_id);
-      if (row.note_b_id !== noteId) relatedIds.add(row.note_b_id);
-    }
-
-    if (relatedIds.size === 0) return [];
-
-    const { data: notes, error: notesError } = await createClient()
-      .from("notes")
-      .select(NOTE_SELECT)
-      .eq("user_id", userId)
-      .in("id", Array.from(relatedIds));
-
-    if (notesError) {
-      throw new DatabaseError(notesError.message);
-    }
-
-    return hydrateNoteRelations(notes || []);
+  async getRelated(_userId: string, _noteId: string): Promise<Note[]> {
+    return [];
   },
 
   async linkRelated(_userId: string, noteAId: string, noteBId: string): Promise<void> {
@@ -979,25 +952,9 @@ export const noteService = {
     }
   },
 
-  async getNoteRelatedCounts(userId: string, noteIds: string[]): Promise<Map<string, number>> {
-    if (noteIds.length === 0) return new Map();
-    const { data, error } = await createClient()
-      .from("note_related_notes")
-      .select("note_a_id, note_b_id")
-      .or(noteIds.map((id) => `note_a_id.eq.${id},note_b_id.eq.${id}`).join(","));
-
-    if (error) {
-      throw new DatabaseError(error.message);
-    }
-
+  async getNoteRelatedCounts(_userId: string, noteIds: string[]): Promise<Map<string, number>> {
     const result = new Map<string, number>();
     for (const id of noteIds) result.set(id, 0);
-    for (const row of data ?? []) {
-      const countA = (result.get(row.note_a_id) ?? 0) + 1;
-      const countB = (result.get(row.note_b_id) ?? 0) + 1;
-      result.set(row.note_a_id, countA);
-      result.set(row.note_b_id, countB);
-    }
     return result;
   },
 };
