@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { hydrateResourceLinks } from "@/lib/queries/project-detail.queries"
+import { hydrateNotebooks } from "@/lib/queries/notes.queries"
 
 const TOPIC_SELECT =
   "id, user_id, area_id, name, slug, favorite, inactive, is_archived, metadata, created_at, updated_at"
 const NOTE_SELECT =
-  "id, user_id, area_id, project_id, topic_id, name, slug, content, type, status, notebook, favorite, pin, is_archived, metadata, created_at, updated_at"
+  "id, user_id, area_id, project_id, topic_id, name, slug, content, type, status, favorite, pin, is_archived, metadata, created_at, updated_at"
 const RESOURCE_SELECT =
   "id, user_id, area_id, project_id, topic_id, name, url, type, status, favorite, is_archived, metadata, created_at, updated_at"
 
@@ -70,7 +71,7 @@ export async function serverFetchNotesForTopic(
     .eq("user_id", userId)
     .eq("topic_id", topicId)
     .order("updated_at", { ascending: false })
-  return data ?? []
+  return hydrateNotebooks(supabase, data ?? [])
 }
 
 export async function serverFetchResourcesForTopic(

@@ -1,7 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const NOTE_SELECT =
-  "id, user_id, area_id, project_id, topic_id, name, slug, content, type, status, notebook, favorite, pin, is_archived, metadata, created_at, updated_at";
+  "id, user_id, area_id, project_id, topic_id, name, slug, content, type, status, favorite, pin, is_archived, metadata, created_at, updated_at";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function hydrateNotebooks(supabase: SupabaseClient, notes: any[]) {
+  if (notes.length === 0) return notes;
+  const ids = notes.map((n) => n.id);
+  const { data } = await supabase.from("note_notebooks").select("note_id, notebook").in("note_id", ids);
+  const byNote = new Map<string, string[]>();
+  for (const row of (data ?? []) as Array<{ note_id: string; notebook: string }>) {
+    byNote.set(row.note_id, [...(byNote.get(row.note_id) ?? []), row.notebook]);
+  }
+  return notes.map((n) => ({ ...n, notebooks: (byNote.get(n.id) ?? []).sort() }));
+}
 
 type NoteLike = {
   area_id: string | null;
@@ -90,9 +102,11 @@ export async function serverFetchNotes(
     hydrateProjectLinks(supabase, notes),
   ]);
 
-  return notes.map((note, index) => ({
+  const mapped = notes.map((note, index) => ({
     ...note,
     linkedAreaIds: withAreas[index]?.linkedAreaIds ?? dedupe([note.area_id]),
     linkedProjectIds: withProjects[index]?.linkedProjectIds ?? dedupe([note.project_id]),
   }));
+
+  return hydrateNotebooks(supabase, mapped);
 }
