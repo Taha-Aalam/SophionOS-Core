@@ -62,6 +62,7 @@ import {
   useUnarchiveResource,
   useUpdateResource,
 } from "@/lib/hooks/use-resources";
+import { useTopics } from "@/lib/hooks/use-topics";
 import { contactService } from "@/lib/services/contact.service";
 import { useQueryClient } from "@tanstack/react-query";
 import { type Contact, type CreateResourceInput, type Resource, type Task } from "@/lib/types/domain.types";
@@ -146,6 +147,7 @@ export function AreaDetailContent() {
   const archiveResource = useArchiveResource();
   const unarchiveResource = useUnarchiveResource();
   const toggleFavoriteResource = useToggleFavoriteResource();
+  const { data: topics = [] } = useTopics();
   const toggleContactFavorite = useToggleContactFavorite();
   const archiveContact = useArchiveContact();
   const deleteContact = useDeleteContact();
@@ -199,6 +201,8 @@ export function AreaDetailContent() {
     }
     return map;
   }, [areaData?.tasks]);
+
+  const topicNamesMap = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
 
   const areaMap = useMemo(() => {
     const map = new Map<string, { name: string; icon?: string | null }>();
@@ -1169,6 +1173,7 @@ export function AreaDetailContent() {
                     goalNames={resourceGoalNames}
                     projectNames={resourceProjectName ? [resourceProjectName] : []}
                     taskNames={resourceTaskNames}
+                    topicName={resource.topic_id ? topicNamesMap.get(resource.topic_id) : undefined}
                     onToggleFavorite={(id, favorite) =>
                       toggleFavoriteResource.mutate({ id, favorite })
                     }
