@@ -126,19 +126,19 @@ export function NoteDetailContent() {
       syncedNoteIdRef.current = note.id;
 
       startTransition(() => {
-        setLocalTitle(note.name);
         if (optimisticArchivedTarget === null) {
           setLocalIsArchived(note.is_archived);
         } else if (note.is_archived === optimisticArchivedTarget) {
           setLocalIsArchived(note.is_archived);
           setOptimisticArchivedTarget(null);
         }
-        setLocalNotebooks(note.notebooks ?? []);
         setPageTitle(note.name);
 
-        // Only sync linked IDs on first load — not on refetches triggered by saves,
+        // Only sync editable local state on first load — not on refetches triggered by saves,
         // which would overwrite in-flight local edits with potentially stale server data.
         if (isFirstSync) {
+          setLocalTitle(note.name);
+          setLocalNotebooks(note.notebooks ?? []);
           setLocalAreaIds(note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []));
           setLocalGoalIds(note.linkedGoalIds ?? []);
           setLocalProjectIds(note.linkedProjectIds ?? (note.project_id ? [note.project_id] : []));
