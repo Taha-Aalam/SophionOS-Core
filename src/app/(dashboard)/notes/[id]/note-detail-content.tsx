@@ -336,7 +336,7 @@ export function NoteDetailContent() {
                     <BookOpen className="size-3.5" />
                     {group.notebook}
                   </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="grid gap-2 sm:grid-cols-2 max-h-[108px] overflow-y-auto">
                     {group.notes.map((rn) => (
                       <div
                         key={rn.id}
@@ -430,6 +430,9 @@ export function NoteDetailContent() {
         candidateNotes={allNotes.filter((n) => n.id !== note.id)}
         onSubmit={(notebook, noteIds) => {
           addToNotebook.mutate({ notebook, noteIds: [note.id, ...noteIds] });
+          if (!localNotebooks.includes(notebook)) {
+            setLocalNotebooks((prev) => [...prev, notebook].sort());
+          }
           setLinkDialogOpen(false);
         }}
       />
@@ -491,8 +494,11 @@ function LinkToNotebookDialog({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return candidateNotes.filter((n) => !q || n.name.toLowerCase().includes(q)).slice(0, 50);
-  }, [candidateNotes, query]);
+    return candidateNotes
+      .filter((n) => !notebook || !(n.notebooks ?? []).includes(notebook))
+      .filter((n) => !q || n.name.toLowerCase().includes(q))
+      .slice(0, 50);
+  }, [candidateNotes, query, notebook]);
 
   const togglePick = (id: string) => {
     setPicked((prev) => {
@@ -505,7 +511,7 @@ function LinkToNotebookDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Link notes to a notebook</DialogTitle>
         </DialogHeader>
@@ -527,7 +533,7 @@ function LinkToNotebookDialog({
             <Label className="text-xs text-muted-foreground">Notes to add</Label>
             <Command shouldFilter={false} className="rounded-md border">
               <CommandInput placeholder="Search notes…" value={query} onValueChange={setQuery} />
-              <CommandList className="max-h-56">
+              <CommandList className="max-h-72">
                 <CommandEmpty>No notes found.</CommandEmpty>
                 <CommandGroup>
                   {filtered.map((n) => (
