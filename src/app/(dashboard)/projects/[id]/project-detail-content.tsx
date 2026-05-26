@@ -73,6 +73,7 @@ import {
   useUnarchiveResource,
   useUpdateResource,
 } from "@/lib/hooks/use-resources";
+import { useTopics } from "@/lib/hooks/use-topics";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -151,6 +152,7 @@ export function ProjectDetailContent() {
   const { data: projectContactLinks = [] } = useContactByProject(resolvedProjectId);
   const { data: linkedResources = [], isLoading: isLoadingResources } =
     useResourcesByProject(resolvedProjectId);
+  const { data: topics = [] } = useTopics();
 
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
@@ -309,6 +311,7 @@ export function ProjectDetailContent() {
   const areaIconsMap = useMemo(() => new Map(areas.map((a) => [a.id, a.icon ?? null])), [areas]);
   const goalNamesMap = useMemo(() => new Map(goals.map((g) => [g.id, g.name])), [goals]);
   const taskNamesMap = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks]);
+  const topicNamesMap = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
 
   const goalTabs = useMemo(
     () => [
@@ -1186,6 +1189,7 @@ export function ProjectDetailContent() {
                     goalNames={resourceGoalNames}
                     projectNames={resourceProjectNames}
                     taskNames={resourceTaskNames}
+                    topicName={resource.topic_id ? topicNamesMap.get(resource.topic_id) : undefined}
                     onToggleFavorite={(id, favorite) =>
                       toggleFavoriteResource.mutate({ id, favorite })
                     }

@@ -67,6 +67,7 @@ import {
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useNotes, useToggleFavoriteNote, useTogglePinNote, useArchiveNote, useRestoreNote, useDeleteNote } from "@/lib/hooks/use-notes";
 import { useResources, useToggleFavoriteResource, useCreateResource, useUpdateResource, useArchiveResource, useUnarchiveResource } from "@/lib/hooks/use-resources";
+import { useTopics } from "@/lib/hooks/use-topics";
 import { cn } from "@/lib/utils";
 import type { Contact, CreateResourceInput, Project, Resource, Task } from "@/lib/types/domain.types";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
@@ -233,6 +234,7 @@ export function GoalDetailContent() {
   const { data: allNotes = [] } = useNotes({ status: "all" });
   const { data: allResources = [] } = useResources({ status: "all" });
   const { data: allGoals = [] } = useGoals({ status: "all" });
+  const { data: topics = [] } = useTopics();
   const { data: allContacts = [] } = useContacts();
   const { data: goalContactLinks = [] } = useContactByGoal(resolvedGoalId);
 
@@ -270,6 +272,7 @@ export function GoalDetailContent() {
   const goalNamesMap = useMemo(() => new Map(allGoals.map((g) => [g.id, g.name])), [allGoals]);
   const projectNamesMap = useMemo(() => new Map(allProjects.map((p) => [p.id, p.name])), [allProjects]);
   const taskNamesMap = useMemo(() => new Map(allTasks.map((t) => [t.id, t.name])), [allTasks]);
+  const topicNamesMap = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
   const getProjectAreaNames = useCallback(
     (project: Project) =>
       getProjectLinkedAreaIds(project)
@@ -1211,6 +1214,7 @@ export function GoalDetailContent() {
                     goalNames={resourceGoalNames}
                     projectNames={resourceProjectNames}
                     taskNames={resourceTaskNames}
+                    topicName={resource.topic_id ? topicNamesMap.get(resource.topic_id) : undefined}
                     onToggleFavorite={handleResourceToggleFavorite}
                     onArchive={(id) => archiveResource.mutate(id)}
                     onUnarchive={(id) => unarchiveResource.mutate(id)}
