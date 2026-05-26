@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Archive, Bookmark, ChevronDownIcon, Eye, FilePlus, Filter, Globe, Heart, Inbox as InboxIcon, Map as LucideMap, Tag, Zap } from "lucide-react";
+import { Archive, Bookmark, ChevronDownIcon, Eye, FilePlus, Filter, Folder, Globe, Heart, Inbox as InboxIcon, Map as LucideMap, Tag, Target, Zap } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { ResourcesByGroupView, type ResourceGroup } from "@/components/views/resources-by-group-view";
@@ -53,6 +53,12 @@ export function ResourcesContent() {
   const [tab, setTab] = useState<ResourceView>(RESOURCE_VIEW.ALL);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
+  const [newResourceInitial, setNewResourceInitial] = useState<{
+    areaIds?: string[];
+    goalIds?: string[];
+    projectId?: string;
+    topicId?: string;
+  }>({});
 
   const [filterType, setFilterType] = useState<string>("");
   const [filterAreaIds, setFilterAreaIds] = useState<string[]>([]);
@@ -354,11 +360,29 @@ export function ResourcesContent() {
 
   const handleEdit = (resource: Resource) => {
     setEditingResource(resource);
+    setNewResourceInitial({});
     setDialogOpen(true);
   };
 
   const handleOpenCreate = () => {
     setEditingResource(null);
+    setNewResourceInitial({});
+    setDialogOpen(true);
+  };
+
+  const handleNewResourceForGroup = (tab: ResourceView, groupId: string) => {
+    setEditingResource(null);
+    if (tab === RESOURCE_VIEW.BY_AREA) {
+      setNewResourceInitial({ areaIds: [groupId] });
+    } else if (tab === RESOURCE_VIEW.BY_GOAL) {
+      setNewResourceInitial({ goalIds: [groupId] });
+    } else if (tab === RESOURCE_VIEW.BY_PROJECT) {
+      setNewResourceInitial({ projectId: groupId });
+    } else if (tab === RESOURCE_VIEW.BY_TOPIC) {
+      setNewResourceInitial({ topicId: groupId });
+    } else {
+      setNewResourceInitial({});
+    }
     setDialogOpen(true);
   };
 
@@ -453,9 +477,11 @@ export function ResourcesContent() {
             By Area
           </TabsTrigger>
           <TabsTrigger value={RESOURCE_VIEW.BY_GOAL} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Target className="mr-1.5 size-3.5" />
             By Goal
           </TabsTrigger>
           <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <Folder className="mr-1.5 size-3.5" />
             By Project
           </TabsTrigger>
           <TabsTrigger value={RESOURCE_VIEW.SAVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
@@ -793,6 +819,7 @@ export function ResourcesContent() {
             onUnarchive={handleUnarchive}
             onDelete={handleDelete}
             onEdit={handleEdit}
+            onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_TOPIC, groupId)}
             emptyMessage="Resources will be grouped by topic here."
           />
         </TabsContent>
@@ -810,6 +837,7 @@ export function ResourcesContent() {
             onUnarchive={handleUnarchive}
             onDelete={handleDelete}
             onEdit={handleEdit}
+            onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_AREA, groupId)}
             emptyMessage="Resources will be grouped by area here."
           />
         </TabsContent>
@@ -827,6 +855,7 @@ export function ResourcesContent() {
             onUnarchive={handleUnarchive}
             onDelete={handleDelete}
             onEdit={handleEdit}
+            onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_GOAL, groupId)}
             emptyMessage="Resources will be grouped by goal here."
           />
         </TabsContent>
@@ -844,6 +873,7 @@ export function ResourcesContent() {
             onUnarchive={handleUnarchive}
             onDelete={handleDelete}
             onEdit={handleEdit}
+            onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_PROJECT, groupId)}
             emptyMessage="Resources will be grouped by project here."
           />
         </TabsContent>
@@ -861,6 +891,10 @@ export function ResourcesContent() {
           }
         }}
         isPending={createResource.isPending || updateResource.isPending}
+        initialAreaIds={newResourceInitial.areaIds}
+        initialGoalIds={newResourceInitial.goalIds}
+        initialProjectId={newResourceInitial.projectId}
+        initialTopicId={newResourceInitial.topicId}
       />
     </div>
   );

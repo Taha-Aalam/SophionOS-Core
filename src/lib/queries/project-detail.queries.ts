@@ -13,6 +13,36 @@ function dedupe(ids: Array<string | null | undefined>): string[] {
   return Array.from(new Set(ids.filter((x): x is string => Boolean(x))))
 }
 
+// Hydrate a resource list with linkedAreaIds/linkedGoalIds/linkedTaskIds so the
+// SSR-prefetched cache matches the client hook contract (resourceService
+// .hydrateResourceRelations). Without this, goal/task badges only appear after
+// a client refetch is triggered by a mutation.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function hydrateResourceLinks(supabase: SupabaseClient, resources: any[]) {
+  if (resources.length === 0) return resources
+  const ids = resources.map((r) => r.id)
+  const [goalLinks, taskLinks] = await Promise.all([
+    supabase.from("goal_resources").select("resource_id, goal_id").in("resource_id", ids),
+    supabase.from("task_resources").select("resource_id, task_id").in("resource_id", ids),
+  ])
+
+  const goalsByResource = new Map<string, string[]>()
+  for (const row of (goalLinks.data ?? []) as Array<{ resource_id: string; goal_id: string }>) {
+    goalsByResource.set(row.resource_id, [...(goalsByResource.get(row.resource_id) ?? []), row.goal_id])
+  }
+  const tasksByResource = new Map<string, string[]>()
+  for (const row of (taskLinks.data ?? []) as Array<{ resource_id: string; task_id: string }>) {
+    tasksByResource.set(row.resource_id, [...(tasksByResource.get(row.resource_id) ?? []), row.task_id])
+  }
+
+  return resources.map((r) => ({
+    ...r,
+    linkedAreaIds: dedupe([r.area_id]),
+    linkedGoalIds: goalsByResource.get(r.id) ?? [],
+    linkedTaskIds: tasksByResource.get(r.id) ?? [],
+  }))
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function hydrateProject(supabase: SupabaseClient, project: any): Promise<any> {
   const projectId: string = project.id
@@ -194,10 +224,8 @@ export async function serverFetchResourcesByProject(
     .select(RESOURCE_SELECT)
     .eq("user_id", userId)
     .eq("project_id", projectId)
-    .eq("is_archived", false)
     .order("updated_at", { ascending: false })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((r: any) => ({ ...r, linkedAreaIds: dedupe([r.area_id]) }))
+  return hydrateResourceLinks(supabase, data ?? [])
 }
 
 export async function serverFetchContactsByProject(

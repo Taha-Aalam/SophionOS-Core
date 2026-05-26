@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { serverFetchGoals } from "@/lib/queries/goals.queries"
+import { hydrateNotebooks } from "@/lib/queries/notes.queries"
 
 const AREA_SELECT =
   "id, user_id, name, description, icon, color, type, metadata, inactive, archive, slug, created_at, updated_at"
@@ -9,7 +10,7 @@ const PROJECT_SELECT =
 const TASK_SELECT =
   "id, user_id, area_id, project_id, name, description, status, priority, due_date, is_completed, is_focused, is_important, is_urgent, completed_at, smart_priority, is_archived, created_at, updated_at"
 const NOTE_SELECT =
-  "id, user_id, area_id, project_id, topic_id, name, slug, content, type, status, notebook, favorite, pin, is_archived, metadata, created_at, updated_at"
+  "id, user_id, area_id, project_id, topic_id, name, slug, content, type, status, favorite, pin, is_archived, metadata, created_at, updated_at"
 const RESOURCE_SELECT =
   "id, user_id, area_id, project_id, topic_id, name, url, type, status, favorite, is_archived, metadata, created_at, updated_at"
 
@@ -280,7 +281,8 @@ export async function serverFetchAreaDetail(
     hydrateNoteProjectIds(supabase, rawAllNotes),
     hydrateResourceAreaIds(supabase, rawAllResources),
   ])
-  const allNotes = await hydrateNoteAreaIds(supabase, allNotesWithProjects)
+  const allNotesWithAreas = await hydrateNoteAreaIds(supabase, allNotesWithProjects)
+  const allNotes = await hydrateNotebooks(supabase, allNotesWithAreas)
   const allResources = allResourcesWithAreas
 
   // Compute "linked to this area" subsets using junction-aware matching so the

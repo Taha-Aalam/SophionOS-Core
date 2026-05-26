@@ -22,6 +22,8 @@ import { GoalDialog } from "@/components/entities/goal-dialog";
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
+import { NoteRow } from "@/components/entities/note-row";
+import { useArchiveNote, useRestoreNote, useDeleteNote, useToggleFavoriteNote, useTogglePinNote } from "@/lib/hooks/use-notes";
 import { ResourceRow } from "@/components/entities/resource-row";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskListItem } from "@/components/entities/task-list-item";
@@ -63,7 +65,7 @@ import {
 import { contactService } from "@/lib/services/contact.service";
 import { useQueryClient } from "@tanstack/react-query";
 import { type Contact, type CreateResourceInput, type Resource, type Task } from "@/lib/types/domain.types";
-import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
+import { RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";
@@ -71,14 +73,6 @@ import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { buildReturnTo, encodeReturnTo, getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
 import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 import { buildAreaTaskGroupsByGoal, buildAreaTaskGroupsByProject, getFilteredAreaProjects, getFilteredAreaNotes, getFilteredAreaResources, buildAreaContactGoalSections, buildAreaContactProjectSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections } from "@/lib/utils/area-detail";
-
-const NOTE_STATUS_COLORS: Record<string, string> = {
-  [NOTE_STATUS.INBOX]: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  [NOTE_STATUS.TO_REVIEW]: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  [NOTE_STATUS.ACTIVE]: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  [NOTE_STATUS.SAVED]: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  [NOTE_STATUS.ARCHIVE]: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-};
 
 const AREA_TYPE_COLORS: Record<string, string> = {
   Business: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
@@ -156,6 +150,11 @@ export function AreaDetailContent() {
   const archiveContact = useArchiveContact();
   const deleteContact = useDeleteContact();
   const updateContact = useUpdateContact();
+  const archiveNote = useArchiveNote();
+  const restoreNote = useRestoreNote();
+  const deleteNote = useDeleteNote();
+  const toggleFavoriteNote = useToggleFavoriteNote();
+  const togglePinNote = useTogglePinNote();
 
   const area = areaData?.area;
 
@@ -1069,7 +1068,7 @@ export function AreaDetailContent() {
           id="notes"
           entityType="notes"
           tabs={[
-            { value: "all", label: "All", count: rollups.noteCount },
+            { value: "all", label: "All" },
             { value: "inbox", label: "Inbox" },
             { value: "to_review", label: "To Review" },
             { value: "active", label: "Active" },
@@ -1085,28 +1084,32 @@ export function AreaDetailContent() {
           createLabel="New Note"
         >
           {filteredNotes.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border bg-card">
               {filteredNotes.map((note) => {
                 const noteReturnTo = buildReturnTo(`/areas/${area.slug ?? area.id}`);
+                const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                  .map((id) => { const name = areaNamesById.get(id); return name ? { name, icon: areaIconsById.get(id) ?? null } : null; })
+                  .filter((a): a is { name: string; icon: string | null } => Boolean(a));
+                const noteGoalNames = (note.linkedGoalIds ?? []).map((id) => allGoalsById.get(id)).filter((n): n is string => Boolean(n));
+                const noteProjectNames = (note.linkedProjectIds ?? []).map((id) => projectsById.get(id)).filter((n): n is string => Boolean(n));
+                const noteTaskNames = (note.linkedTaskIds ?? [])
+                  .map((id) => tasksById.get(id))
+                  .filter((n): n is string => Boolean(n));
                 return (
-                  <button
+                  <NoteRow
                     key={note.id}
-                    type="button"
-                    onClick={() => router.push(`/notes/${note.slug ?? note.id}?returnTo=${encodeReturnTo(noteReturnTo)}`)}
-                    className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="truncate font-semibold">{note.name}</h3>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="secondary" className={cn("text-xs", NOTE_STATUS_COLORS[note.status])}>
-                        {note.status}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {note.type}
-                      </Badge>
-                    </div>
-                  </button>
+                    note={note}
+                    returnTo={noteReturnTo}
+                    areas={noteAreas}
+                    goalNames={noteGoalNames}
+                    projectNames={noteProjectNames}
+                    taskNames={noteTaskNames}
+                    onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
+                    onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                    onArchive={(id) => archiveNote.mutate(id)}
+                    onRestore={(id) => restoreNote.mutate(id)}
+                    onDelete={(id) => deleteNote.mutate(id)}
+                  />
                 );
               })}
             </div>

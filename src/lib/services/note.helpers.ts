@@ -42,7 +42,7 @@ export function extractNoteAreaIds<
 } {
   const { area_ids, area_id, ...rest } = input;
 
-  if (area_ids !== undefined && area_ids.length > 0) {
+  if (area_ids !== undefined) {
     const normalizedAreaIds = dedupeAreaIds(area_ids);
     return {
       areaIds: normalizedAreaIds,
@@ -104,6 +104,16 @@ export function extractTaskIds(input: { task_ids?: string[] }): {
     taskIds: task_ids ? Array.from(new Set(task_ids)) : undefined,
     noteInput,
   };
+}
+
+export function extractNotebooks<T extends { notebooks?: string[] }>(
+  input: T,
+): { notebooks: string[]; noteInput: Omit<T, "notebooks"> } {
+  const { notebooks, ...noteInput } = input;
+  const cleaned = Array.from(
+    new Set((notebooks ?? []).map((n) => n.trim()).filter((n) => n.length > 0)),
+  );
+  return { notebooks: cleaned, noteInput };
 }
 
 export function isMissingNoteAreasTableError(error: unknown): boolean {
