@@ -7,11 +7,9 @@ import {
   ArchiveRestore,
   Bookmark,
   BookOpen,
-  CheckSquare,
   ChevronDownIcon,
   Clock,
   Filter,
-  Folder,
   FolderOpen,
   Inbox as InboxIcon,
   Map as LucideMap,
@@ -474,7 +472,7 @@ export function NotesContent() {
         <div className="hidden md:flex shrink-0 items-center gap-1.5 flex-wrap">
           {(note.notebooks ?? []).map((nb) => (
             <Badge key={nb} variant="outline" className="gap-1 text-xs font-normal">
-              <BookOpen className="size-3" />
+              <span className="text-xs leading-none">📓</span>
               {nb}
             </Badge>
           ))}
@@ -490,19 +488,19 @@ export function NotesContent() {
           ))}
           {linkedGoals.map((goal) => (
             <Badge key={goal.id} variant="outline" className="gap-1 text-xs font-normal">
-              <Target className="size-3" />
+              <span className="text-xs leading-none">🎯</span>
               {goal.name}
             </Badge>
           ))}
           {linkedProjects.map((project) => (
             <Badge key={project.id} variant="outline" className="gap-1 text-xs font-normal">
-              <Folder className="size-3" />
+              <span className="text-xs leading-none">📁</span>
               {project.name}
             </Badge>
           ))}
           {linkedTasks.map((task) => (
             <Badge key={task.id} variant="outline" className="gap-1 text-xs font-normal">
-              <CheckSquare className="size-3" />
+              <span className="text-xs leading-none">☑️</span>
               {task.name}
             </Badge>
           ))}
