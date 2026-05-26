@@ -226,7 +226,6 @@ describe("server query hydration", () => {
           content: null,
           type: "text",
           status: "active",
-          notebook: null,
           favorite: false,
           pin: false,
           is_archived: false,
@@ -237,12 +236,17 @@ describe("server query hydration", () => {
       ],
       note_areas: [{ note_id: "note-1", area_id: "area-2" }],
       note_projects: [{ note_id: "note-1", project_id: "project-1" }],
+      note_notebooks: [
+        { note_id: "note-1", notebook: "Ideas" },
+        { note_id: "note-1", notebook: "Work" },
+      ],
     });
 
     const [note] = await serverFetchNotes(supabase as never, "user-1", { includeArchived: true });
 
     expect(note?.linkedAreaIds).toEqual(["area-1", "area-2"]);
     expect(note?.linkedProjectIds).toEqual(["project-1"]);
+    expect(note?.notebooks).toEqual(["Ideas", "Work"]);
   });
 
   it("hydrates resources with linked area ids", async () => {

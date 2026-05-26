@@ -86,9 +86,11 @@ export function NoteEditor({
   useEffect(() => {
     if (!editor) return;
     const incoming = content ? (tryParseJson(content) ?? content) : "";
+    const incomingStr = typeof incoming === "string" ? incoming : JSON.stringify(incoming);
     const current = JSON.stringify(editor.getJSON());
-    if (content !== current) {
-      editor.commands.setContent(incoming);
+    if (incomingStr !== current) {
+      // emitUpdate:false prevents spurious autosave when syncing from server
+      editor.commands.setContent(incoming, { emitUpdate: false });
     }
   }, [content, editor]);
 

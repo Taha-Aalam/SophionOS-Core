@@ -23,7 +23,7 @@ describe("createNoteSchema", () => {
       content: '{"type":"doc","content":[]}',
       type: NOTE_TYPE.RESEARCH,
       status: NOTE_STATUS.ACTIVE,
-      notebook: "Ideas",
+      notebooks: ["Ideas"],
       area_id: "11111111-1111-4111-8111-111111111111",
       project_id: "22222222-2222-4222-8222-222222222222",
       favorite: true,
@@ -34,7 +34,7 @@ describe("createNoteSchema", () => {
     expect(result.name).toBe("Research note");
     expect(result.type).toBe(NOTE_TYPE.RESEARCH);
     expect(result.status).toBe(NOTE_STATUS.ACTIVE);
-    expect(result.notebook).toBe("Ideas");
+    expect(result.notebooks).toEqual(["Ideas"]);
     expect(result.favorite).toBe(true);
   });
 
@@ -125,14 +125,13 @@ describe("createNoteSchema", () => {
     ]);
   });
 
-  it("normalizes empty notebook and content to null", () => {
+  it("defaults notebooks to [] and normalizes empty content to null", () => {
     const result = createNoteSchema.parse({
       name: "Note",
-      notebook: "",
       content: "",
     });
 
-    expect(result.notebook).toBeNull();
+    expect(result.notebooks).toEqual([]);
     expect(result.content).toBeNull();
   });
 
@@ -205,18 +204,16 @@ describe("updateNoteSchema", () => {
     expect(result.favorite).toBe(true);
   });
 
-  it("accepts notebook update", () => {
-    const result = updateNoteSchema.parse({ notebook: "Work" });
-    expect(result.notebook).toBe("Work");
+  it("accepts notebooks update", () => {
+    const result = updateNoteSchema.parse({ notebooks: ["Work"] });
+    expect(result.notebooks).toEqual(["Work"]);
   });
 
-  it("normalizes empty notebook and content to null", () => {
+  it("normalizes empty content to null", () => {
     const result = updateNoteSchema.parse({
-      notebook: "",
       content: "",
     });
 
-    expect(result.notebook).toBeNull();
     expect(result.content).toBeNull();
   });
 

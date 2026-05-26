@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
@@ -16,6 +16,43 @@ import type {
 import type { ResourceStatus } from "@/lib/utils/constants";
 
 export const RESOURCES_QUERY_KEY = "resources";
+
+// Optimistically patch a resource's favorite flag inside the goal-detail and
+// topic-resource caches (which are keyed independently of RESOURCES_QUERY_KEY),
+// so the star toggles instantly on those detail pages without a refetch.
+function patchResourceFavoriteInDetailCaches(
+  queryClient: QueryClient,
+  id: string,
+  favorite: boolean,
+) {
+  const patch = (r: Resource) => (r.id === id ? { ...r, favorite } : r);
+  queryClient.setQueriesData<{ resources?: Resource[] } | undefined>(
+    { queryKey: [GOAL_DETAIL_QUERY_KEY] },
+    (old) => (old?.resources ? { ...old, resources: old.resources.map(patch) } : old),
+  );
+  queryClient.setQueriesData<Resource[] | undefined>(
+    { queryKey: [TOPICS_QUERY_KEY, "resources"] },
+    (old) => (Array.isArray(old) ? old.map(patch) : old),
+  );
+}
+
+// Optimistically flip a resource's is_archived flag inside the goal-detail and
+// topic-resource caches so it moves between the All/Archive tabs instantly.
+function patchResourceArchivedInDetailCaches(
+  queryClient: QueryClient,
+  id: string,
+  isArchived: boolean,
+) {
+  const patch = (r: Resource) => (r.id === id ? { ...r, is_archived: isArchived } : r);
+  queryClient.setQueriesData<{ resources?: Resource[] } | undefined>(
+    { queryKey: [GOAL_DETAIL_QUERY_KEY] },
+    (old) => (old?.resources ? { ...old, resources: old.resources.map(patch) } : old),
+  );
+  queryClient.setQueriesData<Resource[] | undefined>(
+    { queryKey: [TOPICS_QUERY_KEY, "resources"] },
+    (old) => (Array.isArray(old) ? old.map(patch) : old),
+  );
+}
 
 export function useResources(
   filters?: {
@@ -223,10 +260,13 @@ export function useArchiveResource() {
           };
         },
       );
+      patchResourceArchivedInDetailCaches(queryClient, id, true);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] });
       toast.success("Resource archived");
     },
@@ -259,10 +299,13 @@ export function useUnarchiveResource() {
           };
         },
       );
+      patchResourceArchivedInDetailCaches(queryClient, id, false);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] });
       toast.success("Resource restored");
     },
@@ -281,6 +324,9 @@ export function useDeleteResource() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
       toast.success("Resource deleted");
     },
     onError: (error: Error) => {
@@ -331,6 +377,9 @@ export function useToggleFavoriteResource() {
           };
         },
       );
+      // Patch goal-detail and topic resource caches so the favorite icon
+      // updates instantly on those detail pages too.
+      patchResourceFavoriteInDetailCaches(queryClient, id, favorite);
       return { previous, previousAreaDetailData };
     },
     onError: (error: Error, variables, context) => {
@@ -346,10 +395,16 @@ export function useToggleFavoriteResource() {
         });
       }
       queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] });
       toast.error(error.message || "Failed to update favorite");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
     },
   });
 }

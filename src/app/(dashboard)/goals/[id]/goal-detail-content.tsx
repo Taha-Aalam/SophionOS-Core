@@ -23,6 +23,7 @@ import { PriorityBadge } from "@/components/entities/priority-badge";
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
+import { NoteRow } from "@/components/entities/note-row";
 import { ResourceRow } from "@/components/entities/resource-row";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskListItem } from "@/components/entities/task-list-item";
@@ -64,7 +65,7 @@ import {
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import { useProjects } from "@/lib/hooks/use-projects";
-import { useNotes, useToggleFavoriteNote } from "@/lib/hooks/use-notes";
+import { useNotes, useToggleFavoriteNote, useTogglePinNote, useArchiveNote, useRestoreNote, useDeleteNote } from "@/lib/hooks/use-notes";
 import { useResources, useToggleFavoriteResource, useCreateResource, useUpdateResource, useArchiveResource, useUnarchiveResource } from "@/lib/hooks/use-resources";
 import { cn } from "@/lib/utils";
 import type { Contact, CreateResourceInput, Project, Resource, Task } from "@/lib/types/domain.types";
@@ -245,6 +246,10 @@ export function GoalDetailContent() {
   const deleteTask = useDeleteTask();
   const focusTask = useFocusTask();
   const toggleFavoriteNote = useToggleFavoriteNote();
+  const togglePinNote = useTogglePinNote();
+  const archiveNote = useArchiveNote();
+  const restoreNote = useRestoreNote();
+  const deleteNote = useDeleteNote();
   const toggleFavoriteResource = useToggleFavoriteResource();
   const createResource = useCreateResource();
   const updateResource = useUpdateResource();
@@ -377,19 +382,19 @@ export function GoalDetailContent() {
   // Filter notes by tab
   const filteredNotes = useMemo(() => {
     const notes = goalData?.notes ?? [];
+    if (noteTab === "archived") return notes.filter((n) => n.is_archived);
+    const activeNotes = notes.filter((n) => !n.is_archived);
     switch (noteTab) {
       case "inbox":
-        return notes.filter((n) => n.status === NOTE_STATUS.INBOX);
+        return activeNotes.filter((n) => n.status === NOTE_STATUS.INBOX);
       case "to_review":
-        return notes.filter((n) => n.status === NOTE_STATUS.TO_REVIEW);
+        return activeNotes.filter((n) => n.status === NOTE_STATUS.TO_REVIEW);
       case "active":
-        return notes.filter((n) => n.status === NOTE_STATUS.ACTIVE);
+        return activeNotes.filter((n) => n.status === NOTE_STATUS.ACTIVE);
       case "saved":
-        return notes.filter((n) => n.status === NOTE_STATUS.SAVED);
-      case "archived":
-        return notes.filter((n) => n.is_archived);
+        return activeNotes.filter((n) => n.status === NOTE_STATUS.SAVED);
       default:
-        return notes;
+        return activeNotes;
     }
   }, [goalData?.notes, noteTab]);
 
@@ -408,17 +413,17 @@ export function GoalDetailContent() {
     const resources = goalData?.resources ?? [];
     switch (resourceTab) {
       case "inbox":
-        return resources.filter((r) => r.status === RESOURCE_STATUS.INBOX);
+        return resources.filter((r) => r.status === RESOURCE_STATUS.INBOX && !r.is_archived);
       case "to_review":
-        return resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW);
+        return resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW && !r.is_archived);
       case "active":
-        return resources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE);
+        return resources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE && !r.is_archived);
       case "saved":
-        return resources.filter((r) => r.status === RESOURCE_STATUS.SAVED);
+        return resources.filter((r) => r.status === RESOURCE_STATUS.SAVED && !r.is_archived);
       case "archived":
         return resources.filter((r) => r.is_archived);
       default:
-        return resources;
+        return resources.filter((r) => !r.is_archived);
     }
   }, [goalData?.resources, resourceTab]);
 
@@ -1136,48 +1141,29 @@ export function GoalDetailContent() {
           createLabel="New Note"
         >
           {filteredNotes.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border bg-card">
               {filteredNotes.map((note) => {
-                const noteReturnTo = goalNestedReturnTo;
+                const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                  .map((id) => { const name = areaNames.get(id); return name ? { name, icon: areaIcons.get(id) ?? null } : null; })
+                  .filter((a): a is { name: string; icon: string | null } => Boolean(a));
+                const noteGoalNames = (note.linkedGoalIds ?? []).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteProjectNames = (note.linkedProjectIds ?? []).map((id) => projectNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteTaskNames = (note.linkedTaskIds ?? []).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
                 return (
-                  <div
+                  <NoteRow
                     key={note.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => router.push(`/notes/${note.slug ?? note.id}?returnTo=${encodeReturnTo(noteReturnTo)}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        router.push(`/notes/${note.slug ?? note.id}?returnTo=${encodeReturnTo(noteReturnTo)}`);
-                      }
-                    }}
-                    className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30 cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="truncate font-semibold">{note.name}</h3>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleNoteToggleFavorite(note.id, !note.favorite);
-                        }}
-                        className={cn(
-                          "shrink-0 text-sm",
-                          note.favorite ? "text-rose-500" : "text-muted-foreground",
-                        )}
-                      >
-                        {note.favorite ? "★" : "☆"}
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="secondary" className={cn("text-xs", NOTE_STATUS_COLORS[note.status])}>
-                        {note.status}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {note.type}
-                      </Badge>
-                    </div>
-                  </div>
+                    note={note}
+                    returnTo={goalNestedReturnTo}
+                    areas={noteAreas}
+                    goalNames={noteGoalNames}
+                    projectNames={noteProjectNames}
+                    taskNames={noteTaskNames}
+                    onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
+                    onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                    onArchive={(id) => archiveNote.mutate(id)}
+                    onRestore={(id) => restoreNote.mutate(id)}
+                    onDelete={(id) => deleteNote.mutate(id)}
+                  />
                 );
               })}
             </div>

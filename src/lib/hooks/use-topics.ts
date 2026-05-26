@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { noteService } from "@/lib/services/note.service";
+import { resourceService } from "@/lib/services/resource.service";
 import { topicService, type TopicWithCounts } from "@/lib/services/topic.service";
 import type { CreateTopicInput, UpdateTopicInput } from "@/lib/types/domain.types";
 
@@ -225,7 +227,7 @@ export function useNotesForTopic(topicId: string) {
 
   return useQuery({
     queryKey: [TOPICS_QUERY_KEY, "notes", user?.id ?? null, topicId],
-    queryFn: () => topicService.getNotesForTopic(user!.id, topicId),
+    queryFn: () => noteService.listByTopic(user!.id, topicId),
     enabled: !!user && !!topicId,
     refetchOnMount: true,
   });
@@ -236,7 +238,7 @@ export function useResourcesForTopic(topicId: string) {
 
   return useQuery({
     queryKey: [TOPICS_QUERY_KEY, "resources", user?.id ?? null, topicId],
-    queryFn: () => topicService.getResourcesForTopic(user!.id, topicId),
+    queryFn: () => resourceService.listByTopic(user!.id, topicId),
     enabled: !!user && !!topicId,
   });
 }
