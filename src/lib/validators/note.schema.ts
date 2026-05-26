@@ -34,7 +34,6 @@ const noteBaseSchema = z
     topic_id: nullableUuidSchema,
     name: z.string().min(1, "Name is required").max(255),
     content: emptyToNull,
-    notebooks: z.array(z.string().min(1).max(100)).default([]),
     goal_ids: z.array(z.string().uuid()).default([]),
     task_ids: z.array(z.string().uuid()).default([]),
     project_ids: z.array(z.string().uuid()).default([]),

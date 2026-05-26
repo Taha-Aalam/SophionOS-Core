@@ -15,7 +15,6 @@ import {
   dedupeAreaIds,
   extractGoalIds,
   extractNoteAreaIds,
-  extractNotebooks,
   extractProjectIds,
   extractTaskIds,
   isMissingNoteAreasTableError,
@@ -316,12 +315,15 @@ export const noteService = {
 
   async create(userId: string, input: CreateNoteInput): Promise<Note> {
     try {
-      const validated = createNoteSchema.parse(input);
+      const { notebooks: notebooksInput, ...inputWithoutNotebooks } = input;
+      const notebooks = Array.from(
+        new Set((notebooksInput ?? []).map((n) => n.trim()).filter((n) => n.length > 0)),
+      );
+      const validated = createNoteSchema.parse(inputWithoutNotebooks);
       const { areaIds, noteInput: areaCleanedInput } = extractNoteAreaIds(validated);
       const { goalIds, noteInput: goalCleanedInput } = extractGoalIds(areaCleanedInput);
       const { projectIds, noteInput: projectCleanedInput } = extractProjectIds(goalCleanedInput);
       const { taskIds, noteInput: taskCleanedInput } = extractTaskIds(projectCleanedInput);
-      const { notebooks, noteInput: nbCleaned } = extractNotebooks(taskCleanedInput);
 
       if (validated.type) {
         await upsertNoteType(userId, validated.type);
@@ -335,7 +337,7 @@ export const noteService = {
       while (!data) {
         const { data: insertData, error } = await createClient()
           .from("notes")
-          .insert({ ...nbCleaned, user_id: userId, slug })
+          .insert({ ...taskCleanedInput, user_id: userId, slug })
           .select(NOTE_SELECT)
           .single();
 
