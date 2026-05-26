@@ -187,6 +187,9 @@ async function hydrateNoteNotebookLinks(notes: Note[]): Promise<Note[]> {
     .select("note_id, notebook")
     .in("note_id", noteIds);
   if (error) {
+    if (error.code === "42P01") {
+      return notes.map((note) => ({ ...note, notebooks: [] }));
+    }
     throw new DatabaseError(error.message);
   }
   const byNote = new Map<string, string[]>();
@@ -540,7 +543,10 @@ export const noteService = {
       .from("note_notebooks")
       .select("notebook, notes!inner(user_id)")
       .eq("notes.user_id", userId);
-    if (error) throw new DatabaseError(error.message);
+    if (error) {
+      if (error.code === "42P01") return [];
+      throw new DatabaseError(error.message);
+    }
     const set = new Set<string>();
     for (const row of data ?? []) set.add(row.notebook);
     return Array.from(set).sort();
@@ -773,7 +779,10 @@ export const noteService = {
       .eq("is_archived", false)
       .eq("note_notebooks.notebook", notebook)
       .order("updated_at", { ascending: false });
-    if (error) throw new DatabaseError(error.message);
+    if (error) {
+      if (error.code === "42P01") return [];
+      throw new DatabaseError(error.message);
+    }
     // Strip the embedded join object before hydration.
     const rows = (data ?? []).map(({ note_notebooks: _omit, ...note }) => note) as Note[];
     return hydrateNoteRelations(rows);
@@ -782,11 +791,17 @@ export const noteService = {
   async replaceNotebooks(noteId: string, notebooks: string[]): Promise<void> {
     const client = createClient();
     const { error: delError } = await client.from("note_notebooks").delete().eq("note_id", noteId);
-    if (delError) throw new DatabaseError(delError.message);
+    if (delError) {
+      if (delError.code === "42P01") return;
+      throw new DatabaseError(delError.message);
+    }
     if (notebooks.length === 0) return;
     const rows = notebooks.map((notebook) => ({ note_id: noteId, notebook }));
     const { error } = await client.from("note_notebooks").insert(rows);
-    if (error) throw new DatabaseError(error.message);
+    if (error) {
+      if (error.code === "42P01") return;
+      throw new DatabaseError(error.message);
+    }
   },
 
   async addNotesToNotebook(_userId: string, notebook: string, noteIds: string[]): Promise<void> {
@@ -795,7 +810,10 @@ export const noteService = {
     const { error } = await createClient()
       .from("note_notebooks")
       .upsert(rows, { onConflict: "note_id,notebook" });
-    if (error) throw new DatabaseError(error.message);
+    if (error) {
+      if (error.code === "42P01") return;
+      throw new DatabaseError(error.message);
+    }
   },
 
   async removeNoteFromNotebook(_userId: string, noteId: string, notebook: string): Promise<void> {
@@ -804,7 +822,10 @@ export const noteService = {
       .delete()
       .eq("note_id", noteId)
       .eq("notebook", notebook);
-    if (error) throw new DatabaseError(error.message);
+    if (error) {
+      if (error.code === "42P01") return;
+      throw new DatabaseError(error.message);
+    }
   },
 
   async getRelatedByNotebook(userId: string, noteId: string): Promise<RelatedNotebookGroup[]> {
@@ -812,7 +833,10 @@ export const noteService = {
       .from("note_notebooks")
       .select("notebook")
       .eq("note_id", noteId);
-    if (nbError) throw new DatabaseError(nbError.message);
+    if (nbError) {
+      if (nbError.code === "42P01") return [];
+      throw new DatabaseError(nbError.message);
+    }
 
     const notebooks = Array.from(new Set((nbRows ?? []).map((r) => r.notebook))).sort();
     if (notebooks.length === 0) return [];
@@ -991,7 +1015,10 @@ export const noteService = {
       .from("note_notebooks")
       .select("note_id, notebook")
       .in("note_id", noteIds);
-    if (ownErr) throw new DatabaseError(ownErr.message);
+    if (ownErr) {
+      if (ownErr.code === "42P01") return result;
+      throw new DatabaseError(ownErr.message);
+    }
 
     const notebooksByNote = new Map<string, string[]>();
     const allNotebooks = new Set<string>();
@@ -1006,7 +1033,10 @@ export const noteService = {
       .from("note_notebooks")
       .select("note_id, notebook")
       .in("notebook", Array.from(allNotebooks));
-    if (memErr) throw new DatabaseError(memErr.message);
+    if (memErr) {
+      if (memErr.code === "42P01") return result;
+      throw new DatabaseError(memErr.message);
+    }
 
     const membersByNotebook = new Map<string, Set<string>>();
     for (const row of members ?? []) {
