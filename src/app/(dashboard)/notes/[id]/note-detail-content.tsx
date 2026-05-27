@@ -481,15 +481,15 @@ function LinkToNotebookDialog({
   const [notebook, setNotebook] = useState<string>("");
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
-    if (open) {
-      startTransition(() => {
-        setNotebook(currentNotebooks[0] ?? notebookOptions[0] ?? "");
-        setPicked(new Set());
-        setQuery("");
-      });
+    if (open && !wasOpenRef.current) {
+      setNotebook(currentNotebooks[0] ?? notebookOptions[0] ?? "");
+      setPicked(new Set());
+      setQuery("");
     }
+    wasOpenRef.current = open;
   }, [open, currentNotebooks, notebookOptions]);
 
   const filtered = useMemo(() => {

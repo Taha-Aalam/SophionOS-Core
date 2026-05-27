@@ -15,7 +15,7 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
 
   const queryClient = makeQueryClient()
   await queryClient.prefetchQuery({
-    queryKey: [GOAL_DETAIL_QUERY_KEY, id, undefined],
+    queryKey: [GOAL_DETAIL_QUERY_KEY, "v2", id, undefined],
     queryFn: () => serverFetchGoalDetail(supabase, user.id, id),
   })
 
