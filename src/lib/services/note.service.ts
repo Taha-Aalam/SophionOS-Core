@@ -19,7 +19,7 @@ import {
 } from "./note.helpers";
 
 const NOTE_SELECT =
-  "id, user_id, area_id, project_id, topic_id, name, slug, content, type, status, notebook, favorite, pin, is_archived, metadata, created_at, updated_at";
+  "id, user_id, area_id, project_id, topic_id, name, slug, content, type, status, favorite, pin, is_archived, metadata, created_at, updated_at";
 
 function withPrimaryAreaLinks(notes: Note[]): Note[] {
   return notes.map((note) => ({
@@ -206,7 +206,6 @@ export const noteService = {
     filters?: {
       status?: NoteStatus | "all";
       favorite?: boolean;
-      notebook?: string;
       areaId?: string;
       projectId?: string;
       includeArchived?: boolean;
@@ -227,9 +226,7 @@ export const noteService = {
     if (filters?.favorite !== undefined) {
       query = query.eq("favorite", filters.favorite);
     }
-    if (filters?.notebook) {
-      query = query.eq("notebook", filters.notebook);
-    }
+    // notebook column dropped in favor of note_notebooks junction table
     if (filters?.areaId) {
       query = query.eq("area_id", filters.areaId);
     }
@@ -492,24 +489,9 @@ export const noteService = {
     return hydrateNoteRelations(data ?? []);
   },
 
-  async listNotebooks(userId: string): Promise<string[]> {
-    const { data, error } = await createClient()
-      .from("notes")
-      .select("notebook")
-      .eq("user_id", userId)
-      .eq("is_archived", false)
-      .not("notebook", "is", null);
-
-    if (error) {
-      throw new DatabaseError(error.message);
-    }
-
-    const notebooks = new Set<string>();
-    for (const row of data || []) {
-      if (row.notebook) notebooks.add(row.notebook);
-    }
-
-    return Array.from(notebooks).sort();
+  async listNotebooks(_userId: string): Promise<string[]> {
+    // notebook column was dropped in favor of note_notebooks junction table
+    return [];
   },
 
   async listByGoal(userId: string, goalId: string): Promise<Note[]> {
@@ -731,8 +713,9 @@ export const noteService = {
     }
   },
 
-  async getByNotebook(userId: string, notebook: string): Promise<Note[]> {
-    return this.list(userId, { notebook });
+  async getByNotebook(_userId: string, _notebook: string): Promise<Note[]> {
+    // notebook column was dropped in favor of note_notebooks junction table
+    return [];
   },
 
   async getRelated(userId: string, noteId: string): Promise<Note[]> {
@@ -823,17 +806,9 @@ export const noteService = {
     }
   },
 
-  async bulkUpdateNotebook(userId: string, noteIds: string[], notebook: string | null): Promise<void> {
-    if (noteIds.length === 0) return;
-    const { error } = await createClient()
-      .from("notes")
-      .update({ notebook })
-      .eq("user_id", userId)
-      .in("id", noteIds);
-
-    if (error) {
-      throw new DatabaseError(error.message);
-    }
+  async bulkUpdateNotebook(_userId: string, _noteIds: string[], _notebook: string | null): Promise<void> {
+    // notebook column was dropped in favor of note_notebooks junction table
+    return;
   },
 
   async bulkDelete(userId: string, noteIds: string[]): Promise<void> {

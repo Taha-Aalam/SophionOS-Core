@@ -218,6 +218,13 @@ describe("taskService – multi-area update", () => {
       in: vi.fn().mockResolvedValue({ error: null }),
     } as any;
 
+    // replaceGoalLinks([], []) — getGoalLinks lookup returns empty, nothing to add/remove
+    const goalLookupClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+
     const touchClient = {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
@@ -231,6 +238,7 @@ describe("taskService – multi-area update", () => {
       .mockImplementationOnce(() => areaLookupClient)
       .mockImplementationOnce(() => areaInsertClient)
       .mockImplementationOnce(() => areaDeleteClient)
+      .mockImplementationOnce(() => goalLookupClient)
       .mockImplementationOnce(() => touchClient);
 
     await taskService.update(userId, taskId, {
@@ -322,9 +330,16 @@ describe("taskService – getWithRelations includes area_ids", () => {
       eq: vi.fn().mockResolvedValue({ data: [{ area_id: areaA }, { area_id: areaB }], error: null }),
     } as any;
 
+    const projectResultClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+
     vi.mocked(createClient)
       .mockImplementationOnce(() => goalResultClient)
-      .mockImplementationOnce(() => areaResultClient);
+      .mockImplementationOnce(() => areaResultClient)
+      .mockImplementationOnce(() => projectResultClient);
 
     const result = await taskService.getWithRelations(userId, taskId);
 
@@ -348,9 +363,16 @@ describe("taskService – getWithRelations includes area_ids", () => {
       }),
     } as any;
 
+    const projectResultClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+
     vi.mocked(createClient)
       .mockImplementationOnce(() => goalResultClient)
-      .mockImplementationOnce(() => areaResultClient);
+      .mockImplementationOnce(() => areaResultClient)
+      .mockImplementationOnce(() => projectResultClient);
 
     const result = await taskService.getWithRelations(userId, taskId);
 

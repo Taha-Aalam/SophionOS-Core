@@ -257,7 +257,7 @@ export function ResourceDialog({
 
   const relationPopoverContentClassName = "w-56 p-2";
   const relationOptionClassName =
-    "flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
+    "flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
 
   // ── Derived selections ────────────────────────────────────────────────────
   const selectedProject = useMemo(() => {
@@ -429,7 +429,7 @@ export function ResourceDialog({
                               checked={areaIds.includes(area.id)}
                               onCheckedChange={() => toggleArea(area.id)}
                             />
-                            {area.icon ? `${area.icon} ` : ""}{area.name}
+                            <span className="min-w-0 break-words">{area.icon ? `${area.icon} ` : ""}{area.name}</span>
                           </label>
                         ))
                       )}
@@ -585,7 +585,7 @@ export function ResourceDialog({
                               checked={taskIds.includes(task.id)}
                               onCheckedChange={() => toggleTask(task.id)}
                             />
-                            {task.name}
+                            <span className="min-w-0 break-words">{task.name}</span>
                           </label>
                         ))
                       )}

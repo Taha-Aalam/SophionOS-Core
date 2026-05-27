@@ -62,6 +62,8 @@ interface ContactDetailRelationshipSectionsProps {
   onTaskFocusToggle: (taskId: string, focused: boolean) => void;
   onTaskNameSave: (taskId: string, name: string) => void;
   onTaskEdit: (task: Task) => void;
+  onTaskArchiveToggle?: (task: Task) => void;
+  onTaskPermanentDelete?: (id: string) => void;
   returnTo: string;
   areaTab: string;
   onAreaTabChange: (tab: string) => void;
@@ -92,6 +94,8 @@ export function ContactDetailRelationshipSections({
   onTaskFocusToggle,
   onTaskNameSave,
   onTaskEdit,
+  onTaskArchiveToggle,
+  onTaskPermanentDelete,
   returnTo,
   areaTab,
   onAreaTabChange,
@@ -165,7 +169,7 @@ export function ContactDetailRelationshipSections({
     () => buildProjectTabs(linkedProjects),
     [linkedProjects],
   );
-  const taskTabs = React.useMemo(() => buildTaskTabs(linkedTasks), [linkedTasks]);
+  const taskTabs = React.useMemo(() => buildTaskTabs(), []);
 
   const filteredAreas = React.useMemo(
     () => filterAreasByTab(linkedAreas, areaTab),
@@ -350,12 +354,15 @@ export function ContactDetailRelationshipSections({
                   task={task}
                   linkedAreaNames={linkedAreaNames}
                   linkedAreaIcons={linkedAreaIcons}
+                  linkedGoalNames={task.linkedGoalIds?.map((id) => allGoals.find((g) => g.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
                   projectName={projectName}
+                  linkedProjectNames={task.linkedProjectIds?.map((id) => allProjects.find((p) => p.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
                   onCompletionToggle={onTaskCompletionToggle}
                   onFocusToggle={onTaskFocusToggle}
                   onNameSave={onTaskNameSave}
                   onEdit={onTaskEdit}
-                  onDelete={onUnlinkTask}
+                  onArchiveToggle={onTaskArchiveToggle}
+                  onPermanentDelete={onTaskPermanentDelete}
                 />
               );
             })}

@@ -24,6 +24,7 @@ interface TasksByGroupViewProps {
   onNameSave: (id: string, name: string) => void;
   onEdit: (task: Task) => void;
   onArchiveToggle: (task: Task) => void;
+  onPermanentDelete?: (id: string) => void;
   onNewTask: (groupId: string) => void;
   getLinkedAreaNames: (task: Task) => string[];
   getLinkedAreaIcons: (task: Task) => (string | null)[];
@@ -41,6 +42,7 @@ function CollapsibleTaskGroup({
   onNameSave,
   onEdit,
   onArchiveToggle,
+  onPermanentDelete,
   onNewTask,
   getLinkedAreaNames,
   getLinkedAreaIcons,
@@ -55,10 +57,12 @@ function CollapsibleTaskGroup({
   onNameSave: (id: string, name: string) => void;
   onEdit: (task: Task) => void;
   onArchiveToggle: (task: Task) => void;
+  onPermanentDelete?: (id: string) => void;
   onNewTask: (groupId: string) => void;
   getLinkedAreaNames: (task: Task) => string[];
   getLinkedAreaIcons: (task: Task) => (string | null)[];
   getLinkedGoalNames: (task: Task) => string[];
+  getLinkedProjectNames?: (task: Task) => string[];
 }) {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -102,11 +106,13 @@ function CollapsibleTaskGroup({
               linkedAreaIcons={getLinkedAreaIcons(task)}
               linkedGoalNames={getLinkedGoalNames(task)}
               projectName={task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
+              linkedProjectNames={task.linkedProjectIds?.map((id) => projectMap.get(id)?.name).filter((n): n is string => Boolean(n)) ?? []}
               onCompletionToggle={onCompletionToggle}
               onFocusToggle={onFocusToggle}
               onNameSave={onNameSave}
               onEdit={onEdit}
               onArchiveToggle={onArchiveToggle}
+              onPermanentDelete={onPermanentDelete}
             />
           ))}
           {group.groupId !== "unassigned" && (
@@ -134,6 +140,7 @@ export function TasksByGroupView({
   onNameSave,
   onEdit,
   onArchiveToggle,
+  onPermanentDelete,
   onNewTask,
   getLinkedAreaNames,
   getLinkedAreaIcons,
@@ -164,6 +171,7 @@ export function TasksByGroupView({
           onNameSave={onNameSave}
           onEdit={onEdit}
           onArchiveToggle={onArchiveToggle}
+          onPermanentDelete={onPermanentDelete}
           onNewTask={onNewTask}
           getLinkedAreaNames={getLinkedAreaNames}
           getLinkedAreaIcons={getLinkedAreaIcons}

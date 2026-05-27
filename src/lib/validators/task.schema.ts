@@ -29,6 +29,7 @@ const createTaskBaseSchema = z
     area_id: nullableUuidSchema,
     area_ids: z.array(z.string().uuid()).default([]),
     project_id: nullableUuidSchema,
+    project_ids: z.array(z.string().uuid()).default([]),
     name: z.string().min(1, "Name is required").max(255),
     description: z.string().max(1000).optional().nullable(),
     status: z.nativeEnum(TASK_STATUS).default(TASK_STATUS.INBOX),
@@ -49,6 +50,7 @@ export const updateTaskSchema = createTaskBaseSchema
   .partial()
   .extend({
     area_ids: z.array(z.string().uuid()).optional(),
+    project_ids: z.array(z.string().uuid()).optional(),
     due_date: nullableDateSchema,
     completed_at: z.string().datetime().optional().nullable(),
   })

@@ -61,6 +61,7 @@ import {
   useArchiveTask,
   useCompleteTask,
   useFocusTask,
+  usePermanentDeleteTask,
   useRestoreTask,
   useUpdateTask,
   useUncompleteTask,
@@ -210,6 +211,7 @@ export function ContactDetailContent() {
   const updateTask = useUpdateTask();
   const archiveTask = useArchiveTask();
   const restoreTask = useRestoreTask();
+  const permanentDeleteTask = usePermanentDeleteTask();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -287,6 +289,13 @@ export function ContactDetailContent() {
       }
     },
     [archiveTask, restoreTask],
+  );
+
+  const handlePermanentDelete = useCallback(
+    (id: string) => {
+      permanentDeleteTask.mutate(id);
+    },
+    [permanentDeleteTask],
   );
 
   if (isLoading) {
@@ -604,6 +613,8 @@ export function ContactDetailContent() {
               onTaskFocusToggle={handleTaskFocus}
               onTaskNameSave={handleTaskNameSave}
               onTaskEdit={handleTaskEdit}
+              onTaskArchiveToggle={handleTaskArchiveToggle}
+              onTaskPermanentDelete={handlePermanentDelete}
               returnTo={contactReturnTo}
               areaTab={areaTab}
               onAreaTabChange={setAreaTab}
@@ -706,6 +717,10 @@ export function ContactDetailContent() {
         task={editingTask ?? undefined}
         onArchiveToggle={(task) => {
           handleTaskArchiveToggle(task);
+          setEditingTask(null);
+        }}
+        onPermanentDelete={(id) => {
+          handlePermanentDelete(id);
           setEditingTask(null);
         }}
       />

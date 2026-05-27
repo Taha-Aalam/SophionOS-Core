@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Calendar, Folder, Map, Pencil, Star, Target } from "lucide-react";
+import { Calendar, Folder, Map, Pencil, Star, Target, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,12 +22,14 @@ interface TaskListItemProps {
   goalName?: string | null;
   linkedGoalNames?: string[];
   projectName?: string | null;
+  linkedProjectNames?: string[];
   showSmartPriority?: boolean;
   onCompletionToggle: (id: string, isCompleted: boolean) => void;
   onFocusToggle: (id: string, focused: boolean) => void;
   onNameSave: (id: string, name: string) => void;
   onEdit?: (task: Task) => void;
   onArchiveToggle?: (task: Task) => void;
+  onPermanentDelete?: (id: string) => void;
   /** @deprecated Use `onArchiveToggle` instead. Kept as transitional alias. */
   onDelete?: (id: string) => void;
 }
@@ -60,16 +62,19 @@ export function TaskListItem({
   goalName,
   linkedGoalNames,
   projectName,
+  linkedProjectNames,
   showSmartPriority = false,
   onCompletionToggle,
   onFocusToggle,
   onNameSave,
   onEdit,
   onArchiveToggle,
+  onPermanentDelete,
   onDelete,
 }: TaskListItemProps) {
   const displayAreaNames = linkedAreaNames && linkedAreaNames.length > 0 ? linkedAreaNames : (areaName ? [areaName] : []);
   const displayGoalNames = linkedGoalNames && linkedGoalNames.length > 0 ? linkedGoalNames : (goalName ? [goalName] : []);
+  const displayProjectNames = linkedProjectNames && linkedProjectNames.length > 0 ? linkedProjectNames : (projectName ? [projectName] : []);
   const dueInfo = formatDueDate(task.due_date);
 
   return (
@@ -131,21 +136,18 @@ export function TaskListItem({
             {name}
           </Badge>
         ))}
-        {displayGoalNames.length > 0 && (
-          <Badge variant="outline" className="gap-1 text-xs font-normal">
+        {displayGoalNames.map((name, index) => (
+          <Badge key={index} variant="outline" className="gap-1 text-xs font-normal">
             <Target className="size-3" />
-            {displayGoalNames[0]}
-            {displayGoalNames.length > 1 && (
-              <span className="ml-0.5 text-muted-foreground">+{displayGoalNames.length - 1}</span>
-            )}
+            {name}
           </Badge>
-        )}
-        {projectName && (
-          <Badge variant="outline" className="gap-1 text-xs font-normal">
+        ))}
+        {displayProjectNames.map((name, index) => (
+          <Badge key={`project-${index}`} variant="outline" className="gap-1 text-xs font-normal">
             <Folder className="size-3" />
-            {projectName}
+            {name}
           </Badge>
-        )}
+        ))}
         {dueInfo && (
           <Badge
             variant="outline"
@@ -173,6 +175,21 @@ export function TaskListItem({
             <Pencil className="size-3.5" />
           </button>
         )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onFocusToggle(task.id, !task.is_focused);
+          }}
+          className={cn(
+            "rounded-md p-1.5 transition-colors",
+            task.is_focused
+              ? "text-yellow-500"
+              : "text-muted-foreground hover:text-yellow-400",
+          )}
+          aria-label={task.is_focused ? "Remove from focus" : "Add to focus"}
+        >
+          <Star className={cn("size-3.5", task.is_focused && "fill-current")} />
+        </button>
         {(onArchiveToggle || onDelete) && (
           <span onClick={(e) => e.stopPropagation()}>
             <TaskArchiveToggle
@@ -188,23 +205,21 @@ export function TaskListItem({
             />
           </span>
         )}
-      </div>
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onFocusToggle(task.id, !task.is_focused);
-        }}
-        className={cn(
-          "shrink-0 rounded-md p-1.5 transition-colors",
-          task.is_focused
-            ? "text-yellow-500"
-            : "text-muted-foreground/20 opacity-0 hover:text-yellow-400 group-hover:opacity-100",
+        {onPermanentDelete && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm("Permanently delete this task? This cannot be undone.")) {
+                onPermanentDelete(task.id);
+              }
+            }}
+            className="rounded-md p-1.5 text-destructive/70 transition-colors hover:bg-destructive/10 hover:text-destructive"
+            aria-label="Delete task permanently"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
         )}
-        aria-label={task.is_focused ? "Remove from focus" : "Add to focus"}
-      >
-        <Star className={cn("size-4", task.is_focused && "fill-current")} />
-      </button>
+      </div>
     </div>
   );
 }

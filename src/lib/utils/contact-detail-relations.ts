@@ -69,7 +69,7 @@ export function resolveLinkedTasks(
 export interface TabOption {
   value: string;
   label: string;
-  count: number;
+  count?: number;
 }
 
 // ── Areas ─────────────────────────────────────────────────────────────
@@ -225,38 +225,13 @@ export function filterProjectsByTab(projects: Project[], tab: string): Project[]
 
 // ── Tasks ─────────────────────────────────────────────────────────────
 
-export function buildTaskTabs(tasks: Task[]): TabOption[] {
+export function buildTaskTabs(): TabOption[] {
   return [
-    { value: "all", label: "All", count: tasks.length },
-    {
-      value: "inbox",
-      label: "Inbox",
-      count: tasks.filter((t) => t.status === "inbox" && !t.is_completed)
-        .length,
-    },
-    {
-      value: "upcoming",
-      label: "Upcoming",
-      count: tasks.filter(
-        (t) =>
-          t.status !== "inbox" &&
-          t.status !== "completed" &&
-          !t.is_completed,
-      ).length,
-    },
-    {
-      value: "overdue",
-      label: "Overdue",
-      count: tasks.filter((t) => {
-        if (!t.due_date || t.is_completed) return false;
-        return new Date(t.due_date) < new Date();
-      }).length,
-    },
-    {
-      value: "completed",
-      label: "Completed",
-      count: tasks.filter((t) => t.is_completed).length,
-    },
+    { value: "all", label: "All" },
+    { value: "inbox", label: "Inbox" },
+    { value: "upcoming", label: "Upcoming" },
+    { value: "overdue", label: "Overdue" },
+    { value: "completed", label: "Completed" },
   ];
 }
 

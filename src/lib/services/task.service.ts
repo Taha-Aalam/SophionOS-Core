@@ -5,7 +5,7 @@ import type { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.typ
 import { TASK_STATUS, type TaskStatus } from "../utils/constants";
 import { createTaskSchema, updateTaskSchema } from "../validators/task.schema";
 
-const TASK_SELECT =
+export const TASK_SELECT =
   "id, user_id, area_id, project_id, name, description, status, priority, due_date, is_completed, is_focused, is_important, is_urgent, completed_at, smart_priority, is_archived, created_at, updated_at";
 
 // ─── Area ID helpers ──────────────────────────────────────────────────────────
@@ -22,9 +22,9 @@ function extractTaskAreaIds<TInput extends { area_id?: string | null; area_ids?:
 } {
   const { area_ids, area_id, ...rest } = input;
 
-  // Explicit area_ids with entries → multi-area mode; set primary from first entry.
-  if (area_ids !== undefined && area_ids.length > 0) {
-    const normalizedAreaIds = dedupeAreaIds(area_ids);
+  // Explicit area_ids (including empty array for clearing all areas) → multi-area mode.
+  if (area_ids !== undefined) {
+    const normalizedAreaIds = area_ids.length > 0 ? dedupeAreaIds(area_ids) : [];
     return {
       areaIds: normalizedAreaIds,
       taskInput: {
@@ -53,7 +53,7 @@ function extractTaskAreaIds<TInput extends { area_id?: string | null; area_ids?:
   };
 }
 
-function isMissingTaskAreasTableError(error: unknown): boolean {
+function isMissingTableError(error: unknown, tableName: string): boolean {
   if (!error || typeof error !== "object") return false;
   const e = error as Record<string, unknown>;
   const code = typeof e.code === "string" ? e.code : undefined;
@@ -61,11 +61,19 @@ function isMissingTaskAreasTableError(error: unknown): boolean {
   const normalizedMessage = message.toLowerCase();
   return (
     code === "42P01" ||
-    (normalizedMessage.includes("task_areas") &&
+    (normalizedMessage.includes(tableName) &&
       (normalizedMessage.includes("does not exist") ||
         normalizedMessage.includes("unexpected table") ||
         normalizedMessage.includes("relation")))
   );
+}
+
+function isMissingTaskAreasTableError(error: unknown): boolean {
+  return isMissingTableError(error, "task_areas");
+}
+
+function isMissingTaskProjectsTableError(error: unknown): boolean {
+  return isMissingTableError(error, "task_projects");
 }
 
 function withPrimaryAreaLinks(tasks: Task[]): Task[] {
@@ -149,15 +157,57 @@ async function hydrateSingleTaskGoalLinks(task: Task): Promise<Task> {
   return hydrated;
 }
 
+function withEmptyProjectIds(tasks: Task[]): Task[] {
+  return tasks.map((task) => ({ ...task, linkedProjectIds: [] }));
+}
+
+async function hydrateTaskProjectLinks(tasks: Task[]): Promise<Task[]> {
+  if (tasks.length === 0) return tasks;
+  const taskIds = tasks.map((task) => task.id);
+
+  try {
+    const result = await createClient()
+      .from("task_projects")
+      .select("task_id, project_id")
+      .in("task_id", taskIds);
+
+    if (result.error) {
+      if (isMissingTaskProjectsTableError(result.error)) {
+        return withEmptyProjectIds(tasks);
+      }
+      throw new DatabaseError(result.error.message);
+    }
+
+    const projectIdsByTaskId = new Map<string, string[]>();
+    for (const row of result.data ?? []) {
+      const current = projectIdsByTaskId.get(row.task_id) ?? [];
+      current.push(row.project_id);
+      projectIdsByTaskId.set(row.task_id, current);
+    }
+
+    return tasks.map((task) => ({
+      ...task,
+      linkedProjectIds: projectIdsByTaskId.get(task.id) ?? [],
+    }));
+  } catch (error) {
+    if (isMissingTaskProjectsTableError(error)) {
+      return withEmptyProjectIds(tasks);
+    }
+    throw error;
+  }
+}
+
 async function parallelHydrateTasks(tasks: Task[]): Promise<Task[]> {
   if (tasks.length === 0) return tasks;
-  const [withAreas, withGoals] = await Promise.all([
+  const [withAreas, withGoals, withProjects] = await Promise.all([
     hydrateTaskAreaLinks(tasks),
     hydrateTaskGoalLinks(tasks),
+    hydrateTaskProjectLinks(tasks),
   ]);
   return withAreas.map((task, i) => ({
     ...task,
     linkedGoalIds: withGoals[i]?.linkedGoalIds ?? [],
+    linkedProjectIds: withProjects[i]?.linkedProjectIds ?? [],
   }));
 }
 
@@ -170,6 +220,17 @@ function extractGoalIds(input: { goal_ids?: string[] }): {
   const { goal_ids, ...taskInput } = input;
   return {
     goalIds: goal_ids ? Array.from(new Set(goal_ids)) : undefined,
+    taskInput,
+  };
+}
+
+function extractProjectIds(input: { project_ids?: string[] }): {
+  projectIds: string[] | undefined;
+  taskInput: Omit<typeof input, "project_ids">;
+} {
+  const { project_ids, ...taskInput } = input;
+  return {
+    projectIds: project_ids ? Array.from(new Set(project_ids)) : undefined,
     taskInput,
   };
 }
@@ -223,14 +284,17 @@ export const taskService = {
     }
 
     const taskWithAreas = await hydrateSingleTaskAreaLinks(data);
-    return hydrateSingleTaskGoalLinks(taskWithAreas);
+    const taskWithGoals = await hydrateSingleTaskGoalLinks(taskWithAreas);
+    const [taskWithProjects] = await hydrateTaskProjectLinks([taskWithGoals]);
+    return taskWithProjects;
   },
 
   async create(userId: string, input: CreateTaskInput): Promise<Task> {
     try {
       const validated = createTaskSchema.parse(input);
       const { areaIds, taskInput: areaCleanedInput } = extractTaskAreaIds(validated);
-      const { goalIds, taskInput } = extractGoalIds(areaCleanedInput);
+      const { goalIds, taskInput: goalCleanedInput } = extractGoalIds(areaCleanedInput);
+      const { projectIds, taskInput } = extractProjectIds(goalCleanedInput);
 
       const { data, error } = await createClient()
         .from("tasks")
@@ -242,7 +306,7 @@ export const taskService = {
         throw new DatabaseError(error.message);
       }
 
-      const needsTouch = (areaIds?.length ?? 0) > 0 || (goalIds?.length ?? 0) > 0;
+      const needsTouch = (areaIds?.length ?? 0) > 0 || (goalIds?.length ?? 0) > 0 || (projectIds?.length ?? 0) > 0;
 
       if (areaIds?.length) {
         await this.replaceAreaLinks(userId, data.id, areaIds);
@@ -250,6 +314,10 @@ export const taskService = {
 
       if (goalIds?.length) {
         await this.replaceGoalLinks(userId, data.id, goalIds);
+      }
+
+      if (projectIds?.length) {
+        await this.replaceProjectLinks(userId, data.id, projectIds);
       }
 
       if (needsTouch) {
@@ -269,7 +337,8 @@ export const taskService = {
     try {
       const validated = updateTaskSchema.parse(input);
       const { areaIds, taskInput: areaCleanedInput } = extractTaskAreaIds(validated);
-      const { goalIds, taskInput } = extractGoalIds(areaCleanedInput);
+      const { goalIds, taskInput: goalCleanedInput } = extractGoalIds(areaCleanedInput);
+      const { projectIds, taskInput } = extractProjectIds(goalCleanedInput);
       const hasTaskUpdates = Object.keys(taskInput).length > 0;
 
       const data = hasTaskUpdates
@@ -291,17 +360,19 @@ export const taskService = {
           })()
         : await this.getById(userId, id);
 
-      const needsTouch = (areaIds?.length ?? 0) > 0 || (goalIds?.length ?? 0) > 0;
-
-      if (areaIds?.length) {
+      if (areaIds !== undefined) {
         await this.replaceAreaLinks(userId, id, areaIds);
       }
 
-      if (goalIds?.length) {
+      if (goalIds !== undefined) {
         await this.replaceGoalLinks(userId, id, goalIds);
       }
 
-      if (needsTouch) {
+      if (projectIds !== undefined) {
+        await this.replaceProjectLinks(userId, id, projectIds);
+      }
+
+      if (areaIds !== undefined || goalIds !== undefined || projectIds !== undefined) {
         return this.touch(userId, id);
       }
 
@@ -417,6 +488,46 @@ export const taskService = {
     return data;
   },
 
+  async permanentDelete(userId: string, id: string): Promise<void> {
+    // Clean up join table rows first to avoid FK violations
+    const areaIds = await this.getAreaLinks(id);
+    if (areaIds.length > 0) {
+      const { error } = await createClient()
+        .from("task_areas")
+        .delete()
+        .eq("task_id", id);
+      if (error && !isMissingTaskAreasTableError(error)) {
+        throw new DatabaseError(error.message);
+      }
+    }
+
+    const { error: goalError } = await createClient()
+      .from("goal_tasks")
+      .delete()
+      .eq("task_id", id);
+    if (goalError) {
+      throw new DatabaseError(goalError.message);
+    }
+
+    const { error: projectError } = await createClient()
+      .from("task_projects")
+      .delete()
+      .eq("task_id", id);
+    if (projectError && !isMissingTaskProjectsTableError(projectError)) {
+      throw new DatabaseError(projectError.message);
+    }
+
+    const { error } = await createClient()
+      .from("tasks")
+      .delete()
+      .eq("user_id", userId)
+      .eq("id", id);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+  },
+
   async restore(userId: string, id: string): Promise<Task> {
     const { data, error } = await createClient()
       .from("tasks")
@@ -437,10 +548,11 @@ export const taskService = {
   async getWithRelations(
     _userId: string,
     id: string,
-  ): Promise<{ goal_ids: string[]; area_ids: string[] }> {
-    const [goalResult, areaResult] = await Promise.all([
+  ): Promise<{ goal_ids: string[]; area_ids: string[]; project_ids: string[] }> {
+    const [goalResult, areaResult, projectResult] = await Promise.all([
       createClient().from("goal_tasks").select("goal_id").eq("task_id", id),
       createClient().from("task_areas").select("area_id").eq("task_id", id),
+      createClient().from("task_projects").select("project_id").eq("task_id", id),
     ]);
 
     if (goalResult.error) {
@@ -448,15 +560,21 @@ export const taskService = {
     }
 
     if (areaResult.error) {
-      if (isMissingTaskAreasTableError(areaResult.error)) {
-        return { goal_ids: goalResult.data?.map((r) => r.goal_id) ?? [], area_ids: [] };
+      if (!isMissingTaskAreasTableError(areaResult.error)) {
+        throw new DatabaseError(areaResult.error.message);
       }
-      throw new DatabaseError(areaResult.error.message);
+    }
+
+    if (projectResult.error) {
+      if (!isMissingTaskProjectsTableError(projectResult.error)) {
+        throw new DatabaseError(projectResult.error.message);
+      }
     }
 
     return {
       goal_ids: goalResult.data?.map((r) => r.goal_id) ?? [],
-      area_ids: areaResult.data?.map((r) => r.area_id) ?? [],
+      area_ids: areaResult.error ? [] : (areaResult.data?.map((r) => r.area_id) ?? []),
+      project_ids: projectResult.error ? [] : (projectResult.data?.map((r) => r.project_id) ?? []),
     };
   },
 
@@ -516,6 +634,50 @@ export const taskService = {
     }
   },
 
+  async getProjectLinks(taskId: string): Promise<string[]> {
+    const { data, error } = await createClient()
+      .from("task_projects")
+      .select("project_id")
+      .eq("task_id", taskId);
+    if (error) {
+      const code = error.code;
+      const msg = error.message?.toLowerCase() ?? "";
+      if (code === "42P01" || msg.includes("task_projects")) return [];
+      throw new DatabaseError(error.message);
+    }
+    return data?.map((r) => r.project_id) ?? [];
+  },
+
+  async replaceProjectLinks(_userId: string, taskId: string, projectIds: string[]): Promise<void> {
+    const existingProjectIdsList = await this.getProjectLinks(taskId);
+    const existingProjectIds = new Set(existingProjectIdsList);
+    const nextProjectIds = new Set(projectIds);
+    const projectIdsToAdd = projectIds.filter((pid) => !existingProjectIds.has(pid));
+    const projectIdsToRemove = existingProjectIdsList.filter((pid) => !nextProjectIds.has(pid));
+
+    if (projectIdsToAdd.length > 0) {
+      const { error } = await createClient()
+        .from("task_projects")
+        .insert(projectIdsToAdd.map((project_id) => ({ project_id, task_id: taskId })));
+
+      if (error && !isMissingTaskProjectsTableError(error)) {
+        throw new DatabaseError(error.message);
+      }
+    }
+
+    if (projectIdsToRemove.length > 0) {
+      const { error } = await createClient()
+        .from("task_projects")
+        .delete()
+        .eq("task_id", taskId)
+        .in("project_id", projectIdsToRemove);
+
+      if (error && !isMissingTaskProjectsTableError(error)) {
+        throw new DatabaseError(error.message);
+      }
+    }
+  },
+
   async listByGoal(userId: string, goalId: string): Promise<Task[]> {
     const { data, error } = await createClient()
       .from("goal_tasks")
@@ -565,4 +727,5 @@ export const taskService = {
 
   hydrateTaskAreaLinks,
   hydrateTaskGoalLinks,
+  hydrateTaskProjectLinks,
 };
