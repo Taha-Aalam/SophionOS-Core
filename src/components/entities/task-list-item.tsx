@@ -162,6 +162,22 @@ export function TaskListItem({
         )}
       </div>
 
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onFocusToggle(task.id, !task.is_focused);
+        }}
+        className={cn(
+          "shrink-0 rounded-md p-1.5 transition-colors",
+          task.is_focused
+            ? "text-yellow-500"
+            : "text-muted-foreground/20 opacity-0 hover:text-yellow-400 group-hover:opacity-100",
+        )}
+        aria-label={task.is_focused ? "Remove from focus" : "Add to focus"}
+      >
+        <Star className={cn("size-3.5", task.is_focused && "fill-current")} />
+      </button>
+
       <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
         {onEdit && (
           <button
@@ -175,21 +191,6 @@ export function TaskListItem({
             <Pencil className="size-3.5" />
           </button>
         )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onFocusToggle(task.id, !task.is_focused);
-          }}
-          className={cn(
-            "rounded-md p-1.5 transition-colors",
-            task.is_focused
-              ? "text-yellow-500"
-              : "text-muted-foreground hover:text-yellow-400",
-          )}
-          aria-label={task.is_focused ? "Remove from focus" : "Add to focus"}
-        >
-          <Star className={cn("size-3.5", task.is_focused && "fill-current")} />
-        </button>
         {(onArchiveToggle || onDelete) && (
           <span onClick={(e) => e.stopPropagation()}>
             <TaskArchiveToggle

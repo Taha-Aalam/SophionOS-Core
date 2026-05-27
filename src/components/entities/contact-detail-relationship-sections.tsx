@@ -9,6 +9,7 @@ import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { ProjectCard } from "@/components/entities/project-card";
 import { TaskListItem } from "@/components/entities/task-list-item";
+import { TasksByGroupView, type TaskGroup } from "@/components/views/tasks-by-group-view";
 import { Button } from "@/components/ui/button";
 import type { Area, Goal, Note, Project, Resource, Task } from "@/lib/types/domain.types";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
@@ -27,7 +28,11 @@ import {
 } from "@/lib/utils/contact-detail-relations";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
-import { getTaskLinkedAreaIds } from "@/lib/utils/tasks";
+import {
+  getTaskLinkedAreaIds,
+  getTaskLinkedGoalIds,
+  getTaskLinkedProjectIds,
+} from "@/lib/utils/tasks";
 import { getAreaRollups } from "@/lib/utils/areas";
 import { encodeReturnTo } from "@/lib/utils/return-to";
 
@@ -169,7 +174,7 @@ export function ContactDetailRelationshipSections({
     () => buildProjectTabs(linkedProjects),
     [linkedProjects],
   );
-  const taskTabs = React.useMemo(() => buildTaskTabs(), []);
+  const taskTabs = React.useMemo(() => buildTaskTabs(linkedTasks), [linkedTasks]);
 
   const filteredAreas = React.useMemo(
     () => filterAreasByTab(linkedAreas, areaTab),
@@ -186,6 +191,120 @@ export function ContactDetailRelationshipSections({
   const filteredTasks = React.useMemo(
     () => filterTasksByTab(linkedTasks, taskTab),
     [linkedTasks, taskTab],
+  );
+
+  // Maps and grouping data for By Area / By Goal / By Project tabs
+  const areaMap = React.useMemo(() => {
+    const map = new Map<string, { name: string; icon?: string | null }>();
+    for (const a of allAreas) map.set(a.id, { name: a.name, icon: a.icon ?? null });
+    return map;
+  }, [allAreas]);
+  const goalMap = React.useMemo(() => {
+    const map = new Map<string, { name: string }>();
+    for (const g of allGoals) map.set(g.id, { name: g.name });
+    return map;
+  }, [allGoals]);
+  const projectMap = React.useMemo(() => {
+    const map = new Map<string, { name: string }>();
+    for (const p of allProjects) map.set(p.id, { name: p.name });
+    return map;
+  }, [allProjects]);
+
+  const taskGroupsByArea = React.useMemo<TaskGroup[]>(() => {
+    const grouped = new Map<string, Task[]>();
+    for (const task of filteredTasks) {
+      const ids = getTaskLinkedAreaIds(task);
+      if (ids.length === 0) {
+        const current = grouped.get("unassigned") ?? [];
+        current.push(task);
+        grouped.set("unassigned", current);
+      } else {
+        for (const areaId of ids) {
+          const current = grouped.get(areaId) ?? [];
+          current.push(task);
+          grouped.set(areaId, current);
+        }
+      }
+    }
+    return Array.from(grouped.entries()).map(([areaId, groupTasks]) => ({
+      groupId: areaId,
+      groupName: areaId === "unassigned" ? "No Area" : (areaMap.get(areaId)?.name ?? areaId),
+      tasks: groupTasks,
+    }));
+  }, [filteredTasks, areaMap]);
+
+  const taskGroupsByGoal = React.useMemo<TaskGroup[]>(() => {
+    const grouped = new Map<string, Task[]>();
+    for (const task of filteredTasks) {
+      const ids = getTaskLinkedGoalIds(task);
+      if (ids.length === 0) {
+        const current = grouped.get("unassigned") ?? [];
+        current.push(task);
+        grouped.set("unassigned", current);
+      } else {
+        for (const goalId of ids) {
+          const current = grouped.get(goalId) ?? [];
+          current.push(task);
+          grouped.set(goalId, current);
+        }
+      }
+    }
+    return Array.from(grouped.entries()).map(([goalId, groupTasks]) => ({
+      groupId: goalId,
+      groupName: goalId === "unassigned" ? "No Goal" : (goalMap.get(goalId)?.name ?? goalId),
+      tasks: groupTasks,
+    }));
+  }, [filteredTasks, goalMap]);
+
+  const taskGroupsByProject = React.useMemo<TaskGroup[]>(() => {
+    const grouped = new Map<string, Task[]>();
+    for (const task of filteredTasks) {
+      const ids = getTaskLinkedProjectIds(task);
+      if (ids.length === 0) {
+        const current = grouped.get("unassigned") ?? [];
+        current.push(task);
+        grouped.set("unassigned", current);
+      } else {
+        for (const projectId of ids) {
+          const current = grouped.get(projectId) ?? [];
+          current.push(task);
+          grouped.set(projectId, current);
+        }
+      }
+    }
+    return Array.from(grouped.entries()).map(([projectId, groupTasks]) => ({
+      groupId: projectId,
+      groupName:
+        projectId === "unassigned" ? "No Project" : (projectMap.get(projectId)?.name ?? projectId),
+      tasks: groupTasks,
+    }));
+  }, [filteredTasks, projectMap]);
+
+  const getLinkedAreaNamesForTask = React.useCallback(
+    (task: Task) =>
+      getTaskLinkedAreaIds(task)
+        .map((id) => allAreas.find((a) => a.id === id)?.name)
+        .filter((n): n is string => Boolean(n)),
+    [allAreas],
+  );
+  const getLinkedAreaIconsForTask = React.useCallback(
+    (task: Task) =>
+      getTaskLinkedAreaIds(task).map((id) => allAreas.find((a) => a.id === id)?.icon ?? null),
+    [allAreas],
+  );
+  const getLinkedGoalNamesForTask = React.useCallback(
+    (task: Task) =>
+      getTaskLinkedGoalIds(task)
+        .map((id) => allGoals.find((g) => g.id === id)?.name)
+        .filter((n): n is string => Boolean(n)),
+    [allGoals],
+  );
+  const getLinkedProjectNamesForTask = React.useCallback(
+    (task: Task) =>
+      getTaskLinkedProjectIds(task)
+        .map((id) => allProjects.find((p) => p.id === id)?.name)
+        .filter((n): n is string => Boolean(n)),
+    [allProjects],
   );
 
   return (
@@ -333,7 +452,64 @@ export function ContactDetailRelationshipSections({
         emptyTitle="No tasks linked"
         emptyDescription="Link tasks to track work related to this contact."
       >
-        {filteredTasks.length > 0 ? (
+        {taskTab === "by_area" ? (
+          <TasksByGroupView
+            groups={taskGroupsByArea}
+            areaMap={areaMap}
+            goalMap={goalMap}
+            projectMap={projectMap}
+            onCompletionToggle={onTaskCompletionToggle}
+            onFocusToggle={onTaskFocusToggle}
+            onNameSave={onTaskNameSave}
+            onEdit={onTaskEdit}
+            onArchiveToggle={onTaskArchiveToggle ?? (() => {})}
+            onPermanentDelete={onTaskPermanentDelete}
+            onNewTask={() => {}}
+            getLinkedAreaNames={getLinkedAreaNamesForTask}
+            getLinkedAreaIcons={getLinkedAreaIconsForTask}
+            getLinkedGoalNames={getLinkedGoalNamesForTask}
+            getLinkedProjectNames={getLinkedProjectNamesForTask}
+            emptyMessage="Tasks will be grouped by area here."
+          />
+        ) : taskTab === "by_goal" ? (
+          <TasksByGroupView
+            groups={taskGroupsByGoal}
+            areaMap={areaMap}
+            goalMap={goalMap}
+            projectMap={projectMap}
+            onCompletionToggle={onTaskCompletionToggle}
+            onFocusToggle={onTaskFocusToggle}
+            onNameSave={onTaskNameSave}
+            onEdit={onTaskEdit}
+            onArchiveToggle={onTaskArchiveToggle ?? (() => {})}
+            onPermanentDelete={onTaskPermanentDelete}
+            onNewTask={() => {}}
+            getLinkedAreaNames={getLinkedAreaNamesForTask}
+            getLinkedAreaIcons={getLinkedAreaIconsForTask}
+            getLinkedGoalNames={getLinkedGoalNamesForTask}
+            getLinkedProjectNames={getLinkedProjectNamesForTask}
+            emptyMessage="Tasks will be grouped by goal here."
+          />
+        ) : taskTab === "by_project" ? (
+          <TasksByGroupView
+            groups={taskGroupsByProject}
+            areaMap={areaMap}
+            goalMap={goalMap}
+            projectMap={projectMap}
+            onCompletionToggle={onTaskCompletionToggle}
+            onFocusToggle={onTaskFocusToggle}
+            onNameSave={onTaskNameSave}
+            onEdit={onTaskEdit}
+            onArchiveToggle={onTaskArchiveToggle ?? (() => {})}
+            onPermanentDelete={onTaskPermanentDelete}
+            onNewTask={() => {}}
+            getLinkedAreaNames={getLinkedAreaNamesForTask}
+            getLinkedAreaIcons={getLinkedAreaIconsForTask}
+            getLinkedGoalNames={getLinkedGoalNamesForTask}
+            getLinkedProjectNames={getLinkedProjectNamesForTask}
+            emptyMessage="Tasks will be grouped by project here."
+          />
+        ) : filteredTasks.length > 0 ? (
           <div className="rounded-lg border bg-card">
             {filteredTasks.map((task) => {
               const areaIds = getTaskLinkedAreaIds(task);

@@ -1028,7 +1028,8 @@ export function AreaDetailContent() {
                 setEditingTask(task);
                 setIsTaskEditOpen(true);
               }}
-              onDelete={handleTaskDelete}
+              onArchiveToggle={handleTaskArchiveToggle}
+              onPermanentDelete={handlePermanentDelete}
               onNewTask={handleNewGroupTask}
               getLinkedAreaNames={getLinkedAreaNames}
               getLinkedAreaIcons={getLinkedAreaIcons}
@@ -1049,7 +1050,8 @@ export function AreaDetailContent() {
                 setEditingTask(task);
                 setIsTaskEditOpen(true);
               }}
-              onDelete={handleTaskDelete}
+              onArchiveToggle={handleTaskArchiveToggle}
+              onPermanentDelete={handlePermanentDelete}
               onNewTask={handleNewGroupTask}
               getLinkedAreaNames={getLinkedAreaNames}
               getLinkedAreaIcons={getLinkedAreaIcons}
@@ -1072,7 +1074,6 @@ export function AreaDetailContent() {
                   onNameSave={handleTaskNameSave}
                   onArchiveToggle={handleTaskArchiveToggle}
                   onPermanentDelete={handlePermanentDelete}
-                  onDelete={handleTaskDelete}
                   onEdit={(task) => {
                     setEditingTask(task);
                     setIsTaskEditOpen(true);
