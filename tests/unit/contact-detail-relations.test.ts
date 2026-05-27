@@ -43,6 +43,7 @@ function makeGoal(overrides: Partial<Goal> = {}): Goal {
     priority: "medium",
     is_completed: false,
     is_archived: false,
+    is_inactive: false,
     area_id: null,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
@@ -168,9 +169,10 @@ describe("buildAreaTabs", () => {
     ];
     const tabs = buildAreaTabs(areas);
     expect(tabs.map((t) => t.value)).toEqual([
-      "all",
       "active",
       "inactive",
+      "by_type",
+      "all",
       "archived",
     ]);
     expect(tabs.find((t) => t.value === "all")?.count).toBe(3);
@@ -216,7 +218,8 @@ describe("buildGoalTabs", () => {
       makeGoal({ id: "g1", term: "short", is_completed: false, is_archived: false }),
       makeGoal({ id: "g2", term: "mid", is_completed: false, is_archived: false }),
       makeGoal({ id: "g3", term: "long", is_completed: true, is_archived: false }),
-      makeGoal({ id: "g4", term: "short", is_completed: false, is_archived: true }),
+      makeGoal({ id: "g4", term: "short", is_inactive: true }),
+      makeGoal({ id: "g5", term: "short", is_archived: true }),
     ];
     const tabs = buildGoalTabs(goals);
     expect(tabs.map((t) => t.value)).toEqual([
@@ -226,11 +229,13 @@ describe("buildGoalTabs", () => {
       "long",
       "inactive",
       "completed",
+      "archived",
     ]);
     expect(tabs.find((t) => t.value === "active")?.count).toBe(2);
     expect(tabs.find((t) => t.value === "short")?.count).toBe(1);
     expect(tabs.find((t) => t.value === "completed")?.count).toBe(1);
     expect(tabs.find((t) => t.value === "inactive")?.count).toBe(1);
+    expect(tabs.find((t) => t.value === "archived")?.count).toBe(1);
   });
 });
 
@@ -239,7 +244,8 @@ describe("filterGoalsByTab", () => {
     makeGoal({ id: "g1", term: "short", is_completed: false, is_archived: false }),
     makeGoal({ id: "g2", term: "mid", is_completed: false, is_archived: false }),
     makeGoal({ id: "g3", term: "long", is_completed: true, is_archived: false }),
-    makeGoal({ id: "g4", term: "short", is_completed: false, is_archived: true }),
+    makeGoal({ id: "g4", term: "short", is_inactive: true }),
+    makeGoal({ id: "g5", term: "short", is_archived: true }),
   ];
 
   it("filters active goals", () => {
@@ -266,6 +272,12 @@ describe("filterGoalsByTab", () => {
       "g4",
     ]);
   });
+
+  it("filters archived goals", () => {
+    expect(filterGoalsByTab(goals, "archived").map((g) => g.id)).toEqual([
+      "g5",
+    ]);
+  });
 });
 
 // ── Project tabs ──────────────────────────────────────────────────────
@@ -277,18 +289,23 @@ describe("buildProjectTabs", () => {
       makeProject({ id: "p2", status: "active", is_archived: false }),
       makeProject({ id: "p3", status: "completed", is_archived: false }),
       makeProject({ id: "p4", status: "active", is_archived: true }),
+      makeProject({ id: "p5", status: "on_hold", is_archived: false }),
     ];
     const tabs = buildProjectTabs(projects);
     expect(tabs.map((t) => t.value)).toEqual([
       "all",
+      "inbox",
       "planning",
       "in_progress",
+      "on_hold",
       "completed",
       "archived",
     ]);
-    expect(tabs.find((t) => t.value === "all")?.count).toBe(4);
+    expect(tabs.find((t) => t.value === "all")?.count).toBe(5);
+    expect(tabs.find((t) => t.value === "inbox")?.count).toBe(1);
     expect(tabs.find((t) => t.value === "planning")?.count).toBe(1);
     expect(tabs.find((t) => t.value === "in_progress")?.count).toBe(1);
+    expect(tabs.find((t) => t.value === "on_hold")?.count).toBe(1);
     expect(tabs.find((t) => t.value === "completed")?.count).toBe(1);
     expect(tabs.find((t) => t.value === "archived")?.count).toBe(1);
   });
@@ -300,6 +317,7 @@ describe("filterProjectsByTab", () => {
     makeProject({ id: "p2", status: "active", is_archived: false }),
     makeProject({ id: "p3", status: "completed", is_archived: false }),
     makeProject({ id: "p4", status: "active", is_archived: true }),
+    makeProject({ id: "p5", status: "on_hold", is_archived: false }),
   ];
 
   it("filters planning projects", () => {
@@ -308,10 +326,22 @@ describe("filterProjectsByTab", () => {
     );
   });
 
+  it("filters inbox projects (alias for planning)", () => {
+    expect(filterProjectsByTab(projects, "inbox").map((p) => p.id)).toEqual([
+      "p1",
+    ]);
+  });
+
   it("filters in_progress projects", () => {
     expect(
       filterProjectsByTab(projects, "in_progress").map((p) => p.id),
     ).toEqual(["p2"]);
+  });
+
+  it("filters on_hold projects", () => {
+    expect(filterProjectsByTab(projects, "on_hold").map((p) => p.id)).toEqual([
+      "p5",
+    ]);
   });
 
   it("filters completed projects", () => {
@@ -327,7 +357,7 @@ describe("filterProjectsByTab", () => {
   });
 
   it("returns all projects for 'all' tab", () => {
-    expect(filterProjectsByTab(projects, "all")).toHaveLength(4);
+    expect(filterProjectsByTab(projects, "all")).toHaveLength(5);
   });
 });
 
@@ -341,9 +371,12 @@ describe("buildTaskTabs", () => {
       "inbox",
       "upcoming",
       "overdue",
+      "by_area",
+      "by_goal",
+      "by_project",
       "completed",
+      "archived",
     ]);
-    expect(tabs.every((t) => t.count === undefined)).toBe(true);
   });
 });
 
