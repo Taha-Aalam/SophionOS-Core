@@ -66,14 +66,26 @@ export function isAreaEffectivelyInactive(
   );
 }
 
+export function sortAreasForDisplay(areas: Area[]): Area[] {
+  return [...areas].sort((left, right) => {
+    const typeCompare = normalizeAreaType(left.type).localeCompare(normalizeAreaType(right.type));
+    if (typeCompare !== 0) return typeCompare;
+
+    const nameCompare = left.name.localeCompare(right.name);
+    if (nameCompare !== 0) return nameCompare;
+
+    const createdAtCompare = left.created_at.localeCompare(right.created_at);
+    if (createdAtCompare !== 0) return createdAtCompare;
+
+    return left.id.localeCompare(right.id);
+  });
+}
+
 export function groupAreasByType(areas: Area[]): GroupedAreas[] {
+  const sortedAreas = sortAreasForDisplay(areas).filter((area) => !area.archive);
   const groupedAreas = new Map<string, Area[]>();
 
-  for (const area of areas) {
-    if (area.archive) {
-      continue;
-    }
-
+  for (const area of sortedAreas) {
     const normalizedType = normalizeAreaType(area.type);
     const nextArea = area.type === normalizedType ? area : { ...area, type: normalizedType };
     const existingAreas = groupedAreas.get(normalizedType) ?? [];
@@ -85,7 +97,7 @@ export function groupAreasByType(areas: Area[]): GroupedAreas[] {
     .sort(([leftType], [rightType]) => leftType.localeCompare(rightType))
     .map(([type, grouped]) => ({
       type,
-      areas: grouped.sort((leftArea, rightArea) => leftArea.name.localeCompare(rightArea.name)),
+      areas: grouped,
     }));
 }
 

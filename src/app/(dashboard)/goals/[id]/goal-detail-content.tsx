@@ -23,7 +23,8 @@ import { PriorityBadge } from "@/components/entities/priority-badge";
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
-import { ResourceTable } from "@/components/entities/resource-table";
+import { NoteRow } from "@/components/entities/note-row";
+import { ResourceRow } from "@/components/entities/resource-row";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskListItem } from "@/components/entities/task-list-item";
 import { EmptyState } from "@/components/views/empty-state";
@@ -51,7 +52,6 @@ import {
 import { useGoalDetail } from "@/lib/hooks/use-goal-detail";
 import {
   useDeleteGoal,
-  useGoals,
   useLinkGoalToArea,
   useUnlinkGoalFromArea,
   useUpdateGoal,
@@ -66,8 +66,9 @@ import {
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import { useProjects } from "@/lib/hooks/use-projects";
-import { useNotes, useToggleFavoriteNote } from "@/lib/hooks/use-notes";
-import { useResources, useToggleFavoriteResource, useCreateResource, useUpdateResource } from "@/lib/hooks/use-resources";
+import { useNotes, useToggleFavoriteNote, useTogglePinNote, useArchiveNote, useRestoreNote, useDeleteNote } from "@/lib/hooks/use-notes";
+import { useResources, useToggleFavoriteResource, useCreateResource, useUpdateResource, useArchiveResource, useUnarchiveResource } from "@/lib/hooks/use-resources";
+import { useTopics } from "@/lib/hooks/use-topics";
 import { cn } from "@/lib/utils";
 import type { Contact, CreateResourceInput, Project, Resource, Task } from "@/lib/types/domain.types";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
@@ -231,10 +232,9 @@ export function GoalDetailContent() {
   const resolvedGoalId = goalData?.goal.id ?? "";
   const { data: areas = [] } = useAreas();
   const { data: allProjects = [] } = useProjects({ status: "all" });
-  const { data: allTasks = [] } = useTasks();
   const { data: allNotes = [] } = useNotes({ status: "all" });
   const { data: allResources = [] } = useResources({ status: "all" });
-  const { data: allGoals = [] } = useGoals({ status: "all" });
+  const { data: topics = [] } = useTopics();
   const { data: allContacts = [] } = useContacts();
   const { data: goalContactLinks = [] } = useContactByGoal(resolvedGoalId);
 
@@ -250,9 +250,15 @@ export function GoalDetailContent() {
   const permanentDeleteTask = usePermanentDeleteTask();
   const focusTask = useFocusTask();
   const toggleFavoriteNote = useToggleFavoriteNote();
+  const togglePinNote = useTogglePinNote();
+  const archiveNote = useArchiveNote();
+  const restoreNote = useRestoreNote();
+  const deleteNote = useDeleteNote();
   const toggleFavoriteResource = useToggleFavoriteResource();
   const createResource = useCreateResource();
   const updateResource = useUpdateResource();
+  const archiveResource = useArchiveResource();
+  const unarchiveResource = useUnarchiveResource();
   const linkContactToGoal = useLinkContactToGoal();
   const unlinkContactFromGoal = useUnlinkContactFromGoal();
   const createContact = useCreateContact();
@@ -265,6 +271,30 @@ export function GoalDetailContent() {
   const goal = goalData?.goal;
   const areaNames = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
   const areaIcons = useMemo(() => new Map(areas.map((a) => [a.id, a.icon ?? null])), [areas]);
+  const goalNamesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (goalData?.goal) map.set(goalData.goal.id, goalData.goal.name);
+    for (const g of goalData?.extraGoalNames ?? []) map.set(g.id, g.name);
+    return map;
+  }, [goalData?.goal, goalData?.extraGoalNames]);
+  const projectNamesMap = useMemo(() => {
+    const map = new Map(allProjects.map((p) => [p.id, p.name]));
+    for (const p of goalData?.projects ?? []) map.set(p.id, p.name);
+    return map;
+  }, [allProjects, goalData?.projects]);
+  const taskNamesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of goalData?.tasks ?? []) map.set(t.id, t.name);
+    for (const t of goalData?.extraTaskNames ?? []) map.set(t.id, t.name);
+    return map;
+  }, [goalData?.tasks, goalData?.extraTaskNames]);
+  const topicNamesMap = useMemo(() => {
+    // Prefer names carried in the goal-detail payload (available on first paint)
+    // and fall back to the live topics query for anything not yet hydrated.
+    const map = new Map(topics.map((t) => [t.id, t.name]));
+    for (const t of goalData?.topicNames ?? []) map.set(t.id, t.name);
+    return map;
+  }, [topics, goalData?.topicNames]);
   const getProjectAreaNames = useCallback(
     (project: Project) =>
       getProjectLinkedAreaIds(project)
@@ -377,19 +407,19 @@ export function GoalDetailContent() {
   // Filter notes by tab
   const filteredNotes = useMemo(() => {
     const notes = goalData?.notes ?? [];
+    if (noteTab === "archived") return notes.filter((n) => n.is_archived);
+    const activeNotes = notes.filter((n) => !n.is_archived);
     switch (noteTab) {
       case "inbox":
-        return notes.filter((n) => n.status === NOTE_STATUS.INBOX);
+        return activeNotes.filter((n) => n.status === NOTE_STATUS.INBOX);
       case "to_review":
-        return notes.filter((n) => n.status === NOTE_STATUS.TO_REVIEW);
+        return activeNotes.filter((n) => n.status === NOTE_STATUS.TO_REVIEW);
       case "active":
-        return notes.filter((n) => n.status === NOTE_STATUS.ACTIVE);
+        return activeNotes.filter((n) => n.status === NOTE_STATUS.ACTIVE);
       case "saved":
-        return notes.filter((n) => n.status === NOTE_STATUS.SAVED);
-      case "archived":
-        return notes.filter((n) => n.is_archived);
+        return activeNotes.filter((n) => n.status === NOTE_STATUS.SAVED);
       default:
-        return notes;
+        return activeNotes;
     }
   }, [goalData?.notes, noteTab]);
 
@@ -408,17 +438,17 @@ export function GoalDetailContent() {
     const resources = goalData?.resources ?? [];
     switch (resourceTab) {
       case "inbox":
-        return resources.filter((r) => r.status === RESOURCE_STATUS.INBOX);
+        return resources.filter((r) => r.status === RESOURCE_STATUS.INBOX && !r.is_archived);
       case "to_review":
-        return resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW);
+        return resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW && !r.is_archived);
       case "active":
-        return resources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE);
+        return resources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE && !r.is_archived);
       case "saved":
-        return resources.filter((r) => r.status === RESOURCE_STATUS.SAVED);
+        return resources.filter((r) => r.status === RESOURCE_STATUS.SAVED && !r.is_archived);
       case "archived":
         return resources.filter((r) => r.is_archived);
       default:
-        return resources;
+        return resources.filter((r) => !r.is_archived);
     }
   }, [goalData?.resources, resourceTab]);
 
@@ -1134,48 +1164,29 @@ export function GoalDetailContent() {
           createLabel="New Note"
         >
           {filteredNotes.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border bg-card">
               {filteredNotes.map((note) => {
-                const noteReturnTo = goalNestedReturnTo;
+                const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                  .map((id) => { const name = areaNames.get(id); return name ? { name, icon: areaIcons.get(id) ?? null } : null; })
+                  .filter((a): a is { name: string; icon: string | null } => Boolean(a));
+                const noteGoalNames = (note.linkedGoalIds ?? []).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteProjectNames = (note.linkedProjectIds ?? []).map((id) => projectNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteTaskNames = (note.linkedTaskIds ?? []).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
                 return (
-                  <div
+                  <NoteRow
                     key={note.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => router.push(`/notes/${note.slug ?? note.id}?returnTo=${encodeReturnTo(noteReturnTo)}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        router.push(`/notes/${note.slug ?? note.id}?returnTo=${encodeReturnTo(noteReturnTo)}`);
-                      }
-                    }}
-                    className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30 cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="truncate font-semibold">{note.name}</h3>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleNoteToggleFavorite(note.id, !note.favorite);
-                        }}
-                        className={cn(
-                          "shrink-0 text-sm",
-                          note.favorite ? "text-rose-500" : "text-muted-foreground",
-                        )}
-                      >
-                        {note.favorite ? "★" : "☆"}
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="secondary" className={cn("text-xs", NOTE_STATUS_COLORS[note.status])}>
-                        {note.status}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {note.type}
-                      </Badge>
-                    </div>
-                  </div>
+                    note={note}
+                    returnTo={goalNestedReturnTo}
+                    areas={noteAreas}
+                    goalNames={noteGoalNames}
+                    projectNames={noteProjectNames}
+                    taskNames={noteTaskNames}
+                    onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
+                    onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                    onArchive={(id) => archiveNote.mutate(id)}
+                    onRestore={(id) => restoreNote.mutate(id)}
+                    onDelete={(id) => deleteNote.mutate(id)}
+                  />
                 );
               })}
             </div>
@@ -1198,11 +1209,41 @@ export function GoalDetailContent() {
           createLabel="New Resource"
         >
           {filteredResources.length > 0 ? (
-            <ResourceTable
-              resources={filteredResources}
-              onToggleFavorite={handleResourceToggleFavorite}
-              onEdit={handleResourceEdit}
-            />
+            <div className="rounded-lg border bg-card">
+              {filteredResources.map((resource) => {
+                const resourceAreaIds = (resource.linkedAreaIds && resource.linkedAreaIds.length > 0)
+                  ? resource.linkedAreaIds
+                  : (resource.area_id ? [resource.area_id] : []);
+                const resourceAreas = resourceAreaIds
+                  .map((id) => ({ name: areaNames.get(id), icon: areaIcons.get(id) ?? null }))
+                  .filter((e): e is { name: string; icon: string | null } => Boolean(e.name));
+                const resourceGoalNames = (resource.linkedGoalIds ?? [])
+                  .map((id) => goalNamesMap.get(id))
+                  .filter((name): name is string => Boolean(name));
+                const resourceProjectNames = resource.project_id
+                  ? [projectNamesMap.get(resource.project_id)].filter((n): n is string => Boolean(n))
+                  : [];
+                const resourceTaskNames = (resource.linkedTaskIds ?? [])
+                  .map((id) => taskNamesMap.get(id))
+                  .filter((name): name is string => Boolean(name));
+                return (
+                  <ResourceRow
+                    key={resource.id}
+                    resource={resource}
+                    areas={resourceAreas}
+                    goalNames={resourceGoalNames}
+                    projectNames={resourceProjectNames}
+                    taskNames={resourceTaskNames}
+                    topicName={resource.topic_id ? topicNamesMap.get(resource.topic_id) : undefined}
+                    onToggleFavorite={handleResourceToggleFavorite}
+                    onArchive={(id) => archiveResource.mutate(id)}
+                    onUnarchive={(id) => unarchiveResource.mutate(id)}
+                    onDelete={() => {}}
+                    onEdit={handleResourceEdit}
+                  />
+                );
+              })}
+            </div>
           ) : null}
         </GoalDetailSection>
       </div>
@@ -1354,6 +1395,7 @@ export function GoalDetailContent() {
           handlePermanentDelete(id);
           setEditingTask(null);
         }}
+        onDelete={handleTaskDelete}
       />
 
       {/* Inline Resource Creation */}

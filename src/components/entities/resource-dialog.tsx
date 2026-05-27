@@ -18,7 +18,6 @@ import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -255,7 +254,7 @@ export function ResourceDialog({
     setProjectId(isDeselecting ? "" : nextProjectId);
   };
 
-  const relationPopoverContentClassName = "w-56 p-2";
+  const relationPopoverContentClassName = "w-56 p-2 max-h-72 overflow-hidden";
   const relationOptionClassName =
     "flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
 
@@ -368,11 +367,11 @@ export function ResourceDialog({
               onBlur={handleUrlBlur}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="res-type">Type</Label>
               <Select value={type} onValueChange={(v) => setType(v as Resource["type"])}>
-                <SelectTrigger id="res-type">
+                <SelectTrigger id="res-type" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -387,7 +386,7 @@ export function ResourceDialog({
             <div className="grid gap-2">
               <Label htmlFor="res-status">Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as ResourceStatus)}>
-                <SelectTrigger id="res-status">
+                <SelectTrigger id="res-status" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -415,7 +414,7 @@ export function ResourceDialog({
                     <button type="button" onClick={() => setAreaIds([])} className={relationOptionClassName}>
                       Clear selection
                     </button>
-                    <ScrollArea className="max-h-56">
+                    <div className="max-h-48 overflow-y-auto">
                       {visibleAreas.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
                           {taskIds.length > 0 || goalIds.length > 0 || projectId
@@ -433,7 +432,7 @@ export function ResourceDialog({
                           </label>
                         ))
                       )}
-                    </ScrollArea>
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -466,7 +465,7 @@ export function ResourceDialog({
                     <button type="button" onClick={() => setGoalIds([])} className={relationOptionClassName}>
                       Clear selection
                     </button>
-                    <ScrollArea className="max-h-56">
+                    <div className="max-h-48 overflow-y-auto">
                       {filteredGoals.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
                           {taskIds.length > 0 || projectId || areaIds.length > 0
@@ -484,7 +483,7 @@ export function ResourceDialog({
                           </label>
                         ))
                       )}
-                    </ScrollArea>
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -524,7 +523,7 @@ export function ResourceDialog({
                     >
                       <span className="text-muted-foreground">None</span>
                     </button>
-                    <ScrollArea className="max-h-56">
+                    <div className="max-h-48 overflow-y-auto">
                       {filteredProjects.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
                           No projects available.
@@ -543,7 +542,7 @@ export function ResourceDialog({
                           </label>
                         ))
                       )}
-                    </ScrollArea>
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -571,7 +570,7 @@ export function ResourceDialog({
                     <button type="button" onClick={() => setTaskIds([])} className={relationOptionClassName}>
                       Clear selection
                     </button>
-                    <ScrollArea className="max-h-56">
+                    <div className="max-h-48 overflow-y-auto">
                       {filteredTasks.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
                           {goalIds.length > 0 || projectId || areaIds.length > 0
@@ -589,7 +588,7 @@ export function ResourceDialog({
                           </label>
                         ))
                       )}
-                    </ScrollArea>
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -611,23 +610,52 @@ export function ResourceDialog({
             </div>
           </div>
 
-          {/* Topic — single select */}
+          {/* Topic — single select, area-style layout */}
           <div className="grid gap-2">
-            <Label htmlFor="res-topic">Topic</Label>
-            <Select value={topicId} onValueChange={(v) => setTopicId(v ?? "")}>
-              <SelectTrigger id="res-topic">
-                <SelectValue placeholder="None">
-                  {topicId ? topics.find((t) => t.id === topicId)?.name : undefined}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {topics.map((topic) => (
-                  <SelectItem key={topic.id} value={topic.id}>
-                    {topic.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center justify-between">
+              <Label>Topic</Label>
+              <Popover>
+                <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  {topicId ? (topics.find((t) => t.id === topicId)?.name ?? "Select topic...") : "Select topic..."}
+                </PopoverTrigger>
+                <PopoverContent align="start" className={relationPopoverContentClassName}>
+                  <button type="button" onClick={() => setTopicId("")} className={relationOptionClassName}>
+                    Clear selection
+                  </button>
+                  <div className="max-h-48 overflow-y-auto">
+                    {topics.length === 0 ? (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">No topics available.</div>
+                    ) : (
+                      topics.map((topic) => (
+                        <label key={topic.id} className={relationOptionClassName}>
+                          <Checkbox
+                            checked={topicId === topic.id}
+                            onCheckedChange={() => setTopicId(topicId === topic.id ? "" : topic.id)}
+                          />
+                          {topic.name}
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+            {topicId && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {(() => {
+                  const selected = topics.find((t) => t.id === topicId);
+                  if (!selected) return null;
+                  return (
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      {selected.name}
+                      <button type="button" onClick={() => setTopicId("")} className="ml-1 rounded-full p-0.5 hover:bg-muted">
+                        <X className="size-3" />
+                      </button>
+                    </Badge>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         </div>
         <DialogFooter>

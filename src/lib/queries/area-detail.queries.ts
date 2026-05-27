@@ -1,9 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
+import { serverFetchGoals } from "@/lib/queries/goals.queries"
+import { hydrateNotebooks } from "@/lib/queries/notes.queries"
+
 const AREA_SELECT =
   "id, user_id, name, description, icon, color, type, metadata, inactive, archive, slug, created_at, updated_at"
-const GOAL_SELECT =
-  "id, user_id, area_id, name, description, term, priority, target_date, progress, is_completed, is_archived, slug, created_at, updated_at"
 const PROJECT_SELECT =
   "id, user_id, area_id, name, description, status, priority, start_date, due_date, progress, is_archived, slug, created_at, updated_at"
 const TASK_SELECT =
@@ -22,100 +23,6 @@ function isUuid(v: string) {
 
 function dedupe(ids: Array<string | null | undefined>): string[] {
   return Array.from(new Set(ids.filter((x): x is string => Boolean(x))))
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function hydrateGoalAreaLinks(supabase: SupabaseClient, goals: any[]): Promise<any[]> {
-  if (goals.length === 0) return goals
-  const goalIds = goals.map((g) => g.id as string)
-  const { data } = await supabase
-    .from("goal_areas")
-    .select("goal_id, area_id")
-    .in("goal_id", goalIds)
-  const areasByGoal = new Map<string, string[]>()
-  for (const row of (data ?? []) as Array<{ goal_id: string; area_id: string }>) {
-    const list = areasByGoal.get(row.goal_id) ?? []
-    list.push(row.area_id)
-    areasByGoal.set(row.goal_id, list)
-  }
-  return goals.map((g) => ({
-    ...g,
-    linkedAreaIds: dedupe([g.area_id, ...(areasByGoal.get(g.id) ?? [])]),
-  }))
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function hydrateGoalRollupCounts(supabase: SupabaseClient, goals: any[]): Promise<any[]> {
-  if (goals.length === 0) return goals
-  const goalIds = goals.map((g) => g.id as string)
-
-  const [projectLinks, taskLinks, noteLinks, resourceLinks] = await Promise.all([
-    supabase
-      .from("goal_projects")
-      .select("goal_id, project:projects(status, is_archived)")
-      .in("goal_id", goalIds)
-      .then((r) => r.data ?? []),
-    supabase
-      .from("goal_tasks")
-      .select("goal_id, task:tasks(is_completed, is_archived)")
-      .in("goal_id", goalIds)
-      .then((r) => r.data ?? []),
-    supabase
-      .from("goal_notes")
-      .select("goal_id, note:notes(status, is_archived)")
-      .in("goal_id", goalIds)
-      .then((r) => r.data ?? []),
-    supabase
-      .from("goal_resources")
-      .select("goal_id, resource:resources(status, is_archived)")
-      .in("goal_id", goalIds)
-      .then((r) => r.data ?? []),
-  ])
-
-  const countFor = (
-    links: Array<{ goal_id: string } & Record<string, unknown>>,
-    goalId: string,
-    entityKey: string,
-    isActive: (entity: Record<string, unknown>) => boolean,
-  ): number =>
-    links.filter((link) => {
-      if (link.goal_id !== goalId) return false
-      const entity = Array.isArray(link[entityKey])
-        ? (link[entityKey] as Record<string, unknown>[])[0]
-        : (link[entityKey] as Record<string, unknown> | undefined)
-      return entity != null && isActive(entity)
-    }).length
-
-  return goals.map((goal) => {
-    const id = goal.id as string
-    return {
-      ...goal,
-      projectCount: countFor(
-        projectLinks as Array<{ goal_id: string } & Record<string, unknown>>,
-        id,
-        "project",
-        (e) => !e.is_archived && e.status !== "completed",
-      ),
-      taskCount: countFor(
-        taskLinks as Array<{ goal_id: string } & Record<string, unknown>>,
-        id,
-        "task",
-        (e) => !e.is_archived && !e.is_completed,
-      ),
-      noteCount: countFor(
-        noteLinks as Array<{ goal_id: string } & Record<string, unknown>>,
-        id,
-        "note",
-        (e) => !e.is_archived && e.status !== "archive" && e.status !== "saved",
-      ),
-      resourceCount: countFor(
-        resourceLinks as Array<{ goal_id: string } & Record<string, unknown>>,
-        id,
-        "resource",
-        (e) => !e.is_archived && e.status !== "saved",
-      ),
-    }
-  })
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -286,6 +193,74 @@ async function hydrateResourceAreaIds(supabase: SupabaseClient, resources: any[]
   }))
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function hydrateNoteGoalIds(supabase: SupabaseClient, notes: any[]): Promise<any[]> {
+  if (notes.length === 0) return notes
+  const noteIds = notes.map((n) => n.id as string)
+  const { data } = await supabase
+    .from("goal_notes")
+    .select("note_id, goal_id")
+    .in("note_id", noteIds)
+  const goalsByNote = new Map<string, string[]>()
+  for (const link of data ?? []) {
+    const list = goalsByNote.get(link.note_id) ?? []
+    list.push(link.goal_id)
+    goalsByNote.set(link.note_id, list)
+  }
+  return notes.map((n) => ({ ...n, linkedGoalIds: goalsByNote.get(n.id) ?? [] }))
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function hydrateNoteTaskIds(supabase: SupabaseClient, notes: any[]): Promise<any[]> {
+  if (notes.length === 0) return notes
+  const noteIds = notes.map((n) => n.id as string)
+  const { data } = await supabase
+    .from("task_notes")
+    .select("note_id, task_id")
+    .in("note_id", noteIds)
+  const tasksByNote = new Map<string, string[]>()
+  for (const link of data ?? []) {
+    const list = tasksByNote.get(link.note_id) ?? []
+    list.push(link.task_id)
+    tasksByNote.set(link.note_id, list)
+  }
+  return notes.map((n) => ({ ...n, linkedTaskIds: tasksByNote.get(n.id) ?? [] }))
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function hydrateResourceGoalIds(supabase: SupabaseClient, resources: any[]): Promise<any[]> {
+  if (resources.length === 0) return resources
+  const resourceIds = resources.map((r) => r.id as string)
+  const { data } = await supabase
+    .from("goal_resources")
+    .select("resource_id, goal_id")
+    .in("resource_id", resourceIds)
+  const goalsByResource = new Map<string, string[]>()
+  for (const link of data ?? []) {
+    const list = goalsByResource.get(link.resource_id) ?? []
+    list.push(link.goal_id)
+    goalsByResource.set(link.resource_id, list)
+  }
+  return resources.map((r) => ({ ...r, linkedGoalIds: goalsByResource.get(r.id) ?? [] }))
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function hydrateResourceTaskIds(supabase: SupabaseClient, resources: any[]): Promise<any[]> {
+  if (resources.length === 0) return resources
+  const resourceIds = resources.map((r) => r.id as string)
+  const { data } = await supabase
+    .from("task_resources")
+    .select("resource_id, task_id")
+    .in("resource_id", resourceIds)
+  const tasksByResource = new Map<string, string[]>()
+  for (const link of data ?? []) {
+    const list = tasksByResource.get(link.resource_id) ?? []
+    list.push(link.task_id)
+    tasksByResource.set(link.resource_id, list)
+  }
+  return resources.map((r) => ({ ...r, linkedTaskIds: tasksByResource.get(r.id) ?? [] }))
+}
+
 async function fetchLinkedIds(
   supabase: SupabaseClient,
   table: string,
@@ -331,28 +306,27 @@ export async function serverFetchAreaDetail(
   // (allGoals/allTasks/allNotes/allResources/archivedTasks) needed by the
   // detail content for project rollups, goal lookups, etc.
   const [
-    allGoalsResult,
     allProjectsResult,
     allTasksActiveResult,
     allTasksArchivedResult,
     allNotesResult,
     allResourcesResult,
+    allGoals,
     extraGoalIds,
     extraProjectIds,
     extraTaskIds,
   ] = await Promise.all([
-    supabase.from("goals").select(GOAL_SELECT).eq("user_id", userId),
     supabase.from("projects").select(PROJECT_SELECT).eq("user_id", userId),
     supabase.from("tasks").select(TASK_SELECT).eq("user_id", userId).eq("is_archived", false),
     supabase.from("tasks").select(TASK_SELECT).eq("user_id", userId).eq("is_archived", true),
     supabase.from("notes").select(NOTE_SELECT).eq("user_id", userId).eq("is_archived", false),
     supabase.from("resources").select(RESOURCE_SELECT).eq("user_id", userId).eq("is_archived", false),
+    serverFetchGoals(supabase, userId, { status: "all" }),
     fetchLinkedIds(supabase, "goal_areas", "goal_id", areaId),
     fetchLinkedIds(supabase, "project_areas", "project_id", areaId),
     fetchLinkedIds(supabase, "task_areas", "task_id", areaId),
   ])
 
-  const rawAllGoals = allGoalsResult.data ?? []
   const rawAllProjects = allProjectsResult.data ?? []
   const rawAllActiveTasks = allTasksActiveResult.data ?? []
   const rawAllArchivedTasks = allTasksArchivedResult.data ?? []
@@ -363,23 +337,41 @@ export async function serverFetchAreaDetail(
   // IDs and (for goals) rollup counts + progress so cards on the area detail
   // page render accurate correlation numbers on first paint.
   const [
-    allGoalsWithAreas,
     allProjects,
     allTasks,
     archivedTasks,
     allNotesWithProjects,
     allResourcesWithAreas,
   ] = await Promise.all([
-    hydrateGoalAreaLinks(supabase, rawAllGoals),
     hydrateProjectRelations(supabase, rawAllProjects),
     hydrateTaskRelations(supabase, rawAllActiveTasks),
     hydrateTaskRelations(supabase, rawAllArchivedTasks),
     hydrateNoteProjectIds(supabase, rawAllNotes),
     hydrateResourceAreaIds(supabase, rawAllResources),
   ])
-  const allGoals = await hydrateGoalRollupCounts(supabase, allGoalsWithAreas)
-  const allNotes = await hydrateNoteAreaIds(supabase, allNotesWithProjects)
-  const allResources = allResourcesWithAreas
+  const allNotesWithAreas = await hydrateNoteAreaIds(supabase, allNotesWithProjects)
+  const allNotesWithGoals = await hydrateNoteGoalIds(supabase, allNotesWithAreas)
+  const allNotesWithTasks = await hydrateNoteTaskIds(supabase, allNotesWithGoals)
+  const allNotes = await hydrateNotebooks(supabase, allNotesWithTasks)
+  const allResourcesWithGoals = await hydrateResourceGoalIds(supabase, allResourcesWithAreas)
+  const allResources = await hydrateResourceTaskIds(supabase, allResourcesWithGoals)
+
+  // Resolve names for topics referenced by linked resources so topic bubbles
+  // render on first paint instead of waiting on the client-only useTopics hook.
+  const topicIdSet = new Set<string>()
+  for (const resource of allResources) {
+    const topicId = (resource as { topic_id?: string | null }).topic_id
+    if (topicId) topicIdSet.add(topicId)
+  }
+  let topicNames: { id: string; name: string }[] = []
+  if (topicIdSet.size > 0) {
+    const { data: topicRows } = await supabase
+      .from("topics")
+      .select("id, name")
+      .eq("user_id", userId)
+      .in("id", [...topicIdSet])
+    topicNames = (topicRows ?? []).map((t) => ({ id: t.id as string, name: t.name as string }))
+  }
 
   // Compute "linked to this area" subsets using junction-aware matching so the
   // area detail header, areas list cards, and contact detail area cards all
@@ -427,6 +419,7 @@ export async function serverFetchAreaDetail(
     allTasks,
     allNotes,
     allResources,
+    topicNames,
     rollups: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       goalCount: goals.filter((g: any) => !g.is_archived && !g.is_completed).length,

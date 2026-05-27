@@ -5,12 +5,14 @@ export const NOTE_VIEW = {
   INBOX: "inbox",
   TO_REVIEW: "to_review",
   ACTIVE: "active",
-  SAVED: "saved",
   PINNED: "pinned",
   FAVORITE: "favorite",
+  BY_AREA: "by_area",
+  BY_GOAL: "by_goal",
   BY_PROJECT: "by_project",
   BY_TOPIC: "by_topic",
   BY_NOTEBOOK: "by_notebook",
+  SAVED: "saved",
   ARCHIVED: "archived",
 } as const;
 
@@ -89,6 +91,8 @@ export interface NoteCounts {
   saved: number;
   pinned: number;
   favorite: number;
+  by_area: number;
+  by_goal: number;
   by_project: number;
   by_topic: number;
   by_notebook: number;
@@ -104,9 +108,11 @@ export function getNoteCounts(notes: Note[]): NoteCounts {
     saved: notes.filter((n) => n.status === "saved" && !n.is_archived).length,
     pinned: notes.filter((n) => n.pin && !n.is_archived).length,
     favorite: notes.filter((n) => n.favorite && !n.is_archived).length,
+    by_area: notes.filter((n) => getNoteLinkedAreaIds(n).length > 0 && !n.is_archived).length,
+    by_goal: notes.filter((n) => getNoteLinkedGoalIds(n).length > 0 && !n.is_archived).length,
     by_project: notes.filter((n) => getNoteLinkedProjectIds(n).length > 0 && !n.is_archived).length,
     by_topic: notes.filter((n) => !!n.topic_id && !n.is_archived).length,
-    by_notebook: notes.filter((n) => !!n.notebook && !n.is_archived).length,
+    by_notebook: notes.filter((n) => (n.notebooks ?? []).length > 0 && !n.is_archived).length,
     archived: notes.filter((n) => n.is_archived).length,
   };
 }
@@ -125,12 +131,12 @@ export function getVisibleNotes(notes: Note[], view: NoteView): Note[] {
       return notes.filter((n) => n.pin && !n.is_archived);
     case NOTE_VIEW.FAVORITE:
       return notes.filter((n) => n.favorite && !n.is_archived);
+    case NOTE_VIEW.BY_AREA:
+    case NOTE_VIEW.BY_GOAL:
     case NOTE_VIEW.BY_PROJECT:
-      return notes.filter((n) => getNoteLinkedProjectIds(n).length > 0 && !n.is_archived);
     case NOTE_VIEW.BY_TOPIC:
-      return notes.filter((n) => !!n.topic_id && !n.is_archived);
     case NOTE_VIEW.BY_NOTEBOOK:
-      return notes.filter((n) => !!n.notebook && !n.is_archived);
+      return [];
     case NOTE_VIEW.ARCHIVED:
       return notes.filter((n) => n.is_archived);
     case NOTE_VIEW.ALL:

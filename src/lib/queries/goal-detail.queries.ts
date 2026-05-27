@@ -35,26 +35,68 @@ async function hydrateProjectAreaIds(supabase: SupabaseClient, projects: any[]):
   }))
 }
 
+// Groups junction rows (`{ [idKey]: parentId, [valueKey]: value }`) into a
+// Map<parentId, value[]>. Errors (including a missing junction table, 42P01)
+// degrade to an empty map so a not-yet-migrated junction never blocks the page.
+async function groupJunction(
+  supabase: SupabaseClient,
+  table: string,
+  selectCols: string,
+  idKey: string,
+  ids: string[],
+  valueKey: string,
+): Promise<Map<string, string[]>> {
+  const map = new Map<string, string[]>()
+  if (ids.length === 0) return map
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await supabase.from(table).select(selectCols).in(idKey, ids) as { data: any[] | null }
+  for (const row of data ?? []) {
+    const list = map.get(row[idKey]) ?? []
+    list.push(row[valueKey])
+    map.set(row[idKey], list)
+  }
+  return map
+}
+
+// Hydrate goal-detail notes to the SAME shape as noteService.listByGoal so the
+// SSR prefetch payload and the client refetch are byte-for-byte equivalent and
+// no relationship bubble pops in after the forced refetch.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function hydrateNoteProjectIds(supabase: SupabaseClient, notes: any[]): Promise<any[]> {
+async function hydrateGoalDetailNotes(supabase: SupabaseClient, notes: any[]): Promise<any[]> {
   if (notes.length === 0) return notes
   const noteIds = notes.map((n) => n.id as string)
-  const { data } = await supabase
-    .from("note_projects")
-    .select("note_id, project_id")
-    .in("note_id", noteIds)
-  if (!data || data.length === 0) {
-    return notes.map((n) => ({ ...n, linkedProjectIds: dedupe([n.project_id]) }))
-  }
-  const projectsByNote = new Map<string, string[]>()
-  for (const link of data) {
-    const list = projectsByNote.get(link.note_id) ?? []
-    list.push(link.project_id)
-    projectsByNote.set(link.note_id, list)
-  }
+  const [areas, goals, projects, tasks, notebooks] = await Promise.all([
+    groupJunction(supabase, "note_areas", "note_id, area_id", "note_id", noteIds, "area_id"),
+    groupJunction(supabase, "goal_notes", "note_id, goal_id", "note_id", noteIds, "goal_id"),
+    groupJunction(supabase, "note_projects", "note_id, project_id", "note_id", noteIds, "project_id"),
+    groupJunction(supabase, "task_notes", "note_id, task_id", "note_id", noteIds, "task_id"),
+    groupJunction(supabase, "note_notebooks", "note_id, notebook", "note_id", noteIds, "notebook"),
+  ])
   return notes.map((n) => ({
     ...n,
-    linkedProjectIds: dedupe([n.project_id, ...(projectsByNote.get(n.id) ?? [])]),
+    linkedAreaIds: dedupe([n.area_id, ...(areas.get(n.id) ?? [])]),
+    linkedGoalIds: dedupe(goals.get(n.id) ?? []),
+    linkedProjectIds: dedupe([n.project_id, ...(projects.get(n.id) ?? [])]),
+    linkedTaskIds: dedupe(tasks.get(n.id) ?? []),
+    notebooks: (notebooks.get(n.id) ?? []).sort(),
+  }))
+}
+
+// Hydrate goal-detail resources to match resourceService.listByGoal.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function hydrateGoalDetailResources(supabase: SupabaseClient, resources: any[]): Promise<any[]> {
+  if (resources.length === 0) return resources
+  const resourceIds = resources.map((r) => r.id as string)
+  const [areas, goals, tasks] = await Promise.all([
+    groupJunction(supabase, "resource_areas", "resource_id, area_id", "resource_id", resourceIds, "area_id"),
+    groupJunction(supabase, "goal_resources", "resource_id, goal_id", "resource_id", resourceIds, "goal_id"),
+    groupJunction(supabase, "task_resources", "resource_id, task_id", "resource_id", resourceIds, "task_id"),
+  ])
+  return resources.map((r) => ({
+    ...r,
+    linkedAreaIds: dedupe([r.area_id, ...(areas.get(r.id) ?? [])]),
+    linkedGoalIds: dedupe(goals.get(r.id) ?? []),
+    linkedTaskIds: dedupe(tasks.get(r.id) ?? []),
   }))
 }
 
@@ -316,8 +358,12 @@ export async function serverFetchGoalDetail(
   }))
   const projects = await hydrateProjectAreaIds(supabase, projectsWithLinkedGoals)
 
-  // Hydrate notes with linkedProjectIds (from note_projects)
-  const notes = await hydrateNoteProjectIds(supabase, rawNotes)
+  // Hydrate notes + resources to the same shape as the client services so the
+  // SSR first paint matches the forced client refetch (no bubbles popping in).
+  const [notes, resources] = await Promise.all([
+    hydrateGoalDetailNotes(supabase, rawNotes),
+    hydrateGoalDetailResources(supabase, rawResources),
+  ])
 
   // Tasks: attach linkedGoalIds + basic linkedAreaIds from area_id
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -327,13 +373,52 @@ export async function serverFetchGoalDetail(
     linkedAreaIds: dedupe([t.area_id]),
   }))
 
-  // Resources: mark linkedGoalIds + basic linkedAreaIds
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const resources = rawResources.map((r: any) => ({
-    ...r,
-    linkedGoalIds: [goalId],
-    linkedAreaIds: dedupe([r.area_id]),
-  }))
+  // Names for goals/tasks linked to notes/resources but not already known, plus
+  // topic names for resource topic_ids — mirrors the extra-name resolution in
+  // useGoalDetail so goal/task/topic bubbles render names on the first paint.
+  const knownGoalIds = new Set<string>([goalId])
+  const knownTaskIds = new Set<string>(rawTasks.map((t) => t.id as string))
+  const extraGoalIdSet = new Set<string>()
+  const extraTaskIdSet = new Set<string>()
+  const topicIdSet = new Set<string>()
+  for (const item of [...notes, ...resources]) {
+    for (const id of (item.linkedGoalIds ?? []) as string[]) {
+      if (!knownGoalIds.has(id)) extraGoalIdSet.add(id)
+    }
+    for (const id of (item.linkedTaskIds ?? []) as string[]) {
+      if (!knownTaskIds.has(id)) extraTaskIdSet.add(id)
+    }
+  }
+  for (const r of resources) {
+    if (r.topic_id) topicIdSet.add(r.topic_id as string)
+  }
+
+  const [extraGoalNames, extraTaskNames, topicNames] = await Promise.all([
+    extraGoalIdSet.size > 0
+      ? supabase
+          .from("goals")
+          .select("id, name")
+          .eq("user_id", userId)
+          .in("id", [...extraGoalIdSet])
+          .then(({ data }) => (data ?? []).map((g) => ({ id: g.id as string, name: g.name as string })))
+      : Promise.resolve<{ id: string; name: string }[]>([]),
+    extraTaskIdSet.size > 0
+      ? supabase
+          .from("tasks")
+          .select("id, name")
+          .eq("user_id", userId)
+          .in("id", [...extraTaskIdSet])
+          .then(({ data }) => (data ?? []).map((t) => ({ id: t.id as string, name: t.name as string })))
+      : Promise.resolve<{ id: string; name: string }[]>([]),
+    topicIdSet.size > 0
+      ? supabase
+          .from("topics")
+          .select("id, name")
+          .eq("user_id", userId)
+          .in("id", [...topicIdSet])
+          .then(({ data }) => (data ?? []).map((t) => ({ id: t.id as string, name: t.name as string })))
+      : Promise.resolve<{ id: string; name: string }[]>([]),
+  ])
 
   const NOTE_ACTIVE = new Set(["inbox", "to_review", "active"])
   const RESOURCE_ACTIVE = new Set(["inbox", "to_review", "active"])
@@ -344,6 +429,9 @@ export async function serverFetchGoalDetail(
     tasks,
     notes,
     resources,
+    extraGoalNames,
+    extraTaskNames,
+    topicNames,
     rollups: {
       projectCount: projects.length,
       taskCount: tasks.length,

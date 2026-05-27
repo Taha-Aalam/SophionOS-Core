@@ -4,14 +4,10 @@ import React from "react";
 import {
   Archive,
   ArchiveRestore,
-  CheckSquare,
   ExternalLink,
-  Folder,
-  Heart,
-  HeartOff,
   Map as LucideMap,
-  Tag,
-  Target,
+  Star,
+  Trash2,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -44,13 +40,14 @@ interface AreaInfo {
 interface ResourceRowProps {
   resource: Resource;
   areas?: AreaInfo[];
-  goalNames?: string | string[];
-  projectName?: string;
-  taskNames?: string | string[];
+  goalNames?: string[];
+  projectNames?: string[];
+  taskNames?: string[];
   topicName?: string;
   onToggleFavorite: (id: string, favorite: boolean) => void;
   onArchive: (id: string) => void;
   onUnarchive: (id: string) => void;
+  onDelete: (id: string) => void;
   onStatusChange?: (id: string, status: ResourceStatus) => void;
   onEdit?: (resource: Resource) => void;
 }
@@ -58,30 +55,19 @@ interface ResourceRowProps {
 export function ResourceRow({
   resource,
   areas = [],
-  goalNames,
-  projectName,
-  taskNames,
+  goalNames = [],
+  projectNames = [],
+  taskNames = [],
   topicName,
   onToggleFavorite,
   onArchive,
   onUnarchive,
+  onDelete,
   onEdit,
 }: ResourceRowProps) {
   const handleEdit = () => {
     onEdit?.(resource);
   };
-
-  const goalNameList = Array.isArray(goalNames)
-    ? goalNames
-    : goalNames
-      ? [goalNames]
-      : [];
-
-  const taskNameList = Array.isArray(taskNames)
-    ? taskNames
-    : taskNames
-      ? [taskNames]
-      : [];
 
   return (
     <div className="group flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30">
@@ -101,7 +87,7 @@ export function ResourceRow({
         </Badge>
       </div>
 
-      {/* Name */}
+      {/* Name + URL subtitle */}
       <div className="min-w-0 flex-1 self-center">
         <button
           type="button"
@@ -111,18 +97,29 @@ export function ResourceRow({
         >
           <span className="block truncate font-medium hover:underline">{resource.name}</span>
         </button>
+        {resource.url ? (
+          <a
+            href={resource.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="block truncate text-xs text-muted-foreground hover:underline"
+          >
+            {resource.url}
+          </a>
+        ) : null}
       </div>
 
-      {/* Metadata cluster */}
+      {/* Metadata cluster — all badges, no +N collapse */}
       <div className="hidden md:flex shrink-0 items-center gap-1.5 flex-wrap">
         {topicName && (
           <Badge variant="outline" className="gap-1 text-xs font-normal">
-            <Tag className="size-3" />
+            <span className="text-xs leading-none">🏷️</span>
             {topicName}
           </Badge>
         )}
-        {areas.slice(0, 1).map((area) => (
-          <Badge key={area.name} variant="outline" className="gap-1 text-xs font-normal">
+        {areas.map((area) => (
+          <Badge key={`${resource.id}-area-${area.name}`} variant="outline" className="gap-1 text-xs font-normal">
             {area.icon ? (
               <span className="text-xs leading-none">{area.icon}</span>
             ) : (
@@ -131,39 +128,24 @@ export function ResourceRow({
             {area.name}
           </Badge>
         ))}
-        {areas.length > 1 && (
-          <Badge variant="outline" className="text-xs font-normal">
-            +{areas.length - 1}
-          </Badge>
-        )}
-        {goalNameList.slice(0, 1).map((name) => (
-          <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
-            <Target className="size-3" />
+        {goalNames.map((name) => (
+          <Badge key={`${resource.id}-goal-${name}`} variant="outline" className="gap-1 text-xs font-normal">
+            <span className="text-xs leading-none">🎯</span>
             {name}
           </Badge>
         ))}
-        {goalNameList.length > 1 && (
-          <Badge variant="outline" className="text-xs font-normal">
-            +{goalNameList.length - 1}
-          </Badge>
-        )}
-        {projectName && (
-          <Badge variant="outline" className="gap-1 text-xs font-normal">
-            <Folder className="size-3" />
-            {projectName}
-          </Badge>
-        )}
-        {taskNameList.slice(0, 1).map((name) => (
-          <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
-            <CheckSquare className="size-3" />
+        {projectNames.map((name) => (
+          <Badge key={`${resource.id}-project-${name}`} variant="outline" className="gap-1 text-xs font-normal">
+            <span className="text-xs leading-none">📁</span>
             {name}
           </Badge>
         ))}
-        {taskNameList.length > 1 && (
-          <Badge variant="outline" className="text-xs font-normal">
-            +{taskNameList.length - 1}
+        {taskNames.map((name) => (
+          <Badge key={`${resource.id}-task-${name}`} variant="outline" className="gap-1 text-xs font-normal">
+            <span className="text-xs leading-none">☑️</span>
+            {name}
           </Badge>
-        )}
+        ))}
       </div>
 
       {/* Open Link */}
@@ -189,27 +171,26 @@ export function ResourceRow({
         )}
       </div>
 
-      {/* Star / Favorite */}
-      <div className="w-8 flex justify-center self-center">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite(resource.id, !resource.favorite);
-          }}
-          className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
-          title={resource.favorite ? "Remove from favorites" : "Add to favorites"}
-        >
-          {resource.favorite ? (
-            <Heart className="size-4 fill-rose-500 text-rose-500" />
-          ) : (
-            <HeartOff className="size-4" />
-          )}
-        </button>
-      </div>
+      {/* Favorite — star style matching contact card */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleFavorite(resource.id, !resource.favorite);
+        }}
+        className={cn(
+          "shrink-0 rounded-md p-1.5 transition-colors",
+          resource.favorite
+            ? "text-yellow-500"
+            : "text-muted-foreground/20 opacity-0 hover:text-yellow-400 group-hover:opacity-100",
+        )}
+        title={resource.favorite ? "Remove from favorites" : "Add to favorites"}
+      >
+        <Star className={cn("size-3.5", resource.favorite && "fill-current")} />
+      </button>
 
-      {/* Archive / Restore */}
-      <div className="w-8 flex justify-center self-center">
+      {/* Archive / Delete — task-row style */}
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
         <button
           type="button"
           onClick={(e) => {
@@ -220,14 +201,25 @@ export function ResourceRow({
               onArchive(resource.id);
             }
           }}
-          className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
           title={resource.is_archived ? "Restore" : "Archive"}
         >
           {resource.is_archived ? (
-            <ArchiveRestore className="size-4" />
+            <ArchiveRestore className="size-3.5" />
           ) : (
-            <Archive className="size-4" />
+            <Archive className="size-3.5" />
           )}
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(resource.id);
+          }}
+          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
+          title="Delete resource"
+        >
+          <Trash2 className="size-3.5" />
         </button>
       </div>
     </div>
@@ -239,6 +231,7 @@ export function ResourceRowSkeleton() {
     <div className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5">
       <div className="h-5 flex-1 animate-pulse rounded bg-muted" />
       <div className="h-5 w-48 animate-pulse rounded bg-muted hidden md:inline-flex" />
+      <div className="size-8 animate-pulse rounded bg-muted" />
       <div className="size-8 animate-pulse rounded bg-muted" />
       <div className="size-8 animate-pulse rounded bg-muted" />
       <div className="size-8 animate-pulse rounded bg-muted" />
