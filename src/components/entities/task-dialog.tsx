@@ -787,7 +787,7 @@ export function TaskDialog({
                           >
                             Clear selection
                           </DropdownMenuItem>
-                          <ScrollArea className="max-h-64">
+                          <div className="max-h-64 overflow-y-auto">
                             {scopedAreas.map((area) => {
                               const isSelected = selectedAreaIds.includes(area.id);
                               return (
@@ -809,7 +809,7 @@ export function TaskDialog({
                                 </DropdownMenuItem>
                               );
                             })}
-                          </ScrollArea>
+                          </div>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
@@ -872,7 +872,7 @@ export function TaskDialog({
                         >
                           Clear selection
                         </DropdownMenuItem>
-                        <ScrollArea className="max-h-64">
+                        <div className="max-h-64 overflow-y-auto">
                           {visibleAreas.map((area) => {
                             const checked = selectedAreaIds.includes(area.id);
                             return (
@@ -893,7 +893,7 @@ export function TaskDialog({
                               </DropdownMenuItem>
                             );
                           })}
-                        </ScrollArea>
+                        </div>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -952,7 +952,7 @@ export function TaskDialog({
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => form.setValue("goal_ids", [], { shouldDirty: true })}>
                           Clear selection
                         </DropdownMenuItem>
-                        <ScrollArea className="max-h-64">
+                        <div className="max-h-64 overflow-y-auto">
                           {visibleGoals.length === 0 ? (
                             <div className="px-2 py-1.5 text-sm text-muted-foreground">
                               {isProjectScoped
@@ -972,7 +972,7 @@ export function TaskDialog({
                               </DropdownMenuItem>
                             ))
                           )}
-                        </ScrollArea>
+                        </div>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -1038,7 +1038,7 @@ export function TaskDialog({
                       >
                         Clear selection
                       </DropdownMenuItem>
-                      <ScrollArea className="max-h-64">
+                      <div className="max-h-64 overflow-y-auto">
                         {filteredProjects.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">No projects available.</div>
                         ) : filteredProjects.map((project) => {
@@ -1060,7 +1060,7 @@ export function TaskDialog({
                             </DropdownMenuItem>
                           );
                         })}
-                      </ScrollArea>
+                      </div>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
