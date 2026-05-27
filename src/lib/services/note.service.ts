@@ -252,6 +252,7 @@ export const noteService = {
     if (filters?.favorite !== undefined) {
       query = query.eq("favorite", filters.favorite);
     }
+    // notebook column dropped in favor of note_notebooks junction table
     if (filters?.areaId) {
       query = query.eq("area_id", filters.areaId);
     }
@@ -877,6 +878,7 @@ export const noteService = {
       throw new DatabaseError(error.message);
     }
   },
+
 
   async bulkDelete(userId: string, noteIds: string[]): Promise<void> {
     if (noteIds.length === 0) return;

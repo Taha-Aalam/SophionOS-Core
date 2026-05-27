@@ -119,11 +119,6 @@ export function GoalDetailSection({
           {tabs.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value} className="text-sm px-3">
               {tab.label}
-              {tab.count !== undefined && tab.count > 0 && (
-                <span className="ml-1.5 text-xs text-muted-foreground">
-                  ({tab.count})
-                </span>
-              )}
             </TabsTrigger>
           ))}
         </TabsList>

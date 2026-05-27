@@ -1,9 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { TASK_SELECT } from "@/lib/services/task.service";
 import type { Task } from "@/lib/types/domain.types";
-
-const TASK_SELECT =
-  "id, user_id, area_id, project_id, name, description, status, priority, due_date, is_completed, is_focused, is_important, is_urgent, completed_at, smart_priority, is_archived, created_at, updated_at";
 
 function dedupeAreaIds(areaIds: Array<string | null | undefined>): string[] {
   return Array.from(new Set(areaIds.filter((id): id is string => Boolean(id))));
@@ -40,14 +38,14 @@ export async function serverFetchTasks(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<Task[]> {
-  const { data: tasksData } = await supabase
+  const { data } = await supabase
     .from("tasks")
     .select(TASK_SELECT)
     .eq("user_id", userId)
     .eq("is_archived", false)
     .order("created_at", { ascending: false });
 
-  const tasks = (tasksData ?? []) as Task[];
+  const tasks = data ?? [];
   if (tasks.length === 0) return tasks;
 
   const taskIds = tasks.map((t) => t.id);

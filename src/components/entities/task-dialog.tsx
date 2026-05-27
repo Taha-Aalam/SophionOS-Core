@@ -41,6 +41,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { TaskArchiveToggle } from "./task-archive-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,7 +97,10 @@ interface TaskDialogProps {
   projectScoped?: ProjectScopedTaskConfig;
   allowedProjectIds?: string[];
   onSuccess?: () => void;
+  /** @deprecated Use onArchiveToggle instead. */
   onDelete?: (id: string) => void;
+  onArchiveToggle?: (task: Task) => void;
+  onPermanentDelete?: (id: string) => void;
 }
 
 interface TaskFormValues {
@@ -221,12 +225,14 @@ export function TaskDialog({
   allowedProjectIds,
   onSuccess,
   onDelete,
+  onArchiveToggle,
+  onPermanentDelete,
 }: TaskDialogProps) {
   const isGoalScoped = Boolean(goalScoped) && !task;
   const isProjectScoped = Boolean(projectScoped) && !task && !isGoalScoped;
-  const { data: allAreas = [] } = useAreas();
-  const { data: allGoals = [] } = useGoals({ status: "all" });
-  const { data: allProjects = [] } = useProjects({ status: "all" });
+  const { data: allAreas = [], isLoading: isLoadingAreas } = useAreas();
+  const { data: allGoals = [], isLoading: isLoadingGoals } = useGoals({ status: "all" });
+  const { data: allProjects = [], isLoading: isLoadingProjects } = useProjects({ status: "all" });
   const { data: taskRelations } = useTaskWithRelations(task?.id ?? "");
 
   const scopedCandidateIds = useMemo(() => {
@@ -305,6 +311,7 @@ export function TaskDialog({
     form,
     goalId,
     goalScoped,
+    linkedProjectIds,
     projectScoped,
     linkedGoalIds,
     linkedAreaIds,
@@ -380,6 +387,9 @@ export function TaskDialog({
 
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
+    // Don't strip goals while reference data is still loading — empty defaults
+    // would mark every existing goal as "invalid" and wipe junction links.
+    if (isLoadingGoals || isLoadingAreas || isLoadingProjects) return;
 
     const invalidGoalIds = selectedGoalIds.filter((goalId) => {
       // A goal is allowed if at least one selected project allows it.
@@ -500,7 +510,7 @@ export function TaskDialog({
     });
 
     if (invalidAreaIds.length > 0) {
-      const nextAreaIds = selectedAreaIds.filter((id) => !invalidAreaIds.includes(id));
+      const nextAreaIds = selectedAreaIds.filter((id: string) => !invalidAreaIds.includes(id));
       form.setValue("area_ids", nextAreaIds, {
         shouldDirty: true,
         shouldTouch: true,
@@ -625,7 +635,7 @@ export function TaskDialog({
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full h-12">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -648,7 +658,7 @@ export function TaskDialog({
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full h-12">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -768,7 +778,7 @@ export function TaskDialog({
                             ? "Select areas..."
                             : `${selectedAreaIds.length} selected`}
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-56">
+                        <DropdownMenuContent align="start" className="w-56 max-h-80">
                           <DropdownMenuItem
                             onSelect={(e) => e.preventDefault()}
                             onClick={() => {
@@ -777,7 +787,7 @@ export function TaskDialog({
                           >
                             Clear selection
                           </DropdownMenuItem>
-                          <ScrollArea className="max-h-56">
+                          <ScrollArea className="max-h-64">
                             {scopedAreas.map((area) => {
                               const isSelected = selectedAreaIds.includes(area.id);
                               return (
@@ -853,7 +863,7 @@ export function TaskDialog({
                           ? "Select areas..."
                           : `${selectedAreaIds.length} selected`}
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuContent align="start" className="w-56 max-h-80">
                         <DropdownMenuItem
                           onSelect={(e) => e.preventDefault()}
                           onClick={() => {
@@ -862,26 +872,28 @@ export function TaskDialog({
                         >
                           Clear selection
                         </DropdownMenuItem>
-                        {visibleAreas.map((area) => {
-                          const checked = selectedAreaIds.includes(area.id);
-                          return (
-                            <DropdownMenuItem
-                              key={area.id}
-                              onSelect={(e) => e.preventDefault()}
-                              onClick={() => {
-                                const nextAreaIds = checked
-                                  ? selectedAreaIds.filter((id) => id !== area.id)
-                                  : [...selectedAreaIds, area.id];
-                                form.setValue("area_ids", nextAreaIds, { shouldDirty: true });
-                              }}
-                              className="flex items-center gap-2"
-                            >
-                              <Checkbox checked={checked} />
-                              {area.icon ? `${area.icon} ` : ""}
-                              {area.name}
-                            </DropdownMenuItem>
-                          );
-                        })}
+                        <ScrollArea className="max-h-64">
+                          {visibleAreas.map((area) => {
+                            const checked = selectedAreaIds.includes(area.id);
+                            return (
+                              <DropdownMenuItem
+                                key={area.id}
+                                onSelect={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  const nextAreaIds = checked
+                                    ? selectedAreaIds.filter((id) => id !== area.id)
+                                    : [...selectedAreaIds, area.id];
+                                  form.setValue("area_ids", nextAreaIds, { shouldDirty: true });
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <Checkbox checked={checked} />
+                                {area.icon ? `${area.icon} ` : ""}
+                                {area.name}
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </ScrollArea>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -936,11 +948,11 @@ export function TaskDialog({
                       <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
                         {selectedGoalIds.length === 0 ? "Select goals..." : `${selectedGoalIds.length} selected`}
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuContent align="start" className="w-56 max-h-80">
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => form.setValue("goal_ids", [], { shouldDirty: true })}>
                           Clear selection
                         </DropdownMenuItem>
-                        <ScrollArea className="max-h-56">
+                        <ScrollArea className="max-h-64">
                           {visibleGoals.length === 0 ? (
                             <div className="px-2 py-1.5 text-sm text-muted-foreground">
                               {isProjectScoped
@@ -1017,7 +1029,7 @@ export function TaskDialog({
                         ? "Select projects..."
                         : `${selectedProjectIds.length} selected`}
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuContent align="start" className="w-56 max-h-80">
                       <DropdownMenuItem
                         onSelect={(e) => e.preventDefault()}
                         onClick={() => {
@@ -1026,7 +1038,7 @@ export function TaskDialog({
                       >
                         Clear selection
                       </DropdownMenuItem>
-                      <ScrollArea className="max-h-56">
+                      <ScrollArea className="max-h-64">
                         {filteredProjects.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">No projects available.</div>
                         ) : filteredProjects.map((project) => {
@@ -1070,7 +1082,7 @@ export function TaskDialog({
                           >
                             <X className="size-3" />
                           </button>
-                        </Badge>
+                          </Badge>
                       ))}
                   </div>
                 )}
@@ -1123,19 +1135,39 @@ export function TaskDialog({
             </div>
 
             <div className="flex items-center justify-between gap-3 pt-4">
-              {task && onDelete && (
+              {task && (onArchiveToggle || onDelete) && (
+                <span>
+                  <TaskArchiveToggle
+                    isArchived={task.is_archived}
+                    mode="detail"
+                    disabled={isPending}
+                    onClick={() => {
+                      if (onArchiveToggle) {
+                        onArchiveToggle(task);
+                      } else {
+                        onDelete!(task.id);
+                      }
+                      onOpenChange(false);
+                    }}
+                  />
+                </span>
+              )}
+              {task && task.is_archived && onPermanentDelete && (
                 <Button
                   type="button"
                   variant="outline"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  size="default"
                   disabled={isPending}
+                  className="text-destructive hover:text-destructive"
                   onClick={() => {
-                    onDelete(task.id);
-                    onOpenChange(false);
+                    if (window.confirm("Permanently delete this task? This cannot be undone.")) {
+                      onPermanentDelete(task.id);
+                      onOpenChange(false);
+                    }
                   }}
                 >
-                  <Trash2 className="mr-1 size-4" />
-                  Delete
+                  <Trash2 className="size-4" />
+                  Delete permanently
                 </Button>
               )}
               <div className="ml-auto flex gap-3">

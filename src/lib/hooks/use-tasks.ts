@@ -3,6 +3,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { AREAS_QUERY_KEY, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
+import { CONTACTS_QUERY_KEY } from "@/lib/hooks/use-contacts";
 import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
 import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
@@ -21,8 +22,10 @@ function invalidateTaskGraph(queryClient: ReturnType<typeof useQueryClient>): Pr
     queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY], refetchType: "all" }),
     queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY], refetchType: "all" }),
     queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY], refetchType: "all" }),
+    queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY], refetchType: "all" }),
     queryClient.invalidateQueries({ queryKey: [DASHBOARD_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] }),
   ]);
 }
 
@@ -118,7 +121,12 @@ export function useUpdateTask() {
   });
 }
 
+/** @deprecated Use `useArchiveTask` instead. Kept as alias for backwards compat. */
 export function useDeleteTask() {
+  return useArchiveTask();
+}
+
+export function useArchiveTask() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -130,6 +138,38 @@ export function useDeleteTask() {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to archive task");
+    },
+  });
+}
+
+export function useRestoreTask() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => taskService.restore(user!.id, id),
+    onSuccess: async () => {
+      await invalidateTaskGraph(queryClient);
+      toast.success("Task restored");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to restore task");
+    },
+  });
+}
+
+export function usePermanentDeleteTask() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => taskService.permanentDelete(user!.id, id),
+    onSuccess: async () => {
+      await invalidateTaskGraph(queryClient);
+      toast.success("Task permanently deleted");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete task");
     },
   });
 }
@@ -236,8 +276,10 @@ export function useFocusTask() {
     onMutate: async ({ id, is_focused }) => {
       await queryClient.cancelQueries({ queryKey: [TASKS_QUERY_KEY] });
       await queryClient.cancelQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      await queryClient.cancelQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
       const previousData = queryClient.getQueriesData<Task[]>({ queryKey: [TASKS_QUERY_KEY] });
       const previousAreaDetailData = queryClient.getQueriesData<unknown>({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      const previousGoalDetailData = queryClient.getQueriesData<unknown>({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
 
       queryClient.setQueriesData<Task[]>({ queryKey: [TASKS_QUERY_KEY] }, (old) => {
         if (!Array.isArray(old)) {
@@ -262,7 +304,23 @@ export function useFocusTask() {
         },
       );
 
-      return { previousData, previousAreaDetailData };
+      // Mirror the same patch into the goal-detail cache. Without this,
+      // toggling Focus on the goal detail page does not flip the icon
+      // until a manual refresh, because goalData.tasks is the only source
+      // of truth on that page.
+      queryClient.setQueriesData<{ tasks?: Task[] } | undefined>(
+        { queryKey: [GOAL_DETAIL_QUERY_KEY] },
+        (old) => {
+          if (!old) return old;
+          const patchTask = (t: Task) => (t.id === id ? { ...t, is_focused } : t);
+          return {
+            ...old,
+            tasks: old.tasks ? old.tasks.map(patchTask) : old.tasks,
+          };
+        },
+      );
+
+      return { previousData, previousAreaDetailData, previousGoalDetailData };
     },
     onError: (_error, _vars, context) => {
       if (context?.previousData) {
@@ -275,9 +333,16 @@ export function useFocusTask() {
           queryClient.setQueryData(queryKey, data);
         });
       }
+      if (context?.previousGoalDetailData) {
+        context.previousGoalDetailData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
     },
     onSettled: async () => {
       await invalidateTaskCoreGraph(queryClient);
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
     },
   });
 }
