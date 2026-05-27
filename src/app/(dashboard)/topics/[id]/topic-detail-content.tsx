@@ -493,6 +493,7 @@ export function TopicDetailContent() {
                   goalNames={resourceGoalNames}
                   projectNames={resourceProjectNames}
                   taskNames={resourceTaskNames}
+                  topicName={topic?.name}
                   onToggleFavorite={(id, favorite) =>
                     toggleFavoriteResource.mutate({ id, favorite })
                   }

@@ -3,13 +3,9 @@
 import {
   Archive,
   ArchiveRestore,
-  BookOpen,
-  CheckSquare,
-  Folder,
   Map as LucideMap,
   Pin,
   Star,
-  Target,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -109,7 +105,7 @@ export function NoteRow({
       <div className="hidden shrink-0 flex-wrap items-center gap-1.5 md:flex">
         {(note.notebooks ?? []).map((nb) => (
           <Badge key={nb} variant="outline" className="gap-1 text-xs font-normal">
-            <BookOpen className="size-3" />
+            <span className="text-xs leading-none">📓</span>
             {nb}
           </Badge>
         ))}
@@ -125,19 +121,19 @@ export function NoteRow({
         ))}
         {goalNames.map((name) => (
           <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
-            <Target className="size-3" />
+            <span className="text-xs leading-none">🎯</span>
             {name}
           </Badge>
         ))}
         {projectNames.map((name) => (
           <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
-            <Folder className="size-3" />
+            <span className="text-xs leading-none">📁</span>
             {name}
           </Badge>
         ))}
         {taskNames.map((name) => (
           <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
-            <CheckSquare className="size-3" />
+            <span className="text-xs leading-none">☑️</span>
             {name}
           </Badge>
         ))}

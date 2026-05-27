@@ -344,6 +344,8 @@ export async function serverFetchGoalDetail(
     tasks,
     notes,
     resources,
+    extraGoalNames: [],
+    extraTaskNames: [],
     rollups: {
       projectCount: projects.length,
       taskCount: tasks.length,
