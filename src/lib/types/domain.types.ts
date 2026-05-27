@@ -15,7 +15,8 @@ export interface Goal extends DatabaseTable<"goals"> {
   resourceCount?: number;
 }
 
-export interface Note extends DatabaseTable<"notes"> {
+export interface Note extends Omit<DatabaseTable<"notes">, "notebook"> {
+  notebook?: string | null;
   linkedAreaIds?: string[];
   linkedGoalIds?: string[];
   linkedProjectIds?: string[];
@@ -54,6 +55,7 @@ export type ResourceArea = DatabaseTable<"resource_areas">;
 export interface Task extends DatabaseTable<"tasks"> {
   linkedAreaIds?: string[];
   linkedGoalIds?: string[];
+  linkedProjectIds?: string[];
 }
 
 export type GoalProject = DatabaseTable<"goal_projects">;
@@ -149,6 +151,7 @@ export interface CreateTaskInput {
   area_id?: string | null;
   area_ids?: string[];
   project_id?: string | null;
+  project_ids?: string[];
   name: string;
   description?: string | null;
   status?: Task["status"];

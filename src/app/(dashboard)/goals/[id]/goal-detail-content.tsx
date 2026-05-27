@@ -60,6 +60,7 @@ import {
   useArchiveTask,
   useCompleteTaskWithGoalRefresh,
   useFocusTask,
+  usePermanentDeleteTask,
   useRestoreTask,
   useTasks,
   useUpdateTask,
@@ -74,6 +75,7 @@ import { useUIStore } from "@/lib/stores/ui.store";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
 import { buildReturnTo, encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
+import { getTaskLinkedAreaIds } from "@/lib/utils/tasks";
 
 const NOTE_STATUS_COLORS: Record<string, string> = {
   [NOTE_STATUS.INBOX]: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -245,6 +247,7 @@ export function GoalDetailContent() {
   const updateTask = useUpdateTask();
   const archiveTask = useArchiveTask();
   const restoreTask = useRestoreTask();
+  const permanentDeleteTask = usePermanentDeleteTask();
   const focusTask = useFocusTask();
   const toggleFavoriteNote = useToggleFavoriteNote();
   const toggleFavoriteResource = useToggleFavoriteResource();
@@ -458,37 +461,12 @@ export function GoalDetailContent() {
 
   // Task section tabs
   const taskTabs = [
-    { value: "all", label: "All", count: goalData?.rollups.taskCount },
-    {
-      value: "inbox",
-      label: "Inbox",
-      count: goalData?.tasks.filter((t) => t.status === "inbox" && !t.is_completed).length,
-    },
-    {
-      value: "upcoming",
-      label: "Upcoming",
-      count: goalData?.tasks.filter(
-        (t) => t.status !== "inbox" && t.status !== "completed" && !t.is_completed,
-      ).length,
-    },
-    {
-      value: "overdue",
-      label: "Overdue",
-      count: goalData?.tasks.filter((t) => {
-        if (!t.due_date || t.is_completed) return false;
-        return new Date(t.due_date) < new Date();
-      }).length,
-    },
-    {
-      value: "by_projects",
-      label: "By Projects",
-      count: goalData?.rollups.taskCount,
-    },
-    {
-      value: "completed",
-      label: "Completed",
-      count: goalData?.rollups.completedTaskCount,
-    },
+    { value: "all", label: "All" },
+    { value: "inbox", label: "Inbox" },
+    { value: "upcoming", label: "Upcoming" },
+    { value: "overdue", label: "Overdue" },
+    { value: "by_projects", label: "By Projects" },
+    { value: "completed", label: "Completed" },
   ];
 
   const filteredTasks = useMemo(() => {
@@ -566,6 +544,13 @@ export function GoalDetailContent() {
       }
     },
     [archiveTask, restoreTask],
+  );
+
+  const handlePermanentDelete = useCallback(
+    (id: string) => {
+      permanentDeleteTask.mutate(id);
+    },
+    [permanentDeleteTask],
   );
 
   const handleTaskEdit = useCallback((task: Task) => {
@@ -1066,20 +1051,26 @@ export function GoalDetailContent() {
                             {projectName} ({groups[projectName].length})
                           </h3>
                           <div className="rounded-lg border bg-card">
-                            {groups[projectName].map((task) => (
+                            {groups[projectName].map((task) => {
+                              const taskLinkedAreaIds = getTaskLinkedAreaIds(task);
+                              return (
                               <TaskListItem
                                 key={task.id}
                                 task={task}
-                                linkedAreaNames={task.area_id && areaNames.get(task.area_id) ? [areaNames.get(task.area_id)!] : []}
-                                linkedAreaIcons={task.area_id ? [areaIcons.get(task.area_id) ?? null] : []}
+                                linkedAreaNames={taskLinkedAreaIds.map((id) => areaNames.get(id)).filter((n): n is string => Boolean(n))}
+                                linkedAreaIcons={taskLinkedAreaIds.map((id) => areaIcons.get(id) ?? null)}
+                                linkedGoalNames={task.linkedGoalIds?.map((id) => allGoals.find((g) => g.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
                                 projectName={null}
+                                linkedProjectNames={task.linkedProjectIds?.map((id) => allProjects.find((p) => p.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
                                 onCompletionToggle={handleTaskCompletion}
                                 onFocusToggle={handleTaskFocus}
                                 onNameSave={handleTaskNameSave}
                                 onArchiveToggle={handleTaskArchiveToggle}
+                                onPermanentDelete={handlePermanentDelete}
                                 onEdit={handleTaskEdit}
                               />
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       ))}
@@ -1089,24 +1080,30 @@ export function GoalDetailContent() {
               ) : (
                 // Default flat list
                 <div className="rounded-lg border bg-card">
-                  {filteredTasks.map((task) => (
+                  {filteredTasks.map((task) => {
+                    const taskLinkedAreaIds = getTaskLinkedAreaIds(task);
+                    return (
                     <TaskListItem
                       key={task.id}
                       task={task}
-                      linkedAreaNames={task.area_id && areaNames.get(task.area_id) ? [areaNames.get(task.area_id)!] : []}
-                      linkedAreaIcons={task.area_id ? [areaIcons.get(task.area_id) ?? null] : []}
+                      linkedAreaNames={taskLinkedAreaIds.map((id) => areaNames.get(id)).filter((n): n is string => Boolean(n))}
+                      linkedAreaIcons={taskLinkedAreaIds.map((id) => areaIcons.get(id) ?? null)}
+                      linkedGoalNames={task.linkedGoalIds?.map((id) => allGoals.find((g) => g.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
                       projectName={
                         task.project_id
                           ? allProjects.find((p) => p.id === task.project_id)?.name ?? null
                           : null
                       }
+                      linkedProjectNames={task.linkedProjectIds?.map((id) => allProjects.find((p) => p.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
                       onCompletionToggle={handleTaskCompletion}
                       onFocusToggle={handleTaskFocus}
                       onNameSave={handleTaskNameSave}
                       onArchiveToggle={handleTaskArchiveToggle}
+                      onPermanentDelete={handlePermanentDelete}
                       onEdit={handleTaskEdit}
                     />
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </>
@@ -1351,6 +1348,10 @@ export function GoalDetailContent() {
         onSuccess={() => setEditingTask(null)}
         onArchiveToggle={(task) => {
           handleTaskArchiveToggle(task);
+          setEditingTask(null);
+        }}
+        onPermanentDelete={(id) => {
+          handlePermanentDelete(id);
           setEditingTask(null);
         }}
       />

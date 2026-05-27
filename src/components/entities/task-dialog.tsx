@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
-import { X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAreas, useAreasByIds } from "@/lib/hooks/use-areas";
@@ -100,6 +100,7 @@ interface TaskDialogProps {
   /** @deprecated Use onArchiveToggle instead. */
   onDelete?: (id: string) => void;
   onArchiveToggle?: (task: Task) => void;
+  onPermanentDelete?: (id: string) => void;
 }
 
 interface TaskFormValues {
@@ -115,6 +116,7 @@ interface TaskFormValues {
   name: string;
   priority: Task["priority"];
   project_id: string;
+  project_ids: string[];
   status: Task["status"];
 }
 
@@ -132,6 +134,7 @@ const EMPTY_FORM_VALUES: TaskFormValues = {
   name: "",
   priority: PRIORITY.MEDIUM,
   project_id: "",
+  project_ids: [],
   status: TASK_STATUS.INBOX,
 };
 
@@ -139,6 +142,7 @@ function buildTaskFormValues(
   task: Task | null | undefined,
   goalIds: string[],
   linkedAreaIds: string[],
+  linkedProjectIds: string[],
   defaultAreaId?: string,
   defaultProjectId?: string,
   defaultGoalId?: string,
@@ -154,6 +158,7 @@ function buildTaskFormValues(
         ...EMPTY_FORM_VALUES,
         area_ids: scopedAreaIds,
         project_id: "",
+        project_ids: [],
         goal_ids: [goalScoped.goalId],
       };
     }
@@ -165,6 +170,7 @@ function buildTaskFormValues(
         ...EMPTY_FORM_VALUES,
         area_ids: scopedAreaIds,
         project_id: projectScoped.projectId,
+        project_ids: [projectScoped.projectId],
         goal_ids: projectScoped.linkedGoalIds?.length
           ? projectScoped.linkedGoalIds
           : defaultGoalId
@@ -176,6 +182,7 @@ function buildTaskFormValues(
       ...EMPTY_FORM_VALUES,
       area_ids: defaultAreaId ? [defaultAreaId] : [],
       project_id: defaultProjectId ?? "",
+      project_ids: defaultProjectId ? [defaultProjectId] : [],
       goal_ids: defaultGoalId ? [defaultGoalId] : [],
     };
   }
@@ -193,6 +200,7 @@ function buildTaskFormValues(
     name: task.name,
     priority: task.priority,
     project_id: task.project_id ?? "",
+    project_ids: linkedProjectIds.length > 0 ? linkedProjectIds : (task.project_id ? [task.project_id] : []),
     status: task.status,
   };
 }
@@ -211,12 +219,13 @@ export function TaskDialog({
   onSuccess,
   onDelete,
   onArchiveToggle,
+  onPermanentDelete,
 }: TaskDialogProps) {
   const isGoalScoped = Boolean(goalScoped) && !task;
   const isProjectScoped = Boolean(projectScoped) && !task && !isGoalScoped;
-  const { data: allAreas = [] } = useAreas();
-  const { data: allGoals = [] } = useGoals({ status: "all" });
-  const { data: allProjects = [] } = useProjects({ status: "all" });
+  const { data: allAreas = [], isLoading: isLoadingAreas } = useAreas();
+  const { data: allGoals = [], isLoading: isLoadingGoals } = useGoals({ status: "all" });
+  const { data: allProjects = [], isLoading: isLoadingProjects } = useProjects({ status: "all" });
   const { data: taskRelations } = useTaskWithRelations(task?.id ?? "");
 
   const scopedCandidateIds = useMemo(() => {
@@ -249,6 +258,7 @@ export function TaskDialog({
   );
   const linkedGoalIds = getStableStringArray(taskRelations?.goal_ids);
   const linkedAreaIds = getStableStringArray(taskRelations?.area_ids ?? []);
+  const linkedProjectIds = getStableStringArray(taskRelations?.project_ids ?? []);
 
   const form = useForm<TaskFormValues>({
     defaultValues: EMPTY_FORM_VALUES,
@@ -280,6 +290,7 @@ export function TaskDialog({
         task,
         linkedGoalIds,
         linkedAreaIds,
+        linkedProjectIds,
         defaultAreaId,
         defaultProjectId,
         goalId,
@@ -293,6 +304,7 @@ export function TaskDialog({
     form,
     goalId,
     goalScoped,
+    linkedProjectIds,
     projectScoped,
     linkedGoalIds,
     linkedAreaIds,
@@ -329,16 +341,28 @@ export function TaskDialog({
   const watchedGoalIds = form.watch("goal_ids");
   const selectedAreaIds = useMemo(() => watchedAreaIds ?? [], [watchedAreaIds]);
   const selectedGoalIds = useMemo(() => watchedGoalIds ?? [], [watchedGoalIds]);
-  const selectedProjectId = form.watch("project_id");
+  const selectedProjectIds = useMemo(() => form.watch("project_ids") ?? [], [form.watch("project_ids")]);
+  const selectedProjectId = selectedProjectIds[0] ?? "";
   const isPending = createTask.isPending || updateTask.isPending;
 
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
+    // Don't strip goals while reference data is still loading — empty defaults
+    // would mark every existing goal as "invalid" and wipe junction links.
+    if (isLoadingGoals || isLoadingAreas || isLoadingProjects) return;
 
-    const invalidGoalIds = selectedGoalIds.filter((goalId) => {
-      if (selectedProjectId) {
-        const proj = projectById.get(selectedProjectId);
-        if (proj?.linkedGoalIds?.length && !proj.linkedGoalIds.includes(goalId)) return true;
+    const currentGoalIds = form.getValues("goal_ids") ?? [];
+    const invalidGoalIds = currentGoalIds.filter((goalId: string) => {
+      if (selectedProjectIds.length > 0) {
+        const linkedToAnyProject = selectedProjectIds.some((pId) => {
+          const proj = projectById.get(pId);
+          return proj?.linkedGoalIds?.length && proj.linkedGoalIds.includes(goalId);
+        });
+        const hasProjectsWithGoals = selectedProjectIds.some((pId) => {
+          const proj = projectById.get(pId);
+          return proj?.linkedGoalIds?.length;
+        });
+        if (hasProjectsWithGoals && !linkedToAnyProject) return true;
       }
       const goal = allGoals.find((g) => g.id === goalId);
       if (!goal) return true;
@@ -347,14 +371,14 @@ export function TaskDialog({
     });
 
     if (invalidGoalIds.length > 0) {
-      const nextGoalIds = selectedGoalIds.filter((id) => !invalidGoalIds.includes(id));
+      const nextGoalIds = currentGoalIds.filter((id: string) => !invalidGoalIds.includes(id));
       form.setValue("goal_ids", nextGoalIds, {
         shouldDirty: true,
         shouldTouch: true,
         shouldValidate: true,
       });
     }
-  }, [selectedAreaIds, selectedProjectId, allGoals, selectedGoalIds, form, isGoalScoped, isProjectScoped, projectById]);
+  }, [selectedAreaIds, selectedProjectIds, allGoals, form, isGoalScoped, isProjectScoped, projectById]);
 
   /** Goals visible in the goal selector — restricted to project-linked goals when project-scoped, or area-linked goals when an area is selected. */
   const visibleGoals = useMemo(() => {
@@ -382,19 +406,19 @@ export function TaskDialog({
     return computeFilteredProjects(projects, selectedGoalIds, selectedAreaIds);
   }, [goalScoped, isGoalScoped, projects, selectedAreaIds, selectedGoalIds, allowedProjectIds]);
 
-  // Clear project_id when the currently-selected project is no longer in filteredProjects
+  // Clear project_ids when selected projects are no longer in filteredProjects
   // (e.g. user picks a goal that the project doesn't belong to).
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
-    if (!selectedProjectId) return;
-    if (!filteredProjects.some((p) => p.id === selectedProjectId)) {
-      form.setValue("project_id", "", {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true,
-      });
+    if (isLoadingProjects) return;
+    const currentProjectIds = form.getValues("project_ids") ?? [];
+    if (currentProjectIds.length === 0) return;
+    const validProjectIds = currentProjectIds.filter((pId: string) => filteredProjects.some((p) => p.id === pId));
+    if (validProjectIds.length !== currentProjectIds.length) {
+      form.setValue("project_ids", validProjectIds, { shouldDirty: true });
+      form.setValue("project_id", validProjectIds[0] ?? "", { shouldDirty: true });
     }
-  }, [filteredProjects, selectedProjectId, form, isGoalScoped, isProjectScoped]);
+  }, [filteredProjects, form, isGoalScoped, isProjectScoped, isLoadingProjects]);
 
   /** Areas visible in the area selector — AND-intersection of goal and project areas. */
   const visibleAreas = useMemo(
@@ -412,16 +436,19 @@ export function TaskDialog({
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
 
-    const invalidAreaIds = selectedAreaIds.filter((areaId) => {
-      if (selectedProjectId) {
-        const proj = projectById.get(selectedProjectId);
-        if (proj) {
+    const currentAreaIds = form.getValues("area_ids") ?? [];
+    const invalidAreaIds = currentAreaIds.filter((areaId: string) => {
+      if (selectedProjectIds.length > 0) {
+        const linkedToAnyProject = selectedProjectIds.some((pId) => {
+          const proj = projectById.get(pId);
+          if (!proj) return false;
           const projAreaIds = new Set([
             ...(proj.linkedAreaIds ?? []),
             ...(proj.area_id ? [proj.area_id] : []),
           ]);
-          if (!projAreaIds.has(areaId)) return true;
-        }
+          return projAreaIds.has(areaId);
+        });
+        if (!linkedToAnyProject) return true;
       }
       if (selectedGoalIds.length === 0) return false;
       return !selectedGoalIds.some((goalId) => {
@@ -432,14 +459,14 @@ export function TaskDialog({
     });
 
     if (invalidAreaIds.length > 0) {
-      const nextAreaIds = selectedAreaIds.filter((id) => !invalidAreaIds.includes(id));
+      const nextAreaIds = currentAreaIds.filter((id: string) => !invalidAreaIds.includes(id));
       form.setValue("area_ids", nextAreaIds, {
         shouldDirty: true,
         shouldTouch: true,
         shouldValidate: true,
       });
     }
-  }, [selectedGoalIds, selectedProjectId, allGoals, selectedAreaIds, form, isGoalScoped, isProjectScoped, projectById]);
+  }, [selectedGoalIds, selectedProjectIds, allGoals, form, isGoalScoped, isProjectScoped, projectById]);
 
   const handleGoalToggle = (goalId: string, checked: boolean) => {
     const nextGoalIds = checked
@@ -557,7 +584,7 @@ export function TaskDialog({
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full h-12">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -580,7 +607,7 @@ export function TaskDialog({
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full h-12">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -700,7 +727,7 @@ export function TaskDialog({
                             ? "Select areas..."
                             : `${selectedAreaIds.length} selected`}
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-56">
+                        <DropdownMenuContent align="start" className="w-56 max-h-80">
                           <DropdownMenuItem
                             onSelect={(e) => e.preventDefault()}
                             onClick={() => {
@@ -709,7 +736,7 @@ export function TaskDialog({
                           >
                             Clear selection
                           </DropdownMenuItem>
-                          <ScrollArea className="max-h-56">
+                          <ScrollArea className="max-h-64">
                             {scopedAreas.map((area) => {
                               const isSelected = selectedAreaIds.includes(area.id);
                               return (
@@ -785,7 +812,7 @@ export function TaskDialog({
                           ? "Select areas..."
                           : `${selectedAreaIds.length} selected`}
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuContent align="start" className="w-56 max-h-80">
                         <DropdownMenuItem
                           onSelect={(e) => e.preventDefault()}
                           onClick={() => {
@@ -794,26 +821,28 @@ export function TaskDialog({
                         >
                           Clear selection
                         </DropdownMenuItem>
-                        {visibleAreas.map((area) => {
-                          const checked = selectedAreaIds.includes(area.id);
-                          return (
-                            <DropdownMenuItem
-                              key={area.id}
-                              onSelect={(e) => e.preventDefault()}
-                              onClick={() => {
-                                const nextAreaIds = checked
-                                  ? selectedAreaIds.filter((id) => id !== area.id)
-                                  : [...selectedAreaIds, area.id];
-                                form.setValue("area_ids", nextAreaIds, { shouldDirty: true });
-                              }}
-                              className="flex items-center gap-2"
-                            >
-                              <Checkbox checked={checked} />
-                              {area.icon ? `${area.icon} ` : ""}
-                              {area.name}
-                            </DropdownMenuItem>
-                          );
-                        })}
+                        <ScrollArea className="max-h-64">
+                          {visibleAreas.map((area) => {
+                            const checked = selectedAreaIds.includes(area.id);
+                            return (
+                              <DropdownMenuItem
+                                key={area.id}
+                                onSelect={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  const nextAreaIds = checked
+                                    ? selectedAreaIds.filter((id) => id !== area.id)
+                                    : [...selectedAreaIds, area.id];
+                                  form.setValue("area_ids", nextAreaIds, { shouldDirty: true });
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <Checkbox checked={checked} />
+                                {area.icon ? `${area.icon} ` : ""}
+                                {area.name}
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </ScrollArea>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -868,11 +897,11 @@ export function TaskDialog({
                       <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
                         {selectedGoalIds.length === 0 ? "Select goals..." : `${selectedGoalIds.length} selected`}
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuContent align="start" className="w-56 max-h-80">
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => form.setValue("goal_ids", [], { shouldDirty: true })}>
                           Clear selection
                         </DropdownMenuItem>
-                        <ScrollArea className="max-h-56">
+                        <ScrollArea className="max-h-64">
                           {visibleGoals.length === 0 ? (
                             <div className="px-2 py-1.5 text-sm text-muted-foreground">
                               {isProjectScoped
@@ -945,27 +974,33 @@ export function TaskDialog({
                   <FormLabel>Project</FormLabel>
                   <DropdownMenu>
                     <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                      {!form.watch("project_id") ? "Select project..." : (projectById.get(form.watch("project_id"))?.name ?? "...")}
+                      {selectedProjectIds.length === 0 ? "Select project..." : `${selectedProjectIds.length} project${selectedProjectIds.length > 1 ? "s" : ""}`}
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuContent align="start" className="w-56 max-h-80">
                       <DropdownMenuItem
                         onSelect={(e) => e.preventDefault()}
-                        onClick={() => form.setValue("project_id", "", { shouldDirty: true })}
+                        onClick={() => {
+                          form.setValue("project_ids", [], { shouldDirty: true });
+                          form.setValue("project_id", "", { shouldDirty: true });
+                        }}
                       >
-                        None
+                        Clear selection
                       </DropdownMenuItem>
-                      <ScrollArea className="max-h-56">
+                      <ScrollArea className="max-h-64">
                         {filteredProjects.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">No projects available.</div>
                         ) : filteredProjects.map((project) => {
-                          const isSelected = form.watch("project_id") === project.id;
+                          const isSelected = selectedProjectIds.includes(project.id);
                           return (
                             <DropdownMenuItem
                               key={project.id}
                               onSelect={(e) => e.preventDefault()}
                               onClick={() => {
-                                const nextId = isSelected ? "" : project.id;
-                                form.setValue("project_id", nextId, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+                                const nextIds = isSelected
+                                  ? selectedProjectIds.filter((id) => id !== project.id)
+                                  : [...selectedProjectIds, project.id];
+                                form.setValue("project_ids", nextIds, { shouldDirty: true });
+                                form.setValue("project_id", nextIds[0] ?? "", { shouldDirty: true });
                               }}
                               className="flex items-center gap-2"
                             >
@@ -978,21 +1013,31 @@ export function TaskDialog({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                {form.watch("project_id") && projectById.get(form.watch("project_id")) && (
+                {selectedProjectIds.length > 0 && (
                   <div className="flex flex-wrap gap-2 pt-2">
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      {projectById.get(form.watch("project_id"))!.name}
-                      <button
-                        type="button"
-                        onClick={() => form.setValue("project_id", "", { shouldDirty: true })}
-                        className="ml-1 rounded-full p-0.5 hover:bg-muted"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </Badge>
+                    {selectedProjectIds.map((projectId) => {
+                      const project = projectById.get(projectId);
+                      if (!project) return null;
+                      return (
+                        <Badge key={projectId} variant="secondary" className="flex items-center gap-1">
+                          {project.name}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextIds = selectedProjectIds.filter((id) => id !== projectId);
+                              form.setValue("project_ids", nextIds, { shouldDirty: true });
+                              form.setValue("project_id", nextIds[0] ?? "", { shouldDirty: true });
+                            }}
+                            className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })}
                   </div>
                 )}
-                <FormMessage>{form.formState.errors.project_id?.message}</FormMessage>
+                <FormMessage>{form.formState.errors.project_ids?.message}</FormMessage>
               </FormItem>
             )}
 
@@ -1057,6 +1102,24 @@ export function TaskDialog({
                     }}
                   />
                 </span>
+              )}
+              {task && task.is_archived && onPermanentDelete && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="default"
+                  disabled={isPending}
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => {
+                    if (window.confirm("Permanently delete this task? This cannot be undone.")) {
+                      onPermanentDelete(task.id);
+                      onOpenChange(false);
+                    }
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                  Delete permanently
+                </Button>
               )}
               <div className="ml-auto flex gap-3">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>

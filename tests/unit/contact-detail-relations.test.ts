@@ -335,18 +335,7 @@ describe("filterProjectsByTab", () => {
 
 describe("buildTaskTabs", () => {
   it("returns correct tab structure", () => {
-    const tasks = [
-      makeTask({ id: "t1", status: "inbox", is_completed: false }),
-      makeTask({ id: "t2", status: "in_progress", is_completed: false }),
-      makeTask({
-        id: "t3",
-        status: "in_progress",
-        is_completed: false,
-        due_date: "2020-01-01",
-      }),
-      makeTask({ id: "t4", status: "completed", is_completed: true }),
-    ];
-    const tabs = buildTaskTabs(tasks);
+    const tabs = buildTaskTabs();
     expect(tabs.map((t) => t.value)).toEqual([
       "all",
       "inbox",
@@ -354,11 +343,7 @@ describe("buildTaskTabs", () => {
       "overdue",
       "completed",
     ]);
-    expect(tabs.find((t) => t.value === "all")?.count).toBe(4);
-    expect(tabs.find((t) => t.value === "inbox")?.count).toBe(1);
-    expect(tabs.find((t) => t.value === "upcoming")?.count).toBe(2);
-    expect(tabs.find((t) => t.value === "overdue")?.count).toBe(1);
-    expect(tabs.find((t) => t.value === "completed")?.count).toBe(1);
+    expect(tabs.every((t) => t.count === undefined)).toBe(true);
   });
 });
 

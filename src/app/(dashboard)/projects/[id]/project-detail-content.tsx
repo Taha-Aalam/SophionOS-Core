@@ -59,6 +59,7 @@ import {
   useLinkProjectToArea,
   useLinkProjectToGoal,
   useProject,
+  useProjects,
   useProjectWithRelations,
   useUnlinkProjectFromArea,
   useUnlinkProjectFromGoal,
@@ -78,6 +79,7 @@ import {
   useArchiveTask,
   useCompleteTask,
   useFocusTask,
+  usePermanentDeleteTask,
   useRestoreTask,
   useUpdateTask,
   useUncompleteTask,
@@ -143,6 +145,7 @@ export function ProjectDetailContent() {
   const { data: relations } = useProjectWithRelations(resolvedProjectId);
   const { data: areas = [] } = useAreas();
   const { data: goals = [] } = useGoals({ status: "all" });
+  const { data: allProjects = [] } = useProjects({ status: "all" });
   const { data: tasks = [], isLoading: isLoadingTasks } = useTasks();
   const { data: linkedNotes = [], isLoading: isLoadingNotes } = useNotesByProject(resolvedProjectId);
   const { data: allContacts = [] } = useContacts();
@@ -174,6 +177,7 @@ export function ProjectDetailContent() {
   const updateTask = useUpdateTask();
   const archiveTask = useArchiveTask();
   const restoreTask = useRestoreTask();
+  const permanentDeleteTask = usePermanentDeleteTask();
 
   useEffect(() => {
     if (project) {
@@ -351,42 +355,15 @@ export function ProjectDetailContent() {
 
   const taskTabs = useMemo(
     () => [
-      { value: "all", label: "All", count: linkedTasks.length },
-      {
-        value: "inbox",
-        label: "Inbox",
-        count: linkedTasks.filter((task) => task.status === "inbox" && !task.is_completed).length,
-      },
-      {
-        value: "upcoming",
-        label: "Upcoming",
-        count: linkedTasks.filter((task) => task.status !== "inbox" && task.status !== "completed" && !task.is_completed).length,
-      },
-      {
-        value: "overdue",
-        label: "Overdue",
-        count: linkedTasks.filter((task) => {
-          if (!task.due_date || task.is_completed) return false;
-          return new Date(task.due_date) < new Date();
-        }).length,
-      },
-      {
-        value: "by_area",
-        label: "By Area",
-        count: linkedTasks.filter((task) => task.area_id).length,
-      },
-      {
-        value: "by_goal",
-        label: "By Goal",
-        count: linkedGoals.length > 0 ? linkedTasks.length : 0,
-      },
-      {
-        value: "completed",
-        label: "Completed",
-        count: linkedTasks.filter((task) => task.is_completed).length,
-      },
+      { value: "all", label: "All" },
+      { value: "inbox", label: "Inbox" },
+      { value: "upcoming", label: "Upcoming" },
+      { value: "overdue", label: "Overdue" },
+      { value: "by_area", label: "By Area" },
+      { value: "by_goal", label: "By Goal" },
+      { value: "completed", label: "Completed" },
     ],
-    [linkedTasks, linkedGoals],
+    [],
   );
   const filteredTasks = useMemo(() => {
     switch (taskTab) {
@@ -664,6 +641,13 @@ export function ProjectDetailContent() {
       }
     },
     [archiveTask, restoreTask],
+  );
+
+  const handlePermanentDelete = useCallback(
+    (id: string) => {
+      permanentDeleteTask.mutate(id);
+    },
+    [permanentDeleteTask],
   );
 
   const handleTaskEdit = useCallback(
@@ -1105,13 +1089,16 @@ export function ProjectDetailContent() {
                 <TaskListItem
                   key={task.id}
                   task={task}
-                  linkedAreaNames={linkedAreas.map((a) => a.name)}
-                  linkedAreaIcons={linkedAreas.map((a) => a.icon ?? null)}
+                  linkedAreaNames={task.linkedAreaIds?.map((id) => areas.find((a) => a.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
+                  linkedAreaIcons={task.linkedAreaIds?.map((id) => areas.find((a) => a.id === id)?.icon ?? null) ?? []}
+                  linkedGoalNames={task.linkedGoalIds?.map((id) => goals.find((g) => g.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
                   projectName={project?.name}
+                  linkedProjectNames={task.linkedProjectIds?.map((id) => allProjects.find((p) => p.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
                   onCompletionToggle={handleTaskCompletion}
                   onFocusToggle={handleTaskFocus}
                   onNameSave={handleTaskNameSave}
                   onArchiveToggle={handleTaskArchiveToggle}
+                  onPermanentDelete={handlePermanentDelete}
                   onEdit={handleTaskEdit}
                 />
               ))}
@@ -1391,6 +1378,10 @@ export function ProjectDetailContent() {
         onSuccess={() => setEditingTask(null)}
         onArchiveToggle={(task) => {
           handleTaskArchiveToggle(task);
+          setEditingTask(null);
+        }}
+        onPermanentDelete={(id) => {
+          handlePermanentDelete(id);
           setEditingTask(null);
         }}
       />

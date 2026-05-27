@@ -151,6 +151,22 @@ export function useRestoreTask() {
   });
 }
 
+export function usePermanentDeleteTask() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => taskService.permanentDelete(user!.id, id),
+    onSuccess: async () => {
+      await invalidateTaskGraph(queryClient);
+      toast.success("Task permanently deleted");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete task");
+    },
+  });
+}
+
 export function useCompleteTask() {
   const queryClient = useQueryClient();
   const { user } = useAuth();

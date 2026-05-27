@@ -28,11 +28,13 @@ export function TaskArchiveToggle({
         variant="ghost"
         size="sm"
         {...buttonProps}
-        className={cn("h-7 gap-1 px-2 text-xs", "group-hover:opacity-100", className)}
+        className={cn(
+          "rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 hover:text-foreground",
+          className,
+        )}
         title={label}
       >
         <Icon className="size-3.5" />
-        <span>{label}</span>
       </Button>
     );
   }

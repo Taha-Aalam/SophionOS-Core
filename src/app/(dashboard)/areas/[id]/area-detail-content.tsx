@@ -49,6 +49,7 @@ import {
   useArchiveTask,
   useCompleteTaskWithGoalRefresh,
   useFocusTask,
+  usePermanentDeleteTask,
   useRestoreTask,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
@@ -138,6 +139,7 @@ export function AreaDetailContent() {
   const updateTask = useUpdateTask();
   const archiveTask = useArchiveTask();
   const restoreTask = useRestoreTask();
+  const permanentDeleteTask = usePermanentDeleteTask();
   const focusTask = useFocusTask();
   const linkContactToArea = useLinkContactToArea();
   const unlinkContactFromArea = useUnlinkContactFromArea();
@@ -404,6 +406,10 @@ export function AreaDetailContent() {
     } else {
       await archiveTask.mutateAsync(task.id);
     }
+  };
+
+  const handlePermanentDelete = (id: string) => {
+    permanentDeleteTask.mutate(id);
   };
 
   const handleTaskFocus = async (taskId: string, focused: boolean) => {
@@ -866,7 +872,7 @@ export function AreaDetailContent() {
           id="tasks"
           entityType="tasks"
           tabs={[
-            { value: "all", label: "All", count: rollups.taskCount },
+            { value: "all", label: "All" },
             { value: "inbox", label: "Inbox" },
             { value: "upcoming", label: "Upcoming" },
             { value: "overdue", label: "Overdue" },
@@ -914,10 +920,12 @@ export function AreaDetailContent() {
                     linkedAreaIcons={taskLinkedAreaIcons}
                     linkedGoalNames={taskGoalNames}
                     projectName={taskProjectName}
+                    linkedProjectNames={task.linkedProjectIds?.map((id) => projectsById.get(id)).filter((n): n is string => Boolean(n)) ?? []}
                     onCompletionToggle={handleTaskCompletion}
                     onFocusToggle={handleTaskFocus}
                     onNameSave={handleTaskNameSave}
                     onArchiveToggle={handleTaskArchiveToggle}
+                    onPermanentDelete={handlePermanentDelete}
                     onEdit={(task) => {
                       setEditingTask(task);
                       setIsTaskEditOpen(true);
@@ -1147,6 +1155,10 @@ export function AreaDetailContent() {
         onSuccess={() => refetchAreaDetail()}
         onArchiveToggle={(task) => {
           handleTaskArchiveToggle(task);
+          setEditingTask(null);
+        }}
+        onPermanentDelete={(id) => {
+          handlePermanentDelete(id);
           setEditingTask(null);
         }}
       />

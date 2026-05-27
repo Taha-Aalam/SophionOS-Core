@@ -41,8 +41,10 @@ import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
   useArchiveTask,
+  useArchivedTasks,
   useCompleteTask,
   useFocusTask,
+  usePermanentDeleteTask,
   useRestoreTask,
   useTasks,
   useUpdateTask,
@@ -78,6 +80,9 @@ export function TasksContent() {
   const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
 
   const { data: allTasks, isLoading } = useTasks();
+  const { data: allArchivedTasks, isLoading: isArchivedLoading } = useArchivedTasks({
+    enabled: activeTab === TASK_VIEW.ARCHIVE,
+  });
   const { data: allAreas } = useAreas();
   const { data: allGoals } = useGoals({});
   const { data: allProjects } = useProjects({ status: "all" });
@@ -87,6 +92,7 @@ export function TasksContent() {
   const updateTask = useUpdateTask();
   const archiveTask = useArchiveTask();
   const restoreTask = useRestoreTask();
+  const permanentDelete = usePermanentDeleteTask();
 
   const handleArchiveToggle = useCallback(
     (task: Task) => {
@@ -97,6 +103,13 @@ export function TasksContent() {
       }
     },
     [archiveTask, restoreTask],
+  );
+
+  const handlePermanentDelete = useCallback(
+    (id: string) => {
+      permanentDelete.mutate(id);
+    },
+    [permanentDelete],
   );
 
   const areaMap = useMemo(
@@ -147,8 +160,8 @@ export function TasksContent() {
   );
 
   const archivedTasks = useMemo(
-    () => tasks.filter((t) => t.is_archived || t.is_completed),
-    [tasks],
+    () => allArchivedTasks ?? [],
+    [allArchivedTasks],
   );
 
   const taskGroupsByArea = useMemo((): TaskGroup[] => {
@@ -654,6 +667,7 @@ export function TasksContent() {
                       .map((id) => goalMap.get(id)?.name)
                       .filter((n): n is string => Boolean(n))}
                     projectName={task.project_id ? projectMap.get(task.project_id)?.name : null}
+                    linkedProjectNames={task.linkedProjectIds?.map((id) => projectMap.get(id)?.name).filter((n): n is string => Boolean(n)) ?? []}
                     showSmartPriority={tab === TASK_VIEW.SMART_PRIORITY}
                     onCompletionToggle={(id, isCompleted) => {
                       if (isCompleted) {
@@ -673,6 +687,7 @@ export function TasksContent() {
                     onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
                     onEdit={handleEdit}
                     onArchiveToggle={handleArchiveToggle}
+                    onPermanentDelete={handlePermanentDelete}
                   />
                 ))}
               </div>
@@ -694,6 +709,7 @@ export function TasksContent() {
             onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
             onEdit={handleEdit}
             onArchiveToggle={handleArchiveToggle}
+            onPermanentDelete={handlePermanentDelete}
             onNewTask={(areaId) => {
               setNewTaskAreaId(areaId);
               setIsDialogOpen(true);
@@ -719,6 +735,7 @@ export function TasksContent() {
             onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
             onEdit={handleEdit}
             onArchiveToggle={handleArchiveToggle}
+            onPermanentDelete={handlePermanentDelete}
             onNewTask={(goalId) => {
               setNewTaskGoalId(goalId);
               setIsDialogOpen(true);
@@ -744,6 +761,7 @@ export function TasksContent() {
             onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
             onEdit={handleEdit}
             onArchiveToggle={handleArchiveToggle}
+            onPermanentDelete={handlePermanentDelete}
             onNewTask={(projectId) => {
               setNewTaskProjectId(projectId);
               setIsDialogOpen(true);
@@ -756,15 +774,15 @@ export function TasksContent() {
         </TabsContent>
 
         <TabsContent value={TASK_VIEW.ARCHIVE} className="mt-0 flex-1">
-          {isLoading ? (
+          {isArchivedLoading ? (
             <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
               Loading tasks...
             </div>
           ) : archivedTasks.length === 0 ? (
             <EmptyState
-              icon={CheckSquare}
+              icon={Archive}
               title="No archived tasks"
-              description="Completed and archived tasks will appear here."
+              description="Archived tasks will appear here. Use the archive icon on a task row to archive it."
             />
           ) : (
             <div className="divide-y-0">
@@ -777,6 +795,7 @@ export function TasksContent() {
                   linkedAreaIcons={getLinkedAreaIcons(task)}
                   linkedGoalNames={getLinkedGoalNames(task)}
                   projectName={task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
+                  linkedProjectNames={task.linkedProjectIds?.map((id) => projectMap.get(id)?.name).filter((n): n is string => Boolean(n)) ?? []}
                   onCompletionToggle={(id, isCompleted) => {
                     if (isCompleted) { completeTask.mutate(id); return; }
                     updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
@@ -785,6 +804,7 @@ export function TasksContent() {
                   onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
                   onEdit={handleEdit}
                   onArchiveToggle={handleArchiveToggle}
+                  onPermanentDelete={handlePermanentDelete}
                 />
               ))}
             </div>
@@ -797,6 +817,7 @@ export function TasksContent() {
         onOpenChange={(open) => {
           setIsDialogOpen(open);
           if (!open) {
+            setEditingTask(null);
             setNewTaskAreaId(undefined);
             setNewTaskGoalId(undefined);
             setNewTaskProjectId(undefined);
@@ -807,6 +828,7 @@ export function TasksContent() {
         defaultGoalId={newTaskGoalId}
         defaultProjectId={newTaskProjectId}
         onArchiveToggle={handleArchiveToggle}
+        onPermanentDelete={handlePermanentDelete}
       />
     </div>
   );
