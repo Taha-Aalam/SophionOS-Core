@@ -12,6 +12,7 @@ function buildGoal(overrides: Partial<Goal> & { linkedAreaIds?: string[] } = {})
     id: "goal-id",
     is_archived: false,
     is_completed: false,
+    is_inactive: false,
     linkedAreaIds: [],
     name: "Goal",
     priority: "medium",

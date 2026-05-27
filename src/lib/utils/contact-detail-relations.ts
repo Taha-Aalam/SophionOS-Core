@@ -76,7 +76,6 @@ export interface TabOption {
 
 export function buildAreaTabs(areas: Area[]): TabOption[] {
   return [
-    { value: "all", label: "All", count: areas.length },
     {
       value: "active",
       label: "Active",
@@ -87,6 +86,8 @@ export function buildAreaTabs(areas: Area[]): TabOption[] {
       label: "Inactive",
       count: areas.filter((a) => a.inactive && !a.archive).length,
     },
+    { value: "by_type", label: "By type" },
+    { value: "all", label: "All", count: areas.length },
     {
       value: "archived",
       label: "Archive",
@@ -101,6 +102,8 @@ export function filterAreasByTab(areas: Area[], tab: string): Area[] {
       return areas.filter((a) => !a.inactive && !a.archive);
     case "inactive":
       return areas.filter((a) => a.inactive && !a.archive);
+    case "by_type":
+      return areas.filter((a) => !a.archive);
     case "archived":
       return areas.filter((a) => a.archive);
     default:
@@ -115,38 +118,57 @@ export function buildGoalTabs(goals: Goal[]): TabOption[] {
     {
       value: "active",
       label: "Active",
-      count: goals.filter((g) => !g.is_completed && !g.is_archived).length,
+      count: goals.filter(
+        (g) => !g.is_completed && !g.is_archived && !g.is_inactive,
+      ).length,
     },
     {
       value: "short",
       label: "Short Term",
       count: goals.filter(
-        (g) => g.term === "short" && !g.is_completed && !g.is_archived,
+        (g) =>
+          g.term === "short" &&
+          !g.is_completed &&
+          !g.is_archived &&
+          !g.is_inactive,
       ).length,
     },
     {
       value: "mid",
       label: "Mid Term",
       count: goals.filter(
-        (g) => g.term === "mid" && !g.is_completed && !g.is_archived,
+        (g) =>
+          g.term === "mid" &&
+          !g.is_completed &&
+          !g.is_archived &&
+          !g.is_inactive,
       ).length,
     },
     {
       value: "long",
       label: "Long Term",
       count: goals.filter(
-        (g) => g.term === "long" && !g.is_completed && !g.is_archived,
+        (g) =>
+          g.term === "long" &&
+          !g.is_completed &&
+          !g.is_archived &&
+          !g.is_inactive,
       ).length,
     },
     {
       value: "inactive",
       label: "Inactive",
-      count: goals.filter((g) => g.is_archived).length,
+      count: goals.filter((g) => g.is_inactive && !g.is_archived).length,
     },
     {
       value: "completed",
       label: "Completed",
       count: goals.filter((g) => g.is_completed && !g.is_archived).length,
+    },
+    {
+      value: "archived",
+      label: "Archived",
+      count: goals.filter((g) => g.is_archived).length,
     },
   ];
 }
@@ -154,25 +176,43 @@ export function buildGoalTabs(goals: Goal[]): TabOption[] {
 export function filterGoalsByTab(goals: Goal[], tab: string): Goal[] {
   switch (tab) {
     case "active":
-      return goals.filter((g) => !g.is_completed && !g.is_archived);
+      return goals.filter(
+        (g) => !g.is_completed && !g.is_archived && !g.is_inactive,
+      );
     case "short":
       return goals.filter(
-        (g) => g.term === "short" && !g.is_completed && !g.is_archived,
+        (g) =>
+          g.term === "short" &&
+          !g.is_completed &&
+          !g.is_archived &&
+          !g.is_inactive,
       );
     case "mid":
       return goals.filter(
-        (g) => g.term === "mid" && !g.is_completed && !g.is_archived,
+        (g) =>
+          g.term === "mid" &&
+          !g.is_completed &&
+          !g.is_archived &&
+          !g.is_inactive,
       );
     case "long":
       return goals.filter(
-        (g) => g.term === "long" && !g.is_completed && !g.is_archived,
+        (g) =>
+          g.term === "long" &&
+          !g.is_completed &&
+          !g.is_archived &&
+          !g.is_inactive,
       );
     case "inactive":
-      return goals.filter((g) => g.is_archived);
+      return goals.filter((g) => g.is_inactive && !g.is_archived);
     case "completed":
       return goals.filter((g) => g.is_completed && !g.is_archived);
+    case "archived":
+      return goals.filter((g) => g.is_archived);
     default:
-      return goals.filter((g) => !g.is_completed && !g.is_archived);
+      return goals.filter(
+        (g) => !g.is_completed && !g.is_archived && !g.is_inactive,
+      );
   }
 }
 
@@ -182,14 +222,29 @@ export function buildProjectTabs(projects: Project[]): TabOption[] {
   return [
     { value: "all", label: "All", count: projects.length },
     {
+      value: "inbox",
+      label: "Inbox",
+      count: projects.filter(
+        (p) => p.status === "planning" && !p.is_archived,
+      ).length,
+    },
+    {
       value: "planning",
       label: "Planning",
-      count: projects.filter((p) => p.status === "planning").length,
+      count: projects.filter(
+        (p) => p.status === "planning" && !p.is_archived,
+      ).length,
     },
     {
       value: "in_progress",
       label: "In Progress",
       count: projects.filter((p) => p.status === "active" && !p.is_archived)
+        .length,
+    },
+    {
+      value: "on_hold",
+      label: "On Hold",
+      count: projects.filter((p) => p.status === "on_hold" && !p.is_archived)
         .length,
     },
     {
@@ -200,7 +255,7 @@ export function buildProjectTabs(projects: Project[]): TabOption[] {
     },
     {
       value: "archived",
-      label: "Archive",
+      label: "Archived",
       count: projects.filter((p) => p.is_archived).length,
     },
   ];
@@ -208,10 +263,13 @@ export function buildProjectTabs(projects: Project[]): TabOption[] {
 
 export function filterProjectsByTab(projects: Project[], tab: string): Project[] {
   switch (tab) {
+    case "inbox":
     case "planning":
       return projects.filter((p) => p.status === "planning" && !p.is_archived);
     case "in_progress":
       return projects.filter((p) => p.status === "active" && !p.is_archived);
+    case "on_hold":
+      return projects.filter((p) => p.status === "on_hold" && !p.is_archived);
     case "completed":
       return projects.filter(
         (p) => p.status === "completed" && !p.is_archived,

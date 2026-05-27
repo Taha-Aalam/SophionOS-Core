@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Unlink } from "lucide-react";
 
 import { AreaCard } from "@/components/entities/area-card";
+import { AreasByTypeView } from "@/components/views/areas-by-type-view";
 import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { ProjectCard } from "@/components/entities/project-card";
@@ -33,7 +34,7 @@ import {
   getTaskLinkedGoalIds,
   getTaskLinkedProjectIds,
 } from "@/lib/utils/tasks";
-import { getAreaRollups } from "@/lib/utils/areas";
+import { getAreaRollups, groupAreasByType } from "@/lib/utils/areas";
 import { encodeReturnTo } from "@/lib/utils/return-to";
 
 // Re-export helpers for test access
@@ -321,7 +322,28 @@ export function ContactDetailRelationshipSections({
         emptyTitle="No areas linked"
         emptyDescription="Link areas to organize this contact within your life areas."
       >
-        {filteredAreas.length > 0 ? (
+        {areaTab === "by_type" ? (
+          filteredAreas.length > 0 ? (
+            <AreasByTypeView
+              groupedAreas={groupAreasByType(filteredAreas)}
+              rollupsByAreaId={
+                new Map(
+                  Array.from(areaCountsMap.entries()).map(([id, counts]) => [
+                    id,
+                    {
+                      goalsCount: counts.goals,
+                      projectsCount: counts.projects,
+                      tasksCount: counts.tasks,
+                      notesCount: counts.notes,
+                      resourcesCount: counts.resources,
+                    },
+                  ]),
+                )
+              }
+              onCreateArea={() => {}}
+            />
+          ) : null
+        ) : filteredAreas.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
             {filteredAreas.map((area) => (
               <div key={area.id} className="relative">

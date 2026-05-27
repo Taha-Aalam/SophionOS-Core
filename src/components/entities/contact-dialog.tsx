@@ -303,7 +303,7 @@ export function ContactDialog({
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select group" />
                       </SelectTrigger>
                     </FormControl>
@@ -359,7 +359,7 @@ export function ContactDialog({
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
