@@ -100,6 +100,19 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
 };
 
+const TERM_COLORS: Record<string, string> = {
+  short: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  mid: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  long: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+};
+
+const TERM_EMOJIS: Record<string, string> = {
+  short: "⚡",
+  mid: "📅",
+  long: "🏔️",
+};
+
+
 function parseGoalDate(value: string): Date {
   const [year, month, day] = value.split("-").map(Number);
   return new Date(year, month - 1, day);
@@ -134,65 +147,6 @@ function calculateDueState(targetDate: string | null): { text: string; isOverdue
     text: `Due ${formattedDate} • ${remainingLabel}`,
     isOverdue: false,
   };
-}
-
-function InlineGoalTitleEditor({
-  name,
-  onSave,
-}: {
-  name: string;
-  onSave: (name: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(name);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const startEdit = () => {
-    setValue(name);
-    setEditing(true);
-    setTimeout(() => inputRef.current?.select(), 10);
-  };
-
-  const save = () => {
-    const trimmed = value.trim();
-    if (trimmed && trimmed !== name) {
-      onSave(trimmed);
-    }
-    setEditing(false);
-  };
-
-  const cancel = () => {
-    setValue(name);
-    setEditing(false);
-  };
-
-  if (!editing) {
-    return (
-      <h1
-        className="cursor-pointer text-3xl font-bold tracking-tight hover:text-primary/70"
-        onClick={startEdit}
-        title="Click to edit"
-      >
-        {name}
-      </h1>
-    );
-  }
-
-  return (
-    <input
-      ref={inputRef}
-      type="text"
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={save}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") save();
-        if (e.key === "Escape") cancel();
-      }}
-      className="bg-transparent text-3xl font-bold tracking-tight outline-none ring-2 ring-primary/40 rounded px-1"
-      autoFocus
-    />
-  );
 }
 
 export function GoalDetailContent() {
@@ -657,14 +611,6 @@ export function GoalDetailContent() {
   };
 
   // Handlers
-  const handleTitleSave = useCallback(
-    async (name: string) => {
-      if (!goal) return;
-      await updateGoal.mutateAsync({ id: goal.id, input: { name } });
-    },
-    [goal, updateGoal],
-  );
-
   const handleTaskCompletion = useCallback(
     async (taskId: string, completed: boolean) => {
       if (completed) {
@@ -913,8 +859,8 @@ export function GoalDetailContent() {
             </div>
 
             <div className="space-y-2">
-              {/* Inline editable title */}
-              <InlineGoalTitleEditor name={goal.name} onSave={handleTitleSave} />
+              {/* Title */}
+              <h1 className="text-3xl font-bold tracking-tight">{goal.name}</h1>
 
               {/* Badges row */}
               <div className="flex flex-wrap items-center gap-2">
@@ -927,11 +873,11 @@ export function GoalDetailContent() {
                     </Badge>
                   );
                 })}
-                <Badge variant="outline" className={cn("text-xs", PRIORITY_COLORS[goal.priority])}>
-                  {goal.priority}
+                <Badge variant="outline" className={cn("text-xs", TERM_COLORS[goal.term])}>
+                  {TERM_EMOJIS[goal.term] ? `${TERM_EMOJIS[goal.term]} ` : ""}{TERM_LABELS[goal.term] ?? goal.term}
                 </Badge>
-                <Badge variant="outline" className="text-xs">
-                  {TERM_LABELS[goal.term] ?? goal.term}
+                <Badge variant="outline" className={cn("text-xs uppercase", PRIORITY_COLORS[goal.priority])}>
+                  {goal.priority}
                 </Badge>
                 {goal.is_completed && (
                   <Badge className="bg-green-500/10 text-green-600 border-none text-xs">
@@ -1425,7 +1371,7 @@ export function GoalDetailContent() {
               All active areas are already linked to this goal.
             </p>
           ) : (
-            <div className="space-y-2">
+            <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
               {unlinkedAreas.map((area) => (
                 <button
                   key={area.id}

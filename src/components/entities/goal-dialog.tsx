@@ -34,10 +34,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAreas } from "@/lib/hooks/use-areas";
 import {
-  useArchiveGoal,
-  useCompleteGoal,
   useCreateGoal,
-  useRestoreGoal,
   useUpdateGoal,
 } from "@/lib/hooks/use-goals";
 import { CreateGoalInput, Goal } from "@/lib/types/domain.types";
@@ -92,9 +89,6 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess
 
   const createMutation = useCreateGoal();
   const updateMutation = useUpdateGoal();
-  const archiveMutation = useArchiveGoal();
-  const restoreMutation = useRestoreGoal();
-  const completeMutation = useCompleteGoal();
 
   const resolver = useMemo(() => buildGoalResolver(isCreate), [isCreate]);
 
@@ -145,10 +139,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess
   const todayStr = new Date().toISOString().split("T")[0];
   const isPending =
     createMutation.isPending ||
-    updateMutation.isPending ||
-    archiveMutation.isPending ||
-    restoreMutation.isPending ||
-    completeMutation.isPending;
+    updateMutation.isPending;
   const selectedAreas = areas.filter((area) => selectedAreaIds.includes(area.id));
   const selectedTermLabel =
     selectedTerm === GOAL_TERM.SHORT
@@ -184,31 +175,6 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess
     } catch {
       return;
     }
-  };
-
-  const handleArchiveToggle = async () => {
-    if (!goal) {
-      return;
-    }
-
-    if (goal.is_archived) {
-      await restoreMutation.mutateAsync(goal.id);
-    } else {
-      await archiveMutation.mutateAsync(goal.id);
-    }
-
-    onSuccess?.();
-    onOpenChange(false);
-  };
-
-  const handleComplete = async () => {
-    if (!goal) {
-      return;
-    }
-
-    await completeMutation.mutateAsync(goal.id);
-    onSuccess?.();
-    onOpenChange(false);
   };
 
   return (
@@ -402,29 +368,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess
             )}
           </div>
 
-          <DialogFooter className="gap-2 sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              {goal && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleArchiveToggle}
-                  disabled={isPending}
-                >
-                  {goal.is_archived ? "Restore" : "Archive"}
-                </Button>
-              )}
-              {goal && !goal.is_completed && !goal.is_archived && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleComplete}
-                  disabled={isPending}
-                >
-                  Complete
-                </Button>
-              )}
-            </div>
+          <DialogFooter className="gap-2 sm:justify-end">
             <div className="flex items-center gap-2">
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
                 Cancel

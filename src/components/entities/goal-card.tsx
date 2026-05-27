@@ -42,6 +42,18 @@ const TERM_LABELS: Record<string, string> = {
   long: 'Long Term',
 };
 
+const TERM_COLORS: Record<string, string> = {
+  short: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+  mid: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+  long: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+};
+
+const TERM_EMOJIS: Record<string, string> = {
+  short: '⚡',
+  mid: '📅',
+  long: '🏔️',
+};
+
 function parseGoalDate(value: string): Date {
   const [year, month, day] = value.split('-').map(Number);
   return new Date(year, month - 1, day);
@@ -136,12 +148,15 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplica
               )}
               <Badge
                 variant="outline"
-                className={cn("text-[10px] px-1.5 py-0", PRIORITY_COLORS[goal.priority] || PRIORITY_COLORS.medium)}
+                className={cn("text-[10px] px-1.5 py-0", TERM_COLORS[goal.term] || TERM_COLORS.short)}
+              >
+                {TERM_EMOJIS[goal.term] ? `${TERM_EMOJIS[goal.term]} ` : ''}{TERM_LABELS[goal.term] || goal.term}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={cn("text-[10px] px-1.5 py-0 uppercase", PRIORITY_COLORS[goal.priority] || PRIORITY_COLORS.medium)}
               >
                 {goal.priority}
-              </Badge>
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">
-                {TERM_LABELS[goal.term] || goal.term}
               </Badge>
             </div>
 
