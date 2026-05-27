@@ -49,6 +49,13 @@ export function useTasks(options?: { enabled?: boolean }) {
   });
 }
 
+/**
+ * Lists tasks where `is_archived = true`. Used by the Archive tab on the
+ * tasks page so that archived tasks remain visible after archival.
+ *
+ * `useTasks()` filters archived tasks out at the service layer, so the
+ * archive tab cannot derive its data from that cache.
+ */
 export function useArchivedTasks(options?: { enabled?: boolean }) {
   const { user } = useAuth();
 

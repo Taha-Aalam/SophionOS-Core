@@ -4,13 +4,12 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Archive,
+  ArchiveRestore,
   Bookmark,
   BookOpen,
-  CheckSquare,
   ChevronDownIcon,
   Clock,
   Filter,
-  Folder,
   FolderOpen,
   Inbox as InboxIcon,
   Map as LucideMap,
@@ -44,22 +43,25 @@ import {
 } from "@/components/ui/select";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NoteArchiveToggle } from "@/components/entities/note-archive-toggle";
 import { EmptyState } from "@/components/views/empty-state";
+import { NotesByGroupView, type NoteGroup } from "@/components/views/notes-by-group-view";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import {
   useArchiveNote,
   useBulkArchiveNotes,
   useBulkDeleteNotes,
+  useDeleteNote,
   useNotes,
   useRestoreNote,
   useUpdateNote,
 } from "@/lib/hooks/use-notes";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
+import { useTopics } from "@/lib/hooks/use-topics";
 import { cn } from "@/lib/utils";
 import {
+  getNoteLinkedAreaIds,
   getNoteLinkedGoalIds,
   getNoteLinkedProjectIds,
   getNoteCounts,
@@ -78,6 +80,7 @@ import {
   NOTES_SEARCH_PLACEHOLDER,
   NOTES_TABS_LIST_CLASS_NAME,
 } from "@/lib/utils/note-page-display";
+import type { Note } from "@/lib/types/domain.types";
 
 const ALL_STATUS_VALUE = "__all_status__";
 const ALL_NOTEBOOK_VALUE = "__all_notebooks__";
@@ -113,12 +116,14 @@ export function NotesContent() {
   const { data: allGoals = [] } = useGoals({ status: "all" });
   const { data: allProjects = [] } = useProjects({ status: "all" });
   const { data: allTasks = [] } = useTasks();
+  const { data: allTopics = [] } = useTopics();
 
   const updateNote = useUpdateNote();
   const archiveNote = useArchiveNote();
   const bulkArchive = useBulkArchiveNotes();
   const bulkDelete = useBulkDeleteNotes();
   const restoreNote = useRestoreNote();
+  const deleteNote = useDeleteNote();
 
   const areaMap = useMemo(
     () => new Map(allAreas.map((area) => [area.id, area])),
@@ -136,10 +141,13 @@ export function NotesContent() {
     () => new Map(allProjects.map((project) => [project.id, project])),
     [allProjects],
   );
+  const topicNamesMap = useMemo(
+    () => new Map(allTopics.map((t) => [t.id, t.name])),
+    [allTopics],
+  );
 
   const notebooks = useMemo(
-    () =>
-      Array.from(new Set(allNotes.map((n) => n.notebook).filter(Boolean))).sort(),
+    () => Array.from(new Set(allNotes.flatMap((n) => n.notebooks ?? []))).sort(),
     [allNotes],
   );
 
@@ -182,7 +190,7 @@ export function NotesContent() {
     }
 
     if (filterNotebook !== ALL_NOTEBOOK_VALUE) {
-      result = result.filter((n) => n.notebook === filterNotebook);
+      result = result.filter((n) => (n.notebooks ?? []).includes(filterNotebook));
     }
 
     return result;
@@ -197,6 +205,92 @@ export function NotesContent() {
     filterTaskIds,
     search,
   ]);
+
+  // ── Grouped note computations ──────────────────────────────────────────────
+
+  const noteGroupsByArea = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const note of allNotes.filter((n) => !n.is_archived)) {
+      const areaIds = getNoteLinkedAreaIds(note);
+      const keys = areaIds.length > 0 ? areaIds : ["unassigned"];
+      for (const areaId of keys) {
+        const current = grouped.get(areaId) ?? [];
+        current.push(note);
+        grouped.set(areaId, current);
+      }
+    }
+    return Array.from(grouped.entries()).map(([areaId, notes]) => ({
+      groupId: areaId,
+      groupName: areaId === "unassigned" ? "No Area" : (areaMap.get(areaId)?.name ?? areaId),
+      notes,
+    }));
+  }, [allNotes, areaMap]);
+
+  const noteGroupsByGoal = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const note of allNotes.filter((n) => !n.is_archived)) {
+      const goalIds = getNoteLinkedGoalIds(note);
+      const keys = goalIds.length > 0 ? goalIds : ["unassigned"];
+      for (const goalId of keys) {
+        const current = grouped.get(goalId) ?? [];
+        current.push(note);
+        grouped.set(goalId, current);
+      }
+    }
+    return Array.from(grouped.entries()).map(([goalId, notes]) => ({
+      groupId: goalId,
+      groupName: goalId === "unassigned" ? "No Goal" : (goalMap.get(goalId)?.name ?? goalId),
+      notes,
+    }));
+  }, [allNotes, goalMap]);
+
+  const noteGroupsByProject = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const note of allNotes.filter((n) => !n.is_archived)) {
+      const projectIds = getNoteLinkedProjectIds(note);
+      const keys = projectIds.length > 0 ? projectIds : ["unassigned"];
+      for (const projectId of keys) {
+        const current = grouped.get(projectId) ?? [];
+        current.push(note);
+        grouped.set(projectId, current);
+      }
+    }
+    return Array.from(grouped.entries()).map(([projectId, notes]) => ({
+      groupId: projectId,
+      groupName: projectId === "unassigned" ? "No Project" : (projectMap.get(projectId)?.name ?? projectId),
+      notes,
+    }));
+  }, [allNotes, projectMap]);
+
+  const noteGroupsByTopic = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const note of allNotes.filter((n) => !n.is_archived)) {
+      const key = note.topic_id ?? "unassigned";
+      const current = grouped.get(key) ?? [];
+      current.push(note);
+      grouped.set(key, current);
+    }
+    return Array.from(grouped.entries()).map(([topicId, notes]) => ({
+      groupId: topicId,
+      groupName: topicId === "unassigned" ? "No Topic" : (topicNamesMap.get(topicId) ?? topicId),
+      notes,
+    }));
+  }, [allNotes, topicNamesMap]);
+
+  const noteGroupsByNotebook = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const note of allNotes.filter((n) => !n.is_archived)) {
+      const keys = (note.notebooks ?? []).length > 0 ? note.notebooks! : ["unassigned"];
+      for (const key of keys) {
+        grouped.set(key, [...(grouped.get(key) ?? []), note]);
+      }
+    }
+    return Array.from(grouped.entries()).map(([notebook, notes]) => ({
+      groupId: notebook,
+      groupName: notebook === "unassigned" ? "No Notebook" : notebook,
+      notes,
+    }));
+  }, [allNotes]);
 
   useEffect(() => {
     if (selectedIds.size === 0) {
@@ -300,6 +394,183 @@ export function NotesContent() {
     setFilterNotebook(ALL_NOTEBOOK_VALUE);
   };
 
+  // ── Note row renderer (shared by flat list and grouped views) ──────────────
+
+  const renderNoteRow = (note: Note) => {
+    const isSelected = selectedIds.has(note.id);
+    const linkedAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+      .map((id) => areaMap.get(id))
+      .filter((a): a is NonNullable<typeof a> => Boolean(a));
+    const linkedGoals = getNoteLinkedGoalIds(note)
+      .map((id) => goalMap.get(id))
+      .filter((g): g is NonNullable<typeof g> => Boolean(g));
+    const linkedProjects = getNoteLinkedProjectIds(note)
+      .map((id) => projectMap.get(id))
+      .filter((p): p is NonNullable<typeof p> => Boolean(p));
+    const linkedTasks = (note.linkedTaskIds ?? [])
+      .map((id) => taskMap.get(id))
+      .filter((t): t is NonNullable<typeof t> => Boolean(t));
+
+    return (
+      <div
+        key={note.id}
+        className={cn(
+          "group flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30 cursor-pointer",
+          isSelected && "bg-muted/50",
+        )}
+        onClick={() => router.push(`/notes/${note.slug ?? note.id}`)}
+      >
+        {/* Checkbox */}
+        <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => toggleSelect(note.id)}
+          />
+        </div>
+
+        {/* Pin button */}
+        <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+          <button
+            type="button"
+            onClick={() =>
+              updateNote.mutate({
+                id: note.id,
+                input: { pin: !note.pin },
+              })
+            }
+            className={cn(
+              "rounded p-1 transition-colors",
+              note.pin
+                ? "text-primary"
+                : "text-muted-foreground opacity-0 hover:text-primary group-hover:opacity-100",
+            )}
+            title={note.pin ? "Unpin" : "Pin"}
+          >
+            <Pin className={cn("size-3.5", note.pin && "fill-current")} />
+          </button>
+        </div>
+
+        {/* Status + Type */}
+        <div className="hidden md:flex shrink-0 items-center gap-1">
+          <Badge
+            variant="outline"
+            className={cn("text-[10px] uppercase", statusColors[note.status])}
+          >
+            {note.status.replace("_", " ")}
+          </Badge>
+          <Badge variant="secondary" className="text-xs">
+            {note.type}
+          </Badge>
+        </div>
+
+        {/* Name */}
+        <div className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{note.name}</span>
+        </div>
+
+        {/* Metadata cluster — all badges, no +N collapse */}
+        <div className="hidden md:flex shrink-0 items-center gap-1.5 flex-wrap">
+          {(note.notebooks ?? []).map((nb) => (
+            <Badge key={nb} variant="outline" className="gap-1 text-xs font-normal">
+              <span className="text-xs leading-none">📓</span>
+              {nb}
+            </Badge>
+          ))}
+          {linkedAreas.map((area) => (
+            <Badge key={area.id} variant="outline" className="gap-1 text-xs font-normal">
+              {area.icon ? (
+                <span className="text-xs leading-none">{area.icon}</span>
+              ) : (
+                <LucideMap className="size-3" />
+              )}
+              {area.name}
+            </Badge>
+          ))}
+          {linkedGoals.map((goal) => (
+            <Badge key={goal.id} variant="outline" className="gap-1 text-xs font-normal">
+              <span className="text-xs leading-none">🎯</span>
+              {goal.name}
+            </Badge>
+          ))}
+          {linkedProjects.map((project) => (
+            <Badge key={project.id} variant="outline" className="gap-1 text-xs font-normal">
+              <span className="text-xs leading-none">📁</span>
+              {project.name}
+            </Badge>
+          ))}
+          {linkedTasks.map((task) => (
+            <Badge key={task.id} variant="outline" className="gap-1 text-xs font-normal">
+              <span className="text-xs leading-none">☑️</span>
+              {task.name}
+            </Badge>
+          ))}
+          <span className="text-xs text-muted-foreground">
+            {new Date(note.updated_at).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            })}
+          </span>
+        </div>
+
+        {/* Favorite button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            updateNote.mutate({
+              id: note.id,
+              input: { favorite: !note.favorite },
+            });
+          }}
+          className={cn(
+            "shrink-0 rounded-md p-1.5 transition-colors",
+            note.favorite
+              ? "text-amber-500"
+              : "text-muted-foreground/20 opacity-0 hover:text-amber-400 group-hover:opacity-100",
+          )}
+          title={note.favorite ? "Unfavorite" : "Favorite"}
+        >
+          <Star className={cn("size-4", note.favorite && "fill-current")} />
+        </button>
+
+        {/* Archive + Delete */}
+        <div
+          className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (note.is_archived) {
+                restoreNote.mutate(note.id);
+              } else {
+                archiveNote.mutate(note.id);
+              }
+            }}
+            disabled={archiveNote.isPending || restoreNote.isPending}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
+            title={note.is_archived ? "Restore" : "Archive"}
+          >
+            {note.is_archived ? (
+              <ArchiveRestore className="size-3.5" />
+            ) : (
+              <Archive className="size-3.5" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => deleteNote.mutate(note.id)}
+            disabled={deleteNote.isPending}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
+            title="Delete note"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={NOTES_PAGE_SHELL_CLASS_NAME}>
       <div className="flex items-center justify-between border-b border-border/50 px-6 py-5">
@@ -325,79 +596,54 @@ export function NotesContent() {
       >
         <div className="border-b border-border/50 px-6 pt-4">
           <TabsList className={NOTES_TABS_LIST_CLASS_NAME}>
-            <TabsTrigger
-              value={NOTE_VIEW.ALL}
-              className={compactTabTriggerClassName}
-            >
+            <TabsTrigger value={NOTE_VIEW.ALL} className={compactTabTriggerClassName}>
               All
             </TabsTrigger>
-            <TabsTrigger
-              value={NOTE_VIEW.INBOX}
-              className={compactTabTriggerClassName}
-            >
+            <TabsTrigger value={NOTE_VIEW.INBOX} className={compactTabTriggerClassName}>
               <InboxIcon className="mr-1 size-3" />
               Inbox
             </TabsTrigger>
-            <TabsTrigger
-              value={NOTE_VIEW.TO_REVIEW}
-              className={compactTabTriggerClassName}
-            >
+            <TabsTrigger value={NOTE_VIEW.TO_REVIEW} className={compactTabTriggerClassName}>
               <Clock className="mr-1 size-3" />
               To Review
             </TabsTrigger>
-            <TabsTrigger
-              value={NOTE_VIEW.ACTIVE}
-              className={compactTabTriggerClassName}
-            >
+            <TabsTrigger value={NOTE_VIEW.ACTIVE} className={compactTabTriggerClassName}>
               <Zap className="mr-1 size-3" />
               Active
             </TabsTrigger>
-            <TabsTrigger
-              value={NOTE_VIEW.SAVED}
-              className={compactTabTriggerClassName}
-            >
-              <Bookmark className="mr-1 size-3" />
-              Saved
-            </TabsTrigger>
-            <TabsTrigger
-              value={NOTE_VIEW.PINNED}
-              className={compactTabTriggerClassName}
-            >
+            <TabsTrigger value={NOTE_VIEW.PINNED} className={compactTabTriggerClassName}>
               <Pin className="mr-1 size-3" />
               Pinned
             </TabsTrigger>
-            <TabsTrigger
-              value={NOTE_VIEW.FAVORITE}
-              className={compactTabTriggerClassName}
-            >
+            <TabsTrigger value={NOTE_VIEW.FAVORITE} className={compactTabTriggerClassName}>
               <Star className="mr-1 size-3" />
               Favorite
             </TabsTrigger>
-            <TabsTrigger
-              value={NOTE_VIEW.BY_PROJECT}
-              className={compactTabTriggerClassName}
-            >
+            <TabsTrigger value={NOTE_VIEW.BY_AREA} className={compactTabTriggerClassName}>
+              <LucideMap className="mr-1 size-3" />
+              By Area
+            </TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.BY_GOAL} className={compactTabTriggerClassName}>
+              <Target className="mr-1 size-3" />
+              By Goal
+            </TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.BY_PROJECT} className={compactTabTriggerClassName}>
               <FolderOpen className="mr-1 size-3" />
               By Project
             </TabsTrigger>
-            <TabsTrigger
-              value={NOTE_VIEW.BY_TOPIC}
-              className={compactTabTriggerClassName}
-            >
+            <TabsTrigger value={NOTE_VIEW.BY_TOPIC} className={compactTabTriggerClassName}>
               <Tag className="mr-1 size-3" />
-              By Topics
+              By Topic
             </TabsTrigger>
-            <TabsTrigger
-              value={NOTE_VIEW.BY_NOTEBOOK}
-              className={compactTabTriggerClassName}
-            >
+            <TabsTrigger value={NOTE_VIEW.BY_NOTEBOOK} className={compactTabTriggerClassName}>
               <BookOpen className="mr-1 size-3" />
               By Notebook
             </TabsTrigger>
-            <TabsTrigger
-              value={NOTE_VIEW.ARCHIVED}
-              className={compactTabTriggerClassName}
-            >
+            <TabsTrigger value={NOTE_VIEW.SAVED} className={compactTabTriggerClassName}>
+              <Bookmark className="mr-1 size-3" />
+              Saved
+            </TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.ARCHIVED} className={compactTabTriggerClassName}>
               <Archive className="mr-1 size-3" />
               Archive
             </TabsTrigger>
@@ -702,15 +948,15 @@ export function NotesContent() {
           </div>
         )}
 
+        {/* Flat list tabs: All, Inbox, To Review, Active, Pinned, Favorite, Saved, Archived */}
         {([
           NOTE_VIEW.ALL,
           NOTE_VIEW.INBOX,
           NOTE_VIEW.TO_REVIEW,
+          NOTE_VIEW.ACTIVE,
           NOTE_VIEW.PINNED,
           NOTE_VIEW.FAVORITE,
-          NOTE_VIEW.BY_PROJECT,
-          NOTE_VIEW.BY_TOPIC,
-          NOTE_VIEW.BY_NOTEBOOK,
+          NOTE_VIEW.SAVED,
           NOTE_VIEW.ARCHIVED,
         ] as NoteView[]).map((tab) => (
           <TabsContent key={tab} value={tab} className="mt-0 flex-1">
@@ -721,213 +967,64 @@ export function NotesContent() {
             ) : visibleNotes.length === 0 ? (
               <EmptyState
                 icon={NotebookPen}
-                title={`No ${tab.replace("_", " ")} notes`}
+                title={`No ${tab.replace(/_/g, " ")} notes`}
                 description="Try a different filter or create a new note."
                 actionLabel="New Note"
                 onAction={() => router.push("/notes/new")}
               />
             ) : (
               <div className="rounded-lg border border-border">
-                {visibleNotes.map((note) => {
-                  const isSelected = selectedIds.has(note.id);
-                  const linkedAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
-                    .map((id) => areaMap.get(id))
-                    .filter((a): a is NonNullable<typeof a> => Boolean(a));
-                  const linkedGoals = getNoteLinkedGoalIds(note)
-                    .map((id) => goalMap.get(id))
-                    .filter((g): g is NonNullable<typeof g> => Boolean(g));
-                  const linkedProjects = getNoteLinkedProjectIds(note)
-                    .map((id) => projectMap.get(id))
-                    .filter((p): p is NonNullable<typeof p> => Boolean(p));
-                  const linkedTasks = (note.linkedTaskIds ?? [])
-                    .map((id) => taskMap.get(id))
-                    .filter((t): t is NonNullable<typeof t> => Boolean(t));
-                  return (
-                    <div
-                      key={note.id}
-                      className={cn(
-                        "group flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30 cursor-pointer",
-                        isSelected && "bg-muted/50",
-                      )}
-                      onClick={() =>
-                        router.push(`/notes/${note.slug ?? note.id}`)
-                      }
-                    >
-                      {/* Checkbox */}
-                      <div onClick={(e) => e.stopPropagation()} className="shrink-0">
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleSelect(note.id)}
-                        />
-                      </div>
-
-                      {/* Pin button */}
-                      <div onClick={(e) => e.stopPropagation()} className="shrink-0">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateNote.mutate({
-                              id: note.id,
-                              input: { pin: !note.pin },
-                            })
-                          }
-                          className={cn(
-                            "rounded p-1 transition-colors",
-                            note.pin
-                              ? "text-primary"
-                              : "text-muted-foreground opacity-0 group-hover:opacity-100",
-                          )}
-                          title={note.pin ? "Unpin" : "Pin"}
-                        >
-                          <Pin
-                            className={cn(
-                              "size-3.5",
-                              note.pin && "fill-current",
-                            )}
-                          />
-                        </button>
-                      </div>
-
-                      {/* Status + Type — LEFT of name */}
-                      <div className="hidden md:flex shrink-0 items-center gap-1">
-                        <Badge
-                          variant="outline"
-                          className={cn("text-[10px] uppercase", statusColors[note.status])}
-                        >
-                          {note.status.replace("_", " ")}
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          {note.type}
-                        </Badge>
-                      </div>
-
-                      {/* Name */}
-                      <div className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium">{note.name}</span>
-                      </div>
-
-                      {/* Metadata cluster */}
-                      <div className="hidden md:flex shrink-0 items-center gap-1.5 flex-wrap">
-                        {note.notebook && (
-                          <Badge variant="outline" className="gap-1 text-xs font-normal">
-                            <BookOpen className="size-3" />
-                            {note.notebook}
-                          </Badge>
-                        )}
-                        {linkedAreas.slice(0, 2).map((area) => (
-                          <Badge key={area.id} variant="outline" className="gap-1 text-xs font-normal">
-                            {area.icon ? (
-                              <span className="text-xs leading-none">{area.icon}</span>
-                            ) : (
-                              <LucideMap className="size-3" />
-                            )}
-                            {area.name}
-                          </Badge>
-                        ))}
-                        {linkedAreas.length > 2 && (
-                          <Badge variant="outline" className="text-xs font-normal">
-                            +{linkedAreas.length - 2}
-                          </Badge>
-                        )}
-                        {linkedGoals.slice(0, 1).map((goal) => (
-                          <Badge key={goal.id} variant="outline" className="gap-1 text-xs font-normal">
-                            <Target className="size-3" />
-                            {goal.name}
-                          </Badge>
-                        ))}
-                        {linkedGoals.length > 1 && (
-                          <Badge variant="outline" className="text-xs font-normal">
-                            +{linkedGoals.length - 1}
-                          </Badge>
-                        )}
-                        {linkedProjects.slice(0, 1).map((project) => (
-                          <Badge key={project.id} variant="outline" className="gap-1 text-xs font-normal">
-                            <Folder className="size-3" />
-                            {project.name}
-                          </Badge>
-                        ))}
-                        {linkedProjects.length > 1 && (
-                          <Badge variant="outline" className="text-xs font-normal">
-                            +{linkedProjects.length - 1}
-                          </Badge>
-                        )}
-                        {linkedTasks.slice(0, 1).map((task) => (
-                          <Badge key={task.id} variant="outline" className="gap-1 text-xs font-normal">
-                            <CheckSquare className="size-3" />
-                            {task.name}
-                          </Badge>
-                        ))}
-                        {linkedTasks.length > 1 && (
-                          <Badge variant="outline" className="text-xs font-normal">
-                            +{linkedTasks.length - 1}
-                          </Badge>
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(note.updated_at).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </span>
-                      </div>
-
-                      {/* Star/Favorite button */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          updateNote.mutate({
-                            id: note.id,
-                            input: {
-                              favorite: !note.favorite,
-                            },
-                          });
-                        }}
-                        className={cn(
-                          "shrink-0 rounded-md p-1.5 transition-colors",
-                          note.favorite
-                            ? "text-amber-500"
-                            : "text-muted-foreground/20 opacity-0 hover:text-amber-400 group-hover:opacity-100",
-                        )}
-                        title={
-                          note.favorite ? "Unfavorite" : "Favorite"
-                        }
-                      >
-                        <Star
-                          className={cn(
-                            "size-4",
-                            note.favorite && "fill-current",
-                          )}
-                        />
-                      </button>
-
-                      {/* Archive/Restore */}
-                      <div
-                        className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <NoteArchiveToggle
-                          isArchived={note.is_archived}
-                          mode="row"
-                          disabled={archiveNote.isPending || restoreNote.isPending}
-                          onClick={(e) => {
-                            e.stopPropagation();
-
-                            if (note.is_archived) {
-                              restoreNote.mutate(note.id);
-                              return;
-                            }
-
-                            archiveNote.mutate(note.id);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                {visibleNotes.map((note) => renderNoteRow(note))}
               </div>
             )}
           </TabsContent>
         ))}
+
+        {/* Grouped tabs */}
+        <TabsContent value={NOTE_VIEW.BY_AREA} className="mt-0 flex-1">
+          <NotesByGroupView
+            groups={noteGroupsByArea}
+            renderNote={renderNoteRow}
+            onNewNote={(groupId) => router.push(`/notes/new?areaId=${groupId}`)}
+            emptyMessage="Notes will be grouped by area here."
+          />
+        </TabsContent>
+
+        <TabsContent value={NOTE_VIEW.BY_GOAL} className="mt-0 flex-1">
+          <NotesByGroupView
+            groups={noteGroupsByGoal}
+            renderNote={renderNoteRow}
+            onNewNote={(groupId) => router.push(`/notes/new?goalId=${groupId}`)}
+            emptyMessage="Notes will be grouped by goal here."
+          />
+        </TabsContent>
+
+        <TabsContent value={NOTE_VIEW.BY_PROJECT} className="mt-0 flex-1">
+          <NotesByGroupView
+            groups={noteGroupsByProject}
+            renderNote={renderNoteRow}
+            onNewNote={(groupId) => router.push(`/notes/new?projectId=${groupId}`)}
+            emptyMessage="Notes will be grouped by project here."
+          />
+        </TabsContent>
+
+        <TabsContent value={NOTE_VIEW.BY_TOPIC} className="mt-0 flex-1">
+          <NotesByGroupView
+            groups={noteGroupsByTopic}
+            renderNote={renderNoteRow}
+            onNewNote={(groupId) => router.push(`/notes/new?topicId=${groupId}`)}
+            emptyMessage="Notes will be grouped by topic here."
+          />
+        </TabsContent>
+
+        <TabsContent value={NOTE_VIEW.BY_NOTEBOOK} className="mt-0 flex-1">
+          <NotesByGroupView
+            groups={noteGroupsByNotebook}
+            renderNote={renderNoteRow}
+            onNewNote={(groupId) => router.push(`/notes/new?notebook=${encodeURIComponent(groupId)}`)}
+            emptyMessage="Notes will be grouped by notebook here."
+          />
+        </TabsContent>
       </Tabs>
     </div>
   );

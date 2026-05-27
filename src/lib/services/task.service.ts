@@ -157,8 +157,15 @@ async function hydrateSingleTaskGoalLinks(task: Task): Promise<Task> {
   return hydrated;
 }
 
-function withEmptyProjectIds(tasks: Task[]): Task[] {
-  return tasks.map((task) => ({ ...task, linkedProjectIds: [] }));
+function dedupeProjectIds(projectIds: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(projectIds.filter((id): id is string => Boolean(id))));
+}
+
+function withPrimaryProjectLinks(tasks: Task[]): Task[] {
+  return tasks.map((task) => ({
+    ...task,
+    linkedProjectIds: dedupeProjectIds([task.project_id]),
+  }));
 }
 
 async function hydrateTaskProjectLinks(tasks: Task[]): Promise<Task[]> {
@@ -173,7 +180,7 @@ async function hydrateTaskProjectLinks(tasks: Task[]): Promise<Task[]> {
 
     if (result.error) {
       if (isMissingTaskProjectsTableError(result.error)) {
-        return withEmptyProjectIds(tasks);
+        return withPrimaryProjectLinks(tasks);
       }
       throw new DatabaseError(result.error.message);
     }
@@ -187,14 +194,22 @@ async function hydrateTaskProjectLinks(tasks: Task[]): Promise<Task[]> {
 
     return tasks.map((task) => ({
       ...task,
-      linkedProjectIds: projectIdsByTaskId.get(task.id) ?? [],
+      linkedProjectIds: dedupeProjectIds([
+        task.project_id,
+        ...(projectIdsByTaskId.get(task.id) ?? []),
+      ]),
     }));
   } catch (error) {
     if (isMissingTaskProjectsTableError(error)) {
-      return withEmptyProjectIds(tasks);
+      return withPrimaryProjectLinks(tasks);
     }
     throw error;
   }
+}
+
+async function hydrateSingleTaskProjectLinks(task: Task): Promise<Task> {
+  const [hydrated] = await hydrateTaskProjectLinks([task]);
+  return hydrated;
 }
 
 async function parallelHydrateTasks(tasks: Task[]): Promise<Task[]> {
@@ -224,14 +239,43 @@ function extractGoalIds(input: { goal_ids?: string[] }): {
   };
 }
 
-function extractProjectIds(input: { project_ids?: string[] }): {
+// ─── Project ID helpers ───────────────────────────────────────────────────────
+
+function extractTaskProjectIds<
+  TInput extends { project_id?: string | null; project_ids?: string[] },
+>(
+  input: TInput,
+): {
   projectIds: string[] | undefined;
-  taskInput: Omit<typeof input, "project_ids">;
+  taskInput: Omit<TInput, "project_ids">;
 } {
-  const { project_ids, ...taskInput } = input;
+  const { project_ids, project_id, ...rest } = input;
+
+  if (project_ids !== undefined && project_ids.length > 0) {
+    const normalizedProjectIds = dedupeProjectIds(project_ids);
+    return {
+      projectIds: normalizedProjectIds,
+      taskInput: {
+        ...rest,
+        project_id: normalizedProjectIds[0] ?? null,
+      } as Omit<TInput, "project_ids">,
+    };
+  }
+
+  if (project_id !== undefined) {
+    const normalizedProjectIds = dedupeProjectIds([project_id]);
+    return {
+      projectIds: normalizedProjectIds.length > 0 ? normalizedProjectIds : undefined,
+      taskInput: {
+        ...rest,
+        project_id: normalizedProjectIds[0] ?? null,
+      } as Omit<TInput, "project_ids">,
+    };
+  }
+
   return {
-    projectIds: project_ids ? Array.from(new Set(project_ids)) : undefined,
-    taskInput,
+    projectIds: undefined,
+    taskInput: { ...rest, project_id } as Omit<TInput, "project_ids">,
   };
 }
 
@@ -285,16 +329,16 @@ export const taskService = {
 
     const taskWithAreas = await hydrateSingleTaskAreaLinks(data);
     const taskWithGoals = await hydrateSingleTaskGoalLinks(taskWithAreas);
-    const [taskWithProjects] = await hydrateTaskProjectLinks([taskWithGoals]);
-    return taskWithProjects;
+    return hydrateSingleTaskProjectLinks(taskWithGoals);
   },
 
   async create(userId: string, input: CreateTaskInput): Promise<Task> {
     try {
       const validated = createTaskSchema.parse(input);
       const { areaIds, taskInput: areaCleanedInput } = extractTaskAreaIds(validated);
-      const { goalIds, taskInput: goalCleanedInput } = extractGoalIds(areaCleanedInput);
-      const { projectIds, taskInput } = extractProjectIds(goalCleanedInput);
+      const { projectIds, taskInput: projectCleanedInput } =
+        extractTaskProjectIds(areaCleanedInput);
+      const { goalIds, taskInput } = extractGoalIds(projectCleanedInput);
 
       const { data, error } = await createClient()
         .from("tasks")
@@ -337,8 +381,9 @@ export const taskService = {
     try {
       const validated = updateTaskSchema.parse(input);
       const { areaIds, taskInput: areaCleanedInput } = extractTaskAreaIds(validated);
-      const { goalIds, taskInput: goalCleanedInput } = extractGoalIds(areaCleanedInput);
-      const { projectIds, taskInput } = extractProjectIds(goalCleanedInput);
+      const { projectIds, taskInput: projectCleanedInput } =
+        extractTaskProjectIds(areaCleanedInput);
+      const { goalIds, taskInput } = extractGoalIds(projectCleanedInput);
       const hasTaskUpdates = Object.keys(taskInput).length > 0;
 
       const data = hasTaskUpdates
@@ -634,26 +679,20 @@ export const taskService = {
     }
   },
 
-  async getProjectLinks(taskId: string): Promise<string[]> {
-    const { data, error } = await createClient()
-      .from("task_projects")
-      .select("project_id")
-      .eq("task_id", taskId);
-    if (error) {
-      const code = error.code;
-      const msg = error.message?.toLowerCase() ?? "";
-      if (code === "42P01" || msg.includes("task_projects")) return [];
-      throw new DatabaseError(error.message);
-    }
-    return data?.map((r) => r.project_id) ?? [];
-  },
-
-  async replaceProjectLinks(_userId: string, taskId: string, projectIds: string[]): Promise<void> {
+  async replaceProjectLinks(
+    _userId: string,
+    taskId: string,
+    projectIds: string[],
+  ): Promise<void> {
     const existingProjectIdsList = await this.getProjectLinks(taskId);
     const existingProjectIds = new Set(existingProjectIdsList);
     const nextProjectIds = new Set(projectIds);
-    const projectIdsToAdd = projectIds.filter((pid) => !existingProjectIds.has(pid));
-    const projectIdsToRemove = existingProjectIdsList.filter((pid) => !nextProjectIds.has(pid));
+    const projectIdsToAdd = projectIds.filter(
+      (projectId) => !existingProjectIds.has(projectId),
+    );
+    const projectIdsToRemove = existingProjectIdsList.filter(
+      (projectId) => !nextProjectIds.has(projectId),
+    );
 
     if (projectIdsToAdd.length > 0) {
       const { error } = await createClient()
@@ -723,6 +762,18 @@ export const taskService = {
       throw new DatabaseError(result.error.message);
     }
     return result.data?.map((r) => r.area_id) ?? [];
+  },
+
+  async getProjectLinks(taskId: string): Promise<string[]> {
+    const result = await createClient()
+      .from("task_projects")
+      .select("project_id")
+      .eq("task_id", taskId);
+    if (result.error) {
+      if (isMissingTaskProjectsTableError(result.error)) return [];
+      throw new DatabaseError(result.error.message);
+    }
+    return result.data?.map((r) => r.project_id) ?? [];
   },
 
   hydrateTaskAreaLinks,

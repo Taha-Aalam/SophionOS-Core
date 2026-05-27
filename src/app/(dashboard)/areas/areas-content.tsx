@@ -40,6 +40,7 @@ import {
   groupAreasByType,
   isAreaEffectivelyInactive,
   normalizeAreaType,
+  sortAreasForDisplay,
 } from "@/lib/utils/areas";
 
 export function AreasContent() {
@@ -79,17 +80,19 @@ export function AreasContent() {
     );
   }, [areas, goals, projects, tasks, notes, resources]);
 
+  const sortedAreas = useMemo(() => sortAreasForDisplay(areas), [areas]);
+
   const areasByStatus = useMemo(
     () => ({
-      active: areas.filter(
+      active: sortAreasForDisplay(areas.filter(
         (area) =>
           classifyAreaStatus(area) === "active" &&
           !isAreaEffectivelyInactive(area, rollupsByAreaId.get(area.id)),
-      ),
-      inactive: areas.filter((area) =>
+      )),
+      inactive: sortAreasForDisplay(areas.filter((area) =>
         isAreaEffectivelyInactive(area, rollupsByAreaId.get(area.id)),
-      ),
-      archived: areas.filter((area) => classifyAreaStatus(area) === "archived"),
+      )),
+      archived: sortAreasForDisplay(areas.filter((area) => classifyAreaStatus(area) === "archived")),
     }),
     [areas, rollupsByAreaId],
   );
@@ -304,7 +307,7 @@ export function AreasContent() {
             </GalleryGrid>
           ) : (
             <GalleryGrid>
-              {areas.map((area) => (
+              {sortedAreas.map((area) => (
                 <AreaCard
                   key={area.id}
                   area={area}

@@ -191,7 +191,6 @@ export type Database = {
           content: string | null;
           type: string;
           status: Database["public"]["Enums"]["note_status"];
-          notebook: string | null;
           favorite: boolean;
           pin: boolean;
           is_archived: boolean;
@@ -210,7 +209,6 @@ export type Database = {
           content?: string | null;
           type?: string;
           status?: Database["public"]["Enums"]["note_status"];
-          notebook?: string | null;
           favorite?: boolean;
           pin?: boolean;
           is_archived?: boolean;
@@ -229,7 +227,6 @@ export type Database = {
           content?: string | null;
           type?: string;
           status?: Database["public"]["Enums"]["note_status"];
-          notebook?: string | null;
           favorite?: boolean;
           pin?: boolean;
           is_archived?: boolean;
@@ -413,6 +410,20 @@ export type Database = {
         Update: {
           task_id?: string;
           area_id?: string;
+        };
+      };
+      task_projects: {
+        Row: {
+          task_id: string;
+          project_id: string;
+        };
+        Insert: {
+          task_id: string;
+          project_id: string;
+        };
+        Update: {
+          task_id?: string;
+          project_id?: string;
         };
       };
       task_notes: {
@@ -675,20 +686,20 @@ export type Database = {
           project_id?: string;
         };
       };
-      note_related_notes: {
+      note_notebooks: {
         Row: {
-          note_a_id: string;
-          note_b_id: string;
+          note_id: string;
+          notebook: string;
           created_at: string;
         };
         Insert: {
-          note_a_id: string;
-          note_b_id: string;
+          note_id: string;
+          notebook: string;
           created_at?: string;
         };
         Update: {
-          note_a_id?: string;
-          note_b_id?: string;
+          note_id?: string;
+          notebook?: string;
           created_at?: string;
         };
       };

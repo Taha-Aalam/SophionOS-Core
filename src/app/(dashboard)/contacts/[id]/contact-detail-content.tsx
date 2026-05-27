@@ -60,6 +60,7 @@ import {
   useTasks,
   useArchiveTask,
   useCompleteTask,
+  useDeleteTask,
   useFocusTask,
   usePermanentDeleteTask,
   useRestoreTask,
@@ -212,6 +213,7 @@ export function ContactDetailContent() {
   const archiveTask = useArchiveTask();
   const restoreTask = useRestoreTask();
   const permanentDeleteTask = usePermanentDeleteTask();
+  const deleteTask = useDeleteTask();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -274,6 +276,13 @@ export function ContactDetailContent() {
       await updateTask.mutateAsync({ id: taskId, input: { name } });
     },
     [updateTask],
+  );
+
+  const handleTaskDelete = useCallback(
+    async (taskId: string) => {
+      await deleteTask.mutateAsync(taskId);
+    },
+    [deleteTask],
   );
 
   const handleTaskEdit = useCallback((task: Task) => {
@@ -723,6 +732,7 @@ export function ContactDetailContent() {
           handlePermanentDelete(id);
           setEditingTask(null);
         }}
+        onDelete={handleTaskDelete}
       />
     </div>
   );

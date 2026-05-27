@@ -7,7 +7,6 @@ import { NOTES_QUERY_KEY, NOTE_TYPES_QUERY_KEY } from "@/lib/hooks/use-notes"
 import {
   serverFetchNoteByIdentifier,
   serverFetchNoteTypes,
-  serverFetchRelatedNotes,
 } from "@/lib/queries/note-detail.queries"
 import { NoteDetailContent } from "./note-detail-content"
 
@@ -24,20 +23,10 @@ export default async function NoteDetailPage({ params }: { params: Promise<{ id:
     queryFn: () => Promise.resolve(note),
   })
 
-  await Promise.all([
-    queryClient.prefetchQuery({
-      queryKey: [NOTE_TYPES_QUERY_KEY, user.id],
-      queryFn: () => serverFetchNoteTypes(supabase, user.id),
-    }),
-    ...(note
-      ? [
-          queryClient.prefetchQuery({
-            queryKey: [NOTES_QUERY_KEY, "related", user.id, id],
-            queryFn: () => serverFetchRelatedNotes(supabase, user.id, note.id),
-          }),
-        ]
-      : []),
-  ])
+  await queryClient.prefetchQuery({
+    queryKey: [NOTE_TYPES_QUERY_KEY, user.id],
+    queryFn: () => serverFetchNoteTypes(supabase, user.id),
+  })
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

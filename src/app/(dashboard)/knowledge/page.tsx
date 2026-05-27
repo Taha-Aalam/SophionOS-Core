@@ -285,7 +285,7 @@ export default function KnowledgeHubPage() {
     name: "",
     status: NOTE_STATUS.INBOX as NoteStatus,
     type: NOTE_TYPE.NOTE as NoteType,
-    notebook: "",
+    notebooks: [] as string[],
   });
   const [noteOpenGroups, setNoteOpenGroups] = useState<Set<string>>(new Set());
 
@@ -381,7 +381,7 @@ export default function KnowledgeHubPage() {
       name: "",
       status: noteDefs?.default_status ?? NOTE_STATUS.INBOX,
       type: noteDefs?.default_type ?? NOTE_TYPE.NOTE,
-      notebook: noteDefs?.default_notebook ?? "",
+      notebooks: noteDefs?.default_notebook ? [noteDefs.default_notebook] : [],
     });
     setNoteCreateOpen(true);
   };
@@ -390,7 +390,7 @@ export default function KnowledgeHubPage() {
       name: noteForm.name.trim() || "Untitled note",
       status: noteForm.status,
       type: noteForm.type,
-      notebook: noteForm.notebook || null,
+      notebooks: noteForm.notebooks,
     });
     setNoteCreateOpen(false);
     router.push(`/notes/${note.slug ?? note.id}`);
@@ -459,8 +459,14 @@ export default function KnowledgeHubPage() {
           <Badge variant="secondary" className={cn("text-xs", NOTE_SC[note.status])}>{note.status.replace("_", " ")}</Badge>
         </TableCell>
         <TableCell className="hidden md:table-cell">
-          {note.notebook
-            ? <Badge variant="outline" className="text-xs"><BookOpen className="mr-1 size-2.5" />{note.notebook}</Badge>
+          {(note.notebooks ?? []).length > 0
+            ? (
+              <div className="flex flex-wrap gap-1">
+                {note.notebooks!.map((nb) => (
+                  <Badge key={nb} variant="outline" className="text-xs"><BookOpen className="mr-1 size-2.5" />{nb}</Badge>
+                ))}
+              </div>
+            )
             : <span className="text-xs text-muted-foreground">—</span>}
         </TableCell>
         <TableCell className="hidden lg:table-cell">
@@ -602,11 +608,12 @@ export default function KnowledgeHubPage() {
             key={r.id}
             resource={r}
             areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a)) : undefined}
-            projectName={r.project_id ? projNames.get(r.project_id) : undefined}
+            projectNames={r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : []}
             topicName={r.topic_id ? topicNames.get(r.topic_id) : undefined}
             onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
             onArchive={(id) => archiveResource.mutate(id)}
             onUnarchive={(id) => unarchiveResource.mutate(id)}
+            onDelete={() => {}}
             onStatusChange={(id, status) => updateResource.mutate({ id, input: { status } })}
           />
         ))}
@@ -982,11 +989,12 @@ export default function KnowledgeHubPage() {
                                   key={r.id}
                                   resource={r}
 areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a)) : undefined}
-                                  projectName={r.project_id ? projNames.get(r.project_id) : undefined}
+                                  projectNames={r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : []}
                                   topicName={tname}
                                   onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
                                   onArchive={(id) => archiveResource.mutate(id)}
                                   onUnarchive={(id) => unarchiveResource.mutate(id)}
+                                  onDelete={() => {}}
                                   onStatusChange={(id, status) => updateResource.mutate({ id, input: { status } })}
                                 />
                               ))}
@@ -1138,8 +1146,13 @@ areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; ico
               <div className="relative">
                 <BookOpen className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  value={noteForm.notebook}
-                  onChange={(e) => setNoteForm((p) => ({ ...p, notebook: e.target.value }))}
+                  value={noteForm.notebooks[0] ?? ""}
+                  onChange={(e) =>
+                    setNoteForm((p) => ({
+                      ...p,
+                      notebooks: e.target.value.trim() ? [e.target.value] : [],
+                    }))
+                  }
                   placeholder="Select or create notebook"
                   className="h-9 pl-8"
                   list="kh-notebook-list"

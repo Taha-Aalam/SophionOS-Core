@@ -21,6 +21,12 @@ export interface Note extends Omit<DatabaseTable<"notes">, "notebook"> {
   linkedGoalIds?: string[];
   linkedProjectIds?: string[];
   linkedTaskIds?: string[];
+  notebooks?: string[];
+}
+
+export interface RelatedNotebookGroup {
+  notebook: string;
+  notes: Note[];
 }
 
 export interface Project extends DatabaseTable<"projects"> {
@@ -179,7 +185,7 @@ export interface CreateNoteInput {
   content?: string | null;
   type?: string;
   status?: Note["status"];
-  notebook?: string | null;
+  notebooks?: string[];
   favorite?: boolean;
   pin?: boolean;
   is_archived?: boolean;

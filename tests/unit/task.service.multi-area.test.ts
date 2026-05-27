@@ -316,8 +316,8 @@ describe("taskService – linkedAreaIds hydration", () => {
   });
 });
 
-describe("taskService – getWithRelations includes area_ids", () => {
-  it("returns area_ids from task_areas", async () => {
+describe("taskService – getWithRelations includes area_ids and project_ids", () => {
+  it("returns area_ids from task_areas and project_ids from task_projects", async () => {
     const goalResultClient = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
@@ -333,7 +333,10 @@ describe("taskService – getWithRelations includes area_ids", () => {
     const projectResultClient = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+      eq: vi.fn().mockResolvedValue({
+        data: [{ project_id: "p1" }, { project_id: "p2" }],
+        error: null,
+      }),
     } as any;
 
     vi.mocked(createClient)
@@ -345,6 +348,7 @@ describe("taskService – getWithRelations includes area_ids", () => {
 
     expect(result.goal_ids).toEqual(["g1"]);
     expect(result.area_ids).toEqual(expect.arrayContaining([areaA, areaB]));
+    expect(result.project_ids).toEqual(expect.arrayContaining(["p1", "p2"]));
   });
 
   it("falls back gracefully when task_areas table is missing", async () => {
@@ -377,5 +381,38 @@ describe("taskService – getWithRelations includes area_ids", () => {
     const result = await taskService.getWithRelations(userId, taskId);
 
     expect(result.area_ids).toEqual([]);
+    expect(result.project_ids).toEqual([]);
+  });
+
+  it("falls back gracefully when task_projects table is missing", async () => {
+    const goalResultClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+
+    const areaResultClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+
+    const projectResultClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({
+        data: null,
+        error: { code: "42P01", message: "relation task_projects does not exist" },
+      }),
+    } as any;
+
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => goalResultClient)
+      .mockImplementationOnce(() => areaResultClient)
+      .mockImplementationOnce(() => projectResultClient);
+
+    const result = await taskService.getWithRelations(userId, taskId);
+
+    expect(result.project_ids).toEqual([]);
   });
 });

@@ -150,7 +150,7 @@ describe("note detail metadata: full autosave payloads", () => {
         {
           status: "active",
           type: "research",
-          notebook: "Work",
+          notebooks: ["Work"],
           areaIds: ["area-1"],
           goalIds: ["goal-1"],
           projectIds: ["project-1"],
@@ -163,7 +163,7 @@ describe("note detail metadata: full autosave payloads", () => {
     ).toEqual({
       status: "active",
       type: "research",
-      notebook: "Work",
+      notebooks: ["Work"],
       area_ids: ["area-1"],
       goal_ids: ["goal-2", "goal-3"],
       project_ids: ["project-1"],
@@ -173,13 +173,13 @@ describe("note detail metadata: full autosave payloads", () => {
     });
   });
 
-  it("normalizes blank notebooks to null while keeping other metadata intact", () => {
+  it("applies an overriding notebooks array while keeping other metadata intact", () => {
     expect(
       buildNoteMetadataUpdateInput(
         {
           status: "inbox",
           type: "note",
-          notebook: "   ",
+          notebooks: ["Ideas"],
           areaIds: [],
           goalIds: ["goal-1"],
           projectIds: ["project-1"],
@@ -187,12 +187,12 @@ describe("note detail metadata: full autosave payloads", () => {
           favorite: false,
           pin: true,
         },
-        {},
+        { notebooks: ["Ideas", "Health"] },
       ),
     ).toEqual({
       status: "inbox",
       type: "note",
-      notebook: null,
+      notebooks: ["Ideas", "Health"],
       area_ids: [],
       goal_ids: ["goal-1"],
       project_ids: ["project-1"],

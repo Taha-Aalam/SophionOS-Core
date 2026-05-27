@@ -137,7 +137,7 @@ export function TaskListItem({
           </Badge>
         ))}
         {displayGoalNames.map((name, index) => (
-          <Badge key={index} variant="outline" className="gap-1 text-xs font-normal">
+          <Badge key={`goal-${index}`} variant="outline" className="gap-1 text-xs font-normal">
             <Target className="size-3" />
             {name}
           </Badge>
