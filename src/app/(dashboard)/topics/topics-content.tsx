@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Tag, FilePlus, Heart, Globe, LayoutGrid, X, Archive } from "lucide-react";
+import { Tag, FilePlus, Heart, Globe, Map as MapIcon, LayoutGrid, X, Archive, CircleDot, CircleOff, ChevronDownIcon, ChevronRightIcon, Plus } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -27,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TopicCard } from "@/components/entities/topic-card";
+import { GalleryGrid } from "@/components/views/gallery-grid";
 import {
   useTopics,
   useCreateTopic,
@@ -70,6 +70,105 @@ function TopicCardSkeleton() {
         <Skeleton className="h-4 w-20" />
         <Skeleton className="h-4 w-20" />
       </div>
+    </div>
+  );
+}
+
+function CollapsibleTopicGroup({
+  areaId,
+  areaName,
+  areaIcon,
+  topics: areaTopics,
+  areaNames,
+  areaIcons,
+  duplicateIndices,
+  onToggleFavorite,
+  onEdit,
+  onArchive,
+  onCreateNew,
+  defaultOpen = true,
+}: {
+  areaId: string;
+  areaName: string;
+  areaIcon: string | null;
+  topics: TopicWithCounts[];
+  areaNames: Map<string, string>;
+  areaIcons: Map<string, string | null>;
+  duplicateIndices: Map<string, number>;
+  onToggleFavorite: (id: string, favorite: boolean) => void;
+  onEdit: (topic: TopicWithCounts) => void;
+  onArchive: (topic: TopicWithCounts) => void;
+  onCreateNew: (areaId: string) => void;
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="mb-6">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+          }
+        }}
+        className="w-full flex items-center gap-2 mb-3 group cursor-pointer"
+      >
+        <span className="text-muted-foreground">
+          {isOpen ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
+        </span>
+        {areaIcon ? (
+          <span className="text-base leading-none">{areaIcon}</span>
+        ) : (
+          <MapIcon className="size-4 text-muted-foreground" />
+        )}
+        <Badge variant="outline" className="text-xs font-medium">
+          {areaName}
+        </Badge>
+        <span className="text-sm text-muted-foreground">
+          ({areaTopics.length} {areaTopics.length === 1 ? "topic" : "topics"})
+        </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            onCreateNew(areaId);
+          }}
+          title={`Create topic in ${areaName}`}
+        >
+          <Plus className="size-4" />
+        </Button>
+      </div>
+
+      {isOpen && (
+        <GalleryGrid>
+          {areaTopics.map((topic) => (
+            <TopicCard
+              key={topic.id}
+              topic={topic}
+              areaNames={areaNames}
+              areaIcons={areaIcons}
+              duplicateIndex={duplicateIndices.get(topic.id)}
+              onToggleFavorite={onToggleFavorite}
+              onEdit={onEdit}
+              onArchive={onArchive}
+            />
+          ))}
+          <button
+            onClick={() => onCreateNew(areaId)}
+            className="flex flex-col items-center justify-center gap-2 h-full min-h-[120px] rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-all text-muted-foreground hover:text-foreground cursor-pointer"
+          >
+            <Plus className="size-6" />
+            <span className="text-sm font-medium">New Topic</span>
+          </button>
+        </GalleryGrid>
+      )}
     </div>
   );
 }
@@ -200,11 +299,11 @@ export function TopicsContent() {
   }, [topics]);
 
   const groupedByArea = useMemo(() => {
-    const grouped = new Map<string, { areaName: string; topics: TopicWithCounts[] }>();
+    const grouped = new Map<string, { areaName: string; areaIcon: string | null; topics: TopicWithCounts[] }>();
     for (const topic of topics) {
       const areaIds = topic.linkedAreaIds ?? [];
       if (areaIds.length === 0) {
-        const unknown = grouped.get("__none__") ?? { areaName: "No Area", topics: [] };
+        const unknown = grouped.get("__none__") ?? { areaName: "No Area", areaIcon: null, topics: [] };
         if (!unknown.topics.find((t) => t.id === topic.id)) {
           unknown.topics.push(topic);
         }
@@ -212,7 +311,8 @@ export function TopicsContent() {
       } else {
         for (const areaId of areaIds) {
           const areaName = areaNames.get(areaId) ?? areaId;
-          const entry = grouped.get(areaId) ?? { areaName, topics: [] };
+          const areaIcon = areaIcons.get(areaId) ?? null;
+          const entry = grouped.get(areaId) ?? { areaName, areaIcon, topics: [] };
           if (!entry.topics.find((t) => t.id === topic.id)) {
             entry.topics.push(topic);
           }
@@ -223,8 +323,13 @@ export function TopicsContent() {
     return Array.from(grouped.entries())
       .filter(([key]) => key !== "__none__")
       .sort(([, a], [, b]) => a.areaName.localeCompare(b.areaName))
-      .map(([areaId, { areaName, topics: areaTopics }]) => ({ areaId, areaName, topics: areaTopics }));
-  }, [topics, areaNames]);
+      .map(([areaId, { areaName, areaIcon, topics: areaTopics }]) => ({ areaId, areaName, areaIcon, topics: areaTopics }));
+  }, [topics, areaNames, areaIcons]);
+
+  const handleCreateInArea = (areaId: string) => {
+    setForm({ ...defaultForm, area_ids: [areaId] });
+    setIsCreateOpen(true);
+  };
 
   const handleCreate = async () => {
     await createTopic.mutateAsync({
@@ -373,6 +478,7 @@ export function TopicsContent() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value="active" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <CircleDot className="mr-1 size-3" />
             Active
             {countLabel(activeTopics.length)}
           </TabsTrigger>
@@ -382,11 +488,12 @@ export function TopicsContent() {
             {countLabel(favoriteTopics.length)}
           </TabsTrigger>
           <TabsTrigger value="inactive" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <CircleOff className="mr-1 size-3" />
             Inactive
             {countLabel(inactiveTopics.length)}
           </TabsTrigger>
           <TabsTrigger value="by_area" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-            <Globe className="mr-1 size-3" />
+            <MapIcon className="mr-1 size-3" />
             By Area
           </TabsTrigger>
           <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
@@ -440,28 +547,22 @@ export function TopicsContent() {
               onAction={() => setIsCreateOpen(true)}
             />
           ) : (
-            <div className="flex flex-col gap-6">
-              {groupedByArea.map(({ areaId, areaName, topics: areaTopics }) => (
-                <div key={areaId}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Globe className="size-4 text-muted-foreground" />
-                    <h2 className="font-semibold">{areaName}</h2>
-                    <Badge variant="secondary" className="text-xs">{areaTopics.length}</Badge>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {areaTopics.map((topic) => (
-                      <TopicCard
-                        key={topic.id}
-                        topic={topic}
-                        areaNames={areaNames}
-                        areaIcons={areaIcons}
-                        duplicateIndex={duplicateIndices.get(topic.id)}
-                        onToggleFavorite={handleToggleFavorite}
-                        onEdit={handleEdit}
-                      />
-                    ))}
-                  </div>
-                </div>
+            <div className="px-1">
+              {groupedByArea.map(({ areaId, areaName, areaIcon, topics: areaTopics }) => (
+                <CollapsibleTopicGroup
+                  key={areaId}
+                  areaId={areaId}
+                  areaName={areaName}
+                  areaIcon={areaIcon}
+                  topics={areaTopics}
+                  areaNames={areaNames}
+                  areaIcons={areaIcons}
+                  duplicateIndices={duplicateIndices}
+                  onToggleFavorite={handleToggleFavorite}
+                  onEdit={handleEdit}
+                  onArchive={handleArchive}
+                  onCreateNew={handleCreateInArea}
+                />
               ))}
             </div>
           )}
@@ -547,7 +648,7 @@ export function TopicsContent() {
                       <DropdownMenuItem onClick={() => setForm((prev) => ({ ...prev, area_ids: [] }))}>
                         Clear selection
                       </DropdownMenuItem>
-                      <ScrollArea className="max-h-56">
+                      <div className="max-h-56 overflow-y-auto overscroll-contain">
                         {filteredAreas.length === 0 ? (
                           <p className="text-sm text-muted-foreground px-2 py-1.5">
                             {form.note_ids.length > 0 || form.resource_ids.length > 0
@@ -557,6 +658,7 @@ export function TopicsContent() {
                         ) : (
                           filteredAreas.map((area) => {
                             const isSelected = form.area_ids.includes(area.id);
+                            const icon = (area.icon as string | null | undefined) ?? null;
                             return (
                               <DropdownMenuItem
                                 key={area.id}
@@ -565,12 +667,13 @@ export function TopicsContent() {
                                 className="flex items-center gap-2"
                               >
                                 <Checkbox checked={isSelected} readOnly />
+                                {icon && <span className="text-sm leading-none">{icon}</span>}
                                 {area.name}
                               </DropdownMenuItem>
                             );
                           })
                         )}
-                      </ScrollArea>
+                      </div>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -608,7 +711,7 @@ export function TopicsContent() {
                       <DropdownMenuItem onClick={() => setForm((prev) => ({ ...prev, note_ids: [] }))}>
                         Clear selection
                       </DropdownMenuItem>
-                      <ScrollArea className="max-h-56">
+                      <div className="max-h-56 overflow-y-auto overscroll-contain">
                         {availableNotes.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">
                             No notes available.
@@ -626,7 +729,7 @@ export function TopicsContent() {
                             </DropdownMenuItem>
                           ))
                         )}
-                      </ScrollArea>
+                      </div>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -661,7 +764,7 @@ export function TopicsContent() {
                       <DropdownMenuItem onClick={() => setForm((prev) => ({ ...prev, resource_ids: [] }))}>
                         Clear selection
                       </DropdownMenuItem>
-                      <ScrollArea className="max-h-56">
+                      <div className="max-h-56 overflow-y-auto overscroll-contain">
                         {availableResources.length === 0 ? (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">
                             No resources available.
@@ -679,7 +782,7 @@ export function TopicsContent() {
                             </DropdownMenuItem>
                           ))
                         )}
-                      </ScrollArea>
+                      </div>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
