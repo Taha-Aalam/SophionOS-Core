@@ -40,10 +40,12 @@ import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
-  useCompleteTask,
-  useDeleteTask,
-  useFocusTask,
+  useArchiveTask,
   useArchivedTasks,
+  useCompleteTask,
+  useFocusTask,
+  usePermanentDeleteTask,
+  useRestoreTask,
   useTasks,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
@@ -90,7 +92,27 @@ export function TasksContent() {
   const completeTask = useCompleteTask();
   const focusTask = useFocusTask();
   const updateTask = useUpdateTask();
-  const deleteTask = useDeleteTask();
+  const archiveTask = useArchiveTask();
+  const restoreTask = useRestoreTask();
+  const permanentDelete = usePermanentDeleteTask();
+
+  const handleArchiveToggle = useCallback(
+    (task: Task) => {
+      if (task.is_archived) {
+        restoreTask.mutate(task.id);
+      } else {
+        archiveTask.mutate(task.id);
+      }
+    },
+    [archiveTask, restoreTask],
+  );
+
+  const handlePermanentDelete = useCallback(
+    (id: string) => {
+      permanentDelete.mutate(id);
+    },
+    [permanentDelete],
+  );
 
   const areaMap = useMemo(
     () => new Map(allAreas?.map((area) => [area.id, area]) ?? []),
@@ -692,7 +714,8 @@ export function TasksContent() {
                     onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
                     onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
                     onEdit={handleEdit}
-                    onDelete={(id) => deleteTask.mutate(id)}
+                    onArchiveToggle={handleArchiveToggle}
+                    onPermanentDelete={handlePermanentDelete}
                   />
                 ))}
               </div>
@@ -713,7 +736,8 @@ export function TasksContent() {
             onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
             onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
             onEdit={handleEdit}
-            onDelete={(id) => deleteTask.mutate(id)}
+            onArchiveToggle={handleArchiveToggle}
+            onPermanentDelete={handlePermanentDelete}
             onNewTask={(areaId) => {
               setEditingTask(null);
               setNewTaskAreaId(areaId);
@@ -740,7 +764,8 @@ export function TasksContent() {
             onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
             onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
             onEdit={handleEdit}
-            onDelete={(id) => deleteTask.mutate(id)}
+            onArchiveToggle={handleArchiveToggle}
+            onPermanentDelete={handlePermanentDelete}
             onNewTask={(goalId) => {
               setEditingTask(null);
               setNewTaskGoalId(goalId);
@@ -767,7 +792,8 @@ export function TasksContent() {
             onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
             onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
             onEdit={handleEdit}
-            onDelete={(id) => deleteTask.mutate(id)}
+            onArchiveToggle={handleArchiveToggle}
+            onPermanentDelete={handlePermanentDelete}
             onNewTask={(projectId) => {
               setEditingTask(null);
               setNewTaskProjectId(projectId);
@@ -811,7 +837,8 @@ export function TasksContent() {
                   onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
                   onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
                   onEdit={handleEdit}
-                  onDelete={(id) => deleteTask.mutate(id)}
+                  onArchiveToggle={handleArchiveToggle}
+                  onPermanentDelete={handlePermanentDelete}
                 />
               ))}
             </div>
@@ -839,7 +866,8 @@ export function TasksContent() {
         defaultAreaId={newTaskAreaId}
         defaultGoalId={newTaskGoalId}
         defaultProjectId={newTaskProjectId}
-        onDelete={(id) => deleteTask.mutate(id)}
+        onArchiveToggle={handleArchiveToggle}
+        onPermanentDelete={handlePermanentDelete}
       />
     </div>
   );

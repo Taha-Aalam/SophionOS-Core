@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Archive, Calendar, Folder, Map, Pencil, Star, Target } from "lucide-react";
+import { Calendar, Map, Pencil, Star, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { PriorityBadge } from "./priority-badge";
 import { StatusBadge } from "./status-badge";
 import { SmartPriorityBadge } from "./smart-priority-badge";
+import { TaskArchiveToggle } from "./task-archive-toggle";
 import { TaskInlineEditor } from "./task-inline-editor";
 
 interface TaskListItemProps {
@@ -27,6 +28,9 @@ interface TaskListItemProps {
   onFocusToggle: (id: string, focused: boolean) => void;
   onNameSave: (id: string, name: string) => void;
   onEdit?: (task: Task) => void;
+  onArchiveToggle?: (task: Task) => void;
+  onPermanentDelete?: (id: string) => void;
+  /** @deprecated Use `onArchiveToggle` instead. Kept as transitional alias. */
   onDelete?: (id: string) => void;
 }
 
@@ -64,6 +68,8 @@ export function TaskListItem({
   onFocusToggle,
   onNameSave,
   onEdit,
+  onArchiveToggle,
+  onPermanentDelete,
   onDelete,
 }: TaskListItemProps) {
   const displayAreaNames = linkedAreaNames && linkedAreaNames.length > 0 ? linkedAreaNames : (areaName ? [areaName] : []);
@@ -132,13 +138,13 @@ export function TaskListItem({
         ))}
         {displayGoalNames.map((name, index) => (
           <Badge key={`goal-${index}`} variant="outline" className="gap-1 text-xs font-normal">
-            <Target className="size-3" />
+            <span className="text-xs leading-none">🎯</span>
             {name}
           </Badge>
         ))}
         {displayProjectNames.map((name, index) => (
           <Badge key={`project-${index}`} variant="outline" className="gap-1 text-xs font-normal">
-            <Folder className="size-3" />
+            <span className="text-xs leading-none">📁</span>
             {name}
           </Badge>
         ))}
@@ -156,33 +162,6 @@ export function TaskListItem({
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-        {onEdit && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(task);
-            }}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Edit task"
-          >
-            <Pencil className="size-3.5" />
-          </button>
-        )}
-        {onDelete && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(task.id);
-            }}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
-            aria-label="Archive task"
-          >
-            <Archive className="size-3.5" />
-          </button>
-        )}
-      </div>
-
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -196,8 +175,52 @@ export function TaskListItem({
         )}
         aria-label={task.is_focused ? "Remove from focus" : "Add to focus"}
       >
-        <Star className={cn("size-4", task.is_focused && "fill-current")} />
+        <Star className={cn("size-3.5", task.is_focused && "fill-current")} />
       </button>
+
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+        {onEdit && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(task);
+            }}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Edit task"
+          >
+            <Pencil className="size-3.5" />
+          </button>
+        )}
+        {(onArchiveToggle || onDelete) && (
+          <span onClick={(e) => e.stopPropagation()}>
+            <TaskArchiveToggle
+              isArchived={task.is_archived}
+              mode="row"
+              onClick={() => {
+                if (onArchiveToggle) {
+                  onArchiveToggle(task);
+                } else {
+                  onDelete!(task.id);
+                }
+              }}
+            />
+          </span>
+        )}
+        {onPermanentDelete && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm("Permanently delete this task? This cannot be undone.")) {
+                onPermanentDelete(task.id);
+              }
+            }}
+            className="rounded-md p-1.5 text-destructive/70 transition-colors hover:bg-destructive/10 hover:text-destructive"
+            aria-label="Delete task permanently"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

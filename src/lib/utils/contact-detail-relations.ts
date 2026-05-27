@@ -69,7 +69,7 @@ export function resolveLinkedTasks(
 export interface TabOption {
   value: string;
   label: string;
-  count: number;
+  count?: number;
 }
 
 // ── Areas ─────────────────────────────────────────────────────────────
@@ -225,61 +225,69 @@ export function filterProjectsByTab(projects: Project[], tab: string): Project[]
 
 // ── Tasks ─────────────────────────────────────────────────────────────
 
-export function buildTaskTabs(tasks: Task[]): TabOption[] {
+export function buildTaskTabs(tasks: Task[] = []): TabOption[] {
+  const activeTasks = tasks.filter((t) => !t.is_archived);
+  const archivedCount = tasks.filter((t) => t.is_archived).length;
   return [
-    { value: "all", label: "All", count: tasks.length },
+    { value: "all", label: "All", count: activeTasks.length },
     {
       value: "inbox",
       label: "Inbox",
-      count: tasks.filter((t) => t.status === "inbox" && !t.is_completed)
-        .length,
+      count: activeTasks.filter((t) => t.status === "inbox" && !t.is_completed).length,
     },
     {
       value: "upcoming",
       label: "Upcoming",
-      count: tasks.filter(
-        (t) =>
-          t.status !== "inbox" &&
-          t.status !== "completed" &&
-          !t.is_completed,
+      count: activeTasks.filter(
+        (t) => t.status !== "inbox" && t.status !== "completed" && !t.is_completed,
       ).length,
     },
     {
       value: "overdue",
       label: "Overdue",
-      count: tasks.filter((t) => {
+      count: activeTasks.filter((t) => {
         if (!t.due_date || t.is_completed) return false;
         return new Date(t.due_date) < new Date();
       }).length,
     },
+    { value: "by_area", label: "By Area" },
+    { value: "by_goal", label: "By Goal" },
+    { value: "by_project", label: "By Project" },
     {
       value: "completed",
       label: "Completed",
-      count: tasks.filter((t) => t.is_completed).length,
+      count: activeTasks.filter((t) => t.is_completed).length,
     },
+    { value: "archived", label: "Archived", count: archivedCount },
   ];
 }
 
 export function filterTasksByTab(tasks: Task[], tab: string): Task[] {
+  if (tab === "archived") return tasks.filter((t) => t.is_archived);
+  const active = tasks.filter((t) => !t.is_archived);
   switch (tab) {
     case "inbox":
-      return tasks.filter((t) => t.status === "inbox" && !t.is_completed);
+      return active.filter((t) => t.status === "inbox" && !t.is_completed);
     case "upcoming":
-      return tasks.filter(
+      return active.filter(
         (t) =>
           t.status !== "inbox" &&
           t.status !== "completed" &&
           !t.is_completed,
       );
     case "overdue":
-      return tasks.filter((t) => {
+      return active.filter((t) => {
         if (!t.due_date || t.is_completed) return false;
         return new Date(t.due_date) < new Date();
       });
     case "completed":
-      return tasks.filter((t) => t.is_completed);
+      return active.filter((t) => t.is_completed);
+    case "by_area":
+    case "by_goal":
+    case "by_project":
+      return active;
     default:
-      return tasks;
+      return active;
   }
 }
 

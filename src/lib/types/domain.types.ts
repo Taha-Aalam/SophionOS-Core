@@ -15,7 +15,8 @@ export interface Goal extends DatabaseTable<"goals"> {
   resourceCount?: number;
 }
 
-export interface Note extends DatabaseTable<"notes"> {
+export interface Note extends Omit<DatabaseTable<"notes">, "notebook"> {
+  notebook?: string | null;
   linkedAreaIds?: string[];
   linkedGoalIds?: string[];
   linkedProjectIds?: string[];

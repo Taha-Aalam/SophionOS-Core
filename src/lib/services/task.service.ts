@@ -5,7 +5,7 @@ import type { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.typ
 import { TASK_STATUS, type TaskStatus } from "../utils/constants";
 import { createTaskSchema, updateTaskSchema } from "../validators/task.schema";
 
-const TASK_SELECT =
+export const TASK_SELECT =
   "id, user_id, area_id, project_id, name, description, status, priority, due_date, is_completed, is_focused, is_important, is_urgent, completed_at, smart_priority, is_archived, created_at, updated_at";
 
 // ─── Area ID helpers ──────────────────────────────────────────────────────────
@@ -22,9 +22,9 @@ function extractTaskAreaIds<TInput extends { area_id?: string | null; area_ids?:
 } {
   const { area_ids, area_id, ...rest } = input;
 
-  // Explicit area_ids with entries → multi-area mode; set primary from first entry.
-  if (area_ids !== undefined && area_ids.length > 0) {
-    const normalizedAreaIds = dedupeAreaIds(area_ids);
+  // Explicit area_ids (including empty array for clearing all areas) → multi-area mode.
+  if (area_ids !== undefined) {
+    const normalizedAreaIds = area_ids.length > 0 ? dedupeAreaIds(area_ids) : [];
     return {
       areaIds: normalizedAreaIds,
       taskInput: {
@@ -53,7 +53,7 @@ function extractTaskAreaIds<TInput extends { area_id?: string | null; area_ids?:
   };
 }
 
-function isMissingTaskAreasTableError(error: unknown): boolean {
+function isMissingTableError(error: unknown, tableName: string): boolean {
   if (!error || typeof error !== "object") return false;
   const e = error as Record<string, unknown>;
   const code = typeof e.code === "string" ? e.code : undefined;
@@ -61,26 +61,19 @@ function isMissingTaskAreasTableError(error: unknown): boolean {
   const normalizedMessage = message.toLowerCase();
   return (
     code === "42P01" ||
-    (normalizedMessage.includes("task_areas") &&
+    (normalizedMessage.includes(tableName) &&
       (normalizedMessage.includes("does not exist") ||
         normalizedMessage.includes("unexpected table") ||
         normalizedMessage.includes("relation")))
   );
 }
 
+function isMissingTaskAreasTableError(error: unknown): boolean {
+  return isMissingTableError(error, "task_areas");
+}
+
 function isMissingTaskProjectsTableError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const e = error as Record<string, unknown>;
-  const code = typeof e.code === "string" ? e.code : undefined;
-  const message = typeof e.message === "string" ? e.message : "";
-  const normalizedMessage = message.toLowerCase();
-  return (
-    code === "42P01" ||
-    (normalizedMessage.includes("task_projects") &&
-      (normalizedMessage.includes("does not exist") ||
-        normalizedMessage.includes("unexpected table") ||
-        normalizedMessage.includes("relation")))
-  );
+  return isMissingTableError(error, "task_projects");
 }
 
 function withPrimaryAreaLinks(tasks: Task[]): Task[] {
@@ -177,8 +170,7 @@ function withPrimaryProjectLinks(tasks: Task[]): Task[] {
 
 async function hydrateTaskProjectLinks(tasks: Task[]): Promise<Task[]> {
   if (tasks.length === 0) return tasks;
-
-  const taskIds = tasks.map((t) => t.id);
+  const taskIds = tasks.map((task) => task.id);
 
   try {
     const result = await createClient()
@@ -358,21 +350,18 @@ export const taskService = {
         throw new DatabaseError(error.message);
       }
 
-      const needsTouch =
-        (areaIds?.length ?? 0) > 0 ||
-        (goalIds?.length ?? 0) > 0 ||
-        (projectIds?.length ?? 0) > 0;
+      const needsTouch = (areaIds?.length ?? 0) > 0 || (goalIds?.length ?? 0) > 0 || (projectIds?.length ?? 0) > 0;
 
       if (areaIds?.length) {
         await this.replaceAreaLinks(userId, data.id, areaIds);
       }
 
-      if (projectIds?.length) {
-        await this.replaceProjectLinks(userId, data.id, projectIds);
-      }
-
       if (goalIds?.length) {
         await this.replaceGoalLinks(userId, data.id, goalIds);
+      }
+
+      if (projectIds?.length) {
+        await this.replaceProjectLinks(userId, data.id, projectIds);
       }
 
       if (needsTouch) {
@@ -416,24 +405,19 @@ export const taskService = {
           })()
         : await this.getById(userId, id);
 
-      const needsTouch =
-        (areaIds?.length ?? 0) > 0 ||
-        (goalIds?.length ?? 0) > 0 ||
-        projectIds !== undefined;
-
-      if (areaIds?.length) {
+      if (areaIds !== undefined) {
         await this.replaceAreaLinks(userId, id, areaIds);
+      }
+
+      if (goalIds !== undefined) {
+        await this.replaceGoalLinks(userId, id, goalIds);
       }
 
       if (projectIds !== undefined) {
         await this.replaceProjectLinks(userId, id, projectIds);
       }
 
-      if (goalIds?.length) {
-        await this.replaceGoalLinks(userId, id, goalIds);
-      }
-
-      if (needsTouch) {
+      if (areaIds !== undefined || goalIds !== undefined || projectIds !== undefined) {
         return this.touch(userId, id);
       }
 
@@ -549,6 +533,63 @@ export const taskService = {
     return data;
   },
 
+  async permanentDelete(userId: string, id: string): Promise<void> {
+    // Clean up join table rows first to avoid FK violations
+    const areaIds = await this.getAreaLinks(id);
+    if (areaIds.length > 0) {
+      const { error } = await createClient()
+        .from("task_areas")
+        .delete()
+        .eq("task_id", id);
+      if (error && !isMissingTaskAreasTableError(error)) {
+        throw new DatabaseError(error.message);
+      }
+    }
+
+    const { error: goalError } = await createClient()
+      .from("goal_tasks")
+      .delete()
+      .eq("task_id", id);
+    if (goalError) {
+      throw new DatabaseError(goalError.message);
+    }
+
+    const { error: projectError } = await createClient()
+      .from("task_projects")
+      .delete()
+      .eq("task_id", id);
+    if (projectError && !isMissingTaskProjectsTableError(projectError)) {
+      throw new DatabaseError(projectError.message);
+    }
+
+    const { error } = await createClient()
+      .from("tasks")
+      .delete()
+      .eq("user_id", userId)
+      .eq("id", id);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+  },
+
+  async restore(userId: string, id: string): Promise<Task> {
+    const { data, error } = await createClient()
+      .from("tasks")
+      .update({ is_archived: false })
+      .eq("user_id", userId)
+      .eq("id", id)
+      .select(TASK_SELECT)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") throw new NotFoundError("Task", id);
+      throw new DatabaseError(error.message);
+    }
+
+    return data;
+  },
+
   async getWithRelations(
     _userId: string,
     id: string,
@@ -563,26 +604,22 @@ export const taskService = {
       throw new DatabaseError(goalResult.error.message);
     }
 
-    const area_ids = areaResult.error
-      ? isMissingTaskAreasTableError(areaResult.error)
-        ? []
-        : (() => {
-            throw new DatabaseError(areaResult.error.message);
-          })()
-      : (areaResult.data?.map((r) => r.area_id) ?? []);
+    if (areaResult.error) {
+      if (!isMissingTaskAreasTableError(areaResult.error)) {
+        throw new DatabaseError(areaResult.error.message);
+      }
+    }
 
-    const project_ids = projectResult.error
-      ? isMissingTaskProjectsTableError(projectResult.error)
-        ? []
-        : (() => {
-            throw new DatabaseError(projectResult.error.message);
-          })()
-      : (projectResult.data?.map((r) => r.project_id) ?? []);
+    if (projectResult.error) {
+      if (!isMissingTaskProjectsTableError(projectResult.error)) {
+        throw new DatabaseError(projectResult.error.message);
+      }
+    }
 
     return {
       goal_ids: goalResult.data?.map((r) => r.goal_id) ?? [],
-      area_ids,
-      project_ids,
+      area_ids: areaResult.error ? [] : (areaResult.data?.map((r) => r.area_id) ?? []),
+      project_ids: projectResult.error ? [] : (projectResult.data?.map((r) => r.project_id) ?? []),
     };
   },
 

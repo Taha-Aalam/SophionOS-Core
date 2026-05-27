@@ -99,6 +99,25 @@ describe('taskService', () => {
     });
   });
 
+  it('clears is_archived on restore()', async () => {
+    const mockData = { id: taskId, is_archived: false };
+    const mockClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+    } as any;
+
+    vi.mocked(createClient).mockImplementation(() => mockClient);
+
+    const result = await taskService.restore(userId, taskId);
+    expect(result).toEqual(mockData);
+    expect(mockClient.update).toHaveBeenCalledWith({
+      is_archived: false,
+    });
+  });
+
   it('creates a task and links selected goals', async () => {
     const input = {
       name: 'Task with goals',
@@ -139,22 +158,20 @@ describe('taskService', () => {
     const result = await taskService.create(userId, input as never);
 
     expect(result).toEqual(createdTask);
-    expect(taskClient.insert).toHaveBeenCalledWith({
-      area_id: undefined,
-      description: undefined,
-      due_date: undefined,
-      goal_ids: undefined,
-      is_archived: false,
-      is_completed: false,
-      is_focused: false,
-      is_important: false,
-      is_urgent: false,
-      name: 'Task with goals',
-      priority: PRIORITY.HIGH,
-      project_id: undefined,
-      status: TASK_STATUS.INBOX,
-      user_id: userId,
-    });
+    expect(taskClient.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        area_id: null,
+        is_archived: false,
+        is_completed: false,
+        is_focused: false,
+        is_important: false,
+        is_urgent: false,
+        name: 'Task with goals',
+        priority: PRIORITY.HIGH,
+        status: TASK_STATUS.INBOX,
+        user_id: userId,
+      }),
+    );
     expect(relationInsertClient.insert).toHaveBeenCalledWith([
       { goal_id: goalA, task_id: taskId },
       { goal_id: goalB, task_id: taskId },

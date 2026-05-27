@@ -58,9 +58,13 @@ import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
   useTasks,
+  useArchivedTasks,
+  useArchiveTask,
   useCompleteTask,
   useDeleteTask,
   useFocusTask,
+  usePermanentDeleteTask,
+  useRestoreTask,
   useUpdateTask,
   useUncompleteTask,
 } from "@/lib/hooks/use-tasks";
@@ -194,6 +198,7 @@ export function ContactDetailContent() {
   const { data: activeProjects = [] } = useProjects({});
   const { data: archivedProjects = [] } = useProjects({ status: "archived" });
   const { data: allTasks = [] } = useTasks({});
+  const { data: allArchivedTasks = [] } = useArchivedTasks();
   const { data: allAreas = [] } = useAreas({});
   const { data: allNotes = [] } = useNotes({ status: "all" });
   const { data: allResources = [] } = useResources({ status: "all" });
@@ -207,6 +212,9 @@ export function ContactDetailContent() {
   const uncompleteTask = useUncompleteTask();
   const focusTask = useFocusTask();
   const updateTask = useUpdateTask();
+  const archiveTask = useArchiveTask();
+  const restoreTask = useRestoreTask();
+  const permanentDeleteTask = usePermanentDeleteTask();
   const deleteTask = useDeleteTask();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -242,8 +250,11 @@ export function ContactDetailContent() {
 
   const linkedTasks = useMemo(() => {
     const ids = new Set(taskLinks.map((l) => l.task_id));
-    return allTasks.filter((t) => ids.has(t.id));
-  }, [taskLinks, allTasks]);
+    return [
+      ...allTasks.filter((t) => ids.has(t.id)),
+      ...allArchivedTasks.filter((t) => ids.has(t.id)),
+    ];
+  }, [taskLinks, allTasks, allArchivedTasks]);
 
   const contactReturnTo = `/contacts/${contactSlug}`;
 
@@ -282,6 +293,24 @@ export function ContactDetailContent() {
   const handleTaskEdit = useCallback((task: Task) => {
     setEditingTask(task);
   }, []);
+
+  const handleTaskArchiveToggle = useCallback(
+    async (task: Task) => {
+      if (task.is_archived) {
+        await restoreTask.mutateAsync(task.id);
+      } else {
+        await archiveTask.mutateAsync(task.id);
+      }
+    },
+    [archiveTask, restoreTask],
+  );
+
+  const handlePermanentDelete = useCallback(
+    (id: string) => {
+      permanentDeleteTask.mutate(id);
+    },
+    [permanentDeleteTask],
+  );
 
   if (isLoading) {
     return (
@@ -598,6 +627,8 @@ export function ContactDetailContent() {
               onTaskFocusToggle={handleTaskFocus}
               onTaskNameSave={handleTaskNameSave}
               onTaskEdit={handleTaskEdit}
+              onTaskArchiveToggle={handleTaskArchiveToggle}
+              onTaskPermanentDelete={handlePermanentDelete}
               returnTo={contactReturnTo}
               areaTab={areaTab}
               onAreaTabChange={setAreaTab}
@@ -698,6 +729,14 @@ export function ContactDetailContent() {
           if (!open) setEditingTask(null);
         }}
         task={editingTask ?? undefined}
+        onArchiveToggle={(task) => {
+          handleTaskArchiveToggle(task);
+          setEditingTask(null);
+        }}
+        onPermanentDelete={(id) => {
+          handlePermanentDelete(id);
+          setEditingTask(null);
+        }}
         onDelete={handleTaskDelete}
       />
     </div>
