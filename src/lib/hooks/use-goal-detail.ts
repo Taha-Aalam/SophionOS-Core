@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { createClient } from "@/lib/supabase/client";
 import { goalService } from "@/lib/services/goal.service";
 import { noteService } from "@/lib/services/note.service";
 import { projectService } from "@/lib/services/project.service";
@@ -27,6 +28,10 @@ export interface GoalDetailData {
     activeNoteCount: number;
     activeResourceCount: number;
   };
+  /** Names for goals linked to notes/resources but not the current goal */
+  extraGoalNames: { id: string; name: string }[];
+  /** Names for tasks linked to notes/resources but not already in `tasks` */
+  extraTaskNames: { id: string; name: string }[];
 }
 
 interface GoalDetailFilters {
@@ -38,7 +43,7 @@ export function useGoalDetail(goalId: string, filters?: GoalDetailFilters) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: [GOAL_DETAIL_QUERY_KEY, goalId, filters],
+    queryKey: [GOAL_DETAIL_QUERY_KEY, "v2", goalId, filters],
     queryFn: async (): Promise<GoalDetailData> => {
       if (!user) {
         throw new Error("User not authenticated");
@@ -102,12 +107,49 @@ export function useGoalDetail(goalId: string, filters?: GoalDetailFilters) {
 
       const completedTaskCount = tasksResult.filter((t) => t.is_completed).length;
 
+      // Collect goal/task IDs referenced by notes/resources that aren't already known
+      const knownGoalIds = new Set([goal.id]);
+      const knownTaskIds = new Set(tasksResult.map((t) => t.id));
+      const extraGoalIdSet = new Set<string>();
+      const extraTaskIdSet = new Set<string>();
+
+      for (const item of [...notes, ...resources]) {
+        for (const id of (item as { linkedGoalIds?: string[] }).linkedGoalIds ?? []) {
+          if (!knownGoalIds.has(id)) extraGoalIdSet.add(id);
+        }
+        for (const id of (item as { linkedTaskIds?: string[] }).linkedTaskIds ?? []) {
+          if (!knownTaskIds.has(id)) extraTaskIdSet.add(id);
+        }
+      }
+
+      const supabase = createClient();
+      const [extraGoalNames, extraTaskNames] = await Promise.all([
+        extraGoalIdSet.size > 0
+          ? supabase
+              .from("goals")
+              .select("id, name")
+              .eq("user_id", userId)
+              .in("id", [...extraGoalIdSet])
+              .then(({ data }) => (data ?? []).map((g) => ({ id: g.id as string, name: g.name as string })))
+          : Promise.resolve<{ id: string; name: string }[]>([]),
+        extraTaskIdSet.size > 0
+          ? supabase
+              .from("tasks")
+              .select("id, name")
+              .eq("user_id", userId)
+              .in("id", [...extraTaskIdSet])
+              .then(({ data }) => (data ?? []).map((t) => ({ id: t.id as string, name: t.name as string })))
+          : Promise.resolve<{ id: string; name: string }[]>([]),
+      ]);
+
       return {
         goal,
         projects,
         tasks,
         notes,
         resources,
+        extraGoalNames,
+        extraTaskNames,
         rollups: {
           projectCount: projectsResult.length,
           taskCount: tasksResult.length,

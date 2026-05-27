@@ -842,9 +842,10 @@ export const projectService = {
   async getWithRelations(userId: string, id: string): Promise<{
     goal_ids: string[];
     area_ids: string[];
+    goals: { id: string; name: string }[];
   }> {
     const [goalResult, areaResult] = await Promise.all([
-      createClient().from("goal_projects").select("goal_id").eq("project_id", id),
+      createClient().from("goal_projects").select("goal_id, goals(id, name)").eq("project_id", id),
       createClient().from("project_areas").select("area_id").eq("project_id", id),
     ]);
 
@@ -852,16 +853,22 @@ export const projectService = {
       throw new DatabaseError(goalResult.error.message);
     }
 
+    const goalRows = goalResult.data ?? [];
+    const goals = goalRows
+      .map((r) => r.goals as unknown as { id: string; name: string } | null)
+      .filter((g): g is { id: string; name: string } => Boolean(g));
+
     if (areaResult.error) {
       if (isMissingProjectAreasTableError(areaResult.error)) {
-        return { goal_ids: goalResult.data?.map((r) => r.goal_id) || [], area_ids: [] };
+        return { goal_ids: goalRows.map((r) => r.goal_id), area_ids: [], goals };
       }
       throw new DatabaseError(areaResult.error.message);
     }
 
     return {
-      goal_ids: goalResult.data?.map((r) => r.goal_id) || [],
+      goal_ids: goalRows.map((r) => r.goal_id),
       area_ids: areaResult.data?.map((r) => r.area_id) || [],
+      goals,
     };
   },
 

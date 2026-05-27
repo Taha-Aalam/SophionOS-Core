@@ -309,7 +309,11 @@ export function ProjectDetailContent() {
 
   const areaNamesMap = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
   const areaIconsMap = useMemo(() => new Map(areas.map((a) => [a.id, a.icon ?? null])), [areas]);
-  const goalNamesMap = useMemo(() => new Map(goals.map((g) => [g.id, g.name])), [goals]);
+  const goalNamesMap = useMemo(() => {
+    const map = new Map(goals.map((g) => [g.id, g.name]));
+    for (const g of relations?.goals ?? []) map.set(g.id, g.name);
+    return map;
+  }, [goals, relations?.goals]);
   const taskNamesMap = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks]);
   const topicNamesMap = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
 

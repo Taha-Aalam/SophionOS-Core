@@ -4,13 +4,9 @@ import React from "react";
 import {
   Archive,
   ArchiveRestore,
-  CheckSquare,
   ExternalLink,
-  Folder,
   Map as LucideMap,
   Star,
-  Tag,
-  Target,
   Trash2,
 } from "lucide-react";
 
@@ -118,7 +114,7 @@ export function ResourceRow({
       <div className="hidden md:flex shrink-0 items-center gap-1.5 flex-wrap">
         {topicName && (
           <Badge variant="outline" className="gap-1 text-xs font-normal">
-            <Tag className="size-3" />
+            <span className="text-xs leading-none">🏷️</span>
             {topicName}
           </Badge>
         )}
@@ -134,19 +130,19 @@ export function ResourceRow({
         ))}
         {goalNames.map((name) => (
           <Badge key={`${resource.id}-goal-${name}`} variant="outline" className="gap-1 text-xs font-normal">
-            <Target className="size-3" />
+            <span className="text-xs leading-none">🎯</span>
             {name}
           </Badge>
         ))}
         {projectNames.map((name) => (
           <Badge key={`${resource.id}-project-${name}`} variant="outline" className="gap-1 text-xs font-normal">
-            <Folder className="size-3" />
+            <span className="text-xs leading-none">📁</span>
             {name}
           </Badge>
         ))}
         {taskNames.map((name) => (
           <Badge key={`${resource.id}-task-${name}`} variant="outline" className="gap-1 text-xs font-normal">
-            <CheckSquare className="size-3" />
+            <span className="text-xs leading-none">☑️</span>
             {name}
           </Badge>
         ))}
