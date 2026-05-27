@@ -202,7 +202,11 @@ export function AreaDetailContent() {
     return map;
   }, [areaData?.tasks]);
 
-  const topicNamesMap = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
+  const topicNamesMap = useMemo(() => {
+    const map = new Map(topics.map((t) => [t.id, t.name]));
+    for (const t of areaData?.topicNames ?? []) map.set(t.id, t.name);
+    return map;
+  }, [topics, areaData?.topicNames]);
 
   const areaMap = useMemo(() => {
     const map = new Map<string, { name: string; icon?: string | null }>();
