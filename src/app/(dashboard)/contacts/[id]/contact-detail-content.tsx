@@ -223,7 +223,7 @@ export function ContactDetailContent() {
   const [logNote, setLogNote] = useState("");
   const [activeTab, setActiveTab] = useState<"details" | "logs">("details");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [areaTab, setAreaTab] = useState("all");
+  const [areaTab, setAreaTab] = useState("active");
   const [goalTab, setGoalTab] = useState("active");
   const [projectTab, setProjectTab] = useState("all");
   const [taskTab, setTaskTab] = useState("all");
