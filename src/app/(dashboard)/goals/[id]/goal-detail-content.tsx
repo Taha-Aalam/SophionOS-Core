@@ -52,7 +52,6 @@ import {
 import { useGoalDetail } from "@/lib/hooks/use-goal-detail";
 import {
   useDeleteGoal,
-  useGoals,
   useLinkGoalToArea,
   useUnlinkGoalFromArea,
   useUpdateGoal,
@@ -61,7 +60,6 @@ import {
   useCompleteTaskWithGoalRefresh,
   useDeleteTask,
   useFocusTask,
-  useTasks,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import { useProjects } from "@/lib/hooks/use-projects";
@@ -230,10 +228,8 @@ export function GoalDetailContent() {
   const resolvedGoalId = goalData?.goal.id ?? "";
   const { data: areas = [] } = useAreas();
   const { data: allProjects = [] } = useProjects({ status: "all" });
-  const { data: allTasks = [] } = useTasks();
   const { data: allNotes = [] } = useNotes({ status: "all" });
   const { data: allResources = [] } = useResources({ status: "all" });
-  const { data: allGoals = [] } = useGoals({ status: "all" });
   const { data: topics = [] } = useTopics();
   const { data: allContacts = [] } = useContacts();
   const { data: goalContactLinks = [] } = useContactByGoal(resolvedGoalId);
@@ -269,9 +265,23 @@ export function GoalDetailContent() {
   const goal = goalData?.goal;
   const areaNames = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
   const areaIcons = useMemo(() => new Map(areas.map((a) => [a.id, a.icon ?? null])), [areas]);
-  const goalNamesMap = useMemo(() => new Map(allGoals.map((g) => [g.id, g.name])), [allGoals]);
-  const projectNamesMap = useMemo(() => new Map(allProjects.map((p) => [p.id, p.name])), [allProjects]);
-  const taskNamesMap = useMemo(() => new Map(allTasks.map((t) => [t.id, t.name])), [allTasks]);
+  const goalNamesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (goalData?.goal) map.set(goalData.goal.id, goalData.goal.name);
+    for (const g of goalData?.extraGoalNames ?? []) map.set(g.id, g.name);
+    return map;
+  }, [goalData?.goal, goalData?.extraGoalNames]);
+  const projectNamesMap = useMemo(() => {
+    const map = new Map(allProjects.map((p) => [p.id, p.name]));
+    for (const p of goalData?.projects ?? []) map.set(p.id, p.name);
+    return map;
+  }, [allProjects, goalData?.projects]);
+  const taskNamesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of goalData?.tasks ?? []) map.set(t.id, t.name);
+    for (const t of goalData?.extraTaskNames ?? []) map.set(t.id, t.name);
+    return map;
+  }, [goalData?.tasks, goalData?.extraTaskNames]);
   const topicNamesMap = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
   const getProjectAreaNames = useCallback(
     (project: Project) =>
