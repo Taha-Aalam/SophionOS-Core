@@ -7,7 +7,6 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   Heart,
-  Globe,
   Tag,
   Trash2,
   Archive,
@@ -291,7 +290,6 @@ export function TopicDetailContent() {
               </div>
               {linkedAreas.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <Globe className="size-3.5 text-muted-foreground" />
                   {linkedAreas.map((area) => (
                     <Badge key={area.id} variant="secondary" className="text-xs">
                       {area.icon ? <span className="mr-0.5 text-[10px] leading-none">{area.icon}</span> : null}
