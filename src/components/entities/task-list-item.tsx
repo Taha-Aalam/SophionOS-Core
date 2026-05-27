@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Calendar, Folder, Map, Pencil, Star, Target, Trash2 } from "lucide-react";
+import { Calendar, Map, Pencil, Star, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -138,13 +138,13 @@ export function TaskListItem({
         ))}
         {displayGoalNames.map((name, index) => (
           <Badge key={`goal-${index}`} variant="outline" className="gap-1 text-xs font-normal">
-            <Target className="size-3" />
+            <span className="text-xs leading-none">🎯</span>
             {name}
           </Badge>
         ))}
         {displayProjectNames.map((name, index) => (
           <Badge key={`project-${index}`} variant="outline" className="gap-1 text-xs font-normal">
-            <Folder className="size-3" />
+            <span className="text-xs leading-none">📁</span>
             {name}
           </Badge>
         ))}
