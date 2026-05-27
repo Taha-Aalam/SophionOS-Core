@@ -58,6 +58,7 @@ import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
   useTasks,
+  useArchivedTasks,
   useArchiveTask,
   useCompleteTask,
   useDeleteTask,
@@ -197,6 +198,7 @@ export function ContactDetailContent() {
   const { data: activeProjects = [] } = useProjects({});
   const { data: archivedProjects = [] } = useProjects({ status: "archived" });
   const { data: allTasks = [] } = useTasks({});
+  const { data: allArchivedTasks = [] } = useArchivedTasks();
   const { data: allAreas = [] } = useAreas({});
   const { data: allNotes = [] } = useNotes({ status: "all" });
   const { data: allResources = [] } = useResources({ status: "all" });
@@ -248,8 +250,11 @@ export function ContactDetailContent() {
 
   const linkedTasks = useMemo(() => {
     const ids = new Set(taskLinks.map((l) => l.task_id));
-    return allTasks.filter((t) => ids.has(t.id));
-  }, [taskLinks, allTasks]);
+    return [
+      ...allTasks.filter((t) => ids.has(t.id)),
+      ...allArchivedTasks.filter((t) => ids.has(t.id)),
+    ];
+  }, [taskLinks, allTasks, allArchivedTasks]);
 
   const contactReturnTo = `/contacts/${contactSlug}`;
 
