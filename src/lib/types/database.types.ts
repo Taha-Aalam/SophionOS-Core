@@ -72,6 +72,7 @@ export type Database = {
           progress: number;
           is_completed: boolean;
           is_archived: boolean;
+          is_inactive: boolean;
           slug: string;
           created_at: string;
           updated_at: string;
@@ -88,6 +89,7 @@ export type Database = {
           progress?: number;
           is_completed?: boolean;
           is_archived?: boolean;
+          is_inactive?: boolean;
           slug: string;
           created_at?: string;
           updated_at?: string;
@@ -104,6 +106,7 @@ export type Database = {
           progress?: number;
           is_completed?: boolean;
           is_archived?: boolean;
+          is_inactive?: boolean;
           slug?: string;
           created_at?: string;
           updated_at?: string;
