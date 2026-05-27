@@ -282,7 +282,13 @@ export function GoalDetailContent() {
     for (const t of goalData?.extraTaskNames ?? []) map.set(t.id, t.name);
     return map;
   }, [goalData?.tasks, goalData?.extraTaskNames]);
-  const topicNamesMap = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
+  const topicNamesMap = useMemo(() => {
+    // Prefer names carried in the goal-detail payload (available on first paint)
+    // and fall back to the live topics query for anything not yet hydrated.
+    const map = new Map(topics.map((t) => [t.id, t.name]));
+    for (const t of goalData?.topicNames ?? []) map.set(t.id, t.name);
+    return map;
+  }, [topics, goalData?.topicNames]);
   const getProjectAreaNames = useCallback(
     (project: Project) =>
       getProjectLinkedAreaIds(project)

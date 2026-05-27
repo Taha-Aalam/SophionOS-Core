@@ -32,6 +32,8 @@ export interface GoalDetailData {
   extraGoalNames: { id: string; name: string }[];
   /** Names for tasks linked to notes/resources but not already in `tasks` */
   extraTaskNames: { id: string; name: string }[];
+  /** Names for topics referenced by linked resources (resolves topic bubbles) */
+  topicNames: { id: string; name: string }[];
 }
 
 interface GoalDetailFilters {
@@ -112,6 +114,7 @@ export function useGoalDetail(goalId: string, filters?: GoalDetailFilters) {
       const knownTaskIds = new Set(tasksResult.map((t) => t.id));
       const extraGoalIdSet = new Set<string>();
       const extraTaskIdSet = new Set<string>();
+      const topicIdSet = new Set<string>();
 
       for (const item of [...notes, ...resources]) {
         for (const id of (item as { linkedGoalIds?: string[] }).linkedGoalIds ?? []) {
@@ -121,9 +124,13 @@ export function useGoalDetail(goalId: string, filters?: GoalDetailFilters) {
           if (!knownTaskIds.has(id)) extraTaskIdSet.add(id);
         }
       }
+      for (const resource of resources) {
+        const topicId = (resource as { topic_id?: string | null }).topic_id;
+        if (topicId) topicIdSet.add(topicId);
+      }
 
       const supabase = createClient();
-      const [extraGoalNames, extraTaskNames] = await Promise.all([
+      const [extraGoalNames, extraTaskNames, topicNames] = await Promise.all([
         extraGoalIdSet.size > 0
           ? supabase
               .from("goals")
@@ -140,6 +147,14 @@ export function useGoalDetail(goalId: string, filters?: GoalDetailFilters) {
               .in("id", [...extraTaskIdSet])
               .then(({ data }) => (data ?? []).map((t) => ({ id: t.id as string, name: t.name as string })))
           : Promise.resolve<{ id: string; name: string }[]>([]),
+        topicIdSet.size > 0
+          ? supabase
+              .from("topics")
+              .select("id, name")
+              .eq("user_id", userId)
+              .in("id", [...topicIdSet])
+              .then(({ data }) => (data ?? []).map((t) => ({ id: t.id as string, name: t.name as string })))
+          : Promise.resolve<{ id: string; name: string }[]>([]),
       ]);
 
       return {
@@ -150,6 +165,7 @@ export function useGoalDetail(goalId: string, filters?: GoalDetailFilters) {
         resources,
         extraGoalNames,
         extraTaskNames,
+        topicNames,
         rollups: {
           projectCount: projectsResult.length,
           taskCount: tasksResult.length,

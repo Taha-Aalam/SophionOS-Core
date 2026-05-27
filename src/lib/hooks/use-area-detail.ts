@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { createClient } from "@/lib/supabase/client";
 import { areaService } from "@/lib/services/area.service";
 import { goalService } from "@/lib/services/goal.service";
 import { noteService } from "@/lib/services/note.service";
@@ -30,6 +31,8 @@ export interface AreaDetailData {
   allTasks: Task[];
   allNotes: Note[];
   allResources: Resource[];
+  /** Names for topics referenced by linked resources (resolves topic bubbles). */
+  topicNames: { id: string; name: string }[];
   rollups: {
     goalCount: number;
     projectCount: number;
@@ -109,6 +112,25 @@ export function useAreaDetail(areaIdentifier: string) {
         resources: allResourcesResult,
       });
 
+      // Resolve topic names for linked resources so topic bubbles stay rendered
+      // on refetch identically to the SSR prefetch payload.
+      const topicIdSet = new Set<string>();
+      for (const resource of allResourcesResult) {
+        const topicId = (resource as { topic_id?: string | null }).topic_id;
+        if (topicId) topicIdSet.add(topicId);
+      }
+      const topicNames =
+        topicIdSet.size > 0
+          ? await createClient()
+              .from("topics")
+              .select("id, name")
+              .eq("user_id", userId)
+              .in("id", [...topicIdSet])
+              .then(({ data }) =>
+                (data ?? []).map((t) => ({ id: t.id as string, name: t.name as string })),
+              )
+          : [];
+
       return {
         area,
         goals: linkedGoals,
@@ -121,6 +143,7 @@ export function useAreaDetail(areaIdentifier: string) {
         allTasks: tasksResult,
         allNotes: allNotesResult,
         allResources: allResourcesResult,
+        topicNames,
         rollups: {
           goalCount: sharedRollups.goalsCount,
           projectCount: sharedRollups.projectsCount,
