@@ -3,6 +3,9 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { contactService } from "@/lib/services/contact.service";
+import { AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
+import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
+import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
 import type {
   CreateContactInput,
   CreateContactLogInput,
@@ -297,6 +300,7 @@ export function useLinkContactToProject() {
       contactService.linkToProject(user!.id, contactId, projectId, roleInProject),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] });
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -318,6 +322,7 @@ export function useUnlinkContactFromProject() {
     }) => contactService.unlinkFromProject(user!.id, contactId, projectId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] });
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -374,6 +379,7 @@ export function useLinkContactToArea() {
     onSuccess: (_, { contactId }) => {
       queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY, contactId, "areas"] });
       queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -391,6 +397,7 @@ export function useUnlinkContactFromArea() {
     onSuccess: (_, { contactId }) => {
       queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY, contactId, "areas"] });
       queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -408,6 +415,7 @@ export function useLinkContactToGoal() {
     onSuccess: (_, { contactId }) => {
       queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY, contactId, "goals"] });
       queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -425,6 +433,7 @@ export function useUnlinkContactFromGoal() {
     onSuccess: (_, { contactId }) => {
       queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY, contactId, "goals"] });
       queryClient.invalidateQueries({ queryKey: [CONTACTS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
     },
     onError: (error: Error) => {
       toast.error(error.message);

@@ -246,21 +246,12 @@ export function ProjectDetailContent() {
     () => goals.filter((goal) => linkedGoalIds.has(goal.id)),
     [goals, linkedGoalIds],
   );
-  const eligibleAreaIds = useMemo(() => {
-    const goalAreaIds = new Set<string>();
-    for (const goal of linkedGoals) {
-      for (const id of getGoalLinkedAreaIds(goal)) {
-        goalAreaIds.add(id);
-      }
-    }
-    return Array.from(goalAreaIds).filter((id) => !projectLinkedAreaIds.includes(id));
-  }, [linkedGoals, projectLinkedAreaIds]);
   const eligibleAreas = useMemo(
     () =>
-      eligibleAreaIds
-        .map((id) => areas.find((area) => area.id === id))
-        .filter((area): area is NonNullable<typeof area> => Boolean(area)),
-    [eligibleAreaIds, areas],
+      areas.filter(
+        (areaOption) => !areaOption.archive && !projectLinkedAreaIds.includes(areaOption.id),
+      ),
+    [areas, projectLinkedAreaIds],
   );
   const unlinkedGoals = useMemo(() => {
     const activeUnlinkedGoals = goals.filter((goal) => !goal.is_archived && !linkedGoalIds.has(goal.id));
@@ -1316,15 +1307,6 @@ export function ProjectDetailContent() {
                 </Button>
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() => setIsLinkGoalOpen(true)}
-                  className="gap-1.5"
-                >
-                  <Plus className="size-3.5" />
-                  Link Goal
-                </Button>
-                <Button
-                  size="sm"
                   variant="destructive"
                   onClick={() => setIsDeleteOpen(true)}
                   className="gap-1.5"
@@ -1763,20 +1745,11 @@ export function ProjectDetailContent() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Link Area</DialogTitle>
-            <DialogDescription>Attach an additional area to this project from its linked goals.</DialogDescription>
+            <DialogDescription>Attach an additional area to this project.</DialogDescription>
           </DialogHeader>
-          {linkedGoals.length === 0 ? (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                This project has no linked goals.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Link a goal first to make its areas eligible for linking.
-              </p>
-            </div>
-          ) : eligibleAreas.length === 0 ? (
+          {eligibleAreas.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              All areas from linked goals are already attached to this project.
+              All active areas are already linked to this project.
             </p>
           ) : (
             <div className="space-y-2">

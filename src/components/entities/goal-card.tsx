@@ -57,6 +57,8 @@ const TERM_EMOJIS: Record<string, string> = {
   long: '🏔️',
 };
 
+const BADGE_CLS = 'h-5 text-[10px] leading-none px-1.5 py-0 items-center';
+
 function parseGoalDate(value: string): Date {
   const [year, month, day] = value.split('-').map(Number);
   return new Date(year, month - 1, day);
@@ -134,25 +136,25 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
                 <Badge
                   key={`${name}-${index}`}
                   variant="outline"
-                  className="h-5 text-[10px] px-1.5 py-0 items-center"
+                  className={BADGE_CLS}
                 >
                   {areaIcons?.[index] ? `${areaIcons[index]} ` : ''}{name}
                 </Badge>
               ))}
               {overflowAreaCount > 0 && (
-                <Badge variant="outline" className="h-5 text-[10px] px-1.5 py-0 items-center">
+                <Badge variant="outline" className={BADGE_CLS}>
                   +{overflowAreaCount}
                 </Badge>
               )}
               <Badge
                 variant="outline"
-                className={cn("h-5 text-[10px] px-1.5 py-0 items-center", TERM_COLORS[goal.term] || TERM_COLORS.short)}
+                className={cn(BADGE_CLS, TERM_COLORS[goal.term] || TERM_COLORS.short)}
               >
                 {TERM_EMOJIS[goal.term] ? `${TERM_EMOJIS[goal.term]} ` : ''}{TERM_LABELS[goal.term] || goal.term}
               </Badge>
               <Badge
                 variant="outline"
-                className={cn("h-5 text-[10px] px-1.5 py-0 uppercase items-center", PRIORITY_COLORS[goal.priority] || PRIORITY_COLORS.medium)}
+                className={cn(BADGE_CLS, 'uppercase', PRIORITY_COLORS[goal.priority] || PRIORITY_COLORS.medium)}
               >
                 {goal.priority}
               </Badge>

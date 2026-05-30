@@ -103,6 +103,8 @@ export function useLinkNoteToGoal() {
       noteService.linkToGoal(goalId, noteId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
       toast.success("Note linked to goal");
     },
     onError: (error: Error) => {

@@ -21,6 +21,7 @@ function invalidateProjectGraph(queryClient: ReturnType<typeof useQueryClient>):
     queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: ["goal-detail"] }),
   ]);
 }
 
