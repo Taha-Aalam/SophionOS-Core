@@ -70,6 +70,7 @@ interface ContactDetailRelationshipSectionsProps {
   onTaskEdit: (task: Task) => void;
   onTaskArchiveToggle?: (task: Task) => void;
   onTaskPermanentDelete?: (id: string) => void;
+  onRestoreGoal?: (goal: Goal) => void;
   returnTo: string;
   areaTab: string;
   onAreaTabChange: (tab: string) => void;
@@ -102,6 +103,7 @@ export function ContactDetailRelationshipSections({
   onTaskEdit,
   onTaskArchiveToggle,
   onTaskPermanentDelete,
+  onRestoreGoal,
   returnTo,
   areaTab,
   onAreaTabChange,
@@ -400,6 +402,11 @@ export function ContactDetailRelationshipSections({
                       router.push(
                         `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(returnTo)}`,
                       )
+                    }
+                    onRestore={
+                      goal.is_archived && onRestoreGoal
+                        ? (g) => onRestoreGoal(g)
+                        : undefined
                     }
                   />
                   <Button

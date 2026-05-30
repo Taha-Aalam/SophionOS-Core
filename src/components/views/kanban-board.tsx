@@ -40,9 +40,14 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick }: KanbanBoardProps) {
   const updateStatus = useUpdateProjectStatus();
+  const [optimisticProjects, setOptimisticProjects] = React.useState<Project[]>(projects);
+
+  React.useEffect(() => {
+    setOptimisticProjects(projects);
+  }, [projects]);
 
   const areaMap = React.useMemo(() => new Map(areas.map((area) => [area.id, area])), [areas]);
-  const projectsByStatus = React.useMemo(() => groupProjectsByStatus(projects), [projects]);
+  const projectsByStatus = React.useMemo(() => groupProjectsByStatus(optimisticProjects), [optimisticProjects]);
 
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -58,10 +63,22 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
       return;
     }
 
-    updateStatus.mutate({
-      id: draggableId,
-      status: destination.droppableId as ProjectStatus,
-    });
+    const newStatus = destination.droppableId as ProjectStatus;
+
+    // Optimistic update: move the project to the new status immediately
+    setOptimisticProjects((prev) =>
+      prev.map((p) => (p.id === draggableId ? { ...p, status: newStatus } : p)),
+    );
+
+    updateStatus.mutate(
+      { id: draggableId, status: newStatus },
+      {
+        onError: () => {
+          // Revert on error
+          setOptimisticProjects(projects);
+        },
+      },
+    );
   };
 
   return (

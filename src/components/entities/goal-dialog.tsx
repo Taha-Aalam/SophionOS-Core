@@ -49,7 +49,7 @@ interface GoalDialogProps {
   onOpenChange: (open: boolean) => void;
   goal?: Goal | null;
   defaultAreaIds?: string[];
-  onSuccess?: () => void;
+  onSuccess?: (goal?: Goal) => void;
 }
 
 type GoalFormValues = Omit<CreateGoalInput, "is_archived" | "is_completed"> & {
@@ -166,11 +166,12 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess
 
     try {
       if (goal) {
-        await updateMutation.mutateAsync({ id: goal.id, input });
+        const updated = await updateMutation.mutateAsync({ id: goal.id, input });
+        onSuccess?.(updated);
       } else {
-        await createMutation.mutateAsync(input);
+        const created = await createMutation.mutateAsync(input);
+        onSuccess?.(created);
       }
-      onSuccess?.();
       onOpenChange(false);
     } catch {
       return;

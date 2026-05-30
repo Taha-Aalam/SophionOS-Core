@@ -1,9 +1,10 @@
 "use client";
 
 import React from 'react';
-import { Calendar, Map, Target } from 'lucide-react';
+import { Archive, Calendar, RotateCcw, Target } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Goal } from '@/lib/types/domain.types';
 import ProgressRing from '@/components/charts/progress-ring';
@@ -25,6 +26,8 @@ interface GoalCardProps {
   areaNames?: string[];
   areaIcons?: (string | null)[];
   onEdit?: (goal: Goal) => void;
+  onRestore?: (goal: Goal) => void;
+  onArchive?: (goal: Goal) => void;
   duplicateIndex?: number;
   rollups?: GoalCardRollups;
 }
@@ -89,7 +92,7 @@ function calculateDueState(targetDate: string | null): { text: string; isOverdue
   };
 }
 
-export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplicateIndex, rollups }: GoalCardProps) {
+export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onRestore, onArchive, duplicateIndex, rollups }: GoalCardProps) {
   const dueState = calculateDueState(goal.target_date);
   const resolvedAreaNames = (() => {
     if (areaNames && areaNames.length > 0) {
@@ -130,31 +133,26 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplica
               {visibleAreaNames.map((name, index) => (
                 <Badge
                   key={`${name}-${index}`}
-                  variant="secondary"
-                  className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0"
+                  variant="outline"
+                  className="h-5 text-[10px] px-1.5 py-0 items-center"
                 >
-                  {areaIcons?.[index] ? (
-                    <span className="text-[10px] leading-none">{areaIcons[index]}</span>
-                  ) : (
-                    <Map className="size-2.5 shrink-0" />
-                  )}
-                  {name}
+                  {areaIcons?.[index] ? `${areaIcons[index]} ` : ''}{name}
                 </Badge>
               ))}
               {overflowAreaCount > 0 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                <Badge variant="outline" className="h-5 text-[10px] px-1.5 py-0 items-center">
                   +{overflowAreaCount}
                 </Badge>
               )}
               <Badge
                 variant="outline"
-                className={cn("text-[10px] px-1.5 py-0", TERM_COLORS[goal.term] || TERM_COLORS.short)}
+                className={cn("h-5 text-[10px] px-1.5 py-0 items-center", TERM_COLORS[goal.term] || TERM_COLORS.short)}
               >
                 {TERM_EMOJIS[goal.term] ? `${TERM_EMOJIS[goal.term]} ` : ''}{TERM_LABELS[goal.term] || goal.term}
               </Badge>
               <Badge
                 variant="outline"
-                className={cn("text-[10px] px-1.5 py-0 uppercase", PRIORITY_COLORS[goal.priority] || PRIORITY_COLORS.medium)}
+                className={cn("h-5 text-[10px] px-1.5 py-0 uppercase items-center", PRIORITY_COLORS[goal.priority] || PRIORITY_COLORS.medium)}
               >
                 {goal.priority}
               </Badge>
@@ -210,10 +208,43 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplica
                 Completed
               </Badge>
             )}
-            {goal.is_archived && (
-              <Badge variant="outline">
-                Archived
-              </Badge>
+            {goal.is_archived ? (
+              <>
+                <Badge variant="outline">
+                  Archived
+                </Badge>
+                {onRestore && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-6"
+                    title="Restore goal"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRestore(goal);
+                    }}
+                  >
+                    <RotateCcw className="size-3" />
+                  </Button>
+                )}
+              </>
+            ) : (
+              onArchive && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-6"
+                  title="Archive goal"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onArchive(goal);
+                  }}
+                >
+                  <Archive className="size-3" />
+                </Button>
+              )
             )}
           </div>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -19,23 +20,41 @@ import { ContactsFollowUpView } from "@/components/views/contacts-follow-up-view
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
+import { LinkEntityDialog } from "@/components/entities/link-entity-dialog";
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
 import { NoteRow } from "@/components/entities/note-row";
-import { useArchiveNote, useRestoreNote, useDeleteNote, useToggleFavoriteNote, useTogglePinNote } from "@/lib/hooks/use-notes";
+import { NotesByGroupView, type NoteGroup } from "@/components/views/notes-by-group-view";
+import { ResourcesByGroupView, type ResourceGroup } from "@/components/views/resources-by-group-view";
+import { ProjectsByGoalView, type ProjectsByGoalGroup } from "@/components/views/projects-by-goal-view";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useArchiveNote, useRestoreNote, useDeleteNote, useToggleFavoriteNote, useTogglePinNote, useUpdateNote, useNotes } from "@/lib/hooks/use-notes";
 import { ResourceRow } from "@/components/entities/resource-row";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskListItem } from "@/components/entities/task-list-item";
 import { EmptyState } from "@/components/views/empty-state";
 import { TasksByGroupView } from "@/components/views/tasks-by-group-view";
+
+const KanbanBoard = dynamic(
+  () => import("@/components/views/kanban-board").then((m) => m.KanbanBoard),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex gap-4">
+        <Skeleton className="h-[300px] w-full" />
+        <Skeleton className="h-[300px] w-full" />
+        <Skeleton className="h-[300px] w-full" />
+      </div>
+    ),
+  },
+);
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
   useContacts,
@@ -49,6 +68,8 @@ import {
 } from "@/lib/hooks/use-contacts";
 import { useAreaDetail, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-area-detail";
 import { useAreas, useArchiveArea, useRestoreArea, useUpdateArea } from "@/lib/hooks/use-areas";
+import { useRestoreGoal, useGoals, useLinkGoalToArea } from "@/lib/hooks/use-goals";
+import { useProjects, useLinkProjectToArea } from "@/lib/hooks/use-projects";
 import {
   useArchiveTask,
   useCompleteTaskWithGoalRefresh,
@@ -56,6 +77,7 @@ import {
   usePermanentDeleteTask,
   useRestoreTask,
   useUpdateTask,
+  useTasks,
 } from "@/lib/hooks/use-tasks";
 import {
   useArchiveResource,
@@ -63,6 +85,7 @@ import {
   useToggleFavoriteResource,
   useUnarchiveResource,
   useUpdateResource,
+  useResources,
 } from "@/lib/hooks/use-resources";
 import { useTopics } from "@/lib/hooks/use-topics";
 import { contactService } from "@/lib/services/contact.service";
@@ -114,13 +137,22 @@ export function AreaDetailContent() {
   const [createDefaults, setCreateDefaults] = useState<ContactDialogDefaults | undefined>(undefined);
   const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
+  const [newResourceGoalId, setNewResourceGoalId] = useState<string | null>(null);
+  const [newResourceProjectId, setNewResourceProjectId] = useState<string | null>(null);
   const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
+  const [newProjectGoalId, setNewProjectGoalId] = useState<string | null>(null);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [isTaskEditOpen, setIsTaskEditOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [newTaskGoalId, setNewTaskGoalId] = useState<string | null>(null);
   const [newTaskProjectId, setNewTaskProjectId] = useState<string | null>(null);
+  const [isLinkGoalOpen, setIsLinkGoalOpen] = useState(false);
+  const [isLinkProjectOpen, setIsLinkProjectOpen] = useState(false);
+  const [isLinkTaskOpen, setIsLinkTaskOpen] = useState(false);
+  const [isLinkNoteOpen, setIsLinkNoteOpen] = useState(false);
+  const [isLinkResourceOpen, setIsLinkResourceOpen] = useState(false);
+  const [isLinkContactOpen, setIsLinkContactOpen] = useState(false);
 
   const projectsRef = useRef<HTMLDivElement>(null);
   const tasksRef = useRef<HTMLDivElement>(null);
@@ -137,6 +169,7 @@ export function AreaDetailContent() {
   const archiveArea = useArchiveArea(userId);
   const restoreArea = useRestoreArea(userId);
   const updateArea = useUpdateArea(userId);
+  const restoreGoal = useRestoreGoal();
   const completeTask = useCompleteTaskWithGoalRefresh();
   const updateTask = useUpdateTask();
   const archiveTask = useArchiveTask();
@@ -159,6 +192,14 @@ export function AreaDetailContent() {
   const archiveNote = useArchiveNote();
   const restoreNote = useRestoreNote();
   const deleteNote = useDeleteNote();
+  const updateNote = useUpdateNote();
+  const linkGoalToArea = useLinkGoalToArea();
+  const linkProjectToArea = useLinkProjectToArea();
+  const { data: allGoalsGlobal = [] } = useGoals({ status: "all" });
+  const { data: allProjectsGlobal = [] } = useProjects({ status: "all" });
+  const { data: allTasksGlobal = [] } = useTasks();
+  const { data: allNotesGlobal = [] } = useNotes({ status: "all" });
+  const { data: allResourcesGlobal = [] } = useResources({ status: "all" });
   const toggleFavoriteNote = useToggleFavoriteNote();
   const togglePinNote = useTogglePinNote();
 
@@ -276,11 +317,6 @@ export function AreaDetailContent() {
     if (!goals) return [];
     const termMap: Record<string, string | undefined> = { short: "short", mid: "mid", long: "long" };
     const term = termMap[goalTab];
-    // A goal is "Inactive" when it's still active (not archived/completed) but
-    // has no linked items at all. We surface those only under the explicit
-    // Inactive tab — they should NOT be hidden from Active/term tabs, otherwise
-    // a freshly linked goal disappears from the area detail page until items
-    // are linked to it.
     const isAutoInactive = (g: typeof goals[number]) =>
       !g.is_archived && !g.is_completed &&
       (g.projectCount ?? 0) === 0 && (g.taskCount ?? 0) === 0 &&
@@ -291,6 +327,7 @@ export function AreaDetailContent() {
       if (goalTab === "inactive") return isAutoInactive(g);
       if (g.is_completed) return goalTab === "completed";
       if (goalTab === "completed") return false;
+      if (goalTab === "active" && isAutoInactive(g)) return false;
       if (term && g.term !== term) return false;
       return true;
     });
@@ -300,6 +337,25 @@ export function AreaDetailContent() {
     () => getFilteredAreaProjects(areaData?.projects ?? [], projectTab as "all" | "inbox" | "planning" | "in_progress" | "on_hold" | "completed" | "archived"),
     [areaData?.projects, projectTab],
   );
+
+  const projectsByGoalGroups = useMemo<ProjectsByGoalGroup[]>(() => {
+    const projects = (areaData?.projects ?? []).filter((p) => !p.is_archived);
+    const grouped = new Map<string, typeof projects>();
+    for (const project of projects) {
+      const ids = project.linkedGoalIds ?? [];
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const goalId of keys) {
+        const current = grouped.get(goalId) ?? [];
+        current.push(project);
+        grouped.set(goalId, current);
+      }
+    }
+    return Array.from(grouped.entries()).map(([goalId, ps]) => ({
+      goalId,
+      goalName: goalId === "unassigned" ? "No Goal" : (allGoalsById.get(goalId) ?? goalId),
+      projects: ps,
+    }));
+  }, [areaData?.projects, allGoalsById]);
 
   const activeTasks = useMemo(() => {
     const tasks = areaData?.tasks;
@@ -340,10 +396,83 @@ export function AreaDetailContent() {
     [areaData?.notes, noteTab],
   );
 
+  const noteGroupsByGoal = useMemo<NoteGroup[]>(() => {
+    const notes = (areaData?.notes ?? []).filter((n) => !n.is_archived);
+    const grouped = new Map<string, typeof notes>();
+    for (const note of notes) {
+      const ids = note.linkedGoalIds ?? [];
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const goalId of keys) {
+        const current = grouped.get(goalId) ?? [];
+        current.push(note);
+        grouped.set(goalId, current);
+      }
+    }
+    return Array.from(grouped.entries()).map(([goalId, ns]) => ({
+      groupId: goalId,
+      groupName: goalId === "unassigned" ? "No Goal" : (allGoalsById.get(goalId) ?? goalId),
+      notes: ns,
+    }));
+  }, [areaData?.notes, allGoalsById]);
+
+  const noteGroupsByProject = useMemo<NoteGroup[]>(() => {
+    const notes = (areaData?.notes ?? []).filter((n) => !n.is_archived);
+    const grouped = new Map<string, typeof notes>();
+    for (const note of notes) {
+      const ids = note.linkedProjectIds ?? [];
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const projectId of keys) {
+        const current = grouped.get(projectId) ?? [];
+        current.push(note);
+        grouped.set(projectId, current);
+      }
+    }
+    return Array.from(grouped.entries()).map(([projectId, ns]) => ({
+      groupId: projectId,
+      groupName: projectId === "unassigned" ? "No Project" : (projectsById.get(projectId) ?? projectId),
+      notes: ns,
+    }));
+  }, [areaData?.notes, projectsById]);
+
   const filteredResources = useMemo(
     () => getFilteredAreaResources(linkedResources, resourceTab),
     [linkedResources, resourceTab],
   );
+
+  const resourceGroupsByGoal = useMemo<ResourceGroup[]>(() => {
+    const resources = linkedResources.filter((r) => !r.is_archived);
+    const grouped = new Map<string, typeof resources>();
+    for (const resource of resources) {
+      const ids = resource.linkedGoalIds ?? [];
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const goalId of keys) {
+        const current = grouped.get(goalId) ?? [];
+        current.push(resource);
+        grouped.set(goalId, current);
+      }
+    }
+    return Array.from(grouped.entries()).map(([goalId, rs]) => ({
+      groupId: goalId,
+      groupName: goalId === "unassigned" ? "No Goal" : (allGoalsById.get(goalId) ?? goalId),
+      resources: rs,
+    }));
+  }, [linkedResources, allGoalsById]);
+
+  const resourceGroupsByProject = useMemo<ResourceGroup[]>(() => {
+    const resources = linkedResources.filter((r) => !r.is_archived);
+    const grouped = new Map<string, typeof resources>();
+    for (const resource of resources) {
+      const projectId = resource.project_id ?? "unassigned";
+      const current = grouped.get(projectId) ?? [];
+      current.push(resource);
+      grouped.set(projectId, current);
+    }
+    return Array.from(grouped.entries()).map(([projectId, rs]) => ({
+      groupId: projectId,
+      groupName: projectId === "unassigned" ? "No Project" : (projectsById.get(projectId) ?? projectId),
+      resources: rs,
+    }));
+  }, [linkedResources, projectsById]);
 
   const linkedContacts = useMemo(
     () =>
@@ -592,6 +721,96 @@ export function AreaDetailContent() {
 
   const handleUnlinkContact = async (contactId: string) => {
     await unlinkContactFromArea.mutateAsync({ contactId, areaId: area!.id });
+  };
+
+  // Link-existing candidate lists for area sections
+  const linkedGoalIdSet = useMemo(
+    () => new Set((areaData?.goals ?? []).map((g) => g.id)),
+    [areaData?.goals],
+  );
+  const linkGoalCandidates = useMemo(
+    () => allGoalsGlobal.filter((g) => !g.is_archived && !linkedGoalIdSet.has(g.id)),
+    [allGoalsGlobal, linkedGoalIdSet],
+  );
+  const linkedProjectIdSet = useMemo(
+    () => new Set((areaData?.projects ?? []).map((p) => p.id)),
+    [areaData?.projects],
+  );
+  const linkProjectCandidates = useMemo(
+    () => allProjectsGlobal.filter((p) => !p.is_archived && !linkedProjectIdSet.has(p.id)),
+    [allProjectsGlobal, linkedProjectIdSet],
+  );
+  const linkedTaskIdSet = useMemo(
+    () => new Set((areaData?.tasks ?? []).map((t) => t.id)),
+    [areaData?.tasks],
+  );
+  const linkTaskCandidates = useMemo(
+    () => allTasksGlobal.filter((t) => !t.is_archived && !linkedTaskIdSet.has(t.id)),
+    [allTasksGlobal, linkedTaskIdSet],
+  );
+  const linkedNoteIdSet = useMemo(
+    () => new Set((areaData?.notes ?? []).map((n) => n.id)),
+    [areaData?.notes],
+  );
+  const linkNoteCandidates = useMemo(
+    () => allNotesGlobal.filter((n) => !n.is_archived && !linkedNoteIdSet.has(n.id)),
+    [allNotesGlobal, linkedNoteIdSet],
+  );
+  const linkedResourceIdSet = useMemo(
+    () => new Set(linkedResources.map((r) => r.id)),
+    [linkedResources],
+  );
+  const linkResourceCandidates = useMemo(
+    () => allResourcesGlobal.filter((r) => !r.is_archived && !linkedResourceIdSet.has(r.id)),
+    [allResourcesGlobal, linkedResourceIdSet],
+  );
+  const linkedContactIdSet = useMemo(
+    () => new Set(allLinkedContacts.map((c) => c.id)),
+    [allLinkedContacts],
+  );
+  const linkContactCandidates = useMemo(
+    () => allContacts.filter((c) => !c.archive && !linkedContactIdSet.has(c.id)),
+    [allContacts, linkedContactIdSet],
+  );
+
+  const handleLinkGoal = (goalId: string) => {
+    if (!area) return;
+    linkGoalToArea.mutate({ goalId, areaId: area.id });
+    setIsLinkGoalOpen(false);
+  };
+  const handleLinkProject = (projectId: string) => {
+    if (!area) return;
+    linkProjectToArea.mutate({ projectId, areaId: area.id });
+    setIsLinkProjectOpen(false);
+  };
+  const handleLinkTask = (task: Task) => {
+    if (!area) return;
+    const nextAreaIds = Array.from(new Set([...(task.linkedAreaIds ?? (task.area_id ? [task.area_id] : [])), area.id]));
+    updateTask.mutate({ id: task.id, input: { area_ids: nextAreaIds } });
+    setIsLinkTaskOpen(false);
+  };
+  const handleLinkNote = (note: { id: string; linkedAreaIds?: string[] | null; area_id?: string | null }) => {
+    if (!area) return;
+    const nextAreaIds = Array.from(new Set([
+      ...((note.linkedAreaIds ?? (note.area_id ? [note.area_id] : [])).filter(Boolean) as string[]),
+      area.id,
+    ]));
+    updateNote.mutate({ id: note.id, input: { area_ids: nextAreaIds } });
+    setIsLinkNoteOpen(false);
+  };
+  const handleLinkResource = (resource: { id: string; linkedAreaIds?: string[] | null; area_id?: string | null }) => {
+    if (!area) return;
+    const nextAreaIds = Array.from(new Set([
+      ...((resource.linkedAreaIds ?? (resource.area_id ? [resource.area_id] : [])).filter(Boolean) as string[]),
+      area.id,
+    ]));
+    updateResource.mutate({ id: resource.id, input: { area_ids: nextAreaIds } });
+    setIsLinkResourceOpen(false);
+  };
+  const handleLinkContact = (contactId: string) => {
+    if (!area) return;
+    linkContactToArea.mutate({ contactId, areaId: area.id });
+    setIsLinkContactOpen(false);
   };
 
   const handleContactEdit = (contact: Contact) => {
@@ -928,6 +1147,8 @@ export function AreaDetailContent() {
           emptyDescription="Create a goal to track objectives for this area."
           onCreateNew={() => setIsNewGoalOpen(true)}
           createLabel="New Goal"
+          onLinkExisting={() => setIsLinkGoalOpen(true)}
+          linkLabel="Link Goal"
         >
           {filteredGoals.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -941,6 +1162,7 @@ export function AreaDetailContent() {
                     areaNames={[area.name]}
                     areaIcons={[area.icon ?? null]}
                     onEdit={() => router.push(`${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(goalReturnTo)}`)}
+                    onRestore={goal.is_archived ? (g) => restoreGoal.mutate(g.id) : undefined}
                     rollups={goalRollups.get(goal.id)}
                   />
                 );
@@ -961,6 +1183,8 @@ export function AreaDetailContent() {
             { value: "planning", label: "Planning" },
             { value: "in_progress", label: "In Progress" },
             { value: "on_hold", label: "On Hold" },
+            { value: "by_status", label: "By Status" },
+            { value: "by_goal", label: "By Goal" },
             { value: "completed", label: "Completed" },
             { value: "archived", label: "Archive" },
           ]}
@@ -971,8 +1195,29 @@ export function AreaDetailContent() {
           emptyDescription="Create a project to track work in this area."
           onCreateNew={() => setIsNewProjectOpen(true)}
           createLabel="New Project"
+          onLinkExisting={() => setIsLinkProjectOpen(true)}
+          linkLabel="Link Project"
         >
-          {filteredProjects.length > 0 ? (
+          {projectTab === "by_status" ? (
+            <KanbanBoard
+              projects={(areaData?.projects ?? []).filter((p) => !p.is_archived)}
+              areas={allAreasList}
+              onProjectClick={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}`)}
+            />
+          ) : projectTab === "by_goal" ? (
+            <ProjectsByGoalView
+              groups={projectsByGoalGroups}
+              areaNames={areaNamesById}
+              duplicateIndices={new Map()}
+              isLoading={isLoading}
+              onEdit={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}`)}
+              onCreateProject={(goalId) => {
+                setNewProjectGoalId(goalId === "unassigned" ? null : goalId);
+                setIsNewProjectOpen(true);
+              }}
+              returnTo={buildReturnTo(`/areas/${area.slug ?? area.id}`)}
+            />
+          ) : filteredProjects.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {filteredProjects.map((project) => {
                 const projectReturnTo = buildReturnTo(`/areas/${area.slug ?? area.id}`);
@@ -1014,6 +1259,8 @@ export function AreaDetailContent() {
           emptyDescription="Create a task to track work in this area."
           onCreateNew={() => setIsNewTaskOpen(true)}
           createLabel="New Task"
+          onLinkExisting={() => setIsLinkTaskOpen(true)}
+          linkLabel="Link Task"
         >
           {taskTab === "by_goal" ? (
             <TasksByGroupView
@@ -1095,6 +1342,8 @@ export function AreaDetailContent() {
             { value: "inbox", label: "Inbox" },
             { value: "to_review", label: "To Review" },
             { value: "active", label: "Active" },
+            { value: "by_goal", label: "By Goal" },
+            { value: "by_project", label: "By Project" },
             { value: "saved", label: "Saved" },
             { value: "archived", label: "Archive" },
           ]}
@@ -1105,8 +1354,50 @@ export function AreaDetailContent() {
           emptyDescription="Create a note to capture thoughts for this area."
           onCreateNew={() => area && router.push(`/notes/new?areaId=${area.id}&returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}`)}
           createLabel="New Note"
+          onLinkExisting={() => setIsLinkNoteOpen(true)}
+          linkLabel="Link Note"
         >
-          {filteredNotes.length > 0 ? (
+          {(noteTab === "by_goal" || noteTab === "by_project") ? (
+            <NotesByGroupView
+              groups={noteTab === "by_goal" ? noteGroupsByGoal : noteGroupsByProject}
+              renderNote={(note) => {
+                const noteReturnTo = buildReturnTo(`/areas/${area.slug ?? area.id}`);
+                const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                  .map((id) => { const name = areaNamesById.get(id); return name ? { name, icon: areaIconsById.get(id) ?? null } : null; })
+                  .filter((a): a is { name: string; icon: string | null } => Boolean(a));
+                const noteGoalNames = (note.linkedGoalIds ?? []).map((id) => allGoalsById.get(id)).filter((n): n is string => Boolean(n));
+                const noteProjectNames = (note.linkedProjectIds ?? []).map((id) => projectsById.get(id)).filter((n): n is string => Boolean(n));
+                const noteTaskNames = (note.linkedTaskIds ?? []).map((id) => tasksById.get(id)).filter((n): n is string => Boolean(n));
+                return (
+                  <NoteRow
+                    note={note}
+                    returnTo={noteReturnTo}
+                    areas={noteAreas}
+                    goalNames={noteGoalNames}
+                    projectNames={noteProjectNames}
+                    taskNames={noteTaskNames}
+                    onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
+                    onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                    onArchive={(id) => archiveNote.mutate(id)}
+                    onRestore={(id) => restoreNote.mutate(id)}
+                    onDelete={(id) => deleteNote.mutate(id)}
+                  />
+                );
+              }}
+              onNewNote={(groupId) => {
+                const params = new URLSearchParams();
+                params.set("areaId", area.id);
+                params.set("returnTo", encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`)));
+                if (noteTab === "by_goal") {
+                  params.set("goalId", groupId);
+                } else {
+                  params.set("projectId", groupId);
+                }
+                router.push(`/notes/new?${params.toString()}`);
+              }}
+              emptyMessage={noteTab === "by_goal" ? "Notes will be grouped by goal here." : "Notes will be grouped by project here."}
+            />
+          ) : filteredNotes.length > 0 ? (
             <div className="rounded-lg border bg-card">
               {filteredNotes.map((note) => {
                 const noteReturnTo = buildReturnTo(`/areas/${area.slug ?? area.id}`);
@@ -1150,6 +1441,8 @@ export function AreaDetailContent() {
             { value: "inbox", label: "Inbox" },
             { value: "to_review", label: "To Review" },
             { value: "active", label: "Active" },
+            { value: "by_goal", label: "By Goal" },
+            { value: "by_project", label: "By Project" },
             { value: "saved", label: "Saved" },
             { value: "archived", label: "Archive" },
           ]}
@@ -1160,8 +1453,42 @@ export function AreaDetailContent() {
           emptyDescription="Add resources to track external references for this area."
           onCreateNew={() => setIsNewResourceOpen(true)}
           createLabel="New Resource"
+          onLinkExisting={() => setIsLinkResourceOpen(true)}
+          linkLabel="Link Resource"
         >
-          {filteredResources.length > 0 ? (
+          {(resourceTab === "by_goal" || resourceTab === "by_project") ? (
+            <ResourcesByGroupView
+              groups={resourceTab === "by_goal" ? resourceGroupsByGoal : resourceGroupsByProject}
+              getAreas={(resource) => {
+                const ids = (resource.linkedAreaIds && resource.linkedAreaIds.length > 0)
+                  ? resource.linkedAreaIds
+                  : (resource.area_id ? [resource.area_id] : []);
+                return ids
+                  .map((id) => ({ name: areaNamesById.get(id), icon: areaIconsById.get(id) ?? null }))
+                  .filter((e): e is { name: string; icon: string | null } => Boolean(e.name));
+              }}
+              getGoalNames={(resource) => (resource.linkedGoalIds ?? []).map((id) => allGoalsById.get(id)).filter((n): n is string => Boolean(n))}
+              getProjectNames={(resource) => resource.project_id ? [projectsById.get(resource.project_id)].filter((n): n is string => Boolean(n)) : []}
+              getTaskNames={(resource) => (resource.linkedTaskIds ?? []).map((id) => tasksById.get(id)).filter((n): n is string => Boolean(n))}
+              getTopicName={(resource) => resource.topic_id ? topicNamesMap.get(resource.topic_id) : undefined}
+              onToggleFavorite={(id, favorite) => toggleFavoriteResource.mutate({ id, favorite })}
+              onArchive={(id) => archiveResource.mutate(id)}
+              onUnarchive={(id) => unarchiveResource.mutate(id)}
+              onDelete={() => {}}
+              onEdit={(r) => setEditingResource(r)}
+              onNewResource={(groupId) => {
+                if (resourceTab === "by_goal") {
+                  setNewResourceGoalId(groupId === "unassigned" ? null : groupId);
+                  setNewResourceProjectId(null);
+                } else {
+                  setNewResourceGoalId(null);
+                  setNewResourceProjectId(groupId === "unassigned" ? null : groupId);
+                }
+                setIsNewResourceOpen(true);
+              }}
+              emptyMessage={resourceTab === "by_goal" ? "Resources will be grouped by goal here." : "Resources will be grouped by project here."}
+            />
+          ) : filteredResources.length > 0 ? (
             <div className="rounded-lg border bg-card">
               {filteredResources.map((resource) => {
                 const resourceAreaIds = (resource.linkedAreaIds && resource.linkedAreaIds.length > 0)
@@ -1221,6 +1548,8 @@ export function AreaDetailContent() {
           emptyDescription="Add people to track relationships that contribute to this area."
           onCreateNew={() => setIsNewContactOpen(true)}
           createLabel="New Contact"
+          onLinkExisting={() => setIsLinkContactOpen(true)}
+          linkLabel="Link Contact"
         >
           {contactTab === "follow_up" ? (
             <ContactsFollowUpView
@@ -1323,9 +1652,16 @@ export function AreaDetailContent() {
       {/* Inline Project Creation */}
       <ProjectDialog
         open={isNewProjectOpen}
-        onOpenChange={setIsNewProjectOpen}
+        onOpenChange={(open) => {
+          setIsNewProjectOpen(open);
+          if (!open) setNewProjectGoalId(null);
+        }}
         defaultAreaIds={area?.id ? [area.id] : []}
-        onSuccess={() => setIsNewProjectOpen(false)}
+        goalId={newProjectGoalId ?? undefined}
+        onSuccess={() => {
+          setIsNewProjectOpen(false);
+          setNewProjectGoalId(null);
+        }}
       />
 
       {/* Inline Task Creation */}
@@ -1389,11 +1725,21 @@ export function AreaDetailContent() {
       {/* Inline Resource Creation */}
       <ResourceDialog
         open={isNewResourceOpen}
-        onOpenChange={setIsNewResourceOpen}
+        onOpenChange={(open) => {
+          setIsNewResourceOpen(open);
+          if (!open) {
+            setNewResourceGoalId(null);
+            setNewResourceProjectId(null);
+          }
+        }}
         initialAreaIds={area?.id ? [area.id] : []}
+        initialGoalIds={newResourceGoalId ? [newResourceGoalId] : []}
+        initialProjectId={newResourceProjectId ?? undefined}
         onSubmit={async (input) => {
           await createResource.mutateAsync(input as CreateResourceInput);
           setIsNewResourceOpen(false);
+          setNewResourceGoalId(null);
+          setNewResourceProjectId(null);
         }}
         isPending={createResource.isPending}
       />
@@ -1410,6 +1756,81 @@ export function AreaDetailContent() {
           setEditingResource(null);
         }}
         isPending={updateResource.isPending}
+      />
+
+      {/* Link existing dialogs */}
+      <LinkEntityDialog
+        open={isLinkGoalOpen}
+        onOpenChange={setIsLinkGoalOpen}
+        title="Link Goal"
+        emptyMessage="No more active goals available to link."
+        candidates={linkGoalCandidates}
+        getKey={(g) => g.id}
+        getSearchText={(g) => g.name}
+        renderItem={(g) => <p className="truncate font-medium">{g.name}</p>}
+        onLink={(g) => handleLinkGoal(g.id)}
+      />
+      <LinkEntityDialog
+        open={isLinkProjectOpen}
+        onOpenChange={setIsLinkProjectOpen}
+        title="Link Project"
+        emptyMessage="No more active projects available to link."
+        candidates={linkProjectCandidates}
+        getKey={(p) => p.id}
+        getSearchText={(p) => p.name}
+        renderItem={(p) => <p className="truncate font-medium">{p.name}</p>}
+        onLink={(p) => handleLinkProject(p.id)}
+      />
+      <LinkEntityDialog
+        open={isLinkTaskOpen}
+        onOpenChange={setIsLinkTaskOpen}
+        title="Link Task"
+        emptyMessage="No more active tasks available to link."
+        candidates={linkTaskCandidates}
+        getKey={(t) => t.id}
+        getSearchText={(t) => t.name}
+        renderItem={(t) => <p className="truncate font-medium">{t.name}</p>}
+        onLink={(t) => handleLinkTask(t)}
+      />
+      <LinkEntityDialog
+        open={isLinkNoteOpen}
+        onOpenChange={setIsLinkNoteOpen}
+        title="Link Note"
+        emptyMessage="No more active notes available to link."
+        candidates={linkNoteCandidates}
+        getKey={(n) => n.id}
+        getSearchText={(n) => n.name}
+        renderItem={(n) => <p className="truncate font-medium">{n.name}</p>}
+        onLink={(n) => handleLinkNote(n)}
+      />
+      <LinkEntityDialog
+        open={isLinkResourceOpen}
+        onOpenChange={setIsLinkResourceOpen}
+        title="Link Resource"
+        emptyMessage="No more active resources available to link."
+        candidates={linkResourceCandidates}
+        getKey={(r) => r.id}
+        getSearchText={(r) => r.name}
+        renderItem={(r) => <p className="truncate font-medium">{r.name}</p>}
+        onLink={(r) => handleLinkResource(r)}
+      />
+      <LinkEntityDialog
+        open={isLinkContactOpen}
+        onOpenChange={setIsLinkContactOpen}
+        title="Link Contact"
+        emptyMessage="No more active contacts available to link."
+        candidates={linkContactCandidates}
+        getKey={(c) => c.id}
+        getSearchText={(c) => `${c.name} ${c.organization ?? ""}`}
+        renderItem={(c) => (
+          <div>
+            <p className="truncate font-medium">{c.name}</p>
+            {c.organization ? (
+              <p className="text-sm text-muted-foreground">{c.organization}</p>
+            ) : null}
+          </div>
+        )}
+        onLink={(c) => handleLinkContact(c.id)}
       />
     </div>
   );

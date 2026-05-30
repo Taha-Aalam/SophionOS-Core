@@ -21,6 +21,7 @@ interface ProjectsByGoalViewProps {
   isLoading?: boolean;
   onEdit: (project: Project) => void;
   onCreateProject: (goalId: string) => void;
+  returnTo?: string | null;
 }
 
 function CollapsibleGoalSection({
@@ -29,12 +30,14 @@ function CollapsibleGoalSection({
   duplicateIndices,
   onEdit,
   onCreateProject,
+  returnTo,
 }: {
   group: ProjectsByGoalGroup;
   areaNames: Map<string, string>;
   duplicateIndices: Map<string, number>;
   onEdit: (project: Project) => void;
   onCreateProject: (goalId: string) => void;
+  returnTo?: string | null;
 }) {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -97,6 +100,7 @@ function CollapsibleGoalSection({
               }
               duplicateIndex={duplicateIndices.get(project.id)}
               onEdit={onEdit}
+              returnTo={returnTo}
             />
           ))}
           {group.goalId !== "unassigned" && (
@@ -121,6 +125,7 @@ export function ProjectsByGoalView({
   isLoading,
   onEdit,
   onCreateProject,
+  returnTo,
 }: ProjectsByGoalViewProps) {
   if (isLoading) {
     return (
@@ -157,6 +162,7 @@ export function ProjectsByGoalView({
           duplicateIndices={duplicateIndices}
           onEdit={onEdit}
           onCreateProject={onCreateProject}
+          returnTo={returnTo}
         />
       ))}
     </div>
