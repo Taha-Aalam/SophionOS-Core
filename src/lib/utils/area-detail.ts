@@ -1,6 +1,7 @@
-import type { Contact, Goal, Note, Project, Resource, Task } from "@/lib/types/domain.types";
+import type { Area, Contact, Goal, Note, Project, Resource, Task } from "@/lib/types/domain.types";
 import type { ContactCategorySection, FollowUpSection } from "@/lib/utils/contact-category-sections";
 import {
+  buildAreaSections,
   buildFollowUpSections,
   buildGoalSections,
   buildGroupSections,
@@ -207,4 +208,43 @@ export function buildAreaContactGroupSections(contacts: Contact[]): ContactCateg
 
 export function buildAreaContactFollowUpSections(contacts: Contact[]): FollowUpSection[] {
   return buildFollowUpSections(contacts);
+}
+
+export function buildContactByAreaSections(contacts: Contact[], areas: Area[]): ContactCategorySection[] {
+  const unassigned: Contact[] = [];
+  const grouped = new Map<string, Contact[]>();
+
+  for (const contact of contacts) {
+    const ids = contact.linkedAreaIds ?? [];
+    if (ids.length === 0) {
+      unassigned.push(contact);
+    } else {
+      for (const areaId of ids) {
+        const current = grouped.get(areaId) ?? [];
+        current.push(contact);
+        grouped.set(areaId, current);
+      }
+    }
+  }
+
+  const sections = Array.from(grouped.entries())
+    .map(([areaId, sectionContacts]) => ({
+      areaId,
+      areaName: areas.find((a) => a.id === areaId)?.name ?? areaId,
+      contacts: sectionContacts,
+    }))
+    .filter((s) => s.contacts.length > 0);
+
+  const result = buildAreaSections(areas, sections);
+
+  if (unassigned.length > 0) {
+    result.push({
+      id: "area:unassigned",
+      label: "No Area",
+      createLabel: "New Contact",
+      contacts: unassigned,
+    });
+  }
+
+  return result;
 }

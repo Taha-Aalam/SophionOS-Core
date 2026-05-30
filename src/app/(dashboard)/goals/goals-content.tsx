@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/views/empty-state";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAreas } from "@/lib/hooks/use-areas";
-import { useGoals } from "@/lib/hooks/use-goals";
+import { useGoals, useRestoreGoal, useArchiveGoal } from "@/lib/hooks/use-goals";
 import { useFilterStore } from "@/lib/stores/filters.store";
 import { Goal } from "@/lib/types/domain.types";
 import {
@@ -28,6 +28,8 @@ export function GoalsContent() {
   const { filters, setStatus, setTerm } = useFilterStore();
   const { data: goals, isLoading } = useGoals(filters);
   const { data: areas = [] } = useAreas();
+  const restoreGoal = useRestoreGoal();
+  const archiveGoal = useArchiveGoal();
 
   const currentView = getGoalViewFromFilters({
     status: filters.status,
@@ -179,6 +181,8 @@ export function GoalsContent() {
                 onEdit={() => {
                   router.push(buildGoalDetailHref(goal));
                 }}
+                onRestore={(g) => restoreGoal.mutate(g.id)}
+                onArchive={(g) => archiveGoal.mutate(g.id)}
               />
             );
           })}

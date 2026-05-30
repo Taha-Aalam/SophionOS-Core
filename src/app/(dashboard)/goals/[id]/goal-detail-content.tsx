@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -16,9 +17,12 @@ import {
 } from "lucide-react";
 
 import { ContactCard } from "@/components/entities/contact-card";
-import { ContactDialog } from "@/components/entities/contact-dialog";
+import { ContactDialog, type ContactDialogDefaults } from "@/components/entities/contact-dialog";
+import { ContactsByCategoryView } from "@/components/views/contacts-by-category-view";
+import { ContactsFollowUpView } from "@/components/views/contacts-follow-up-view";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
+import { LinkEntityDialog } from "@/components/entities/link-entity-dialog";
 import { PriorityBadge } from "@/components/entities/priority-badge";
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
@@ -28,6 +32,10 @@ import { ResourceRow } from "@/components/entities/resource-row";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskListItem } from "@/components/entities/task-list-item";
 import { TasksByGroupView, type TaskGroup } from "@/components/views/tasks-by-group-view";
+import { NotesByGroupView, type NoteGroup } from "@/components/views/notes-by-group-view";
+import { ResourcesByGroupView, type ResourceGroup } from "@/components/views/resources-by-group-view";
+import { ProjectsByAreaView, type ProjectsByAreaGroup } from "@/components/views/projects-by-area-view";
+import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,8 +44,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+const KanbanBoard = dynamic(
+  () => import("@/components/views/kanban-board").then((m) => m.KanbanBoard),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex gap-4">
+        <Skeleton className="h-[300px] w-full" />
+        <Skeleton className="h-[300px] w-full" />
+        <Skeleton className="h-[300px] w-full" />
+      </div>
+    ),
+  },
+);
+
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useAreas } from "@/lib/hooks/use-areas";
 import {
   useContacts,
@@ -66,9 +87,9 @@ import {
   useTasks,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
-import { useProjects } from "@/lib/hooks/use-projects";
-import { useNotes, useToggleFavoriteNote, useTogglePinNote, useArchiveNote, useRestoreNote, useDeleteNote } from "@/lib/hooks/use-notes";
-import { useResources, useToggleFavoriteResource, useCreateResource, useUpdateResource, useArchiveResource, useUnarchiveResource } from "@/lib/hooks/use-resources";
+import { useProjects, useLinkProjectToGoal } from "@/lib/hooks/use-projects";
+import { useNotes, useToggleFavoriteNote, useTogglePinNote, useArchiveNote, useRestoreNote, useDeleteNote, useLinkNoteToGoal } from "@/lib/hooks/use-notes";
+import { useResources, useToggleFavoriteResource, useCreateResource, useUpdateResource, useArchiveResource, useUnarchiveResource, useLinkResourceToGoal } from "@/lib/hooks/use-resources";
 import { useTopics } from "@/lib/hooks/use-topics";
 import { cn } from "@/lib/utils";
 import type { Contact, CreateResourceInput, Project, Resource, Task } from "@/lib/types/domain.types";
@@ -76,6 +97,12 @@ import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
+import {
+  buildAreaContactGroupSections,
+  buildAreaContactFollowUpSections,
+  buildAreaContactProjectSections,
+  buildContactByAreaSections,
+} from "@/lib/utils/area-detail";
 import { buildReturnTo, encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 import { getTaskLinkedAreaIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 
@@ -170,10 +197,19 @@ export function GoalDetailContent() {
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
+  const [newTaskAreaId, setNewTaskAreaId] = useState<string | null>(null);
+  const [newTaskProjectId, setNewTaskProjectId] = useState<string | null>(null);
   const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
+  const [newResourceGroupId, setNewResourceGroupId] = useState<string | null>(null);
+  const [newResourceGroupType, setNewResourceGroupType] = useState<"area" | "project" | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [isLinkProjectOpen, setIsLinkProjectOpen] = useState(false);
+  const [isLinkTaskOpen, setIsLinkTaskOpen] = useState(false);
+  const [isLinkNoteOpen, setIsLinkNoteOpen] = useState(false);
+  const [isLinkResourceOpen, setIsLinkResourceOpen] = useState(false);
+  const [isLinkContactOpen, setIsLinkContactOpen] = useState(false);
 
   // Refs for scroll-to-section
   const projectsRef = useRef<HTMLDivElement>(null);
@@ -189,8 +225,10 @@ export function GoalDetailContent() {
   const { data: allProjects = [] } = useProjects({ status: "all" });
   const { data: allNotes = [] } = useNotes({ status: "all" });
   const { data: allResources = [] } = useResources({ status: "all" });
+  const { data: allTasksGlobal = [] } = useTasks();
   const { data: topics = [] } = useTopics();
   const { data: allContacts = [] } = useContacts();
+  const { data: allArchivedContacts = [] } = useContacts({ archive: true });
   const { data: goalContactLinks = [] } = useContactByGoal(resolvedGoalId);
 
   // Mutations
@@ -221,6 +259,9 @@ export function GoalDetailContent() {
   const deleteContact = useDeleteContact();
   const toggleContactFavorite = useToggleContactFavorite();
   const archiveContact = useArchiveContact();
+  const linkProjectToGoal = useLinkProjectToGoal();
+  const linkNoteToGoal = useLinkNoteToGoal();
+  const linkResourceToGoal = useLinkResourceToGoal();
 
   // Derived
   const goal = goalData?.goal;
@@ -295,40 +336,74 @@ export function GoalDetailContent() {
     () => new Set(goalContactLinks.map((link) => link.contact_id)),
     [goalContactLinks],
   );
-  const linkedContacts = useMemo(
-    () => allContacts.filter((c) => linkedContactIds.has(c.id)),
-    [allContacts, linkedContactIds],
+  const allLinkedContacts = useMemo(
+    () => [
+      ...allContacts.filter((c) => linkedContactIds.has(c.id)),
+      ...allArchivedContacts.filter((c) => linkedContactIds.has(c.id)),
+    ],
+    [allContacts, allArchivedContacts, linkedContactIds],
   );
+  const activeLinkedContacts = useMemo(
+    () => allLinkedContacts.filter((c) => !c.archive),
+    [allLinkedContacts],
+  );
+  const archivedLinkedContacts = useMemo(
+    () => allLinkedContacts.filter((c) => c.archive),
+    [allLinkedContacts],
+  );
+  const linkedContacts = activeLinkedContacts;
   const contactTabs = useMemo(
     () => [
-      { value: "all", label: "All", count: linkedContacts.length },
-      { value: "favorite", label: "Favorite", count: linkedContacts.filter((c) => c.favorite).length },
-      { value: "follow_up", label: "Follow-up", count: linkedContacts.filter((c) => !!c.follow_up_interval_days).length },
-      { value: "by_group", label: "By Group", count: linkedContacts.filter((c) => !!c.group).length },
-      { value: "by_project", label: "By Project", count: linkedContacts.filter((c) => (c.linkedProjectIds?.length ?? 0) > 0).length },
-      { value: "by_area", label: "By Area", count: linkedContacts.filter((c) => (c.linkedAreaIds?.length ?? 0) > 0).length },
-      { value: "archived", label: "Archive", count: linkedContacts.filter((c) => c.archive).length },
+      { value: "all", label: "All", count: activeLinkedContacts.length },
+      { value: "favorite", label: "Favorite", count: activeLinkedContacts.filter((c) => c.favorite).length },
+      { value: "follow_up", label: "Follow-up", count: activeLinkedContacts.filter((c) => !!c.follow_up_interval_days).length },
+      { value: "by_group", label: "By Group", count: activeLinkedContacts.filter((c) => !!c.group).length },
+      { value: "by_project", label: "By Project", count: activeLinkedContacts.filter((c) => (c.linkedProjectIds?.length ?? 0) > 0).length },
+      { value: "by_area", label: "By Area", count: activeLinkedContacts.filter((c) => (c.linkedAreaIds?.length ?? 0) > 0).length },
+      { value: "archived", label: "Archive", count: archivedLinkedContacts.length },
     ],
-    [linkedContacts],
+    [activeLinkedContacts, archivedLinkedContacts],
   );
   const filteredContacts = useMemo(() => {
     switch (contactTab) {
       case "favorite":
-        return linkedContacts.filter((c) => c.favorite);
+        return activeLinkedContacts.filter((c) => c.favorite);
       case "follow_up":
-        return linkedContacts.filter((c) => !!c.follow_up_interval_days);
       case "by_group":
-        return linkedContacts.filter((c) => !!c.group);
       case "by_project":
-        return linkedContacts.filter((c) => (c.linkedProjectIds?.length ?? 0) > 0);
       case "by_area":
-        return linkedContacts.filter((c) => (c.linkedAreaIds?.length ?? 0) > 0);
+        return activeLinkedContacts;
       case "archived":
-        return linkedContacts.filter((c) => c.archive);
+        return archivedLinkedContacts;
       default:
-        return linkedContacts;
+        return activeLinkedContacts;
     }
-  }, [contactTab, linkedContacts]);
+  }, [contactTab, activeLinkedContacts, archivedLinkedContacts]);
+
+  const goalContactFollowUpSections = useMemo(
+    () => buildAreaContactFollowUpSections(activeLinkedContacts),
+    [activeLinkedContacts],
+  );
+  const goalContactGroupSections = useMemo(
+    () => buildAreaContactGroupSections(activeLinkedContacts),
+    [activeLinkedContacts],
+  );
+  const goalContactAreaSections = useMemo(
+    () => buildContactByAreaSections(activeLinkedContacts, areas),
+    [activeLinkedContacts, areas],
+  );
+  const goalContactProjectSections = useMemo(
+    () => buildAreaContactProjectSections(activeLinkedContacts, allProjects),
+    [activeLinkedContacts, allProjects],
+  );
+
+  const handleCreateContactInSection = useCallback(
+    (section: { id: string }) => {
+      void section;
+      setIsNewContactOpen(true);
+    },
+    [],
+  );
 
   // Sync page title with goal name
   useEffect(() => {
@@ -355,6 +430,8 @@ export function GoalDetailContent() {
     { value: "inbox", label: "Inbox" },
     { value: "to_review", label: "To Review" },
     { value: "active", label: "Active" },
+    { value: "by_area", label: "By Area" },
+    { value: "by_project", label: "By Project" },
     { value: "saved", label: "Saved" },
     { value: "archived", label: "Archive" },
   ];
@@ -373,10 +450,49 @@ export function GoalDetailContent() {
         return activeNotes.filter((n) => n.status === NOTE_STATUS.ACTIVE);
       case "saved":
         return activeNotes.filter((n) => n.status === NOTE_STATUS.SAVED);
+      case "by_area":
+      case "by_project":
+        return activeNotes;
       default:
         return activeNotes;
     }
   }, [goalData?.notes, noteTab]);
+
+  const noteGroupsByArea = useMemo<NoteGroup[]>(() => {
+    const grouped = new Map<string, typeof filteredNotes>();
+    for (const note of filteredNotes) {
+      const ids = note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const areaId of keys) {
+        const current = grouped.get(areaId) ?? [];
+        current.push(note);
+        grouped.set(areaId, current);
+      }
+    }
+    return Array.from(grouped.entries()).map(([areaId, notes]) => ({
+      groupId: areaId,
+      groupName: areaId === "unassigned" ? "No Area" : (areaNames.get(areaId) ?? areaId),
+      notes,
+    }));
+  }, [filteredNotes, areaNames]);
+
+  const noteGroupsByProject = useMemo<NoteGroup[]>(() => {
+    const grouped = new Map<string, typeof filteredNotes>();
+    for (const note of filteredNotes) {
+      const ids = note.linkedProjectIds ?? [];
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const projectId of keys) {
+        const current = grouped.get(projectId) ?? [];
+        current.push(note);
+        grouped.set(projectId, current);
+      }
+    }
+    return Array.from(grouped.entries()).map(([projectId, notes]) => ({
+      groupId: projectId,
+      groupName: projectId === "unassigned" ? "No Project" : (projectNamesMap.get(projectId) ?? projectId),
+      notes,
+    }));
+  }, [filteredNotes, projectNamesMap]);
 
   // Static resource tabs — no dynamic type tabs on goal detail
   const resourceTabs = [
@@ -384,6 +500,8 @@ export function GoalDetailContent() {
     { value: "inbox", label: "Inbox" },
     { value: "to_review", label: "To Review" },
     { value: "active", label: "Active" },
+    { value: "by_area", label: "By Area" },
+    { value: "by_project", label: "By Project" },
     { value: "saved", label: "Saved" },
     { value: "archived", label: "Archive" },
   ];
@@ -402,24 +520,74 @@ export function GoalDetailContent() {
         return resources.filter((r) => r.status === RESOURCE_STATUS.SAVED && !r.is_archived);
       case "archived":
         return resources.filter((r) => r.is_archived);
+      case "by_area":
+      case "by_project":
+        return resources.filter((r) => !r.is_archived);
       default:
         return resources.filter((r) => !r.is_archived);
     }
   }, [goalData?.resources, resourceTab]);
 
+  const resourceGroupsByArea = useMemo<ResourceGroup[]>(() => {
+    const grouped = new Map<string, typeof filteredResources>();
+    for (const resource of filteredResources) {
+      const ids = (resource.linkedAreaIds && resource.linkedAreaIds.length > 0)
+        ? resource.linkedAreaIds
+        : (resource.area_id ? [resource.area_id] : []);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const areaId of keys) {
+        const current = grouped.get(areaId) ?? [];
+        current.push(resource);
+        grouped.set(areaId, current);
+      }
+    }
+    return Array.from(grouped.entries()).map(([areaId, resources]) => ({
+      groupId: areaId,
+      groupName: areaId === "unassigned" ? "No Area" : (areaNames.get(areaId) ?? areaId),
+      resources,
+    }));
+  }, [filteredResources, areaNames]);
+
+  const resourceGroupsByProject = useMemo<ResourceGroup[]>(() => {
+    const grouped = new Map<string, typeof filteredResources>();
+    for (const resource of filteredResources) {
+      const projectId = resource.project_id ?? "unassigned";
+      const current = grouped.get(projectId) ?? [];
+      current.push(resource);
+      grouped.set(projectId, current);
+    }
+    return Array.from(grouped.entries()).map(([projectId, resources]) => ({
+      groupId: projectId,
+      groupName: projectId === "unassigned" ? "No Project" : (projectNamesMap.get(projectId) ?? projectId),
+      resources,
+    }));
+  }, [filteredResources, projectNamesMap]);
+
   // Project section tabs
   const projectTabs = [
     { value: "all", label: "All", count: goalData?.rollups.projectCount },
     {
+      value: "inbox",
+      label: "Inbox",
+      count: goalData?.projects.filter((p) => p.status === "planning" && !p.is_archived).length,
+    },
+    {
       value: "planning",
       label: "Planning",
-      count: goalData?.projects.filter((p) => p.status === "planning").length,
+      count: goalData?.projects.filter((p) => p.status === "planning" && !p.is_archived).length,
     },
     {
       value: "in_progress",
       label: "In Progress",
-      count: goalData?.projects.filter((p) => p.status === "active").length,
+      count: goalData?.projects.filter((p) => p.status === "active" && !p.is_archived).length,
     },
+    {
+      value: "on_hold",
+      label: "On Hold",
+      count: goalData?.projects.filter((p) => p.status === "on_hold" && !p.is_archived).length,
+    },
+    { value: "by_status", label: "By Status" },
+    { value: "by_area", label: "By Area" },
     {
       value: "completed",
       label: "Completed",
@@ -431,18 +599,47 @@ export function GoalDetailContent() {
   const filteredProjects = useMemo(() => {
     const projects = goalData?.projects ?? [];
     switch (projectTab) {
+      case "inbox":
       case "planning":
         return projects.filter((p) => p.status === "planning" && !p.is_archived);
       case "in_progress":
         return projects.filter((p) => p.status === "active" && !p.is_archived);
+      case "on_hold":
+        return projects.filter((p) => p.status === "on_hold" && !p.is_archived);
       case "completed":
         return projects.filter((p) => p.status === "completed" && !p.is_archived);
       case "archived":
         return projects.filter((p) => p.is_archived);
+      case "by_status":
+      case "by_area":
+        return projects.filter((p) => !p.is_archived);
       default:
         return projects.filter((p) => !p.is_archived);
     }
   }, [goalData?.projects, projectTab]);
+
+  const projectGroupsByArea = useMemo<ProjectsByAreaGroup[]>(() => {
+    const grouped = new Map<string, Project[]>();
+    for (const project of filteredProjects) {
+      const ids = getProjectLinkedAreaIds(project);
+      if (ids.length === 0) {
+        const current = grouped.get("unassigned") ?? [];
+        current.push(project);
+        grouped.set("unassigned", current);
+      } else {
+        for (const areaId of ids) {
+          const current = grouped.get(areaId) ?? [];
+          current.push(project);
+          grouped.set(areaId, current);
+        }
+      }
+    }
+    return Array.from(grouped.entries()).map(([areaId, projects]) => ({
+      areaId,
+      areaName: areaId === "unassigned" ? "Unassigned" : (areaNames.get(areaId) ?? areaId),
+      projects,
+    }));
+  }, [filteredProjects, areaNames]);
 
   // Task section tabs
   const taskTabs = useMemo(() => {
@@ -780,6 +977,75 @@ export function GoalDetailContent() {
     setIsLinkAreaOpen(false);
   }, [goal, linkGoalToArea]);
 
+  // Link-existing candidate lists (entities NOT yet linked to this goal)
+  const linkedProjectIdSet = useMemo(
+    () => new Set((goalData?.projects ?? []).map((p) => p.id)),
+    [goalData?.projects],
+  );
+  const linkProjectCandidates = useMemo(
+    () => allProjects.filter((p) => !p.is_archived && !linkedProjectIdSet.has(p.id)),
+    [allProjects, linkedProjectIdSet],
+  );
+  const linkedTaskIdSet = useMemo(
+    () => new Set((goalData?.tasks ?? []).map((t) => t.id)),
+    [goalData?.tasks],
+  );
+  const linkTaskCandidates = useMemo(
+    () => allTasksGlobal.filter((t) => !t.is_archived && !linkedTaskIdSet.has(t.id)),
+    [allTasksGlobal, linkedTaskIdSet],
+  );
+  const linkedNoteIdSet = useMemo(
+    () => new Set((goalData?.notes ?? []).map((n) => n.id)),
+    [goalData?.notes],
+  );
+  const linkNoteCandidates = useMemo(
+    () => allNotes.filter((n) => !n.is_archived && !linkedNoteIdSet.has(n.id)),
+    [allNotes, linkedNoteIdSet],
+  );
+  const linkedResourceIdSet = useMemo(
+    () => new Set((goalData?.resources ?? []).map((r) => r.id)),
+    [goalData?.resources],
+  );
+  const linkResourceCandidates = useMemo(
+    () => allResources.filter((r) => !r.is_archived && !linkedResourceIdSet.has(r.id)),
+    [allResources, linkedResourceIdSet],
+  );
+  const linkContactCandidates = useMemo(
+    () => allContacts.filter((c) => !c.archive && !linkedContactIds.has(c.id)),
+    [allContacts, linkedContactIds],
+  );
+
+  const handleLinkProject = useCallback((projectId: string) => {
+    if (!goal) return;
+    linkProjectToGoal.mutate({ projectId, goalId: goal.id });
+    setIsLinkProjectOpen(false);
+  }, [goal, linkProjectToGoal]);
+
+  const handleLinkTask = useCallback((task: Task) => {
+    if (!goal) return;
+    const nextGoalIds = Array.from(new Set([...(task.linkedGoalIds ?? []), goal.id]));
+    updateTask.mutate({ id: task.id, input: { goal_ids: nextGoalIds } });
+    setIsLinkTaskOpen(false);
+  }, [goal, updateTask]);
+
+  const handleLinkNote = useCallback((noteId: string) => {
+    if (!goal) return;
+    linkNoteToGoal.mutate({ noteId, goalId: goal.id });
+    setIsLinkNoteOpen(false);
+  }, [goal, linkNoteToGoal]);
+
+  const handleLinkResource = useCallback((resourceId: string) => {
+    if (!goal) return;
+    linkResourceToGoal.mutate({ resourceId, goalId: goal.id });
+    setIsLinkResourceOpen(false);
+  }, [goal, linkResourceToGoal]);
+
+  const handleLinkContact = useCallback((contactId: string) => {
+    if (!goal) return;
+    linkContactToGoal.mutate({ contactId, goalId: goal.id });
+    setIsLinkContactOpen(false);
+  }, [goal, linkContactToGoal]);
+
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
@@ -868,15 +1134,19 @@ export function GoalDetailContent() {
                   const area = areas.find((a) => a.id === areaId);
                   if (!area) return null;
                   return (
-                    <Badge key={areaId} variant="outline" className="text-xs">
+                    <Badge
+                      key={areaId}
+                      variant="outline"
+                      className="h-5 text-xs px-1.5 py-0 items-center bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                    >
                       {area.icon ? `${area.icon} ` : ""}{area.name}
                     </Badge>
                   );
                 })}
-                <Badge variant="outline" className={cn("text-xs", TERM_COLORS[goal.term])}>
+                <Badge variant="outline" className={cn("h-5 text-xs px-1.5 py-0 items-center", TERM_COLORS[goal.term])}>
                   {TERM_EMOJIS[goal.term] ? `${TERM_EMOJIS[goal.term]} ` : ""}{TERM_LABELS[goal.term] ?? goal.term}
                 </Badge>
-                <Badge variant="outline" className={cn("text-xs uppercase", PRIORITY_COLORS[goal.priority])}>
+                <Badge variant="outline" className={cn("h-5 text-xs px-1.5 py-0 uppercase items-center", PRIORITY_COLORS[goal.priority])}>
                   {goal.priority}
                 </Badge>
                 {goal.is_completed && (
@@ -1101,8 +1371,26 @@ export function GoalDetailContent() {
           emptyDescription="Create a project to track work that contributes to this goal."
           onCreateNew={() => setIsNewProjectOpen(true)}
           createLabel="New Project"
+          onLinkExisting={() => setIsLinkProjectOpen(true)}
+          linkLabel="Link Project"
         >
-          {filteredProjects.length > 0 ? (
+          {projectTab === "by_status" ? (
+            <KanbanBoard
+              projects={filteredProjects}
+              areas={areas}
+              onProjectClick={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(currentPagePathWithSlug)}`)}
+            />
+          ) : projectTab === "by_area" ? (
+            <ProjectsByAreaView
+              groups={projectGroupsByArea}
+              areaNames={areaNames}
+              duplicateIndices={new Map()}
+              isLoading={isLoading}
+              onEdit={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(currentPagePathWithSlug)}`)}
+              onCreateProject={() => setIsNewProjectOpen(true)}
+              returnTo={currentPagePathWithSlug}
+            />
+          ) : filteredProjects.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {filteredProjects.map((project) => (
                 <ProjectCard
@@ -1132,6 +1420,8 @@ export function GoalDetailContent() {
           emptyDescription="Add tasks to track work that contributes to this goal."
           onCreateNew={() => setIsNewTaskOpen(true)}
           createLabel="New Task"
+          onLinkExisting={() => setIsLinkTaskOpen(true)}
+          linkLabel="Link Task"
         >
           {taskTab === "by_area" ? (
             <TasksByGroupView
@@ -1145,7 +1435,11 @@ export function GoalDetailContent() {
               onEdit={handleTaskEdit}
               onArchiveToggle={handleTaskArchiveToggle}
               onPermanentDelete={handlePermanentDelete}
-              onNewTask={() => setIsNewTaskOpen(true)}
+              onNewTask={(groupId) => {
+                setNewTaskAreaId(groupId === "unassigned" ? null : groupId);
+                setNewTaskProjectId(null);
+                setIsNewTaskOpen(true);
+              }}
               getLinkedAreaNames={getTaskLinkedAreaNames}
               getLinkedAreaIcons={getTaskLinkedAreaIcons}
               getLinkedGoalNames={getTaskLinkedGoalNames}
@@ -1164,7 +1458,11 @@ export function GoalDetailContent() {
               onEdit={handleTaskEdit}
               onArchiveToggle={handleTaskArchiveToggle}
               onPermanentDelete={handlePermanentDelete}
-              onNewTask={() => setIsNewTaskOpen(true)}
+              onNewTask={(groupId) => {
+                setNewTaskAreaId(null);
+                setNewTaskProjectId(groupId === "unassigned" ? null : groupId);
+                setIsNewTaskOpen(true);
+              }}
               getLinkedAreaNames={getTaskLinkedAreaNames}
               getLinkedAreaIcons={getTaskLinkedAreaIcons}
               getLinkedGoalNames={getTaskLinkedGoalNames}
@@ -1216,15 +1514,53 @@ export function GoalDetailContent() {
           onCreateNew={() => {
             const params = new URLSearchParams();
             params.set("returnTo", encodeReturnTo(goalNestedReturnTo));
-            if (linkedAreaIds[0]) {
-              params.set("areaId", linkedAreaIds[0]);
-            }
             params.set("goalId", goal.id);
             router.push(`/notes/new?${params.toString()}`);
           }}
           createLabel="New Note"
+          onLinkExisting={() => setIsLinkNoteOpen(true)}
+          linkLabel="Link Note"
         >
-          {filteredNotes.length > 0 ? (
+          {(noteTab === "by_area" || noteTab === "by_project") ? (
+            <NotesByGroupView
+              groups={noteTab === "by_area" ? noteGroupsByArea : noteGroupsByProject}
+              renderNote={(note) => {
+                const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                  .map((id) => { const name = areaNames.get(id); return name ? { name, icon: areaIcons.get(id) ?? null } : null; })
+                  .filter((a): a is { name: string; icon: string | null } => Boolean(a));
+                const noteGoalNames = (note.linkedGoalIds ?? []).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteProjectNames = (note.linkedProjectIds ?? []).map((id) => projectNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteTaskNames = (note.linkedTaskIds ?? []).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                return (
+                  <NoteRow
+                    note={note}
+                    returnTo={goalNestedReturnTo}
+                    areas={noteAreas}
+                    goalNames={noteGoalNames}
+                    projectNames={noteProjectNames}
+                    taskNames={noteTaskNames}
+                    onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
+                    onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                    onArchive={(id) => archiveNote.mutate(id)}
+                    onRestore={(id) => restoreNote.mutate(id)}
+                    onDelete={(id) => deleteNote.mutate(id)}
+                  />
+                );
+              }}
+              onNewNote={(groupId) => {
+                const params = new URLSearchParams();
+                params.set("returnTo", encodeReturnTo(goalNestedReturnTo));
+                params.set("goalId", goal.id);
+                if (noteTab === "by_area") {
+                  params.set("areaId", groupId);
+                } else {
+                  params.set("projectId", groupId);
+                }
+                router.push(`/notes/new?${params.toString()}`);
+              }}
+              emptyMessage={noteTab === "by_area" ? "Notes will be grouped by area here." : "Notes will be grouped by project here."}
+            />
+          ) : filteredNotes.length > 0 ? (
             <div className="rounded-lg border bg-card">
               {filteredNotes.map((note) => {
                 const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
@@ -1268,8 +1604,37 @@ export function GoalDetailContent() {
           emptyDescription="Add resources to track external references that contribute to this goal."
           onCreateNew={() => setIsNewResourceOpen(true)}
           createLabel="New Resource"
+          onLinkExisting={() => setIsLinkResourceOpen(true)}
+          linkLabel="Link Resource"
         >
-          {filteredResources.length > 0 ? (
+          {(resourceTab === "by_area" || resourceTab === "by_project") ? (
+            <ResourcesByGroupView
+              groups={resourceTab === "by_area" ? resourceGroupsByArea : resourceGroupsByProject}
+              getAreas={(resource) => {
+                const ids = (resource.linkedAreaIds && resource.linkedAreaIds.length > 0)
+                  ? resource.linkedAreaIds
+                  : (resource.area_id ? [resource.area_id] : []);
+                return ids
+                  .map((id) => ({ name: areaNames.get(id), icon: areaIcons.get(id) ?? null }))
+                  .filter((e): e is { name: string; icon: string | null } => Boolean(e.name));
+              }}
+              getGoalNames={(resource) => (resource.linkedGoalIds ?? []).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n))}
+              getProjectNames={(resource) => resource.project_id ? [projectNamesMap.get(resource.project_id)].filter((n): n is string => Boolean(n)) : []}
+              getTaskNames={(resource) => (resource.linkedTaskIds ?? []).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n))}
+              getTopicName={(resource) => resource.topic_id ? topicNamesMap.get(resource.topic_id) : undefined}
+              onToggleFavorite={handleResourceToggleFavorite}
+              onArchive={(id) => archiveResource.mutate(id)}
+              onUnarchive={(id) => unarchiveResource.mutate(id)}
+              onDelete={() => {}}
+              onEdit={handleResourceEdit}
+              onNewResource={(groupId) => {
+                setNewResourceGroupId(groupId === "unassigned" ? null : groupId);
+                setNewResourceGroupType(resourceTab === "by_area" ? "area" : "project");
+                setIsNewResourceOpen(true);
+              }}
+              emptyMessage={resourceTab === "by_area" ? "Resources will be grouped by area here." : "Resources will be grouped by project here."}
+            />
+          ) : filteredResources.length > 0 ? (
             <div className="rounded-lg border bg-card">
               {filteredResources.map((resource) => {
                 const resourceAreaIds = (resource.linkedAreaIds && resource.linkedAreaIds.length > 0)
@@ -1322,8 +1687,45 @@ export function GoalDetailContent() {
           emptyDescription="Add people to track relationships that contribute to this goal."
           onCreateNew={() => setIsNewContactOpen(true)}
           createLabel="New Contact"
+          onLinkExisting={() => setIsLinkContactOpen(true)}
+          linkLabel="Link Contact"
         >
-          {filteredContacts.length > 0 ? (
+          {contactTab === "follow_up" ? (
+            <ContactsFollowUpView
+              sections={goalContactFollowUpSections}
+              onEdit={handleContactEdit}
+              onDelete={handleContactDelete}
+              onToggleFavorite={handleContactToggleFavorite}
+              onArchive={handleContactArchive}
+            />
+          ) : contactTab === "by_group" ? (
+            <ContactsByCategoryView
+              sections={goalContactGroupSections}
+              onCreateInSection={handleCreateContactInSection}
+              onEdit={handleContactEdit}
+              onDelete={handleContactDelete}
+              onToggleFavorite={handleContactToggleFavorite}
+              onArchive={handleContactArchive}
+            />
+          ) : contactTab === "by_area" ? (
+            <ContactsByCategoryView
+              sections={goalContactAreaSections}
+              onCreateInSection={handleCreateContactInSection}
+              onEdit={handleContactEdit}
+              onDelete={handleContactDelete}
+              onToggleFavorite={handleContactToggleFavorite}
+              onArchive={handleContactArchive}
+            />
+          ) : contactTab === "by_project" ? (
+            <ContactsByCategoryView
+              sections={goalContactProjectSections}
+              onCreateInSection={handleCreateContactInSection}
+              onEdit={handleContactEdit}
+              onDelete={handleContactDelete}
+              onToggleFavorite={handleContactToggleFavorite}
+              onArchive={handleContactArchive}
+            />
+          ) : filteredContacts.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {filteredContacts.map((contact) => (
                 <div key={contact.id} className="relative">
@@ -1425,18 +1827,28 @@ export function GoalDetailContent() {
         open={isNewProjectOpen}
         onOpenChange={setIsNewProjectOpen}
         goalId={goal.id}
-        defaultAreaIds={goal.area_id ? [goal.area_id] : []}
         onSuccess={() => setIsNewProjectOpen(false)}
       />
 
       {/* Inline Task Creation */}
       <TaskDialog
         open={isNewTaskOpen}
-        onOpenChange={setIsNewTaskOpen}
+        onOpenChange={(open) => {
+          setIsNewTaskOpen(open);
+          if (!open) {
+            setNewTaskAreaId(null);
+            setNewTaskProjectId(null);
+          }
+        }}
         defaultGoalId={goal.id}
-        defaultAreaId={goal.area_id ?? undefined}
+        defaultAreaId={newTaskAreaId ?? undefined}
+        defaultProjectId={newTaskProjectId ?? undefined}
         allowedProjectIds={allowedProjectIds}
-        onSuccess={() => setIsNewTaskOpen(false)}
+        onSuccess={() => {
+          setIsNewTaskOpen(false);
+          setNewTaskAreaId(null);
+          setNewTaskProjectId(null);
+        }}
       />
 
       {/* Task Edit Dialog */}
@@ -1445,7 +1857,6 @@ export function GoalDetailContent() {
         onOpenChange={(open) => !open && setEditingTask(null)}
         task={editingTask}
         defaultGoalId={goal.id}
-        defaultAreaId={goal.area_id ?? undefined}
         allowedProjectIds={allowedProjectIds}
         onSuccess={() => setEditingTask(null)}
         onArchiveToggle={(task) => {
@@ -1461,12 +1872,21 @@ export function GoalDetailContent() {
       {/* Inline Resource Creation */}
       <ResourceDialog
         open={isNewResourceOpen}
-        onOpenChange={setIsNewResourceOpen}
+        onOpenChange={(open) => {
+          setIsNewResourceOpen(open);
+          if (!open) {
+            setNewResourceGroupId(null);
+            setNewResourceGroupType(null);
+          }
+        }}
         initialGoalIds={[goal.id]}
-        initialAreaIds={goal.area_id ? [goal.area_id] : []}
+        initialAreaIds={newResourceGroupType === "area" && newResourceGroupId ? [newResourceGroupId] : []}
+        initialProjectId={newResourceGroupType === "project" && newResourceGroupId ? newResourceGroupId : undefined}
         onSubmit={async (input) => {
           await createResource.mutateAsync(input as CreateResourceInput);
           setIsNewResourceOpen(false);
+          setNewResourceGroupId(null);
+          setNewResourceGroupType(null);
         }}
         isPending={createResource.isPending}
       />
@@ -1520,6 +1940,82 @@ export function GoalDetailContent() {
             },
           });
         }}
+      />
+
+      {/* Link existing dialogs */}
+      <LinkEntityDialog
+        open={isLinkProjectOpen}
+        onOpenChange={setIsLinkProjectOpen}
+        title="Link Project"
+        emptyMessage="No more active projects available to link."
+        candidates={linkProjectCandidates}
+        getKey={(p) => p.id}
+        getSearchText={(p) => p.name}
+        renderItem={(p) => (
+          <p className="truncate font-medium">{p.name}</p>
+        )}
+        onLink={(p) => handleLinkProject(p.id)}
+      />
+
+      <LinkEntityDialog
+        open={isLinkTaskOpen}
+        onOpenChange={setIsLinkTaskOpen}
+        title="Link Task"
+        emptyMessage="No more active tasks available to link."
+        candidates={linkTaskCandidates}
+        getKey={(t) => t.id}
+        getSearchText={(t) => t.name}
+        renderItem={(t) => (
+          <p className="truncate font-medium">{t.name}</p>
+        )}
+        onLink={(t) => handleLinkTask(t)}
+      />
+
+      <LinkEntityDialog
+        open={isLinkNoteOpen}
+        onOpenChange={setIsLinkNoteOpen}
+        title="Link Note"
+        emptyMessage="No more active notes available to link."
+        candidates={linkNoteCandidates}
+        getKey={(n) => n.id}
+        getSearchText={(n) => n.name}
+        renderItem={(n) => (
+          <p className="truncate font-medium">{n.name}</p>
+        )}
+        onLink={(n) => handleLinkNote(n.id)}
+      />
+
+      <LinkEntityDialog
+        open={isLinkResourceOpen}
+        onOpenChange={setIsLinkResourceOpen}
+        title="Link Resource"
+        emptyMessage="No more active resources available to link."
+        candidates={linkResourceCandidates}
+        getKey={(r) => r.id}
+        getSearchText={(r) => r.name}
+        renderItem={(r) => (
+          <p className="truncate font-medium">{r.name}</p>
+        )}
+        onLink={(r) => handleLinkResource(r.id)}
+      />
+
+      <LinkEntityDialog
+        open={isLinkContactOpen}
+        onOpenChange={setIsLinkContactOpen}
+        title="Link Contact"
+        emptyMessage="No more active contacts available to link."
+        candidates={linkContactCandidates}
+        getKey={(c) => c.id}
+        getSearchText={(c) => `${c.name} ${c.organization ?? ""}`}
+        renderItem={(c) => (
+          <div>
+            <p className="truncate font-medium">{c.name}</p>
+            {c.organization ? (
+              <p className="text-sm text-muted-foreground">{c.organization}</p>
+            ) : null}
+          </div>
+        )}
+        onLink={(c) => handleLinkContact(c.id)}
       />
     </div>
   );
