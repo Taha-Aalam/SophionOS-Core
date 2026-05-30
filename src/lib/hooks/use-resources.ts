@@ -131,6 +131,8 @@ export function useLinkResourceToGoal() {
       resourceService.linkToGoal(goalId, resourceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
       toast.success("Resource linked to goal");
     },
     onError: (error: Error) => {
@@ -147,6 +149,8 @@ export function useUnlinkResourceFromGoal() {
       resourceService.unlinkFromGoal(goalId, resourceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
       toast.success("Resource unlinked from goal");
     },
     onError: (error: Error) => {
