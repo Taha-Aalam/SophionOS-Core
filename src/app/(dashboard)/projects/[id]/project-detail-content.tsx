@@ -60,7 +60,7 @@ import {
   useUnlinkContactFromProject,
   useUpdateContact,
 } from "@/lib/hooks/use-contacts";
-import { useGoals, useRestoreGoal } from "@/lib/hooks/use-goals";
+import { useGoals, useRestoreGoal, useArchiveGoal } from "@/lib/hooks/use-goals";
 import { useNotesByProject, useToggleFavoriteNote, useTogglePinNote, useArchiveNote, useRestoreNote, useDeleteNote, useUpdateNote, useNotes } from "@/lib/hooks/use-notes";
 import {
   useDeleteProject,
@@ -102,7 +102,12 @@ import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
-import { filterProjectDialogGoals } from "@/lib/utils/project-dialog-filters";
+import {
+  filterCandidatesByAreaScope,
+  getContactLinkedAreaIds,
+  getNoteLinkedAreaIds,
+  getResourceLinkedAreaIds,
+} from "@/lib/utils/area-scoped-candidates";
 import { getProjectDueState, getProjectLinkedAreaIds, getProjectStatusLabel } from "@/lib/utils/projects";
 import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, taskMatchesProjectId } from "@/lib/utils/tasks";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
@@ -181,6 +186,7 @@ export function ProjectDetailContent() {
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
   const restoreGoal = useRestoreGoal();
+  const archiveGoal = useArchiveGoal();
   const linkProjectToGoal = useLinkProjectToGoal();
   const unlinkProjectFromGoal = useUnlinkProjectFromGoal();
   const linkProjectToArea = useLinkProjectToArea();
@@ -258,7 +264,11 @@ export function ProjectDetailContent() {
   );
   const unlinkedGoals = useMemo(() => {
     const activeUnlinkedGoals = goals.filter((goal) => !goal.is_archived && !linkedGoalIds.has(goal.id));
-    return filterProjectDialogGoals(activeUnlinkedGoals, projectLinkedAreaIds);
+    return filterCandidatesByAreaScope(
+      activeUnlinkedGoals,
+      projectLinkedAreaIds,
+      getGoalLinkedAreaIds,
+    );
   }, [goals, linkedGoalIds, projectLinkedAreaIds]);
   const totalActiveUnlinkedGoals = useMemo(
     () => goals.filter((goal) => !goal.is_archived && !linkedGoalIds.has(goal.id)),
@@ -389,12 +399,23 @@ export function ProjectDetailContent() {
       {
         value: "inactive",
         label: "Inactive",
-        count: linkedGoals.filter((goal) => goal.is_archived).length,
+        // "Inactive" surfaces auto-inactive goals (linked but with no live work)
+        // separately from archived ones so the Archived tab can own that bucket.
+        count: linkedGoals.filter((goal) =>
+          !goal.is_archived && !goal.is_completed &&
+          (goal.projectCount ?? 0) === 0 && (goal.taskCount ?? 0) === 0 &&
+          (goal.noteCount ?? 0) === 0 && (goal.resourceCount ?? 0) === 0,
+        ).length,
       },
       {
         value: "completed",
         label: "Completed",
         count: linkedGoals.filter((goal) => goal.is_completed && !goal.is_archived).length,
+      },
+      {
+        value: "archived",
+        label: "Archived",
+        count: linkedGoals.filter((goal) => goal.is_archived).length,
       },
     ],
     [linkedGoals],
@@ -414,9 +435,11 @@ export function ProjectDetailContent() {
       case "long":
         return linkedGoals.filter((goal) => goal.term === "long" && !goal.is_completed && !goal.is_archived);
       case "inactive":
-        return linkedGoals.filter((goal) => goal.is_archived || isAutoInactive(goal));
+        return linkedGoals.filter((goal) => isAutoInactive(goal));
       case "completed":
         return linkedGoals.filter((goal) => goal.is_completed && !goal.is_archived);
+      case "archived":
+        return linkedGoals.filter((goal) => goal.is_archived);
       default:
         return linkedGoals.filter((goal) => !goal.is_completed && !goal.is_archived);
     }
@@ -846,34 +869,56 @@ export function ProjectDetailContent() {
     setIsLinkGoalOpen(false);
   };
 
-  // Link-existing candidates for project sections
+  // Link-existing candidates for project sections.
+  // Each list is scoped to the project's areas: only entities tied to one of
+  // those areas, plus entities with no area assigned, are eligible.
   const linkedTaskIdSet = useMemo(
     () => new Set(linkedTasks.map((t) => t.id)),
     [linkedTasks],
   );
   const linkTaskCandidates = useMemo(
-    () => tasks.filter((t) => !t.is_archived && !linkedTaskIdSet.has(t.id)),
-    [tasks, linkedTaskIdSet],
+    () =>
+      filterCandidatesByAreaScope(
+        tasks.filter((t) => !t.is_archived && !linkedTaskIdSet.has(t.id)),
+        projectLinkedAreaIds,
+        getTaskLinkedAreaIds,
+      ),
+    [tasks, linkedTaskIdSet, projectLinkedAreaIds],
   );
   const linkedNoteIdSet = useMemo(
     () => new Set(linkedNotes.map((n) => n.id)),
     [linkedNotes],
   );
   const linkNoteCandidates = useMemo(
-    () => allNotesGlobal.filter((n) => !n.is_archived && !linkedNoteIdSet.has(n.id)),
-    [allNotesGlobal, linkedNoteIdSet],
+    () =>
+      filterCandidatesByAreaScope(
+        allNotesGlobal.filter((n) => !n.is_archived && !linkedNoteIdSet.has(n.id)),
+        projectLinkedAreaIds,
+        getNoteLinkedAreaIds,
+      ),
+    [allNotesGlobal, linkedNoteIdSet, projectLinkedAreaIds],
   );
   const linkedResourceIdSet = useMemo(
     () => new Set(linkedResources.map((r) => r.id)),
     [linkedResources],
   );
   const linkResourceCandidates = useMemo(
-    () => allResourcesGlobal.filter((r) => !r.is_archived && !linkedResourceIdSet.has(r.id)),
-    [allResourcesGlobal, linkedResourceIdSet],
+    () =>
+      filterCandidatesByAreaScope(
+        allResourcesGlobal.filter((r) => !r.is_archived && !linkedResourceIdSet.has(r.id)),
+        projectLinkedAreaIds,
+        getResourceLinkedAreaIds,
+      ),
+    [allResourcesGlobal, linkedResourceIdSet, projectLinkedAreaIds],
   );
   const linkContactCandidates = useMemo(
-    () => allContacts.filter((c) => !c.archive && !linkedContactIds.has(c.id)),
-    [allContacts, linkedContactIds],
+    () =>
+      filterCandidatesByAreaScope(
+        allContacts.filter((c) => !c.archive && !linkedContactIds.has(c.id)),
+        projectLinkedAreaIds,
+        getContactLinkedAreaIds,
+      ),
+    [allContacts, linkedContactIds, projectLinkedAreaIds],
   );
 
   const handleLinkTask = (task: typeof tasks[number]) => {
@@ -1354,7 +1399,8 @@ export function ProjectDetailContent() {
                           `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(`/projects/${project.slug ?? project.id}`)}`,
                         )
                       }
-                      onRestore={goal.is_archived ? (g) => restoreGoal.mutate(g.id) : undefined}
+                      onRestore={(g) => restoreGoal.mutate(g.id)}
+                      onArchive={(g) => archiveGoal.mutate(g.id)}
                       rollups={goalRollups.get(goal.id)}
                     />
                     <Button

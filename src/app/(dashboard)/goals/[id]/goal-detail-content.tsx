@@ -98,6 +98,12 @@ import { useUIStore } from "@/lib/stores/ui.store";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
 import {
+  filterCandidatesByAreaScope,
+  getContactLinkedAreaIds,
+  getNoteLinkedAreaIds,
+  getResourceLinkedAreaIds,
+} from "@/lib/utils/area-scoped-candidates";
+import {
   buildAreaContactGroupSections,
   buildAreaContactFollowUpSections,
   buildAreaContactProjectSections,
@@ -977,42 +983,69 @@ export function GoalDetailContent() {
     setIsLinkAreaOpen(false);
   }, [goal, linkGoalToArea]);
 
-  // Link-existing candidate lists (entities NOT yet linked to this goal)
+  // Link-existing candidate lists (entities NOT yet linked to this goal).
+  // Each list is scoped to the goal's areas: only entities tied to one of
+  // those areas, plus entities with no area assigned, are eligible.
   const linkedProjectIdSet = useMemo(
     () => new Set((goalData?.projects ?? []).map((p) => p.id)),
     [goalData?.projects],
   );
   const linkProjectCandidates = useMemo(
-    () => allProjects.filter((p) => !p.is_archived && !linkedProjectIdSet.has(p.id)),
-    [allProjects, linkedProjectIdSet],
+    () =>
+      filterCandidatesByAreaScope(
+        allProjects.filter((p) => !p.is_archived && !linkedProjectIdSet.has(p.id)),
+        linkedAreaIds,
+        getProjectLinkedAreaIds,
+      ),
+    [allProjects, linkedProjectIdSet, linkedAreaIds],
   );
   const linkedTaskIdSet = useMemo(
     () => new Set((goalData?.tasks ?? []).map((t) => t.id)),
     [goalData?.tasks],
   );
   const linkTaskCandidates = useMemo(
-    () => allTasksGlobal.filter((t) => !t.is_archived && !linkedTaskIdSet.has(t.id)),
-    [allTasksGlobal, linkedTaskIdSet],
+    () =>
+      filterCandidatesByAreaScope(
+        allTasksGlobal.filter((t) => !t.is_archived && !linkedTaskIdSet.has(t.id)),
+        linkedAreaIds,
+        getTaskLinkedAreaIds,
+      ),
+    [allTasksGlobal, linkedTaskIdSet, linkedAreaIds],
   );
   const linkedNoteIdSet = useMemo(
     () => new Set((goalData?.notes ?? []).map((n) => n.id)),
     [goalData?.notes],
   );
   const linkNoteCandidates = useMemo(
-    () => allNotes.filter((n) => !n.is_archived && !linkedNoteIdSet.has(n.id)),
-    [allNotes, linkedNoteIdSet],
+    () =>
+      filterCandidatesByAreaScope(
+        allNotes.filter((n) => !n.is_archived && !linkedNoteIdSet.has(n.id)),
+        linkedAreaIds,
+        getNoteLinkedAreaIds,
+      ),
+    [allNotes, linkedNoteIdSet, linkedAreaIds],
   );
   const linkedResourceIdSet = useMemo(
     () => new Set((goalData?.resources ?? []).map((r) => r.id)),
     [goalData?.resources],
   );
   const linkResourceCandidates = useMemo(
-    () => allResources.filter((r) => !r.is_archived && !linkedResourceIdSet.has(r.id)),
-    [allResources, linkedResourceIdSet],
+    () =>
+      filterCandidatesByAreaScope(
+        allResources.filter((r) => !r.is_archived && !linkedResourceIdSet.has(r.id)),
+        linkedAreaIds,
+        getResourceLinkedAreaIds,
+      ),
+    [allResources, linkedResourceIdSet, linkedAreaIds],
   );
   const linkContactCandidates = useMemo(
-    () => allContacts.filter((c) => !c.archive && !linkedContactIds.has(c.id)),
-    [allContacts, linkedContactIds],
+    () =>
+      filterCandidatesByAreaScope(
+        allContacts.filter((c) => !c.archive && !linkedContactIds.has(c.id)),
+        linkedAreaIds,
+        getContactLinkedAreaIds,
+      ),
+    [allContacts, linkedContactIds, linkedAreaIds],
   );
 
   const handleLinkProject = useCallback((projectId: string) => {
@@ -1763,40 +1796,27 @@ export function GoalDetailContent() {
         onSuccess={() => setIsEditOpen(false)}
       />
 
-      <Dialog open={isLinkAreaOpen} onOpenChange={setIsLinkAreaOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Link Area</DialogTitle>
-          </DialogHeader>
-          {unlinkedAreas.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              All active areas are already linked to this goal.
+      <LinkEntityDialog
+        open={isLinkAreaOpen}
+        onOpenChange={setIsLinkAreaOpen}
+        title="Link Area"
+        emptyMessage="All active areas are already linked to this goal."
+        candidates={unlinkedAreas}
+        getKey={(a) => a.id}
+        getSearchText={(a) => `${a.name} ${a.description ?? ""}`}
+        renderItem={(a) => (
+          <div>
+            <p className="truncate font-medium">
+              {a.icon ? `${a.icon} ` : ""}
+              {a.name}
             </p>
-          ) : (
-            <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
-              {unlinkedAreas.map((area) => (
-                <button
-                  key={area.id}
-                  type="button"
-                  onClick={() => handleLinkArea(area.id)}
-                  className="flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/40"
-                >
-                  <LinkIcon className="mt-0.5 size-4 text-muted-foreground" />
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">
-                      {area.icon ? `${area.icon} ` : ""}
-                      {area.name}
-                    </p>
-                    {area.description ? (
-                      <p className="text-sm text-muted-foreground">{area.description}</p>
-                    ) : null}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            {a.description ? (
+              <p className="text-sm text-muted-foreground">{a.description}</p>
+            ) : null}
+          </div>
+        )}
+        onLink={(a) => handleLinkArea(a.id)}
+      />
 
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <DialogContent>

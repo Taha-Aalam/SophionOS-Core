@@ -54,7 +54,7 @@ import {
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useNotes } from "@/lib/hooks/use-notes";
 import { useResources } from "@/lib/hooks/use-resources";
-import { useGoals, useRestoreGoal } from "@/lib/hooks/use-goals";
+import { useGoals, useRestoreGoal, useArchiveGoal } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
   useTasks,
@@ -190,6 +190,7 @@ export function ContactDetailContent() {
   const toggleFavorite = useToggleContactFavorite();
   const archiveContact = useArchiveContact();
   const restoreGoal = useRestoreGoal();
+  const archiveGoal = useArchiveGoal();
   const createLog = useCreateContactLog(contact?.id ?? "", contactSlug);
   const unlinkProject = useUnlinkContactFromProject();
   const unlinkTask = useUnlinkContactFromTask();
@@ -631,6 +632,7 @@ export function ContactDetailContent() {
               onTaskArchiveToggle={handleTaskArchiveToggle}
               onTaskPermanentDelete={handlePermanentDelete}
               onRestoreGoal={(goal) => restoreGoal.mutate(goal.id)}
+              onArchiveGoal={(goal) => archiveGoal.mutate(goal.id)}
               returnTo={contactReturnTo}
               areaTab={areaTab}
               onAreaTabChange={setAreaTab}

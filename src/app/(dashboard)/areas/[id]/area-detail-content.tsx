@@ -68,7 +68,7 @@ import {
 } from "@/lib/hooks/use-contacts";
 import { useAreaDetail, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-area-detail";
 import { useAreas, useArchiveArea, useRestoreArea, useUpdateArea } from "@/lib/hooks/use-areas";
-import { useRestoreGoal, useGoals, useLinkGoalToArea } from "@/lib/hooks/use-goals";
+import { useRestoreGoal, useGoals, useLinkGoalToArea, useArchiveGoal } from "@/lib/hooks/use-goals";
 import { useProjects, useLinkProjectToArea } from "@/lib/hooks/use-projects";
 import {
   useArchiveTask,
@@ -99,6 +99,7 @@ import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { buildReturnTo, encodeReturnTo, getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
 import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 import { buildAreaTaskGroupsByGoal, buildAreaTaskGroupsByProject, getFilteredAreaProjects, getFilteredAreaNotes, getFilteredAreaResources, buildAreaContactGoalSections, buildAreaContactProjectSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections } from "@/lib/utils/area-detail";
+import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 
 const AREA_TYPE_COLORS: Record<string, string> = {
   Business: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
@@ -170,6 +171,7 @@ export function AreaDetailContent() {
   const restoreArea = useRestoreArea(userId);
   const updateArea = useUpdateArea(userId);
   const restoreGoal = useRestoreGoal();
+  const archiveGoal = useArchiveGoal();
   const completeTask = useCompleteTaskWithGoalRefresh();
   const updateTask = useUpdateTask();
   const archiveTask = useArchiveTask();
@@ -1154,15 +1156,23 @@ export function AreaDetailContent() {
             <div className="grid gap-3 sm:grid-cols-2">
               {filteredGoals.map((goal) => {
                 const goalReturnTo = buildReturnTo(`/areas/${area.slug ?? area.id}`);
+                const goalAreaIds = getGoalLinkedAreaIds(goal);
+                const goalAreaNames = goalAreaIds
+                  .map((id) => areaNamesById.get(id))
+                  .filter((name): name is string => Boolean(name));
+                const goalAreaIcons = goalAreaIds.map(
+                  (id) => areaIconsById.get(id) ?? null,
+                );
                 return (
                   <GoalCard
                     key={goal.id}
                     goal={goal}
                     areaName={area.name}
-                    areaNames={[area.name]}
-                    areaIcons={[area.icon ?? null]}
+                    areaNames={goalAreaNames.length > 0 ? goalAreaNames : [area.name]}
+                    areaIcons={goalAreaIcons.length > 0 ? goalAreaIcons : [area.icon ?? null]}
                     onEdit={() => router.push(`${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(goalReturnTo)}`)}
-                    onRestore={goal.is_archived ? (g) => restoreGoal.mutate(g.id) : undefined}
+                    onRestore={(g) => restoreGoal.mutate(g.id)}
+                    onArchive={(g) => archiveGoal.mutate(g.id)}
                     rollups={goalRollups.get(goal.id)}
                   />
                 );
