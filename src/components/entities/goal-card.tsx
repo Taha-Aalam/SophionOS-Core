@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Archive, Calendar, RotateCcw, Target } from 'lucide-react';
+import { Archive, Calendar, RotateCcw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -122,7 +122,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Target className="size-4 text-muted-foreground" />
+              <span className="text-base leading-none">🎯</span>
               <h3 className="font-medium truncate text-sm">{goal.name}</h3>
               {showDuplicateBadge && (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">

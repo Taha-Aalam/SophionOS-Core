@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { ContactCard } from "@/components/entities/contact-card";
-import { ContactDialog } from "@/components/entities/contact-dialog";
+import { ContactDialog, type ContactDialogDefaults } from "@/components/entities/contact-dialog";
 import { ContactsByCategoryView } from "@/components/views/contacts-by-category-view";
 import { ContactsFollowUpView } from "@/components/views/contacts-follow-up-view";
 import { GoalCard } from "@/components/entities/goal-card";
@@ -54,6 +54,8 @@ import {
   useContacts,
   useCreateContact,
   useDeleteContact,
+  useLinkContactToArea,
+  useLinkContactToGoal,
   useLinkContactToProject,
   useToggleContactFavorite,
   useArchiveContact,
@@ -142,6 +144,7 @@ export function ProjectDetailContent() {
   const [isLinkGoalOpen, setIsLinkGoalOpen] = useState(false);
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<typeof allContacts[number] | null>(null);
+  const [createContactDefaults, setCreateContactDefaults] = useState<ContactDialogDefaults | undefined>(undefined);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<typeof tasks[number] | null>(null);
   const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
@@ -149,6 +152,7 @@ export function ProjectDetailContent() {
   const [newResourceGroupId, setNewResourceGroupId] = useState<string | null>(null);
   const [newResourceGroupType, setNewResourceGroupType] = useState<"area" | "goal" | null>(null);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
+  const [dueDateInput, setDueDateInput] = useState("");
   const [isLinkAreaOpen, setIsLinkAreaOpen] = useState(false);
   const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
   const [isLinkTaskOpen, setIsLinkTaskOpen] = useState(false);
@@ -192,6 +196,8 @@ export function ProjectDetailContent() {
   const linkProjectToArea = useLinkProjectToArea();
   const unlinkProjectFromArea = useUnlinkProjectFromArea();
   const linkContactToProject = useLinkContactToProject();
+  const linkContactToArea = useLinkContactToArea();
+  const linkContactToGoal = useLinkContactToGoal();
   const unlinkContactFromProject = useUnlinkContactFromProject();
   const createContact = useCreateContact();
   const updateContact = useUpdateContact();
@@ -228,6 +234,10 @@ export function ProjectDetailContent() {
 
     return () => setPageTitle("");
   }, [project, setPageTitle]);
+
+  useEffect(() => {
+    setDueDateInput(project?.due_date ?? "");
+  }, [project?.due_date]);
 
   const projectLinkedAreaIds = useMemo(
     () => getProjectLinkedAreaIds(project ?? { area_id: null }),
@@ -702,10 +712,23 @@ export function ProjectDetailContent() {
   );
   const handleCreateContactInSection = useCallback(
     (section: { id: string }) => {
-      void section;
+      const defaults: ContactDialogDefaults = resolvedProjectId
+        ? { project_ids: [resolvedProjectId] }
+        : {};
+      const [category, entityId] = section.id.split(":");
+      if (category === "group") {
+        defaults.group = entityId;
+      } else if (category === "project" && entityId !== "unassigned") {
+        defaults.project_ids = Array.from(new Set([...(defaults.project_ids ?? []), entityId]));
+      } else if (category === "area" && entityId !== "unassigned") {
+        defaults.area_ids = [entityId];
+      } else if (category === "goal" && entityId !== "unassigned") {
+        defaults.goal_ids = [entityId];
+      }
+      setCreateContactDefaults(defaults);
       setIsNewContactOpen(true);
     },
-    [],
+    [resolvedProjectId],
   );
 
   const resourceTabs = [
@@ -1042,11 +1065,20 @@ export function ProjectDetailContent() {
               contactId: createdContact.id,
               projectId: resolvedProjectId,
             });
+            const extraAreaIds = createContactDefaults?.area_ids ?? [];
+            for (const areaId of extraAreaIds) {
+              linkContactToArea.mutate({ contactId: createdContact.id, areaId });
+            }
+            const extraGoalIds = createContactDefaults?.goal_ids ?? [];
+            for (const goalId of extraGoalIds) {
+              linkContactToGoal.mutate({ contactId: createdContact.id, goalId });
+            }
+            setCreateContactDefaults(undefined);
           },
         },
       );
     },
-    [createContact, linkContactToProject, resolvedProjectId],
+    [createContact, createContactDefaults, linkContactToProject, linkContactToArea, linkContactToGoal, resolvedProjectId],
   );
 
   const handleUnlinkContact = async (contactId: string) => {
@@ -1277,7 +1309,8 @@ export function ProjectDetailContent() {
                   <Input
                     type="date"
                     className={cn("mt-1 font-medium", dueState.isOverdue && "text-destructive")}
-                    defaultValue={project.due_date ?? ""}
+                    value={dueDateInput}
+                    onChange={(event) => setDueDateInput(event.target.value)}
                     onBlur={(event) => {
                       const nextDueDate = event.target.value || null;
                       if (nextDueDate !== project.due_date) {
@@ -1870,9 +1903,12 @@ export function ProjectDetailContent() {
 
       <ContactDialog
         open={isNewContactOpen}
-        onOpenChange={setIsNewContactOpen}
+        onOpenChange={(open) => {
+          setIsNewContactOpen(open);
+          if (!open) setCreateContactDefaults(undefined);
+        }}
         contact={null}
-        defaults={{ project_ids: project?.id ? [project.id] : [] }}
+        defaults={createContactDefaults ?? { project_ids: project?.id ? [project.id] : [] }}
         onSubmit={handleCreateContactSubmit}
       />
 

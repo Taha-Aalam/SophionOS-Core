@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Calendar,
@@ -65,7 +66,9 @@ import {
   useContactByGoal,
   useCreateContact,
   useDeleteContact,
+  useLinkContactToArea,
   useLinkContactToGoal,
+  useLinkContactToProject,
   useToggleContactFavorite,
   useArchiveContact,
   useUnlinkContactFromGoal,
@@ -211,6 +214,7 @@ export function GoalDetailContent() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [createContactDefaults, setCreateContactDefaults] = useState<ContactDialogDefaults | undefined>(undefined);
   const [isLinkProjectOpen, setIsLinkProjectOpen] = useState(false);
   const [isLinkTaskOpen, setIsLinkTaskOpen] = useState(false);
   const [isLinkNoteOpen, setIsLinkNoteOpen] = useState(false);
@@ -259,6 +263,8 @@ export function GoalDetailContent() {
   const archiveResource = useArchiveResource();
   const unarchiveResource = useUnarchiveResource();
   const linkContactToGoal = useLinkContactToGoal();
+  const linkContactToProject = useLinkContactToProject();
+  const linkContactToArea = useLinkContactToArea();
   const unlinkContactFromGoal = useUnlinkContactFromGoal();
   const createContact = useCreateContact();
   const updateContact = useUpdateContact();
@@ -405,10 +411,21 @@ export function GoalDetailContent() {
 
   const handleCreateContactInSection = useCallback(
     (section: { id: string }) => {
-      void section;
+      const defaults: ContactDialogDefaults = goal?.id ? { goal_ids: [goal.id] } : {};
+      const [category, entityId] = section.id.split(":");
+      if (category === "group") {
+        defaults.group = entityId;
+      } else if (category === "project" && entityId !== "unassigned") {
+        defaults.project_ids = [entityId];
+      } else if (category === "area" && entityId !== "unassigned") {
+        defaults.area_ids = [entityId];
+      } else if (category === "goal" && entityId !== "unassigned") {
+        defaults.goal_ids = Array.from(new Set([...(defaults.goal_ids ?? []), entityId]));
+      }
+      setCreateContactDefaults(defaults);
       setIsNewContactOpen(true);
     },
-    [],
+    [goal?.id],
   );
 
   // Sync page title with goal name
@@ -958,11 +975,20 @@ export function GoalDetailContent() {
         {
           onSuccess: (createdContact: Contact) => {
             linkContactToGoal.mutate({ contactId: createdContact.id, goalId: goal.id });
+            const extraProjectIds = createContactDefaults?.project_ids ?? [];
+            for (const projectId of extraProjectIds) {
+              linkContactToProject.mutate({ contactId: createdContact.id, projectId });
+            }
+            const extraAreaIds = createContactDefaults?.area_ids ?? [];
+            for (const areaId of extraAreaIds) {
+              linkContactToArea.mutate({ contactId: createdContact.id, areaId });
+            }
+            setCreateContactDefaults(undefined);
           },
         },
       );
     },
-    [createContact, goal, linkContactToGoal],
+    [createContact, createContactDefaults, goal, linkContactToGoal, linkContactToProject, linkContactToArea],
   );
 
   const handleDeleteGoal = useCallback(async () => {
@@ -1054,10 +1080,20 @@ export function GoalDetailContent() {
     setIsLinkProjectOpen(false);
   }, [goal, linkProjectToGoal]);
 
-  const handleLinkTask = useCallback((task: Task) => {
+  const handleLinkTask = useCallback(async (task: Task) => {
     if (!goal) return;
-    const nextGoalIds = Array.from(new Set([...(task.linkedGoalIds ?? []), goal.id]));
-    updateTask.mutate({ id: task.id, input: { goal_ids: nextGoalIds } });
+    const existing = task.linkedGoalIds ?? [];
+    if (existing.includes(goal.id)) {
+      setIsLinkTaskOpen(false);
+      return;
+    }
+    const nextGoalIds = Array.from(new Set([...existing, goal.id]));
+    try {
+      await updateTask.mutateAsync({ id: task.id, input: { goal_ids: nextGoalIds } });
+      toast.success("Task linked to goal");
+    } catch {
+      // updateTask already surfaces an error toast.
+    }
     setIsLinkTaskOpen(false);
   }, [goal, updateTask]);
 
@@ -1928,9 +1964,12 @@ export function GoalDetailContent() {
       {/* Inline Contact Creation */}
       <ContactDialog
         open={isNewContactOpen}
-        onOpenChange={setIsNewContactOpen}
+        onOpenChange={(open) => {
+          setIsNewContactOpen(open);
+          if (!open) setCreateContactDefaults(undefined);
+        }}
         contact={null}
-        defaults={{ goal_ids: goal?.id ? [goal.id] : [] }}
+        defaults={createContactDefaults ?? (goal?.id ? { goal_ids: [goal.id] } : undefined)}
         onSubmit={handleCreateContactSubmit}
       />
 
