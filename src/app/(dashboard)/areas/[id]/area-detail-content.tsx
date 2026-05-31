@@ -235,11 +235,14 @@ export function AreaDetailContent() {
 
   const projectsById = useMemo(() => {
     const map = new Map<string, string>();
+    for (const p of allProjectsGlobal ?? []) {
+      if (p?.name) map.set(p.id, p.name);
+    }
     for (const p of areaData?.projects ?? []) {
       if (p?.name) map.set(p.id, p.name);
     }
     return map;
-  }, [areaData?.projects]);
+  }, [areaData?.projects, allProjectsGlobal]);
 
   const tasksById = useMemo(() => {
     const map = new Map<string, string>();
@@ -544,7 +547,7 @@ export function AreaDetailContent() {
   );
 
   const handleCreateInSection = (section: { id: string; label: string; createLabel: string }) => {
-    const defaults: ContactDialogDefaults = { area_ids: area ? [area.id] : [] };
+    const defaults: ContactDialogDefaults = {};
     const category = section.id.split(":")[0];
     const entityId = section.id.split(":")[1];
 
@@ -554,6 +557,8 @@ export function AreaDetailContent() {
       defaults.project_ids = [entityId];
     } else if (category === "goal" && entityId !== "unassigned") {
       defaults.goal_ids = [entityId];
+    } else if (area) {
+      defaults.area_ids = [area.id];
     }
 
     setCreateDefaults(defaults);

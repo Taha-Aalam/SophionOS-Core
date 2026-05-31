@@ -16,10 +16,14 @@ import { type ProjectStatus } from "../utils/constants";
 export const PROJECTS_QUERY_KEY = "projects";
 
 function invalidateProjectGraph(queryClient: ReturnType<typeof useQueryClient>): Promise<unknown[]> {
+  // Derived-progress list caches (areas/goals) need refetchType: "all" because the
+  // global query-provider sets refetchOnMount: false — without it, invalidated-but-inactive
+  // queries stay stale until manual refresh when the user navigates back. This is what
+  // moves a goal between "inactive" and "active" tabs after linking work.
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] }),
-    queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] }),
-    queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY], refetchType: "all" }),
+    queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY], refetchType: "all" }),
     queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
     queryClient.invalidateQueries({ queryKey: ["goal-detail"] }),
   ]);
@@ -137,11 +141,17 @@ export function useUpdateProjectStatus() {
     mutationFn: ({ id, status }: { id: string; status: ProjectStatus }) =>
       projectService.update(user!.id, id, { status }),
     onMutate: async ({ id, status }) => {
-      await queryClient.cancelQueries({ queryKey: [PROJECTS_QUERY_KEY] });
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: [PROJECTS_QUERY_KEY] }),
+        queryClient.cancelQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
+      ]);
       const previousProjects = queryClient.getQueriesData<Project[]>({
         queryKey: [PROJECTS_QUERY_KEY],
       });
       const previousProject = queryClient.getQueryData<Project>([PROJECTS_QUERY_KEY, id]);
+      const previousAreaDetails = queryClient.getQueriesData<{ projects?: Project[] }>({
+        queryKey: [AREA_DETAIL_QUERY_KEY],
+      });
 
       queryClient.setQueriesData<Project[]>({ queryKey: [PROJECTS_QUERY_KEY] }, (current) => {
         if (!Array.isArray(current)) {
@@ -153,14 +163,32 @@ export function useUpdateProjectStatus() {
       queryClient.setQueryData<Project>([PROJECTS_QUERY_KEY, id], (current) =>
         current ? { ...current, status } : current,
       );
+      queryClient.setQueriesData<{ projects?: Project[] }>(
+        { queryKey: [AREA_DETAIL_QUERY_KEY] },
+        (current) => {
+          if (!current || !Array.isArray(current.projects)) {
+            return current;
+          }
+          return {
+            ...current,
+            projects: current.projects.map((project) =>
+              project.id === id ? { ...project, status } : project,
+            ),
+          };
+        },
+      );
 
       return {
         previousProject,
         previousProjects,
+        previousAreaDetails,
       };
     },
     onError: (error: Error, variables, context) => {
       context?.previousProjects.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      context?.previousAreaDetails.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
       });
       queryClient.setQueryData([PROJECTS_QUERY_KEY, variables.id], context?.previousProject);
