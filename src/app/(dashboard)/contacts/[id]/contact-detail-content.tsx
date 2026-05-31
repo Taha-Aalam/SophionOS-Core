@@ -54,8 +54,8 @@ import {
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useNotes } from "@/lib/hooks/use-notes";
 import { useResources } from "@/lib/hooks/use-resources";
-import { useGoals } from "@/lib/hooks/use-goals";
-import { useProjects } from "@/lib/hooks/use-projects";
+import { useGoals, useRestoreGoal, useArchiveGoal } from "@/lib/hooks/use-goals";
+import { useProjects, useArchiveProject, useRestoreProject } from "@/lib/hooks/use-projects";
 import {
   useTasks,
   useArchivedTasks,
@@ -189,8 +189,12 @@ export function ContactDetailContent() {
   const updateContact = useUpdateContact(contactSlug);
   const toggleFavorite = useToggleContactFavorite();
   const archiveContact = useArchiveContact();
+  const restoreGoal = useRestoreGoal();
+  const archiveGoal = useArchiveGoal();
   const createLog = useCreateContactLog(contact?.id ?? "", contactSlug);
   const unlinkProject = useUnlinkContactFromProject();
+  const archiveProject = useArchiveProject();
+  const restoreProject = useRestoreProject();
   const unlinkTask = useUnlinkContactFromTask();
   const unlinkArea = useUnlinkContactFromArea();
   const unlinkGoal = useUnlinkContactFromGoal();
@@ -622,6 +626,8 @@ export function ContactDetailContent() {
               onUnlinkArea={(areaId) => unlinkArea.mutate({ contactId: contact.id, areaId })}
               onUnlinkGoal={(goalId) => unlinkGoal.mutate({ contactId: contact.id, goalId })}
               onUnlinkProject={(projectId) => unlinkProject.mutate({ contactId: contact.id, projectId })}
+              onArchiveProject={(project) => archiveProject.mutate(project.id)}
+              onRestoreProject={(project) => restoreProject.mutate(project.id)}
               onUnlinkTask={(taskId) => unlinkTask.mutate({ contactId: contact.id, taskId })}
               onTaskCompletionToggle={handleTaskCompletion}
               onTaskFocusToggle={handleTaskFocus}
@@ -629,6 +635,8 @@ export function ContactDetailContent() {
               onTaskEdit={handleTaskEdit}
               onTaskArchiveToggle={handleTaskArchiveToggle}
               onTaskPermanentDelete={handlePermanentDelete}
+              onRestoreGoal={(goal) => restoreGoal.mutate(goal.id)}
+              onArchiveGoal={(goal) => archiveGoal.mutate(goal.id)}
               returnTo={contactReturnTo}
               areaTab={areaTab}
               onAreaTabChange={setAreaTab}

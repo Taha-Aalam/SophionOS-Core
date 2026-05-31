@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
@@ -184,11 +185,14 @@ export function ProjectDialog({
   const selectedStartDate = useWatch({ control: form.control, name: "start_date" }) ?? "";
   const watchedGoalIds = useWatch({ control: form.control, name: "goal_ids" });
   const selectedGoalIds = useMemo(() => watchedGoalIds ?? [], [watchedGoalIds]);
-  const dueDateMin = !project && selectedStartDate && selectedStartDate > todayStr
-    ? selectedStartDate
-    : !project
-      ? todayStr
-      : undefined;
+  // Both create and edit flows enforce a today-or-future minimum for the due
+  // date picker. When editing a project whose stored value is in the past,
+  // the input still renders that value (the browser allows out-of-range
+  // values it received); the user just can't pick another past date from
+  // the calendar.
+  const dueDateMin =
+    selectedStartDate && selectedStartDate > todayStr ? selectedStartDate : todayStr;
+  const startDateMin = !project ? todayStr : undefined;
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   const visibleGoals = useMemo(() => {
@@ -395,17 +399,39 @@ export function ProjectDialog({
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormItem>
                 <FormLabel>Start Date</FormLabel>
-                <FormControl>
-                  <Input type="date" min={!project ? todayStr : undefined} {...form.register("start_date")} />
-                </FormControl>
+                <Controller
+                  control={form.control}
+                  name="start_date"
+                  render={({ field }) => (
+                    <FormControl>
+                      <DatePicker
+                        value={field.value || null}
+                        onChange={(value) => field.onChange(value ?? "")}
+                        min={startDateMin}
+                        ariaInvalid={!!form.formState.errors.start_date}
+                      />
+                    </FormControl>
+                  )}
+                />
                 <FormMessage>{form.formState.errors.start_date?.message}</FormMessage>
               </FormItem>
 
               <FormItem>
                 <FormLabel>Due Date</FormLabel>
-                <FormControl>
-                  <Input type="date" min={dueDateMin} {...form.register("due_date")} />
-                </FormControl>
+                <Controller
+                  control={form.control}
+                  name="due_date"
+                  render={({ field }) => (
+                    <FormControl>
+                      <DatePicker
+                        value={field.value || null}
+                        onChange={(value) => field.onChange(value ?? "")}
+                        min={dueDateMin}
+                        ariaInvalid={!!form.formState.errors.due_date}
+                      />
+                    </FormControl>
+                  )}
+                />
                 <FormMessage>{form.formState.errors.due_date?.message}</FormMessage>
               </FormItem>
             </div>

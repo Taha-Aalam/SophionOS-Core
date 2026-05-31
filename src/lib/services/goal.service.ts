@@ -509,7 +509,9 @@ export const goalService = {
       query = query.eq("is_completed", false).eq("is_archived", false);
     } else if (filters.status === "completed") {
       query = query.eq("is_completed", true).eq("is_archived", false);
-    } else if (filters.status === "inactive" || filters.status === "archived") {
+    } else if (filters.status === "inactive") {
+      query = query.eq("is_archived", false).eq("is_completed", false);
+    } else if (filters.status === "archived") {
       query = query.eq("is_archived", true);
     }
 
@@ -533,6 +535,26 @@ export const goalService = {
       noteCount: goalsWithRollups[i]?.noteCount,
       resourceCount: goalsWithRollups[i]?.resourceCount,
     }));
+
+    if (filters.status === "active") {
+      goals = goals.filter(
+        (g) =>
+          (g.projectCount ?? 0) > 0 ||
+          (g.taskCount ?? 0) > 0 ||
+          (g.noteCount ?? 0) > 0 ||
+          (g.resourceCount ?? 0) > 0,
+      );
+    }
+
+    if (filters.status === "inactive") {
+      goals = goals.filter(
+        (g) =>
+          (g.projectCount ?? 0) === 0 &&
+          (g.taskCount ?? 0) === 0 &&
+          (g.noteCount ?? 0) === 0 &&
+          (g.resourceCount ?? 0) === 0,
+      );
+    }
 
     if (filters.areaId) {
       goals = goals.filter((goal) => goalMatchesAreaId(goal, filters.areaId));
