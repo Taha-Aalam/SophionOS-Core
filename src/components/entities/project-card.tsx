@@ -156,11 +156,9 @@ export function ProjectCard({
               </Badge>
             </div>
 
-            {project.description && (
-              <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                {project.description}
-              </p>
-            )}
+            <p className="mt-2 line-clamp-2 text-sm text-muted-foreground min-h-[2.5rem]">
+              {project.description || " "}
+            </p>
           </div>
 
           <ProgressRing

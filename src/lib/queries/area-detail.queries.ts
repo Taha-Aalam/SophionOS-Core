@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { serverFetchGoals } from "@/lib/queries/goals.queries"
 import { hydrateNotebooks } from "@/lib/queries/notes.queries"
+import { hydrateProjectRollupCounts } from "@/lib/queries/projects.queries"
 
 const AREA_SELECT =
   "id, user_id, name, description, icon, color, type, metadata, inactive, archive, slug, created_at, updated_at"
@@ -349,6 +350,7 @@ export async function serverFetchAreaDetail(
     hydrateNoteProjectIds(supabase, rawAllNotes),
     hydrateResourceAreaIds(supabase, rawAllResources),
   ])
+  const allProjectsWithRollups = await hydrateProjectRollupCounts(supabase, allProjects)
   const allNotesWithAreas = await hydrateNoteAreaIds(supabase, allNotesWithProjects)
   const allNotesWithGoals = await hydrateNoteGoalIds(supabase, allNotesWithAreas)
   const allNotesWithTasks = await hydrateNoteTaskIds(supabase, allNotesWithGoals)
@@ -388,7 +390,7 @@ export async function serverFetchAreaDetail(
     (g: any) => isLinkedToArea(g) || extraGoalIds.includes(g.id),
   )
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const projects = allProjects.filter(
+  const projects = allProjectsWithRollups.filter(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (p: any) => isLinkedToArea(p) || extraProjectIds.includes(p.id),
   )

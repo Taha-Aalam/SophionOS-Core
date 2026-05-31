@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
@@ -398,17 +399,39 @@ export function ProjectDialog({
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormItem>
                 <FormLabel>Start Date</FormLabel>
-                <FormControl>
-                  <Input type="date" min={startDateMin} {...form.register("start_date")} />
-                </FormControl>
+                <Controller
+                  control={form.control}
+                  name="start_date"
+                  render={({ field }) => (
+                    <FormControl>
+                      <DatePicker
+                        value={field.value || null}
+                        onChange={(value) => field.onChange(value ?? "")}
+                        min={startDateMin}
+                        ariaInvalid={!!form.formState.errors.start_date}
+                      />
+                    </FormControl>
+                  )}
+                />
                 <FormMessage>{form.formState.errors.start_date?.message}</FormMessage>
               </FormItem>
 
               <FormItem>
                 <FormLabel>Due Date</FormLabel>
-                <FormControl>
-                  <Input type="date" min={dueDateMin} {...form.register("due_date")} />
-                </FormControl>
+                <Controller
+                  control={form.control}
+                  name="due_date"
+                  render={({ field }) => (
+                    <FormControl>
+                      <DatePicker
+                        value={field.value || null}
+                        onChange={(value) => field.onChange(value ?? "")}
+                        min={dueDateMin}
+                        ariaInvalid={!!form.formState.errors.due_date}
+                      />
+                    </FormControl>
+                  )}
+                />
                 <FormMessage>{form.formState.errors.due_date?.message}</FormMessage>
               </FormItem>
             </div>

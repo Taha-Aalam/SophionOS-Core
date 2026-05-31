@@ -45,6 +45,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -603,17 +604,21 @@ export function ProjectDetailContent() {
   );
 
   const noteTabs = useMemo(
-    () => [
-      { value: "all", label: "All" },
-      { value: "inbox", label: "Inbox" },
-      { value: "to_review", label: "To Review" },
-      { value: "active", label: "Active" },
-      { value: "by_area", label: "By Area" },
-      { value: "by_goal", label: "By Goal" },
-      { value: "saved", label: "Saved" },
-      { value: "archived", label: "Archive" },
-    ],
-    [],
+    () => {
+      const active = linkedNotes.filter((note) => !note.is_archived);
+      const archived = linkedNotes.filter((note) => note.is_archived);
+      return [
+        { value: "all", label: "All", count: active.length },
+        { value: "inbox", label: "Inbox", count: active.filter((note) => note.status === "inbox").length },
+        { value: "to_review", label: "To Review", count: active.filter((note) => note.status === "to_review").length },
+        { value: "active", label: "Active", count: active.filter((note) => note.status === "active").length },
+        { value: "by_area", label: "By Area" },
+        { value: "by_goal", label: "By Goal" },
+        { value: "saved", label: "Saved", count: active.filter((note) => note.status === "saved").length },
+        { value: "archived", label: "Archive", count: archived.length },
+      ];
+    },
+    [linkedNotes],
   );
   const filteredNotes = useMemo(() => {
     if (noteTab === "archived") return linkedNotes.filter((note) => note.is_archived);
@@ -736,16 +741,20 @@ export function ProjectDetailContent() {
     [resolvedProjectId],
   );
 
-  const resourceTabs = [
-    { value: "all", label: "All" },
-    { value: "inbox", label: "Inbox" },
-    { value: "to_review", label: "To Review" },
-    { value: "active", label: "Active" },
-    { value: "by_area", label: "By Area" },
-    { value: "by_goal", label: "By Goal" },
-    { value: "saved", label: "Saved" },
-    { value: "archived", label: "Archive" },
-  ];
+  const resourceTabs = useMemo(() => {
+    const active = linkedResources.filter((r) => !r.is_archived);
+    const archived = linkedResources.filter((r) => r.is_archived);
+    return [
+      { value: "all", label: "All", count: active.length },
+      { value: "inbox", label: "Inbox", count: active.filter((r) => r.status === "inbox").length },
+      { value: "to_review", label: "To Review", count: active.filter((r) => r.status === "to_review").length },
+      { value: "active", label: "Active", count: active.filter((r) => r.status === "active").length },
+      { value: "by_area", label: "By Area" },
+      { value: "by_goal", label: "By Goal" },
+      { value: "saved", label: "Saved", count: active.filter((r) => r.status === "saved").length },
+      { value: "archived", label: "Archive", count: archived.length },
+    ];
+  }, [linkedResources]);
 
   const filteredResources = useMemo(() => {
     switch (resourceTab) {
@@ -1310,21 +1319,21 @@ export function ProjectDetailContent() {
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Due Date</Label>
-                  <Input
-                    type="date"
-                    min={new Date().toISOString().slice(0, 10)}
-                    className={cn("mt-1 font-medium", dueState.isOverdue && "text-destructive")}
-                    value={dueDateInput}
-                    onChange={(event) => setDueDateInput(event.target.value)}
-                    onBlur={(event) => {
-                      const nextDueDate = event.target.value || null;
-                      if (nextDueDate !== project.due_date) {
-                        updateProject.mutateAsync({
+                  <DatePicker
+                    value={dueDateInput || null}
+                    onChange={(value) => {
+                      const nextValue = value ?? "";
+                      setDueDateInput(nextValue);
+                      const nextDueDate = nextValue || null;
+                      if (nextDueDate !== (project.due_date ?? null)) {
+                        updateProject.mutate({
                           id: project.id,
                           input: { due_date: nextDueDate },
                         });
                       }
                     }}
+                    min={new Date().toISOString().slice(0, 10)}
+                    className={cn("mt-1 font-medium", dueState.isOverdue && "text-destructive")}
                   />
                 </div>
               </div>
@@ -1964,7 +1973,6 @@ export function ProjectDetailContent() {
       <GoalDialog
         open={isNewGoalOpen}
         onOpenChange={setIsNewGoalOpen}
-        defaultAreaIds={projectLinkedAreaIds}
         availableAreaIds={projectLinkedAreaIds}
         onSuccess={(createdGoal) => {
           if (createdGoal && resolvedProjectId) {

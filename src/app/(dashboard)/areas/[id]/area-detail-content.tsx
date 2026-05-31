@@ -67,7 +67,7 @@ import {
 import { useAreaDetail, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-area-detail";
 import { useAreas, useArchiveArea, useRestoreArea, useUpdateArea } from "@/lib/hooks/use-areas";
 import { useRestoreGoal, useGoals, useLinkGoalToArea, useArchiveGoal } from "@/lib/hooks/use-goals";
-import { useProjects, useLinkProjectToArea } from "@/lib/hooks/use-projects";
+import { useProjects, useLinkProjectToArea, useArchiveProject, useRestoreProject } from "@/lib/hooks/use-projects";
 import {
   useArchiveTask,
   useCompleteTaskWithGoalRefresh,
@@ -98,6 +98,7 @@ import { buildReturnTo, encodeReturnTo, getReturnToFromSearchParams, resolveBack
 import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 import { buildAreaTaskGroupsByGoal, buildAreaTaskGroupsByProject, getFilteredAreaProjects, getFilteredAreaNotes, getFilteredAreaResources, buildAreaContactGoalSections, buildAreaContactProjectSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections } from "@/lib/utils/area-detail";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
+import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
 
 const AREA_TYPE_COLORS: Record<string, string> = {
   Business: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
@@ -194,6 +195,8 @@ export function AreaDetailContent() {
   const updateNote = useUpdateNote();
   const linkGoalToArea = useLinkGoalToArea();
   const linkProjectToArea = useLinkProjectToArea();
+  const archiveProject = useArchiveProject();
+  const restoreProject = useRestoreProject();
   const { data: allGoalsGlobal = [] } = useGoals({ status: "all" });
   const { data: allProjectsGlobal = [] } = useProjects({ status: "all" });
   const { data: allTasksGlobal = [] } = useTasks();
@@ -544,7 +547,7 @@ export function AreaDetailContent() {
   );
 
   const handleCreateInSection = (section: { id: string; label: string; createLabel: string }) => {
-    const defaults: ContactDialogDefaults = {};
+    const defaults: ContactDialogDefaults = area ? { area_ids: [area.id] } : {};
     const category = section.id.split(":")[0];
     const entityId = section.id.split(":")[1];
 
@@ -554,8 +557,6 @@ export function AreaDetailContent() {
       defaults.project_ids = [entityId];
     } else if (category === "goal" && entityId !== "unassigned") {
       defaults.goal_ids = [entityId];
-    } else if (area) {
-      defaults.area_ids = [area.id];
     }
 
     setCreateDefaults(defaults);
@@ -728,6 +729,77 @@ export function AreaDetailContent() {
     () => new Set((areaData?.goals ?? []).map((g) => g.id)),
     [areaData?.goals],
   );
+
+  const goalTabCounts = useMemo(() => {
+    const goals = areaData?.goals ?? [];
+    const isAutoInactive = (g: typeof goals[number]) =>
+      !g.is_archived && !g.is_completed &&
+      (g.projectCount ?? 0) === 0 && (g.taskCount ?? 0) === 0 &&
+      (g.noteCount ?? 0) === 0 && (g.resourceCount ?? 0) === 0;
+    const nonArchived = goals.filter((g) => !g.is_archived);
+    return {
+      active: nonArchived.filter((g) => !g.is_completed && !isAutoInactive(g)).length,
+      short: nonArchived.filter((g) => !g.is_completed && g.term === "short").length,
+      mid: nonArchived.filter((g) => !g.is_completed && g.term === "mid").length,
+      long: nonArchived.filter((g) => !g.is_completed && g.term === "long").length,
+      inactive: nonArchived.filter((g) => !g.is_completed && isAutoInactive(g)).length,
+      completed: nonArchived.filter((g) => g.is_completed).length,
+      archived: goals.filter((g) => g.is_archived).length,
+    };
+  }, [areaData?.goals]);
+
+  const projectTabCounts = useMemo(() => {
+    const projects = areaData?.projects ?? [];
+    const active = projects.filter((p) => !p.is_archived);
+    return {
+      all: active.length,
+      planning: active.filter((p) => p.status === "planning").length,
+      in_progress: active.filter((p) => p.status === "active").length,
+      on_hold: active.filter((p) => p.status === "on_hold").length,
+      completed: active.filter((p) => p.status === "completed").length,
+      archived: projects.filter((p) => p.is_archived).length,
+    };
+  }, [areaData?.projects]);
+
+  const taskTabCounts = useMemo(() => {
+    const active = activeTasks;
+    return {
+      all: active.length,
+      inbox: active.filter((t) => t.status === "inbox" && !t.is_completed).length,
+      upcoming: active.filter((t) => t.status !== "inbox" && t.status !== "completed" && !t.is_completed).length,
+      overdue: active.filter((t) => {
+        if (!t.due_date || t.is_completed) return false;
+        return new Date(t.due_date) < new Date();
+      }).length,
+      completed: active.filter((t) => t.is_completed).length,
+      archived: (areaData?.archivedTasks ?? []).length,
+    };
+  }, [activeTasks, areaData?.archivedTasks]);
+
+  const noteTabCounts = useMemo(() => {
+    const notes = areaData?.notes ?? [];
+    const active = notes.filter((n) => !n.is_archived);
+    return {
+      all: active.length,
+      inbox: active.filter((n) => n.status === "inbox").length,
+      to_review: active.filter((n) => n.status === "to_review").length,
+      active: active.filter((n) => n.status === "active").length,
+      saved: active.filter((n) => n.status === "saved").length,
+      archived: notes.filter((n) => n.is_archived).length,
+    };
+  }, [areaData?.notes]);
+
+  const resourceTabCounts = useMemo(() => {
+    const active = linkedResources.filter((r) => !r.is_archived);
+    return {
+      all: active.length,
+      inbox: active.filter((r) => r.status === "inbox").length,
+      to_review: active.filter((r) => r.status === "to_review").length,
+      active: active.filter((r) => r.status === "active").length,
+      saved: active.filter((r) => r.status === "saved").length,
+      archived: linkedResources.filter((r) => r.is_archived).length,
+    };
+  }, [linkedResources]);
   const linkGoalCandidates = useMemo(
     () => allGoalsGlobal.filter((g) => !g.is_archived && !linkedGoalIdSet.has(g.id)),
     [allGoalsGlobal, linkedGoalIdSet],
@@ -1132,13 +1204,13 @@ export function AreaDetailContent() {
           id="goals"
           entityType="goals"
           tabs={[
-            { value: "active", label: "Active" },
-            { value: "short", label: "Short Term" },
-            { value: "mid", label: "Mid Term" },
-            { value: "long", label: "Long Term" },
-            { value: "inactive", label: "Inactive" },
-            { value: "completed", label: "Completed" },
-            { value: "archived", label: "Archive" },
+            { value: "active", label: "Active", count: goalTabCounts.active },
+            { value: "short", label: "Short Term", count: goalTabCounts.short },
+            { value: "mid", label: "Mid Term", count: goalTabCounts.mid },
+            { value: "long", label: "Long Term", count: goalTabCounts.long },
+            { value: "inactive", label: "Inactive", count: goalTabCounts.inactive },
+            { value: "completed", label: "Completed", count: goalTabCounts.completed },
+            { value: "archived", label: "Archive", count: goalTabCounts.archived },
           ]}
           activeTab={goalTab}
           onTabChange={setGoalTab}
@@ -1187,14 +1259,14 @@ export function AreaDetailContent() {
           entityType="projects"
           tabs={[
             { value: "all", label: "All", count: rollups.projectCount },
-            { value: "inbox", label: "Inbox" },
-            { value: "planning", label: "Planning" },
-            { value: "in_progress", label: "In Progress" },
-            { value: "on_hold", label: "On Hold" },
+            { value: "inbox", label: "Inbox", count: projectTabCounts.planning },
+            { value: "planning", label: "Planning", count: projectTabCounts.planning },
+            { value: "in_progress", label: "In Progress", count: projectTabCounts.in_progress },
+            { value: "on_hold", label: "On Hold", count: projectTabCounts.on_hold },
             { value: "by_status", label: "By Status" },
             { value: "by_goal", label: "By Goal" },
-            { value: "completed", label: "Completed" },
-            { value: "archived", label: "Archive" },
+            { value: "completed", label: "Completed", count: projectTabCounts.completed },
+            { value: "archived", label: "Archive", count: projectTabCounts.archived },
           ]}
           activeTab={projectTab}
           onTabChange={setProjectTab}
@@ -1229,14 +1301,25 @@ export function AreaDetailContent() {
             <div className="grid gap-3 sm:grid-cols-2">
               {filteredProjects.map((project) => {
                 const projectReturnTo = buildReturnTo(`/areas/${area.slug ?? area.id}`);
+                const linkedAreaIds = getProjectLinkedAreaIds(project);
+                const projectAreaNames = linkedAreaIds
+                  .map((id) => areaNamesById.get(id))
+                  .filter((name): name is string => Boolean(name));
+                const projectAreaIcons = linkedAreaIds.map(
+                  (id) => areaIconsById.get(id) ?? null,
+                );
                 return (
                   <ProjectCard
                     key={project.id}
                     project={project}
                     areaName={area.name}
-                    areaNames={[area.name]}
-                    areaIcons={[area.icon ?? null]}
+                    areaNames={projectAreaNames.length > 0 ? projectAreaNames : [area.name]}
+                    areaIcons={
+                      projectAreaIcons.length > 0 ? projectAreaIcons : [area.icon ?? null]
+                    }
                     returnTo={projectReturnTo}
+                    onArchive={(p) => archiveProject.mutate(p.id)}
+                    onRestore={(p) => restoreProject.mutate(p.id)}
                   />
                 );
               })}
@@ -1251,14 +1334,14 @@ export function AreaDetailContent() {
           id="tasks"
           entityType="tasks"
           tabs={[
-            { value: "all", label: "All" },
-            { value: "inbox", label: "Inbox" },
-            { value: "upcoming", label: "Upcoming" },
-            { value: "overdue", label: "Overdue" },
+            { value: "all", label: "All", count: taskTabCounts.all },
+            { value: "inbox", label: "Inbox", count: taskTabCounts.inbox },
+            { value: "upcoming", label: "Upcoming", count: taskTabCounts.upcoming },
+            { value: "overdue", label: "Overdue", count: taskTabCounts.overdue },
             { value: "by_goal", label: "By Goal" },
             { value: "by_project", label: "By Project" },
-            { value: "completed", label: "Completed" },
-            { value: "archived", label: "Archived" },
+            { value: "completed", label: "Completed", count: taskTabCounts.completed },
+            { value: "archived", label: "Archived", count: taskTabCounts.archived },
           ]}
           activeTab={taskTab}
           onTabChange={setTaskTab}
@@ -1346,14 +1429,14 @@ export function AreaDetailContent() {
           id="notes"
           entityType="notes"
           tabs={[
-            { value: "all", label: "All" },
-            { value: "inbox", label: "Inbox" },
-            { value: "to_review", label: "To Review" },
-            { value: "active", label: "Active" },
+            { value: "all", label: "All", count: noteTabCounts.all },
+            { value: "inbox", label: "Inbox", count: noteTabCounts.inbox },
+            { value: "to_review", label: "To Review", count: noteTabCounts.to_review },
+            { value: "active", label: "Active", count: noteTabCounts.active },
             { value: "by_goal", label: "By Goal" },
             { value: "by_project", label: "By Project" },
-            { value: "saved", label: "Saved" },
-            { value: "archived", label: "Archive" },
+            { value: "saved", label: "Saved", count: noteTabCounts.saved },
+            { value: "archived", label: "Archive", count: noteTabCounts.archived },
           ]}
           activeTab={noteTab}
           onTabChange={setNoteTab}
@@ -1445,14 +1528,14 @@ export function AreaDetailContent() {
           id="resources"
           entityType="resources"
           tabs={[
-            { value: "all", label: "All" },
-            { value: "inbox", label: "Inbox" },
-            { value: "to_review", label: "To Review" },
-            { value: "active", label: "Active" },
+            { value: "all", label: "All", count: resourceTabCounts.all },
+            { value: "inbox", label: "Inbox", count: resourceTabCounts.inbox },
+            { value: "to_review", label: "To Review", count: resourceTabCounts.to_review },
+            { value: "active", label: "Active", count: resourceTabCounts.active },
             { value: "by_goal", label: "By Goal" },
             { value: "by_project", label: "By Project" },
-            { value: "saved", label: "Saved" },
-            { value: "archived", label: "Archive" },
+            { value: "saved", label: "Saved", count: resourceTabCounts.saved },
+            { value: "archived", label: "Archive", count: resourceTabCounts.archived },
           ]}
           activeTab={resourceTab}
           onTabChange={setResourceTab}
