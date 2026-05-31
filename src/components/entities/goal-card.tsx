@@ -103,8 +103,6 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
     const fallback = areaName?.trim();
     return fallback ? [fallback] : ['Unassigned'];
   })();
-  const visibleAreaNames = resolvedAreaNames.slice(0, 2);
-  const overflowAreaCount = Math.max(resolvedAreaNames.length - visibleAreaNames.length, 0);
   const isInteractive = typeof onEdit === 'function';
 
   const showDuplicateBadge = duplicateIndex != null && duplicateIndex > 1;
@@ -132,7 +130,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mt-2">
-              {visibleAreaNames.map((name, index) => (
+              {resolvedAreaNames.map((name, index) => (
                 <Badge
                   key={`${name}-${index}`}
                   variant="outline"
@@ -141,11 +139,6 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
                   {areaIcons?.[index] ? `${areaIcons[index]} ` : ''}{name}
                 </Badge>
               ))}
-              {overflowAreaCount > 0 && (
-                <Badge variant="outline" className={BADGE_CLS}>
-                  +{overflowAreaCount}
-                </Badge>
-              )}
               <Badge
                 variant="outline"
                 className={cn(BADGE_CLS, TERM_COLORS[goal.term] || TERM_COLORS.short)}
@@ -154,7 +147,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
               </Badge>
               <Badge
                 variant="outline"
-                className={cn(BADGE_CLS, 'uppercase', PRIORITY_COLORS[goal.priority] || PRIORITY_COLORS.medium)}
+                className={cn(BADGE_CLS, 'capitalize', PRIORITY_COLORS[goal.priority] || PRIORITY_COLORS.medium)}
               >
                 {goal.priority}
               </Badge>

@@ -353,6 +353,7 @@ async function hydrateProjectRollupCounts(projects: Project[]): Promise<Project[
   const [
     activeGoalsResult,
     { data: taskRows },
+    taskJunctionResult,
     { data: noteRows },
     { data: noteJunctionRows },
     { data: resourceRows },
@@ -365,7 +366,15 @@ async function hydrateProjectRollupCounts(projects: Project[]): Promise<Project[
       : Promise.resolve({ data: [] as Array<{ id: string; is_completed: boolean; is_archived: boolean }> }),
     supabase
       .from("tasks")
-      .select("project_id, is_completed, is_archived")
+      .select("id, project_id, is_completed, is_archived")
+      .in("project_id", projectIds),
+    // Tasks can also be linked to projects via the `task_projects` junction
+    // table (multi-project tasks). Without this fan-out the rollup count
+    // misses every task whose primary project_id is NULL or points at a
+    // different project than the one being rolled up.
+    supabase
+      .from("task_projects")
+      .select("project_id, task:tasks(id, is_completed, is_archived)")
       .in("project_id", projectIds),
     supabase
       .from("notes")
@@ -388,16 +397,45 @@ async function hydrateProjectRollupCounts(projects: Project[]): Promise<Project[
   );
 
   const taskCountByProject = new Map<string, number>();
+  const seenTasksByProject = new Map<string, Set<string>>();
+  const recordTask = (
+    projectId: string,
+    taskId: string,
+    isCompleted: boolean,
+    isArchived: boolean,
+  ) => {
+    if (isArchived || isCompleted) return;
+    const seen = seenTasksByProject.get(projectId) ?? new Set<string>();
+    if (seen.has(taskId)) return;
+    seen.add(taskId);
+    seenTasksByProject.set(projectId, seen);
+    taskCountByProject.set(projectId, (taskCountByProject.get(projectId) ?? 0) + 1);
+  };
   for (const t of (taskRows ?? []) as Array<{
+    id: string;
     project_id: string | null;
     is_completed: boolean;
     is_archived: boolean;
   }>) {
-    if (!t.project_id || t.is_archived || t.is_completed) continue;
-    taskCountByProject.set(t.project_id, (taskCountByProject.get(t.project_id) ?? 0) + 1);
+    if (!t.project_id) continue;
+    recordTask(t.project_id, t.id, t.is_completed, t.is_archived);
+  }
+  const taskJunctionRows =
+    (taskJunctionResult as {
+      data?: Array<{
+        project_id: string;
+        task:
+          | { id: string; is_completed: boolean; is_archived: boolean }
+          | { id: string; is_completed: boolean; is_archived: boolean }[]
+          | null;
+      }>;
+    }).data ?? [];
+  for (const link of taskJunctionRows) {
+    const task = Array.isArray(link.task) ? link.task[0] : link.task;
+    if (!task) continue;
+    recordTask(link.project_id, task.id, task.is_completed, task.is_archived);
   }
 
-  const NOTE_ACTIVE = new Set(["inbox", "to_review", "active"]);
   const noteCountByProject = new Map<string, number>();
   const seenNotesByProject = new Map<string, Set<string>>();
   for (const n of (noteRows ?? []) as Array<{
@@ -406,7 +444,7 @@ async function hydrateProjectRollupCounts(projects: Project[]): Promise<Project[
     status: string;
     is_archived: boolean;
   }>) {
-    if (!n.project_id || n.is_archived || !NOTE_ACTIVE.has(n.status)) continue;
+    if (!n.project_id || n.is_archived || n.status === "archive" || n.status === "saved") continue;
     const seen = seenNotesByProject.get(n.project_id) ?? new Set<string>();
     if (seen.has(n.id)) continue;
     seen.add(n.id);
@@ -421,7 +459,7 @@ async function hydrateProjectRollupCounts(projects: Project[]): Promise<Project[
       | null;
   }>) {
     const note = Array.isArray(link.note) ? link.note[0] : link.note;
-    if (!note || note.is_archived || !NOTE_ACTIVE.has(note.status)) continue;
+    if (!note || note.is_archived || note.status === "archive" || note.status === "saved") continue;
     const seen = seenNotesByProject.get(link.project_id) ?? new Set<string>();
     if (seen.has(note.id)) continue;
     seen.add(note.id);
@@ -432,14 +470,13 @@ async function hydrateProjectRollupCounts(projects: Project[]): Promise<Project[
     );
   }
 
-  const RESOURCE_ACTIVE = new Set(["inbox", "to_review", "active"]);
   const resourceCountByProject = new Map<string, number>();
   for (const r of (resourceRows ?? []) as Array<{
     project_id: string | null;
     status: string;
     is_archived: boolean;
   }>) {
-    if (!r.project_id || r.is_archived || !RESOURCE_ACTIVE.has(r.status)) continue;
+    if (!r.project_id || r.is_archived || r.status === "saved") continue;
     resourceCountByProject.set(
       r.project_id,
       (resourceCountByProject.get(r.project_id) ?? 0) + 1,
@@ -789,6 +826,22 @@ export const projectService = {
         createClient()
           .from("projects")
           .update({ is_archived: true })
+          .eq("user_id", userId)
+          .eq("id", id)
+          .select(selectClause)
+          .single(),
+      { entity: "Project", identifier: id },
+    );
+
+    return hydrateSingleProjectRelations(project);
+  },
+
+  async restore(userId: string, id: string): Promise<Project> {
+    const project = await runWriteProjectQuery(
+      (selectClause) =>
+        createClient()
+          .from("projects")
+          .update({ is_archived: false })
           .eq("user_id", userId)
           .eq("id", id)
           .select(selectClause)

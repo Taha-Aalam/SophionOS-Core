@@ -59,7 +59,6 @@ import {
   useLinkContactToProject,
   useToggleContactFavorite,
   useArchiveContact,
-  useUnlinkContactFromProject,
   useUpdateContact,
 } from "@/lib/hooks/use-contacts";
 import { useGoals, useRestoreGoal, useArchiveGoal } from "@/lib/hooks/use-goals";
@@ -72,7 +71,6 @@ import {
   useProjects,
   useProjectWithRelations,
   useUnlinkProjectFromArea,
-  useUnlinkProjectFromGoal,
   useUpdateProject,
 } from "@/lib/hooks/use-projects";
 import {
@@ -131,6 +129,13 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
 };
 
+const STATUS_COLORS: Record<string, string> = {
+  planning: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  on_hold: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+  completed: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+};
+
 export function ProjectDetailContent() {
   const params = useParams();
   const router = useRouter();
@@ -146,6 +151,8 @@ export function ProjectDetailContent() {
   const [editingContact, setEditingContact] = useState<typeof allContacts[number] | null>(null);
   const [createContactDefaults, setCreateContactDefaults] = useState<ContactDialogDefaults | undefined>(undefined);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
+  const [newTaskAreaId, setNewTaskAreaId] = useState<string | null>(null);
+  const [newTaskGoalId, setNewTaskGoalId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<typeof tasks[number] | null>(null);
   const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<typeof linkedResources[number] | null>(null);
@@ -192,13 +199,11 @@ export function ProjectDetailContent() {
   const restoreGoal = useRestoreGoal();
   const archiveGoal = useArchiveGoal();
   const linkProjectToGoal = useLinkProjectToGoal();
-  const unlinkProjectFromGoal = useUnlinkProjectFromGoal();
   const linkProjectToArea = useLinkProjectToArea();
   const unlinkProjectFromArea = useUnlinkProjectFromArea();
   const linkContactToProject = useLinkContactToProject();
   const linkContactToArea = useLinkContactToArea();
   const linkContactToGoal = useLinkContactToGoal();
-  const unlinkContactFromProject = useUnlinkContactFromProject();
   const createContact = useCreateContact();
   const updateContact = useUpdateContact();
   const deleteContact = useDeleteContact();
@@ -960,14 +965,6 @@ export function ProjectDetailContent() {
     setIsLinkContactOpen(false);
   };
 
-  const handleUnlinkGoal = async (goalId: string) => {
-    if (!resolvedProjectId) {
-      return;
-    }
-
-    await unlinkProjectFromGoal.mutateAsync({ goalId, projectId: resolvedProjectId });
-  };
-
   const handleTaskCompletion = useCallback(
     async (taskId: string, isCompleted: boolean) => {
       if (isCompleted) {
@@ -1081,14 +1078,6 @@ export function ProjectDetailContent() {
     [createContact, createContactDefaults, linkContactToProject, linkContactToArea, linkContactToGoal, resolvedProjectId],
   );
 
-  const handleUnlinkContact = async (contactId: string) => {
-    if (!resolvedProjectId) {
-      return;
-    }
-
-    await unlinkContactFromProject.mutateAsync({ contactId, projectId: resolvedProjectId });
-  };
-
   const handleContactEdit = useCallback((contact: typeof allContacts[number]) => {
     setEditingContact(contact);
   }, []);
@@ -1186,18 +1175,33 @@ export function ProjectDetailContent() {
               <div className="flex flex-wrap items-center gap-2">
                 {linkedAreas.length > 0
                   ? linkedAreas.map((linkedArea) => (
-                      <Badge key={linkedArea.id} variant="secondary" className="text-xs">
+                      <Badge
+                        key={linkedArea.id}
+                        variant="outline"
+                        className="h-5 text-xs px-1.5 py-0 items-center bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      >
                         {linkedArea.icon ? `${linkedArea.icon} ` : ""}
                         {linkedArea.name}
                       </Badge>
                     ))
                   : null}
-                <Badge variant="outline" className={cn("text-xs", PRIORITY_COLORS[project.priority])}>
-                  {project.priority}
-                </Badge>
-                <Badge variant="outline" className="text-xs">
+                <Badge
+                  variant="outline"
+                  className={cn("h-5 text-xs px-1.5 py-0 items-center", STATUS_COLORS[project.status])}
+                >
                   {getProjectStatusLabel(project.status)}
                 </Badge>
+                <Badge
+                  variant="outline"
+                  className={cn("h-5 text-xs px-1.5 py-0 uppercase items-center", PRIORITY_COLORS[project.priority])}
+                >
+                  {project.priority}
+                </Badge>
+                {project.status === "completed" && (
+                  <Badge className="bg-green-500/10 text-green-600 border-none text-xs">
+                    Completed
+                  </Badge>
+                )}
                 {project.is_archived && (
                   <Badge variant="outline" className="text-xs">
                     Archived
@@ -1308,6 +1312,7 @@ export function ProjectDetailContent() {
                   <Label className="text-xs text-muted-foreground">Due Date</Label>
                   <Input
                     type="date"
+                    min={new Date().toISOString().slice(0, 10)}
                     className={cn("mt-1 font-medium", dueState.isOverdue && "text-destructive")}
                     value={dueDateInput}
                     onChange={(event) => setDueDateInput(event.target.value)}
@@ -1404,32 +1409,20 @@ export function ProjectDetailContent() {
                   (id) => areas.find((a) => a.id === id)?.icon ?? null,
                 );
                 return (
-                  <div key={goal.id} className="relative">
-                    <GoalCard
-                      goal={goal}
-                      areaNames={goalAreaNames.length > 0 ? goalAreaNames : undefined}
-                      areaIcons={goalAreaIcons}
-                      onEdit={() =>
-                        router.push(
-                          `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(`/projects/${project.slug ?? project.id}`)}`,
-                        )
-                      }
-                      onRestore={(g) => restoreGoal.mutate(g.id)}
-                      onArchive={(g) => archiveGoal.mutate(g.id)}
-                      rollups={goalRollups.get(goal.id)}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-2 top-2"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleUnlinkGoal(goal.id);
-                      }}
-                    >
-                      <Unlink className="size-3" />
-                    </Button>
-                  </div>
+                  <GoalCard
+                    key={goal.id}
+                    goal={goal}
+                    areaNames={goalAreaNames.length > 0 ? goalAreaNames : undefined}
+                    areaIcons={goalAreaIcons}
+                    onEdit={() =>
+                      router.push(
+                        `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(`/projects/${project.slug ?? project.id}`)}`,
+                      )
+                    }
+                    onRestore={(g) => restoreGoal.mutate(g.id)}
+                    onArchive={(g) => archiveGoal.mutate(g.id)}
+                    rollups={goalRollups.get(goal.id)}
+                  />
                 );
               })}
             </div>
@@ -1464,7 +1457,11 @@ export function ProjectDetailContent() {
               onEdit={handleTaskEdit}
               onArchiveToggle={handleTaskArchiveToggle}
               onPermanentDelete={handlePermanentDelete}
-              onNewTask={() => setIsNewTaskOpen(true)}
+              onNewTask={(groupId) => {
+                setNewTaskAreaId(groupId === "unassigned" ? null : groupId);
+                setNewTaskGoalId(null);
+                setIsNewTaskOpen(true);
+              }}
               getLinkedAreaNames={getTaskLinkedAreaNames}
               getLinkedAreaIcons={getTaskLinkedAreaIcons}
               getLinkedGoalNames={getTaskLinkedGoalNames}
@@ -1483,7 +1480,11 @@ export function ProjectDetailContent() {
               onEdit={handleTaskEdit}
               onArchiveToggle={handleTaskArchiveToggle}
               onPermanentDelete={handlePermanentDelete}
-              onNewTask={() => setIsNewTaskOpen(true)}
+              onNewTask={(groupId) => {
+                setNewTaskAreaId(null);
+                setNewTaskGoalId(groupId === "unassigned" ? null : groupId);
+                setIsNewTaskOpen(true);
+              }}
               getLinkedAreaNames={getTaskLinkedAreaNames}
               getLinkedAreaIcons={getTaskLinkedAreaIcons}
               getLinkedGoalNames={getTaskLinkedGoalNames}
@@ -1698,6 +1699,7 @@ export function ProjectDetailContent() {
         <GoalDetailSection
           id="people"
           entityType="people"
+          heading="Contacts"
           tabs={contactTabs}
           activeTab={contactTab}
           onTabChange={setContactTab}
@@ -1756,17 +1758,6 @@ export function ProjectDetailContent() {
                     onArchive={handleContactArchive}
                     returnTo={buildReturnTo(`/projects/${project.slug ?? project.id}`)}
                   />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-2 top-2 z-10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUnlinkContact(contact.id);
-                    }}
-                  >
-                    <Unlink className="size-3" />
-                  </Button>
                 </div>
               ))}
             </div>
@@ -1774,38 +1765,27 @@ export function ProjectDetailContent() {
         </GoalDetailSection>
       </div>
 
-      <Dialog open={isLinkAreaOpen} onOpenChange={setIsLinkAreaOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Link Area</DialogTitle>
-            <DialogDescription>Attach an additional area to this project.</DialogDescription>
-          </DialogHeader>
-          {eligibleAreas.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              All active areas are already linked to this project.
+      <LinkEntityDialog
+        open={isLinkAreaOpen}
+        onOpenChange={setIsLinkAreaOpen}
+        title="Link Area"
+        emptyMessage="All active areas are already linked to this project."
+        candidates={eligibleAreas}
+        getKey={(a) => a.id}
+        getSearchText={(a) => `${a.name} ${a.description ?? ""}`}
+        renderItem={(a) => (
+          <div>
+            <p className="truncate font-medium">
+              {a.icon ? `${a.icon} ` : ""}
+              {a.name}
             </p>
-          ) : (
-            <div className="space-y-2">
-              {eligibleAreas.map((eligibleArea) => (
-                <button
-                  key={eligibleArea.id}
-                  type="button"
-                  onClick={() => handleLinkArea(eligibleArea.id)}
-                  className="flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/40"
-                >
-                  <LinkIcon className="mt-0.5 size-4 text-muted-foreground" />
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">
-                      {eligibleArea.icon ? `${eligibleArea.icon} ` : ""}
-                      {eligibleArea.name}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            {a.description ? (
+              <p className="text-sm text-muted-foreground">{a.description}</p>
+            ) : null}
+          </div>
+        )}
+        onLink={(a) => handleLinkArea(a.id)}
+      />
 
       <Dialog open={isLinkGoalOpen} onOpenChange={setIsLinkGoalOpen}>
         <DialogContent className="max-w-md">
@@ -1866,15 +1846,21 @@ export function ProjectDetailContent() {
 
       <TaskDialog
         open={isNewTaskOpen}
-        onOpenChange={setIsNewTaskOpen}
-        projectScoped={{
-          projectId: project.id,
-          projectName: project.name,
-          areaId: null,
-          linkedAreaIds: [],
-          linkedGoalIds: [],
+        onOpenChange={(open) => {
+          setIsNewTaskOpen(open);
+          if (!open) {
+            setNewTaskAreaId(null);
+            setNewTaskGoalId(null);
+          }
         }}
-        onSuccess={() => setIsNewTaskOpen(false)}
+        defaultProjectId={project.id}
+        defaultAreaId={newTaskAreaId ?? undefined}
+        defaultGoalId={newTaskGoalId ?? undefined}
+        onSuccess={() => {
+          setIsNewTaskOpen(false);
+          setNewTaskAreaId(null);
+          setNewTaskGoalId(null);
+        }}
       />
 
       <TaskDialog
@@ -1978,7 +1964,8 @@ export function ProjectDetailContent() {
       <GoalDialog
         open={isNewGoalOpen}
         onOpenChange={setIsNewGoalOpen}
-        defaultAreaIds={[]}
+        defaultAreaIds={projectLinkedAreaIds}
+        availableAreaIds={projectLinkedAreaIds}
         onSuccess={(createdGoal) => {
           if (createdGoal && resolvedProjectId) {
             linkProjectToGoal.mutate({ projectId: resolvedProjectId, goalId: createdGoal.id });
