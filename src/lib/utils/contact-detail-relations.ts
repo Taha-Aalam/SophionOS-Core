@@ -113,13 +113,34 @@ export function filterAreasByTab(areas: Area[], tab: string): Area[] {
 
 // ── Goals ─────────────────────────────────────────────────────────────
 
+function isGoalAutoInactive(goal: Goal): boolean {
+  // Auto-inactive only when rollup counts are hydrated AND all are zero. If any
+  // rollup is undefined, treat the goal as not auto-inactive (caller may not
+  // have hydrated counts in this view).
+  const rollupsHydrated =
+    goal.projectCount !== undefined ||
+    goal.taskCount !== undefined ||
+    goal.noteCount !== undefined ||
+    goal.resourceCount !== undefined;
+  if (!rollupsHydrated) return false;
+  return (
+    !goal.is_archived &&
+    !goal.is_completed &&
+    (goal.projectCount ?? 0) === 0 &&
+    (goal.taskCount ?? 0) === 0 &&
+    (goal.noteCount ?? 0) === 0 &&
+    (goal.resourceCount ?? 0) === 0
+  );
+}
+
 export function buildGoalTabs(goals: Goal[]): TabOption[] {
+  const isInactive = (g: Goal) => g.is_inactive || isGoalAutoInactive(g);
   return [
     {
       value: "active",
       label: "Active",
       count: goals.filter(
-        (g) => !g.is_completed && !g.is_archived && !g.is_inactive,
+        (g) => !g.is_completed && !g.is_archived && !isInactive(g),
       ).length,
     },
     {
@@ -130,7 +151,7 @@ export function buildGoalTabs(goals: Goal[]): TabOption[] {
           g.term === "short" &&
           !g.is_completed &&
           !g.is_archived &&
-          !g.is_inactive,
+          !isInactive(g),
       ).length,
     },
     {
@@ -141,7 +162,7 @@ export function buildGoalTabs(goals: Goal[]): TabOption[] {
           g.term === "mid" &&
           !g.is_completed &&
           !g.is_archived &&
-          !g.is_inactive,
+          !isInactive(g),
       ).length,
     },
     {
@@ -152,13 +173,13 @@ export function buildGoalTabs(goals: Goal[]): TabOption[] {
           g.term === "long" &&
           !g.is_completed &&
           !g.is_archived &&
-          !g.is_inactive,
+          !isInactive(g),
       ).length,
     },
     {
       value: "inactive",
       label: "Inactive",
-      count: goals.filter((g) => g.is_inactive && !g.is_archived).length,
+      count: goals.filter((g) => isInactive(g) && !g.is_archived).length,
     },
     {
       value: "completed",
@@ -174,10 +195,11 @@ export function buildGoalTabs(goals: Goal[]): TabOption[] {
 }
 
 export function filterGoalsByTab(goals: Goal[], tab: string): Goal[] {
+  const isInactive = (g: Goal) => g.is_inactive || isGoalAutoInactive(g);
   switch (tab) {
     case "active":
       return goals.filter(
-        (g) => !g.is_completed && !g.is_archived && !g.is_inactive,
+        (g) => !g.is_completed && !g.is_archived && !isInactive(g),
       );
     case "short":
       return goals.filter(
@@ -185,7 +207,7 @@ export function filterGoalsByTab(goals: Goal[], tab: string): Goal[] {
           g.term === "short" &&
           !g.is_completed &&
           !g.is_archived &&
-          !g.is_inactive,
+          !isInactive(g),
       );
     case "mid":
       return goals.filter(
@@ -193,7 +215,7 @@ export function filterGoalsByTab(goals: Goal[], tab: string): Goal[] {
           g.term === "mid" &&
           !g.is_completed &&
           !g.is_archived &&
-          !g.is_inactive,
+          !isInactive(g),
       );
     case "long":
       return goals.filter(
@@ -201,17 +223,17 @@ export function filterGoalsByTab(goals: Goal[], tab: string): Goal[] {
           g.term === "long" &&
           !g.is_completed &&
           !g.is_archived &&
-          !g.is_inactive,
+          !isInactive(g),
       );
     case "inactive":
-      return goals.filter((g) => g.is_inactive && !g.is_archived);
+      return goals.filter((g) => isInactive(g) && !g.is_archived);
     case "completed":
       return goals.filter((g) => g.is_completed && !g.is_archived);
     case "archived":
       return goals.filter((g) => g.is_archived);
     default:
       return goals.filter(
-        (g) => !g.is_completed && !g.is_archived && !g.is_inactive,
+        (g) => !g.is_completed && !g.is_archived && !isInactive(g),
       );
   }
 }

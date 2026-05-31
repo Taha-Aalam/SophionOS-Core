@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { AREAS_QUERY_KEY, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
+import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
 import { TOPICS_QUERY_KEY } from "@/lib/hooks/use-topics";
 import { noteService } from "@/lib/services/note.service";
@@ -103,6 +104,9 @@ export function useLinkNoteToGoal() {
       noteService.linkToGoal(goalId, noteId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY], refetchType: "all" });
       toast.success("Note linked to goal");
     },
     onError: (error: Error) => {

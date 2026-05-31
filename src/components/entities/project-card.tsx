@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Edit, FolderKanban, Map } from "lucide-react";
+import { Archive, Calendar, RotateCcw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,8 @@ interface ProjectCardProps {
   areaIcons?: (string | null)[];
   duplicateIndex?: number;
   onEdit?: (project: Project) => void;
+  onArchive?: (project: Project) => void;
+  onRestore?: (project: Project) => void;
   /** When provided, appended as ?returnTo= to the project detail navigation. */
   returnTo?: string | null;
   /**
@@ -46,11 +48,27 @@ interface ProjectCardProps {
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
-  urgent: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
-  high: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
-  medium: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-  low: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  urgent: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+  high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+  medium: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  low: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
 };
+
+const STATUS_COLORS: Record<string, string> = {
+  planning: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  on_hold: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+  completed: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+};
+
+const STATUS_EMOJIS: Record<string, string> = {
+  planning: "📝",
+  active: "🚀",
+  on_hold: "⏸️",
+  completed: "✅",
+};
+
+const BADGE_CLS = "h-5 text-[10px] leading-none px-1.5 py-0 items-center";
 
 export function ProjectCard({
   project,
@@ -59,6 +77,8 @@ export function ProjectCard({
   areaIcons,
   duplicateIndex,
   onEdit,
+  onArchive,
+  onRestore,
   returnTo,
   rollups,
 }: ProjectCardProps) {
@@ -71,23 +91,14 @@ export function ProjectCard({
     const fallback = areaName?.trim();
     return fallback ? [fallback] : ["Unassigned"];
   })();
-  const visibleAreaNames = resolvedAreaNames.slice(0, 2);
-  const overflowAreaCount = Math.max(resolvedAreaNames.length - visibleAreaNames.length, 0);
-  // `project.progress` is hydrated by `projectService` (hydrateProjectProgress)
-  // and is the single source of truth for the ring on every surface.
   const progress = project.progress ?? 0;
 
-  // Default to the server-hydrated rollup counts on the project object so a
-  // project renders the same correlation numbers everywhere. Callers can
-  // still override when they need scoped semantics.
   const resolvedRollups: ProjectCardRollups = rollups ?? {
     goalCount: project.goalCount ?? 0,
     taskCount: project.taskCount ?? 0,
     noteCount: project.noteCount ?? 0,
     resourceCount: project.resourceCount ?? 0,
   };
-
-  const showAllCounts = true; // Always show all four correlation counts, even when zero
 
   const projectHref = (() => {
     const base = buildProjectDetailHref(project);
@@ -111,127 +122,125 @@ export function ProjectCard({
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <FolderKanban className="size-4 text-muted-foreground" />
+              <span className="text-base leading-none">📁</span>
               <h3 className="font-medium truncate text-sm">{project.name}</h3>
               {duplicateIndex != null && duplicateIndex > 1 && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
+                >
                   copy {duplicateIndex}
                 </Badge>
               )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mt-2">
-              {visibleAreaNames.map((name, index) => (
-                <Badge
-                  key={`${name}-${index}`}
-                  variant="secondary"
-                  className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0"
-                >
-                  {areaIcons?.[index] ? (
-                    <span className="text-[10px] leading-none">{areaIcons[index]}</span>
-                  ) : (
-                    <Map className="size-2.5 shrink-0" />
-                  )}
+              {resolvedAreaNames.map((name, index) => (
+                <Badge key={`${name}-${index}`} variant="outline" className={BADGE_CLS}>
+                  {areaIcons?.[index] ? `${areaIcons[index]} ` : ""}
                   {name}
                 </Badge>
               ))}
-              {overflowAreaCount > 0 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  +{overflowAreaCount}
-                </Badge>
-              )}
               <Badge
                 variant="outline"
-                className={cn("text-[10px] px-1.5 py-0", PRIORITY_COLORS[project.priority])}
+                className={cn(BADGE_CLS, "capitalize", STATUS_COLORS[project.status])}
+              >
+                {STATUS_EMOJIS[project.status] ? `${STATUS_EMOJIS[project.status]} ` : ""}
+                {getProjectStatusLabel(project.status)}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={cn(BADGE_CLS, "capitalize", PRIORITY_COLORS[project.priority])}
               >
                 {project.priority}
               </Badge>
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">
-                {getProjectStatusLabel(project.status)}
-              </Badge>
             </div>
 
-            {project.description && (
-              <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                {project.description}
-              </p>
-            )}
+            <p className="mt-2 line-clamp-2 text-sm text-muted-foreground min-h-[2.5rem]">
+              {project.description || " "}
+            </p>
           </div>
 
-          <div className="flex flex-col items-end gap-2 shrink-0">
-            {onEdit && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(project);
-                }}
-                aria-label={`Edit ${project.name}`}
-              >
-                <Edit className="size-4" />
-              </Button>
-            )}
-            <ProgressRing
-              percentage={progress}
-              size={48}
-              strokeWidth={4}
-            />
-          </div>
+          <ProgressRing
+            percentage={progress}
+            size={48}
+            strokeWidth={4}
+            className="shrink-0"
+          />
         </div>
 
-        <div className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {showAllCounts ? (
-                <>
-                  <span className="flex items-center gap-1 whitespace-nowrap" title="Goals">
-                    <span className="text-xs">🎯</span>
-                    <span>{resolvedRollups.goalCount}</span>
-                  </span>
-                  <span className="flex items-center gap-1 whitespace-nowrap" title="Tasks">
-                    <span className="text-xs">☑️</span>
-                    <span>{resolvedRollups.taskCount}</span>
-                  </span>
-                  <span className="flex items-center gap-1 whitespace-nowrap" title="Notes">
-                    <span className="text-xs">📝</span>
-                    <span>{resolvedRollups.noteCount}</span>
-                  </span>
-                  <span className="flex items-center gap-1 whitespace-nowrap" title="Resources">
-                    <span className="text-xs">🔗</span>
-                    <span>{resolvedRollups.resourceCount}</span>
-                  </span>
-                </>
-              ) : null}
-            </div>
+        <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1 whitespace-nowrap" title="Goals">
+            <span className="text-xs">🎯</span>
+            <span>{resolvedRollups.goalCount}</span>
+          </span>
+          <span className="flex items-center gap-1 whitespace-nowrap" title="Tasks">
+            <span className="text-xs">☑️</span>
+            <span>{resolvedRollups.taskCount}</span>
+          </span>
+          <span className="flex items-center gap-1 whitespace-nowrap" title="Notes">
+            <span className="text-xs">📝</span>
+            <span>{resolvedRollups.noteCount}</span>
+          </span>
+          <span className="flex items-center gap-1 whitespace-nowrap" title="Resources">
+            <span className="text-xs">🔗</span>
+            <span>{resolvedRollups.resourceCount}</span>
+          </span>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Calendar className="size-3" />
+            <span className={cn(dueState.isOverdue && "text-destructive font-medium")}>
+              {dueState.label}
+            </span>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "flex items-center gap-1 whitespace-nowrap",
-                  dueState.isOverdue && "text-destructive font-medium",
-                )}
-              >
-                <Calendar className="size-3" />
-                {dueState.label}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {project.status === "completed" && (
-                <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-none">
-                  Completed
-                </Badge>
-              )}
-              {project.is_archived && (
+          <div className="flex items-center gap-2">
+            {project.status === "completed" && (
+              <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-none">
+                Completed
+              </Badge>
+            )}
+            {project.is_archived ? (
+              <>
                 <Badge variant="outline">
+                  <Archive className="size-3 mr-1" />
                   Archived
                 </Badge>
-              )}
-            </div>
+                {onRestore && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-6"
+                    title="Restore project"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRestore(project);
+                    }}
+                  >
+                    <RotateCcw className="size-3" />
+                  </Button>
+                )}
+              </>
+            ) : (
+              onArchive && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-6"
+                  title="Archive project"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onArchive(project);
+                  }}
+                >
+                  <Archive className="size-3" />
+                </Button>
+              )
+            )}
           </div>
         </div>
       </CardContent>

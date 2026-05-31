@@ -46,10 +46,10 @@ function extractTaskAreaIds<TInput extends { area_id?: string | null; area_ids?:
     };
   }
 
-  // Nothing provided — preserve area_id as-is (undefined/null).
+  // Nothing provided — keep area_id off the update payload.
   return {
     areaIds: undefined,
-    taskInput: { ...rest, area_id } as Omit<TInput, "area_ids">,
+    taskInput: rest as Omit<TInput, "area_ids">,
   };
 }
 
@@ -275,7 +275,7 @@ function extractTaskProjectIds<
 
   return {
     projectIds: undefined,
-    taskInput: { ...rest, project_id } as Omit<TInput, "project_ids">,
+    taskInput: rest as Omit<TInput, "project_ids">,
   };
 }
 

@@ -7,6 +7,7 @@ import { resourceService } from "@/lib/services/resource.service";
 import { TOPICS_QUERY_KEY } from "@/lib/hooks/use-topics";
 import { AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-area-detail";
 import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
+import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
 import type {
   CreateResourceInput,
@@ -131,6 +132,9 @@ export function useLinkResourceToGoal() {
       resourceService.linkToGoal(goalId, resourceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY], refetchType: "all" });
       toast.success("Resource linked to goal");
     },
     onError: (error: Error) => {
@@ -147,6 +151,9 @@ export function useUnlinkResourceFromGoal() {
       resourceService.unlinkFromGoal(goalId, resourceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY], refetchType: "all" });
       toast.success("Resource unlinked from goal");
     },
     onError: (error: Error) => {

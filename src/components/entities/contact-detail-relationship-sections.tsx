@@ -63,6 +63,8 @@ interface ContactDetailRelationshipSectionsProps {
   onUnlinkArea: (areaId: string) => void;
   onUnlinkGoal: (goalId: string) => void;
   onUnlinkProject: (projectId: string) => void;
+  onArchiveProject?: (project: Project) => void;
+  onRestoreProject?: (project: Project) => void;
   onUnlinkTask: (taskId: string) => void;
   onTaskCompletionToggle: (taskId: string, isCompleted: boolean) => void;
   onTaskFocusToggle: (taskId: string, focused: boolean) => void;
@@ -70,6 +72,8 @@ interface ContactDetailRelationshipSectionsProps {
   onTaskEdit: (task: Task) => void;
   onTaskArchiveToggle?: (task: Task) => void;
   onTaskPermanentDelete?: (id: string) => void;
+  onRestoreGoal?: (goal: Goal) => void;
+  onArchiveGoal?: (goal: Goal) => void;
   returnTo: string;
   areaTab: string;
   onAreaTabChange: (tab: string) => void;
@@ -95,6 +99,8 @@ export function ContactDetailRelationshipSections({
   onUnlinkArea,
   onUnlinkGoal,
   onUnlinkProject,
+  onArchiveProject,
+  onRestoreProject,
   onUnlinkTask,
   onTaskCompletionToggle,
   onTaskFocusToggle,
@@ -102,6 +108,8 @@ export function ContactDetailRelationshipSections({
   onTaskEdit,
   onTaskArchiveToggle,
   onTaskPermanentDelete,
+  onRestoreGoal,
+  onArchiveGoal,
   returnTo,
   areaTab,
   onAreaTabChange,
@@ -401,6 +409,8 @@ export function ContactDetailRelationshipSections({
                         `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(returnTo)}`,
                       )
                     }
+                    onRestore={onRestoreGoal ? (g) => onRestoreGoal(g) : undefined}
+                    onArchive={onArchiveGoal ? (g) => onArchiveGoal(g) : undefined}
                   />
                   <Button
                     variant="ghost"
@@ -444,6 +454,8 @@ export function ContactDetailRelationshipSections({
                     areaNames={areaNames}
                     areaIcons={areaIcons}
                     returnTo={returnTo}
+                    onArchive={onArchiveProject}
+                    onRestore={onRestoreProject}
                   />
                   <Button
                     variant="ghost"

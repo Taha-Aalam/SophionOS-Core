@@ -1,9 +1,10 @@
 "use client";
 
 import React from 'react';
-import { Calendar, Map, Target } from 'lucide-react';
+import { Archive, Calendar, RotateCcw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Goal } from '@/lib/types/domain.types';
 import ProgressRing from '@/components/charts/progress-ring';
@@ -25,6 +26,8 @@ interface GoalCardProps {
   areaNames?: string[];
   areaIcons?: (string | null)[];
   onEdit?: (goal: Goal) => void;
+  onRestore?: (goal: Goal) => void;
+  onArchive?: (goal: Goal) => void;
   duplicateIndex?: number;
   rollups?: GoalCardRollups;
 }
@@ -41,6 +44,20 @@ const TERM_LABELS: Record<string, string> = {
   mid: 'Mid Term',
   long: 'Long Term',
 };
+
+const TERM_COLORS: Record<string, string> = {
+  short: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+  mid: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+  long: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+};
+
+const TERM_EMOJIS: Record<string, string> = {
+  short: '⚡',
+  mid: '📅',
+  long: '🏔️',
+};
+
+const BADGE_CLS = 'h-5 text-[10px] leading-none px-1.5 py-0 items-center';
 
 function parseGoalDate(value: string): Date {
   const [year, month, day] = value.split('-').map(Number);
@@ -77,7 +94,7 @@ function calculateDueState(targetDate: string | null): { text: string; isOverdue
   };
 }
 
-export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplicateIndex, rollups }: GoalCardProps) {
+export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onRestore, onArchive, duplicateIndex, rollups }: GoalCardProps) {
   const dueState = calculateDueState(goal.target_date);
   const resolvedAreaNames = (() => {
     if (areaNames && areaNames.length > 0) {
@@ -86,8 +103,6 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplica
     const fallback = areaName?.trim();
     return fallback ? [fallback] : ['Unassigned'];
   })();
-  const visibleAreaNames = resolvedAreaNames.slice(0, 2);
-  const overflowAreaCount = Math.max(resolvedAreaNames.length - visibleAreaNames.length, 0);
   const isInteractive = typeof onEdit === 'function';
 
   const showDuplicateBadge = duplicateIndex != null && duplicateIndex > 1;
@@ -105,7 +120,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplica
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Target className="size-4 text-muted-foreground" />
+              <span className="text-base leading-none">🎯</span>
               <h3 className="font-medium truncate text-sm">{goal.name}</h3>
               {showDuplicateBadge && (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
@@ -115,33 +130,26 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplica
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mt-2">
-              {visibleAreaNames.map((name, index) => (
+              {resolvedAreaNames.map((name, index) => (
                 <Badge
                   key={`${name}-${index}`}
-                  variant="secondary"
-                  className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0"
+                  variant="outline"
+                  className={BADGE_CLS}
                 >
-                  {areaIcons?.[index] ? (
-                    <span className="text-[10px] leading-none">{areaIcons[index]}</span>
-                  ) : (
-                    <Map className="size-2.5 shrink-0" />
-                  )}
-                  {name}
+                  {areaIcons?.[index] ? `${areaIcons[index]} ` : ''}{name}
                 </Badge>
               ))}
-              {overflowAreaCount > 0 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  +{overflowAreaCount}
-                </Badge>
-              )}
               <Badge
                 variant="outline"
-                className={cn("text-[10px] px-1.5 py-0", PRIORITY_COLORS[goal.priority] || PRIORITY_COLORS.medium)}
+                className={cn(BADGE_CLS, TERM_COLORS[goal.term] || TERM_COLORS.short)}
+              >
+                {TERM_EMOJIS[goal.term] ? `${TERM_EMOJIS[goal.term]} ` : ''}{TERM_LABELS[goal.term] || goal.term}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={cn(BADGE_CLS, 'capitalize', PRIORITY_COLORS[goal.priority] || PRIORITY_COLORS.medium)}
               >
                 {goal.priority}
-              </Badge>
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">
-                {TERM_LABELS[goal.term] || goal.term}
               </Badge>
             </div>
 
@@ -195,10 +203,43 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, duplica
                 Completed
               </Badge>
             )}
-            {goal.is_archived && (
-              <Badge variant="outline">
-                Archived
-              </Badge>
+            {goal.is_archived ? (
+              <>
+                <Badge variant="outline">
+                  Archived
+                </Badge>
+                {onRestore && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-6"
+                    title="Restore goal"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRestore(goal);
+                    }}
+                  >
+                    <RotateCcw className="size-3" />
+                  </Button>
+                )}
+              </>
+            ) : (
+              onArchive && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-6"
+                  title="Archive goal"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onArchive(goal);
+                  }}
+                >
+                  <Archive className="size-3" />
+                </Button>
+              )
             )}
           </div>
         </div>

@@ -2,12 +2,13 @@
 
 import React, { useEffect, useMemo } from "react";
 import { X } from "lucide-react";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
+import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -34,10 +35,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAreas } from "@/lib/hooks/use-areas";
 import {
-  useArchiveGoal,
-  useCompleteGoal,
   useCreateGoal,
-  useRestoreGoal,
   useUpdateGoal,
 } from "@/lib/hooks/use-goals";
 import { CreateGoalInput, Goal } from "@/lib/types/domain.types";
@@ -52,7 +50,13 @@ interface GoalDialogProps {
   onOpenChange: (open: boolean) => void;
   goal?: Goal | null;
   defaultAreaIds?: string[];
-  onSuccess?: () => void;
+  /**
+   * When provided, the Areas dropdown is restricted to these area ids only.
+   * Used by callers that create a goal scoped to a parent's areas (e.g. the
+   * project detail page, where a new goal must inherit the project's areas).
+   */
+  availableAreaIds?: string[];
+  onSuccess?: (goal?: Goal) => void;
 }
 
 type GoalFormValues = Omit<CreateGoalInput, "is_archived" | "is_completed"> & {
@@ -85,16 +89,17 @@ function buildGoalResolver(isCreate: boolean): Resolver<GoalFormValues> {
   };
 }
 
-export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess }: GoalDialogProps) {
+export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, availableAreaIds, onSuccess }: GoalDialogProps) {
   const isCreate = !goal;
   const { data: allAreas = [] } = useAreas();
-  const areas = allAreas.filter((area) => !area.archive);
+  const baseAreas = allAreas.filter((area) => !area.archive);
+  const areas =
+    availableAreaIds && availableAreaIds.length > 0
+      ? baseAreas.filter((area) => availableAreaIds.includes(area.id))
+      : baseAreas;
 
   const createMutation = useCreateGoal();
   const updateMutation = useUpdateGoal();
-  const archiveMutation = useArchiveGoal();
-  const restoreMutation = useRestoreGoal();
-  const completeMutation = useCompleteGoal();
 
   const resolver = useMemo(() => buildGoalResolver(isCreate), [isCreate]);
 
@@ -145,10 +150,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess
   const todayStr = new Date().toISOString().split("T")[0];
   const isPending =
     createMutation.isPending ||
-    updateMutation.isPending ||
-    archiveMutation.isPending ||
-    restoreMutation.isPending ||
-    completeMutation.isPending;
+    updateMutation.isPending;
   const selectedAreas = areas.filter((area) => selectedAreaIds.includes(area.id));
   const selectedTermLabel =
     selectedTerm === GOAL_TERM.SHORT
@@ -175,40 +177,16 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess
 
     try {
       if (goal) {
-        await updateMutation.mutateAsync({ id: goal.id, input });
+        const updated = await updateMutation.mutateAsync({ id: goal.id, input });
+        onSuccess?.(updated);
       } else {
-        await createMutation.mutateAsync(input);
+        const created = await createMutation.mutateAsync(input);
+        onSuccess?.(created);
       }
-      onSuccess?.();
       onOpenChange(false);
     } catch {
       return;
     }
-  };
-
-  const handleArchiveToggle = async () => {
-    if (!goal) {
-      return;
-    }
-
-    if (goal.is_archived) {
-      await restoreMutation.mutateAsync(goal.id);
-    } else {
-      await archiveMutation.mutateAsync(goal.id);
-    }
-
-    onSuccess?.();
-    onOpenChange(false);
-  };
-
-  const handleComplete = async () => {
-    if (!goal) {
-      return;
-    }
-
-    await completeMutation.mutateAsync(goal.id);
-    onSuccess?.();
-    onOpenChange(false);
   };
 
   return (
@@ -366,11 +344,18 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess
 
             <div className="space-y-2">
               <Label htmlFor="goal-target-date">Target Date</Label>
-              <Input
-                id="goal-target-date"
-                type="date"
-                min={!goal ? todayStr : undefined}
-                {...form.register("target_date")}
+              <Controller
+                control={form.control}
+                name="target_date"
+                render={({ field }) => (
+                  <DatePicker
+                    id="goal-target-date"
+                    value={field.value ?? null}
+                    onChange={(value) => field.onChange(value ?? "")}
+                    min={todayStr}
+                    ariaInvalid={!!form.formState.errors.target_date}
+                  />
+                )}
               />
               {form.formState.errors.target_date && (
                 <p className="text-xs text-destructive">
@@ -402,29 +387,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess
             )}
           </div>
 
-          <DialogFooter className="gap-2 sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              {goal && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleArchiveToggle}
-                  disabled={isPending}
-                >
-                  {goal.is_archived ? "Restore" : "Archive"}
-                </Button>
-              )}
-              {goal && !goal.is_completed && !goal.is_archived && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleComplete}
-                  disabled={isPending}
-                >
-                  Complete
-                </Button>
-              )}
-            </div>
+          <DialogFooter className="gap-2 sm:justify-end">
             <div className="flex items-center gap-2">
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
                 Cancel

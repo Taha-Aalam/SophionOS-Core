@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { calculateGoalProgress } from "@/lib/utils/goals"
+import { hydrateProjectRollupCounts } from "@/lib/queries/projects.queries"
 
 const GOAL_SELECT =
   "id, user_id, area_id, name, description, term, priority, target_date, progress, is_completed, is_archived, slug, created_at, updated_at"
@@ -356,7 +357,8 @@ export async function serverFetchGoalDetail(
     ...p,
     linkedGoalIds: goalsByProjectId.get(p.id) ?? [goalId],
   }))
-  const projects = await hydrateProjectAreaIds(supabase, projectsWithLinkedGoals)
+  const projectsWithAreas = await hydrateProjectAreaIds(supabase, projectsWithLinkedGoals)
+  const projects = await hydrateProjectRollupCounts(supabase, projectsWithAreas)
 
   // Hydrate notes + resources to the same shape as the client services so the
   // SSR first paint matches the forced client refetch (no bubbles popping in).

@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, CalendarDays, CheckCircle, Clock, Flag, LayoutGrid, List as ListIcon, PauseCircle, Plus, Target } from "lucide-react";
+import { Archive, CalendarDays, CheckCircle, Clock, Flag, PauseCircle, Plus, Target } from "lucide-react";
 
 import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
@@ -10,10 +10,9 @@ import { EmptyState } from "@/components/views/empty-state";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAreas } from "@/lib/hooks/use-areas";
-import { useGoals } from "@/lib/hooks/use-goals";
+import { useGoals, useRestoreGoal, useArchiveGoal } from "@/lib/hooks/use-goals";
 import { useFilterStore } from "@/lib/stores/filters.store";
 import { Goal } from "@/lib/types/domain.types";
-import { cn } from "@/lib/utils";
 import {
   getGoalFiltersForView,
   getGoalLinkedAreaIds,
@@ -26,11 +25,11 @@ export function GoalsContent() {
   const router = useRouter();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-
   const { filters, setStatus, setTerm } = useFilterStore();
   const { data: goals, isLoading } = useGoals(filters);
   const { data: areas = [] } = useAreas();
+  const restoreGoal = useRestoreGoal();
+  const archiveGoal = useArchiveGoal();
 
   const currentView = getGoalViewFromFilters({
     status: filters.status,
@@ -101,26 +100,6 @@ export function GoalsContent() {
           <p className="text-muted-foreground">Track and achieve your long-term objectives.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center bg-muted p-1 rounded-lg">
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={() => setViewMode("grid")}
-              className={cn("h-8 w-8", viewMode === "grid" && "bg-background shadow-sm")}
-              aria-label="Grid view"
-            >
-              <LayoutGrid className="size-4" />
-            </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={() => setViewMode("list")}
-              className={cn("h-8 w-8", viewMode === "list" && "bg-background shadow-sm")}
-              aria-label="List view"
-            >
-              <ListIcon className="size-4" />
-            </Button>
-          </div>
           <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
             <Plus className="size-4" /> New Goal
           </Button>
@@ -173,12 +152,7 @@ export function GoalsContent() {
           ))}
         </div>
       ) : goals && goals.length > 0 ? (
-        <div
-          className={cn(
-            "grid gap-4",
-            viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1",
-          )}
-        >
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {goals.map((goal) => {
             const linkedAreaNames = getGoalLinkedAreaIds(goal)
               .map((id) => areaNamesById.get(id))
@@ -207,6 +181,8 @@ export function GoalsContent() {
                 onEdit={() => {
                   router.push(buildGoalDetailHref(goal));
                 }}
+                onRestore={(g) => restoreGoal.mutate(g.id)}
+                onArchive={(g) => archiveGoal.mutate(g.id)}
               />
             );
           })}
