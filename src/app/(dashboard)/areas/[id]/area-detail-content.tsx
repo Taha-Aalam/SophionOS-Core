@@ -10,7 +10,6 @@ import {
   Edit,
   Target,
   Trash2,
-  Unlink,
 } from "lucide-react";
 
 import { ContactCard } from "@/components/entities/contact-card";
@@ -60,7 +59,6 @@ import {
   useContacts,
   useCreateContact,
   useLinkContactToArea,
-  useUnlinkContactFromArea,
   useToggleContactFavorite,
   useArchiveContact,
   useDeleteContact,
@@ -179,7 +177,6 @@ export function AreaDetailContent() {
   const permanentDeleteTask = usePermanentDeleteTask();
   const focusTask = useFocusTask();
   const linkContactToArea = useLinkContactToArea();
-  const unlinkContactFromArea = useUnlinkContactFromArea();
   const createContact = useCreateContact();
   const createResource = useCreateResource();
   const updateResource = useUpdateResource();
@@ -724,10 +721,6 @@ export function AreaDetailContent() {
       setNewTaskProjectId(groupId === "unassigned" ? null : groupId);
     }
     setIsNewTaskOpen(true);
-  };
-
-  const handleUnlinkContact = async (contactId: string) => {
-    await unlinkContactFromArea.mutateAsync({ contactId, areaId: area!.id });
   };
 
   // Link-existing candidate lists for area sections
@@ -1555,6 +1548,7 @@ export function AreaDetailContent() {
         <GoalDetailSection
           id="people"
           entityType="people"
+          heading="Contacts"
           tabs={contactTabs}
           activeTab={contactTab}
           onTabChange={setContactTab}
@@ -1613,18 +1607,6 @@ export function AreaDetailContent() {
                     onArchive={handleContactArchive}
                     returnTo={buildReturnTo(`/areas/${area.slug ?? area.id}`)}
                   />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-2 bottom-2"
-                    title="Unlink from area"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUnlinkContact(contact.id);
-                    }}
-                  >
-                    <Unlink className="size-3" />
-                  </Button>
                 </div>
               ))}
             </div>

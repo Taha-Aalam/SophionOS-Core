@@ -13,6 +13,7 @@ import { ProjectsByGoalView, type ProjectsByGoalGroup } from "@/components/views
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGoals } from "@/lib/hooks/use-goals";
+import { useArchiveProject, useRestoreProject } from "@/lib/hooks/use-projects";
 import { groupProjectsByGoal } from "@/lib/utils/projects";
 
 // KanbanBoard pulls @hello-pangea/dnd (~50KB gz). Only needed in the "By Status" tab.
@@ -78,6 +79,8 @@ export function ProjectsContent() {
   });
   const { data: areas = [] } = useAreas();
   const { data: allGoals = [] } = useGoals({ status: "all" });
+  const archiveProject = useArchiveProject();
+  const restoreProject = useRestoreProject();
 
   const allProjects = useMemo(
     () => mergeProjectQueryResults(activeProjectResults, archivedProjectResults),
@@ -208,6 +211,8 @@ export function ProjectsContent() {
             areaIcons={getProjectAreaIcons(project, areaIconsMap)}
             duplicateIndex={duplicateIndices.get(project.id)}
             onEdit={handleEdit}
+            onArchive={(p) => archiveProject.mutate(p.id)}
+            onRestore={(p) => restoreProject.mutate(p.id)}
           />
         ))}
       </div>

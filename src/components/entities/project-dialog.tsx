@@ -184,11 +184,14 @@ export function ProjectDialog({
   const selectedStartDate = useWatch({ control: form.control, name: "start_date" }) ?? "";
   const watchedGoalIds = useWatch({ control: form.control, name: "goal_ids" });
   const selectedGoalIds = useMemo(() => watchedGoalIds ?? [], [watchedGoalIds]);
-  const dueDateMin = !project && selectedStartDate && selectedStartDate > todayStr
-    ? selectedStartDate
-    : !project
-      ? todayStr
-      : undefined;
+  // Both create and edit flows enforce a today-or-future minimum for the due
+  // date picker. When editing a project whose stored value is in the past,
+  // the input still renders that value (the browser allows out-of-range
+  // values it received); the user just can't pick another past date from
+  // the calendar.
+  const dueDateMin =
+    selectedStartDate && selectedStartDate > todayStr ? selectedStartDate : todayStr;
+  const startDateMin = !project ? todayStr : undefined;
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   const visibleGoals = useMemo(() => {
@@ -396,7 +399,7 @@ export function ProjectDialog({
               <FormItem>
                 <FormLabel>Start Date</FormLabel>
                 <FormControl>
-                  <Input type="date" min={!project ? todayStr : undefined} {...form.register("start_date")} />
+                  <Input type="date" min={startDateMin} {...form.register("start_date")} />
                 </FormControl>
                 <FormMessage>{form.formState.errors.start_date?.message}</FormMessage>
               </FormItem>

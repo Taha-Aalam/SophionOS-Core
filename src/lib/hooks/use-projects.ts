@@ -20,8 +20,13 @@ function invalidateProjectGraph(queryClient: ReturnType<typeof useQueryClient>):
   // global query-provider sets refetchOnMount: false — without it, invalidated-but-inactive
   // queries stay stale until manual refresh when the user navigates back. This is what
   // moves a goal between "inactive" and "active" tabs after linking work.
+  //
+  // The same refetchType applies to PROJECTS_QUERY_KEY itself: the project detail
+  // page reads useProject(slug) / useProjectWithRelations(id), and after an edit
+  // those caches need to refetch immediately so the title, badges, and properties
+  // panel reflect the new values without a manual page refresh.
   return Promise.all([
-    queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY], refetchType: "all" }),
     queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY], refetchType: "all" }),
     queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY], refetchType: "all" }),
     queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
@@ -129,6 +134,38 @@ export function useDeleteProject() {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to delete project");
+    },
+  });
+}
+
+export function useArchiveProject() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => projectService.archive(user!.id, id),
+    onSuccess: async () => {
+      await invalidateProjectGraph(queryClient);
+      toast.success("Project archived");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to archive project");
+    },
+  });
+}
+
+export function useRestoreProject() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (id: string) => projectService.restore(user!.id, id),
+    onSuccess: async () => {
+      await invalidateProjectGraph(queryClient);
+      toast.success("Project restored");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to restore project");
     },
   });
 }

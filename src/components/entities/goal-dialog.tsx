@@ -49,6 +49,12 @@ interface GoalDialogProps {
   onOpenChange: (open: boolean) => void;
   goal?: Goal | null;
   defaultAreaIds?: string[];
+  /**
+   * When provided, the Areas dropdown is restricted to these area ids only.
+   * Used by callers that create a goal scoped to a parent's areas (e.g. the
+   * project detail page, where a new goal must inherit the project's areas).
+   */
+  availableAreaIds?: string[];
   onSuccess?: (goal?: Goal) => void;
 }
 
@@ -82,10 +88,14 @@ function buildGoalResolver(isCreate: boolean): Resolver<GoalFormValues> {
   };
 }
 
-export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, onSuccess }: GoalDialogProps) {
+export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, availableAreaIds, onSuccess }: GoalDialogProps) {
   const isCreate = !goal;
   const { data: allAreas = [] } = useAreas();
-  const areas = allAreas.filter((area) => !area.archive);
+  const baseAreas = allAreas.filter((area) => !area.archive);
+  const areas =
+    availableAreaIds && availableAreaIds.length > 0
+      ? baseAreas.filter((area) => availableAreaIds.includes(area.id))
+      : baseAreas;
 
   const createMutation = useCreateGoal();
   const updateMutation = useUpdateGoal();

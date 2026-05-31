@@ -71,7 +71,6 @@ import {
   useLinkContactToProject,
   useToggleContactFavorite,
   useArchiveContact,
-  useUnlinkContactFromGoal,
   useUpdateContact,
 } from "@/lib/hooks/use-contacts";
 import { useGoalDetail } from "@/lib/hooks/use-goal-detail";
@@ -265,7 +264,6 @@ export function GoalDetailContent() {
   const linkContactToGoal = useLinkContactToGoal();
   const linkContactToProject = useLinkContactToProject();
   const linkContactToArea = useLinkContactToArea();
-  const unlinkContactFromGoal = useUnlinkContactFromGoal();
   const createContact = useCreateContact();
   const updateContact = useUpdateContact();
   const deleteContact = useDeleteContact();
@@ -914,14 +912,6 @@ export function GoalDetailContent() {
     },
     [toggleFavoriteResource],
   );
-
-  const handleUnlinkContact = useCallback(async (contactId: string) => {
-    if (!goal) {
-      return;
-    }
-
-    await unlinkContactFromGoal.mutateAsync({ contactId, goalId: goal.id });
-  }, [goal, unlinkContactFromGoal]);
 
   const handleContactEdit = useCallback((contact: Contact) => {
     setEditingContact(contact);
@@ -1748,6 +1738,7 @@ export function GoalDetailContent() {
         <GoalDetailSection
           id="people"
           entityType="people"
+          heading="Contacts"
           tabs={contactTabs}
           activeTab={contactTab}
           onTabChange={setContactTab}
@@ -1806,17 +1797,6 @@ export function GoalDetailContent() {
                     onArchive={handleContactArchive}
                     returnTo={buildReturnTo(`/goals/${goalId}`)}
                   />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-2 top-2 z-10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUnlinkContact(contact.id);
-                    }}
-                  >
-                    <Unlink className="size-3" />
-                  </Button>
                 </div>
               ))}
             </div>
