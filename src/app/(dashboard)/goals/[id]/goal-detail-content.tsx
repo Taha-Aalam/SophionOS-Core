@@ -43,6 +43,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 
 const KanbanBoard = dynamic(
@@ -89,7 +90,7 @@ import {
   useTasks,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
-import { useProjects, useLinkProjectToGoal } from "@/lib/hooks/use-projects";
+import { useProjects, useLinkProjectToGoal, useArchiveProject, useRestoreProject } from "@/lib/hooks/use-projects";
 import { useNotes, useToggleFavoriteNote, useTogglePinNote, useArchiveNote, useRestoreNote, useDeleteNote, useLinkNoteToGoal } from "@/lib/hooks/use-notes";
 import { useResources, useToggleFavoriteResource, useCreateResource, useUpdateResource, useArchiveResource, useUnarchiveResource, useLinkResourceToGoal } from "@/lib/hooks/use-resources";
 import { useTopics } from "@/lib/hooks/use-topics";
@@ -197,6 +198,7 @@ export function GoalDetailContent() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isLinkAreaOpen, setIsLinkAreaOpen] = useState(false);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
+  const [targetDateDraft, setTargetDateDraft] = useState("");
   const [projectTab, setProjectTab] = useState("all");
   const [taskTab, setTaskTab] = useState("all");
   const [noteTab, setNoteTab] = useState("all");
@@ -204,9 +206,11 @@ export function GoalDetailContent() {
   const [contactTab, setContactTab] = useState("all");
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
+  const [newProjectAreaId, setNewProjectAreaId] = useState<string | null>(null);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [newTaskAreaId, setNewTaskAreaId] = useState<string | null>(null);
   const [newTaskProjectId, setNewTaskProjectId] = useState<string | null>(null);
+  const [newTaskProjectScopedId, setNewTaskProjectScopedId] = useState<string | null>(null);
   const [isNewResourceOpen, setIsNewResourceOpen] = useState(false);
   const [newResourceGroupId, setNewResourceGroupId] = useState<string | null>(null);
   const [newResourceGroupType, setNewResourceGroupType] = useState<"area" | "project" | null>(null);
@@ -270,6 +274,8 @@ export function GoalDetailContent() {
   const toggleContactFavorite = useToggleContactFavorite();
   const archiveContact = useArchiveContact();
   const linkProjectToGoal = useLinkProjectToGoal();
+  const archiveProject = useArchiveProject();
+  const restoreProject = useRestoreProject();
   const linkNoteToGoal = useLinkNoteToGoal();
   const linkResourceToGoal = useLinkResourceToGoal();
 
@@ -409,16 +415,19 @@ export function GoalDetailContent() {
 
   const handleCreateContactInSection = useCallback(
     (section: { id: string }) => {
-      const defaults: ContactDialogDefaults = goal?.id ? { goal_ids: [goal.id] } : {};
+      const defaults: ContactDialogDefaults = {};
       const [category, entityId] = section.id.split(":");
       if (category === "group") {
         defaults.group = entityId;
+        if (goal?.id) defaults.goal_ids = [goal.id];
       } else if (category === "project" && entityId !== "unassigned") {
         defaults.project_ids = [entityId];
       } else if (category === "area" && entityId !== "unassigned") {
         defaults.area_ids = [entityId];
       } else if (category === "goal" && entityId !== "unassigned") {
-        defaults.goal_ids = Array.from(new Set([...(defaults.goal_ids ?? []), entityId]));
+        defaults.goal_ids = [entityId];
+      } else if (goal?.id) {
+        defaults.goal_ids = [goal.id];
       }
       setCreateContactDefaults(defaults);
       setIsNewContactOpen(true);
@@ -434,6 +443,10 @@ export function GoalDetailContent() {
     return () => setPageTitle("");
   }, [goal, setPageTitle]);
 
+  useEffect(() => {
+    setTargetDateDraft(goal?.target_date ?? "");
+  }, [goal?.target_date]);
+
   // Compute goal progress client-side so it stays in sync with the project cards
   // on this page. Both use the same goalData.tasks/notes/resources as their source,
   // which eliminates the mismatch caused by the DB trigger that only counts tasks
@@ -446,16 +459,21 @@ export function GoalDetailContent() {
   const goalProgressPercent = goal?.progress ?? 0;
 
   // Static note tabs — no dynamic type tabs on goal detail
-  const noteTabs = [
-    { value: "all", label: "All" },
-    { value: "inbox", label: "Inbox" },
-    { value: "to_review", label: "To Review" },
-    { value: "active", label: "Active" },
-    { value: "by_area", label: "By Area" },
-    { value: "by_project", label: "By Project" },
-    { value: "saved", label: "Saved" },
-    { value: "archived", label: "Archive" },
-  ];
+  const noteTabs = useMemo(() => {
+    const all = goalData?.notes ?? [];
+    const active = all.filter((n) => !n.is_archived);
+    const archived = all.filter((n) => n.is_archived);
+    return [
+      { value: "all", label: "All", count: active.length },
+      { value: "inbox", label: "Inbox", count: active.filter((n) => n.status === NOTE_STATUS.INBOX).length },
+      { value: "to_review", label: "To Review", count: active.filter((n) => n.status === NOTE_STATUS.TO_REVIEW).length },
+      { value: "active", label: "Active", count: active.filter((n) => n.status === NOTE_STATUS.ACTIVE).length },
+      { value: "by_area", label: "By Area" },
+      { value: "by_project", label: "By Project" },
+      { value: "saved", label: "Saved", count: active.filter((n) => n.status === NOTE_STATUS.SAVED).length },
+      { value: "archived", label: "Archive", count: archived.length },
+    ];
+  }, [goalData?.notes]);
 
   // Filter notes by tab
   const filteredNotes = useMemo(() => {
@@ -516,16 +534,21 @@ export function GoalDetailContent() {
   }, [filteredNotes, projectNamesMap]);
 
   // Static resource tabs — no dynamic type tabs on goal detail
-  const resourceTabs = [
-    { value: "all", label: "All" },
-    { value: "inbox", label: "Inbox" },
-    { value: "to_review", label: "To Review" },
-    { value: "active", label: "Active" },
-    { value: "by_area", label: "By Area" },
-    { value: "by_project", label: "By Project" },
-    { value: "saved", label: "Saved" },
-    { value: "archived", label: "Archive" },
-  ];
+  const resourceTabs = useMemo(() => {
+    const all = goalData?.resources ?? [];
+    const active = all.filter((r) => !r.is_archived);
+    const archived = all.filter((r) => r.is_archived);
+    return [
+      { value: "all", label: "All", count: active.length },
+      { value: "inbox", label: "Inbox", count: active.filter((r) => r.status === RESOURCE_STATUS.INBOX).length },
+      { value: "to_review", label: "To Review", count: active.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW).length },
+      { value: "active", label: "Active", count: active.filter((r) => r.status === RESOURCE_STATUS.ACTIVE).length },
+      { value: "by_area", label: "By Area" },
+      { value: "by_project", label: "By Project" },
+      { value: "saved", label: "Saved", count: active.filter((r) => r.status === RESOURCE_STATUS.SAVED).length },
+      { value: "archived", label: "Archive", count: archived.length },
+    ];
+  }, [goalData?.resources]);
 
   // Filter resources by tab
   const filteredResources = useMemo(() => {
@@ -1340,16 +1363,17 @@ export function GoalDetailContent() {
                 {/* Due Date */}
                 <div>
                   <Label className="text-xs text-muted-foreground">Target Date</Label>
-                  <Input
-                    type="date"
-                    className={cn("mt-1 font-medium", dueState?.isOverdue && "text-destructive")}
-                    defaultValue={goal.target_date ?? ""}
-                    onBlur={(e) => {
-                      const newDate = e.target.value;
-                      if (newDate !== goal.target_date) {
-                        updateGoal.mutateAsync({ id: goal.id, input: { target_date: newDate || null } });
+                  <DatePicker
+                    value={targetDateDraft || null}
+                    onChange={(value) => {
+                      const newDate = value ?? "";
+                      setTargetDateDraft(newDate);
+                      if (newDate !== (goal.target_date ?? "")) {
+                        updateGoal.mutate({ id: goal.id, input: { target_date: newDate || null } });
                       }
                     }}
+                    min={new Date().toISOString().slice(0, 10)}
+                    className={cn("mt-1 font-medium", dueState?.isOverdue && "text-destructive")}
                   />
                 </div>
               </div>
@@ -1446,7 +1470,10 @@ export function GoalDetailContent() {
               duplicateIndices={new Map()}
               isLoading={isLoading}
               onEdit={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(currentPagePathWithSlug)}`)}
-              onCreateProject={() => setIsNewProjectOpen(true)}
+              onCreateProject={(areaId) => {
+                setNewProjectAreaId(areaId === "unassigned" ? null : areaId);
+                setIsNewProjectOpen(true);
+              }}
               returnTo={currentPagePathWithSlug}
             />
           ) : filteredProjects.length > 0 ? (
@@ -1459,6 +1486,8 @@ export function GoalDetailContent() {
                   areaNames={getProjectAreaNames(project)}
                   areaIcons={getProjectAreaIcons(project)}
                   returnTo={currentPagePathWithSlug}
+                  onArchive={(p) => archiveProject.mutate(p.id)}
+                  onRestore={(p) => restoreProject.mutate(p.id)}
                 />
               ))}
             </div>
@@ -1519,7 +1548,8 @@ export function GoalDetailContent() {
               onPermanentDelete={handlePermanentDelete}
               onNewTask={(groupId) => {
                 setNewTaskAreaId(null);
-                setNewTaskProjectId(groupId === "unassigned" ? null : groupId);
+                setNewTaskProjectId(null);
+                setNewTaskProjectScopedId(groupId === "unassigned" ? null : groupId);
                 setIsNewTaskOpen(true);
               }}
               getLinkedAreaNames={getTaskLinkedAreaNames}
@@ -1861,9 +1891,16 @@ export function GoalDetailContent() {
       {/* Inline Project Creation */}
       <ProjectDialog
         open={isNewProjectOpen}
-        onOpenChange={setIsNewProjectOpen}
+        onOpenChange={(open) => {
+          setIsNewProjectOpen(open);
+          if (!open) setNewProjectAreaId(null);
+        }}
         goalId={goal.id}
-        onSuccess={() => setIsNewProjectOpen(false)}
+        defaultAreaIds={newProjectAreaId ? [newProjectAreaId] : undefined}
+        onSuccess={() => {
+          setIsNewProjectOpen(false);
+          setNewProjectAreaId(null);
+        }}
       />
 
       {/* Inline Task Creation */}
@@ -1874,16 +1911,39 @@ export function GoalDetailContent() {
           if (!open) {
             setNewTaskAreaId(null);
             setNewTaskProjectId(null);
+            setNewTaskProjectScopedId(null);
           }
         }}
-        defaultGoalId={goal.id}
+        defaultGoalId={newTaskProjectScopedId ? undefined : goal.id}
         defaultAreaId={newTaskAreaId ?? undefined}
         defaultProjectId={newTaskProjectId ?? undefined}
-        allowedProjectIds={allowedProjectIds}
+        allowedProjectIds={newTaskProjectScopedId ? undefined : allowedProjectIds}
+        projectScoped={(() => {
+          if (!newTaskProjectScopedId) return undefined;
+          const scopedProject =
+            (goalData?.projects ?? []).find((p) => p.id === newTaskProjectScopedId) ??
+            allProjects.find((p) => p.id === newTaskProjectScopedId);
+          if (!scopedProject) return undefined;
+          const scopedAreaIds = getProjectLinkedAreaIds(scopedProject);
+          const scopedGoalIds = Array.from(
+            new Set([
+              ...(scopedProject.linkedGoalIds ?? []),
+              goal.id,
+            ]),
+          );
+          return {
+            projectId: scopedProject.id,
+            projectName: scopedProject.name,
+            areaId: scopedProject.area_id ?? null,
+            linkedAreaIds: scopedAreaIds,
+            linkedGoalIds: scopedGoalIds,
+          };
+        })()}
         onSuccess={() => {
           setIsNewTaskOpen(false);
           setNewTaskAreaId(null);
           setNewTaskProjectId(null);
+          setNewTaskProjectScopedId(null);
         }}
       />
 

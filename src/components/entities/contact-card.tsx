@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Archive, Mail, Phone, Star, Trash2, User2 } from "lucide-react";
+import { Archive, ArchiveRestore, Mail, Phone, Star, Trash2, User2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -97,9 +97,13 @@ export function ContactCard({
               variant="ghost"
               size="icon-sm"
               onClick={() => onArchive?.(contact.id, !contact.archive)}
-              title={contact.archive ? "Unarchive contact" : "Archive contact"}
+              title={contact.archive ? "Restore contact" : "Archive contact"}
             >
-              <Archive className={cn("size-3.5", contact.archive && "text-muted-foreground")} />
+              {contact.archive ? (
+                <ArchiveRestore className="size-3.5" />
+              ) : (
+                <Archive className="size-3.5" />
+              )}
             </Button>
             <Button
               variant="ghost"

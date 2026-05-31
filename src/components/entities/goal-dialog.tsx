@@ -2,12 +2,13 @@
 
 import React, { useEffect, useMemo } from "react";
 import { X } from "lucide-react";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
+import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -343,11 +344,18 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
 
             <div className="space-y-2">
               <Label htmlFor="goal-target-date">Target Date</Label>
-              <Input
-                id="goal-target-date"
-                type="date"
-                min={!goal ? todayStr : undefined}
-                {...form.register("target_date")}
+              <Controller
+                control={form.control}
+                name="target_date"
+                render={({ field }) => (
+                  <DatePicker
+                    id="goal-target-date"
+                    value={field.value ?? null}
+                    onChange={(value) => field.onChange(value ?? "")}
+                    min={todayStr}
+                    ariaInvalid={!!form.formState.errors.target_date}
+                  />
+                )}
               />
               {form.formState.errors.target_date && (
                 <p className="text-xs text-destructive">

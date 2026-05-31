@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
@@ -678,13 +679,20 @@ export function TaskDialog({
             {/* Row 2: Due Date (full width) */}
             <FormItem>
               <FormLabel>Due Date</FormLabel>
-              <FormControl>
-                <Input
-                  type="date"
-                  min={!task ? new Date().toISOString().split("T")[0] : undefined}
-                  {...form.register("due_date")}
-                />
-              </FormControl>
+              <Controller
+                control={form.control}
+                name="due_date"
+                render={({ field }) => (
+                  <FormControl>
+                    <DatePicker
+                      value={field.value || null}
+                      onChange={(value) => field.onChange(value ?? "")}
+                      min={!task ? new Date().toISOString().split("T")[0] : undefined}
+                      ariaInvalid={!!form.formState.errors.due_date}
+                    />
+                  </FormControl>
+                )}
+              />
               <FormMessage>{form.formState.errors.due_date?.message}</FormMessage>
             </FormItem>
 

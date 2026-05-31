@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth-provider";
 import { AREAS_QUERY_KEY, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
 import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
+import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
 import { projectService } from "@/lib/services/project.service";
 import {
   type CreateProjectInput,
@@ -181,6 +182,7 @@ export function useUpdateProjectStatus() {
       await Promise.all([
         queryClient.cancelQueries({ queryKey: [PROJECTS_QUERY_KEY] }),
         queryClient.cancelQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
+        queryClient.cancelQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] }),
       ]);
       const previousProjects = queryClient.getQueriesData<Project[]>({
         queryKey: [PROJECTS_QUERY_KEY],
@@ -188,6 +190,9 @@ export function useUpdateProjectStatus() {
       const previousProject = queryClient.getQueryData<Project>([PROJECTS_QUERY_KEY, id]);
       const previousAreaDetails = queryClient.getQueriesData<{ projects?: Project[] }>({
         queryKey: [AREA_DETAIL_QUERY_KEY],
+      });
+      const previousGoalDetails = queryClient.getQueriesData<{ projects?: Project[] }>({
+        queryKey: [GOAL_DETAIL_QUERY_KEY],
       });
 
       queryClient.setQueriesData<Project[]>({ queryKey: [PROJECTS_QUERY_KEY] }, (current) => {
@@ -214,11 +219,26 @@ export function useUpdateProjectStatus() {
           };
         },
       );
+      queryClient.setQueriesData<{ projects?: Project[] }>(
+        { queryKey: [GOAL_DETAIL_QUERY_KEY] },
+        (current) => {
+          if (!current || !Array.isArray(current.projects)) {
+            return current;
+          }
+          return {
+            ...current,
+            projects: current.projects.map((project) =>
+              project.id === id ? { ...project, status } : project,
+            ),
+          };
+        },
+      );
 
       return {
         previousProject,
         previousProjects,
         previousAreaDetails,
+        previousGoalDetails,
       };
     },
     onError: (error: Error, variables, context) => {
@@ -226,6 +246,9 @@ export function useUpdateProjectStatus() {
         queryClient.setQueryData(queryKey, data);
       });
       context?.previousAreaDetails.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      context?.previousGoalDetails.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
       });
       queryClient.setQueryData([PROJECTS_QUERY_KEY, variables.id], context?.previousProject);
