@@ -303,12 +303,12 @@ export const resourceService = {
       const { taskIds, resourceInput } = extractTaskIds(goalCleanedInput);
 
       const status =
-        resourceInput.status ??
+        validated.status ??
         deriveResourceStatus({
           area_ids: areaIds,
-          project_id: resourceInput.project_id,
+          project_id: validated.project_id,
           goal_ids: goalIds,
-          topic_id: resourceInput.topic_id,
+          topic_id: validated.topic_id,
         });
 
       const { data, error } = await createClient()
