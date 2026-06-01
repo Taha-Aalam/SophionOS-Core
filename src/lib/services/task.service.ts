@@ -3,6 +3,7 @@ import { DatabaseError, NotFoundError, ValidationError } from "../api/error-hand
 import { createClient } from "../supabase/client";
 import type { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
 import { TASK_STATUS, type TaskStatus } from "../utils/constants";
+import { deriveTaskStatus } from "../utils/status-routing";
 import { createTaskSchema, updateTaskSchema } from "../validators/task.schema";
 
 export const TASK_SELECT =
@@ -339,10 +340,12 @@ export const taskService = {
       const { projectIds, taskInput: projectCleanedInput } =
         extractTaskProjectIds(areaCleanedInput);
       const { goalIds, taskInput } = extractGoalIds(projectCleanedInput);
+      const status =
+        validated.status ?? deriveTaskStatus({ area_ids: areaIds, project_ids: projectIds });
 
       const { data, error } = await createClient()
         .from("tasks")
-        .insert({ ...taskInput, user_id: userId })
+        .insert({ ...taskInput, status, user_id: userId })
         .select(TASK_SELECT)
         .single();
 
