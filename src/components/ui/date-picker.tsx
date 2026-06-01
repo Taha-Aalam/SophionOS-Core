@@ -55,6 +55,7 @@ export function DatePicker({
   const [open, setOpen] = React.useState(false);
   const [month, setMonth] = React.useState<Date>(() => selected ?? new Date());
   const lastWheelAtRef = React.useRef<number>(0);
+  const cleanupWheelRef = React.useRef<(() => void) | null>(null);
 
   const handleOpenChange = React.useCallback(
     (next: boolean) => {
@@ -66,13 +67,23 @@ export function DatePicker({
     [value],
   );
 
-  const handleWheel = React.useCallback((event: React.WheelEvent<HTMLDivElement>) => {
-    if (event.deltaY === 0) return;
-    event.preventDefault();
-    const now = performance.now();
-    if (now - lastWheelAtRef.current < WHEEL_THROTTLE_MS) return;
-    lastWheelAtRef.current = now;
-    setMonth((prev) => addMonths(prev, event.deltaY > 0 ? 1 : -1));
+  const wheelContainerRef = React.useCallback((el: HTMLDivElement | null) => {
+    if (!el) {
+      cleanupWheelRef.current?.();
+      cleanupWheelRef.current = null;
+      return;
+    }
+    const handler = (e: WheelEvent) => {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const now = performance.now();
+      if (now - lastWheelAtRef.current < WHEEL_THROTTLE_MS) return;
+      lastWheelAtRef.current = now;
+      setMonth((prev) => addMonths(prev, e.deltaY > 0 ? 1 : -1));
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    cleanupWheelRef.current = () => el.removeEventListener("wheel", handler);
   }, []);
 
   const disabledMatcher = React.useMemo(() => {
@@ -102,8 +113,8 @@ export function DatePicker({
       <PopoverContent
         align="start"
         className="w-auto p-0"
-        onWheel={handleWheel}
       >
+        <div ref={wheelContainerRef}>
         <DayPicker
           mode="single"
           selected={selected ?? undefined}
@@ -118,6 +129,7 @@ export function DatePicker({
           month={month}
           onMonthChange={setMonth}
           disabled={disabledMatcher}
+          fixedWeeks
           showOutsideDays
           components={{
             Chevron: ({ orientation }) =>
@@ -153,6 +165,7 @@ export function DatePicker({
             hidden: "invisible",
           }}
         />
+        </div>
       </PopoverContent>
     </Popover>
   );
