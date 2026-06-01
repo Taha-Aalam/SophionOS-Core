@@ -338,7 +338,7 @@ export const noteService = {
       while (!data) {
         const { data: insertData, error } = await createClient()
           .from("notes")
-          .insert({ ...taskCleanedInput, user_id: userId, slug })
+          .insert({ ...taskCleanedInput, status, user_id: userId, slug })
           .select(NOTE_SELECT)
           .single();
 

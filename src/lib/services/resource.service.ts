@@ -5,6 +5,7 @@ import type { CreateResourceInput, Resource, UpdateResourceInput } from "../type
 import { createResourceSchema, updateResourceSchema } from "../validators/resource.schema";
 import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
 import type { ResourceStatus } from "../utils/constants";
+import { deriveResourceStatus } from "../utils/status-routing";
 
 const RESOURCE_SELECT =
   "id, user_id, area_id, project_id, topic_id, name, url, type, status, favorite, is_archived, metadata, created_at, updated_at";
@@ -301,9 +302,18 @@ export const resourceService = {
       const { goalIds, resourceInput: goalCleanedInput } = extractGoalIds(areaCleanedInput);
       const { taskIds, resourceInput } = extractTaskIds(goalCleanedInput);
 
+      const status =
+        resourceInput.status ??
+        deriveResourceStatus({
+          area_ids: areaIds,
+          project_id: resourceInput.project_id,
+          goal_ids: goalIds,
+          topic_id: resourceInput.topic_id,
+        });
+
       const { data, error } = await createClient()
         .from("resources")
-        .insert({ ...resourceInput, user_id: userId })
+        .insert({ ...resourceInput, status, user_id: userId })
         .select(RESOURCE_SELECT)
         .single();
 
