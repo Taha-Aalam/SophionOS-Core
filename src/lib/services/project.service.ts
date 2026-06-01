@@ -4,6 +4,7 @@ import { createProjectSchema, updateProjectSchema } from "../validators/project.
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
 import type { ProjectStatus } from "../utils/constants";
+import { deriveProjectStatus } from "../utils/status-routing";
 
 type ProjectRecord = Omit<Project, "slug"> & { slug?: string | null };
 type ProjectQueryError = { code?: string; message?: string } | null;
@@ -749,6 +750,9 @@ export const projectService = {
     const { areaIds, projectInput: areaCleanedInput } = extractProjectAreaIds(validated);
     const { goalIds, projectInput } = extractGoalIds(areaCleanedInput);
 
+    const status =
+      validated.status ?? deriveProjectStatus({ area_ids: areaIds, goal_ids: goalIds });
+
     const baseSlug = generateSlug(validated.name);
     const slug = await this.generateUniqueSlug(userId, baseSlug);
 
@@ -758,8 +762,8 @@ export const projectService = {
           .from("projects")
           .insert(
             selectClause === PROJECT_SELECT
-              ? { ...projectInput, user_id: userId, slug }
-              : { ...projectInput, user_id: userId },
+              ? { ...projectInput, status, user_id: userId, slug }
+              : { ...projectInput, status, user_id: userId },
           )
           .select(selectClause)
           .single(),

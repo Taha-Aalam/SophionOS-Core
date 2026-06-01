@@ -10,6 +10,7 @@ import type {
 import { createNoteSchema, updateNoteSchema } from "../validators/note.schema";
 import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
 import type { NoteStatus } from "../utils/constants";
+import { deriveNoteStatus } from "../utils/status-routing";
 import {
   buildSlug,
   dedupeAreaIds,
@@ -325,6 +326,15 @@ export const noteService = {
       const { goalIds, noteInput: goalCleanedInput } = extractGoalIds(areaCleanedInput);
       const { projectIds, noteInput: projectCleanedInput } = extractProjectIds(goalCleanedInput);
       const { taskIds, noteInput: taskCleanedInput } = extractTaskIds(projectCleanedInput);
+
+      const status =
+        validated.status ??
+        deriveNoteStatus({
+          area_ids: areaIds,
+          project_ids: projectIds,
+          goal_ids: goalIds,
+          topic_id: validated.topic_id,
+        });
 
       if (validated.type) {
         await upsertNoteType(userId, validated.type);
