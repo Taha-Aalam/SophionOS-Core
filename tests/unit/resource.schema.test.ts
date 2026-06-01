@@ -55,7 +55,8 @@ describe("resource.service", () => {
       const result = createResourceSchema.parse({ name: "My Resource" });
       expect(result.name).toBe("My Resource");
       expect(result.type).toBe("website");
-      expect(result.status).toBe("inbox");
+      // status is optional (derived by the service from context); no default on the schema
+      expect(result.status).toBeUndefined();
     });
 
     it("passes with full input", () => {
