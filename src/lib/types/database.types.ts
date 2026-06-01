@@ -459,6 +459,7 @@ export type Database = {
           is_important: boolean;
           is_urgent: boolean;
           completed_at: string | null;
+          previous_status: Database["public"]["Enums"]["task_status"] | null;
           smart_priority: number;
           is_archived: boolean;
           created_at: string;
@@ -479,6 +480,7 @@ export type Database = {
           is_important?: boolean;
           is_urgent?: boolean;
           completed_at?: string | null;
+          previous_status?: Database["public"]["Enums"]["task_status"] | null;
           smart_priority?: number;
           is_archived?: boolean;
           created_at?: string;
@@ -499,6 +501,7 @@ export type Database = {
           is_important?: boolean;
           is_urgent?: boolean;
           completed_at?: string | null;
+          previous_status?: Database["public"]["Enums"]["task_status"] | null;
           smart_priority?: number;
           is_archived?: boolean;
           created_at?: string;
