@@ -770,7 +770,7 @@ export type Database = {
       note_status: "inbox" | "to_review" | "active" | "archive" | "saved";
       note_type: "note" | "research" | "journal";
       priority: "low" | "medium" | "high" | "urgent";
-      project_status: "planning" | "active" | "completed" | "on_hold" | "archived";
+      project_status: "inbox" | "planning" | "active" | "completed" | "on_hold" | "archived";
       resource_status: "inbox" | "to_review" | "active" | "saved";
       resource_type: "website" | "article" | "video" | "document" | "podcast" | "social_media" | "tool";
       task_status: "inbox" | "todo" | "in_progress" | "completed" | "archived";
