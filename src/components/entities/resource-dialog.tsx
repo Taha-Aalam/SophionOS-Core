@@ -33,6 +33,7 @@ import { useTopics } from "@/lib/hooks/use-topics";
 import { createClient } from "@/lib/supabase/client";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "@/lib/types/domain.types";
 import { RESOURCE_STATUS, RESOURCE_TYPE, type ResourceStatus } from "@/lib/utils/constants";
+import { deriveResourceStatus } from "@/lib/utils/status-routing";
 import {
   computeVisibleAreas,
   computeFilteredProjects,
@@ -177,7 +178,14 @@ export function ResourceDialog({
         setName("");
         setUrl("");
         setType(RESOURCE_TYPE.WEBSITE);
-        setStatus(RESOURCE_STATUS.INBOX);
+        setStatus(
+          deriveResourceStatus({
+            area_ids: initialAreaIds,
+            project_id: initialProjectId,
+            goal_ids: initialGoalIds,
+            topic_id: initialTopicId,
+          }),
+        );
         setAreaIds(initialAreaIds ?? []);
         setProjectId(initialProjectId ?? "");
         setTopicId(initialTopicId ?? "");
