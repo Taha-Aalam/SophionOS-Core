@@ -644,6 +644,7 @@ export function TaskDialog({
                         <SelectItem value={TASK_STATUS.INBOX}>Inbox</SelectItem>
                         <SelectItem value={TASK_STATUS.TODO}>To Do</SelectItem>
                         <SelectItem value={TASK_STATUS.IN_PROGRESS}>In Progress</SelectItem>
+                        <SelectItem value={TASK_STATUS.COMPLETED}>Completed</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
