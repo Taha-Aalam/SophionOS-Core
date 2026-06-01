@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@base-ui/react", "@base-ui/utils"],
   poweredByHeader: false,
   compress: true,
   images: {
