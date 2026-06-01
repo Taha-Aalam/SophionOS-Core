@@ -3,6 +3,11 @@ import { DatabaseError, NotFoundError, ValidationError } from "../api/error-hand
 import { createClient } from "../supabase/client";
 import type { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
 import { TASK_STATUS, type TaskStatus } from "../utils/constants";
+import {
+  buildCompletePatch,
+  buildUncompletePatch,
+  resolveTaskCompletionOnUpdate,
+} from "../utils/task-completion";
 import { deriveTaskStatus } from "../utils/status-routing";
 import { createTaskSchema, updateTaskSchema } from "../validators/task.schema";
 
@@ -388,6 +393,34 @@ export const taskService = {
         extractTaskProjectIds(areaCleanedInput);
       const { goalIds, taskInput } = extractGoalIds(projectCleanedInput);
       const hasTaskUpdates = Object.keys(taskInput).length > 0;
+      const taskInputWide = taskInput as Record<string, unknown> & {
+        status?: TaskStatus;
+        is_completed?: boolean;
+        previous_status?: TaskStatus | null;
+        completed_at?: string | null;
+      };
+
+      const touchesCompletion =
+        taskInputWide.status !== undefined || taskInputWide.is_completed !== undefined;
+      if (touchesCompletion) {
+        const current = await this.getById(userId, id);
+        const fallback = deriveTaskStatus({
+          area_ids: current.linkedAreaIds,
+          project_ids: current.linkedProjectIds,
+        });
+        const syncPatch = resolveTaskCompletionOnUpdate({
+          incomingStatus: taskInputWide.status,
+          incomingIsCompleted: taskInputWide.is_completed,
+          current: {
+            status: current.status,
+            is_completed: current.is_completed,
+            previous_status: current.previous_status ?? null,
+          },
+          fallbackStatus: fallback,
+          now: new Date().toISOString(),
+        });
+        Object.assign(taskInputWide, syncPatch);
+      }
 
       const data = hasTaskUpdates
         ? await (async () => {
@@ -434,9 +467,12 @@ export const taskService = {
   },
 
   async complete(userId: string, id: string): Promise<Task> {
+    const current = await this.getById(userId, id);
+    const patch = buildCompletePatch(current.status, new Date().toISOString());
+
     const { data, error } = await createClient()
       .from("tasks")
-      .update({ is_completed: true, completed_at: new Date().toISOString() })
+      .update(patch)
       .eq("user_id", userId)
       .eq("id", id)
       .select(TASK_SELECT)
@@ -503,9 +539,16 @@ export const taskService = {
   },
 
   async uncomplete(userId: string, id: string): Promise<Task> {
+    const current = await this.getById(userId, id);
+    const fallback = deriveTaskStatus({
+      area_ids: current.linkedAreaIds,
+      project_ids: current.linkedProjectIds,
+    });
+    const patch = buildUncompletePatch(current.previous_status ?? null, fallback);
+
     const { data, error } = await createClient()
       .from("tasks")
-      .update({ is_completed: false, completed_at: null })
+      .update(patch)
       .eq("user_id", userId)
       .eq("id", id)
       .select(TASK_SELECT)
