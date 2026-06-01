@@ -16,6 +16,7 @@ import {
 import { Task } from "@/lib/types/domain.types";
 import { getStableStringArray } from "@/lib/utils/stable-arrays";
 import { PRIORITY, TASK_STATUS } from "@/lib/utils/constants";
+import { deriveTaskStatus } from "@/lib/utils/status-routing";
 import {
   applyGoalScopedDefaults,
   applyProjectScopedAreaGuard,
@@ -154,19 +155,24 @@ function buildTaskFormValues(
     if (goalScoped) {
       const scopedAreaIds = goalScoped.linkedAreaIds?.length
         ? goalScoped.linkedAreaIds
-        : goalScoped.areaId ? [goalScoped.areaId] : [];
+        : goalScoped.areaId
+          ? [goalScoped.areaId]
+          : [];
       return {
         ...EMPTY_FORM_VALUES,
         area_ids: scopedAreaIds,
         project_id: "",
         project_ids: [],
         goal_ids: [goalScoped.goalId],
+        status: deriveTaskStatus({ area_ids: scopedAreaIds }),
       };
     }
     if (projectScoped) {
       const scopedAreaIds = projectScoped.linkedAreaIds?.length
         ? projectScoped.linkedAreaIds
-        : projectScoped.areaId ? [projectScoped.areaId] : [];
+        : projectScoped.areaId
+          ? [projectScoped.areaId]
+          : [];
       return {
         ...EMPTY_FORM_VALUES,
         area_ids: scopedAreaIds,
@@ -177,6 +183,7 @@ function buildTaskFormValues(
           : defaultGoalId
             ? [defaultGoalId]
             : [],
+        status: deriveTaskStatus({ area_ids: scopedAreaIds, project_ids: [projectScoped.projectId] }),
       };
     }
     return {
@@ -185,6 +192,10 @@ function buildTaskFormValues(
       project_id: defaultProjectId ?? "",
       project_ids: defaultProjectId ? [defaultProjectId] : [],
       goal_ids: defaultGoalId ? [defaultGoalId] : [],
+      status: deriveTaskStatus({
+        area_ids: defaultAreaId ? [defaultAreaId] : [],
+        project_ids: defaultProjectId ? [defaultProjectId] : [],
+      }),
     };
   }
 

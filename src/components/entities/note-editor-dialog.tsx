@@ -74,7 +74,6 @@ function NoteEditorDialogForm({
       const createInput: Parameters<typeof createNote.mutateAsync>[0] = {
         name: name || "Untitled note",
         content,
-        status: "inbox",
       };
 
       if (goalId) {

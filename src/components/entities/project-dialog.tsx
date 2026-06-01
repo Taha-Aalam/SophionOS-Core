@@ -16,6 +16,7 @@ import { type CreateProjectInput, type Project } from "@/lib/types/domain.types"
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
 import { getStableStringArray } from "@/lib/utils/stable-arrays";
 import { PRIORITY, PROJECT_STATUS } from "@/lib/utils/constants";
+import { deriveProjectStatus } from "@/lib/utils/status-routing";
 import {
   filterProjectDialogAreas,
   filterProjectDialogGoals,
@@ -105,12 +106,20 @@ function buildProjectFormValues(
         ...EMPTY_FORM_VALUES,
         area_ids: goalScoped.areaId ? [goalScoped.areaId] : [],
         goal_ids: [goalScoped.goalId],
+        status: deriveProjectStatus({
+          area_ids: goalScoped.areaId ? [goalScoped.areaId] : [],
+          goal_ids: [goalScoped.goalId],
+        }),
       };
     }
     return {
       ...EMPTY_FORM_VALUES,
       area_ids: defaultAreaIds ?? [],
       goal_ids: defaultGoalId ? [defaultGoalId] : [],
+      status: deriveProjectStatus({
+        area_ids: defaultAreaIds ?? [],
+        goal_ids: defaultGoalId ? [defaultGoalId] : [],
+      }),
     };
   }
 
@@ -359,6 +368,7 @@ export function ProjectDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value={PROJECT_STATUS.INBOX}>Inbox</SelectItem>
                         <SelectItem value={PROJECT_STATUS.PLANNING}>Planning</SelectItem>
                         <SelectItem value={PROJECT_STATUS.ACTIVE}>In Progress</SelectItem>
                         <SelectItem value={PROJECT_STATUS.COMPLETED}>Completed</SelectItem>
