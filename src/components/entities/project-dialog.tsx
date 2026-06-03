@@ -110,6 +110,8 @@ function buildProjectFormValues(
         status: deriveProjectStatus({
           area_ids: goalScoped.areaId ? [goalScoped.areaId] : [],
           goal_ids: [goalScoped.goalId],
+          start_date: EMPTY_FORM_VALUES.start_date,
+          due_date: EMPTY_FORM_VALUES.due_date,
         }),
       };
     }
@@ -120,6 +122,8 @@ function buildProjectFormValues(
       status: deriveProjectStatus({
         area_ids: defaultAreaIds ?? [],
         goal_ids: defaultGoalId ? [defaultGoalId] : [],
+        start_date: EMPTY_FORM_VALUES.start_date,
+        due_date: EMPTY_FORM_VALUES.due_date,
       }),
     };
   }
@@ -193,6 +197,7 @@ export function ProjectDialog({
     today.getDate(),
   ).padStart(2, "0")}`;
   const selectedStartDate = useWatch({ control: form.control, name: "start_date" }) ?? "";
+  const selectedDueDate = useWatch({ control: form.control, name: "due_date" }) ?? "";
   const watchedGoalIds = useWatch({ control: form.control, name: "goal_ids" });
   const selectedGoalIds = useMemo(() => watchedGoalIds ?? [], [watchedGoalIds]);
 
@@ -204,8 +209,17 @@ export function ProjectDialog({
       deriveProjectStatus({
         area_ids: selectedAreaIds,
         goal_ids: selectedGoalIds,
+        start_date: selectedStartDate,
+        due_date: selectedDueDate,
       }),
-    [open, project, selectedAreaIds, selectedGoalIds],
+    [
+      open,
+      project,
+      selectedAreaIds,
+      selectedGoalIds,
+      selectedStartDate,
+      selectedDueDate,
+    ],
   );
   // Both create and edit flows enforce a today-or-future minimum for the due
   // date picker. When editing a project whose stored value is in the past,

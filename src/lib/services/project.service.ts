@@ -751,7 +751,13 @@ export const projectService = {
     const { goalIds, projectInput } = extractGoalIds(areaCleanedInput);
 
     const status =
-      validated.status ?? deriveProjectStatus({ area_ids: areaIds, goal_ids: goalIds });
+      validated.status ??
+      deriveProjectStatus({
+        area_ids: areaIds,
+        goal_ids: goalIds,
+        start_date: validated.start_date,
+        due_date: validated.due_date,
+      });
 
     const baseSlug = generateSlug(validated.name);
     const slug = await this.generateUniqueSlug(userId, baseSlug);
@@ -796,7 +802,16 @@ export const projectService = {
       (areaIds !== undefined || goalIds !== undefined) &&
       projectInputWide.status === undefined;
     if (touchesContext) {
-      const derived = deriveProjectStatus({ area_ids: areaIds, goal_ids: goalIds });
+      const updateInput = projectInput as {
+        start_date?: string | null;
+        due_date?: string | null;
+      };
+      const derived = deriveProjectStatus({
+        area_ids: areaIds,
+        goal_ids: goalIds,
+        start_date: updateInput.start_date ?? validated.start_date,
+        due_date: updateInput.due_date ?? validated.due_date,
+      });
       if (derived !== projectInputWide.status) {
         projectInputWide.status = derived;
       }
@@ -978,15 +993,9 @@ export const projectService = {
       // Keep `projects.area_id` in sync AND re-derive the project status from
       // the new context so linking/unlinking an area flips an inbox project to
       // planning (and back) without going through the full update() path.
-      const derivedStatus = deriveProjectStatus({
-        area_id: primaryAreaId,
-        area_ids: areaIds,
-        goal_ids: existingRelations.goal_ids,
-      });
-
       const { data: currentProject, error: fetchError } = await createClient()
         .from("projects")
-        .select("status")
+        .select("status, start_date, due_date")
         .eq("id", projectId)
         .eq("user_id", userId)
         .maybeSingle();
@@ -998,8 +1007,17 @@ export const projectService = {
       const updatePayload: { area_id: string | null; status?: ProjectStatus } = {
         area_id: primaryAreaId,
       };
-      if (currentProject && currentProject.status !== derivedStatus) {
-        updatePayload.status = derivedStatus;
+      if (currentProject) {
+        const derived = deriveProjectStatus({
+          area_id: primaryAreaId,
+          area_ids: areaIds,
+          goal_ids: existingRelations.goal_ids,
+          start_date: currentProject.start_date,
+          due_date: currentProject.due_date,
+        });
+        if (derived !== currentProject.status) {
+          updatePayload.status = derived;
+        }
       }
 
       const { error } = await createClient()
@@ -1062,7 +1080,7 @@ export const projectService = {
     // context) so linking/unlinking a goal flips the status appropriately.
     const { data: currentProject, error: fetchError } = await createClient()
       .from("projects")
-      .select("status, area_id")
+      .select("status, area_id, start_date, due_date")
       .eq("id", projectId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -1077,6 +1095,8 @@ export const projectService = {
       area_id: currentProject.area_id,
       area_ids: existingRelations.area_ids,
       goal_ids: goalIds,
+      start_date: currentProject.start_date,
+      due_date: currentProject.due_date,
     });
 
     if (derivedStatus !== currentProject.status) {
@@ -1128,7 +1148,7 @@ export const projectService = {
     const relations = await this.getWithRelations(userId, projectId);
     const { data: currentProject, error: fetchError } = await createClient()
       .from("projects")
-      .select("status, area_id")
+      .select("status, area_id, start_date, due_date")
       .eq("id", projectId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -1142,6 +1162,8 @@ export const projectService = {
       area_id: currentProject.area_id,
       area_ids: relations.area_ids,
       goal_ids: relations.goal_ids,
+      start_date: currentProject.start_date,
+      due_date: currentProject.due_date,
     });
 
     if (derivedStatus !== currentProject.status) {

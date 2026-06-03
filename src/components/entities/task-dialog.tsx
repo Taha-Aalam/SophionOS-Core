@@ -165,7 +165,10 @@ function buildTaskFormValues(
         project_id: "",
         project_ids: [],
         goal_ids: [goalScoped.goalId],
-        status: deriveTaskStatus({ area_ids: scopedAreaIds }),
+        status: deriveTaskStatus({
+          area_ids: scopedAreaIds,
+          goal_ids: [goalScoped.goalId],
+        }),
       };
     }
     if (projectScoped) {
@@ -184,7 +187,15 @@ function buildTaskFormValues(
           : defaultGoalId
             ? [defaultGoalId]
             : [],
-        status: deriveTaskStatus({ area_ids: scopedAreaIds, project_ids: [projectScoped.projectId] }),
+        status: deriveTaskStatus({
+          area_ids: scopedAreaIds,
+          goal_ids: projectScoped.linkedGoalIds?.length
+            ? projectScoped.linkedGoalIds
+            : defaultGoalId
+              ? [defaultGoalId]
+              : [],
+          project_ids: [projectScoped.projectId],
+        }),
       };
     }
     return {
@@ -195,6 +206,7 @@ function buildTaskFormValues(
       goal_ids: defaultGoalId ? [defaultGoalId] : [],
       status: deriveTaskStatus({
         area_ids: defaultAreaId ? [defaultAreaId] : [],
+        goal_ids: defaultGoalId ? [defaultGoalId] : [],
         project_ids: defaultProjectId ? [defaultProjectId] : [],
       }),
     };
@@ -389,9 +401,10 @@ export function TaskDialog({
     () =>
       deriveTaskStatus({
         area_ids: selectedAreaIds,
+        goal_ids: selectedGoalIds,
         project_ids: selectedProjectIds,
       }),
-    [open, task, selectedAreaIds, selectedProjectIds],
+    [open, task, selectedAreaIds, selectedGoalIds, selectedProjectIds],
   );
 
   // Keep the legacy single `project_id` form field in sync with the

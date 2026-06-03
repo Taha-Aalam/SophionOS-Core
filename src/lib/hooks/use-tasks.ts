@@ -259,6 +259,7 @@ export function useUncompleteTask() {
                   task.previous_status ??
                   deriveTaskStatus({
                     area_ids: task.linkedAreaIds,
+                    goal_ids: task.linkedGoalIds,
                     project_ids: task.linkedProjectIds,
                   }),
               }
