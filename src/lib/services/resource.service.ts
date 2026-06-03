@@ -557,6 +557,8 @@ export const resourceService = {
     if (error) {
       throw new DatabaseError(error.message);
     }
+
+    await this.syncResourceStatusFromContext(resourceId);
   },
 
   async unlinkFromGoal(goalId: string, resourceId: string): Promise<void> {
@@ -568,6 +570,65 @@ export const resourceService = {
 
     if (error) {
       throw new DatabaseError(error.message);
+    }
+
+    await this.syncResourceStatusFromContext(resourceId);
+  },
+
+  async linkToTask(taskId: string, resourceId: string): Promise<void> {
+    const { error } = await createClient()
+      .from("task_resources")
+      .upsert({ task_id: taskId, resource_id: resourceId });
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+    // Task link doesn't move resource status (resource context = area/project/goal/topic).
+  },
+
+  async unlinkFromTask(taskId: string, resourceId: string): Promise<void> {
+    const { error } = await createClient()
+      .from("task_resources")
+      .delete()
+      .eq("task_id", taskId)
+      .eq("resource_id", resourceId);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+  },
+
+  /** Re-derive a resource's status from its current area/project/goal/topic context. */
+  async syncResourceStatusFromContext(resourceId: string): Promise<void> {
+    const relations = await this.getWithRelations(resourceId);
+    const { data: resource, error: fetchError } = await createClient()
+      .from("resources")
+      .select("status, area_id, project_id, topic_id")
+      .eq("id", resourceId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new DatabaseError(fetchError.message);
+    }
+    if (!resource) return;
+
+    const derivedStatus = deriveResourceStatus({
+      area_id: resource.area_id,
+      area_ids: relations.area_ids,
+      project_id: resource.project_id,
+      goal_ids: relations.goal_ids,
+      topic_id: resource.topic_id,
+    });
+
+    if (derivedStatus !== resource.status) {
+      const { error } = await createClient()
+        .from("resources")
+        .update({ status: derivedStatus })
+        .eq("id", resourceId);
+
+      if (error) {
+        throw new DatabaseError(error.message);
+      }
     }
   },
 
@@ -641,6 +702,8 @@ export const resourceService = {
         throw new DatabaseError(error.message);
       }
     }
+
+    await this.syncResourceStatusFromContext(resourceId);
   },
 
   async replaceAreaLinks(resourceId: string, areaIds: string[]): Promise<void> {
@@ -671,6 +734,8 @@ export const resourceService = {
         throw new DatabaseError(error.message);
       }
     }
+
+    await this.syncResourceStatusFromContext(resourceId);
   },
 
   async replaceTaskLinks(resourceId: string, taskIds: string[]): Promise<void> {
@@ -704,28 +769,6 @@ export const resourceService = {
           throw new DatabaseError(error.message);
         }
       }
-    }
-  },
-
-  async linkToTask(taskId: string, resourceId: string): Promise<void> {
-    const { error } = await createClient()
-      .from("task_resources")
-      .upsert({ task_id: taskId, resource_id: resourceId });
-
-    if (error) {
-      throw new DatabaseError(error.message);
-    }
-  },
-
-  async unlinkFromTask(taskId: string, resourceId: string): Promise<void> {
-    const { error } = await createClient()
-      .from("task_resources")
-      .delete()
-      .eq("task_id", taskId)
-      .eq("resource_id", resourceId);
-
-    if (error) {
-      throw new DatabaseError(error.message);
     }
   },
 };

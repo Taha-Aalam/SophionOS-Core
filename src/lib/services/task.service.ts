@@ -714,6 +714,8 @@ export const taskService = {
         throw new DatabaseError(error.message);
       }
     }
+
+    await this.syncTaskStatusFromContext(taskId);
   },
 
   async replaceGoalLinks(_userId: string, taskId: string, goalIds: string[]): Promise<void> {
@@ -775,6 +777,45 @@ export const taskService = {
         .in("project_id", projectIdsToRemove);
 
       if (error && !isMissingTaskProjectsTableError(error)) {
+        throw new DatabaseError(error.message);
+      }
+    }
+
+    await this.syncTaskStatusFromContext(taskId);
+  },
+
+  /** Re-derive a task's status from its current area + project context. */
+  async syncTaskStatusFromContext(taskId: string): Promise<void> {
+    const { data: task, error: fetchError } = await createClient()
+      .from("tasks")
+      .select("status, area_id, project_id")
+      .eq("id", taskId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new DatabaseError(fetchError.message);
+    }
+    if (!task) return;
+
+    const [areaIds, projectIds] = await Promise.all([
+      this.getAreaLinks(taskId),
+      this.getProjectLinks(taskId),
+    ]);
+
+    const derivedStatus = deriveTaskStatus({
+      area_id: task.area_id,
+      area_ids: areaIds,
+      project_id: task.project_id,
+      project_ids: projectIds,
+    });
+
+    if (derivedStatus !== task.status) {
+      const { error } = await createClient()
+        .from("tasks")
+        .update({ status: derivedStatus })
+        .eq("id", taskId);
+
+      if (error) {
         throw new DatabaseError(error.message);
       }
     }
