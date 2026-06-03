@@ -408,6 +408,29 @@ export const noteService = {
         : projectCleanedInput;
       const validated = updateNoteSchema.parse(noteInputFinal);
       const hasNoteUpdates = Object.keys(validated).length > 0;
+      const validatedWide = validated as Record<string, unknown> & {
+        status?: NoteStatus;
+      };
+
+      // Context-only update (area/project/goal/topic were sent, but the caller
+      // did not touch status). Re-derive the status from the new context.
+      const touchesContext =
+        (areaIds !== undefined ||
+          projectIds !== undefined ||
+          goalIds !== undefined ||
+          validatedWide.topic_id !== undefined) &&
+        validatedWide.status === undefined;
+      if (touchesContext) {
+        const derived = deriveNoteStatus({
+          area_ids: areaIds,
+          project_ids: projectIds,
+          goal_ids: goalIds,
+          topic_id: validatedWide.topic_id as string | null | undefined,
+        });
+        if (derived !== validatedWide.status) {
+          validatedWide.status = derived;
+        }
+      }
 
       if (validated.type) {
         await upsertNoteType(userId, validated.type);
