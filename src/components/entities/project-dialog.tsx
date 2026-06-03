@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
+import { useDerivedStatus } from "@/lib/hooks/use-derived-status";
 import {
   useCreateProject,
   useProjectWithRelations,
@@ -194,6 +195,18 @@ export function ProjectDialog({
   const selectedStartDate = useWatch({ control: form.control, name: "start_date" }) ?? "";
   const watchedGoalIds = useWatch({ control: form.control, name: "goal_ids" });
   const selectedGoalIds = useMemo(() => watchedGoalIds ?? [], [watchedGoalIds]);
+
+  // Live re-derive status from current area/goal context (only in create mode —
+  // edit mode should keep the existing entity's stored status untouched).
+  useDerivedStatus<ProjectFormValues>(
+    form,
+    () =>
+      deriveProjectStatus({
+        area_ids: selectedAreaIds,
+        goal_ids: selectedGoalIds,
+      }),
+    [open, project, selectedAreaIds, selectedGoalIds],
+  );
   // Both create and edit flows enforce a today-or-future minimum for the due
   // date picker. When editing a project whose stored value is in the past,
   // the input still renders that value (the browser allows out-of-range

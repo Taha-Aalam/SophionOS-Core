@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -194,6 +194,36 @@ export function ResourceDialog({
       });
     }
   }, [open, resource, initialGoalIds, initialAreaIds, initialProjectId, initialTopicId]);
+
+  // Live re-derive status from current context (create mode only — edit
+  // mode keeps the existing entity's stored status). User-initiated status
+  // changes are preserved between context changes; the next context change
+  // re-derives automatically.
+  const statusOverriddenRef = useRef(false);
+  useEffect(() => {
+    // Reset override whenever the dialog re-opens or switches to edit/create.
+    statusOverriddenRef.current = false;
+  }, [open, resource]);
+
+  useEffect(() => {
+    if (resource) return; // edit mode: don't touch status
+    if (statusOverriddenRef.current) return;
+    const next = deriveResourceStatus({
+      area_ids: areaIds,
+      project_id: projectId || null,
+      goal_ids: goalIds,
+      topic_id: topicId || null,
+    });
+    if (next !== status) {
+      setStatus(next);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [areaIds, projectId, topicId, goalIds]);
+
+  const handleStatusChange = (next: ResourceStatus) => {
+    statusOverriddenRef.current = true;
+    setStatus(next);
+  };
 
   const handleUrlBlur = () => {
     if (url && !name) {
@@ -393,7 +423,7 @@ export function ResourceDialog({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="res-status">Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as ResourceStatus)}>
+              <Select value={status} onValueChange={(v) => handleStatusChange(v as ResourceStatus)}>
                 <SelectTrigger id="res-status" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
