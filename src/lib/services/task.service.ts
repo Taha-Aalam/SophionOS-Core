@@ -422,6 +422,23 @@ export const taskService = {
         Object.assign(taskInputWide, syncPatch);
       }
 
+      // Context-only update (area_ids and/or project_ids were sent, but the
+      // caller did not touch status). Re-derive the status from the new
+      // context so an inbox task that gets a linked area flips to todo.
+      const touchesContext =
+        (areaIds !== undefined || projectIds !== undefined) &&
+        taskInputWide.status === undefined &&
+        taskInputWide.is_completed === undefined;
+      if (touchesContext) {
+        const derived = deriveTaskStatus({
+          area_ids: areaIds,
+          project_ids: projectIds,
+        });
+        if (derived !== taskInputWide.status) {
+          taskInputWide.status = derived;
+        }
+      }
+
       const data = hasTaskUpdates
         ? await (async () => {
             const { data: updatedTask, error } = await createClient()

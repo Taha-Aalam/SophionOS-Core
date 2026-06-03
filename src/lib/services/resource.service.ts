@@ -350,6 +350,29 @@ export const resourceService = {
       const { areaIds, resourceInput: areaCleanedInput } = extractResourceAreaIds(rest);
       const validated = updateResourceSchema.parse(areaCleanedInput);
       const hasResourceUpdates = Object.keys(validated).length > 0;
+      const validatedWide = validated as Record<string, unknown> & {
+        status?: ResourceStatus;
+      };
+
+      // Context-only update (area/project/goal/topic were sent, but the caller
+      // did not touch status). Re-derive the status from the new context.
+      const touchesContext =
+        (areaIds !== undefined ||
+          validatedWide.project_id !== undefined ||
+          goalIds !== undefined ||
+          validatedWide.topic_id !== undefined) &&
+        validatedWide.status === undefined;
+      if (touchesContext) {
+        const derived = deriveResourceStatus({
+          area_ids: areaIds,
+          project_id: validatedWide.project_id as string | null | undefined,
+          goal_ids: goalIds,
+          topic_id: validatedWide.topic_id as string | null | undefined,
+        });
+        if (derived !== validatedWide.status) {
+          validatedWide.status = derived;
+        }
+      }
 
       const resource = hasResourceUpdates
         ? await (async () => {

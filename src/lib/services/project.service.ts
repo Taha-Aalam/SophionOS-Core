@@ -786,6 +786,21 @@ export const projectService = {
     const { areaIds, projectInput: areaCleanedInput } = extractProjectAreaIds(validated);
     const { goalIds, projectInput } = extractGoalIds(areaCleanedInput);
     const hasProjectUpdates = Object.keys(projectInput).length > 0;
+    const projectInputWide = projectInput as Record<string, unknown> & {
+      status?: ProjectStatus;
+    };
+
+    // Context-only update (area_ids and/or goal_ids were sent, but the caller
+    // did not touch status). Re-derive the status from the new context.
+    const touchesContext =
+      (areaIds !== undefined || goalIds !== undefined) &&
+      projectInputWide.status === undefined;
+    if (touchesContext) {
+      const derived = deriveProjectStatus({ area_ids: areaIds, goal_ids: goalIds });
+      if (derived !== projectInputWide.status) {
+        projectInputWide.status = derived;
+      }
+    }
 
     const project = hasProjectUpdates
       ? await runWriteProjectQuery(
