@@ -346,7 +346,12 @@ export const taskService = {
         extractTaskProjectIds(areaCleanedInput);
       const { goalIds, taskInput } = extractGoalIds(projectCleanedInput);
       const status =
-        validated.status ?? deriveTaskStatus({ area_ids: areaIds, project_ids: projectIds });
+        validated.status ??
+        deriveTaskStatus({
+          area_ids: areaIds,
+          goal_ids: goalIds,
+          project_ids: projectIds,
+        });
 
       const { data, error } = await createClient()
         .from("tasks")
@@ -406,6 +411,7 @@ export const taskService = {
         const current = await this.getById(userId, id);
         const fallback = deriveTaskStatus({
           area_ids: current.linkedAreaIds,
+          goal_ids: current.linkedGoalIds,
           project_ids: current.linkedProjectIds,
         });
         const syncPatch = resolveTaskCompletionOnUpdate({
@@ -422,16 +428,19 @@ export const taskService = {
         Object.assign(taskInputWide, syncPatch);
       }
 
-      // Context-only update (area_ids and/or project_ids were sent, but the
-      // caller did not touch status). Re-derive the status from the new
+      // Context-only update (area_ids / goal_ids / project_ids were sent, but
+      // the caller did not touch status). Re-derive the status from the new
       // context so an inbox task that gets a linked area flips to todo.
       const touchesContext =
-        (areaIds !== undefined || projectIds !== undefined) &&
+        (areaIds !== undefined ||
+          goalIds !== undefined ||
+          projectIds !== undefined) &&
         taskInputWide.status === undefined &&
         taskInputWide.is_completed === undefined;
       if (touchesContext) {
         const derived = deriveTaskStatus({
           area_ids: areaIds,
+          goal_ids: goalIds,
           project_ids: projectIds,
         });
         if (derived !== taskInputWide.status) {
@@ -559,6 +568,7 @@ export const taskService = {
     const current = await this.getById(userId, id);
     const fallback = deriveTaskStatus({
       area_ids: current.linkedAreaIds,
+      goal_ids: current.linkedGoalIds,
       project_ids: current.linkedProjectIds,
     });
     const patch = buildUncompletePatch(current.previous_status ?? null, fallback);
@@ -742,6 +752,8 @@ export const taskService = {
 
       if (error) throw new DatabaseError(error.message);
     }
+
+    await this.syncTaskStatusFromContext(taskId);
   },
 
   async replaceProjectLinks(
@@ -784,7 +796,7 @@ export const taskService = {
     await this.syncTaskStatusFromContext(taskId);
   },
 
-  /** Re-derive a task's status from its current area + project context. */
+  /** Re-derive a task's status from its current area + goal + project context. */
   async syncTaskStatusFromContext(taskId: string): Promise<void> {
     const { data: task, error: fetchError } = await createClient()
       .from("tasks")
@@ -797,14 +809,16 @@ export const taskService = {
     }
     if (!task) return;
 
-    const [areaIds, projectIds] = await Promise.all([
+    const [areaIds, goalIds, projectIds] = await Promise.all([
       this.getAreaLinks(taskId),
+      this.getGoalLinks(taskId),
       this.getProjectLinks(taskId),
     ]);
 
     const derivedStatus = deriveTaskStatus({
       area_id: task.area_id,
       area_ids: areaIds,
+      goal_ids: goalIds,
       project_id: task.project_id,
       project_ids: projectIds,
     });

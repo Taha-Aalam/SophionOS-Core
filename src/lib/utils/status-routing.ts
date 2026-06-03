@@ -14,14 +14,24 @@ function hasAny(...values: Array<Maybe | string[]>): boolean {
   return values.some((v) => (Array.isArray(v) ? v.length > 0 : Boolean(v)));
 }
 
-/** Task context = area OR project (single or multi). */
+/**
+ * Task context = area, goal, OR project.
+ * No context → inbox. Any context → todo.
+ */
 export function deriveTaskStatus(input: {
   area_id?: Maybe;
   area_ids?: string[];
+  goal_ids?: string[];
   project_id?: Maybe;
   project_ids?: string[];
 }): TaskStatus {
-  return hasAny(input.area_id, input.area_ids, input.project_id, input.project_ids)
+  return hasAny(
+    input.area_id,
+    input.area_ids,
+    input.goal_ids,
+    input.project_id,
+    input.project_ids,
+  )
     ? TASK_STATUS.TODO
     : TASK_STATUS.INBOX;
 }
@@ -66,13 +76,21 @@ export function deriveResourceStatus(input: {
     : RESOURCE_STATUS.INBOX;
 }
 
-/** Project context = area OR goal. */
+/**
+ * Project context = area OR goal.
+ * No context → inbox. Context present → planning only when both
+ * start_date and due_date are set; otherwise stays in inbox.
+ */
 export function deriveProjectStatus(input: {
   area_id?: Maybe;
   area_ids?: string[];
   goal_ids?: string[];
+  start_date?: Maybe;
+  due_date?: Maybe;
 }): ProjectStatus {
-  return hasAny(input.area_id, input.area_ids, input.goal_ids)
-    ? PROJECT_STATUS.PLANNING
-    : PROJECT_STATUS.INBOX;
+  const hasContext = hasAny(input.area_id, input.area_ids, input.goal_ids);
+  if (!hasContext) return PROJECT_STATUS.INBOX;
+
+  const hasDates = Boolean(input.start_date) && Boolean(input.due_date);
+  return hasDates ? PROJECT_STATUS.PLANNING : PROJECT_STATUS.INBOX;
 }
