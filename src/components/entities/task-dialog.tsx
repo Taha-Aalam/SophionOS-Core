@@ -6,6 +6,7 @@ import { Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAreas, useAreasByIds } from "@/lib/hooks/use-areas";
+import { useDerivedStatus } from "@/lib/hooks/use-derived-status";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
@@ -380,6 +381,18 @@ export function TaskDialog({
   // with code paths that read task.project_id directly.
   const selectedProjectId = form.watch("project_id");
   const isPending = createTask.isPending || updateTask.isPending;
+
+  // Live re-derive status from current area/project context (only meaningful
+  // in create mode — edit mode keeps the existing entity's stored status).
+  useDerivedStatus<TaskFormValues>(
+    form,
+    () =>
+      deriveTaskStatus({
+        area_ids: selectedAreaIds,
+        project_ids: selectedProjectIds,
+      }),
+    [open, task, selectedAreaIds, selectedProjectIds],
+  );
 
   // Keep the legacy single `project_id` form field in sync with the
   // first item in `project_ids`. The service layer also sets the row's
