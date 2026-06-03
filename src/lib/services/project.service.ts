@@ -975,9 +975,36 @@ export const projectService = {
 
     const primaryAreaId = areaIds[0] ?? null;
     if (primaryAreaId !== undefined) {
+      // Keep `projects.area_id` in sync AND re-derive the project status from
+      // the new context so linking/unlinking an area flips an inbox project to
+      // planning (and back) without going through the full update() path.
+      const derivedStatus = deriveProjectStatus({
+        area_id: primaryAreaId,
+        area_ids: areaIds,
+        goal_ids: existingRelations.goal_ids,
+      });
+
+      const { data: currentProject, error: fetchError } = await createClient()
+        .from("projects")
+        .select("status")
+        .eq("id", projectId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (fetchError) {
+        throw new DatabaseError(fetchError.message);
+      }
+
+      const updatePayload: { area_id: string | null; status?: ProjectStatus } = {
+        area_id: primaryAreaId,
+      };
+      if (currentProject && currentProject.status !== derivedStatus) {
+        updatePayload.status = derivedStatus;
+      }
+
       const { error } = await createClient()
         .from("projects")
-        .update({ area_id: primaryAreaId })
+        .update(updatePayload)
         .eq("id", projectId)
         .eq("user_id", userId);
 
@@ -1030,6 +1057,39 @@ export const projectService = {
         throw new DatabaseError(error.message);
       }
     }
+
+    // Re-derive status from the new goal context (plus any existing area
+    // context) so linking/unlinking a goal flips the status appropriately.
+    const { data: currentProject, error: fetchError } = await createClient()
+      .from("projects")
+      .select("status, area_id")
+      .eq("id", projectId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new DatabaseError(fetchError.message);
+    }
+
+    if (!currentProject) return;
+
+    const derivedStatus = deriveProjectStatus({
+      area_id: currentProject.area_id,
+      area_ids: existingRelations.area_ids,
+      goal_ids: goalIds,
+    });
+
+    if (derivedStatus !== currentProject.status) {
+      const { error } = await createClient()
+        .from("projects")
+        .update({ status: derivedStatus })
+        .eq("id", projectId)
+        .eq("user_id", userId);
+
+      if (error) {
+        throw new DatabaseError(error.message);
+      }
+    }
   },
 
   async linkToGoal(userId: string, projectId: string, goalId: string): Promise<void> {
@@ -1040,6 +1100,8 @@ export const projectService = {
     if (error) {
       throw new DatabaseError(error.message);
     }
+
+    await this.syncProjectStatusFromContext(userId, projectId);
   },
 
   async unlinkFromGoal(userId: string, projectId: string, goalId: string): Promise<void> {
@@ -1051,6 +1113,47 @@ export const projectService = {
 
     if (error) {
       throw new DatabaseError(error.message);
+    }
+
+    await this.syncProjectStatusFromContext(userId, projectId);
+  },
+
+  /**
+   * Re-reads the project's current area + goal context, derives the
+   * expected status, and writes it back if it differs. Used by bypass
+   * link/unlink actions that mutate junction tables without going through
+   * the full `update()` path.
+   */
+  async syncProjectStatusFromContext(userId: string, projectId: string): Promise<void> {
+    const relations = await this.getWithRelations(userId, projectId);
+    const { data: currentProject, error: fetchError } = await createClient()
+      .from("projects")
+      .select("status, area_id")
+      .eq("id", projectId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new DatabaseError(fetchError.message);
+    }
+    if (!currentProject) return;
+
+    const derivedStatus = deriveProjectStatus({
+      area_id: currentProject.area_id,
+      area_ids: relations.area_ids,
+      goal_ids: relations.goal_ids,
+    });
+
+    if (derivedStatus !== currentProject.status) {
+      const { error } = await createClient()
+        .from("projects")
+        .update({ status: derivedStatus })
+        .eq("id", projectId)
+        .eq("user_id", userId);
+
+      if (error) {
+        throw new DatabaseError(error.message);
+      }
     }
   },
 

@@ -610,6 +610,8 @@ export const noteService = {
     if (error) {
       throw new DatabaseError(error.message);
     }
+
+    await this.syncNoteStatusFromContext(noteId);
   },
 
   async unlinkFromGoal(goalId: string, noteId: string): Promise<void> {
@@ -621,6 +623,43 @@ export const noteService = {
 
     if (error) {
       throw new DatabaseError(error.message);
+    }
+
+    await this.syncNoteStatusFromContext(noteId);
+  },
+
+  /** Re-derive a note's status from its current area/project/goal/topic context. */
+  async syncNoteStatusFromContext(noteId: string): Promise<void> {
+    const relations = await this.getWithRelations(noteId);
+    const { data: note, error: fetchError } = await createClient()
+      .from("notes")
+      .select("status, area_id, project_id, topic_id")
+      .eq("id", noteId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new DatabaseError(fetchError.message);
+    }
+    if (!note) return;
+
+    const derivedStatus = deriveNoteStatus({
+      area_id: note.area_id,
+      area_ids: relations.area_ids,
+      project_id: note.project_id,
+      project_ids: relations.project_ids,
+      goal_ids: relations.goal_ids,
+      topic_id: note.topic_id,
+    });
+
+    if (derivedStatus !== note.status) {
+      const { error } = await createClient()
+        .from("notes")
+        .update({ status: derivedStatus })
+        .eq("id", noteId);
+
+      if (error) {
+        throw new DatabaseError(error.message);
+      }
     }
   },
 
@@ -707,6 +746,8 @@ export const noteService = {
         throw new DatabaseError(error.message);
       }
     }
+
+    await this.syncNoteStatusFromContext(noteId);
   },
 
   async replaceAreaLinks(noteId: string, areaIds: string[]): Promise<void> {
@@ -737,6 +778,8 @@ export const noteService = {
         throw new DatabaseError(error.message);
       }
     }
+
+    await this.syncNoteStatusFromContext(noteId);
   },
 
   async replaceProjectLinks(noteId: string, projectIds: string[]): Promise<void> {
@@ -771,6 +814,8 @@ export const noteService = {
         }
       }
     }
+
+    await this.syncNoteStatusFromContext(noteId);
   },
 
   async replaceTaskLinks(noteId: string, taskIds: string[]): Promise<void> {
