@@ -51,17 +51,23 @@ const goalOptions = [
 ];
 
 const projectOptions = [
-  { id: "proj-a", name: "Project A" },
-  { id: "proj-b", name: "Project B" },
+  { id: "proj-a", name: "Project A", area_id: null, linkedAreaIds: [], linkedGoalIds: ["goal-a"] },
+  { id: "proj-b", name: "Project B", area_id: null, linkedAreaIds: [], linkedGoalIds: ["goal-b"] },
 ];
 
 const taskOptions = [
-  { id: "task-a", name: "Task A" },
-  { id: "task-b", name: "Task B" },
+  { id: "task-a", name: "Task A", area_id: null, linkedAreaIds: [], linkedGoalIds: ["goal-a"], project_id: "proj-a" },
+  { id: "task-b", name: "Task B", area_id: null, linkedAreaIds: [], linkedGoalIds: ["goal-b"], project_id: "proj-b" },
 ];
 
-const projectGoalIdsMap = new Map<string, string[]>();
-const taskGoalIdsMap = new Map<string, string[]>();
+const projectGoalIdsMap = new Map<string, string[]>([
+  ["proj-a", ["goal-a"]],
+  ["proj-b", ["goal-b"]],
+]);
+const taskGoalIdsMap = new Map<string, string[]>([
+  ["task-a", ["goal-a"]],
+  ["task-b", ["goal-b"]],
+]);
 
 function renderForm(note: Note): string {
   return renderToStaticMarkup(
@@ -85,5 +91,64 @@ describe("NoteInboxProcessForm 4D cascade", () => {
     expect(html).toContain("Select goal…");
     expect(html).toContain("Select project…");
     expect(html).toContain("Select task…");
+  });
+
+  it("case 2: one area selected → '1 selected' badge for area, placeholders for the rest", () => {
+    const html = renderForm({
+      ...baseNote,
+      linkedAreaIds: ["area-a"],
+    });
+    expect(html).toContain("1 selected");
+    expect(html).toContain("Select goal…");
+    expect(html).toContain("Select project…");
+    expect(html).toContain("Select task…");
+  });
+
+  it("case 3: one goal selected → '1 selected' badge for goal, placeholders for the rest", () => {
+    const html = renderForm({
+      ...baseNote,
+      linkedGoalIds: ["goal-a"],
+    });
+    expect(html).toContain("1 selected");
+    expect(html).toContain("Select area…");
+    expect(html).toContain("Select project…");
+    expect(html).toContain("Select task…");
+  });
+
+  it("case 4: one project selected → '1 selected' badge for project, placeholders for the rest", () => {
+    const html = renderForm({
+      ...baseNote,
+      linkedProjectIds: ["proj-a"],
+    });
+    expect(html).toContain("1 selected");
+    expect(html).toContain("Select area…");
+    expect(html).toContain("Select goal…");
+    expect(html).toContain("Select task…");
+  });
+
+  it("case 5: one task selected → '1 selected' badge for task, placeholders for the rest", () => {
+    const html = renderForm({
+      ...baseNote,
+      linkedTaskIds: ["task-a"],
+    });
+    expect(html).toContain("1 selected");
+    expect(html).toContain("Select area…");
+    expect(html).toContain("Select goal…");
+    expect(html).toContain("Select project…");
+  });
+
+  it("case 6: multiple selections across dimensions render 'N selected' badges for each non-empty dimension", () => {
+    const html = renderForm({
+      ...baseNote,
+      linkedAreaIds: ["area-a", "area-b"],
+      linkedGoalIds: ["goal-a"],
+      linkedProjectIds: ["proj-a"],
+      linkedTaskIds: ["task-a", "task-b"],
+    });
+    // 2 selected appears for both area (count 2) and task (count 2)
+    expect(html).toContain("2 selected");
+    // 1 selected appears for goal (count 1) and project (count 1) — at least 2
+    const ones = html.match(/1 selected/g) ?? [];
+    expect(ones.length).toBeGreaterThanOrEqual(2);
   });
 });
