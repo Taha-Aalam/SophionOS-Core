@@ -33,7 +33,13 @@ interface TaskProcessFormProps {
     area_id: string | null;
     linkedAreaIds?: string[];
   }[];
-  projectOptions: { id: string; name: string }[];
+  projectOptions: {
+    id: string;
+    name: string;
+    area_id?: string | null;
+    linkedAreaIds?: string[];
+    linkedGoalIds?: string[];
+  }[];
   onClose: () => void;
 }
 
