@@ -327,14 +327,15 @@ export const noteService = {
       const { projectIds, noteInput: projectCleanedInput } = extractProjectIds(goalCleanedInput);
       const { taskIds, noteInput: taskCleanedInput } = extractTaskIds(projectCleanedInput);
 
-      const status =
-        validated.status ??
-        deriveNoteStatus({
-          area_ids: areaIds,
-          project_ids: projectIds,
-          goal_ids: goalIds,
-          topic_id: validated.topic_id,
-        });
+      // Status is always derived from context on create so a contextless
+      // note (no area/project/goal/topic) is persisted as "inbox" instead
+      // of the caller's pre-filled default.
+      const status = deriveNoteStatus({
+        area_ids: areaIds,
+        project_ids: projectIds,
+        goal_ids: goalIds,
+        topic_id: validated.topic_id,
+      });
 
       if (validated.type) {
         await upsertNoteType(userId, validated.type);

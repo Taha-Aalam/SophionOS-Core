@@ -750,14 +750,18 @@ export const projectService = {
     const { areaIds, projectInput: areaCleanedInput } = extractProjectAreaIds(validated);
     const { goalIds, projectInput } = extractGoalIds(areaCleanedInput);
 
-    const status =
-      validated.status ??
-      deriveProjectStatus({
-        area_ids: areaIds,
-        goal_ids: goalIds,
-        start_date: validated.start_date,
-        due_date: validated.due_date,
-      });
+    // Status is always derived from context on create so an inbox entity
+    // can never be persisted as "planning" (or any non-inbox bucket) just
+    // because the caller passed a stale default. The dialog form default
+    // for `status` is `PLANNING`, so trusting `validated.status` here
+    // would let an empty form (no area/goal, no dates) slip through as
+    // planning instead of inbox.
+    const status = deriveProjectStatus({
+      area_ids: areaIds,
+      goal_ids: goalIds,
+      start_date: validated.start_date,
+      due_date: validated.due_date,
+    });
 
     const baseSlug = generateSlug(validated.name);
     const slug = await this.generateUniqueSlug(userId, baseSlug);
