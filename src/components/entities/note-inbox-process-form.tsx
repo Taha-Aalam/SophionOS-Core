@@ -1,17 +1,30 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { BookOpen, ChevronDown, Search, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useUpdateNote } from "@/lib/hooks/use-notes";
 import type { Note } from "@/lib/types/domain.types";
 import { NOTE_STATUS } from "@/lib/utils/constants";
@@ -21,6 +34,7 @@ import {
   computeFilteredGoals,
   computeFilteredTasks,
 } from "@/lib/utils/resource-dialog-filters";
+import { cn } from "@/lib/utils";
 
 const NOTE_ICON = "📝";
 
@@ -48,6 +62,7 @@ interface NoteInboxProcessFormProps {
     linkedGoalIds?: string[];
     project_id?: string | null;
   }[];
+  notebookOptions: string[];
   projectGoalIdsMap: Map<string, string[]>;
   taskGoalIdsMap: Map<string, string[]>;
   onClose: () => void;
@@ -59,6 +74,7 @@ export function NoteInboxProcessForm({
   goalOptions,
   projectOptions,
   taskOptions,
+  notebookOptions,
   projectGoalIdsMap,
   taskGoalIdsMap,
   onClose,
@@ -72,6 +88,7 @@ export function NoteInboxProcessForm({
     note.linkedProjectIds ?? (note.project_id ? [note.project_id] : []),
   );
   const [taskIds, setTaskIds] = useState<string[]>(note.linkedTaskIds ?? []);
+  const [notebooks, setNotebooks] = useState<string[]>(note.notebooks ?? []);
   const [status, setStatus] = useState<string>(NOTE_STATUS.TO_REVIEW);
 
   const toggleArea = (id: string) =>
@@ -91,35 +108,81 @@ export function NoteInboxProcessForm({
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
-  const selectedProject = useMemo(
-    () => (projectIds.length > 0 ? { id: projectIds[0], linkedAreaIds: [] as string[], area_id: null } : null),
-    [projectIds],
+  const toggleNotebook = (notebook: string) => {
+    setNotebooks((prev) =>
+      prev.includes(notebook)
+        ? prev.filter((n) => n !== notebook)
+        : [...prev, notebook],
+    );
+  };
+
+  // Derive selected entities (objects) from IDs - needed for proper filtering
+  const selectedProjects = useMemo(
+    () => projectOptions.filter((p) => projectIds.includes(p.id)),
+    [projectOptions, projectIds],
   );
+
+  const selectedGoals = useMemo(
+    () => goalOptions.filter((g) => goalIds.includes(g.id)),
+    [goalOptions, goalIds],
+  );
+
+  const selectedTasks = useMemo(
+    () => taskOptions.filter((t) => taskIds.includes(t.id)),
+    [taskOptions, taskIds],
+  );
+
+  // Build reverse lookup maps needed for filtering
+  // goalProjectIdsMap: goalId -> projectIds[] (reverse of projectGoalIdsMap)
+  const goalProjectIdsMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const project of projectOptions) {
+      for (const goalId of project.linkedGoalIds ?? []) {
+        const current = map.get(goalId) ?? [];
+        current.push(project.id);
+        map.set(goalId, current);
+      }
+    }
+    return map;
+  }, [projectOptions]);
+
+  // goalTaskIdsMap: goalId -> taskIds[] (reverse of taskGoalIdsMap)
+  const goalTaskIdsMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const task of taskOptions) {
+      for (const goalId of task.linkedGoalIds ?? []) {
+        const current = map.get(goalId) ?? [];
+        current.push(task.id);
+        map.set(goalId, current);
+      }
+    }
+    return map;
+  }, [taskOptions]);
 
   const visibleGoals = useMemo(
     () => computeFilteredGoals(
-      goalOptions, areaIds, projectIds[0] ?? null, projectGoalIdsMap, taskGoalIdsMap, taskIds,
+      goalOptions, areaIds, projectIds[0] ?? null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks,
     ),
-    [goalOptions, areaIds, projectIds, projectGoalIdsMap, taskGoalIdsMap, taskIds],
+    [goalOptions, areaIds, projectIds, projectGoalIdsMap, taskGoalIdsMap, selectedTasks],
   );
 
   const visibleProjects = useMemo(
     () => computeFilteredProjects(
-      projectOptions, areaIds, goalIds, projectGoalIdsMap, taskIds,
+      projectOptions, areaIds, goalIds, goalProjectIdsMap, selectedTasks,
     ),
-    [projectOptions, areaIds, goalIds, projectGoalIdsMap, taskIds],
+    [projectOptions, areaIds, goalIds, goalProjectIdsMap, selectedTasks],
   );
 
   const visibleAreas = useMemo(
-    () => computeVisibleAreas(areaOptions, selectedProject, goalIds, taskIds),
-    [areaOptions, selectedProject, goalIds, taskIds],
+    () => computeVisibleAreas(areaOptions, selectedProjects[0] ?? null, selectedGoals, selectedTasks),
+    [areaOptions, selectedProjects, selectedGoals, selectedTasks],
   );
 
   const visibleTasks = useMemo(
     () => computeFilteredTasks(
-      taskOptions, areaIds, projectIds[0] ?? null, goalIds, taskGoalIdsMap,
+      taskOptions, areaIds, projectIds[0] ?? null, goalIds, goalTaskIdsMap,
     ),
-    [taskOptions, areaIds, projectIds, goalIds, taskGoalIdsMap],
+    [taskOptions, areaIds, projectIds, goalIds, goalTaskIdsMap],
   );
 
   useEffect(() => {
@@ -165,6 +228,7 @@ export function NoteInboxProcessForm({
           project_id: projectIds[0] ?? null,
           project_ids: projectIds,
           task_ids: taskIds,
+          notebooks,
           status: status as Note["status"],
         },
       },
@@ -354,6 +418,62 @@ export function NoteInboxProcessForm({
             ) : null
           }
         />
+      </div>
+
+      {/* Notebook selector - using Popover pattern matching note-metadata-panel */}
+      <div className="grid gap-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-muted-foreground">Notebook</span>
+          <Popover>
+            <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
+              {notebooks.length === 0 ? "Select notebooks…" : `${notebooks.length} selected`}
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-64 p-0">
+              <Command shouldFilter={false}>
+                <CommandInput placeholder="Search or create…" />
+                <CommandList className="max-h-56 overflow-y-auto">
+                  <CommandEmpty className="px-2 py-1.5 text-sm text-muted-foreground">
+                    Type to create a new notebook
+                  </CommandEmpty>
+                  <CommandGroup>
+                    {notebookOptions.map((nb) => (
+                      <CommandItem
+                        key={nb}
+                        value={nb}
+                        onSelect={() => toggleNotebook(nb)}
+                        className="flex items-center gap-2"
+                      >
+                        <Checkbox checked={notebooks.includes(nb)} />
+                        <span className="flex-1 truncate text-sm">{nb}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </div>
+        {notebooks.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {notebooks.map((nb) => (
+              <Badge
+                key={nb}
+                variant="secondary"
+                className="flex items-center gap-1 text-[10px]"
+              >
+                <BookOpen className="size-3" />
+                <span className="max-w-[120px] truncate">{nb}</span>
+                <button
+                  type="button"
+                  onClick={() => toggleNotebook(nb)}
+                  className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                >
+                  <X className="size-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-2 pt-1">
