@@ -17,9 +17,10 @@ import { useUpdateTask } from "@/lib/hooks/use-tasks";
 import type { Task } from "@/lib/types/domain.types";
 import { TASK_STATUS } from "@/lib/utils/constants";
 import {
-  filterProjectDialogAreas,
-  filterProjectDialogGoals,
-} from "@/lib/utils/project-dialog-filters";
+  computeFilteredProjects,
+  computeVisibleGoalsForProjects,
+  computeVisibleAreasForProjects,
+} from "@/lib/utils/task-dialog-filters";
 
 const TASK_ICON = "☑️";
 const UNSET = "__none__";
@@ -75,13 +76,28 @@ export function TaskProcessForm({
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
-  const visibleGoals = useMemo(
-    () => filterProjectDialogGoals(goalOptions, areaIds),
-    [goalOptions, areaIds],
+  const projectById = useMemo(
+    () => new Map(projectOptions.map((p) => [p.id, p])),
+    [projectOptions],
   );
+
+  const visibleGoals = useMemo(
+    () => computeVisibleGoalsForProjects(
+      goalOptions, projectIds, areaIds, projectById,
+    ),
+    [goalOptions, projectIds, areaIds, projectById],
+  );
+
   const visibleAreas = useMemo(
-    () => filterProjectDialogAreas(areaOptions, goalOptions, areaIds, goalIds),
-    [areaOptions, goalOptions, areaIds, goalIds],
+    () => computeVisibleAreasForProjects(
+      areaOptions, goalIds, projectIds, projectById, goalOptions,
+    ),
+    [areaOptions, goalOptions, goalIds, projectIds, projectById],
+  );
+
+  const filteredProjects = useMemo(
+    () => computeFilteredProjects(projectOptions, goalIds, areaIds),
+    [projectOptions, goalIds, areaIds],
   );
 
   useEffect(() => {
@@ -99,6 +115,14 @@ export function TaskProcessForm({
       setAreaIds(nextAreaIds);
     }
   }, [visibleAreas, areaIds]);
+
+  useEffect(() => {
+    const allowedProjectIds = new Set(filteredProjects.map((p) => p.id));
+    const nextProjectIds = projectIds.filter((id) => allowedProjectIds.has(id));
+    if (nextProjectIds.length !== projectIds.length) {
+      setProjectIds(nextProjectIds);
+    }
+  }, [filteredProjects, projectIds]);
 
   const handleSave = () => {
     updateTask.mutate(
@@ -221,11 +245,17 @@ export function TaskProcessForm({
         label="Project"
         placeholder="Select project…"
         selectedCount={projectIds.length}
-        candidates={projectOptions}
+        candidates={filteredProjects}
         isSelected={(id) => projectIds.includes(id)}
         onToggle={toggleProject}
         onClear={() => setProjectIds([])}
-        emptyMessage="No projects available."
+        emptyMessage={
+          projectOptions.length === 0
+            ? "No projects available."
+            : goalIds.length > 0 || areaIds.length > 0
+              ? "No projects match selected context."
+              : "No projects available."
+        }
         renderSelected={() =>
           projectIds.length > 0 ? (
             <div className="flex flex-wrap gap-1.5 pt-1">
