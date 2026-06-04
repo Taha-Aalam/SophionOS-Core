@@ -1454,7 +1454,14 @@ export default function InboxPage() {
       allTasks
         .filter((t) => !t.is_archived)
         .sort((a, b) => a.name.localeCompare(b.name))
-        .map((t) => ({ id: t.id, name: t.name })),
+        .map((t) => ({
+          id: t.id,
+          name: t.name,
+          area_id: t.area_id ?? null,
+          linkedAreaIds: t.linkedAreaIds ?? [],
+          linkedGoalIds: t.linkedGoalIds ?? [],
+          project_id: t.project_id ?? null,
+        })),
     [allTasks],
   );
 
