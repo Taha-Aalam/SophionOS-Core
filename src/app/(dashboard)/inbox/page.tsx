@@ -29,7 +29,7 @@ import {
   useInboxTasks,
   useInboxResources,
 } from "@/lib/hooks/use-inbox";
-import { useUpdateNote } from "@/lib/hooks/use-notes";
+import { useNotebooks, useUpdateNote } from "@/lib/hooks/use-notes";
 import { useProjects, useUpdateProject } from "@/lib/hooks/use-projects";
 import { useUpdateResource } from "@/lib/hooks/use-resources";
 import { useTopics } from "@/lib/hooks/use-topics";
@@ -602,6 +602,9 @@ interface InboxNoteRowProps {
   }[];
   projectOptions: { id: string; name: string }[];
   taskOptions: { id: string; name: string }[];
+  notebookOptions: string[];
+  projectGoalIdsMap: Map<string, string[]>;
+  taskGoalIdsMap: Map<string, string[]>;
   expanded: boolean;
   onExpand: () => void;
   onCollapse: () => void;
@@ -614,6 +617,9 @@ function InboxNoteRow({
   goalOptions,
   projectOptions,
   taskOptions,
+  notebookOptions,
+  projectGoalIdsMap,
+  taskGoalIdsMap,
   expanded,
   onExpand,
   onCollapse,
@@ -663,6 +669,7 @@ function InboxNoteRow({
           goalOptions={goalOptions}
           projectOptions={projectOptions}
           taskOptions={taskOptions}
+          notebookOptions={notebookOptions}
           projectGoalIdsMap={projectGoalIdsMap}
           taskGoalIdsMap={taskGoalIdsMap}
           onClose={onCollapse}
@@ -685,6 +692,8 @@ interface InboxResourceRowProps {
   projectOptions: { id: string; name: string }[];
   taskOptions: { id: string; name: string }[];
   topicOptions: { id: string; name: string }[];
+  projectGoalIdsMap: Map<string, string[]>;
+  taskGoalIdsMap: Map<string, string[]>;
   expanded: boolean;
   onExpand: () => void;
   onCollapse: () => void;
@@ -698,6 +707,8 @@ function InboxResourceRow({
   projectOptions,
   taskOptions,
   topicOptions,
+  projectGoalIdsMap,
+  taskGoalIdsMap,
   expanded,
   onExpand,
   onCollapse,
@@ -781,6 +792,7 @@ export default function InboxPage() {
   const { data: allTopics } = useTopics();
   const { data: allGoals = [] } = useGoals({ status: "all" });
   const { data: allTasks = [] } = useTasks();
+  const { data: allNotebooks = [] } = useNotebooks();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -971,6 +983,9 @@ export default function InboxPage() {
                       goalOptions={goalOptions}
                       projectOptions={projectOptions}
                       taskOptions={taskOptions}
+                      notebookOptions={allNotebooks}
+                      projectGoalIdsMap={projectGoalIdsMap}
+                      taskGoalIdsMap={taskGoalIdsMap}
                       expanded={expandedId === note.id}
                       onExpand={() => setExpandedId(note.id)}
                       onCollapse={() => setExpandedId(null)}
@@ -998,6 +1013,8 @@ export default function InboxPage() {
                       projectOptions={projectOptions}
                       taskOptions={taskOptions}
                       topicOptions={topicOptions}
+                      projectGoalIdsMap={projectGoalIdsMap}
+                      taskGoalIdsMap={taskGoalIdsMap}
                       expanded={expandedId === resource.id}
                       onExpand={() => setExpandedId(resource.id)}
                       onCollapse={() => setExpandedId(null)}

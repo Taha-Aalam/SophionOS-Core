@@ -60,6 +60,8 @@ const taskOptions = [
   { id: "task-b", name: "Task B", area_id: null, linkedAreaIds: [], linkedGoalIds: ["goal-b"], project_id: "proj-b" },
 ];
 
+const notebookOptions = ["Work", "Personal", "Ideas"];
+
 const projectGoalIdsMap = new Map<string, string[]>([
   ["proj-a", ["goal-a"]],
   ["proj-b", ["goal-b"]],
@@ -77,6 +79,7 @@ function renderForm(note: Note): string {
       goalOptions={goalOptions}
       projectOptions={projectOptions}
       taskOptions={taskOptions}
+      notebookOptions={notebookOptions}
       projectGoalIdsMap={projectGoalIdsMap}
       taskGoalIdsMap={taskGoalIdsMap}
       onClose={() => {}}
@@ -85,12 +88,13 @@ function renderForm(note: Note): string {
 }
 
 describe("NoteInboxProcessForm 4D cascade", () => {
-  it("case 1: with no selections, all four triggers show 'Select…' placeholders", () => {
+  it("case 1: with no selections, all five triggers show 'Select…' placeholders", () => {
     const html = renderForm(baseNote);
     expect(html).toContain("Select area…");
     expect(html).toContain("Select goal…");
     expect(html).toContain("Select project…");
     expect(html).toContain("Select task…");
+    expect(html).toContain("Select notebooks…");
   });
 
   it("case 2: one area selected → '1 selected' badge for area, placeholders for the rest", () => {
