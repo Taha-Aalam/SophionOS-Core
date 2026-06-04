@@ -345,13 +345,14 @@ export const taskService = {
       const { projectIds, taskInput: projectCleanedInput } =
         extractTaskProjectIds(areaCleanedInput);
       const { goalIds, taskInput } = extractGoalIds(projectCleanedInput);
-      const status =
-        validated.status ??
-        deriveTaskStatus({
-          area_ids: areaIds,
-          goal_ids: goalIds,
-          project_ids: projectIds,
-        });
+      // Status is always derived from context on create so a contextless
+      // task (no area/goal/project) is persisted as "inbox" instead of the
+      // caller's pre-filled default (the dialog form defaults to "todo").
+      const status = deriveTaskStatus({
+        area_ids: areaIds,
+        goal_ids: goalIds,
+        project_ids: projectIds,
+      });
 
       const { data, error } = await createClient()
         .from("tasks")

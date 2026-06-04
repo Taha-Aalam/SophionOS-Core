@@ -302,14 +302,15 @@ export const resourceService = {
       const { goalIds, resourceInput: goalCleanedInput } = extractGoalIds(areaCleanedInput);
       const { taskIds, resourceInput } = extractTaskIds(goalCleanedInput);
 
-      const status =
-        validated.status ??
-        deriveResourceStatus({
-          area_ids: areaIds,
-          project_id: validated.project_id,
-          goal_ids: goalIds,
-          topic_id: validated.topic_id,
-        });
+      // Status is always derived from context on create so a contextless
+      // resource (no area/project/goal/topic) is persisted as "inbox"
+      // instead of the caller's pre-filled default.
+      const status = deriveResourceStatus({
+        area_ids: areaIds,
+        project_id: validated.project_id,
+        goal_ids: goalIds,
+        topic_id: validated.topic_id,
+      });
 
       const { data, error } = await createClient()
         .from("resources")
