@@ -93,4 +93,80 @@ describe("ResourceInboxProcessForm 4D cascade", () => {
     expect(html).toContain("Select task…");
     expect(html).toContain("Select topic…");
   });
+
+  it("case 2: one area selected → '1 selected' badge for area, placeholders for the rest", () => {
+    const html = renderForm({
+      ...baseResource,
+      linkedAreaIds: ["area-a"],
+    });
+    expect(html).toContain("1 selected");
+    expect(html).toContain("Select goal…");
+    expect(html).toContain("Select project…");
+    expect(html).toContain("Select task…");
+    expect(html).toContain("Select topic…");
+  });
+
+  it("case 3: one goal selected → '1 selected' badge for goal, placeholders for the rest", () => {
+    const html = renderForm({
+      ...baseResource,
+      linkedGoalIds: ["goal-a"],
+    });
+    expect(html).toContain("1 selected");
+    expect(html).toContain("Select area…");
+    expect(html).toContain("Select project…");
+    expect(html).toContain("Select task…");
+    expect(html).toContain("Select topic…");
+  });
+
+  it("case 4: one project selected → project shows the project name (selectedLabel), placeholders for the rest", () => {
+    const html = renderForm({
+      ...baseResource,
+      project_id: "proj-a",
+    });
+    // The project selector shows the selected project's name (selectedLabel path)
+    expect(html).toContain("Project A");
+    expect(html).toContain("Select area…");
+    expect(html).toContain("Select goal…");
+    expect(html).toContain("Select task…");
+    expect(html).toContain("Select topic…");
+  });
+
+  it("case 5: one task selected → '1 selected' badge for task, placeholders for the rest", () => {
+    const html = renderForm({
+      ...baseResource,
+      linkedTaskIds: ["task-a"],
+    });
+    expect(html).toContain("1 selected");
+    expect(html).toContain("Select area…");
+    expect(html).toContain("Select goal…");
+    expect(html).toContain("Select project…");
+    expect(html).toContain("Select topic…");
+  });
+
+  it("case 6: multiple selections across dimensions render 'N selected' badges for each non-empty dimension", () => {
+    const html = renderForm({
+      ...baseResource,
+      linkedAreaIds: ["area-a", "area-b"],
+      linkedGoalIds: ["goal-a"],
+      project_id: "proj-a",
+      linkedTaskIds: ["task-a", "task-b"],
+    });
+    expect(html).toContain("2 selected");
+    expect(html).toContain("Project A");
+    expect(html).toContain("Select topic…");
+  });
+
+  it("case 7: topic orthogonality — picking a topic alone does not affect area/goal/project/task placeholders", () => {
+    const html = renderForm({
+      ...baseResource,
+      topic_id: "topic-a",
+    });
+    // Topic selected: trigger shows the topic name (selectedLabel path)
+    expect(html).toContain("Topic A");
+    // All PARA placeholders still shown (cascade not affected by topic)
+    expect(html).toContain("Select area…");
+    expect(html).toContain("Select goal…");
+    expect(html).toContain("Select project…");
+    expect(html).toContain("Select task…");
+  });
 });
