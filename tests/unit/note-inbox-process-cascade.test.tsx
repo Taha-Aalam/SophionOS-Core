@@ -71,6 +71,8 @@ function renderForm(note: Note): string {
       goalOptions={goalOptions}
       projectOptions={projectOptions}
       taskOptions={taskOptions}
+      projectGoalIdsMap={projectGoalIdsMap}
+      taskGoalIdsMap={taskGoalIdsMap}
       onClose={() => {}}
     />,
   );

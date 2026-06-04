@@ -16,9 +16,11 @@ import { useUpdateNote } from "@/lib/hooks/use-notes";
 import type { Note } from "@/lib/types/domain.types";
 import { NOTE_STATUS } from "@/lib/utils/constants";
 import {
-  filterProjectDialogAreas,
-  filterProjectDialogGoals,
-} from "@/lib/utils/project-dialog-filters";
+  computeVisibleAreas,
+  computeFilteredProjects,
+  computeFilteredGoals,
+  computeFilteredTasks,
+} from "@/lib/utils/resource-dialog-filters";
 
 const NOTE_ICON = "📝";
 
@@ -31,8 +33,23 @@ interface NoteInboxProcessFormProps {
     area_id: string | null;
     linkedAreaIds?: string[];
   }[];
-  projectOptions: { id: string; name: string }[];
-  taskOptions: { id: string; name: string }[];
+  projectOptions: {
+    id: string;
+    name: string;
+    area_id?: string | null;
+    linkedAreaIds?: string[];
+    linkedGoalIds?: string[];
+  }[];
+  taskOptions: {
+    id: string;
+    name: string;
+    area_id?: string | null;
+    linkedAreaIds?: string[];
+    linkedGoalIds?: string[];
+    project_id?: string | null;
+  }[];
+  projectGoalIdsMap: Map<string, string[]>;
+  taskGoalIdsMap: Map<string, string[]>;
   onClose: () => void;
 }
 
@@ -42,6 +59,8 @@ export function NoteInboxProcessForm({
   goalOptions,
   projectOptions,
   taskOptions,
+  projectGoalIdsMap,
+  taskGoalIdsMap,
   onClose,
 }: NoteInboxProcessFormProps) {
   const updateNote = useUpdateNote();
@@ -72,13 +91,35 @@ export function NoteInboxProcessForm({
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
-  const visibleGoals = useMemo(
-    () => filterProjectDialogGoals(goalOptions, areaIds),
-    [goalOptions, areaIds],
+  const selectedProject = useMemo(
+    () => (projectIds.length > 0 ? { id: projectIds[0], linkedAreaIds: [] as string[], area_id: null } : null),
+    [projectIds],
   );
+
+  const visibleGoals = useMemo(
+    () => computeFilteredGoals(
+      goalOptions, areaIds, projectIds[0] ?? null, projectGoalIdsMap, taskGoalIdsMap, taskIds,
+    ),
+    [goalOptions, areaIds, projectIds, projectGoalIdsMap, taskGoalIdsMap, taskIds],
+  );
+
+  const visibleProjects = useMemo(
+    () => computeFilteredProjects(
+      projectOptions, areaIds, goalIds, projectGoalIdsMap, taskIds,
+    ),
+    [projectOptions, areaIds, goalIds, projectGoalIdsMap, taskIds],
+  );
+
   const visibleAreas = useMemo(
-    () => filterProjectDialogAreas(areaOptions, goalOptions, areaIds, goalIds),
-    [areaOptions, goalOptions, areaIds, goalIds],
+    () => computeVisibleAreas(areaOptions, selectedProject, goalIds, taskIds),
+    [areaOptions, selectedProject, goalIds, taskIds],
+  );
+
+  const visibleTasks = useMemo(
+    () => computeFilteredTasks(
+      taskOptions, areaIds, projectIds[0] ?? null, goalIds, taskGoalIdsMap,
+    ),
+    [taskOptions, areaIds, projectIds, goalIds, taskGoalIdsMap],
   );
 
   useEffect(() => {
@@ -96,6 +137,22 @@ export function NoteInboxProcessForm({
       setAreaIds(nextAreaIds);
     }
   }, [visibleAreas, areaIds]);
+
+  useEffect(() => {
+    const allowedProjectIds = new Set(visibleProjects.map((p) => p.id));
+    const nextProjectIds = projectIds.filter((id) => allowedProjectIds.has(id));
+    if (nextProjectIds.length !== projectIds.length) {
+      setProjectIds(nextProjectIds);
+    }
+  }, [visibleProjects, projectIds]);
+
+  useEffect(() => {
+    const allowedTaskIds = new Set(visibleTasks.map((t) => t.id));
+    const nextTaskIds = taskIds.filter((id) => allowedTaskIds.has(id));
+    if (nextTaskIds.length !== taskIds.length) {
+      setTaskIds(nextTaskIds);
+    }
+  }, [visibleTasks, taskIds]);
 
   const handleSave = () => {
     updateNote.mutate(
@@ -218,11 +275,17 @@ export function NoteInboxProcessForm({
           label="Project"
           placeholder="Select project…"
           selectedCount={projectIds.length}
-          candidates={projectOptions}
+          candidates={visibleProjects}
           isSelected={(id) => projectIds.includes(id)}
           onToggle={toggleProject}
           onClear={() => setProjectIds([])}
-          emptyMessage="No projects available."
+          emptyMessage={
+            projectOptions.length === 0
+              ? "No projects available."
+              : areaIds.length > 0 || goalIds.length > 0 || taskIds.length > 0
+                ? "No projects match selected context."
+                : "No projects available."
+          }
           renderSelected={() =>
             projectIds.length > 0 ? (
               <div className="flex flex-wrap gap-1.5 pt-1">
@@ -254,11 +317,17 @@ export function NoteInboxProcessForm({
           label="Task"
           placeholder="Select task…"
           selectedCount={taskIds.length}
-          candidates={taskOptions}
+          candidates={visibleTasks}
           isSelected={(id) => taskIds.includes(id)}
           onToggle={toggleTask}
           onClear={() => setTaskIds([])}
-          emptyMessage="No tasks available."
+          emptyMessage={
+            taskOptions.length === 0
+              ? "No tasks available."
+              : areaIds.length > 0 || goalIds.length > 0 || projectIds.length > 0
+                ? "No tasks match selected context."
+                : "No tasks available."
+          }
           renderSelected={() =>
             taskIds.length > 0 ? (
               <div className="flex flex-wrap gap-1.5 pt-1">
