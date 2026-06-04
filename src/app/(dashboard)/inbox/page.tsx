@@ -1465,6 +1465,22 @@ export default function InboxPage() {
     [allTasks],
   );
 
+  const projectGoalIdsMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const p of projectOptions) {
+      m.set(p.id, p.linkedGoalIds ?? []);
+    }
+    return m;
+  }, [projectOptions]);
+
+  const taskGoalIdsMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const t of taskOptions) {
+      m.set(t.id, t.linkedGoalIds ?? []);
+    }
+    return m;
+  }, [taskOptions]);
+
   const topicOptions = useMemo(
     () =>
       (allTopics ?? [])
