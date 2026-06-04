@@ -1425,7 +1425,13 @@ export default function InboxPage() {
     () =>
       (allProjects ?? [])
         .filter((p) => !p.is_archived)
-        .map((p) => ({ id: p.id, name: p.name })),
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          area_id: p.area_id ?? null,
+          linkedAreaIds: p.linkedAreaIds ?? [],
+          linkedGoalIds: p.linkedGoalIds ?? [],
+        })),
     [allProjects],
   );
 
