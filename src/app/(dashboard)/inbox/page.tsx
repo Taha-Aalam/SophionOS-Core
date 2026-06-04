@@ -748,6 +748,8 @@ function InboxResourceRow({
           projectOptions={projectOptions}
           taskOptions={taskOptions}
           topicOptions={topicOptions}
+          projectGoalIdsMap={projectGoalIdsMap}
+          taskGoalIdsMap={taskGoalIdsMap}
           onClose={onCollapse}
         />
       )}
