@@ -663,6 +663,8 @@ function InboxNoteRow({
           goalOptions={goalOptions}
           projectOptions={projectOptions}
           taskOptions={taskOptions}
+          projectGoalIdsMap={projectGoalIdsMap}
+          taskGoalIdsMap={taskGoalIdsMap}
           onClose={onCollapse}
         />
       )}
