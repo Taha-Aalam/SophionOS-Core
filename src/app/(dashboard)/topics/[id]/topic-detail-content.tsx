@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ChevronDownIcon,
@@ -51,6 +51,7 @@ import { useAreas } from "@/lib/hooks/use-areas";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds } from "@/lib/utils/notes";
 import { useUIStore } from "@/lib/stores/ui.store";
+import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
 import { cn } from "@/lib/utils";
 
 export function TopicDetailContent() {
@@ -95,6 +96,10 @@ export function TopicDetailContent() {
   const { data: allNotes = [] } = useNotes({ includeArchived: false });
   const { data: allResources = [] } = useResources({});
 
+  const searchParams = useSearchParams();
+  const topicReturnTo = decodeReturnTo(searchParams.get("returnTo") || "");
+  const backTarget = resolveBackNavigation(topicReturnTo, "/topics");
+
   useEffect(() => {
     if (topic) {
       setPageTitle(topic.name);
@@ -111,14 +116,14 @@ export function TopicDetailContent() {
     if (!topic) return;
     if (confirm(`Delete topic "${topic.name}"? This cannot be undone.`)) {
       deleteTopic.mutate(topic.id);
-      router.push("/topics");
+      router.push(backTarget);
     }
   };
 
   const handleArchive = async () => {
     if (!topic) return;
     await archiveTopic.mutateAsync(topic.id);
-    router.push("/topics");
+    router.push(backTarget);
   };
 
   const handleLinkNotes = async () => {
@@ -247,7 +252,7 @@ export function TopicDetailContent() {
           title="Topic not found"
           description="This topic doesn't exist or you don't have access to it"
           actionLabel="Go Back"
-          onAction={() => router.push("/topics")}
+          onAction={() => router.push(backTarget)}
         />
       </div>
     );
@@ -261,7 +266,7 @@ export function TopicDetailContent() {
           variant="ghost"
           size="icon"
           className="size-6"
-          onClick={() => router.push("/topics")}
+          onClick={() => router.push(backTarget)}
         >
           <ArrowLeft className="size-3.5" />
         </Button>
