@@ -9,10 +9,11 @@ import {
   resolveTaskCompletionOnUpdate,
 } from "../utils/task-completion";
 import { deriveTaskStatus } from "../utils/status-routing";
+import { computeNextTaskDueDate } from "../utils/task-recurrence";
 import { createTaskSchema, updateTaskSchema } from "../validators/task.schema";
 
 export const TASK_SELECT =
-  "id, user_id, area_id, project_id, name, description, status, priority, due_date, is_completed, is_focused, is_important, is_urgent, completed_at, previous_status, smart_priority, is_archived, created_at, updated_at";
+  "id, user_id, area_id, project_id, name, description, status, priority, due_date, is_completed, is_focused, is_important, is_urgent, completed_at, previous_status, smart_priority, is_archived, is_recurring, repeat_every, repeat_cycle, recurrence_source_task_id, created_at, updated_at";
 
 // ─── Area ID helpers ──────────────────────────────────────────────────────────
 
@@ -287,6 +288,12 @@ function extractTaskProjectIds<
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
+/** Result of a task completion. `spawnedTaskId` is set only for recurring tasks. */
+export interface CompleteTaskResult {
+  completedTask: Task;
+  spawnedTaskId?: string;
+}
+
 export const taskService = {
   async list(userId: string): Promise<Task[]> {
     const { data, error } = await createClient()
@@ -407,7 +414,18 @@ export const taskService = {
         is_completed?: boolean;
         previous_status?: TaskStatus | null;
         completed_at?: string | null;
+        is_recurring?: boolean;
+        repeat_every?: number | null;
+        repeat_cycle?: Task["repeat_cycle"] | null;
       };
+
+      // When the caller turns recurrence off, the DB check constraint
+      // requires `repeat_every` and `repeat_cycle` to be null. Null them
+      // out explicitly so a single partial update satisfies the invariant.
+      if (taskInputWide.is_recurring === false) {
+        taskInputWide.repeat_every = null;
+        taskInputWide.repeat_cycle = null;
+      }
 
       const touchesCompletion =
         taskInputWide.status !== undefined || taskInputWide.is_completed !== undefined;
@@ -506,24 +524,106 @@ export const taskService = {
     }
   },
 
-  async complete(userId: string, id: string): Promise<Task> {
+  async complete(userId: string, id: string): Promise<CompleteTaskResult> {
     const current = await this.getById(userId, id);
-    const patch = buildCompletePatch(current.status, new Date().toISOString());
 
-    const { data, error } = await createClient()
-      .from("tasks")
-      .update(patch)
-      .eq("user_id", userId)
-      .eq("id", id)
-      .select(TASK_SELECT)
-      .single();
+    // Non-recurring tasks use the existing direct update path. This keeps
+    // the legacy contract (returning just the task) for callers that don't
+    // need to know about spawning.
+    if (!current.is_recurring || !current.repeat_every || !current.repeat_cycle) {
+      const patch = buildCompletePatch(current.status, new Date().toISOString());
 
-    if (error) {
-      if (error.code === "PGRST116") throw new NotFoundError("Task", id);
-      throw new DatabaseError(error.message);
+      const { data, error } = await createClient()
+        .from("tasks")
+        .update(patch)
+        .eq("user_id", userId)
+        .eq("id", id)
+        .select(TASK_SELECT)
+        .single();
+
+      if (error) {
+        if (error.code === "PGRST116") throw new NotFoundError("Task", id);
+        throw new DatabaseError(error.message);
+      }
+
+      return { completedTask: data };
     }
 
-    return data;
+    // Recurring completion: atomically mark the source complete and spawn
+    // the next instance via the `complete_recurring_task` RPC. The RPC copies
+    // area/goal/project links and copies recurrence fields, so the spawned
+    // row inherits the source's identity and is linked back to it.
+    if (!current.due_date) {
+      throw new ValidationError("Recurring task is missing a due_date");
+    }
+
+    const nextDueDate = computeNextTaskDueDate(
+      current.due_date,
+      current.repeat_every,
+      current.repeat_cycle,
+    );
+
+    // The next instance should keep the source's pre-completion workflow
+    // status — not the just-set `completed` status. Fall back through
+    // `previous_status` first, then derive from context if the source row
+    // somehow lacks both.
+    const preCompletionStatus =
+      (current.status !== TASK_STATUS.COMPLETED
+        ? current.status
+        : null) ??
+      current.previous_status ??
+      deriveTaskStatus({
+        area_ids: current.linkedAreaIds,
+        goal_ids: current.linkedGoalIds,
+        project_ids: current.linkedProjectIds,
+        due_date: nextDueDate,
+      });
+
+    const { data: rpcResult, error: rpcError } = await createClient()
+      .rpc("complete_recurring_task", {
+        p_user_id: userId,
+        p_task_id: id,
+        p_next_due_date: nextDueDate,
+        p_next_status: preCompletionStatus,
+      })
+      .single();
+
+    if (rpcError) {
+      throw new DatabaseError(rpcError.message);
+    }
+
+    const completedTask = await this.getById(userId, id);
+    const spawnedTaskId =
+      rpcResult && typeof rpcResult === "object" && "spawned_task_id" in rpcResult
+        ? (rpcResult.spawned_task_id as string | null) ?? undefined
+        : undefined;
+
+    return { completedTask, spawnedTaskId };
+  },
+
+  /**
+   * Undo a completion. For recurring tasks this also removes the spawned
+   * next instance via `undo_complete_recurring_task` so the workspace isn't
+   * left with a duplicate open task.
+   */
+  async undoComplete(
+    userId: string,
+    completedTaskId: string,
+    spawnedTaskId?: string,
+  ): Promise<Task> {
+    if (spawnedTaskId) {
+      const { error } = await createClient().rpc("undo_complete_recurring_task", {
+        p_user_id: userId,
+        p_completed_task_id: completedTaskId,
+        p_spawned_task_id: spawnedTaskId,
+      });
+
+      if (error) {
+        throw new DatabaseError(error.message);
+      }
+    }
+
+    return this.uncomplete(userId, completedTaskId);
   },
 
   async getByStatus(userId: string, status: TaskStatus): Promise<Task[]> {
