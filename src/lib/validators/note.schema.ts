@@ -42,7 +42,7 @@ const noteBaseSchema = z
 
 export const createNoteSchema = noteBaseSchema.extend({
   type: noteTypeSchema.default(NOTE_TYPE.NOTE),
-  status: z.enum(noteStatusValues).default(NOTE_STATUS.INBOX),
+  status: z.enum(noteStatusValues).optional(),
   favorite: z.boolean().default(false),
   pin: z.boolean().default(false),
   is_archived: z.boolean().default(false),

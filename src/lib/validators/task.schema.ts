@@ -67,7 +67,7 @@ export const createTaskSchema = z
     project_ids: z.array(z.string().uuid()).default([]),
     name: z.string().min(1, "Name is required").max(255),
     description: z.string().max(1000).optional().nullable(),
-    status: z.nativeEnum(TASK_STATUS).default(TASK_STATUS.INBOX),
+    status: z.nativeEnum(TASK_STATUS).optional(),
     priority: z.nativeEnum(PRIORITY).default(PRIORITY.MEDIUM),
     due_date: nullableFutureDateSchema,
     is_completed: z.boolean().default(false),

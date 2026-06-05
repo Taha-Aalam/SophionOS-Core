@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import { useTopics } from "@/lib/hooks/use-topics";
 import { createClient } from "@/lib/supabase/client";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "@/lib/types/domain.types";
 import { RESOURCE_STATUS, RESOURCE_TYPE, type ResourceStatus } from "@/lib/utils/constants";
+import { deriveResourceStatus } from "@/lib/utils/status-routing";
 import {
   computeVisibleAreas,
   computeFilteredProjects,
@@ -177,7 +178,14 @@ export function ResourceDialog({
         setName("");
         setUrl("");
         setType(RESOURCE_TYPE.WEBSITE);
-        setStatus(RESOURCE_STATUS.INBOX);
+        setStatus(
+          deriveResourceStatus({
+            area_ids: initialAreaIds,
+            project_id: initialProjectId,
+            goal_ids: initialGoalIds,
+            topic_id: initialTopicId,
+          }),
+        );
         setAreaIds(initialAreaIds ?? []);
         setProjectId(initialProjectId ?? "");
         setTopicId(initialTopicId ?? "");
@@ -186,6 +194,36 @@ export function ResourceDialog({
       });
     }
   }, [open, resource, initialGoalIds, initialAreaIds, initialProjectId, initialTopicId]);
+
+  // Live re-derive status from current context (create mode only — edit
+  // mode keeps the existing entity's stored status). User-initiated status
+  // changes are preserved between context changes; the next context change
+  // re-derives automatically.
+  const statusOverriddenRef = useRef(false);
+  useEffect(() => {
+    // Reset override whenever the dialog re-opens or switches to edit/create.
+    statusOverriddenRef.current = false;
+  }, [open, resource]);
+
+  useEffect(() => {
+    if (resource) return; // edit mode: don't touch status
+    if (statusOverriddenRef.current) return;
+    const next = deriveResourceStatus({
+      area_ids: areaIds,
+      project_id: projectId || null,
+      goal_ids: goalIds,
+      topic_id: topicId || null,
+    });
+    if (next !== status) {
+      setStatus(next);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [areaIds, projectId, topicId, goalIds]);
+
+  const handleStatusChange = (next: ResourceStatus) => {
+    statusOverriddenRef.current = true;
+    setStatus(next);
+  };
 
   const handleUrlBlur = () => {
     if (url && !name) {
@@ -385,7 +423,7 @@ export function ResourceDialog({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="res-status">Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as ResourceStatus)}>
+              <Select value={status} onValueChange={(v) => handleStatusChange(v as ResourceStatus)}>
                 <SelectTrigger id="res-status" className="w-full">
                   <SelectValue />
                 </SelectTrigger>

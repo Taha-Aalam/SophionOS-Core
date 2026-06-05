@@ -4,6 +4,7 @@ import { PRIORITY, PROJECT_STATUS } from "../utils/constants";
 
 const dateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid ISO date");
 const projectStatusValues = [
+  PROJECT_STATUS.INBOX,
   PROJECT_STATUS.PLANNING,
   PROJECT_STATUS.ACTIVE,
   PROJECT_STATUS.COMPLETED,
@@ -92,7 +93,7 @@ const projectBaseSchema = z
 
 export const createProjectSchema = addProjectDateRules(
   projectBaseSchema.extend({
-    status: z.enum(projectStatusValues).default(PROJECT_STATUS.PLANNING),
+    status: z.enum(projectStatusValues).optional(),
     priority: z.enum(priorityValues).default(PRIORITY.MEDIUM),
     progress: z.number().min(0).max(100).default(0),
     is_archived: z.boolean().default(false),
