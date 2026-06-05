@@ -695,33 +695,25 @@ export function TaskDialog({
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                {task ? (
-                  <Controller
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="w-full h-12">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={TASK_STATUS.INBOX}>Inbox</SelectItem>
-                          <SelectItem value={TASK_STATUS.TODO}>To Do</SelectItem>
-                          <SelectItem value={TASK_STATUS.IN_PROGRESS}>In Progress</SelectItem>
-                          <SelectItem value={TASK_STATUS.COMPLETED}>Completed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                ) : (
-                  <div className="flex h-12 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
-                    {form.watch("status") === TASK_STATUS.TODO
-                      ? "To Do (derived from context)"
-                      : "Inbox (derived from context)"}
-                  </div>
-                )}
+                <Controller
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full h-12">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={TASK_STATUS.INBOX}>Inbox</SelectItem>
+                        <SelectItem value={TASK_STATUS.TODO}>To Do</SelectItem>
+                        <SelectItem value={TASK_STATUS.IN_PROGRESS}>In Progress</SelectItem>
+                        <SelectItem value={TASK_STATUS.COMPLETED}>Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 <FormMessage>{form.formState.errors.status?.message}</FormMessage>
               </FormItem>
 
@@ -1173,64 +1165,78 @@ export function TaskDialog({
             )}
 
             <div className="flex flex-wrap items-center gap-6 pt-1">
-              <FormItem className="flex items-center gap-2 space-y-0">
-                <Controller
-                  control={form.control}
-                  name="is_focused"
-                  render={({ field }) => (
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  )}
-                />
-                <FormLabel className="cursor-pointer text-sm font-normal">Focus</FormLabel>
-              </FormItem>
-
-              <FormItem className="flex items-center gap-2 space-y-0">
-                <Controller
-                  control={form.control}
-                  name="is_important"
-                  render={({ field }) => (
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  )}
-                />
-                <FormLabel className="cursor-pointer text-sm font-normal">Important</FormLabel>
-              </FormItem>
-
-              <FormItem className="flex items-center gap-2 space-y-0">
-                <Controller
-                  control={form.control}
-                  name="is_urgent"
-                  render={({ field }) => (
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                    />
-                  )}
-                />
-                <FormLabel className="cursor-pointer text-sm font-normal">Urgent</FormLabel>
-              </FormItem>
-            </div>
-
-            <FormItem className="flex items-center gap-2 space-y-0 pt-1">
               <Controller
                 control={form.control}
-                name="is_recurring"
+                name="is_focused"
                 render={({ field }) => (
+                  <label
+                    htmlFor="task-dialog-is-focused"
+                    className="flex cursor-pointer items-center gap-2"
+                  >
+                    <Checkbox
+                      id="task-dialog-is-focused"
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                    <span className="text-sm font-normal">Focus</span>
+                  </label>
+                )}
+              />
+
+              <Controller
+                control={form.control}
+                name="is_important"
+                render={({ field }) => (
+                  <label
+                    htmlFor="task-dialog-is-important"
+                    className="flex cursor-pointer items-center gap-2"
+                  >
+                    <Checkbox
+                      id="task-dialog-is-important"
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                    <span className="text-sm font-normal">Important</span>
+                  </label>
+                )}
+              />
+
+              <Controller
+                control={form.control}
+                name="is_urgent"
+                render={({ field }) => (
+                  <label
+                    htmlFor="task-dialog-is-urgent"
+                    className="flex cursor-pointer items-center gap-2"
+                  >
+                    <Checkbox
+                      id="task-dialog-is-urgent"
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                    <span className="text-sm font-normal">Urgent</span>
+                  </label>
+                )}
+              />
+            </div>
+
+            <Controller
+              control={form.control}
+              name="is_recurring"
+              render={({ field }) => (
+                <label
+                  htmlFor="task-dialog-is-recurring"
+                  className="flex cursor-pointer items-center gap-2 pt-1"
+                >
                   <Checkbox
+                    id="task-dialog-is-recurring"
                     checked={field.value}
                     onCheckedChange={(checked) => field.onChange(checked === true)}
                   />
-                )}
-              />
-              <FormLabel className="cursor-pointer text-sm font-normal">
-                Make the task as recurring task
-              </FormLabel>
-            </FormItem>
+                  <span className="text-sm font-normal">Make the task as recurring task</span>
+                </label>
+              )}
+            />
 
             {isRecurring && (
               <div

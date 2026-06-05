@@ -364,13 +364,6 @@ export function TasksContent() {
               Overdue
             </TabsTrigger>
             <TabsTrigger
-              value={TASK_VIEW.COMPLETED}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <CheckSquare className="mr-1.5 size-3.5" />
-              Completed
-            </TabsTrigger>
-            <TabsTrigger
               value={TASK_VIEW.FOCUS}
               className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
@@ -411,6 +404,13 @@ export function TasksContent() {
             >
               <FolderKanban className="mr-1.5 size-3.5" />
               By Project
+            </TabsTrigger>
+            <TabsTrigger
+              value={TASK_VIEW.COMPLETED}
+              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+            >
+              <CheckSquare className="mr-1.5 size-3.5" />
+              Completed
             </TabsTrigger>
             <TabsTrigger
               value={TASK_VIEW.ARCHIVE}
