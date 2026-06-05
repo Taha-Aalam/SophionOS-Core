@@ -9,12 +9,16 @@ import {
   BookOpen,
   ChevronDownIcon,
   ChevronRightIcon,
+  CircleDot,
+  CircleOff,
   FilePlus,
   FolderOpen,
   Globe,
   Heart,
+  LayoutGrid,
   Library,
   Link2,
+  Map as MapIcon,
   NotebookPen,
   Pin,
   Search,
@@ -84,6 +88,8 @@ import {
   useCreateTopic,
   useUpdateTopic,
   useToggleFavoriteTopic,
+  useArchivedTopics,
+  useRestoreTopic,
 } from "@/lib/hooks/use-topics";
 import { noteService } from "@/lib/services/note.service";
 import type { Note, Resource } from "@/lib/types/domain.types";
@@ -152,6 +158,7 @@ function SectionHeader({
   accentClass,
   title,
   description,
+  totalCount,
   buttonLabel,
   onNew,
   isPending,
@@ -159,6 +166,7 @@ function SectionHeader({
   accentClass: string;
   title: string;
   description: string;
+  totalCount?: number;
   buttonLabel: string;
   onNew: () => void;
   isPending?: boolean;
@@ -168,7 +176,12 @@ function SectionHeader({
       <div className="flex items-start gap-3">
         <div className={cn("mt-1.5 h-full min-h-[2.5rem] w-1 shrink-0 rounded-full", accentClass)} />
         <div>
-          <h2 className="text-lg font-semibold">{title}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">{title}</h2>
+            {typeof totalCount === "number" ? (
+              <span className="text-sm text-muted-foreground">{totalCount} total</span>
+            ) : null}
+          </div>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
       </div>
@@ -337,6 +350,8 @@ export default function KnowledgeHubPage() {
   const createTopic = useCreateTopic();
   const updateTopic = useUpdateTopic();
   const toggleFavoriteTopic = useToggleFavoriteTopic();
+  const restoreTopic = useRestoreTopic();
+  const { data: archivedTopics = [] } = useArchivedTopics();
 
   const createNote = useCreateNote();
   const toggleFavoriteNote = useToggleFavoriteNote();
@@ -659,6 +674,7 @@ export default function KnowledgeHubPage() {
                   topic={topic}
                   areaNames={areaNames}
                   duplicateIndex={duplicateIndices.get(topic.id)}
+                  returnTo="/knowledge"
                   onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })}
                   onEdit={handleTopicEdit}
                 />
@@ -737,6 +753,7 @@ export default function KnowledgeHubPage() {
             <SectionHeader
               accentClass="bg-blue-500"
               title="Topics"
+              totalCount={topics.length}
               description="Explore your library of Topics."
               buttonLabel="New Topic"
               onNew={openTopicCreate}
@@ -744,25 +761,29 @@ export default function KnowledgeHubPage() {
             />
             <div className="mt-4">
               <Tabs value={topicsTab} onValueChange={setTopicsTab}>
-                <TabsList>
-                  <TabsTrigger value="active">
-                    Active
+                <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <TabsTrigger value="active" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                    <CircleDot className="mr-1 size-3" />Active
                     {activeTopics.length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{activeTopics.length}</Badge>}
                   </TabsTrigger>
-                  <TabsTrigger value="favorite">
+                  <TabsTrigger value="favorite" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
                     <Heart className="mr-1 size-3" />Favorite
                     {favoriteTopics.length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{favoriteTopics.length}</Badge>}
                   </TabsTrigger>
-                  <TabsTrigger value="inactive">
-                    Inactive
+                  <TabsTrigger value="inactive" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                    <CircleOff className="mr-1 size-3" />Inactive
                     {inactiveTopics.length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{inactiveTopics.length}</Badge>}
                   </TabsTrigger>
-                  <TabsTrigger value="by_area">
-                    <Globe className="mr-1 size-3" />By Area
+                  <TabsTrigger value="by_area" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                    <MapIcon className="mr-1 size-3" />By Area
                   </TabsTrigger>
-                  <TabsTrigger value="all">
-                    All
+                  <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                    <LayoutGrid className="mr-1 size-3" />All
                     {topics.length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{topics.length}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value="archived" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                    <Archive className="mr-1 size-3" />Archived
+                    {archivedTopics.length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{archivedTopics.length}</Badge>}
                   </TabsTrigger>
                 </TabsList>
 
@@ -781,6 +802,7 @@ export default function KnowledgeHubPage() {
                           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {activeTopics.map((t) => (
                               <TopicCard key={t.id} topic={t} areaNames={areaNames} duplicateIndex={duplicateIndices.get(t.id)}
+                                returnTo="/knowledge"
                                 onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })} onEdit={handleTopicEdit} />
                             ))}
                           </div>
@@ -794,6 +816,7 @@ export default function KnowledgeHubPage() {
                           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {favoriteTopics.map((t) => (
                               <TopicCard key={t.id} topic={t} areaNames={areaNames} duplicateIndex={duplicateIndices.get(t.id)}
+                                returnTo="/knowledge"
                                 onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })} onEdit={handleTopicEdit} />
                             ))}
                           </div>
@@ -807,6 +830,7 @@ export default function KnowledgeHubPage() {
                           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {inactiveTopics.map((t) => (
                               <TopicCard key={t.id} topic={t} areaNames={areaNames} duplicateIndex={duplicateIndices.get(t.id)}
+                                returnTo="/knowledge"
                                 onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })} onEdit={handleTopicEdit} />
                             ))}
                           </div>
@@ -828,6 +852,7 @@ export default function KnowledgeHubPage() {
                                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                   {areaTopics.map((t) => (
                                     <TopicCard key={t.id} topic={t} areaNames={areaNames} duplicateIndex={duplicateIndices.get(t.id)}
+                                      returnTo="/knowledge"
                                       onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })} onEdit={handleTopicEdit} />
                                   ))}
                                 </div>
@@ -844,10 +869,31 @@ export default function KnowledgeHubPage() {
                           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {topics.map((t) => (
                               <TopicCard key={t.id} topic={t} areaNames={areaNames} duplicateIndex={duplicateIndices.get(t.id)}
+                                returnTo="/knowledge"
                                 onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })} onEdit={handleTopicEdit} />
                             ))}
                           </div>
                         )}
+                    </TabsContent>
+
+                    <TabsContent value="archived" className="mt-4">
+                      {archivedTopics.length === 0 ? (
+                        <EmptyState icon={Archive} title="No archived topics" description="Archived topics will appear here" />
+                      ) : (
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          {archivedTopics.map((t) => (
+                            <TopicCard
+                              key={t.id}
+                              topic={t}
+                              areaNames={areaNames}
+                              duplicateIndex={duplicateIndices.get(t.id)}
+                              returnTo="/knowledge"
+                              onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })}
+                              onRestore={(topic) => restoreTopic.mutate(topic.id)}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </TabsContent>
                   </>
                 )}
