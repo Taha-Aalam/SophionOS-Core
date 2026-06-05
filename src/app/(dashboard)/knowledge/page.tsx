@@ -61,6 +61,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResourceDialog } from "@/components/entities/resource-dialog";
 import { ResourceRow, ResourceRowSkeleton } from "@/components/entities/resource-row";
 import { TopicCard } from "@/components/entities/topic-card";
 import { NoteRow } from "@/components/entities/note-row";
@@ -87,6 +88,7 @@ import {
   useCreateResource,
   useResources,
   useToggleFavoriteResource,
+  useDeleteResource,
   useUnarchiveResource,
   useUpdateResource,
 } from "@/lib/hooks/use-resources";
@@ -120,6 +122,15 @@ import {
   getVisibleNotes,
   type NoteView,
 } from "@/lib/utils/notes";
+import {
+  RESOURCE_VIEW,
+  getResourceLinkedAreaIds,
+  getResourceLinkedGoalIds,
+  getResourceLinkedTaskIds,
+  getEffectiveResourceProjectIds,
+  type ResourceView,
+} from "@/lib/utils/resources";
+import { ResourcesByGroupView, type ResourceGroup } from "@/components/views/resources-by-group-view";
 import { NOTES_TABS_LIST_CLASS_NAME } from "@/lib/utils/note-page-display";
 import { cn } from "@/lib/utils";
 
@@ -148,14 +159,7 @@ const RESOURCE_TYPE_OPTIONS = [
   { value: RESOURCE_TYPE.TOOL, label: "Tool" },
 ];
 
-const RESOURCE_TABS = [
-  { v: "inbox", l: "Inbox" },
-  { v: "to_review", l: "To Review" },
-  { v: "favorites", l: "Favorites" },
-  { v: "by_topics", l: "By Topics" },
-  { v: "archive", l: "Archive" },
-  { v: "all", l: "All" },
-];
+
 
 // ─── SectionHeader ────────────────────────────────────────────────────────────
 function SectionHeader({
@@ -400,7 +404,8 @@ export default function KnowledgeHubPage() {
   }, [notes]);
 
   // ── resources section state ──────────────────────────────────────────────
-  const [resourcesTab, setResourcesTab] = useState("inbox");
+  const [resourcesTab, setResourcesTab] = useState<ResourceView>(RESOURCE_VIEW.ALL);
+  const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [resourceCreateOpen, setResourceCreateOpen] = useState(false);
   const [resourceForm, setResourceForm] = useState({
     name: "",
@@ -414,13 +419,81 @@ export default function KnowledgeHubPage() {
 
   const filteredResources = useMemo(() => {
     switch (resourcesTab) {
-      case "inbox": return resources.filter((r) => r.status === RESOURCE_STATUS.INBOX);
-      case "to_review": return resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW);
-      case "favorites": return resources.filter((r) => r.favorite);
-      case "archive": return archivedResources;
+      case RESOURCE_VIEW.INBOX: return resources.filter((r) => r.status === RESOURCE_STATUS.INBOX);
+      case RESOURCE_VIEW.TO_REVIEW: return resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW);
+      case RESOURCE_VIEW.ACTIVE: return resources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE);
+      case RESOURCE_VIEW.SAVED: return resources.filter((r) => r.status === RESOURCE_STATUS.SAVED);
+      case RESOURCE_VIEW.FAVORITE: return resources.filter((r) => r.favorite);
+      case RESOURCE_VIEW.ARCHIVED: return archivedResources;
       default: return resources;
     }
   }, [resourcesTab, resources, archivedResources]);
+
+  const resourceGroupsByTopic = useMemo((): ResourceGroup[] => {
+    const grouped = new Map<string, Resource[]>();
+    for (const r of resources.filter((x) => !x.is_archived)) {
+      const id = r.topic_id ?? "unassigned";
+      const cur = grouped.get(id) ?? [];
+      cur.push(r);
+      grouped.set(id, cur);
+    }
+    return Array.from(grouped.entries()).map(([id, rs]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Topic" : (topicNames.get(id) ?? id),
+      resources: rs,
+    }));
+  }, [resources, topicNames]);
+
+  const resourceGroupsByArea = useMemo((): ResourceGroup[] => {
+    const grouped = new Map<string, Resource[]>();
+    for (const r of resources.filter((x) => !x.is_archived)) {
+      const ids = getResourceLinkedAreaIds(r);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const id of keys) {
+        const cur = grouped.get(id) ?? [];
+        cur.push(r);
+        grouped.set(id, cur);
+      }
+    }
+    return Array.from(grouped.entries()).map(([id, rs]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Area" : (areaNames.get(id) ?? id),
+      resources: rs,
+    }));
+  }, [resources, areaNames]);
+
+  const resourceGroupsByGoal = useMemo((): ResourceGroup[] => {
+    const grouped = new Map<string, Resource[]>();
+    for (const r of resources.filter((x) => !x.is_archived)) {
+      const ids = getResourceLinkedGoalIds(r);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const id of keys) {
+        const cur = grouped.get(id) ?? [];
+        cur.push(r);
+        grouped.set(id, cur);
+      }
+    }
+    return Array.from(grouped.entries()).map(([id, rs]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Goal" : (goalNames.get(id) ?? id),
+      resources: rs,
+    }));
+  }, [resources, goalNames]);
+
+  const resourceGroupsByProject = useMemo((): ResourceGroup[] => {
+    const grouped = new Map<string, Resource[]>();
+    for (const r of resources.filter((x) => !x.is_archived)) {
+      const id = r.project_id ?? "unassigned";
+      const cur = grouped.get(id) ?? [];
+      cur.push(r);
+      grouped.set(id, cur);
+    }
+    return Array.from(grouped.entries()).map(([id, rs]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Project" : (projNames.get(id) ?? id),
+      resources: rs,
+    }));
+  }, [resources, projNames]);
 
   const resourcesByTopic = useMemo(() => {
     const map = new Map<string, Resource[]>();
@@ -452,6 +525,7 @@ export default function KnowledgeHubPage() {
   const archiveResource = useArchiveResource();
   const unarchiveResource = useUnarchiveResource();
   const updateResource = useUpdateResource();
+  const deleteResource = useDeleteResource();
 
   // ── handlers ─────────────────────────────────────────────────────────────
   const openTopicCreate = () => {
@@ -559,36 +633,63 @@ export default function KnowledgeHubPage() {
     );
   }
 
-  function renderResourcesTable(list: Resource[]) {
+  function renderResourceRow(r: Resource) {
+    const areas = getResourceLinkedAreaIds(r)
+      .map((id) => areaNames.get(id))
+      .filter((n): n is string => Boolean(n))
+      .map((name) => ({ name }));
+    const goalNamesList = getResourceLinkedGoalIds(r)
+      .map((id) => goalNames.get(id))
+      .filter((n): n is string => Boolean(n));
+    const projectNamesList = r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : [];
+    const taskNamesList = getResourceLinkedTaskIds(r)
+      .map((id) => allTasks.find((t) => t.id === id)?.name)
+      .filter((n): n is string => Boolean(n));
+    return (
+      <ResourceRow
+        key={r.id}
+        resource={r}
+        areas={areas}
+        goalNames={goalNamesList}
+        projectNames={projectNamesList}
+        taskNames={taskNamesList}
+        topicName={r.topic_id ? topicNames.get(r.topic_id) : undefined}
+        onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
+        onArchive={(id) => archiveResource.mutate(id)}
+        onUnarchive={(id) => unarchiveResource.mutate(id)}
+        onDelete={(id) => deleteResource.mutate(id)}
+        onStatusChange={(id, status) => updateResource.mutate({ id, input: { status } })}
+        onEdit={(res) => setEditingResource(res)}
+      />
+    );
+  }
+
+  function renderResourcesList(list: Resource[]) {
     return (
       <div className="rounded-lg border border-border">
-        <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-3 py-2">
-          <span className="w-20 text-xs font-medium text-muted-foreground">Status</span>
-          <span className="flex-1 text-xs font-medium text-muted-foreground">Name</span>
-          <span className="hidden sm:inline w-20 text-xs font-medium text-muted-foreground">Type</span>
-          <span className="hidden md:inline w-16 text-xs font-medium text-muted-foreground">Topic</span>
-          <span className="hidden lg:inline w-16 text-xs font-medium text-muted-foreground">Area</span>
-          <span className="hidden xl:inline w-16 text-xs font-medium text-muted-foreground">Project</span>
-          <span className="w-8" />
-          <span className="w-8" />
-          <span className="w-8" />
-        </div>
-        {list.map((r) => (
-          <ResourceRow
-            key={r.id}
-            resource={r}
-            areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a)) : undefined}
-            projectNames={r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : []}
-            topicName={r.topic_id ? topicNames.get(r.topic_id) : undefined}
-            onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
-            onArchive={(id) => archiveResource.mutate(id)}
-            onUnarchive={(id) => unarchiveResource.mutate(id)}
-            onDelete={() => {}}
-            onStatusChange={(id, status) => updateResource.mutate({ id, input: { status } })}
-          />
-        ))}
+        {list.map((r) => renderResourceRow(r))}
       </div>
     );
+  }
+
+  function getAreasForResource(r: Resource) {
+    return getResourceLinkedAreaIds(r)
+      .map((id) => areaNames.get(id))
+      .filter((n): n is string => Boolean(n))
+      .map((name) => ({ name }));
+  }
+  function getGoalNamesForResource(r: Resource) {
+    return getResourceLinkedGoalIds(r)
+      .map((id) => goalNames.get(id))
+      .filter((n): n is string => Boolean(n));
+  }
+  function getProjectNamesForResource(r: Resource) {
+    return r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : [];
+  }
+  function getTaskNamesForResource(r: Resource) {
+    return getResourceLinkedTaskIds(r)
+      .map((id) => allTasks.find((t) => t.id === id)?.name)
+      .filter((n): n is string => Boolean(n));
   }
 
   function renderSearchResults() {
@@ -657,7 +758,7 @@ export default function KnowledgeHubPage() {
               <h3 className="font-semibold">Resources</h3>
               <Badge variant="secondary" className="text-xs">{sr!.counts.resources} found</Badge>
             </div>
-            {renderResourcesTable(sr!.resources)}
+            {renderResourcesList(sr!.resources)}
           </div>
         )}
       </div>
@@ -964,6 +1065,7 @@ export default function KnowledgeHubPage() {
             <SectionHeader
               accentClass="bg-emerald-500"
               title="Resources"
+              totalCount={resources.length}
               description="Access and search your latest Resources."
               buttonLabel="New Resource"
               onNew={() => setResourceCreateOpen(true)}
@@ -971,83 +1073,117 @@ export default function KnowledgeHubPage() {
             />
             <div className="mt-4">
               <Tabs value={resourcesTab} onValueChange={setResourcesTab}>
-                <TabsList>
-                  {RESOURCE_TABS.map(({ v, l }) => {
-                    let count: number | undefined;
-                    if (v === "inbox") count = resources.filter((r) => r.status === RESOURCE_STATUS.INBOX).length;
-                    else if (v === "to_review") count = resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW).length;
-                    else if (v === "favorites") count = resources.filter((r) => r.favorite).length;
-                    else if (v === "archive") count = archivedResources.length;
-                    else if (v === "all") count = resources.length;
-                    return (
-                      <TabsTrigger key={v} value={v}>
-                        {l}
-                        {count != null && count > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{count}</Badge>}
-                      </TabsTrigger>
-                    );
-                  })}
+                <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <TabsTrigger value={RESOURCE_VIEW.ALL} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">All
+                    {resources.length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{resources.length}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.INBOX} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><InboxIcon className="mr-1.5 size-3.5" />Inbox
+                    {resources.filter((r) => r.status === RESOURCE_STATUS.INBOX).length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{resources.filter((r) => r.status === RESOURCE_STATUS.INBOX).length}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Clock className="mr-1.5 size-3.5" />To Review
+                    {resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW).length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW).length}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.ACTIVE} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Zap className="mr-1.5 size-3.5" />Active
+                    {resources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE).length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{resources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE).length}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.FAVORITE} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Heart className="mr-1.5 size-3.5" />Favorites
+                    {resources.filter((r) => r.favorite).length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{resources.filter((r) => r.favorite).length}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Tag className="mr-1.5 size-3.5" />By Topic</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_AREA} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><MapIcon className="mr-1.5 size-3.5" />By Area</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_GOAL} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Target className="mr-1.5 size-3.5" />By Goal</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><FolderOpen className="mr-1.5 size-3.5" />By Project</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.SAVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Bookmark className="mr-1.5 size-3.5" />Saved
+                    {resources.filter((r) => r.status === RESOURCE_STATUS.SAVED).length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{resources.filter((r) => r.status === RESOURCE_STATUS.SAVED).length}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Archive className="mr-1.5 size-3.5" />Archived
+                    {archivedResources.length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{archivedResources.length}</Badge>}
+                  </TabsTrigger>
                 </TabsList>
 
-                {["inbox", "to_review", "favorites", "archive", "all"].map((v) => (
+                {([RESOURCE_VIEW.ALL, RESOURCE_VIEW.INBOX, RESOURCE_VIEW.TO_REVIEW, RESOURCE_VIEW.ACTIVE, RESOURCE_VIEW.FAVORITE, RESOURCE_VIEW.SAVED, RESOURCE_VIEW.ARCHIVED] as ResourceView[]).map((v) => (
                   <TabsContent key={v} value={v} className="mt-4">
-                    {resourcesLoading && v !== "archive" ? (
+                    {resourcesLoading && v !== RESOURCE_VIEW.ARCHIVED ? (
                       <div className="flex flex-col">
                         {Array.from({ length: 5 }).map((_, i) => <ResourceRowSkeleton key={i} />)}
                       </div>
                     ) : filteredResources.length === 0 ? (
                       <EmptyState
                         icon={Globe}
-                        title={v === "all" ? "No resources yet" : "No resources"}
-                        description={v === "all" ? "Add your first resource to get started" : "Try a different filter"}
-                        actionLabel={v === "all" ? "New Resource" : undefined}
-                        onAction={v === "all" ? () => setResourceCreateOpen(true) : undefined}
+                        title={v === RESOURCE_VIEW.ALL ? "No resources yet" : "No resources"}
+                        description={v === RESOURCE_VIEW.ALL ? "Add your first resource to get started" : "Try a different filter"}
+                        actionLabel={v === RESOURCE_VIEW.ALL ? "New Resource" : undefined}
+                        onAction={v === RESOURCE_VIEW.ALL ? () => setResourceCreateOpen(true) : undefined}
                       />
                     ) : (
-                      renderResourcesTable(filteredResources)
+                      renderResourcesList(filteredResources)
                     )}
                   </TabsContent>
                 ))}
 
-                <TabsContent value="by_topics" className="mt-4">
-                  {resourcesByTopic.size === 0 ? (
-                    <EmptyState
-                      icon={Globe}
-                      title="No resources linked to topics"
-                      description="Link resources to topics to see them grouped here"
-                      actionLabel="New Resource"
-                      onAction={() => setResourceCreateOpen(true)}
-                    />
-                  ) : (
-                    <div className="flex flex-col gap-4">
-                      {Array.from(resourcesByTopic.entries()).map(([topicId, rs]) => {
-                        const tname = topicNames.get(topicId) ?? "Unknown";
-                        return (
-                          <div key={topicId} className="rounded-lg border border-border">
-                            <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2">
-                              <Badge variant="secondary" className="text-xs">{tname}</Badge>
-                              <span className="text-xs text-muted-foreground">{rs.length} resources</span>
-                            </div>
-                            <div className="divide-y divide-border">
-                              {rs.map((r) => (
-                                <ResourceRow
-                                  key={r.id}
-                                  resource={r}
-areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a)) : undefined}
-                                  projectNames={r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : []}
-                                  topicName={tname}
-                                  onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
-                                  onArchive={(id) => archiveResource.mutate(id)}
-                                  onUnarchive={(id) => unarchiveResource.mutate(id)}
-                                  onDelete={() => {}}
-                                  onStatusChange={(id, status) => updateResource.mutate({ id, input: { status } })}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                <TabsContent value={RESOURCE_VIEW.BY_TOPIC} className="mt-4">
+                  <ResourcesByGroupView
+                    groups={resourceGroupsByTopic}
+                    getAreas={getAreasForResource}
+                    getGoalNames={getGoalNamesForResource}
+                    getProjectNames={getProjectNamesForResource}
+                    getTaskNames={getTaskNamesForResource}
+                    getTopicName={(r) => r.topic_id ? topicNames.get(r.topic_id) : undefined}
+                    onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
+                    onArchive={(id) => archiveResource.mutate(id)}
+                    onUnarchive={(id) => unarchiveResource.mutate(id)}
+                    onDelete={(id) => deleteResource.mutate(id)}
+                    onEdit={(r) => setEditingResource(r)}
+                    emptyMessage="Resources will be grouped by topic here."
+                  />
+                </TabsContent>
+                <TabsContent value={RESOURCE_VIEW.BY_AREA} className="mt-4">
+                  <ResourcesByGroupView
+                    groups={resourceGroupsByArea}
+                    getAreas={getAreasForResource}
+                    getGoalNames={getGoalNamesForResource}
+                    getProjectNames={getProjectNamesForResource}
+                    getTaskNames={getTaskNamesForResource}
+                    getTopicName={(r) => r.topic_id ? topicNames.get(r.topic_id) : undefined}
+                    onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
+                    onArchive={(id) => archiveResource.mutate(id)}
+                    onUnarchive={(id) => unarchiveResource.mutate(id)}
+                    onDelete={(id) => deleteResource.mutate(id)}
+                    onEdit={(r) => setEditingResource(r)}
+                    emptyMessage="Resources will be grouped by area here."
+                  />
+                </TabsContent>
+                <TabsContent value={RESOURCE_VIEW.BY_GOAL} className="mt-4">
+                  <ResourcesByGroupView
+                    groups={resourceGroupsByGoal}
+                    getAreas={getAreasForResource}
+                    getGoalNames={getGoalNamesForResource}
+                    getProjectNames={getProjectNamesForResource}
+                    getTaskNames={getTaskNamesForResource}
+                    getTopicName={(r) => r.topic_id ? topicNames.get(r.topic_id) : undefined}
+                    onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
+                    onArchive={(id) => archiveResource.mutate(id)}
+                    onUnarchive={(id) => unarchiveResource.mutate(id)}
+                    onDelete={(id) => deleteResource.mutate(id)}
+                    onEdit={(r) => setEditingResource(r)}
+                    emptyMessage="Resources will be grouped by goal here."
+                  />
+                </TabsContent>
+                <TabsContent value={RESOURCE_VIEW.BY_PROJECT} className="mt-4">
+                  <ResourcesByGroupView
+                    groups={resourceGroupsByProject}
+                    getAreas={getAreasForResource}
+                    getGoalNames={getGoalNamesForResource}
+                    getProjectNames={getProjectNamesForResource}
+                    getTaskNames={getTaskNamesForResource}
+                    getTopicName={(r) => r.topic_id ? topicNames.get(r.topic_id) : undefined}
+                    onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
+                    onArchive={(id) => archiveResource.mutate(id)}
+                    onUnarchive={(id) => unarchiveResource.mutate(id)}
+                    onDelete={(id) => deleteResource.mutate(id)}
+                    onEdit={(r) => setEditingResource(r)}
+                    emptyMessage="Resources will be grouped by project here."
+                  />
                 </TabsContent>
               </Tabs>
             </div>
@@ -1208,6 +1344,20 @@ areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; ico
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Resource Edit Dialog ─────────────────────────────────────────────── */}
+      <ResourceDialog
+        open={!!editingResource}
+        onOpenChange={(open) => { if (!open) setEditingResource(null); }}
+        resource={editingResource}
+        onSubmit={async (input) => {
+          if (editingResource) {
+            await updateResource.mutateAsync({ id: editingResource.id, input });
+            setEditingResource(null);
+          }
+        }}
+        isPending={updateResource.isPending}
+      />
 
       {/* ── Resource Create Dialog ──────────────────────────────────────────── */}
       <Dialog open={resourceCreateOpen} onOpenChange={setResourceCreateOpen}>
