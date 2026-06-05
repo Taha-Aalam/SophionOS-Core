@@ -51,7 +51,7 @@ vi.mock("@/components/ui/tabs", () => ({
   TabsContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-import TopicsPage from "@/app/(dashboard)/topics/page";
+import { TopicsContent as TopicsPage } from "@/app/(dashboard)/topics/topics-content";
 import type { TopicWithCounts } from "@/lib/services/topic.service";
 
 function createTopic(overrides: Partial<TopicWithCounts> = {}): TopicWithCounts {

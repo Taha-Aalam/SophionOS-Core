@@ -8,7 +8,6 @@ import { ContactDialog, type ContactDialogDefaults } from "@/components/entities
 import { ContactsByCategoryView } from "@/components/views/contacts-by-category-view";
 import { ContactsFollowUpView } from "@/components/views/contacts-follow-up-view";
 import { EmptyState } from "@/components/views/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -182,11 +181,17 @@ export function ContactsContent() {
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
-          <Users className="size-5 text-muted-foreground" />
-          <h1 className="text-3xl font-bold tracking-tight">Contacts</h1>
-          <Badge variant="secondary">{allContacts.length}</Badge>
+          <span className="text-2xl leading-none" aria-hidden="true">👥</span>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
+            <p className="text-sm text-muted-foreground">
+              {allContacts.length === 0
+                ? "No contacts yet — add your first one to start tracking relationships"
+                : `${allContacts.length} contact${allContacts.length !== 1 ? "s" : ""} in your network`}
+            </p>
+          </div>
         </div>
         <Button
           onClick={() => {

@@ -8,6 +8,21 @@ vi.mock("../../src/lib/supabase/client", () => ({
   createClient: vi.fn(),
 }));
 
+function makeDefaultClient(): any {
+  return {
+    from: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+  };
+}
+
 const userId = "user-123";
 const taskId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const areaA = "11111111-1111-4111-8111-111111111111";
@@ -77,7 +92,7 @@ describe("taskService – multi-area create", () => {
       .mockImplementationOnce(() => taskInsertClient)
       .mockImplementationOnce(() => areaLookupClient)
       .mockImplementationOnce(() => areaInsertClient)
-      .mockImplementationOnce(() => touchClient);
+      .mockImplementation(() => makeDefaultClient());
 
     const result = await taskService.create(userId, {
       name: "Test Task",
@@ -129,7 +144,7 @@ describe("taskService – multi-area create", () => {
       .mockImplementationOnce(() => taskInsertClient)
       .mockImplementationOnce(() => areaLookupClient)
       .mockImplementationOnce(() => areaInsertClient)
-      .mockImplementationOnce(() => touchClient);
+      .mockImplementation(() => makeDefaultClient());
 
     await taskService.create(userId, {
       name: "Test Task",
@@ -175,7 +190,7 @@ describe("taskService – multi-area create", () => {
       .mockImplementationOnce(() => taskInsertClient)
       .mockImplementationOnce(() => areaLookupClient)
       .mockImplementationOnce(() => areaInsertClient)
-      .mockImplementationOnce(() => touchClient);
+      .mockImplementation(() => makeDefaultClient());
 
     await taskService.create(userId, {
       name: "Test Task",
@@ -238,8 +253,7 @@ describe("taskService – multi-area update", () => {
       .mockImplementationOnce(() => areaLookupClient)
       .mockImplementationOnce(() => areaInsertClient)
       .mockImplementationOnce(() => areaDeleteClient)
-      .mockImplementationOnce(() => goalLookupClient)
-      .mockImplementationOnce(() => touchClient);
+      .mockImplementation(() => makeDefaultClient());
 
     await taskService.update(userId, taskId, {
       name: "Updated Task",

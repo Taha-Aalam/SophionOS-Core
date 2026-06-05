@@ -70,6 +70,11 @@ vi.mock("@/lib/hooks/use-projects", async () => {
     useUpdateProjectStatus: () => ({
       mutate: vi.fn(),
     }),
+    useArchiveProject: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
+    useRestoreProject: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
+    useDeleteProject: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
+    useUpdateProject: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
+    useCreateProject: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
   };
 });
 
@@ -134,7 +139,7 @@ vi.mock("@/components/views/kanban-board", () => ({
 }));
 
 import { KanbanBoard } from "@/components/views/kanban-board";
-import ProjectsPage from "@/app/(dashboard)/projects/page";
+import { ProjectsContent as ProjectsPage } from "@/app/(dashboard)/projects/projects-content";
 import type { Area, Project, Task } from "@/lib/types/domain.types";
 
 function createProject(overrides: Partial<Project> = {}): Project {

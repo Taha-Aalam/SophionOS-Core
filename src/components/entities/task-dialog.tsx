@@ -394,8 +394,10 @@ export function TaskDialog({
   const selectedProjectId = form.watch("project_id");
   const isPending = createTask.isPending || updateTask.isPending;
 
-  // Live re-derive status from current area/project context (only meaningful
-  // in create mode — edit mode keeps the existing entity's stored status).
+  // Live re-derive status from current area/goal/project + due_date context
+  // (only meaningful in create mode — edit mode keeps the existing entity's
+  // stored status untouched).
+  const selectedDueDate = form.watch("due_date") ?? "";
   useDerivedStatus<TaskFormValues>(
     form,
     () =>
@@ -403,8 +405,9 @@ export function TaskDialog({
         area_ids: selectedAreaIds,
         goal_ids: selectedGoalIds,
         project_ids: selectedProjectIds,
+        due_date: selectedDueDate as string | null | undefined,
       }),
-    [open, task, selectedAreaIds, selectedGoalIds, selectedProjectIds],
+    [open, task, selectedAreaIds, selectedGoalIds, selectedProjectIds, selectedDueDate],
   );
 
   // Keep the legacy single `project_id` form field in sync with the
@@ -663,29 +666,37 @@ export function TaskDialog({
               <FormMessage>{form.formState.errors.description?.message}</FormMessage>
             </FormItem>
 
-            {/* Row 1: Status | Priority */}
+            {/* Row 1: Status (derived) | Priority */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Controller
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="w-full h-12">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={TASK_STATUS.INBOX}>Inbox</SelectItem>
-                        <SelectItem value={TASK_STATUS.TODO}>To Do</SelectItem>
-                        <SelectItem value={TASK_STATUS.IN_PROGRESS}>In Progress</SelectItem>
-                        <SelectItem value={TASK_STATUS.COMPLETED}>Completed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
+                {task ? (
+                  <Controller
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="w-full h-12">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={TASK_STATUS.INBOX}>Inbox</SelectItem>
+                          <SelectItem value={TASK_STATUS.TODO}>To Do</SelectItem>
+                          <SelectItem value={TASK_STATUS.IN_PROGRESS}>In Progress</SelectItem>
+                          <SelectItem value={TASK_STATUS.COMPLETED}>Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                ) : (
+                  <div className="flex h-12 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
+                    {form.watch("status") === TASK_STATUS.TODO
+                      ? "To Do (derived from context)"
+                      : "Inbox (derived from context)"}
+                  </div>
+                )}
                 <FormMessage>{form.formState.errors.status?.message}</FormMessage>
               </FormItem>
 

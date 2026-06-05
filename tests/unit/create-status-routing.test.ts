@@ -172,9 +172,10 @@ describe("taskService.create status routing (bug #3, #4)", () => {
       name: "Tidy desk",
       status: TASK_STATUS.TODO,
       area_ids: [areaA],
+      due_date: "2026-06-10",
     } as any);
 
-    // Has area => todo is correct, derivation agrees with caller
+    // Has area + due_date => todo is correct, derivation agrees with caller
     expect(insertClient.insert).toHaveBeenCalledWith(
       expect.objectContaining({ status: TASK_STATUS.TODO }),
     );

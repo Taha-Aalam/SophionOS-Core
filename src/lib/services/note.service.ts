@@ -9,7 +9,7 @@ import type {
 } from "../types/domain.types";
 import { createNoteSchema, updateNoteSchema } from "../validators/note.schema";
 import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
-import type { NoteStatus } from "../utils/constants";
+import { NOTE_STATUS, type NoteStatus } from "../utils/constants";
 import { deriveNoteStatus } from "../utils/status-routing";
 import {
   buildSlug,
@@ -322,18 +322,23 @@ export const noteService = {
         new Set((notebooksInput ?? []).map((n) => n.trim()).filter((n) => n.length > 0)),
       );
       const validated = createNoteSchema.parse(inputWithoutNotebooks);
-      const { areaIds, noteInput: areaCleanedInput } = extractNoteAreaIds(validated);
+      // `notebooks` is a relation, not a column on `notes`. Strip it after
+      // schema validation so the insert payload doesn't reference a missing
+      // column. Junction rows are written separately via replaceNotebooks().
+      const { notebooks: _notebooksValidated, ...validatedForInsert } = validated;
+      const { areaIds, noteInput: areaCleanedInput } = extractNoteAreaIds(validatedForInsert);
       const { goalIds, noteInput: goalCleanedInput } = extractGoalIds(areaCleanedInput);
       const { projectIds, noteInput: projectCleanedInput } = extractProjectIds(goalCleanedInput);
       const { taskIds, noteInput: taskCleanedInput } = extractTaskIds(projectCleanedInput);
 
       // Status is always derived from context on create so a contextless
-      // note (no area/project/goal/topic) is persisted as "inbox" instead
-      // of the caller's pre-filled default.
+      // note (no area/project/goal/task/topic) is persisted as "inbox"
+      // instead of the caller's pre-filled default.
       const status = deriveNoteStatus({
         area_ids: areaIds,
         project_ids: projectIds,
         goal_ids: goalIds,
+        task_ids: taskIds,
         topic_id: validated.topic_id,
       });
 
@@ -413,19 +418,30 @@ export const noteService = {
         status?: NoteStatus;
       };
 
-      // Context-only update (area/project/goal/topic were sent, but the caller
-      // did not touch status). Re-derive the status from the new context.
+      // Re-derive the status whenever the note's context changes. The
+      // caller may pass a stale `status` (e.g. the dialog default
+      // `to_review`) — the context (area/goal/project/task/topic) is the
+      // source of truth for the inbox/to_review split, and a stale bucket
+      // should be corrected.
+      //
+      // Terminal states (saved, archive) are preserved: once a note is
+      // filed away, inbox logic no longer applies.
       const touchesContext =
-        (areaIds !== undefined ||
-          projectIds !== undefined ||
-          goalIds !== undefined ||
-          validatedWide.topic_id !== undefined) &&
-        validatedWide.status === undefined;
-      if (touchesContext) {
+        areaIds !== undefined ||
+        projectIds !== undefined ||
+        goalIds !== undefined ||
+        taskIds !== undefined ||
+        validatedWide.topic_id !== undefined;
+      const preservesTerminal =
+        validatedWide.status === NOTE_STATUS.SAVED ||
+        validatedWide.status === NOTE_STATUS.ARCHIVE;
+
+      if (touchesContext && !preservesTerminal) {
         const derived = deriveNoteStatus({
           area_ids: areaIds,
           project_ids: projectIds,
           goal_ids: goalIds,
+          task_ids: taskIds,
           topic_id: validatedWide.topic_id as string | null | undefined,
         });
         if (derived !== validatedWide.status) {
@@ -478,15 +494,15 @@ export const noteService = {
         await this.replaceAreaLinks(id, areaIds);
       }
 
-      if (goalIds) {
+      if (goalIds !== undefined) {
         await this.replaceGoalLinks(id, goalIds);
       }
 
-      if (projectIds) {
+      if (projectIds !== undefined) {
         await this.replaceProjectLinks(id, projectIds);
       }
 
-      if (taskIds) {
+      if (taskIds !== undefined) {
         await this.replaceTaskLinks(id, taskIds);
       }
 
@@ -629,7 +645,37 @@ export const noteService = {
     await this.syncNoteStatusFromContext(noteId);
   },
 
-  /** Re-derive a note's status from its current area/project/goal/topic context. */
+  async linkToTask(taskId: string, noteId: string): Promise<void> {
+    const { error } = await createClient()
+      .from("task_notes")
+      .upsert({ task_id: taskId, note_id: noteId });
+
+    if (error) {
+      if (!isMissingTaskNotesTableError(error)) {
+        throw new DatabaseError(error.message);
+      }
+    }
+
+    await this.syncNoteStatusFromContext(noteId);
+  },
+
+  async unlinkFromTask(taskId: string, noteId: string): Promise<void> {
+    const { error } = await createClient()
+      .from("task_notes")
+      .delete()
+      .eq("task_id", taskId)
+      .eq("note_id", noteId);
+
+    if (error) {
+      if (!isMissingTaskNotesTableError(error)) {
+        throw new DatabaseError(error.message);
+      }
+    }
+
+    await this.syncNoteStatusFromContext(noteId);
+  },
+
+  /** Re-derive a note's status from its current area/project/goal/task/topic context. */
   async syncNoteStatusFromContext(noteId: string): Promise<void> {
     const relations = await this.getWithRelations(noteId);
     const { data: note, error: fetchError } = await createClient()
@@ -643,12 +689,19 @@ export const noteService = {
     }
     if (!note) return;
 
+    // Terminal states (saved, archive) are preserved: a filed-away note
+    // is not pulled back to inbox/to_review by a later link/unlink.
+    if (note.status === NOTE_STATUS.SAVED || note.status === NOTE_STATUS.ARCHIVE) {
+      return;
+    }
+
     const derivedStatus = deriveNoteStatus({
       area_id: note.area_id,
       area_ids: relations.area_ids,
       project_id: note.project_id,
       project_ids: relations.project_ids,
       goal_ids: relations.goal_ids,
+      task_ids: relations.task_ids,
       topic_id: note.topic_id,
     });
 
@@ -851,6 +904,8 @@ export const noteService = {
         }
       }
     }
+
+    await this.syncNoteStatusFromContext(noteId);
   },
 
   async getByNotebook(userId: string, notebook: string): Promise<Note[]> {
@@ -989,6 +1044,53 @@ export const noteService = {
     }
 
     return hydrateSingleNoteRelations(data);
+  },
+
+  /**
+   * One-shot backfill: re-derive status for every non-terminal note
+   * whose stored status does not match the value derived from its
+   * current context. Terminal states (saved, archive) are preserved.
+   */
+  async backfillStaleStatuses(userId: string): Promise<number> {
+    const { data, error } = await createClient()
+      .from("notes")
+      .select(NOTE_SELECT)
+      .eq("user_id", userId)
+      .eq("is_archived", false)
+      .neq("status", NOTE_STATUS.SAVED)
+      .neq("status", NOTE_STATUS.ARCHIVE);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    const notes = data ?? [];
+    let fixed = 0;
+    for (const note of notes) {
+      const relations = await this.getWithRelations(note.id);
+      const derived = deriveNoteStatus({
+        area_id: note.area_id,
+        area_ids: relations.area_ids,
+        project_id: note.project_id,
+        project_ids: relations.project_ids,
+        goal_ids: relations.goal_ids,
+        task_ids: relations.task_ids,
+        topic_id: note.topic_id,
+      });
+      if (derived !== note.status) {
+        const { error: updateError } = await createClient()
+          .from("notes")
+          .update({ status: derived })
+          .eq("id", note.id)
+          .eq("user_id", userId);
+        if (updateError) {
+          throw new DatabaseError(updateError.message);
+        }
+        fixed += 1;
+      }
+    }
+
+    return fixed;
   },
 
   async listTypes(userId: string): Promise<{ id: string; name: string; slug: string }[]> {

@@ -312,6 +312,7 @@ export function AreaDetailContent() {
 
   useEffect(() => {
     if (area) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPageTitle(area.name);
     }
     return () => setPageTitle("");
@@ -484,14 +485,14 @@ export function AreaDetailContent() {
       area?.id
         ? allContacts.filter((contact) => (contact.linkedAreaIds ?? []).includes(area.id))
         : [],
-    [allContacts, area?.id],
+    [allContacts, area],
   );
   const linkedArchivedContacts = useMemo(
     () =>
       area?.id
         ? archivedContactsAll.filter((contact) => (contact.linkedAreaIds ?? []).includes(area.id))
         : [],
-    [archivedContactsAll, area?.id],
+    [archivedContactsAll, area],
   );
   const allLinkedContacts = useMemo(
     () => [...linkedContacts, ...linkedArchivedContacts],

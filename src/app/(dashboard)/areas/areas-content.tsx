@@ -172,11 +172,14 @@ export function AreasContent() {
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Areas</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Organize your life into focus areas
-          </p>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl leading-none" aria-hidden="true">🗺️</span>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Areas</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Organize your life into focus areas
+            </p>
+          </div>
         </div>
         <Button onClick={() => handleOpenCreate()}>
           <Plus className="size-4 mr-2" />
