@@ -55,6 +55,14 @@ describe("isValidReturnTo", () => {
     expect(isValidReturnTo("/contacts/john-doe")).toBe(true);
   });
 
+  it("accepts /knowledge", () => {
+    expect(isValidReturnTo("/knowledge")).toBe(true);
+  });
+
+  it("accepts nested /knowledge paths", () => {
+    expect(isValidReturnTo("/knowledge/topic-views")).toBe(true);
+  });
+
   it("rejects /contacts/new", () => {
     expect(isValidReturnTo("/contacts/new")).toBe(false);
   });
@@ -112,6 +120,11 @@ describe("encodeReturnTo / decodeReturnTo", () => {
     const decoded = decodeReturnTo(encodeReturnTo(original));
     expect(isValidReturnTo(decoded)).toBe(true);
   });
+
+  it("round-trips an encoded knowledge hub returnTo", () => {
+    const encoded = encodeReturnTo("/knowledge");
+    expect(decodeReturnTo(encoded)).toBe("/knowledge");
+  });
 });
 
 describe("getReturnToFromSearchParams", () => {
@@ -158,6 +171,11 @@ describe("resolveBackNavigation", () => {
   it("returns valid goals returnTo", () => {
     const result = resolveBackNavigation("/goals/my-goal", "/projects");
     expect(result).toBe("/goals/my-goal");
+  });
+
+  it("returns the knowledge hub returnTo when valid", () => {
+    const result = resolveBackNavigation("/knowledge", "/topics");
+    expect(result).toBe("/knowledge");
   });
 });
 
