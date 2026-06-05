@@ -574,11 +574,14 @@ export function NotesContent() {
   return (
     <div className={NOTES_PAGE_SHELL_CLASS_NAME}>
       <div className="flex items-center justify-between border-b border-border/50 px-6 py-5">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Notes</h1>
-          <p className="text-sm text-muted-foreground">
-            {formatNotesSummary(counts.all, counts.archived)}
-          </p>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl leading-none" aria-hidden="true">📝</span>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Notes</h1>
+            <p className="text-sm text-muted-foreground">
+              {formatNotesSummary(counts.all, counts.archived)}
+            </p>
+          </div>
         </div>
         <Button onClick={() => router.push("/notes/new")}>
           <Plus className="size-4" />

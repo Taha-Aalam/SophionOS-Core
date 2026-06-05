@@ -37,6 +37,7 @@ const noteBaseSchema = z
     goal_ids: z.array(z.string().uuid()).default([]),
     task_ids: z.array(z.string().uuid()).default([]),
     project_ids: z.array(z.string().uuid()).default([]),
+    notebooks: z.array(z.string().min(1).max(100)).default([]),
   })
   .strict();
 
@@ -59,6 +60,7 @@ export const updateNoteSchema = noteBaseSchema
     task_ids: z.array(z.string().uuid()).optional(),
     area_ids: z.array(z.string().uuid()).optional(),
     project_ids: z.array(z.string().uuid()).optional(),
+    notebooks: z.array(z.string().min(1).max(100)).optional(),
   })
   .partial()
   .strict();

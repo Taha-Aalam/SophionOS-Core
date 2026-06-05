@@ -346,12 +346,15 @@ export const taskService = {
         extractTaskProjectIds(areaCleanedInput);
       const { goalIds, taskInput } = extractGoalIds(projectCleanedInput);
       // Status is always derived from context on create so a contextless
-      // task (no area/goal/project) is persisted as "inbox" instead of the
-      // caller's pre-filled default (the dialog form defaults to "todo").
+      // task (no area/goal/project + no due_date) is persisted as "inbox"
+      // instead of the caller's pre-filled default (the dialog form
+      // defaults to "todo"). A due_date alone is enough to skip inbox —
+      // a calendar-driven task leaves the inbox on creation.
       const status = deriveTaskStatus({
         area_ids: areaIds,
         goal_ids: goalIds,
         project_ids: projectIds,
+        due_date: validated.due_date as string | null | undefined,
       });
 
       const { data, error } = await createClient()
@@ -414,6 +417,7 @@ export const taskService = {
           area_ids: current.linkedAreaIds,
           goal_ids: current.linkedGoalIds,
           project_ids: current.linkedProjectIds,
+          due_date: current.due_date as string | null | undefined,
         });
         const syncPatch = resolveTaskCompletionOnUpdate({
           incomingStatus: taskInputWide.status,
@@ -429,20 +433,29 @@ export const taskService = {
         Object.assign(taskInputWide, syncPatch);
       }
 
-      // Context-only update (area_ids / goal_ids / project_ids were sent, but
-      // the caller did not touch status). Re-derive the status from the new
-      // context so an inbox task that gets a linked area flips to todo.
+      // Re-derive the status whenever the task's context changes. The caller
+      // may pass a stale `status` (e.g. the dialog default `todo`) — the
+      // context (area/goal/project + due_date) is the source of truth for
+      // the inbox/todo split, and a stale bucket should be corrected.
+      //
+      // Terminal states (completed, archived) are preserved: once a task is
+      // done or archived, inbox logic no longer applies.
+      const datesChanged = taskInputWide.due_date !== undefined;
       const touchesContext =
-        (areaIds !== undefined ||
-          goalIds !== undefined ||
-          projectIds !== undefined) &&
-        taskInputWide.status === undefined &&
-        taskInputWide.is_completed === undefined;
-      if (touchesContext) {
+        areaIds !== undefined ||
+        goalIds !== undefined ||
+        projectIds !== undefined ||
+        datesChanged;
+      const preservesTerminal =
+        taskInputWide.status === TASK_STATUS.COMPLETED ||
+        taskInputWide.status === TASK_STATUS.ARCHIVED;
+
+      if (touchesContext && !preservesTerminal && taskInputWide.is_completed === undefined) {
         const derived = deriveTaskStatus({
           area_ids: areaIds,
           goal_ids: goalIds,
           project_ids: projectIds,
+          due_date: taskInputWide.due_date as string | null | undefined,
         });
         if (derived !== taskInputWide.status) {
           taskInputWide.status = derived;
@@ -571,6 +584,7 @@ export const taskService = {
       area_ids: current.linkedAreaIds,
       goal_ids: current.linkedGoalIds,
       project_ids: current.linkedProjectIds,
+      due_date: current.due_date as string | null | undefined,
     });
     const patch = buildUncompletePatch(current.previous_status ?? null, fallback);
 
@@ -797,11 +811,11 @@ export const taskService = {
     await this.syncTaskStatusFromContext(taskId);
   },
 
-  /** Re-derive a task's status from its current area + goal + project context. */
+  /** Re-derive a task's status from its current area + goal + project + due_date context. */
   async syncTaskStatusFromContext(taskId: string): Promise<void> {
     const { data: task, error: fetchError } = await createClient()
       .from("tasks")
-      .select("status, area_id, project_id")
+      .select("status, area_id, project_id, due_date")
       .eq("id", taskId)
       .maybeSingle();
 
@@ -809,6 +823,12 @@ export const taskService = {
       throw new DatabaseError(fetchError.message);
     }
     if (!task) return;
+
+    // Terminal states are preserved: a completed/archived task is not
+    // pulled back to inbox/todo by a later link/unlink.
+    if (task.status === TASK_STATUS.COMPLETED || task.status === TASK_STATUS.ARCHIVED) {
+      return;
+    }
 
     const [areaIds, goalIds, projectIds] = await Promise.all([
       this.getAreaLinks(taskId),
@@ -822,6 +842,7 @@ export const taskService = {
       goal_ids: goalIds,
       project_id: task.project_id,
       project_ids: projectIds,
+      due_date: task.due_date as string | null | undefined,
     });
 
     if (derivedStatus !== task.status) {
@@ -863,6 +884,63 @@ export const taskService = {
     }
 
     return data;
+  },
+
+  /**
+   * One-shot backfill: re-derive status for every non-terminal task that
+   * is currently sitting on a stale bucket. Terminal states (completed,
+   * archived) are preserved. Used by the inbox page to surface tasks that
+   * should already be in the inbox but were created before the
+   * caller-supplied status override was wired in.
+   *
+   * Per-row status updates are issued (not a blanket update to a single
+   * value) because the derived status can vary: a task with only a due
+   * date should be `todo`, a task with no context should be `inbox`,
+   * a task with both a project and a due date is still `todo`, etc.
+   */
+  async backfillStaleStatuses(userId: string): Promise<number> {
+    const { data, error } = await createClient()
+      .from("tasks")
+      .select(TASK_SELECT)
+      .eq("user_id", userId)
+      .eq("is_archived", false)
+      .neq("status", TASK_STATUS.COMPLETED)
+      .neq("status", TASK_STATUS.ARCHIVED);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    const tasks = data ?? [];
+    let fixed = 0;
+    for (const task of tasks) {
+      const [areaIds, goalIds, projectIds] = await Promise.all([
+        this.getAreaLinks(task.id),
+        this.getGoalLinks(task.id),
+        this.getProjectLinks(task.id),
+      ]);
+      const derived = deriveTaskStatus({
+        area_id: task.area_id,
+        area_ids: areaIds,
+        goal_ids: goalIds,
+        project_id: task.project_id,
+        project_ids: projectIds,
+        due_date: task.due_date as string | null | undefined,
+      });
+      if (derived !== task.status) {
+        const { error: updateError } = await createClient()
+          .from("tasks")
+          .update({ status: derived })
+          .eq("id", task.id)
+          .eq("user_id", userId);
+        if (updateError) {
+          throw new DatabaseError(updateError.message);
+        }
+        fixed += 1;
+      }
+    }
+
+    return fixed;
   },
 
   async getGoalLinks(taskId: string): Promise<string[]> {

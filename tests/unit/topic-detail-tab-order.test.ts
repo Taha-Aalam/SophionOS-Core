@@ -7,7 +7,7 @@ import { describe, it, expect } from "vitest";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const src = readFileSync(
-  join(__dirname, "../../src/app/(dashboard)/topics/[id]/page.tsx"),
+  join(__dirname, "../../src/app/(dashboard)/topics/[id]/topic-detail-content.tsx"),
   "utf-8",
 );
 

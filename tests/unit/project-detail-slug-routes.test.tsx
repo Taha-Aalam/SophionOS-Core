@@ -49,15 +49,19 @@ vi.mock("@/lib/hooks/use-projects", () => ({
   useUnlinkProjectFromGoal: () => ({ mutateAsync: vi.fn() }),
   useLinkProjectToArea: () => ({ mutateAsync: vi.fn(), mutate: vi.fn() }),
   useUnlinkProjectFromArea: () => ({ mutateAsync: vi.fn(), mutate: vi.fn() }),
-}));
-
-vi.mock("@/lib/hooks/use-areas", () => ({
-  useAreas: () => ({ data: [] }),
+  useArchiveProject: () => ({ mutateAsync: vi.fn() }),
+  useRestoreProject: () => ({ mutateAsync: vi.fn() }),
 }));
 
 vi.mock("@/lib/hooks/use-goals", () => ({
   useGoals: () => ({ data: [], isLoading: false }),
+  useRestoreGoal: () => ({ mutateAsync: vi.fn() }),
+  useArchiveGoal: () => ({ mutateAsync: vi.fn() }),
   GOALS_QUERY_KEY: "goals",
+}));
+
+vi.mock("@/lib/hooks/use-areas", () => ({
+  useAreas: () => ({ data: [] }),
 }));
 
 vi.mock("@tanstack/react-query", () => ({
@@ -66,11 +70,15 @@ vi.mock("@tanstack/react-query", () => ({
 
 vi.mock("@/lib/hooks/use-tasks", () => ({
   useTasks: () => ({ data: [], isLoading: false }),
+  useArchivedTasks: () => ({ data: [], isLoading: false }),
   useCompleteTask: () => ({ mutateAsync: vi.fn() }),
   useUncompleteTask: () => ({ mutateAsync: vi.fn() }),
   useFocusTask: () => ({ mutateAsync: vi.fn() }),
   useUpdateTask: () => ({ mutateAsync: vi.fn() }),
   useDeleteTask: () => ({ mutateAsync: vi.fn() }),
+  useArchiveTask: () => ({ mutateAsync: vi.fn() }),
+  useRestoreTask: () => ({ mutateAsync: vi.fn() }),
+  usePermanentDeleteTask: () => ({ mutateAsync: vi.fn() }),
 }));
 
 vi.mock("@/lib/hooks/use-topics", () => ({
@@ -82,7 +90,13 @@ vi.mock("@/lib/hooks/use-notes", () => ({
     capturedHookArgs["useNotesByProject"] = [id];
     return { data: [], isLoading: false };
   },
+  useNotes: () => ({ data: [], isLoading: false }),
   useToggleFavoriteNote: () => ({ mutate: vi.fn() }),
+  useTogglePinNote: () => ({ mutate: vi.fn() }),
+  useArchiveNote: () => ({ mutateAsync: vi.fn() }),
+  useRestoreNote: () => ({ mutateAsync: vi.fn() }),
+  useDeleteNote: () => ({ mutateAsync: vi.fn() }),
+  useUpdateNote: () => ({ mutateAsync: vi.fn() }),
 }));
 
 vi.mock("@/lib/hooks/use-contacts", () => ({
@@ -93,6 +107,15 @@ vi.mock("@/lib/hooks/use-contacts", () => ({
   },
   useLinkContactToProject: () => ({ mutateAsync: vi.fn(), mutate: vi.fn() }),
   useUnlinkContactFromProject: () => ({ mutateAsync: vi.fn(), mutate: vi.fn() }),
+  useLinkContactToArea: () => ({ mutateAsync: vi.fn(), mutate: vi.fn() }),
+  useUnlinkContactFromArea: () => ({ mutateAsync: vi.fn(), mutate: vi.fn() }),
+  useLinkContactToGoal: () => ({ mutateAsync: vi.fn(), mutate: vi.fn() }),
+  useUnlinkContactFromGoal: () => ({ mutateAsync: vi.fn(), mutate: vi.fn() }),
+  useLinkContactToTask: () => ({ mutateAsync: vi.fn(), mutate: vi.fn() }),
+  useUnlinkContactFromTask: () => ({ mutateAsync: vi.fn(), mutate: vi.fn() }),
+  useLogInteraction: () => ({ mutateAsync: vi.fn() }),
+  useContactLogs: () => ({ data: [] }),
+  useCreateContactLog: () => ({ mutateAsync: vi.fn() }),
   useCreateContact: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
   useUpdateContact: () => ({ mutateAsync: vi.fn() }),
   useDeleteContact: () => ({ mutateAsync: vi.fn() }),
@@ -105,9 +128,12 @@ vi.mock("@/lib/hooks/use-resources", () => ({
     capturedHookArgs["useResourcesByProject"] = [id];
     return { data: [], isLoading: false };
   },
+  useResources: () => ({ data: [], isLoading: false }),
   useCreateResource: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
   useToggleFavoriteResource: () => ({ mutate: vi.fn() }),
   useUpdateResource: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
+  useArchiveResource: () => ({ mutateAsync: vi.fn() }),
+  useUnarchiveResource: () => ({ mutateAsync: vi.fn() }),
 }));
 
 vi.mock("@/components/entities/project-dialog", () => ({
@@ -130,13 +156,17 @@ vi.mock("@/components/entities/note-editor-dialog", () => ({
   NoteEditorDialog: () => null,
 }));
 
+vi.mock("@/components/entities/goal-dialog", () => ({
+  GoalDialog: () => null,
+}));
+
 vi.mock("@/components/ui/skeleton", () => ({
   Skeleton: ({ className }: { className?: string }) => (
     <div className={className} data-slot="skeleton" />
   ),
 }));
 
-import ProjectDetailPage from "@/app/(dashboard)/projects/[id]/page";
+import { ProjectDetailContent as ProjectDetailPage } from "@/app/(dashboard)/projects/[id]/project-detail-content";
 
 describe("ProjectDetailPage slug route UUID resolution", () => {
   beforeEach(() => {

@@ -282,27 +282,33 @@ export async function serverFetchGoalDetail(
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const unlinkedTasksForProgress = goalProjectIds.size === 0
+  const unlinkedTasksForProgress: typeof rawTasks = goalProjectIds.size === 0
     ? rawTasks
-    : rawTasks.filter((t: any) => !t.project_id || !goalProjectIds.has(t.project_id))
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const unlinkedNotesForProgress = goalProjectIds.size === 0
+    : rawTasks.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (t: any) => !t.project_id || !goalProjectIds.has(t.project_id),
+      )
+  const unlinkedNotesForProgress: typeof rawNotes = goalProjectIds.size === 0
     ? rawNotes
-    : rawNotes.filter((n: any) => {
-        if (n.project_id && goalProjectIds.has(n.project_id)) return false
-        const junctionIds = noteProjectIdsByNoteId.get(n.id)
-        if (junctionIds) {
-          for (const pid of junctionIds) {
-            if (goalProjectIds.has(pid)) return false
+    : rawNotes.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (n: any) => {
+          if (n.project_id && goalProjectIds.has(n.project_id)) return false
+          const junctionIds = noteProjectIdsByNoteId.get(n.id)
+          if (junctionIds) {
+            for (const pid of junctionIds) {
+              if (goalProjectIds.has(pid)) return false
+            }
           }
-        }
-        return true
-      })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const unlinkedResourcesForProgress = goalProjectIds.size === 0
+          return true
+        },
+      )
+  const unlinkedResourcesForProgress: typeof rawResources = goalProjectIds.size === 0
     ? rawResources
-    : rawResources.filter((r: any) => !r.project_id || !goalProjectIds.has(r.project_id))
+    : rawResources.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (r: any) => !r.project_id || !goalProjectIds.has(r.project_id),
+      )
 
   const liveProgress = calculateGoalProgress(
     goal,
