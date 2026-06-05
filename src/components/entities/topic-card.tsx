@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { TopicWithCounts } from "@/lib/services/topic.service";
 import { cn } from "@/lib/utils";
+import { encodeReturnTo } from "@/lib/utils/return-to";
 
 interface TopicCardProps {
   topic: TopicWithCounts;
   areaNames?: Map<string, string>;
   areaIcons?: Map<string, string | null>;
   duplicateIndex?: number;
+  returnTo?: string;
   onToggleFavorite?: (id: string, favorite: boolean) => void;
   onEdit?: (topic: TopicWithCounts) => void;
   onArchive?: (topic: TopicWithCounts) => void;
@@ -26,6 +28,7 @@ const TopicCardComponent = ({
   areaNames = new Map(),
   areaIcons = new Map(),
   duplicateIndex,
+  returnTo,
   onToggleFavorite,
   onEdit,
   onArchive,
@@ -41,7 +44,12 @@ const TopicCardComponent = ({
         "group cursor-pointer transition-all hover:ring-2 hover:ring-primary/20",
         topic.inactive && "opacity-60"
       )}
-      onClick={() => router.push(`/topics/${topic.slug ?? topic.id}`)}
+      onClick={() => {
+        const href = returnTo
+          ? `/topics/${topic.slug ?? topic.id}?returnTo=${encodeReturnTo(returnTo)}`
+          : `/topics/${topic.slug ?? topic.id}`;
+        router.push(href);
+      }}
     >
       <CardContent className={cn("p-4", !compact && "p-5")}>
         <div className="flex items-start justify-between gap-2">
