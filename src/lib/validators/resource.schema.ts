@@ -51,7 +51,7 @@ const resourceBaseSchema = z
 
 export const createResourceSchema = resourceBaseSchema.extend({
   type: z.enum(resourceTypeValues).default(RESOURCE_TYPE.WEBSITE),
-  status: z.enum(resourceStatusValues).default(RESOURCE_STATUS.INBOX),
+  status: z.enum(resourceStatusValues).optional(),
   favorite: z.boolean().default(false),
   is_archived: z.boolean().default(false),
   goal_ids: z.array(z.string().uuid()).default([]),

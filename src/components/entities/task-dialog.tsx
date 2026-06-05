@@ -6,6 +6,7 @@ import { Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAreas, useAreasByIds } from "@/lib/hooks/use-areas";
+import { useDerivedStatus } from "@/lib/hooks/use-derived-status";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
@@ -16,6 +17,7 @@ import {
 import { Task } from "@/lib/types/domain.types";
 import { getStableStringArray } from "@/lib/utils/stable-arrays";
 import { PRIORITY, TASK_STATUS } from "@/lib/utils/constants";
+import { deriveTaskStatus } from "@/lib/utils/status-routing";
 import {
   applyGoalScopedDefaults,
   applyProjectScopedAreaGuard,
@@ -154,19 +156,27 @@ function buildTaskFormValues(
     if (goalScoped) {
       const scopedAreaIds = goalScoped.linkedAreaIds?.length
         ? goalScoped.linkedAreaIds
-        : goalScoped.areaId ? [goalScoped.areaId] : [];
+        : goalScoped.areaId
+          ? [goalScoped.areaId]
+          : [];
       return {
         ...EMPTY_FORM_VALUES,
         area_ids: scopedAreaIds,
         project_id: "",
         project_ids: [],
         goal_ids: [goalScoped.goalId],
+        status: deriveTaskStatus({
+          area_ids: scopedAreaIds,
+          goal_ids: [goalScoped.goalId],
+        }),
       };
     }
     if (projectScoped) {
       const scopedAreaIds = projectScoped.linkedAreaIds?.length
         ? projectScoped.linkedAreaIds
-        : projectScoped.areaId ? [projectScoped.areaId] : [];
+        : projectScoped.areaId
+          ? [projectScoped.areaId]
+          : [];
       return {
         ...EMPTY_FORM_VALUES,
         area_ids: scopedAreaIds,
@@ -177,6 +187,15 @@ function buildTaskFormValues(
           : defaultGoalId
             ? [defaultGoalId]
             : [],
+        status: deriveTaskStatus({
+          area_ids: scopedAreaIds,
+          goal_ids: projectScoped.linkedGoalIds?.length
+            ? projectScoped.linkedGoalIds
+            : defaultGoalId
+              ? [defaultGoalId]
+              : [],
+          project_ids: [projectScoped.projectId],
+        }),
       };
     }
     return {
@@ -185,6 +204,11 @@ function buildTaskFormValues(
       project_id: defaultProjectId ?? "",
       project_ids: defaultProjectId ? [defaultProjectId] : [],
       goal_ids: defaultGoalId ? [defaultGoalId] : [],
+      status: deriveTaskStatus({
+        area_ids: defaultAreaId ? [defaultAreaId] : [],
+        goal_ids: defaultGoalId ? [defaultGoalId] : [],
+        project_ids: defaultProjectId ? [defaultProjectId] : [],
+      }),
     };
   }
 
@@ -369,6 +393,19 @@ export function TaskDialog({
   // with code paths that read task.project_id directly.
   const selectedProjectId = form.watch("project_id");
   const isPending = createTask.isPending || updateTask.isPending;
+
+  // Live re-derive status from current area/project context (only meaningful
+  // in create mode — edit mode keeps the existing entity's stored status).
+  useDerivedStatus<TaskFormValues>(
+    form,
+    () =>
+      deriveTaskStatus({
+        area_ids: selectedAreaIds,
+        goal_ids: selectedGoalIds,
+        project_ids: selectedProjectIds,
+      }),
+    [open, task, selectedAreaIds, selectedGoalIds, selectedProjectIds],
+  );
 
   // Keep the legacy single `project_id` form field in sync with the
   // first item in `project_ids`. The service layer also sets the row's
@@ -644,6 +681,7 @@ export function TaskDialog({
                         <SelectItem value={TASK_STATUS.INBOX}>Inbox</SelectItem>
                         <SelectItem value={TASK_STATUS.TODO}>To Do</SelectItem>
                         <SelectItem value={TASK_STATUS.IN_PROGRESS}>In Progress</SelectItem>
+                        <SelectItem value={TASK_STATUS.COMPLETED}>Completed</SelectItem>
                       </SelectContent>
                     </Select>
                   )}

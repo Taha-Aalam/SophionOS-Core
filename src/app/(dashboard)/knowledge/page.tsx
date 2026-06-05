@@ -95,7 +95,6 @@ import {
   RESOURCE_TYPE,
   type NoteStatus,
   type NoteType,
-  type ResourceStatus,
 } from "@/lib/utils/constants";
 import { cn } from "@/lib/utils";
 
@@ -401,7 +400,6 @@ export default function KnowledgeHubPage() {
       name: resourceForm.name,
       url: resourceForm.url || undefined,
       type: resourceForm.type as Resource["type"],
-      status: resourceForm.status as ResourceStatus,
       area_id: resourceForm.area_id || undefined,
       project_id: resourceForm.project_id || undefined,
       topic_id: resourceForm.topic_id || undefined,

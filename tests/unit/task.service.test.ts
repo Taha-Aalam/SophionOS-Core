@@ -61,23 +61,73 @@ describe('taskService', () => {
   });
 
   it('should set is_completed true and completed_at on complete()', async () => {
-    const mockData = { id: taskId, is_completed: true, completed_at: new Date().toISOString() };
-    const mockClient = {
+    const currentTask = {
+      id: taskId,
+      status: TASK_STATUS.INBOX,
+      is_completed: false,
+      previous_status: null,
+      area_id: null,
+      project_id: null,
+    };
+    const completedTask = {
+      id: taskId,
+      is_completed: true,
+      completed_at: new Date().toISOString(),
+      status: TASK_STATUS.COMPLETED,
+      previous_status: TASK_STATUS.INBOX,
+    };
+
+    // getById: tasks select+single
+    const getByIdClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: currentTask, error: null }),
+    } as any;
+    // getById: task_areas hydration
+    const taskAreasClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    // getById: goal_tasks hydration
+    const goalTasksClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    // getById: task_projects hydration
+    const taskProjectsClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    // complete(): the actual update
+    const updateClient = {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+      single: vi.fn().mockResolvedValue({ data: completedTask, error: null }),
     } as any;
 
-    vi.mocked(createClient).mockImplementation(() => mockClient);
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => taskAreasClient)
+      .mockImplementationOnce(() => goalTasksClient)
+      .mockImplementationOnce(() => taskProjectsClient)
+      .mockImplementationOnce(() => updateClient);
 
     const result = await taskService.complete(userId, taskId);
-    expect(result).toEqual(mockData);
-    expect(mockClient.update).toHaveBeenCalledWith({
-      is_completed: true,
-      completed_at: expect.any(String),
-    });
+    expect(result).toEqual(completedTask);
+    expect(updateClient.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        is_completed: true,
+        completed_at: expect.any(String),
+        status: TASK_STATUS.COMPLETED,
+        previous_status: TASK_STATUS.INBOX,
+      }),
+    );
   });
 
   it('should set is_archived true on archive()', async () => {
@@ -148,11 +198,21 @@ describe('taskService', () => {
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: createdTask, error: null }),
     } as any;
+    // syncTaskStatusFromContext (called from replaceGoalLinks): returns null so
+    // the function early-returns before the link lookups fire, leaving the
+    // final createClient() call (touch) on the touchClient mock.
+    const syncFetchClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    } as any;
 
     vi.mocked(createClient)
       .mockImplementationOnce(() => taskClient)
       .mockImplementationOnce(() => relationLookupClient)
       .mockImplementationOnce(() => relationInsertClient)
+      .mockImplementationOnce(() => syncFetchClient)
       .mockImplementationOnce(() => touchClient);
 
     const result = await taskService.create(userId, input as never);
@@ -168,7 +228,7 @@ describe('taskService', () => {
         is_urgent: false,
         name: 'Task with goals',
         priority: PRIORITY.HIGH,
-        status: TASK_STATUS.INBOX,
+        status: TASK_STATUS.TODO,
         user_id: userId,
       }),
     );
@@ -217,12 +277,23 @@ describe('taskService', () => {
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: updatedTask, error: null }),
     } as any;
+    // syncTaskStatusFromContext (called from replaceGoalLinks): returning null
+    // here means the function early-returns before any link lookups or
+    // status updates, so the final createClient() call (touch) lands on
+    // touchClient as expected.
+    const syncFetchClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    } as any;
 
     vi.mocked(createClient)
       .mockImplementationOnce(() => updateClient)
       .mockImplementationOnce(() => relationLookupClient)
       .mockImplementationOnce(() => relationInsertClient)
       .mockImplementationOnce(() => relationDeleteClient)
+      .mockImplementationOnce(() => syncFetchClient)
       .mockImplementationOnce(() => touchClient);
 
     const result = await taskService.update(userId, taskId, {
@@ -231,35 +302,87 @@ describe('taskService', () => {
     } as never);
 
     expect(result).toEqual(updatedTask);
-    // Partial updates must only send the fields the caller specified.
-    // No defaults should leak into the update payload — otherwise toggling
-    // is_focused via useFocusTask would reset is_completed/is_archived/
-    // is_important/is_urgent/status/priority on the row.
+    // Partial updates must only send the fields the caller specified, plus
+    // the status re-derivation when goal_ids change (linking any context
+    // moves a task out of inbox into todo). Toggling is_focused via
+    // useFocusTask must not reset is_completed/is_archived/is_important/
+    // is_urgent/priority on the row.
     expect(updateClient.update).toHaveBeenCalledWith({
       name: 'Retargeted task',
+      status: TASK_STATUS.TODO,
     });
     expect(relationInsertClient.insert).toHaveBeenCalledWith([{ goal_id: goalC, task_id: taskId }]);
     expect(relationDeleteClient.in).toHaveBeenCalledWith('goal_id', [goalA]);
   });
 
   it('clears completion state on uncomplete()', async () => {
-    const mockData = { id: taskId, is_completed: false, completed_at: null };
-    const mockClient = {
+    const currentTask = {
+      id: taskId,
+      status: TASK_STATUS.COMPLETED,
+      is_completed: true,
+      previous_status: TASK_STATUS.INBOX,
+      area_id: null,
+      project_id: null,
+    };
+    const uncompletedTask = {
+      id: taskId,
+      is_completed: false,
+      completed_at: null,
+      status: TASK_STATUS.INBOX,
+      previous_status: null,
+    };
+
+    // getById: tasks select+single
+    const getByIdClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: currentTask, error: null }),
+    } as any;
+    // getById: task_areas hydration
+    const taskAreasClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    // getById: goal_tasks hydration
+    const goalTasksClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    // getById: task_projects hydration
+    const taskProjectsClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    // uncomplete(): the actual update
+    const updateClient = {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+      single: vi.fn().mockResolvedValue({ data: uncompletedTask, error: null }),
     } as any;
 
-    vi.mocked(createClient).mockImplementation(() => mockClient);
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => taskAreasClient)
+      .mockImplementationOnce(() => goalTasksClient)
+      .mockImplementationOnce(() => taskProjectsClient)
+      .mockImplementationOnce(() => updateClient);
 
     const result = await taskService.uncomplete(userId, taskId);
-    expect(result).toEqual(mockData);
-    expect(mockClient.update).toHaveBeenCalledWith({
-      completed_at: null,
-      is_completed: false,
-    });
+    expect(result).toEqual(uncompletedTask);
+    expect(updateClient.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        completed_at: null,
+        is_completed: false,
+        status: TASK_STATUS.INBOX,
+        previous_status: null,
+      }),
+    );
   });
 
   it('preserves other fields when toggling is_focused only', async () => {

@@ -118,6 +118,7 @@ export function groupProjectsByStatus(projects: Project[]): Record<ProjectStatus
       return groups;
     },
     {
+      [PROJECT_STATUS.INBOX]: [],
       [PROJECT_STATUS.PLANNING]: [],
       [PROJECT_STATUS.ACTIVE]: [],
       [PROJECT_STATUS.COMPLETED]: [],

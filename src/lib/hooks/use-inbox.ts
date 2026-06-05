@@ -29,5 +29,5 @@ export function useInboxResources() {
 }
 
 export function useInboxProjects() {
-  return useProjects({ status: PROJECT_STATUS.PLANNING });
+  return useProjects({ status: PROJECT_STATUS.INBOX });
 }
