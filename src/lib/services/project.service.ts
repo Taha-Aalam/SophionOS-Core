@@ -4,6 +4,7 @@ import { createProjectSchema, updateProjectSchema } from "../validators/project.
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
 import type { ProjectStatus } from "../utils/constants";
+import { deriveProjectStatus } from "../utils/status-routing";
 
 type ProjectRecord = Omit<Project, "slug"> & { slug?: string | null };
 type ProjectQueryError = { code?: string; message?: string } | null;
@@ -749,6 +750,19 @@ export const projectService = {
     const { areaIds, projectInput: areaCleanedInput } = extractProjectAreaIds(validated);
     const { goalIds, projectInput } = extractGoalIds(areaCleanedInput);
 
+    // Status is always derived from context on create so an inbox entity
+    // can never be persisted as "planning" (or any non-inbox bucket) just
+    // because the caller passed a stale default. The dialog form default
+    // for `status` is `PLANNING`, so trusting `validated.status` here
+    // would let an empty form (no area/goal, no dates) slip through as
+    // planning instead of inbox.
+    const status = deriveProjectStatus({
+      area_ids: areaIds,
+      goal_ids: goalIds,
+      start_date: validated.start_date,
+      due_date: validated.due_date,
+    });
+
     const baseSlug = generateSlug(validated.name);
     const slug = await this.generateUniqueSlug(userId, baseSlug);
 
@@ -758,8 +772,8 @@ export const projectService = {
           .from("projects")
           .insert(
             selectClause === PROJECT_SELECT
-              ? { ...projectInput, user_id: userId, slug }
-              : { ...projectInput, user_id: userId },
+              ? { ...projectInput, status, user_id: userId, slug }
+              : { ...projectInput, status, user_id: userId },
           )
           .select(selectClause)
           .single(),
@@ -782,6 +796,30 @@ export const projectService = {
     const { areaIds, projectInput: areaCleanedInput } = extractProjectAreaIds(validated);
     const { goalIds, projectInput } = extractGoalIds(areaCleanedInput);
     const hasProjectUpdates = Object.keys(projectInput).length > 0;
+    const projectInputWide = projectInput as Record<string, unknown> & {
+      status?: ProjectStatus;
+    };
+
+    // Context-only update (area_ids and/or goal_ids were sent, but the caller
+    // did not touch status). Re-derive the status from the new context.
+    const touchesContext =
+      (areaIds !== undefined || goalIds !== undefined) &&
+      projectInputWide.status === undefined;
+    if (touchesContext) {
+      const updateInput = projectInput as {
+        start_date?: string | null;
+        due_date?: string | null;
+      };
+      const derived = deriveProjectStatus({
+        area_ids: areaIds,
+        goal_ids: goalIds,
+        start_date: updateInput.start_date ?? validated.start_date,
+        due_date: updateInput.due_date ?? validated.due_date,
+      });
+      if (derived !== projectInputWide.status) {
+        projectInputWide.status = derived;
+      }
+    }
 
     const project = hasProjectUpdates
       ? await runWriteProjectQuery(
@@ -956,9 +994,39 @@ export const projectService = {
 
     const primaryAreaId = areaIds[0] ?? null;
     if (primaryAreaId !== undefined) {
+      // Keep `projects.area_id` in sync AND re-derive the project status from
+      // the new context so linking/unlinking an area flips an inbox project to
+      // planning (and back) without going through the full update() path.
+      const { data: currentProject, error: fetchError } = await createClient()
+        .from("projects")
+        .select("status, start_date, due_date")
+        .eq("id", projectId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (fetchError) {
+        throw new DatabaseError(fetchError.message);
+      }
+
+      const updatePayload: { area_id: string | null; status?: ProjectStatus } = {
+        area_id: primaryAreaId,
+      };
+      if (currentProject) {
+        const derived = deriveProjectStatus({
+          area_id: primaryAreaId,
+          area_ids: areaIds,
+          goal_ids: existingRelations.goal_ids,
+          start_date: currentProject.start_date,
+          due_date: currentProject.due_date,
+        });
+        if (derived !== currentProject.status) {
+          updatePayload.status = derived;
+        }
+      }
+
       const { error } = await createClient()
         .from("projects")
-        .update({ area_id: primaryAreaId })
+        .update(updatePayload)
         .eq("id", projectId)
         .eq("user_id", userId);
 
@@ -1011,6 +1079,41 @@ export const projectService = {
         throw new DatabaseError(error.message);
       }
     }
+
+    // Re-derive status from the new goal context (plus any existing area
+    // context) so linking/unlinking a goal flips the status appropriately.
+    const { data: currentProject, error: fetchError } = await createClient()
+      .from("projects")
+      .select("status, area_id, start_date, due_date")
+      .eq("id", projectId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new DatabaseError(fetchError.message);
+    }
+
+    if (!currentProject) return;
+
+    const derivedStatus = deriveProjectStatus({
+      area_id: currentProject.area_id,
+      area_ids: existingRelations.area_ids,
+      goal_ids: goalIds,
+      start_date: currentProject.start_date,
+      due_date: currentProject.due_date,
+    });
+
+    if (derivedStatus !== currentProject.status) {
+      const { error } = await createClient()
+        .from("projects")
+        .update({ status: derivedStatus })
+        .eq("id", projectId)
+        .eq("user_id", userId);
+
+      if (error) {
+        throw new DatabaseError(error.message);
+      }
+    }
   },
 
   async linkToGoal(userId: string, projectId: string, goalId: string): Promise<void> {
@@ -1021,6 +1124,8 @@ export const projectService = {
     if (error) {
       throw new DatabaseError(error.message);
     }
+
+    await this.syncProjectStatusFromContext(userId, projectId);
   },
 
   async unlinkFromGoal(userId: string, projectId: string, goalId: string): Promise<void> {
@@ -1032,6 +1137,49 @@ export const projectService = {
 
     if (error) {
       throw new DatabaseError(error.message);
+    }
+
+    await this.syncProjectStatusFromContext(userId, projectId);
+  },
+
+  /**
+   * Re-reads the project's current area + goal context, derives the
+   * expected status, and writes it back if it differs. Used by bypass
+   * link/unlink actions that mutate junction tables without going through
+   * the full `update()` path.
+   */
+  async syncProjectStatusFromContext(userId: string, projectId: string): Promise<void> {
+    const relations = await this.getWithRelations(userId, projectId);
+    const { data: currentProject, error: fetchError } = await createClient()
+      .from("projects")
+      .select("status, area_id, start_date, due_date")
+      .eq("id", projectId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new DatabaseError(fetchError.message);
+    }
+    if (!currentProject) return;
+
+    const derivedStatus = deriveProjectStatus({
+      area_id: currentProject.area_id,
+      area_ids: relations.area_ids,
+      goal_ids: relations.goal_ids,
+      start_date: currentProject.start_date,
+      due_date: currentProject.due_date,
+    });
+
+    if (derivedStatus !== currentProject.status) {
+      const { error } = await createClient()
+        .from("projects")
+        .update({ status: derivedStatus })
+        .eq("id", projectId)
+        .eq("user_id", userId);
+
+      if (error) {
+        throw new DatabaseError(error.message);
+      }
     }
   },
 

@@ -18,6 +18,7 @@ export const TASK_STATUS = {
 export type TaskStatus = typeof TASK_STATUS[keyof typeof TASK_STATUS];
 
 export const PROJECT_STATUS = {
+  INBOX: 'inbox',
   PLANNING: 'planning',
   ACTIVE: 'active',
   COMPLETED: 'completed',

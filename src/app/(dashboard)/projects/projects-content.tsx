@@ -297,11 +297,11 @@ export function ProjectsContent() {
 
         <TabsContent value={PROJECT_VIEW.INBOX} className="mt-6">
           {renderProjectGrid(
-            projectsByStatus.planning,
+            projectsByStatus.inbox,
             <EmptyState
               icon={Folder}
               title="No inbox projects"
-              description="Projects in the planning state will appear here."
+              description="Projects without an area or goal appear here."
               actionLabel="Create Project"
               onAction={handleCreate}
             />,

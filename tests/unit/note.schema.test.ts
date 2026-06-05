@@ -10,11 +10,12 @@ describe("createNoteSchema", () => {
     expect(result).toMatchObject({
       name: "My note",
       type: NOTE_TYPE.NOTE,
-      status: NOTE_STATUS.INBOX,
       favorite: false,
       pin: false,
       is_archived: false,
     });
+    // status is optional (derived by the service from context); no default on the schema
+    expect(result.status).toBeUndefined();
   });
 
   it("accepts all valid fields", () => {

@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
+import { useDerivedStatus } from "@/lib/hooks/use-derived-status";
 import {
   useCreateProject,
   useProjectWithRelations,
@@ -16,6 +17,7 @@ import { type CreateProjectInput, type Project } from "@/lib/types/domain.types"
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
 import { getStableStringArray } from "@/lib/utils/stable-arrays";
 import { PRIORITY, PROJECT_STATUS } from "@/lib/utils/constants";
+import { deriveProjectStatus } from "@/lib/utils/status-routing";
 import {
   filterProjectDialogAreas,
   filterProjectDialogGoals,
@@ -105,12 +107,24 @@ function buildProjectFormValues(
         ...EMPTY_FORM_VALUES,
         area_ids: goalScoped.areaId ? [goalScoped.areaId] : [],
         goal_ids: [goalScoped.goalId],
+        status: deriveProjectStatus({
+          area_ids: goalScoped.areaId ? [goalScoped.areaId] : [],
+          goal_ids: [goalScoped.goalId],
+          start_date: EMPTY_FORM_VALUES.start_date,
+          due_date: EMPTY_FORM_VALUES.due_date,
+        }),
       };
     }
     return {
       ...EMPTY_FORM_VALUES,
       area_ids: defaultAreaIds ?? [],
       goal_ids: defaultGoalId ? [defaultGoalId] : [],
+      status: deriveProjectStatus({
+        area_ids: defaultAreaIds ?? [],
+        goal_ids: defaultGoalId ? [defaultGoalId] : [],
+        start_date: EMPTY_FORM_VALUES.start_date,
+        due_date: EMPTY_FORM_VALUES.due_date,
+      }),
     };
   }
 
@@ -183,8 +197,30 @@ export function ProjectDialog({
     today.getDate(),
   ).padStart(2, "0")}`;
   const selectedStartDate = useWatch({ control: form.control, name: "start_date" }) ?? "";
+  const selectedDueDate = useWatch({ control: form.control, name: "due_date" }) ?? "";
   const watchedGoalIds = useWatch({ control: form.control, name: "goal_ids" });
   const selectedGoalIds = useMemo(() => watchedGoalIds ?? [], [watchedGoalIds]);
+
+  // Live re-derive status from current area/goal context (only in create mode —
+  // edit mode should keep the existing entity's stored status untouched).
+  useDerivedStatus<ProjectFormValues>(
+    form,
+    () =>
+      deriveProjectStatus({
+        area_ids: selectedAreaIds,
+        goal_ids: selectedGoalIds,
+        start_date: selectedStartDate,
+        due_date: selectedDueDate,
+      }),
+    [
+      open,
+      project,
+      selectedAreaIds,
+      selectedGoalIds,
+      selectedStartDate,
+      selectedDueDate,
+    ],
+  );
   // Both create and edit flows enforce a today-or-future minimum for the due
   // date picker. When editing a project whose stored value is in the past,
   // the input still renders that value (the browser allows out-of-range
@@ -359,6 +395,7 @@ export function ProjectDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value={PROJECT_STATUS.INBOX}>Inbox</SelectItem>
                         <SelectItem value={PROJECT_STATUS.PLANNING}>Planning</SelectItem>
                         <SelectItem value={PROJECT_STATUS.ACTIVE}>In Progress</SelectItem>
                         <SelectItem value={PROJECT_STATUS.COMPLETED}>Completed</SelectItem>

@@ -10,6 +10,7 @@ import type {
 import { createNoteSchema, updateNoteSchema } from "../validators/note.schema";
 import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
 import type { NoteStatus } from "../utils/constants";
+import { deriveNoteStatus } from "../utils/status-routing";
 import {
   buildSlug,
   dedupeAreaIds,
@@ -326,6 +327,16 @@ export const noteService = {
       const { projectIds, noteInput: projectCleanedInput } = extractProjectIds(goalCleanedInput);
       const { taskIds, noteInput: taskCleanedInput } = extractTaskIds(projectCleanedInput);
 
+      // Status is always derived from context on create so a contextless
+      // note (no area/project/goal/topic) is persisted as "inbox" instead
+      // of the caller's pre-filled default.
+      const status = deriveNoteStatus({
+        area_ids: areaIds,
+        project_ids: projectIds,
+        goal_ids: goalIds,
+        topic_id: validated.topic_id,
+      });
+
       if (validated.type) {
         await upsertNoteType(userId, validated.type);
       }
@@ -338,7 +349,7 @@ export const noteService = {
       while (!data) {
         const { data: insertData, error } = await createClient()
           .from("notes")
-          .insert({ ...taskCleanedInput, user_id: userId, slug })
+          .insert({ ...taskCleanedInput, status, user_id: userId, slug })
           .select(NOTE_SELECT)
           .single();
 
@@ -398,6 +409,29 @@ export const noteService = {
         : projectCleanedInput;
       const validated = updateNoteSchema.parse(noteInputFinal);
       const hasNoteUpdates = Object.keys(validated).length > 0;
+      const validatedWide = validated as Record<string, unknown> & {
+        status?: NoteStatus;
+      };
+
+      // Context-only update (area/project/goal/topic were sent, but the caller
+      // did not touch status). Re-derive the status from the new context.
+      const touchesContext =
+        (areaIds !== undefined ||
+          projectIds !== undefined ||
+          goalIds !== undefined ||
+          validatedWide.topic_id !== undefined) &&
+        validatedWide.status === undefined;
+      if (touchesContext) {
+        const derived = deriveNoteStatus({
+          area_ids: areaIds,
+          project_ids: projectIds,
+          goal_ids: goalIds,
+          topic_id: validatedWide.topic_id as string | null | undefined,
+        });
+        if (derived !== validatedWide.status) {
+          validatedWide.status = derived;
+        }
+      }
 
       if (validated.type) {
         await upsertNoteType(userId, validated.type);
@@ -577,6 +611,8 @@ export const noteService = {
     if (error) {
       throw new DatabaseError(error.message);
     }
+
+    await this.syncNoteStatusFromContext(noteId);
   },
 
   async unlinkFromGoal(goalId: string, noteId: string): Promise<void> {
@@ -588,6 +624,43 @@ export const noteService = {
 
     if (error) {
       throw new DatabaseError(error.message);
+    }
+
+    await this.syncNoteStatusFromContext(noteId);
+  },
+
+  /** Re-derive a note's status from its current area/project/goal/topic context. */
+  async syncNoteStatusFromContext(noteId: string): Promise<void> {
+    const relations = await this.getWithRelations(noteId);
+    const { data: note, error: fetchError } = await createClient()
+      .from("notes")
+      .select("status, area_id, project_id, topic_id")
+      .eq("id", noteId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new DatabaseError(fetchError.message);
+    }
+    if (!note) return;
+
+    const derivedStatus = deriveNoteStatus({
+      area_id: note.area_id,
+      area_ids: relations.area_ids,
+      project_id: note.project_id,
+      project_ids: relations.project_ids,
+      goal_ids: relations.goal_ids,
+      topic_id: note.topic_id,
+    });
+
+    if (derivedStatus !== note.status) {
+      const { error } = await createClient()
+        .from("notes")
+        .update({ status: derivedStatus })
+        .eq("id", noteId);
+
+      if (error) {
+        throw new DatabaseError(error.message);
+      }
     }
   },
 
@@ -674,6 +747,8 @@ export const noteService = {
         throw new DatabaseError(error.message);
       }
     }
+
+    await this.syncNoteStatusFromContext(noteId);
   },
 
   async replaceAreaLinks(noteId: string, areaIds: string[]): Promise<void> {
@@ -704,6 +779,8 @@ export const noteService = {
         throw new DatabaseError(error.message);
       }
     }
+
+    await this.syncNoteStatusFromContext(noteId);
   },
 
   async replaceProjectLinks(noteId: string, projectIds: string[]): Promise<void> {
@@ -738,6 +815,8 @@ export const noteService = {
         }
       }
     }
+
+    await this.syncNoteStatusFromContext(noteId);
   },
 
   async replaceTaskLinks(noteId: string, taskIds: string[]): Promise<void> {

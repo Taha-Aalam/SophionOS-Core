@@ -5,6 +5,7 @@ import type { CreateResourceInput, Resource, UpdateResourceInput } from "../type
 import { createResourceSchema, updateResourceSchema } from "../validators/resource.schema";
 import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
 import type { ResourceStatus } from "../utils/constants";
+import { deriveResourceStatus } from "../utils/status-routing";
 
 const RESOURCE_SELECT =
   "id, user_id, area_id, project_id, topic_id, name, url, type, status, favorite, is_archived, metadata, created_at, updated_at";
@@ -301,9 +302,19 @@ export const resourceService = {
       const { goalIds, resourceInput: goalCleanedInput } = extractGoalIds(areaCleanedInput);
       const { taskIds, resourceInput } = extractTaskIds(goalCleanedInput);
 
+      // Status is always derived from context on create so a contextless
+      // resource (no area/project/goal/topic) is persisted as "inbox"
+      // instead of the caller's pre-filled default.
+      const status = deriveResourceStatus({
+        area_ids: areaIds,
+        project_id: validated.project_id,
+        goal_ids: goalIds,
+        topic_id: validated.topic_id,
+      });
+
       const { data, error } = await createClient()
         .from("resources")
-        .insert({ ...resourceInput, user_id: userId })
+        .insert({ ...resourceInput, status, user_id: userId })
         .select(RESOURCE_SELECT)
         .single();
 
@@ -340,6 +351,29 @@ export const resourceService = {
       const { areaIds, resourceInput: areaCleanedInput } = extractResourceAreaIds(rest);
       const validated = updateResourceSchema.parse(areaCleanedInput);
       const hasResourceUpdates = Object.keys(validated).length > 0;
+      const validatedWide = validated as Record<string, unknown> & {
+        status?: ResourceStatus;
+      };
+
+      // Context-only update (area/project/goal/topic were sent, but the caller
+      // did not touch status). Re-derive the status from the new context.
+      const touchesContext =
+        (areaIds !== undefined ||
+          validatedWide.project_id !== undefined ||
+          goalIds !== undefined ||
+          validatedWide.topic_id !== undefined) &&
+        validatedWide.status === undefined;
+      if (touchesContext) {
+        const derived = deriveResourceStatus({
+          area_ids: areaIds,
+          project_id: validatedWide.project_id as string | null | undefined,
+          goal_ids: goalIds,
+          topic_id: validatedWide.topic_id as string | null | undefined,
+        });
+        if (derived !== validatedWide.status) {
+          validatedWide.status = derived;
+        }
+      }
 
       const resource = hasResourceUpdates
         ? await (async () => {
@@ -524,6 +558,8 @@ export const resourceService = {
     if (error) {
       throw new DatabaseError(error.message);
     }
+
+    await this.syncResourceStatusFromContext(resourceId);
   },
 
   async unlinkFromGoal(goalId: string, resourceId: string): Promise<void> {
@@ -535,6 +571,65 @@ export const resourceService = {
 
     if (error) {
       throw new DatabaseError(error.message);
+    }
+
+    await this.syncResourceStatusFromContext(resourceId);
+  },
+
+  async linkToTask(taskId: string, resourceId: string): Promise<void> {
+    const { error } = await createClient()
+      .from("task_resources")
+      .upsert({ task_id: taskId, resource_id: resourceId });
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+    // Task link doesn't move resource status (resource context = area/project/goal/topic).
+  },
+
+  async unlinkFromTask(taskId: string, resourceId: string): Promise<void> {
+    const { error } = await createClient()
+      .from("task_resources")
+      .delete()
+      .eq("task_id", taskId)
+      .eq("resource_id", resourceId);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+  },
+
+  /** Re-derive a resource's status from its current area/project/goal/topic context. */
+  async syncResourceStatusFromContext(resourceId: string): Promise<void> {
+    const relations = await this.getWithRelations(resourceId);
+    const { data: resource, error: fetchError } = await createClient()
+      .from("resources")
+      .select("status, area_id, project_id, topic_id")
+      .eq("id", resourceId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new DatabaseError(fetchError.message);
+    }
+    if (!resource) return;
+
+    const derivedStatus = deriveResourceStatus({
+      area_id: resource.area_id,
+      area_ids: relations.area_ids,
+      project_id: resource.project_id,
+      goal_ids: relations.goal_ids,
+      topic_id: resource.topic_id,
+    });
+
+    if (derivedStatus !== resource.status) {
+      const { error } = await createClient()
+        .from("resources")
+        .update({ status: derivedStatus })
+        .eq("id", resourceId);
+
+      if (error) {
+        throw new DatabaseError(error.message);
+      }
     }
   },
 
@@ -608,6 +703,8 @@ export const resourceService = {
         throw new DatabaseError(error.message);
       }
     }
+
+    await this.syncResourceStatusFromContext(resourceId);
   },
 
   async replaceAreaLinks(resourceId: string, areaIds: string[]): Promise<void> {
@@ -638,6 +735,8 @@ export const resourceService = {
         throw new DatabaseError(error.message);
       }
     }
+
+    await this.syncResourceStatusFromContext(resourceId);
   },
 
   async replaceTaskLinks(resourceId: string, taskIds: string[]): Promise<void> {
@@ -671,28 +770,6 @@ export const resourceService = {
           throw new DatabaseError(error.message);
         }
       }
-    }
-  },
-
-  async linkToTask(taskId: string, resourceId: string): Promise<void> {
-    const { error } = await createClient()
-      .from("task_resources")
-      .upsert({ task_id: taskId, resource_id: resourceId });
-
-    if (error) {
-      throw new DatabaseError(error.message);
-    }
-  },
-
-  async unlinkFromTask(taskId: string, resourceId: string): Promise<void> {
-    const { error } = await createClient()
-      .from("task_resources")
-      .delete()
-      .eq("task_id", taskId)
-      .eq("resource_id", resourceId);
-
-    if (error) {
-      throw new DatabaseError(error.message);
     }
   },
 };
