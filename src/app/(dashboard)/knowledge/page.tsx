@@ -282,7 +282,6 @@ export default function KnowledgeHubPage() {
   const [noteCreateOpen, setNoteCreateOpen] = useState(false);
   const [noteForm, setNoteForm] = useState({
     name: "",
-    status: NOTE_STATUS.INBOX as NoteStatus,
     type: NOTE_TYPE.NOTE as NoteType,
     notebooks: [] as string[],
   });
@@ -378,7 +377,6 @@ export default function KnowledgeHubPage() {
   const openNoteCreate = () => {
     setNoteForm({
       name: "",
-      status: noteDefs?.default_status ?? NOTE_STATUS.INBOX,
       type: noteDefs?.default_type ?? NOTE_TYPE.NOTE,
       notebooks: noteDefs?.default_notebook ? [noteDefs.default_notebook] : [],
     });
@@ -387,7 +385,10 @@ export default function KnowledgeHubPage() {
   const handleNoteCreate = async () => {
     const note = await createNote.mutateAsync({
       name: noteForm.name.trim() || "Untitled note",
-      status: noteForm.status,
+      // Status is derived server-side from area/goal/project/task/topic
+      // context. This form has no context fields, so the service will
+      // always persist the note as `inbox` — no point letting the user
+      // pick a different bucket here.
       type: noteForm.type,
       notebooks: noteForm.notebooks,
     });
@@ -1117,17 +1118,6 @@ areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; ico
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
-                <Label className="text-xs">Status</Label>
-                <Select value={noteForm.status} onValueChange={(v) => setNoteForm((p) => ({ ...p, status: v as NoteStatus }))}>
-                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NOTE_STATUS.INBOX}>Inbox</SelectItem>
-                    <SelectItem value={NOTE_STATUS.TO_REVIEW}>To Review</SelectItem>
-                    <SelectItem value={NOTE_STATUS.ACTIVE}>Active</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
                 <Label className="text-xs">Type</Label>
                 <Select value={noteForm.type} onValueChange={(v) => setNoteForm((p) => ({ ...p, type: v as NoteType }))}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
@@ -1137,6 +1127,12 @@ areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; ico
                     <SelectItem value={NOTE_TYPE.JOURNAL}>Journal</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Status</Label>
+                <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
+                  Inbox (set from context)
+                </div>
               </div>
             </div>
             <div className="space-y-1.5">

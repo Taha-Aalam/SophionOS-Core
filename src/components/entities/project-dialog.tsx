@@ -91,7 +91,11 @@ const EMPTY_FORM_VALUES: ProjectFormValues = {
   priority: PRIORITY.MEDIUM,
   progress: 0,
   start_date: "",
-  status: PROJECT_STATUS.PLANNING,
+  // Status is derived from context. With no area/goal and no dates, an empty
+  // form is correctly bucketed as INBOX — the previous default of PLANNING
+  // would persist as the form's "stale" value if the user submitted before
+  // `useDerivedStatus` had a chance to re-derive it.
+  status: PROJECT_STATUS.INBOX,
 };
 
 function buildProjectFormValues(
@@ -380,30 +384,38 @@ export function ProjectDialog({
               <FormMessage>{form.formState.errors.description?.message}</FormMessage>
             </FormItem>
 
-            {/* Row 1: Status | Priority */}
+            {/* Row 1: Status (derived) | Priority */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Controller
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={PROJECT_STATUS.INBOX}>Inbox</SelectItem>
-                        <SelectItem value={PROJECT_STATUS.PLANNING}>Planning</SelectItem>
-                        <SelectItem value={PROJECT_STATUS.ACTIVE}>In Progress</SelectItem>
-                        <SelectItem value={PROJECT_STATUS.COMPLETED}>Completed</SelectItem>
-                        <SelectItem value={PROJECT_STATUS.ON_HOLD}>On Hold</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
+                {project ? (
+                  <Controller
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={PROJECT_STATUS.INBOX}>Inbox</SelectItem>
+                          <SelectItem value={PROJECT_STATUS.PLANNING}>Planning</SelectItem>
+                          <SelectItem value={PROJECT_STATUS.ACTIVE}>In Progress</SelectItem>
+                          <SelectItem value={PROJECT_STATUS.COMPLETED}>Completed</SelectItem>
+                          <SelectItem value={PROJECT_STATUS.ON_HOLD}>On Hold</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                ) : (
+                  <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
+                    {form.watch("status") === PROJECT_STATUS.PLANNING
+                      ? "Planning (derived from context)"
+                      : "Inbox (derived from context)"}
+                  </div>
+                )}
                 <FormMessage>{form.formState.errors.status?.message}</FormMessage>
               </FormItem>
 
