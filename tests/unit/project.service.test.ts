@@ -22,6 +22,7 @@ function makeChainableClient(overrides: Record<string, unknown> = {}) {
     ilike: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     ...overrides,
   };
   return client;
@@ -77,7 +78,7 @@ describe("projectService", () => {
     expect(clients[1].insert).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Restore Projects",
-        status: "planning",
+        status: "inbox",
         user_id: userId,
       }),
     );
@@ -445,10 +446,12 @@ describe("projectService", () => {
       user_id: userId,
     };
 
-    const clients = Array.from({ length: 8 }, () => makeChainableClient());
+    const clients = Array.from({ length: 9 }, () => makeChainableClient());
+    // replaceAreaLinks select status,start_date,due_date via maybeSingle
+    clients[5].maybeSingle.mockResolvedValue({ data: null, error: null });
     // Custom mock for update().eq().eq() chain in replaceAreaLinks
     const updateEqClient = makeChainableClient();
-    clients[5].eq.mockReturnValue(updateEqClient);
+    clients[6].eq.mockReturnValue(updateEqClient);
     updateEqClient.eq.mockResolvedValue({ error: null });
 
     let callIndex = 0;
@@ -462,9 +465,9 @@ describe("projectService", () => {
     clients[3].eq.mockResolvedValue({ data: [], error: null });
     // insert project_areas
     clients[4].insert.mockResolvedValue({ error: null });
-    // hydrateProjectAreaLinks (clients[6]), hydrateProjectGoalLinks (clients[7])
-    clients[6].in.mockResolvedValue({ data: [], error: null });
+    // hydrateProjectAreaLinks (clients[7]), hydrateProjectGoalLinks (clients[8])
     clients[7].in.mockResolvedValue({ data: [], error: null });
+    clients[8].in.mockResolvedValue({ data: [], error: null });
 
     const areaA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
     const areaB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -479,7 +482,7 @@ describe("projectService", () => {
       expect.objectContaining({
         name: "Multi Area Project",
         area_id: areaA,
-        status: "planning",
+        status: "inbox",
         user_id: userId,
       }),
     );
@@ -673,9 +676,9 @@ describe("projectService", () => {
   });
 
   it("linkToArea recomputes the primary area when linking the first area to an unassigned project", async () => {
-    const clients = Array.from({ length: 6 }, () => makeChainableClient());
+    const clients = Array.from({ length: 7 }, () => makeChainableClient());
     const updateEqClient = makeChainableClient();
-    clients[5].eq.mockReturnValue(updateEqClient);
+    clients[6].eq.mockReturnValue(updateEqClient);
     updateEqClient.eq.mockResolvedValue({ error: null });
 
     clients[0].eq.mockResolvedValue({ data: [], error: null });
@@ -683,6 +686,9 @@ describe("projectService", () => {
     clients[2].eq.mockResolvedValue({ data: [], error: null });
     clients[3].eq.mockResolvedValue({ data: [], error: null });
     clients[4].insert.mockResolvedValue({ error: null });
+    // replaceAreaLinks now selects current project context via maybeSingle to
+    // re-derive status; return null so only area_id is updated.
+    clients[5].maybeSingle.mockResolvedValue({ data: null, error: null });
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
@@ -696,11 +702,11 @@ describe("projectService", () => {
     expect(clients[4].insert).toHaveBeenCalledWith([
       { area_id: areaId, project_id: projectId },
     ]);
-    expect(clients[5].update).toHaveBeenCalledWith({ area_id: areaId });
+    expect(clients[6].update).toHaveBeenCalledWith({ area_id: areaId });
   });
 
   it("unlinkFromArea recomputes the primary area from the remaining linked areas", async () => {
-    const clients = Array.from({ length: 6 }, () => makeChainableClient());
+    const clients = Array.from({ length: 7 }, () => makeChainableClient());
     const deleteEqClient = makeChainableClient();
     const updateEqClient = makeChainableClient();
 
@@ -719,7 +725,8 @@ describe("projectService", () => {
     });
     clients[4].eq.mockReturnValue(deleteEqClient);
     deleteEqClient.in.mockResolvedValue({ error: null });
-    clients[5].eq.mockReturnValue(updateEqClient);
+    clients[5].maybeSingle.mockResolvedValue({ data: null, error: null });
+    clients[6].eq.mockReturnValue(updateEqClient);
     updateEqClient.eq.mockResolvedValue({ error: null });
 
     let callIndex = 0;
@@ -730,7 +737,7 @@ describe("projectService", () => {
     await projectService.unlinkFromArea(userId, projectId, areaA);
 
     expect(deleteEqClient.in).toHaveBeenCalledWith("area_id", [areaA]);
-    expect(clients[5].update).toHaveBeenCalledWith({ area_id: areaB });
+    expect(clients[6].update).toHaveBeenCalledWith({ area_id: areaB });
   });
 
   it("hydrates progress and goalCount/taskCount/noteCount/resourceCount on getById so the project detail header matches project cards everywhere", async () => {

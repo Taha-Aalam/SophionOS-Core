@@ -410,11 +410,14 @@ export function ResourcesContent() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Resources</h1>
-          <p className="text-sm text-muted-foreground">
-            {allResources.length} {allResources.length === 1 ? "resource" : "resources"}
-          </p>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl leading-none" aria-hidden="true">🔗</span>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Resources</h1>
+            <p className="text-sm text-muted-foreground">
+              {allResources.length} {allResources.length === 1 ? "resource" : "resources"}
+            </p>
+          </div>
         </div>
         <Button onClick={handleOpenCreate} disabled={createResource.isPending}>
           <FilePlus className="mr-2 size-4" />
