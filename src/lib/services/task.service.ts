@@ -3,10 +3,16 @@ import { DatabaseError, NotFoundError, ValidationError } from "../api/error-hand
 import { createClient } from "../supabase/client";
 import type { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
 import { TASK_STATUS, type TaskStatus } from "../utils/constants";
+import {
+  buildCompletePatch,
+  buildUncompletePatch,
+  resolveTaskCompletionOnUpdate,
+} from "../utils/task-completion";
+import { deriveTaskStatus } from "../utils/status-routing";
 import { createTaskSchema, updateTaskSchema } from "../validators/task.schema";
 
 export const TASK_SELECT =
-  "id, user_id, area_id, project_id, name, description, status, priority, due_date, is_completed, is_focused, is_important, is_urgent, completed_at, smart_priority, is_archived, created_at, updated_at";
+  "id, user_id, area_id, project_id, name, description, status, priority, due_date, is_completed, is_focused, is_important, is_urgent, completed_at, previous_status, smart_priority, is_archived, created_at, updated_at";
 
 // ─── Area ID helpers ──────────────────────────────────────────────────────────
 
@@ -339,10 +345,18 @@ export const taskService = {
       const { projectIds, taskInput: projectCleanedInput } =
         extractTaskProjectIds(areaCleanedInput);
       const { goalIds, taskInput } = extractGoalIds(projectCleanedInput);
+      // Status is always derived from context on create so a contextless
+      // task (no area/goal/project) is persisted as "inbox" instead of the
+      // caller's pre-filled default (the dialog form defaults to "todo").
+      const status = deriveTaskStatus({
+        area_ids: areaIds,
+        goal_ids: goalIds,
+        project_ids: projectIds,
+      });
 
       const { data, error } = await createClient()
         .from("tasks")
-        .insert({ ...taskInput, user_id: userId })
+        .insert({ ...taskInput, status, user_id: userId })
         .select(TASK_SELECT)
         .single();
 
@@ -385,6 +399,55 @@ export const taskService = {
         extractTaskProjectIds(areaCleanedInput);
       const { goalIds, taskInput } = extractGoalIds(projectCleanedInput);
       const hasTaskUpdates = Object.keys(taskInput).length > 0;
+      const taskInputWide = taskInput as Record<string, unknown> & {
+        status?: TaskStatus;
+        is_completed?: boolean;
+        previous_status?: TaskStatus | null;
+        completed_at?: string | null;
+      };
+
+      const touchesCompletion =
+        taskInputWide.status !== undefined || taskInputWide.is_completed !== undefined;
+      if (touchesCompletion) {
+        const current = await this.getById(userId, id);
+        const fallback = deriveTaskStatus({
+          area_ids: current.linkedAreaIds,
+          goal_ids: current.linkedGoalIds,
+          project_ids: current.linkedProjectIds,
+        });
+        const syncPatch = resolveTaskCompletionOnUpdate({
+          incomingStatus: taskInputWide.status,
+          incomingIsCompleted: taskInputWide.is_completed,
+          current: {
+            status: current.status,
+            is_completed: current.is_completed,
+            previous_status: current.previous_status ?? null,
+          },
+          fallbackStatus: fallback,
+          now: new Date().toISOString(),
+        });
+        Object.assign(taskInputWide, syncPatch);
+      }
+
+      // Context-only update (area_ids / goal_ids / project_ids were sent, but
+      // the caller did not touch status). Re-derive the status from the new
+      // context so an inbox task that gets a linked area flips to todo.
+      const touchesContext =
+        (areaIds !== undefined ||
+          goalIds !== undefined ||
+          projectIds !== undefined) &&
+        taskInputWide.status === undefined &&
+        taskInputWide.is_completed === undefined;
+      if (touchesContext) {
+        const derived = deriveTaskStatus({
+          area_ids: areaIds,
+          goal_ids: goalIds,
+          project_ids: projectIds,
+        });
+        if (derived !== taskInputWide.status) {
+          taskInputWide.status = derived;
+        }
+      }
 
       const data = hasTaskUpdates
         ? await (async () => {
@@ -431,9 +494,12 @@ export const taskService = {
   },
 
   async complete(userId: string, id: string): Promise<Task> {
+    const current = await this.getById(userId, id);
+    const patch = buildCompletePatch(current.status, new Date().toISOString());
+
     const { data, error } = await createClient()
       .from("tasks")
-      .update({ is_completed: true, completed_at: new Date().toISOString() })
+      .update(patch)
       .eq("user_id", userId)
       .eq("id", id)
       .select(TASK_SELECT)
@@ -500,9 +566,17 @@ export const taskService = {
   },
 
   async uncomplete(userId: string, id: string): Promise<Task> {
+    const current = await this.getById(userId, id);
+    const fallback = deriveTaskStatus({
+      area_ids: current.linkedAreaIds,
+      goal_ids: current.linkedGoalIds,
+      project_ids: current.linkedProjectIds,
+    });
+    const patch = buildUncompletePatch(current.previous_status ?? null, fallback);
+
     const { data, error } = await createClient()
       .from("tasks")
-      .update({ is_completed: false, completed_at: null })
+      .update(patch)
       .eq("user_id", userId)
       .eq("id", id)
       .select(TASK_SELECT)
@@ -651,6 +725,8 @@ export const taskService = {
         throw new DatabaseError(error.message);
       }
     }
+
+    await this.syncTaskStatusFromContext(taskId);
   },
 
   async replaceGoalLinks(_userId: string, taskId: string, goalIds: string[]): Promise<void> {
@@ -677,6 +753,8 @@ export const taskService = {
 
       if (error) throw new DatabaseError(error.message);
     }
+
+    await this.syncTaskStatusFromContext(taskId);
   },
 
   async replaceProjectLinks(
@@ -712,6 +790,47 @@ export const taskService = {
         .in("project_id", projectIdsToRemove);
 
       if (error && !isMissingTaskProjectsTableError(error)) {
+        throw new DatabaseError(error.message);
+      }
+    }
+
+    await this.syncTaskStatusFromContext(taskId);
+  },
+
+  /** Re-derive a task's status from its current area + goal + project context. */
+  async syncTaskStatusFromContext(taskId: string): Promise<void> {
+    const { data: task, error: fetchError } = await createClient()
+      .from("tasks")
+      .select("status, area_id, project_id")
+      .eq("id", taskId)
+      .maybeSingle();
+
+    if (fetchError) {
+      throw new DatabaseError(fetchError.message);
+    }
+    if (!task) return;
+
+    const [areaIds, goalIds, projectIds] = await Promise.all([
+      this.getAreaLinks(taskId),
+      this.getGoalLinks(taskId),
+      this.getProjectLinks(taskId),
+    ]);
+
+    const derivedStatus = deriveTaskStatus({
+      area_id: task.area_id,
+      area_ids: areaIds,
+      goal_ids: goalIds,
+      project_id: task.project_id,
+      project_ids: projectIds,
+    });
+
+    if (derivedStatus !== task.status) {
+      const { error } = await createClient()
+        .from("tasks")
+        .update({ status: derivedStatus })
+        .eq("id", taskId);
+
+      if (error) {
         throw new DatabaseError(error.message);
       }
     }

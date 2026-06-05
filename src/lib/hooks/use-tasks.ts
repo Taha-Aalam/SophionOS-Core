@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { TASK_STATUS } from "@/lib/utils/constants";
+import { deriveTaskStatus } from "@/lib/utils/status-routing";
 import { AREAS_QUERY_KEY, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
 import { CONTACTS_QUERY_KEY } from "@/lib/hooks/use-contacts";
 import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
@@ -191,7 +193,12 @@ export function useCompleteTask() {
 
         return old.map((task) =>
           task.id === id
-            ? { ...task, completed_at: new Date().toISOString(), is_completed: true }
+            ? {
+                ...task,
+                completed_at: new Date().toISOString(),
+                is_completed: true,
+                status: TASK_STATUS.COMPLETED,
+              }
             : task,
         );
       });
@@ -244,7 +251,18 @@ export function useUncompleteTask() {
         if (!Array.isArray(old)) return old;
         return old.map((task) =>
           task.id === id
-            ? { ...task, completed_at: null, is_completed: false }
+            ? {
+                ...task,
+                completed_at: null,
+                is_completed: false,
+                status:
+                  task.previous_status ??
+                  deriveTaskStatus({
+                    area_ids: task.linkedAreaIds,
+                    goal_ids: task.linkedGoalIds,
+                    project_ids: task.linkedProjectIds,
+                  }),
+              }
             : task,
         );
       });
@@ -374,7 +392,12 @@ export function useCompleteTaskWithGoalRefresh() {
 
         return old.map((task) =>
           task.id === id
-            ? { ...task, completed_at: new Date().toISOString(), is_completed: true }
+            ? {
+                ...task,
+                completed_at: new Date().toISOString(),
+                is_completed: true,
+                status: TASK_STATUS.COMPLETED,
+              }
             : task,
         );
       });
