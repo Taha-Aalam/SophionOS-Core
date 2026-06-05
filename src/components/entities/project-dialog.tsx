@@ -388,34 +388,26 @@ export function ProjectDialog({
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                {project ? (
-                  <Controller
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={PROJECT_STATUS.INBOX}>Inbox</SelectItem>
-                          <SelectItem value={PROJECT_STATUS.PLANNING}>Planning</SelectItem>
-                          <SelectItem value={PROJECT_STATUS.ACTIVE}>In Progress</SelectItem>
-                          <SelectItem value={PROJECT_STATUS.COMPLETED}>Completed</SelectItem>
-                          <SelectItem value={PROJECT_STATUS.ON_HOLD}>On Hold</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                ) : (
-                  <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
-                    {form.watch("status") === PROJECT_STATUS.PLANNING
-                      ? "Planning (derived from context)"
-                      : "Inbox (derived from context)"}
-                  </div>
-                )}
+                <Controller
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={PROJECT_STATUS.INBOX}>Inbox</SelectItem>
+                        <SelectItem value={PROJECT_STATUS.PLANNING}>Planning</SelectItem>
+                        <SelectItem value={PROJECT_STATUS.ACTIVE}>In Progress</SelectItem>
+                        <SelectItem value={PROJECT_STATUS.COMPLETED}>Completed</SelectItem>
+                        <SelectItem value={PROJECT_STATUS.ON_HOLD}>On Hold</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 <FormMessage>{form.formState.errors.status?.message}</FormMessage>
               </FormItem>
 
