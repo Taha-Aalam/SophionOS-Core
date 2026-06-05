@@ -21,9 +21,14 @@ import {
   Map as MapIcon,
   NotebookPen,
   Pin,
+  Bookmark,
+  Clock,
+  Inbox as InboxIcon,
   Search,
   Star,
   Tag,
+  Target,
+  Zap,
 } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
@@ -58,10 +63,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResourceRow, ResourceRowSkeleton } from "@/components/entities/resource-row";
 import { TopicCard } from "@/components/entities/topic-card";
+import { NoteRow } from "@/components/entities/note-row";
+import { NotesByGroupView, type NoteGroup } from "@/components/views/notes-by-group-view";
+import { encodeReturnTo } from "@/lib/utils/return-to";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
+import { useTasks } from "@/lib/hooks/use-tasks";
 import {
   useArchiveNoteWithUndo,
   useCreateNote,
@@ -102,6 +111,16 @@ import {
   type NoteStatus,
   type NoteType,
 } from "@/lib/utils/constants";
+import {
+  NOTE_VIEW,
+  getNoteCounts,
+  getNoteLinkedAreaIds,
+  getNoteLinkedGoalIds,
+  getNoteLinkedProjectIds,
+  getVisibleNotes,
+  type NoteView,
+} from "@/lib/utils/notes";
+import { NOTES_TABS_LIST_CLASS_NAME } from "@/lib/utils/note-page-display";
 import { cn } from "@/lib/utils";
 
 // ─── colour maps ─────────────────────────────────────────────────────────────
@@ -117,22 +136,7 @@ const NOTE_TC: Record<string, string> = {
   journal: "bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300",
 };
 
-// ─── notes tabs ───────────────────────────────────────────────────────────────
-const NOTE_TABS: {
-  value: string;
-  label: string;
-  filter: (n: Note) => boolean;
-  gb?: "topic_id" | "project_id";
-}[] = [
-  { value: "all", label: "All", filter: (n) => !n.is_archived },
-  { value: "inbox", label: "Inbox", filter: (n) => n.status === NOTE_STATUS.INBOX && !n.is_archived },
-  { value: "to_review", label: "To review", filter: (n) => n.status === NOTE_STATUS.TO_REVIEW && !n.is_archived },
-  { value: "pinned", label: "Pinned", filter: (n) => !!n.pin && !n.is_archived },
-  { value: "favorite", label: "Favorite", filter: (n) => !!n.favorite && !n.is_archived },
-  { value: "by_topic", label: "By Topic", filter: (n) => !n.is_archived && !!n.topic_id, gb: "topic_id" },
-  { value: "by_project", label: "By Project", filter: (n) => !n.is_archived && !!n.project_id, gb: "project_id" },
-  { value: "archived", label: "Archived", filter: (n) => !!n.is_archived },
-];
+// ─── notes helpers use NOTE_VIEW / getNoteCounts / getVisibleNotes from @/lib/utils/notes ─
 
 const RESOURCE_TYPE_OPTIONS = [
   { value: RESOURCE_TYPE.WEBSITE, label: "Website" },
@@ -215,6 +219,7 @@ export default function KnowledgeHubPage() {
   const { data: archivedResources = [] } = useArchivedResources();
   const { data: areas = [] } = useAreas();
   const { data: projects = [] } = useProjects({ status: "all" });
+  const { data: allTasks = [] } = useTasks();
   const { data: goals = [] } = useGoals({});
   const { data: notebooks = [] } = useNotebooks();
   const { data: noteDefs } = useNoteDefaults();
@@ -291,25 +296,108 @@ export default function KnowledgeHubPage() {
   }, [topics, areaNames]);
 
   // ── notes section state ──────────────────────────────────────────────────
-  const [notesTab, setNotesTab] = useState("all");
+  const [notesTab, setNotesTab] = useState<NoteView>(NOTE_VIEW.ALL);
   const [noteCreateOpen, setNoteCreateOpen] = useState(false);
   const [noteForm, setNoteForm] = useState({
     name: "",
     type: NOTE_TYPE.NOTE as NoteType,
     notebooks: [] as string[],
   });
-  const [noteOpenGroups, setNoteOpenGroups] = useState<Set<string>>(new Set());
 
-  const noteTabConfig = useMemo(() => NOTE_TABS.find((t) => t.value === notesTab), [notesTab]);
-  const filteredNotes = useMemo(() => {
-    const cfg = NOTE_TABS.find((t) => t.value === notesTab);
-    const list = (cfg ? notes.filter(cfg.filter) : notes.filter((n) => !n.is_archived)).slice();
+  const noteCounts = useMemo(() => getNoteCounts(notes), [notes]);
+  const visibleNotes = useMemo(() => {
+    const list = getVisibleNotes(notes, notesTab).slice();
     return list.sort((a, b) => {
       if (a.pin && !b.pin) return -1;
       if (!a.pin && b.pin) return 1;
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
     });
   }, [notes, notesTab]);
+
+
+  const noteGroupsByArea = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const n of notes.filter((x) => !x.is_archived)) {
+      const ids = getNoteLinkedAreaIds(n);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const id of keys) {
+        const cur = grouped.get(id) ?? [];
+        cur.push(n);
+        grouped.set(id, cur);
+      }
+    }
+    return Array.from(grouped.entries()).map(([id, ns]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Area" : (areaNames.get(id) ?? id),
+      notes: ns,
+    }));
+  }, [notes, areaNames]);
+
+  const noteGroupsByGoal = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const n of notes.filter((x) => !x.is_archived)) {
+      const ids = getNoteLinkedGoalIds(n);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const id of keys) {
+        const cur = grouped.get(id) ?? [];
+        cur.push(n);
+        grouped.set(id, cur);
+      }
+    }
+    return Array.from(grouped.entries()).map(([id, ns]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Goal" : (goalNames.get(id) ?? id),
+      notes: ns,
+    }));
+  }, [notes, goalNames]);
+
+  const noteGroupsByProject = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const n of notes.filter((x) => !x.is_archived)) {
+      const ids = getNoteLinkedProjectIds(n);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const id of keys) {
+        const cur = grouped.get(id) ?? [];
+        cur.push(n);
+        grouped.set(id, cur);
+      }
+    }
+    return Array.from(grouped.entries()).map(([id, ns]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Project" : (projNames.get(id) ?? id),
+      notes: ns,
+    }));
+  }, [notes, projNames]);
+
+  const noteGroupsByTopic = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const n of notes.filter((x) => !x.is_archived)) {
+      const key = n.topic_id ?? "unassigned";
+      const cur = grouped.get(key) ?? [];
+      cur.push(n);
+      grouped.set(key, cur);
+    }
+    return Array.from(grouped.entries()).map(([id, ns]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Topic" : (topicNames.get(id) ?? id),
+      notes: ns,
+    }));
+  }, [notes, topicNames]);
+
+  const noteGroupsByNotebook = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const n of notes.filter((x) => !x.is_archived)) {
+      const keys = (n.notebooks ?? []).length > 0 ? n.notebooks! : ["unassigned"];
+      for (const k of keys) {
+        grouped.set(k, [...(grouped.get(k) ?? []), n]);
+      }
+    }
+    return Array.from(grouped.entries()).map(([id, ns]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Notebook" : id,
+      notes: ns,
+    }));
+  }, [notes]);
 
   // ── resources section state ──────────────────────────────────────────────
   const [resourcesTab, setResourcesTab] = useState("inbox");
@@ -432,173 +520,41 @@ export default function KnowledgeHubPage() {
     }
   };
 
-  // ── render helpers ────────────────────────────────────────────────────────
+
   function renderNoteRow(note: Note) {
-    const rc = rCounts?.get(note.id) ?? 0;
-    const gs = (gLinks?.get(note.id) ?? []).slice(0, 2).map((gid) => ({ id: gid, name: goalNames.get(gid) ?? "Goal" }));
+    const noteAreas = getNoteLinkedAreaIds(note)
+      .map((id) => ({ name: areaNames.get(id) ?? id, icon: null }))
+      .filter((a) => Boolean(a.name));
+    const noteGoalNames = getNoteLinkedGoalIds(note)
+      .map((id) => goalNames.get(id))
+      .filter((n): n is string => Boolean(n));
+    const noteProjectNames = getNoteLinkedProjectIds(note)
+      .map((id) => projNames.get(id))
+      .filter((n): n is string => Boolean(n));
+    const noteTaskNames = (note.linkedTaskIds ?? [])
+      .map((id) => allTasks.find((t) => t.id === id)?.name)
+      .filter((n): n is string => Boolean(n));
     return (
-      <TableRow
+      <NoteRow
         key={note.id}
-        className="group cursor-pointer"
-        onClick={(e) => {
-          if ((e.target as HTMLElement).closest("[data-sc]")) return;
-          router.push(`/notes/${note.slug ?? note.id}`);
-        }}
-      >
-        <TableCell className="w-8">
-          <button
-            data-sc
-            type="button"
-            onClick={() => togglePinNote.mutate({ id: note.id, pin: !note.pin })}
-            className={cn("rounded p-1 transition-colors", note.pin ? "text-primary" : "text-muted-foreground opacity-0 group-hover:opacity-100")}
-            title={note.pin ? "Unpin" : "Pin"}
-          >
-            <Pin className={cn("size-3.5", note.pin && "fill-current")} />
-          </button>
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{note.name}</span>
-            {rc > 0 && (
-              <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                <Link2 className="mr-0.5 size-2.5" />{rc}
-              </Badge>
-            )}
-          </div>
-        </TableCell>
-        <TableCell className="hidden sm:table-cell">
-          <Badge variant="secondary" className={cn("text-xs", NOTE_TC[note.type])}>{note.type}</Badge>
-        </TableCell>
-        <TableCell className="hidden sm:table-cell">
-          <Badge variant="secondary" className={cn("text-xs", NOTE_SC[note.status])}>{note.status.replace("_", " ")}</Badge>
-        </TableCell>
-        <TableCell className="hidden md:table-cell">
-          {(note.notebooks ?? []).length > 0
-            ? (
-              <div className="flex flex-wrap gap-1">
-                {note.notebooks!.map((nb) => (
-                  <Badge key={nb} variant="outline" className="text-xs"><BookOpen className="mr-1 size-2.5" />{nb}</Badge>
-                ))}
-              </div>
-            )
-            : <span className="text-xs text-muted-foreground">—</span>}
-        </TableCell>
-        <TableCell className="hidden lg:table-cell">
-          {note.project_id && projNames.has(note.project_id)
-            ? (
-              <Badge
-                variant="outline"
-                className="cursor-pointer text-xs hover:bg-muted"
-                onClick={(e) => { e.stopPropagation(); router.push(`/projects/${note.project_id}`); }}
-              >
-                <FolderOpen className="mr-1 size-2.5" />{projNames.get(note.project_id)}
-              </Badge>
-            )
-            : <span className="text-xs text-muted-foreground">—</span>}
-        </TableCell>
-        <TableCell className="hidden lg:table-cell">
-          <div className="flex flex-wrap gap-1">
-            {gs.map((g) => (
-              <Badge
-                key={g.id}
-                variant="outline"
-                className="cursor-pointer text-xs hover:bg-muted"
-                onClick={(e) => { e.stopPropagation(); router.push(`/goals/${g.id}`); }}
-              >
-                <Tag className="mr-1 size-2.5" />{g.name}
-              </Badge>
-            ))}
-          </div>
-        </TableCell>
-        <TableCell className="w-8">
-          <button
-            data-sc
-            type="button"
-            onClick={() => toggleFavoriteNote.mutate({ id: note.id, favorite: !note.favorite })}
-            className={cn("rounded p-1 transition-colors", note.favorite ? "text-rose-500" : "text-muted-foreground opacity-0 group-hover:opacity-100")}
-            title={note.favorite ? "Unfavorite" : "Favorite"}
-          >
-            <Star className={cn("size-3.5", note.favorite && "fill-current")} />
-          </button>
-        </TableCell>
-        <TableCell className="w-8">
-          {note.is_archived
-            ? (
-              <button data-sc type="button" onClick={() => restoreNote.mutate(note.id)} className="rounded p-1 text-muted-foreground hover:text-foreground" title="Restore">
-                <ArchiveRestore className="size-3.5" />
-              </button>
-            )
-            : (
-              <button data-sc type="button" onClick={() => archiveNote.mutate(note.id)} className="rounded p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground" title="Archive">
-                <Archive className="size-3.5" />
-              </button>
-            )}
-        </TableCell>
-        <TableCell className="hidden sm:table-cell w-20 text-xs text-muted-foreground">
-          {new Date(note.updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-        </TableCell>
-      </TableRow>
+        note={note}
+        returnTo="/knowledge"
+        areas={noteAreas}
+        goalNames={noteGoalNames}
+        projectNames={noteProjectNames}
+        taskNames={noteTaskNames}
+        onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
+        onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+        onArchive={(id) => archiveNote.mutate(id)}
+        onRestore={(id) => restoreNote.mutate(id)}
+      />
     );
   }
 
-  function renderNotesTable(list: Note[]) {
+  function renderNotesList(list: Note[]) {
     return (
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8" />
-              <TableHead>Name</TableHead>
-              <TableHead className="hidden sm:table-cell">Type</TableHead>
-              <TableHead className="hidden sm:table-cell">Status</TableHead>
-              <TableHead className="hidden md:table-cell">Notebook</TableHead>
-              <TableHead className="hidden lg:table-cell">Project</TableHead>
-              <TableHead className="hidden lg:table-cell">Goals</TableHead>
-              <TableHead className="w-8" />
-              <TableHead className="w-8" />
-              <TableHead className="hidden sm:table-cell w-20">Updated</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>{list.map(renderNoteRow)}</TableBody>
-        </Table>
-      </div>
-    );
-  }
-
-  function renderGroupedNotes(gb: "topic_id" | "project_id") {
-    const map = new Map<string, Note[]>();
-    for (const n of filteredNotes) {
-      const k = (n[gb] as string | null) ?? "Uncategorized";
-      const a = map.get(k) ?? [];
-      a.push(n);
-      map.set(k, a);
-    }
-    const groups = Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
-    return (
-      <div className="space-y-2">
-        {groups.map(([k, g]) => {
-          const isOpen = noteOpenGroups.has(k) || groups.length <= 3;
-          const label = gb === "topic_id" ? topicNames.get(k) : projNames.get(k);
-          return (
-            <div key={k} className="rounded-lg border">
-              <button
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-muted/50"
-                onClick={() =>
-                  setNoteOpenGroups((p) => {
-                    const n = new Set(p);
-                    if (n.has(k)) n.delete(k); else n.add(k);
-                    return n;
-                  })
-                }
-              >
-                {isOpen ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
-                {label ?? k}
-                <Badge variant="secondary" className="ml-auto h-4 px-1.5 text-[10px]">{g.length}</Badge>
-              </button>
-              {isOpen && <div className="border-t">{renderNotesTable(g)}</div>}
-            </div>
-          );
-        })}
+      <div className="rounded-lg border border-border">
+        {list.map((n) => renderNoteRow(n))}
       </div>
     );
   }
@@ -690,7 +646,7 @@ export default function KnowledgeHubPage() {
               <h3 className="font-semibold">Notes</h3>
               <Badge variant="secondary" className="text-xs">{sr!.counts.notes} found</Badge>
             </div>
-            {renderNotesTable(sr!.notes)}
+            {renderNotesList(sr!.notes)}
           </div>
         )}
 
@@ -906,6 +862,7 @@ export default function KnowledgeHubPage() {
             <SectionHeader
               accentClass="bg-purple-500"
               title="Notes"
+              totalCount={noteCounts.all}
               description="Access and search your latest Notes."
               buttonLabel="New Note"
               onNew={openNoteCreate}
@@ -914,49 +871,91 @@ export default function KnowledgeHubPage() {
             <div className="mt-4">
               <Tabs
                 value={notesTab}
-                onValueChange={(v) => { setNotesTab(v); setNoteOpenGroups(new Set()); }}
+                onValueChange={(v) => { setNotesTab(v as NoteView); }}
               >
-                <TabsList className="h-auto flex-wrap">
-                  {NOTE_TABS.map((t) => {
-                    const count = notes.filter(t.filter).length;
-                    return (
-                      <TabsTrigger key={t.value} value={t.value}>
-                        {t.label}
-                        {count > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{count}</Badge>}
-                      </TabsTrigger>
-                    );
-                  })}
+                <TabsList className={NOTES_TABS_LIST_CLASS_NAME}>
+                  <TabsTrigger value={NOTE_VIEW.ALL} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">All</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.INBOX} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><InboxIcon className="mr-1 size-3" />Inbox</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.TO_REVIEW} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Clock className="mr-1 size-3" />To Review</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.ACTIVE} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Zap className="mr-1 size-3" />Active</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.PINNED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Pin className="mr-1 size-3" />Pinned</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.FAVORITE} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Star className="mr-1 size-3" />Favorites</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_AREA} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><MapIcon className="mr-1 size-3" />By Area</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_GOAL} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Target className="mr-1 size-3" />By Goal</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><FolderOpen className="mr-1 size-3" />By Project</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_TOPIC} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Tag className="mr-1 size-3" />By Topic</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_NOTEBOOK} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><BookOpen className="mr-1 size-3" />By Notebook</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.SAVED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Bookmark className="mr-1 size-3" />Saved</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Archive className="mr-1 size-3" />Archived</TabsTrigger>
                 </TabsList>
 
-                {NOTE_TABS.map((t) => (
-                  <TabsContent key={t.value} value={t.value} className="mt-4">
+                {([
+                  NOTE_VIEW.ALL,
+                  NOTE_VIEW.INBOX,
+                  NOTE_VIEW.TO_REVIEW,
+                  NOTE_VIEW.ACTIVE,
+                  NOTE_VIEW.PINNED,
+                  NOTE_VIEW.FAVORITE,
+                  NOTE_VIEW.SAVED,
+                  NOTE_VIEW.ARCHIVED,
+                ] as NoteView[]).map((tab) => (
+                  <TabsContent key={tab} value={tab} className="mt-4">
                     {notesLoading ? (
-                      <div className="space-y-2">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <div key={i} className="flex items-center gap-4 rounded-lg border p-3">
-                            <Skeleton className="h-4 w-8" />
-                            <Skeleton className="h-4 w-48" />
-                            <Skeleton className="h-4 w-16" />
-                            <Skeleton className="h-4 w-16" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : filteredNotes.length === 0 ? (
+                      <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">Loading notes...</div>
+                    ) : visibleNotes.length === 0 ? (
                       <EmptyState
                         icon={NotebookPen}
-                        title={`No ${t.label.toLowerCase()} notes`}
+                        title={`No ${tab.replace(/_/g, " ")} notes`}
                         description="Try a different filter or create a new note."
                         actionLabel="New Note"
                         onAction={openNoteCreate}
                       />
-                    ) : noteTabConfig?.gb ? (
-                      renderGroupedNotes(noteTabConfig.gb)
                     ) : (
-                      renderNotesTable(filteredNotes)
+                      renderNotesList(visibleNotes)
                     )}
                   </TabsContent>
                 ))}
-              </Tabs>
+
+                <TabsContent value={NOTE_VIEW.BY_AREA} className="mt-4">
+                  <NotesByGroupView
+                    groups={noteGroupsByArea}
+                    renderNote={(n) => renderNoteRow(n)}
+                    onNewNote={(groupId) => router.push(`/notes/new?areaId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
+                    emptyMessage="Notes will be grouped by area here."
+                  />
+                </TabsContent>
+                <TabsContent value={NOTE_VIEW.BY_GOAL} className="mt-4">
+                  <NotesByGroupView
+                    groups={noteGroupsByGoal}
+                    renderNote={(n) => renderNoteRow(n)}
+                    onNewNote={(groupId) => router.push(`/notes/new?goalId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
+                    emptyMessage="Notes will be grouped by goal here."
+                  />
+                </TabsContent>
+                <TabsContent value={NOTE_VIEW.BY_PROJECT} className="mt-4">
+                  <NotesByGroupView
+                    groups={noteGroupsByProject}
+                    renderNote={(n) => renderNoteRow(n)}
+                    onNewNote={(groupId) => router.push(`/notes/new?projectId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
+                    emptyMessage="Notes will be grouped by project here."
+                  />
+                </TabsContent>
+                <TabsContent value={NOTE_VIEW.BY_TOPIC} className="mt-4">
+                  <NotesByGroupView
+                    groups={noteGroupsByTopic}
+                    renderNote={(n) => renderNoteRow(n)}
+                    onNewNote={(groupId) => router.push(`/notes/new?topicId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
+                    emptyMessage="Notes will be grouped by topic here."
+                  />
+                </TabsContent>
+                <TabsContent value={NOTE_VIEW.BY_NOTEBOOK} className="mt-4">
+                  <NotesByGroupView
+                    groups={noteGroupsByNotebook}
+                    renderNote={(n) => renderNoteRow(n)}
+                    onNewNote={(groupId) => router.push(`/notes/new?notebook=${encodeURIComponent(groupId)}&returnTo=${encodeReturnTo("/knowledge")}`)}
+                    emptyMessage="Notes will be grouped by notebook here."
+                  />
+                </TabsContent>              </Tabs>
             </div>
           </section>
 
