@@ -9,22 +9,32 @@ import {
   BookOpen,
   ChevronDownIcon,
   ChevronRightIcon,
+  CircleDot,
+  CircleOff,
   FilePlus,
   FolderOpen,
   Globe,
   Heart,
-  Library,
-  Link2,
+  LayoutGrid,
+  Map as MapIcon,
   NotebookPen,
   Pin,
+  Bookmark,
+  Clock,
+  Inbox as InboxIcon,
+  Plus,
   Search,
   Star,
   Tag,
+  Target,
+  X,
+  Zap,
 } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -33,36 +43,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResourceDialog } from "@/components/entities/resource-dialog";
 import { ResourceRow, ResourceRowSkeleton } from "@/components/entities/resource-row";
 import { TopicCard } from "@/components/entities/topic-card";
+import { NoteRow } from "@/components/entities/note-row";
+import { NotesByGroupView, type NoteGroup } from "@/components/views/notes-by-group-view";
+import { KnowledgeEmoji } from "@/components/layout/knowledge-emoji";
+import { TagEmoji } from "@/components/layout/tag-emoji";
+import { NoteEmoji } from "@/components/layout/note-emoji";
+import { ResourceEmoji } from "@/components/layout/resource-emoji";
+import { encodeReturnTo } from "@/lib/utils/return-to";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
+import { useTasks } from "@/lib/hooks/use-tasks";
 import {
   useArchiveNoteWithUndo,
-  useCreateNote,
+  useDeleteNote,
   useNotes,
-  useNotebooks,
   useRestoreNote,
   useToggleFavoriteNote,
   useTogglePinNote,
@@ -74,84 +83,54 @@ import {
   useCreateResource,
   useResources,
   useToggleFavoriteResource,
+  useDeleteResource,
   useUnarchiveResource,
   useUpdateResource,
 } from "@/lib/hooks/use-resources";
-import { useNoteDefaults } from "@/lib/hooks/use-user-settings";
 import { useKnowledgeSearch } from "@/lib/hooks/use-knowledge-hub";
 import {
   useTopics,
   useCreateTopic,
   useUpdateTopic,
   useToggleFavoriteTopic,
+  useArchiveTopic,
+  useArchivedTopics,
+  useRestoreTopic,
 } from "@/lib/hooks/use-topics";
 import { noteService } from "@/lib/services/note.service";
 import type { Note, Resource } from "@/lib/types/domain.types";
 import type { TopicWithCounts } from "@/lib/services/topic.service";
 import {
-  NOTE_STATUS,
-  NOTE_TYPE,
   RESOURCE_STATUS,
-  RESOURCE_TYPE,
-  type NoteStatus,
-  type NoteType,
 } from "@/lib/utils/constants";
+import {
+  RESOURCE_VIEW,
+  getResourceLinkedAreaIds,
+  getResourceLinkedGoalIds,
+  getResourceLinkedTaskIds,
+  getEffectiveResourceProjectIds,
+  type ResourceView,
+} from "@/lib/utils/resources";
+import { ResourcesByGroupView, type ResourceGroup } from "@/components/views/resources-by-group-view";
+import { GalleryGrid } from "@/components/views/gallery-grid";
+import { NOTES_TABS_LIST_CLASS_NAME } from "@/lib/utils/note-page-display";
 import { cn } from "@/lib/utils";
-
-// ─── colour maps ─────────────────────────────────────────────────────────────
-const NOTE_SC: Record<string, string> = {
-  inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  archive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-};
-const NOTE_TC: Record<string, string> = {
-  note: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  research: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-  journal: "bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300",
-};
-
-// ─── notes tabs ───────────────────────────────────────────────────────────────
-const NOTE_TABS: {
-  value: string;
-  label: string;
-  filter: (n: Note) => boolean;
-  gb?: "topic_id" | "project_id";
-}[] = [
-  { value: "all", label: "All", filter: (n) => !n.is_archived },
-  { value: "inbox", label: "Inbox", filter: (n) => n.status === NOTE_STATUS.INBOX && !n.is_archived },
-  { value: "to_review", label: "To review", filter: (n) => n.status === NOTE_STATUS.TO_REVIEW && !n.is_archived },
-  { value: "pinned", label: "Pinned", filter: (n) => !!n.pin && !n.is_archived },
-  { value: "favorite", label: "Favorite", filter: (n) => !!n.favorite && !n.is_archived },
-  { value: "by_topic", label: "By Topic", filter: (n) => !n.is_archived && !!n.topic_id, gb: "topic_id" },
-  { value: "by_project", label: "By Project", filter: (n) => !n.is_archived && !!n.project_id, gb: "project_id" },
-  { value: "archived", label: "Archived", filter: (n) => !!n.is_archived },
-];
-
-const RESOURCE_TYPE_OPTIONS = [
-  { value: RESOURCE_TYPE.WEBSITE, label: "Website" },
-  { value: RESOURCE_TYPE.ARTICLE, label: "Article" },
-  { value: RESOURCE_TYPE.VIDEO, label: "Video" },
-  { value: RESOURCE_TYPE.DOCUMENT, label: "Document" },
-  { value: RESOURCE_TYPE.PODCAST, label: "Podcast" },
-  { value: RESOURCE_TYPE.SOCIAL_MEDIA, label: "Social Media" },
-  { value: RESOURCE_TYPE.TOOL, label: "Tool" },
-];
-
-const RESOURCE_TABS = [
-  { v: "inbox", l: "Inbox" },
-  { v: "to_review", l: "To Review" },
-  { v: "favorites", l: "Favorites" },
-  { v: "by_topics", l: "By Topics" },
-  { v: "archive", l: "Archive" },
-  { v: "all", l: "All" },
-];
+import {
+  NOTE_VIEW,
+  getNoteCounts,
+  getNoteLinkedAreaIds,
+  getNoteLinkedGoalIds,
+  getNoteLinkedProjectIds,
+  getVisibleNotes,
+  type NoteView,
+} from "@/lib/utils/notes";
 
 // ─── SectionHeader ────────────────────────────────────────────────────────────
 function SectionHeader({
   accentClass,
   title,
   description,
+  totalCount,
   buttonLabel,
   onNew,
   isPending,
@@ -159,6 +138,7 @@ function SectionHeader({
   accentClass: string;
   title: string;
   description: string;
+  totalCount?: number;
   buttonLabel: string;
   onNew: () => void;
   isPending?: boolean;
@@ -168,7 +148,12 @@ function SectionHeader({
       <div className="flex items-start gap-3">
         <div className={cn("mt-1.5 h-full min-h-[2.5rem] w-1 shrink-0 rounded-full", accentClass)} />
         <div>
-          <h2 className="text-lg font-semibold">{title}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">{title}</h2>
+            {typeof totalCount === "number" ? (
+              <span className="text-sm text-muted-foreground">{totalCount} total</span>
+            ) : null}
+          </div>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
       </div>
@@ -176,6 +161,107 @@ function SectionHeader({
         <FilePlus className="mr-1.5 size-3.5" />
         {buttonLabel}
       </Button>
+    </div>
+  );
+}
+
+// ─── CollapsibleTopicGroup (matches topics page By Area layout) ──────────────
+function CollapsibleTopicGroup({
+  areaId,
+  areaName,
+  areaIcon,
+  topics: areaTopics,
+  areaNames,
+  areaIcons,
+  duplicateIndices,
+  onToggleFavorite,
+  onEdit,
+  onArchive,
+  onCreateNew,
+  defaultOpen = true,
+}: {
+  areaId: string;
+  areaName: string;
+  areaIcon: string | null;
+  topics: TopicWithCounts[];
+  areaNames: Map<string, string>;
+  areaIcons: Map<string, string | null>;
+  duplicateIndices: Map<string, number>;
+  onToggleFavorite: (id: string, favorite: boolean) => void;
+  onEdit: (topic: TopicWithCounts) => void;
+  onArchive: (topic: TopicWithCounts) => void;
+  onCreateNew: (areaId: string) => void;
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="mb-6">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+          }
+        }}
+        className="w-full flex items-center gap-2 mb-3 group cursor-pointer"
+      >
+        <span className="text-muted-foreground">
+          {isOpen ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
+        </span>
+        {areaIcon ? (
+          <span className="text-base leading-none">{areaIcon}</span>
+        ) : (
+          <MapIcon className="size-4 text-muted-foreground" />
+        )}
+        <Badge variant="outline" className="text-xs font-medium">
+          {areaName}
+        </Badge>
+        <span className="text-sm text-muted-foreground">
+          ({areaTopics.length} {areaTopics.length === 1 ? "topic" : "topics"})
+        </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            onCreateNew(areaId);
+          }}
+          title={`Create topic in ${areaName}`}
+        >
+          <Plus className="size-4" />
+        </Button>
+      </div>
+
+      {isOpen && (
+        <GalleryGrid>
+          {areaTopics.map((t) => (
+            <TopicCard
+              key={t.id}
+              topic={t}
+              areaNames={areaNames}
+              areaIcons={areaIcons}
+              duplicateIndex={duplicateIndices.get(t.id)}
+              returnTo="/knowledge"
+              onToggleFavorite={onToggleFavorite}
+              onEdit={onEdit}
+              onArchive={onArchive}
+            />
+          ))}
+          <button
+            onClick={() => onCreateNew(areaId)}
+            className="flex flex-col items-center justify-center gap-2 h-full min-h-[120px] rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-all text-muted-foreground hover:text-foreground cursor-pointer"
+          >
+            <Plus className="size-6" />
+            <span className="text-sm font-medium">New Topic</span>
+          </button>
+        </GalleryGrid>
+      )}
     </div>
   );
 }
@@ -197,17 +283,20 @@ export default function KnowledgeHubPage() {
 
   // ── data ──────────────────────────────────────────────────────────────────
   const { data: topics = [], isLoading: topicsLoading } = useTopics();
-  const { data: notes = [], isLoading: notesLoading } = useNotes({ status: "all" });
+  const { data: notes = [], isLoading: notesLoading } = useNotes({ status: "all", includeArchived: true });
   const { data: resources = [], isLoading: resourcesLoading } = useResources({ status: "all" });
   const { data: archivedResources = [] } = useArchivedResources();
   const { data: areas = [] } = useAreas();
   const { data: projects = [] } = useProjects({ status: "all" });
+  const { data: allTasks = [] } = useTasks();
   const { data: goals = [] } = useGoals({});
-  const { data: notebooks = [] } = useNotebooks();
-  const { data: noteDefs } = useNoteDefaults();
 
   // ── derived maps ─────────────────────────────────────────────────────────
   const areaNames = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
+  const areaIcons = useMemo(
+    () => new Map(areas.map((a) => [a.id, (a.icon as string | null | undefined) ?? null])),
+    [areas],
+  );
   const areaMap = useMemo(
     () => new Map(areas.map((a) => [a.id, { name: a.name, icon: a.icon ?? null }])),
     [areas],
@@ -233,7 +322,13 @@ export default function KnowledgeHubPage() {
   const [topicsTab, setTopicsTab] = useState("active");
   const [topicCreateOpen, setTopicCreateOpen] = useState(false);
   const [topicEditData, setTopicEditData] = useState<TopicWithCounts | null>(null);
-  const [topicForm, setTopicForm] = useState({ name: "", area_ids: [] as string[], favorite: false });
+  const [topicForm, setTopicForm] = useState({
+    name: "",
+    area_ids: [] as string[],
+    note_ids: [] as string[],
+    resource_ids: [] as string[],
+    favorite: false,
+  });
 
   const activeTopics = useMemo(() => topics.filter((t) => !t.inactive), [topics]);
   const favoriteTopics = useMemo(() => topics.filter((t) => t.favorite), [topics]);
@@ -278,19 +373,11 @@ export default function KnowledgeHubPage() {
   }, [topics, areaNames]);
 
   // ── notes section state ──────────────────────────────────────────────────
-  const [notesTab, setNotesTab] = useState("all");
-  const [noteCreateOpen, setNoteCreateOpen] = useState(false);
-  const [noteForm, setNoteForm] = useState({
-    name: "",
-    type: NOTE_TYPE.NOTE as NoteType,
-    notebooks: [] as string[],
-  });
-  const [noteOpenGroups, setNoteOpenGroups] = useState<Set<string>>(new Set());
+  const [notesTab, setNotesTab] = useState<NoteView>(NOTE_VIEW.ALL);
 
-  const noteTabConfig = useMemo(() => NOTE_TABS.find((t) => t.value === notesTab), [notesTab]);
-  const filteredNotes = useMemo(() => {
-    const cfg = NOTE_TABS.find((t) => t.value === notesTab);
-    const list = (cfg ? notes.filter(cfg.filter) : notes.filter((n) => !n.is_archived)).slice();
+  const noteCounts = useMemo(() => getNoteCounts(notes), [notes]);
+  const visibleNotes = useMemo(() => {
+    const list = getVisibleNotes(notes, notesTab).slice();
     return list.sort((a, b) => {
       if (a.pin && !b.pin) return -1;
       if (!a.pin && b.pin) return 1;
@@ -298,28 +385,179 @@ export default function KnowledgeHubPage() {
     });
   }, [notes, notesTab]);
 
+
+  const noteGroupsByArea = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const n of notes.filter((x) => !x.is_archived)) {
+      const ids = getNoteLinkedAreaIds(n);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const id of keys) {
+        const cur = grouped.get(id) ?? [];
+        cur.push(n);
+        grouped.set(id, cur);
+      }
+    }
+    return Array.from(grouped.entries()).map(([id, ns]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Area" : (areaNames.get(id) ?? id),
+      notes: ns,
+    }));
+  }, [notes, areaNames]);
+
+  const noteGroupsByGoal = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const n of notes.filter((x) => !x.is_archived)) {
+      const ids = getNoteLinkedGoalIds(n);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const id of keys) {
+        const cur = grouped.get(id) ?? [];
+        cur.push(n);
+        grouped.set(id, cur);
+      }
+    }
+    return Array.from(grouped.entries()).map(([id, ns]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Goal" : (goalNames.get(id) ?? id),
+      notes: ns,
+    }));
+  }, [notes, goalNames]);
+
+  const noteGroupsByProject = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const n of notes.filter((x) => !x.is_archived)) {
+      const ids = getNoteLinkedProjectIds(n);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const id of keys) {
+        const cur = grouped.get(id) ?? [];
+        cur.push(n);
+        grouped.set(id, cur);
+      }
+    }
+    return Array.from(grouped.entries()).map(([id, ns]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Project" : (projNames.get(id) ?? id),
+      notes: ns,
+    }));
+  }, [notes, projNames]);
+
+  const noteGroupsByTopic = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const n of notes.filter((x) => !x.is_archived)) {
+      const key = n.topic_id ?? "unassigned";
+      const cur = grouped.get(key) ?? [];
+      cur.push(n);
+      grouped.set(key, cur);
+    }
+    return Array.from(grouped.entries()).map(([id, ns]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Topic" : (topicNames.get(id) ?? id),
+      notes: ns,
+    }));
+  }, [notes, topicNames]);
+
+  const noteGroupsByNotebook = useMemo((): NoteGroup[] => {
+    const grouped = new Map<string, Note[]>();
+    for (const n of notes.filter((x) => !x.is_archived)) {
+      const keys = (n.notebooks ?? []).length > 0 ? n.notebooks! : ["unassigned"];
+      for (const k of keys) {
+        grouped.set(k, [...(grouped.get(k) ?? []), n]);
+      }
+    }
+    return Array.from(grouped.entries()).map(([id, ns]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Notebook" : id,
+      notes: ns,
+    }));
+  }, [notes]);
+
   // ── resources section state ──────────────────────────────────────────────
-  const [resourcesTab, setResourcesTab] = useState("inbox");
+  const [resourcesTab, setResourcesTab] = useState<ResourceView>(RESOURCE_VIEW.ALL);
+  const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [resourceCreateOpen, setResourceCreateOpen] = useState(false);
-  const [resourceForm, setResourceForm] = useState({
-    name: "",
-    url: "",
-    type: RESOURCE_TYPE.WEBSITE,
-    area_id: "",
-    project_id: "",
-    topic_id: "",
-    status: RESOURCE_STATUS.INBOX,
-  });
+  const [resourcePrefill, setResourcePrefill] = useState<{
+    areaIds?: string[];
+    goalIds?: string[];
+    projectId?: string;
+    topicId?: string;
+  }>({});
 
   const filteredResources = useMemo(() => {
     switch (resourcesTab) {
-      case "inbox": return resources.filter((r) => r.status === RESOURCE_STATUS.INBOX);
-      case "to_review": return resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW);
-      case "favorites": return resources.filter((r) => r.favorite);
-      case "archive": return archivedResources;
+      case RESOURCE_VIEW.INBOX: return resources.filter((r) => r.status === RESOURCE_STATUS.INBOX);
+      case RESOURCE_VIEW.TO_REVIEW: return resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW);
+      case RESOURCE_VIEW.ACTIVE: return resources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE);
+      case RESOURCE_VIEW.SAVED: return resources.filter((r) => r.status === RESOURCE_STATUS.SAVED);
+      case RESOURCE_VIEW.FAVORITE: return resources.filter((r) => r.favorite);
+      case RESOURCE_VIEW.ARCHIVED: return archivedResources;
       default: return resources;
     }
   }, [resourcesTab, resources, archivedResources]);
+
+  const resourceGroupsByTopic = useMemo((): ResourceGroup[] => {
+    const grouped = new Map<string, Resource[]>();
+    for (const r of resources.filter((x) => !x.is_archived)) {
+      const id = r.topic_id ?? "unassigned";
+      const cur = grouped.get(id) ?? [];
+      cur.push(r);
+      grouped.set(id, cur);
+    }
+    return Array.from(grouped.entries()).map(([id, rs]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Topic" : (topicNames.get(id) ?? id),
+      resources: rs,
+    }));
+  }, [resources, topicNames]);
+
+  const resourceGroupsByArea = useMemo((): ResourceGroup[] => {
+    const grouped = new Map<string, Resource[]>();
+    for (const r of resources.filter((x) => !x.is_archived)) {
+      const ids = getResourceLinkedAreaIds(r);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const id of keys) {
+        const cur = grouped.get(id) ?? [];
+        cur.push(r);
+        grouped.set(id, cur);
+      }
+    }
+    return Array.from(grouped.entries()).map(([id, rs]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Area" : (areaNames.get(id) ?? id),
+      resources: rs,
+    }));
+  }, [resources, areaNames]);
+
+  const resourceGroupsByGoal = useMemo((): ResourceGroup[] => {
+    const grouped = new Map<string, Resource[]>();
+    for (const r of resources.filter((x) => !x.is_archived)) {
+      const ids = getResourceLinkedGoalIds(r);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const id of keys) {
+        const cur = grouped.get(id) ?? [];
+        cur.push(r);
+        grouped.set(id, cur);
+      }
+    }
+    return Array.from(grouped.entries()).map(([id, rs]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Goal" : (goalNames.get(id) ?? id),
+      resources: rs,
+    }));
+  }, [resources, goalNames]);
+
+  const resourceGroupsByProject = useMemo((): ResourceGroup[] => {
+    const grouped = new Map<string, Resource[]>();
+    for (const r of resources.filter((x) => !x.is_archived)) {
+      const id = r.project_id ?? "unassigned";
+      const cur = grouped.get(id) ?? [];
+      cur.push(r);
+      grouped.set(id, cur);
+    }
+    return Array.from(grouped.entries()).map(([id, rs]) => ({
+      groupId: id,
+      groupName: id === "unassigned" ? "No Project" : (projNames.get(id) ?? id),
+      resources: rs,
+    }));
+  }, [resources, projNames]);
 
   const resourcesByTopic = useMemo(() => {
     const map = new Map<string, Resource[]>();
@@ -337,287 +575,186 @@ export default function KnowledgeHubPage() {
   const createTopic = useCreateTopic();
   const updateTopic = useUpdateTopic();
   const toggleFavoriteTopic = useToggleFavoriteTopic();
+  const archiveTopic = useArchiveTopic();
+  const restoreTopic = useRestoreTopic();
+  const { data: archivedTopics = [] } = useArchivedTopics();
 
-  const createNote = useCreateNote();
   const toggleFavoriteNote = useToggleFavoriteNote();
   const togglePinNote = useTogglePinNote();
   const archiveNote = useArchiveNoteWithUndo();
   const restoreNote = useRestoreNote();
+  const deleteNote = useDeleteNote();
 
   const createResource = useCreateResource();
   const toggleFavoriteResource = useToggleFavoriteResource();
   const archiveResource = useArchiveResource();
   const unarchiveResource = useUnarchiveResource();
   const updateResource = useUpdateResource();
+  const deleteResource = useDeleteResource();
 
   // ── handlers ─────────────────────────────────────────────────────────────
   const openTopicCreate = () => {
-    setTopicForm({ name: "", area_ids: [], favorite: false });
+    setTopicForm({ name: "", area_ids: [], note_ids: [], resource_ids: [], favorite: false });
+    setTopicCreateOpen(true);
+  };
+  const openTopicCreateInArea = (areaId: string) => {
+    setTopicForm({ name: "", area_ids: [areaId], note_ids: [], resource_ids: [], favorite: false });
     setTopicCreateOpen(true);
   };
   const handleTopicCreate = async () => {
-    await createTopic.mutateAsync({ name: topicForm.name, area_ids: topicForm.area_ids, favorite: topicForm.favorite });
+    await createTopic.mutateAsync({
+      name: topicForm.name,
+      area_ids: topicForm.area_ids,
+      note_ids: topicForm.note_ids,
+      resource_ids: topicForm.resource_ids,
+      favorite: topicForm.favorite,
+    });
     setTopicCreateOpen(false);
-    setTopicForm({ name: "", area_ids: [], favorite: false });
+    setTopicForm({ name: "", area_ids: [], note_ids: [], resource_ids: [], favorite: false });
   };
   const handleTopicEdit = (topic: TopicWithCounts) => {
     setTopicEditData(topic);
-    setTopicForm({ name: topic.name, area_ids: topic.linkedAreaIds ?? [], favorite: topic.favorite });
+    setTopicForm({
+      name: topic.name,
+      area_ids: topic.linkedAreaIds ?? [],
+      note_ids: [],
+      resource_ids: [],
+      favorite: topic.favorite,
+    });
   };
   const handleTopicUpdate = async () => {
     if (!topicEditData) return;
     await updateTopic.mutateAsync({
       id: topicEditData.id,
-      input: { name: topicForm.name, area_ids: topicForm.area_ids, favorite: topicForm.favorite },
+      input: {
+        name: topicForm.name,
+        area_ids: topicForm.area_ids,
+        note_ids: topicForm.note_ids,
+        resource_ids: topicForm.resource_ids,
+        favorite: topicForm.favorite,
+      },
     });
     setTopicEditData(null);
-    setTopicForm({ name: "", area_ids: [], favorite: false });
+    setTopicForm({ name: "", area_ids: [], note_ids: [], resource_ids: [], favorite: false });
   };
 
   const openNoteCreate = () => {
-    setNoteForm({
-      name: "",
-      type: noteDefs?.default_type ?? NOTE_TYPE.NOTE,
-      notebooks: noteDefs?.default_notebook ? [noteDefs.default_notebook] : [],
-    });
-    setNoteCreateOpen(true);
-  };
-  const handleNoteCreate = async () => {
-    const note = await createNote.mutateAsync({
-      name: noteForm.name.trim() || "Untitled note",
-      // Status is derived server-side from area/goal/project/task/topic
-      // context. This form has no context fields, so the service will
-      // always persist the note as `inbox` — no point letting the user
-      // pick a different bucket here.
-      type: noteForm.type,
-      notebooks: noteForm.notebooks,
-    });
-    setNoteCreateOpen(false);
-    router.push(`/notes/${note.slug ?? note.id}`);
+    router.push(`/notes/new?returnTo=${encodeReturnTo("/knowledge")}`);
   };
 
-  const handleResourceCreate = async () => {
-    await createResource.mutateAsync({
-      name: resourceForm.name,
-      url: resourceForm.url || undefined,
-      type: resourceForm.type as Resource["type"],
-      area_id: resourceForm.area_id || undefined,
-      project_id: resourceForm.project_id || undefined,
-      topic_id: resourceForm.topic_id || undefined,
-    });
-    setResourceCreateOpen(false);
-    setResourceForm({ name: "", url: "", type: RESOURCE_TYPE.WEBSITE, area_id: "", project_id: "", topic_id: "", status: RESOURCE_STATUS.INBOX });
-  };
-  const handleResourceUrlBlur = () => {
-    if (resourceForm.url && !resourceForm.name) {
-      try {
-        const host = new URL(resourceForm.url).hostname.replace(/^www\./, "");
-        setResourceForm((p) => ({ ...p, name: host }));
-      } catch { /* invalid URL */ }
+  const handleNewResourceForGroup = (tab: ResourceView, groupId: string) => {
+    setEditingResource(null);
+    if (tab === RESOURCE_VIEW.BY_AREA) {
+      setResourcePrefill({ areaIds: [groupId] });
+    } else if (tab === RESOURCE_VIEW.BY_GOAL) {
+      setResourcePrefill({ goalIds: [groupId] });
+    } else if (tab === RESOURCE_VIEW.BY_PROJECT) {
+      setResourcePrefill({ projectId: groupId });
+    } else if (tab === RESOURCE_VIEW.BY_TOPIC) {
+      setResourcePrefill({ topicId: groupId });
+    } else {
+      setResourcePrefill({});
     }
+    setResourceCreateOpen(true);
   };
 
-  // ── render helpers ────────────────────────────────────────────────────────
+
   function renderNoteRow(note: Note) {
-    const rc = rCounts?.get(note.id) ?? 0;
-    const gs = (gLinks?.get(note.id) ?? []).slice(0, 2).map((gid) => ({ id: gid, name: goalNames.get(gid) ?? "Goal" }));
+    const noteAreas = getNoteLinkedAreaIds(note)
+      .map((id) => ({ name: areaNames.get(id) ?? id, icon: null }))
+      .filter((a) => Boolean(a.name));
+    const noteGoalNames = getNoteLinkedGoalIds(note)
+      .map((id) => goalNames.get(id))
+      .filter((n): n is string => Boolean(n));
+    const noteProjectNames = getNoteLinkedProjectIds(note)
+      .map((id) => projNames.get(id))
+      .filter((n): n is string => Boolean(n));
+    const noteTaskNames = (note.linkedTaskIds ?? [])
+      .map((id) => allTasks.find((t) => t.id === id)?.name)
+      .filter((n): n is string => Boolean(n));
     return (
-      <TableRow
+      <NoteRow
         key={note.id}
-        className="group cursor-pointer"
-        onClick={(e) => {
-          if ((e.target as HTMLElement).closest("[data-sc]")) return;
-          router.push(`/notes/${note.slug ?? note.id}`);
-        }}
-      >
-        <TableCell className="w-8">
-          <button
-            data-sc
-            type="button"
-            onClick={() => togglePinNote.mutate({ id: note.id, pin: !note.pin })}
-            className={cn("rounded p-1 transition-colors", note.pin ? "text-primary" : "text-muted-foreground opacity-0 group-hover:opacity-100")}
-            title={note.pin ? "Unpin" : "Pin"}
-          >
-            <Pin className={cn("size-3.5", note.pin && "fill-current")} />
-          </button>
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{note.name}</span>
-            {rc > 0 && (
-              <Badge variant="outline" className="h-4 px-1 text-[10px]">
-                <Link2 className="mr-0.5 size-2.5" />{rc}
-              </Badge>
-            )}
-          </div>
-        </TableCell>
-        <TableCell className="hidden sm:table-cell">
-          <Badge variant="secondary" className={cn("text-xs", NOTE_TC[note.type])}>{note.type}</Badge>
-        </TableCell>
-        <TableCell className="hidden sm:table-cell">
-          <Badge variant="secondary" className={cn("text-xs", NOTE_SC[note.status])}>{note.status.replace("_", " ")}</Badge>
-        </TableCell>
-        <TableCell className="hidden md:table-cell">
-          {(note.notebooks ?? []).length > 0
-            ? (
-              <div className="flex flex-wrap gap-1">
-                {note.notebooks!.map((nb) => (
-                  <Badge key={nb} variant="outline" className="text-xs"><BookOpen className="mr-1 size-2.5" />{nb}</Badge>
-                ))}
-              </div>
-            )
-            : <span className="text-xs text-muted-foreground">—</span>}
-        </TableCell>
-        <TableCell className="hidden lg:table-cell">
-          {note.project_id && projNames.has(note.project_id)
-            ? (
-              <Badge
-                variant="outline"
-                className="cursor-pointer text-xs hover:bg-muted"
-                onClick={(e) => { e.stopPropagation(); router.push(`/projects/${note.project_id}`); }}
-              >
-                <FolderOpen className="mr-1 size-2.5" />{projNames.get(note.project_id)}
-              </Badge>
-            )
-            : <span className="text-xs text-muted-foreground">—</span>}
-        </TableCell>
-        <TableCell className="hidden lg:table-cell">
-          <div className="flex flex-wrap gap-1">
-            {gs.map((g) => (
-              <Badge
-                key={g.id}
-                variant="outline"
-                className="cursor-pointer text-xs hover:bg-muted"
-                onClick={(e) => { e.stopPropagation(); router.push(`/goals/${g.id}`); }}
-              >
-                <Tag className="mr-1 size-2.5" />{g.name}
-              </Badge>
-            ))}
-          </div>
-        </TableCell>
-        <TableCell className="w-8">
-          <button
-            data-sc
-            type="button"
-            onClick={() => toggleFavoriteNote.mutate({ id: note.id, favorite: !note.favorite })}
-            className={cn("rounded p-1 transition-colors", note.favorite ? "text-rose-500" : "text-muted-foreground opacity-0 group-hover:opacity-100")}
-            title={note.favorite ? "Unfavorite" : "Favorite"}
-          >
-            <Star className={cn("size-3.5", note.favorite && "fill-current")} />
-          </button>
-        </TableCell>
-        <TableCell className="w-8">
-          {note.is_archived
-            ? (
-              <button data-sc type="button" onClick={() => restoreNote.mutate(note.id)} className="rounded p-1 text-muted-foreground hover:text-foreground" title="Restore">
-                <ArchiveRestore className="size-3.5" />
-              </button>
-            )
-            : (
-              <button data-sc type="button" onClick={() => archiveNote.mutate(note.id)} className="rounded p-1 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground" title="Archive">
-                <Archive className="size-3.5" />
-              </button>
-            )}
-        </TableCell>
-        <TableCell className="hidden sm:table-cell w-20 text-xs text-muted-foreground">
-          {new Date(note.updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-        </TableCell>
-      </TableRow>
+        note={note}
+        returnTo="/knowledge"
+        areas={noteAreas}
+        goalNames={noteGoalNames}
+        projectNames={noteProjectNames}
+        taskNames={noteTaskNames}
+        onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
+        onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+        onArchive={(id) => archiveNote.mutate(id)}
+        onRestore={(id) => restoreNote.mutate(id)}
+        onDelete={(id) => deleteNote.mutate(id)}
+      />
     );
   }
 
-  function renderNotesTable(list: Note[]) {
-    return (
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8" />
-              <TableHead>Name</TableHead>
-              <TableHead className="hidden sm:table-cell">Type</TableHead>
-              <TableHead className="hidden sm:table-cell">Status</TableHead>
-              <TableHead className="hidden md:table-cell">Notebook</TableHead>
-              <TableHead className="hidden lg:table-cell">Project</TableHead>
-              <TableHead className="hidden lg:table-cell">Goals</TableHead>
-              <TableHead className="w-8" />
-              <TableHead className="w-8" />
-              <TableHead className="hidden sm:table-cell w-20">Updated</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>{list.map(renderNoteRow)}</TableBody>
-        </Table>
-      </div>
-    );
-  }
-
-  function renderGroupedNotes(gb: "topic_id" | "project_id") {
-    const map = new Map<string, Note[]>();
-    for (const n of filteredNotes) {
-      const k = (n[gb] as string | null) ?? "Uncategorized";
-      const a = map.get(k) ?? [];
-      a.push(n);
-      map.set(k, a);
-    }
-    const groups = Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
-    return (
-      <div className="space-y-2">
-        {groups.map(([k, g]) => {
-          const isOpen = noteOpenGroups.has(k) || groups.length <= 3;
-          const label = gb === "topic_id" ? topicNames.get(k) : projNames.get(k);
-          return (
-            <div key={k} className="rounded-lg border">
-              <button
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-muted/50"
-                onClick={() =>
-                  setNoteOpenGroups((p) => {
-                    const n = new Set(p);
-                    if (n.has(k)) n.delete(k); else n.add(k);
-                    return n;
-                  })
-                }
-              >
-                {isOpen ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
-                {label ?? k}
-                <Badge variant="secondary" className="ml-auto h-4 px-1.5 text-[10px]">{g.length}</Badge>
-              </button>
-              {isOpen && <div className="border-t">{renderNotesTable(g)}</div>}
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  function renderResourcesTable(list: Resource[]) {
+  function renderNotesList(list: Note[]) {
     return (
       <div className="rounded-lg border border-border">
-        <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-3 py-2">
-          <span className="w-20 text-xs font-medium text-muted-foreground">Status</span>
-          <span className="flex-1 text-xs font-medium text-muted-foreground">Name</span>
-          <span className="hidden sm:inline w-20 text-xs font-medium text-muted-foreground">Type</span>
-          <span className="hidden md:inline w-16 text-xs font-medium text-muted-foreground">Topic</span>
-          <span className="hidden lg:inline w-16 text-xs font-medium text-muted-foreground">Area</span>
-          <span className="hidden xl:inline w-16 text-xs font-medium text-muted-foreground">Project</span>
-          <span className="w-8" />
-          <span className="w-8" />
-          <span className="w-8" />
-        </div>
-        {list.map((r) => (
-          <ResourceRow
-            key={r.id}
-            resource={r}
-            areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a)) : undefined}
-            projectNames={r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : []}
-            topicName={r.topic_id ? topicNames.get(r.topic_id) : undefined}
-            onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
-            onArchive={(id) => archiveResource.mutate(id)}
-            onUnarchive={(id) => unarchiveResource.mutate(id)}
-            onDelete={() => {}}
-            onStatusChange={(id, status) => updateResource.mutate({ id, input: { status } })}
-          />
-        ))}
+        {list.map((n) => renderNoteRow(n))}
       </div>
     );
+  }
+
+  function renderResourceRow(r: Resource) {
+    const areas = getResourceLinkedAreaIds(r)
+      .map((id) => areaNames.get(id))
+      .filter((n): n is string => Boolean(n))
+      .map((name) => ({ name }));
+    const goalNamesList = getResourceLinkedGoalIds(r)
+      .map((id) => goalNames.get(id))
+      .filter((n): n is string => Boolean(n));
+    const projectNamesList = r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : [];
+    const taskNamesList = getResourceLinkedTaskIds(r)
+      .map((id) => allTasks.find((t) => t.id === id)?.name)
+      .filter((n): n is string => Boolean(n));
+    return (
+      <ResourceRow
+        key={r.id}
+        resource={r}
+        areas={areas}
+        goalNames={goalNamesList}
+        projectNames={projectNamesList}
+        taskNames={taskNamesList}
+        topicName={r.topic_id ? topicNames.get(r.topic_id) : undefined}
+        onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
+        onArchive={(id) => archiveResource.mutate(id)}
+        onUnarchive={(id) => unarchiveResource.mutate(id)}
+        onDelete={(id) => deleteResource.mutate(id)}
+        onStatusChange={(id, status) => updateResource.mutate({ id, input: { status } })}
+        onEdit={(res) => setEditingResource(res)}
+      />
+    );
+  }
+
+  function renderResourcesList(list: Resource[]) {
+    return (
+      <div className="rounded-lg border border-border">
+        {list.map((r) => renderResourceRow(r))}
+      </div>
+    );
+  }
+
+  function getAreasForResource(r: Resource) {
+    return getResourceLinkedAreaIds(r)
+      .map((id) => areaNames.get(id))
+      .filter((n): n is string => Boolean(n))
+      .map((name) => ({ name }));
+  }
+  function getGoalNamesForResource(r: Resource) {
+    return getResourceLinkedGoalIds(r)
+      .map((id) => goalNames.get(id))
+      .filter((n): n is string => Boolean(n));
+  }
+  function getProjectNamesForResource(r: Resource) {
+    return r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : [];
+  }
+  function getTaskNamesForResource(r: Resource) {
+    return getResourceLinkedTaskIds(r)
+      .map((id) => allTasks.find((t) => t.id === id)?.name)
+      .filter((n): n is string => Boolean(n));
   }
 
   function renderSearchResults() {
@@ -648,7 +785,7 @@ export default function KnowledgeHubPage() {
         {sr!.topics.length > 0 && (
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <Tag className="size-4 text-blue-500" />
+              <TagEmoji className="text-base leading-none" />
               <h3 className="font-semibold">Topics</h3>
               <Badge variant="secondary" className="text-xs">{sr!.counts.topics} found</Badge>
             </div>
@@ -658,7 +795,9 @@ export default function KnowledgeHubPage() {
                   key={topic.id}
                   topic={topic}
                   areaNames={areaNames}
+                  areaIcons={areaIcons}
                   duplicateIndex={duplicateIndices.get(topic.id)}
+                  returnTo="/knowledge"
                   onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })}
                   onEdit={handleTopicEdit}
                 />
@@ -670,22 +809,22 @@ export default function KnowledgeHubPage() {
         {sr!.notes.length > 0 && (
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <NotebookPen className="size-4 text-purple-500" />
+              <NoteEmoji className="text-base leading-none" />
               <h3 className="font-semibold">Notes</h3>
               <Badge variant="secondary" className="text-xs">{sr!.counts.notes} found</Badge>
             </div>
-            {renderNotesTable(sr!.notes)}
+            {renderNotesList(sr!.notes)}
           </div>
         )}
 
         {sr!.resources.length > 0 && (
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <Globe className="size-4 text-emerald-500" />
+              <ResourceEmoji className="text-base leading-none" />
               <h3 className="font-semibold">Resources</h3>
               <Badge variant="secondary" className="text-xs">{sr!.counts.resources} found</Badge>
             </div>
-            {renderResourcesTable(sr!.resources)}
+            {renderResourcesList(sr!.resources)}
           </div>
         )}
       </div>
@@ -698,7 +837,7 @@ export default function KnowledgeHubPage() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2.5">
-          <Library className="size-6 text-primary" />
+          <KnowledgeEmoji className="text-2xl leading-none" />
           <h1 className="text-2xl font-bold tracking-tight">Knowledge Hub</h1>
         </div>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
@@ -737,6 +876,7 @@ export default function KnowledgeHubPage() {
             <SectionHeader
               accentClass="bg-blue-500"
               title="Topics"
+              totalCount={topics.length}
               description="Explore your library of Topics."
               buttonLabel="New Topic"
               onNew={openTopicCreate}
@@ -744,25 +884,24 @@ export default function KnowledgeHubPage() {
             />
             <div className="mt-4">
               <Tabs value={topicsTab} onValueChange={setTopicsTab}>
-                <TabsList>
-                  <TabsTrigger value="active">
-                    Active
-                    {activeTopics.length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{activeTopics.length}</Badge>}
+                <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <TabsTrigger value="active" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                    <CircleDot className="mr-1 size-3" />Active
                   </TabsTrigger>
-                  <TabsTrigger value="favorite">
+                  <TabsTrigger value="favorite" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
                     <Heart className="mr-1 size-3" />Favorite
-                    {favoriteTopics.length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{favoriteTopics.length}</Badge>}
                   </TabsTrigger>
-                  <TabsTrigger value="inactive">
-                    Inactive
-                    {inactiveTopics.length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{inactiveTopics.length}</Badge>}
+                  <TabsTrigger value="inactive" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                    <CircleOff className="mr-1 size-3" />Inactive
                   </TabsTrigger>
-                  <TabsTrigger value="by_area">
-                    <Globe className="mr-1 size-3" />By Area
+                  <TabsTrigger value="by_area" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                    <MapIcon className="mr-1 size-3" />By Area
                   </TabsTrigger>
-                  <TabsTrigger value="all">
-                    All
-                    {topics.length > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{topics.length}</Badge>}
+                  <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                    <LayoutGrid className="mr-1 size-3" />All
+                  </TabsTrigger>
+                  <TabsTrigger value="archived" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                    <Archive className="mr-1 size-3" />Archived
                   </TabsTrigger>
                 </TabsList>
 
@@ -780,8 +919,11 @@ export default function KnowledgeHubPage() {
                         : (
                           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {activeTopics.map((t) => (
-                              <TopicCard key={t.id} topic={t} areaNames={areaNames} duplicateIndex={duplicateIndices.get(t.id)}
-                                onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })} onEdit={handleTopicEdit} />
+                              <TopicCard key={t.id} topic={t} areaNames={areaNames} areaIcons={areaIcons} duplicateIndex={duplicateIndices.get(t.id)}
+                                returnTo="/knowledge"
+                                onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })}
+                                onEdit={handleTopicEdit}
+                                onArchive={(topic) => archiveTopic.mutate(topic.id)} />
                             ))}
                           </div>
                         )}
@@ -793,8 +935,11 @@ export default function KnowledgeHubPage() {
                         : (
                           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {favoriteTopics.map((t) => (
-                              <TopicCard key={t.id} topic={t} areaNames={areaNames} duplicateIndex={duplicateIndices.get(t.id)}
-                                onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })} onEdit={handleTopicEdit} />
+                              <TopicCard key={t.id} topic={t} areaNames={areaNames} areaIcons={areaIcons} duplicateIndex={duplicateIndices.get(t.id)}
+                                returnTo="/knowledge"
+                                onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })}
+                                onEdit={handleTopicEdit}
+                                onArchive={(topic) => archiveTopic.mutate(topic.id)} />
                             ))}
                           </div>
                         )}
@@ -806,8 +951,11 @@ export default function KnowledgeHubPage() {
                         : (
                           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {inactiveTopics.map((t) => (
-                              <TopicCard key={t.id} topic={t} areaNames={areaNames} duplicateIndex={duplicateIndices.get(t.id)}
-                                onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })} onEdit={handleTopicEdit} />
+                              <TopicCard key={t.id} topic={t} areaNames={areaNames} areaIcons={areaIcons} duplicateIndex={duplicateIndices.get(t.id)}
+                                returnTo="/knowledge"
+                                onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })}
+                                onEdit={handleTopicEdit}
+                                onArchive={(topic) => archiveTopic.mutate(topic.id)} />
                             ))}
                           </div>
                         )}
@@ -817,22 +965,26 @@ export default function KnowledgeHubPage() {
                       {groupedTopicsByArea.length === 0
                         ? <EmptyState icon={Globe} title="No topics linked to areas" description="Link topics to areas to see them grouped here" />
                         : (
-                          <div className="space-y-6">
-                            {groupedTopicsByArea.map(({ areaId, areaName, topics: areaTopics }) => (
-                              <div key={areaId}>
-                                <div className="mb-3 flex items-center gap-2">
-                                  <Globe className="size-4 text-muted-foreground" />
-                                  <h3 className="font-semibold">{areaName}</h3>
-                                  <Badge variant="secondary" className="text-xs">{areaTopics.length}</Badge>
-                                </div>
-                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                  {areaTopics.map((t) => (
-                                    <TopicCard key={t.id} topic={t} areaNames={areaNames} duplicateIndex={duplicateIndices.get(t.id)}
-                                      onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })} onEdit={handleTopicEdit} />
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
+                          <div className="px-1">
+                            {groupedTopicsByArea.map(({ areaId, areaName, topics: areaTopics }) => {
+                              const areaIcon = areaIcons.get(areaId) ?? null;
+                              return (
+                                <CollapsibleTopicGroup
+                                  key={areaId}
+                                  areaId={areaId}
+                                  areaName={areaName}
+                                  areaIcon={areaIcon}
+                                  topics={areaTopics}
+                                  areaNames={areaNames}
+                                  areaIcons={areaIcons}
+                                  duplicateIndices={duplicateIndices}
+                                  onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })}
+                                  onEdit={handleTopicEdit}
+                                  onArchive={(topic) => archiveTopic.mutate(topic.id)}
+                                  onCreateNew={openTopicCreateInArea}
+                                />
+                              );
+                            })}
                           </div>
                         )}
                     </TabsContent>
@@ -843,11 +995,35 @@ export default function KnowledgeHubPage() {
                         : (
                           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {topics.map((t) => (
-                              <TopicCard key={t.id} topic={t} areaNames={areaNames} duplicateIndex={duplicateIndices.get(t.id)}
-                                onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })} onEdit={handleTopicEdit} />
+                              <TopicCard key={t.id} topic={t} areaNames={areaNames} areaIcons={areaIcons} duplicateIndex={duplicateIndices.get(t.id)}
+                                returnTo="/knowledge"
+                                onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })}
+                                onEdit={handleTopicEdit}
+                                onArchive={(topic) => archiveTopic.mutate(topic.id)} />
                             ))}
                           </div>
                         )}
+                    </TabsContent>
+
+                    <TabsContent value="archived" className="mt-4">
+                      {archivedTopics.length === 0 ? (
+                        <EmptyState icon={Archive} title="No archived topics" description="Archived topics will appear here" />
+                      ) : (
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          {archivedTopics.map((t) => (
+                            <TopicCard
+                              key={t.id}
+                              topic={t}
+                              areaNames={areaNames}
+                              areaIcons={areaIcons}
+                              duplicateIndex={duplicateIndices.get(t.id)}
+                              returnTo="/knowledge"
+                              onToggleFavorite={(id, fav) => toggleFavoriteTopic.mutate({ id, favorite: fav })}
+                              onRestore={(topic) => restoreTopic.mutate(topic.id)}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </TabsContent>
                   </>
                 )}
@@ -860,57 +1036,99 @@ export default function KnowledgeHubPage() {
             <SectionHeader
               accentClass="bg-purple-500"
               title="Notes"
+              totalCount={noteCounts.all}
               description="Access and search your latest Notes."
               buttonLabel="New Note"
               onNew={openNoteCreate}
-              isPending={createNote.isPending}
             />
             <div className="mt-4">
               <Tabs
                 value={notesTab}
-                onValueChange={(v) => { setNotesTab(v); setNoteOpenGroups(new Set()); }}
+                onValueChange={(v) => { setNotesTab(v as NoteView); }}
               >
-                <TabsList className="h-auto flex-wrap">
-                  {NOTE_TABS.map((t) => {
-                    const count = notes.filter(t.filter).length;
-                    return (
-                      <TabsTrigger key={t.value} value={t.value}>
-                        {t.label}
-                        {count > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{count}</Badge>}
-                      </TabsTrigger>
-                    );
-                  })}
+                <TabsList className={NOTES_TABS_LIST_CLASS_NAME}>
+                  <TabsTrigger value={NOTE_VIEW.ALL} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">All</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.INBOX} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><InboxIcon className="mr-1 size-3" />Inbox</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.TO_REVIEW} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Clock className="mr-1 size-3" />To Review</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.ACTIVE} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Zap className="mr-1 size-3" />Active</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.PINNED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Pin className="mr-1 size-3" />Pinned</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.FAVORITE} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Star className="mr-1 size-3" />Favorites</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_AREA} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><MapIcon className="mr-1 size-3" />By Area</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_GOAL} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Target className="mr-1 size-3" />By Goal</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><FolderOpen className="mr-1 size-3" />By Project</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_TOPIC} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Tag className="mr-1 size-3" />By Topic</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_NOTEBOOK} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><BookOpen className="mr-1 size-3" />By Notebook</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.SAVED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Bookmark className="mr-1 size-3" />Saved</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Archive className="mr-1 size-3" />Archived</TabsTrigger>
                 </TabsList>
 
-                {NOTE_TABS.map((t) => (
-                  <TabsContent key={t.value} value={t.value} className="mt-4">
+                {([
+                  NOTE_VIEW.ALL,
+                  NOTE_VIEW.INBOX,
+                  NOTE_VIEW.TO_REVIEW,
+                  NOTE_VIEW.ACTIVE,
+                  NOTE_VIEW.PINNED,
+                  NOTE_VIEW.FAVORITE,
+                  NOTE_VIEW.SAVED,
+                  NOTE_VIEW.ARCHIVED,
+                ] as NoteView[]).map((tab) => (
+                  <TabsContent key={tab} value={tab} className="mt-4">
                     {notesLoading ? (
-                      <div className="space-y-2">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <div key={i} className="flex items-center gap-4 rounded-lg border p-3">
-                            <Skeleton className="h-4 w-8" />
-                            <Skeleton className="h-4 w-48" />
-                            <Skeleton className="h-4 w-16" />
-                            <Skeleton className="h-4 w-16" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : filteredNotes.length === 0 ? (
+                      <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">Loading notes...</div>
+                    ) : visibleNotes.length === 0 ? (
                       <EmptyState
                         icon={NotebookPen}
-                        title={`No ${t.label.toLowerCase()} notes`}
+                        title={`No ${tab.replace(/_/g, " ")} notes`}
                         description="Try a different filter or create a new note."
                         actionLabel="New Note"
                         onAction={openNoteCreate}
                       />
-                    ) : noteTabConfig?.gb ? (
-                      renderGroupedNotes(noteTabConfig.gb)
                     ) : (
-                      renderNotesTable(filteredNotes)
+                      renderNotesList(visibleNotes)
                     )}
                   </TabsContent>
                 ))}
-              </Tabs>
+
+                <TabsContent value={NOTE_VIEW.BY_AREA} className="mt-4">
+                  <NotesByGroupView
+                    groups={noteGroupsByArea}
+                    renderNote={(n) => renderNoteRow(n)}
+                    onNewNote={(groupId) => router.push(`/notes/new?areaId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
+                    emptyMessage="Notes will be grouped by area here."
+                  />
+                </TabsContent>
+                <TabsContent value={NOTE_VIEW.BY_GOAL} className="mt-4">
+                  <NotesByGroupView
+                    groups={noteGroupsByGoal}
+                    renderNote={(n) => renderNoteRow(n)}
+                    onNewNote={(groupId) => router.push(`/notes/new?goalId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
+                    emptyMessage="Notes will be grouped by goal here."
+                  />
+                </TabsContent>
+                <TabsContent value={NOTE_VIEW.BY_PROJECT} className="mt-4">
+                  <NotesByGroupView
+                    groups={noteGroupsByProject}
+                    renderNote={(n) => renderNoteRow(n)}
+                    onNewNote={(groupId) => router.push(`/notes/new?projectId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
+                    emptyMessage="Notes will be grouped by project here."
+                  />
+                </TabsContent>
+                <TabsContent value={NOTE_VIEW.BY_TOPIC} className="mt-4">
+                  <NotesByGroupView
+                    groups={noteGroupsByTopic}
+                    renderNote={(n) => renderNoteRow(n)}
+                    onNewNote={(groupId) => router.push(`/notes/new?topicId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
+                    emptyMessage="Notes will be grouped by topic here."
+                  />
+                </TabsContent>
+                <TabsContent value={NOTE_VIEW.BY_NOTEBOOK} className="mt-4">
+                  <NotesByGroupView
+                    groups={noteGroupsByNotebook}
+                    renderNote={(n) => renderNoteRow(n)}
+                    onNewNote={(groupId) => router.push(`/notes/new?notebook=${encodeURIComponent(groupId)}&returnTo=${encodeReturnTo("/knowledge")}`)}
+                    emptyMessage="Notes will be grouped by notebook here."
+                  />
+                </TabsContent>              </Tabs>
             </div>
           </section>
 
@@ -919,6 +1137,7 @@ export default function KnowledgeHubPage() {
             <SectionHeader
               accentClass="bg-emerald-500"
               title="Resources"
+              totalCount={resources.length}
               description="Access and search your latest Resources."
               buttonLabel="New Resource"
               onNew={() => setResourceCreateOpen(true)}
@@ -926,83 +1145,114 @@ export default function KnowledgeHubPage() {
             />
             <div className="mt-4">
               <Tabs value={resourcesTab} onValueChange={setResourcesTab}>
-                <TabsList>
-                  {RESOURCE_TABS.map(({ v, l }) => {
-                    let count: number | undefined;
-                    if (v === "inbox") count = resources.filter((r) => r.status === RESOURCE_STATUS.INBOX).length;
-                    else if (v === "to_review") count = resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW).length;
-                    else if (v === "favorites") count = resources.filter((r) => r.favorite).length;
-                    else if (v === "archive") count = archivedResources.length;
-                    else if (v === "all") count = resources.length;
-                    return (
-                      <TabsTrigger key={v} value={v}>
-                        {l}
-                        {count != null && count > 0 && <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">{count}</Badge>}
-                      </TabsTrigger>
-                    );
-                  })}
+                <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <TabsTrigger value={RESOURCE_VIEW.ALL} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">All
+                  </TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.INBOX} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><InboxIcon className="mr-1.5 size-3.5" />Inbox
+                  </TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Clock className="mr-1.5 size-3.5" />To Review
+                  </TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.ACTIVE} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Zap className="mr-1.5 size-3.5" />Active
+                  </TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.FAVORITE} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Heart className="mr-1.5 size-3.5" />Favorites
+                  </TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Tag className="mr-1.5 size-3.5" />By Topic</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_AREA} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><MapIcon className="mr-1.5 size-3.5" />By Area</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_GOAL} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Target className="mr-1.5 size-3.5" />By Goal</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><FolderOpen className="mr-1.5 size-3.5" />By Project</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.SAVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Bookmark className="mr-1.5 size-3.5" />Saved
+                  </TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Archive className="mr-1.5 size-3.5" />Archived
+                  </TabsTrigger>
                 </TabsList>
 
-                {["inbox", "to_review", "favorites", "archive", "all"].map((v) => (
+                {([RESOURCE_VIEW.ALL, RESOURCE_VIEW.INBOX, RESOURCE_VIEW.TO_REVIEW, RESOURCE_VIEW.ACTIVE, RESOURCE_VIEW.FAVORITE, RESOURCE_VIEW.SAVED, RESOURCE_VIEW.ARCHIVED] as ResourceView[]).map((v) => (
                   <TabsContent key={v} value={v} className="mt-4">
-                    {resourcesLoading && v !== "archive" ? (
+                    {resourcesLoading && v !== RESOURCE_VIEW.ARCHIVED ? (
                       <div className="flex flex-col">
                         {Array.from({ length: 5 }).map((_, i) => <ResourceRowSkeleton key={i} />)}
                       </div>
                     ) : filteredResources.length === 0 ? (
                       <EmptyState
                         icon={Globe}
-                        title={v === "all" ? "No resources yet" : "No resources"}
-                        description={v === "all" ? "Add your first resource to get started" : "Try a different filter"}
-                        actionLabel={v === "all" ? "New Resource" : undefined}
-                        onAction={v === "all" ? () => setResourceCreateOpen(true) : undefined}
+                        title={v === RESOURCE_VIEW.ALL ? "No resources yet" : "No resources"}
+                        description={v === RESOURCE_VIEW.ALL ? "Add your first resource to get started" : "Try a different filter"}
+                        actionLabel={v === RESOURCE_VIEW.ALL ? "New Resource" : undefined}
+                        onAction={v === RESOURCE_VIEW.ALL ? () => setResourceCreateOpen(true) : undefined}
                       />
                     ) : (
-                      renderResourcesTable(filteredResources)
+                      renderResourcesList(filteredResources)
                     )}
                   </TabsContent>
                 ))}
 
-                <TabsContent value="by_topics" className="mt-4">
-                  {resourcesByTopic.size === 0 ? (
-                    <EmptyState
-                      icon={Globe}
-                      title="No resources linked to topics"
-                      description="Link resources to topics to see them grouped here"
-                      actionLabel="New Resource"
-                      onAction={() => setResourceCreateOpen(true)}
-                    />
-                  ) : (
-                    <div className="flex flex-col gap-4">
-                      {Array.from(resourcesByTopic.entries()).map(([topicId, rs]) => {
-                        const tname = topicNames.get(topicId) ?? "Unknown";
-                        return (
-                          <div key={topicId} className="rounded-lg border border-border">
-                            <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2">
-                              <Badge variant="secondary" className="text-xs">{tname}</Badge>
-                              <span className="text-xs text-muted-foreground">{rs.length} resources</span>
-                            </div>
-                            <div className="divide-y divide-border">
-                              {rs.map((r) => (
-                                <ResourceRow
-                                  key={r.id}
-                                  resource={r}
-areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; icon: string | null } => Boolean(a)) : undefined}
-                                  projectNames={r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : []}
-                                  topicName={tname}
-                                  onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
-                                  onArchive={(id) => archiveResource.mutate(id)}
-                                  onUnarchive={(id) => unarchiveResource.mutate(id)}
-                                  onDelete={() => {}}
-                                  onStatusChange={(id, status) => updateResource.mutate({ id, input: { status } })}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                <TabsContent value={RESOURCE_VIEW.BY_TOPIC} className="mt-4">
+                  <ResourcesByGroupView
+                    groups={resourceGroupsByTopic}
+                    getAreas={getAreasForResource}
+                    getGoalNames={getGoalNamesForResource}
+                    getProjectNames={getProjectNamesForResource}
+                    getTaskNames={getTaskNamesForResource}
+                    getTopicName={(r) => r.topic_id ? topicNames.get(r.topic_id) : undefined}
+                    onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
+                    onArchive={(id) => archiveResource.mutate(id)}
+                    onUnarchive={(id) => unarchiveResource.mutate(id)}
+                    onDelete={(id) => deleteResource.mutate(id)}
+                    onEdit={(r) => setEditingResource(r)}
+                    onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_TOPIC, groupId)}
+                    emptyMessage="Resources will be grouped by topic here."
+                  />
+                </TabsContent>
+                <TabsContent value={RESOURCE_VIEW.BY_AREA} className="mt-4">
+                  <ResourcesByGroupView
+                    groups={resourceGroupsByArea}
+                    getAreas={getAreasForResource}
+                    getGoalNames={getGoalNamesForResource}
+                    getProjectNames={getProjectNamesForResource}
+                    getTaskNames={getTaskNamesForResource}
+                    getTopicName={(r) => r.topic_id ? topicNames.get(r.topic_id) : undefined}
+                    onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
+                    onArchive={(id) => archiveResource.mutate(id)}
+                    onUnarchive={(id) => unarchiveResource.mutate(id)}
+                    onDelete={(id) => deleteResource.mutate(id)}
+                    onEdit={(r) => setEditingResource(r)}
+                    onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_AREA, groupId)}
+                    emptyMessage="Resources will be grouped by area here."
+                  />
+                </TabsContent>
+                <TabsContent value={RESOURCE_VIEW.BY_GOAL} className="mt-4">
+                  <ResourcesByGroupView
+                    groups={resourceGroupsByGoal}
+                    getAreas={getAreasForResource}
+                    getGoalNames={getGoalNamesForResource}
+                    getProjectNames={getProjectNamesForResource}
+                    getTaskNames={getTaskNamesForResource}
+                    getTopicName={(r) => r.topic_id ? topicNames.get(r.topic_id) : undefined}
+                    onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
+                    onArchive={(id) => archiveResource.mutate(id)}
+                    onUnarchive={(id) => unarchiveResource.mutate(id)}
+                    onDelete={(id) => deleteResource.mutate(id)}
+                    onEdit={(r) => setEditingResource(r)}
+                    onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_GOAL, groupId)}
+                    emptyMessage="Resources will be grouped by goal here."
+                  />
+                </TabsContent>
+                <TabsContent value={RESOURCE_VIEW.BY_PROJECT} className="mt-4">
+                  <ResourcesByGroupView
+                    groups={resourceGroupsByProject}
+                    getAreas={getAreasForResource}
+                    getGoalNames={getGoalNamesForResource}
+                    getProjectNames={getProjectNamesForResource}
+                    getTaskNames={getTaskNamesForResource}
+                    getTopicName={(r) => r.topic_id ? topicNames.get(r.topic_id) : undefined}
+                    onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
+                    onArchive={(id) => archiveResource.mutate(id)}
+                    onUnarchive={(id) => unarchiveResource.mutate(id)}
+                    onDelete={(id) => deleteResource.mutate(id)}
+                    onEdit={(r) => setEditingResource(r)}
+                    onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_PROJECT, groupId)}
+                    emptyMessage="Resources will be grouped by project here."
+                  />
                 </TabsContent>
               </Tabs>
             </div>
@@ -1018,7 +1268,7 @@ areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; ico
             if (!open) {
               setTopicCreateOpen(false);
               setTopicEditData(null);
-              setTopicForm({ name: "", area_ids: [], favorite: false });
+              setTopicForm({ name: "", area_ids: [], note_ids: [], resource_ids: [], favorite: false });
             }
           }}
         >
@@ -1034,57 +1284,241 @@ areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; ico
                 <Label htmlFor="kh-topic-name">Name</Label>
                 <Input
                   id="kh-topic-name"
-                  placeholder="e.g., Productivity, Machine Learning"
+                  placeholder="e.g., Productivity, Machine Learning, Recipes"
                   value={topicForm.name}
                   onChange={(e) => setTopicForm((p) => ({ ...p, name: e.target.value }))}
                 />
               </div>
               <div className="grid gap-2">
-                <Label>Linked Areas</Label>
-                <div className="flex flex-wrap gap-2">
-                  {areas.map((area) => (
-                    <button
-                      key={area.id}
-                      type="button"
-                      onClick={() =>
-                        setTopicForm((p) => ({
-                          ...p,
-                          area_ids: p.area_ids.includes(area.id)
-                            ? p.area_ids.filter((id) => id !== area.id)
-                            : [...p.area_ids, area.id],
-                        }))
-                      }
-                      className={cn(
-                        "rounded-full border px-3 py-1 text-sm transition-colors",
-                        topicForm.area_ids.includes(area.id)
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-muted/50 text-muted-foreground hover:border-primary/40",
-                      )}
+                <div className="flex items-center justify-between">
+                  <Label>Linked Areas</Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
                     >
-                      {area.name}
-                    </button>
-                  ))}
-                  {areas.length === 0 && <p className="text-sm text-muted-foreground">No areas available</p>}
+                      {topicForm.area_ids.length === 0 ? "Select areas..." : `${topicForm.area_ids.length} selected`}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuItem onClick={() => setTopicForm((p) => ({ ...p, area_ids: [] }))}>
+                        Clear selection
+                      </DropdownMenuItem>
+                      <div className="max-h-56 overflow-y-auto overscroll-contain">
+                        {areas.length === 0 ? (
+                          <p className="text-sm text-muted-foreground px-2 py-1.5">No areas available</p>
+                        ) : (
+                          areas.map((area) => {
+                            const isSelected = topicForm.area_ids.includes(area.id);
+                            const icon = (area.icon as string | null | undefined) ?? null;
+                            return (
+                              <DropdownMenuItem
+                                key={area.id}
+                                onSelect={(e) => e.preventDefault()}
+                                onClick={() =>
+                                  setTopicForm((p) => ({
+                                    ...p,
+                                    area_ids: isSelected
+                                      ? p.area_ids.filter((id) => id !== area.id)
+                                      : [...p.area_ids, area.id],
+                                  }))
+                                }
+                                className="flex items-center gap-2"
+                              >
+                                <Checkbox checked={isSelected} readOnly />
+                                {icon && <span className="text-sm leading-none">{icon}</span>}
+                                {area.name}
+                              </DropdownMenuItem>
+                            );
+                          })
+                        )}
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setTopicForm((p) => ({ ...p, favorite: !p.favorite }))}
-                className={cn(
-                  "flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors",
-                  topicForm.favorite
-                    ? "border-rose-500 bg-rose-500/10 text-rose-500"
-                    : "border-border bg-muted/50 text-muted-foreground hover:border-rose-500/40",
+                {topicForm.area_ids.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {topicForm.area_ids
+                      .map((id) => areas.find((a) => a.id === id))
+                      .filter((a): a is NonNullable<typeof a> => Boolean(a))
+                      .map((area) => (
+                        <Badge key={area.id} variant="secondary" className="flex items-center gap-1">
+                          {area.icon ? `${area.icon} ` : ""}{area.name}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setTopicForm((p) => ({
+                                ...p,
+                                area_ids: p.area_ids.filter((id) => id !== area.id),
+                              }))
+                            }
+                            className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                  </div>
                 )}
-              >
-                <Heart className={cn("size-3.5", topicForm.favorite && "fill-current")} />
-                Favorite
-              </button>
+              </div>
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label>Link Notes</Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      {topicForm.note_ids.length === 0 ? "Select notes..." : `${topicForm.note_ids.length} selected`}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-64">
+                      <DropdownMenuItem onClick={() => setTopicForm((p) => ({ ...p, note_ids: [] }))}>
+                        Clear selection
+                      </DropdownMenuItem>
+                      <div className="max-h-56 overflow-y-auto overscroll-contain">
+                        {notes.length === 0 ? (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No notes available.</div>
+                        ) : (
+                          notes.map((note) => {
+                            const isSelected = topicForm.note_ids.includes(note.id);
+                            return (
+                              <DropdownMenuItem
+                                key={note.id}
+                                onSelect={(e) => e.preventDefault()}
+                                onClick={() =>
+                                  setTopicForm((p) => ({
+                                    ...p,
+                                    note_ids: isSelected
+                                      ? p.note_ids.filter((id) => id !== note.id)
+                                      : [...p.note_ids, note.id],
+                                  }))
+                                }
+                                className="flex items-center gap-2"
+                              >
+                                <Checkbox checked={isSelected} readOnly />
+                                <span className="truncate">{note.name}</span>
+                              </DropdownMenuItem>
+                            );
+                          })
+                        )}
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                {topicForm.note_ids.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {topicForm.note_ids
+                      .map((id) => notes.find((n) => n.id === id))
+                      .filter((n): n is NonNullable<typeof n> => Boolean(n))
+                      .map((note) => (
+                        <Badge key={note.id} variant="secondary" className="flex items-center gap-1">
+                          <span className="truncate max-w-[120px]">{note.name}</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setTopicForm((p) => ({
+                                ...p,
+                                note_ids: p.note_ids.filter((id) => id !== note.id),
+                              }))
+                            }
+                            className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                  </div>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label>Link Resources</Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      {topicForm.resource_ids.length === 0 ? "Select resources..." : `${topicForm.resource_ids.length} selected`}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-64">
+                      <DropdownMenuItem onClick={() => setTopicForm((p) => ({ ...p, resource_ids: [] }))}>
+                        Clear selection
+                      </DropdownMenuItem>
+                      <div className="max-h-56 overflow-y-auto overscroll-contain">
+                        {resources.length === 0 ? (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No resources available.</div>
+                        ) : (
+                          resources.map((resource) => {
+                            const isSelected = topicForm.resource_ids.includes(resource.id);
+                            return (
+                              <DropdownMenuItem
+                                key={resource.id}
+                                onSelect={(e) => e.preventDefault()}
+                                onClick={() =>
+                                  setTopicForm((p) => ({
+                                    ...p,
+                                    resource_ids: isSelected
+                                      ? p.resource_ids.filter((id) => id !== resource.id)
+                                      : [...p.resource_ids, resource.id],
+                                  }))
+                                }
+                                className="flex items-center gap-2"
+                              >
+                                <Checkbox checked={isSelected} readOnly />
+                                <span className="truncate">{resource.name}</span>
+                              </DropdownMenuItem>
+                            );
+                          })
+                        )}
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                {topicForm.resource_ids.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {topicForm.resource_ids
+                      .map((id) => resources.find((r) => r.id === id))
+                      .filter((r): r is NonNullable<typeof r> => Boolean(r))
+                      .map((resource) => (
+                        <Badge key={resource.id} variant="secondary" className="flex items-center gap-1">
+                          <span className="truncate max-w-[120px]">{resource.name}</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setTopicForm((p) => ({
+                                ...p,
+                                resource_ids: p.resource_ids.filter((id) => id !== resource.id),
+                              }))
+                            }
+                            className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTopicForm((p) => ({ ...p, favorite: !p.favorite }))}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors",
+                    topicForm.favorite
+                      ? "border-rose-500 bg-rose-500/10 text-rose-500"
+                      : "border-border bg-muted/50 text-muted-foreground hover:border-rose-500/40",
+                  )}
+                >
+                  <Heart className={cn("size-3.5", topicForm.favorite && "fill-current")} />
+                  Favorite
+                </button>
+              </div>
             </div>
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => { setTopicCreateOpen(false); setTopicEditData(null); setTopicForm({ name: "", area_ids: [], favorite: false }); }}
+                onClick={() => {
+                  setTopicCreateOpen(false);
+                  setTopicEditData(null);
+                  setTopicForm({ name: "", area_ids: [], note_ids: [], resource_ids: [], favorite: false });
+                }}
               >
                 Cancel
               </Button>
@@ -1099,139 +1533,33 @@ areas={r.area_id ? [areaMap.get(r.area_id)].filter((a): a is { name: string; ico
         </Dialog>
       )}
 
-      {/* ── Note Create Dialog ──────────────────────────────────────────────── */}
-      <Dialog open={noteCreateOpen} onOpenChange={setNoteCreateOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>New Note</DialogTitle>
-            <DialogDescription>Create a new note.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Title</Label>
-              <Input
-                value={noteForm.name}
-                onChange={(e) => setNoteForm((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Note title"
-                className="h-9"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Type</Label>
-                <Select value={noteForm.type} onValueChange={(v) => setNoteForm((p) => ({ ...p, type: v as NoteType }))}>
-                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NOTE_TYPE.NOTE}>Note</SelectItem>
-                    <SelectItem value={NOTE_TYPE.RESEARCH}>Research</SelectItem>
-                    <SelectItem value={NOTE_TYPE.JOURNAL}>Journal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Status</Label>
-                <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
-                  Inbox (set from context)
-                </div>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Notebook</Label>
-              <div className="relative">
-                <BookOpen className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={noteForm.notebooks[0] ?? ""}
-                  onChange={(e) =>
-                    setNoteForm((p) => ({
-                      ...p,
-                      notebooks: e.target.value.trim() ? [e.target.value] : [],
-                    }))
-                  }
-                  placeholder="Select or create notebook"
-                  className="h-9 pl-8"
-                  list="kh-notebook-list"
-                />
-                <datalist id="kh-notebook-list">
-                  {notebooks.map((b) => <option key={b} value={b} />)}
-                </datalist>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setNoteCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleNoteCreate} disabled={createNote.isPending}>Create</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Resource Create Dialog ──────────────────────────────────────────── */}
-      <Dialog open={resourceCreateOpen} onOpenChange={setResourceCreateOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>New Resource</DialogTitle>
-            <DialogDescription>Add an external reference to your PARA system</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label>Name</Label>
-              <Input
-                placeholder="My favorite article"
-                value={resourceForm.name}
-                onChange={(e) => setResourceForm((p) => ({ ...p, name: e.target.value }))}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>URL</Label>
-              <Input
-                type="url"
-                placeholder="https://..."
-                value={resourceForm.url}
-                onChange={(e) => setResourceForm((p) => ({ ...p, url: e.target.value }))}
-                onBlur={handleResourceUrlBlur}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Type</Label>
-              <Select value={resourceForm.type} onValueChange={(v) => setResourceForm((p) => ({ ...p, type: v ?? p.type }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {RESOURCE_TYPE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label>Status</Label>
-              <Select value={resourceForm.status} onValueChange={(v) => setResourceForm((p) => ({ ...p, status: v ?? p.status }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={RESOURCE_STATUS.INBOX}>Inbox</SelectItem>
-                  <SelectItem value={RESOURCE_STATUS.TO_REVIEW}>To Review</SelectItem>
-                  <SelectItem value={RESOURCE_STATUS.ACTIVE}>Active</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label>Topic</Label>
-              <Select value={resourceForm.topic_id} onValueChange={(v) => setResourceForm((p) => ({ ...p, topic_id: v ?? "" }))}>
-                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                <SelectContent>
-                  {topics.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setResourceCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleResourceCreate} disabled={!resourceForm.name || createResource.isPending}>
-              Create Resource
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* ── Resource Create / Edit Dialog ───────────────────────────────────── */}
+      <ResourceDialog
+        open={resourceCreateOpen || !!editingResource}
+        onOpenChange={(open) => {
+          if (!open) {
+            setResourceCreateOpen(false);
+            setEditingResource(null);
+            setResourcePrefill({});
+          }
+        }}
+        resource={editingResource}
+        initialAreaIds={resourcePrefill.areaIds}
+        initialGoalIds={resourcePrefill.goalIds}
+        initialProjectId={resourcePrefill.projectId}
+        initialTopicId={resourcePrefill.topicId}
+        onSubmit={async (input) => {
+          if (editingResource) {
+            await updateResource.mutateAsync({ id: editingResource.id, input });
+            setEditingResource(null);
+          } else {
+            await createResource.mutateAsync(input as Parameters<typeof createResource.mutateAsync>[0]);
+            setResourceCreateOpen(false);
+            setResourcePrefill({});
+          }
+        }}
+        isPending={createResource.isPending || updateResource.isPending}
+      />
     </div>
   );
 }
