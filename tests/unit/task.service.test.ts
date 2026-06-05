@@ -119,7 +119,7 @@ describe('taskService', () => {
       .mockImplementationOnce(() => updateClient);
 
     const result = await taskService.complete(userId, taskId);
-    expect(result).toEqual(completedTask);
+    expect(result.completedTask).toEqual(completedTask);
     expect(updateClient.update).toHaveBeenCalledWith(
       expect.objectContaining({
         is_completed: true,

@@ -205,13 +205,13 @@ export function useCompleteTask() {
 
       return { previousData };
     },
-    onSuccess: (_completedTask, id) => {
+    onSuccess: (result, id) => {
       toast.success("Task completed", {
         action: {
           label: "Undo",
           onClick: async () => {
             try {
-              await taskService.uncomplete(user!.id, id);
+              await taskService.undoComplete(user!.id, id, result.spawnedTaskId);
               await invalidateTaskGraph(queryClient);
               toast.success("Task restored");
             } catch {
@@ -404,13 +404,13 @@ export function useCompleteTaskWithGoalRefresh() {
 
       return { previousData };
     },
-    onSuccess: (_completedTask, id) => {
+    onSuccess: (result, id) => {
       toast.success("Task completed", {
         action: {
           label: "Undo",
           onClick: async () => {
             try {
-              await taskService.uncomplete(user!.id, id);
+              await taskService.undoComplete(user!.id, id, result.spawnedTaskId);
               await invalidateTaskGraph(queryClient);
               toast.success("Task restored");
             } catch {

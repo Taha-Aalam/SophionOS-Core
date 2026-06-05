@@ -16,8 +16,9 @@ import {
 } from "@/lib/hooks/use-tasks";
 import { Task } from "@/lib/types/domain.types";
 import { getStableStringArray } from "@/lib/utils/stable-arrays";
-import { PRIORITY, TASK_STATUS } from "@/lib/utils/constants";
+import { PRIORITY, TASK_REPEAT_CYCLE_OPTIONS, TASK_STATUS } from "@/lib/utils/constants";
 import { deriveTaskStatus } from "@/lib/utils/status-routing";
+import { computeNextTaskDueDate } from "@/lib/utils/task-recurrence";
 import {
   applyGoalScopedDefaults,
   applyProjectScopedAreaGuard,
@@ -116,10 +117,13 @@ interface TaskFormValues {
   is_focused: boolean;
   is_important: boolean;
   is_urgent: boolean;
+  is_recurring: boolean;
   name: string;
   priority: Task["priority"];
   project_id: string;
   project_ids: string[];
+  repeat_cycle: Task["repeat_cycle"];
+  repeat_every: number | null;
   status: Task["status"];
 }
 
@@ -134,10 +138,13 @@ const EMPTY_FORM_VALUES: TaskFormValues = {
   is_focused: false,
   is_important: false,
   is_urgent: false,
+  is_recurring: false,
   name: "",
   priority: PRIORITY.MEDIUM,
   project_id: "",
   project_ids: [],
+  repeat_cycle: null,
+  repeat_every: null,
   status: TASK_STATUS.INBOX,
 };
 
@@ -229,10 +236,13 @@ function buildTaskFormValues(
     is_focused: task.is_focused,
     is_important: task.is_important,
     is_urgent: task.is_urgent,
+    is_recurring: task.is_recurring,
     name: task.name,
     priority: task.priority,
     project_id: resolvedProjectIds[0] ?? task.project_id ?? "",
     project_ids: resolvedProjectIds,
+    repeat_cycle: task.repeat_cycle ?? null,
+    repeat_every: task.repeat_every ?? null,
     status: task.status,
   };
 }
@@ -398,6 +408,21 @@ export function TaskDialog({
   // (only meaningful in create mode — edit mode keeps the existing entity's
   // stored status untouched).
   const selectedDueDate = form.watch("due_date") ?? "";
+
+  // Recurrence preview — the next due date is derived-only, never stored.
+  // Re-render whenever any of the four recurrence inputs change.
+  const isRecurring = form.watch("is_recurring");
+  const repeatEvery = form.watch("repeat_every");
+  const repeatCycle = form.watch("repeat_cycle");
+  const nextDueDatePreview = useMemo(() => {
+    if (!isRecurring) return "";
+    if (!selectedDueDate || !repeatEvery || !repeatCycle) return "";
+    try {
+      return computeNextTaskDueDate(selectedDueDate, repeatEvery, repeatCycle);
+    } catch {
+      return "";
+    }
+  }, [isRecurring, selectedDueDate, repeatEvery, repeatCycle]);
   useDerivedStatus<TaskFormValues>(
     form,
     () =>
@@ -1190,6 +1215,89 @@ export function TaskDialog({
                 <FormLabel className="cursor-pointer text-sm font-normal">Urgent</FormLabel>
               </FormItem>
             </div>
+
+            <FormItem className="flex items-center gap-2 space-y-0 pt-1">
+              <Controller
+                control={form.control}
+                name="is_recurring"
+                render={({ field }) => (
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                  />
+                )}
+              />
+              <FormLabel className="cursor-pointer text-sm font-normal">
+                Make the task as recurring task
+              </FormLabel>
+            </FormItem>
+
+            {isRecurring && (
+              <div
+                className="grid gap-4 rounded-lg border border-border bg-muted/30 p-4"
+                data-testid="task-dialog-recurrence-panel"
+              >
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormItem>
+                    <FormLabel>Repeat every #</FormLabel>
+                    <Input
+                      type="number"
+                      min={1}
+                      data-testid="task-dialog-repeat-every-input"
+                      value={form.watch("repeat_every") ?? ""}
+                      onChange={(event) => {
+                        const raw = event.target.value;
+                        form.setValue(
+                          "repeat_every",
+                          raw === "" ? null : Number(raw),
+                          { shouldDirty: true, shouldTouch: true, shouldValidate: true },
+                        );
+                      }}
+                    />
+                    <FormMessage>{form.formState.errors.repeat_every?.message}</FormMessage>
+                  </FormItem>
+
+                  <FormItem>
+                    <FormLabel>Repeat cycle</FormLabel>
+                    <Controller
+                      control={form.control}
+                      name="repeat_cycle"
+                      render={({ field }) => (
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value ?? ""}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full h-12">
+                              <SelectValue placeholder="Select repeat cycle" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {TASK_REPEAT_CYCLE_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    <FormMessage>{form.formState.errors.repeat_cycle?.message}</FormMessage>
+                  </FormItem>
+                </div>
+
+                <FormItem>
+                  <FormLabel>Next due date</FormLabel>
+                  <div
+                    className="flex h-12 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
+                    data-testid="task-dialog-next-due-date-preview"
+                  >
+                    {nextDueDatePreview ||
+                      "Set due date, repeat every, and repeat cycle to preview the next occurrence."}
+                  </div>
+                </FormItem>
+              </div>
+            )}
 
             <div className="flex items-center justify-between gap-3 pt-4">
               {task && (onArchiveToggle || onDelete) && (
