@@ -76,6 +76,24 @@ interface ContactFormValues {
   task_ids: string[];
 }
 
+// Phone must contain 7-15 digits and only allow digits, spaces, +, -, (, )
+const PHONE_PATTERN = /^[\d\s+\-()]+$/;
+const PHONE_DIGIT_MIN = 7;
+const PHONE_DIGIT_MAX = 15;
+
+function validatePhone(phone: string): string | null {
+  const trimmed = phone.trim();
+  if (!trimmed) return "Phone is required";
+  if (!PHONE_PATTERN.test(trimmed)) {
+    return "Phone can only contain digits, spaces, +, -, (, )";
+  }
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length < PHONE_DIGIT_MIN || digits.length > PHONE_DIGIT_MAX) {
+    return `Phone must contain ${PHONE_DIGIT_MIN}-${PHONE_DIGIT_MAX} digits`;
+  }
+  return null;
+}
+
 const EMPTY_FORM_VALUES: ContactFormValues = {
   name: "",
   role: "",
@@ -246,8 +264,9 @@ export function ContactDialog({
   const handleSubmit = form.handleSubmit(async (values) => {
     form.clearErrors();
     let hasError = false;
-    if (!values.phone.trim()) {
-      form.setError("phone", { message: "Phone is required" });
+    const phoneError = validatePhone(values.phone);
+    if (phoneError) {
+      form.setError("phone", { message: phoneError });
       hasError = true;
     }
     if (!values.email.trim()) {
@@ -272,7 +291,9 @@ export function ContactDialog({
         <FormProvider {...form}>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <FormItem>
-              <FormLabel>Name *</FormLabel>
+              <FormLabel>
+                Name <span className="text-destructive">*</span>
+              </FormLabel>
               <FormControl>
                 <Input autoFocus placeholder="Full name" {...form.register("name")} />
               </FormControl>
@@ -319,7 +340,9 @@ export function ContactDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <FormItem>
-                <FormLabel>Phone *</FormLabel>
+                <FormLabel>
+                  Phone <span className="text-destructive">*</span>
+                </FormLabel>
                 <FormControl>
                   <Input type="tel" placeholder="+1 555 000 0000" {...form.register("phone")} />
                 </FormControl>
@@ -327,7 +350,9 @@ export function ContactDialog({
               </FormItem>
 
               <FormItem>
-                <FormLabel>Email *</FormLabel>
+                <FormLabel>
+                  Email <span className="text-destructive">*</span>
+                </FormLabel>
                 <FormControl>
                   <Input type="email" placeholder="email@example.com" {...form.register("email")} />
                 </FormControl>

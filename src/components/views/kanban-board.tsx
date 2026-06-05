@@ -42,7 +42,12 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
   const updateStatus = useUpdateProjectStatus();
   const [optimisticProjects, setOptimisticProjects] = React.useState<Project[]>(projects);
 
+  // Keep optimistic state in sync with the latest server-provided list whenever
+  // a stale snapshot is rendered; the actual reorder happens via setOptimistic
+  // inside handleDragEnd, and the subsequent refetch will resolve the source
+  // of truth through React Query invalidation.
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOptimisticProjects(projects);
   }, [projects]);
 

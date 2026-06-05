@@ -195,35 +195,23 @@ export function ResourceDialog({
     }
   }, [open, resource, initialGoalIds, initialAreaIds, initialProjectId, initialTopicId]);
 
-  // Live re-derive status from current context (create mode only — edit
-  // mode keeps the existing entity's stored status). User-initiated status
-  // changes are preserved between context changes; the next context change
-  // re-derives automatically.
-  const statusOverriddenRef = useRef(false);
+  // Live re-derive status from current context. The status field is now a
+  // derived display (no manual picker) so we always reflect the current
+  // bucket based on the dialog's area/project/goal/task/topic selections.
   useEffect(() => {
-    // Reset override whenever the dialog re-opens or switches to edit/create.
-    statusOverriddenRef.current = false;
-  }, [open, resource]);
-
-  useEffect(() => {
-    if (resource) return; // edit mode: don't touch status
-    if (statusOverriddenRef.current) return;
     const next = deriveResourceStatus({
       area_ids: areaIds,
       project_id: projectId || null,
       goal_ids: goalIds,
+      task_ids: taskIds,
       topic_id: topicId || null,
     });
     if (next !== status) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus(next);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [areaIds, projectId, topicId, goalIds]);
-
-  const handleStatusChange = (next: ResourceStatus) => {
-    statusOverriddenRef.current = true;
-    setStatus(next);
-  };
+  }, [areaIds, projectId, topicId, goalIds, taskIds]);
 
   const handleUrlBlur = () => {
     if (url && !name) {
@@ -373,7 +361,7 @@ export function ResourceDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredTasks, isRelationsLoading]);
 
-  const canSubmit = name.trim().length > 0 && !isPending;
+  const canSubmit = name.trim().length > 0 && url.trim().length > 0 && !isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -386,16 +374,22 @@ export function ResourceDialog({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="res-name">Name</Label>
+            <Label htmlFor="res-name">
+              Name <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="res-name"
               placeholder="My favorite article"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              aria-required="true"
+              required
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="res-url">URL</Label>
+            <Label htmlFor="res-url">
+              URL <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="res-url"
               type="url"
@@ -403,6 +397,8 @@ export function ResourceDialog({
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onBlur={handleUrlBlur}
+              aria-required="true"
+              required
             />
           </div>
           <div className="grid gap-4">
@@ -422,19 +418,12 @@ export function ResourceDialog({
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="res-status">Status</Label>
-              <Select value={status} onValueChange={(v) => handleStatusChange(v as ResourceStatus)}>
-                <SelectTrigger id="res-status" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {RESOURCE_STATUS_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Status</Label>
+              <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
+                {RESOURCE_STATUS_OPTIONS.find((opt) => opt.value === status)?.label ??
+                  "Inbox"}{" "}
+                <span className="ml-1 text-xs">(derived from context)</span>
+              </div>
             </div>
           </div>
 

@@ -173,6 +173,7 @@ describe('taskService', () => {
       name: 'Task with goals',
       priority: PRIORITY.HIGH,
       goal_ids: [goalA, goalB],
+      due_date: '2026-06-10',
     };
     const createdTask = { id: taskId, name: input.name, user_id: userId };
 
@@ -299,17 +300,19 @@ describe('taskService', () => {
     const result = await taskService.update(userId, taskId, {
       name: 'Retargeted task',
       goal_ids: [goalB, goalC],
+      due_date: '2026-06-10',
     } as never);
 
     expect(result).toEqual(updatedTask);
     // Partial updates must only send the fields the caller specified, plus
-    // the status re-derivation when goal_ids change (linking any context
-    // moves a task out of inbox into todo). Toggling is_focused via
+    // the status re-derivation when goal_ids + due_date change (both are
+    // required for a task to be `todo`). Toggling is_focused via
     // useFocusTask must not reset is_completed/is_archived/is_important/
     // is_urgent/priority on the row.
     expect(updateClient.update).toHaveBeenCalledWith({
       name: 'Retargeted task',
       status: TASK_STATUS.TODO,
+      due_date: '2026-06-10',
     });
     expect(relationInsertClient.insert).toHaveBeenCalledWith([{ goal_id: goalC, task_id: taskId }]);
     expect(relationDeleteClient.in).toHaveBeenCalledWith('goal_id', [goalA]);

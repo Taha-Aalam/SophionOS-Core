@@ -47,6 +47,18 @@ vi.mock("@/lib/services/resource.service", () => ({
   },
 }));
 
+vi.mock("@/lib/supabase/client", () => ({
+  createClient: () => ({
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          in: () => Promise.resolve({ data: [] }),
+        }),
+      }),
+    }),
+  }),
+}));
+
 import { useGoalDetail } from "../../src/lib/hooks/use-goal-detail";
 
 describe("useGoalDetail", () => {

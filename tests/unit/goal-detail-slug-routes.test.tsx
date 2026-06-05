@@ -60,6 +60,13 @@ vi.mock("@/lib/hooks/use-areas", () => ({
 
 vi.mock("@/lib/hooks/use-projects", () => ({
   useProjects: () => ({ data: [] }),
+  useLinkProjectToGoal: () => ({ mutateAsync: vi.fn() }),
+  useArchiveProject: () => ({ mutateAsync: vi.fn() }),
+  useRestoreProject: () => ({ mutateAsync: vi.fn() }),
+}));
+
+vi.mock("@/lib/hooks/use-topics", () => ({
+  useTopics: () => ({ data: [] }),
 }));
 
 vi.mock("@/lib/hooks/use-goals", () => ({
@@ -74,16 +81,30 @@ vi.mock("@/lib/hooks/use-tasks", () => ({
   useDeleteTask: () => ({ mutateAsync: vi.fn() }),
   useFocusTask: () => ({ mutateAsync: vi.fn() }),
   useUpdateTask: () => ({ mutateAsync: vi.fn() }),
+  useArchiveTask: () => ({ mutateAsync: vi.fn() }),
+  useRestoreTask: () => ({ mutateAsync: vi.fn() }),
+  usePermanentDeleteTask: () => ({ mutateAsync: vi.fn() }),
+  useTasks: () => ({ data: [] }),
 }));
 
 vi.mock("@/lib/hooks/use-notes", () => ({
   useToggleFavoriteNote: () => ({ mutate: vi.fn() }),
+  useTogglePinNote: () => ({ mutate: vi.fn() }),
+  useArchiveNote: () => ({ mutateAsync: vi.fn() }),
+  useRestoreNote: () => ({ mutateAsync: vi.fn() }),
+  useDeleteNote: () => ({ mutateAsync: vi.fn() }),
+  useLinkNoteToGoal: () => ({ mutateAsync: vi.fn() }),
+  useNotes: () => ({ data: [] }),
 }));
 
 vi.mock("@/lib/hooks/use-resources", () => ({
   useToggleFavoriteResource: () => ({ mutate: vi.fn() }),
   useCreateResource: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
   useUpdateResource: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
+  useArchiveResource: () => ({ mutateAsync: vi.fn() }),
+  useUnarchiveResource: () => ({ mutateAsync: vi.fn() }),
+  useLinkResourceToGoal: () => ({ mutateAsync: vi.fn() }),
+  useResources: () => ({ data: [] }),
 }));
 
 vi.mock("@/lib/hooks/use-contacts", () => ({
@@ -99,6 +120,15 @@ vi.mock("@/lib/hooks/use-contacts", () => ({
   useArchiveContact: () => ({ mutateAsync: vi.fn() }),
   useLinkContactToGoal: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
   useUnlinkContactFromGoal: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
+  useLinkContactToProject: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
+  useUnlinkContactFromProject: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
+  useLinkContactToArea: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
+  useUnlinkContactFromArea: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
+  useLinkContactToTask: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
+  useUnlinkContactFromTask: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
+  useLogInteraction: () => ({ mutateAsync: vi.fn() }),
+  useContactLogs: () => ({ data: [] }),
+  useCreateContactLog: () => ({ mutateAsync: vi.fn() }),
 }));
 
 vi.mock("@/components/entities/contact-card", () => ({
@@ -186,7 +216,7 @@ vi.mock("@/components/ui/skeleton", () => ({
   ),
 }));
 
-import GoalDetailPage from "@/app/(dashboard)/goals/[id]/page";
+import { GoalDetailContent as GoalDetailPage } from "@/app/(dashboard)/goals/[id]/goal-detail-content";
 
 describe("GoalDetailPage slug route UUID resolution", () => {
   beforeEach(() => {

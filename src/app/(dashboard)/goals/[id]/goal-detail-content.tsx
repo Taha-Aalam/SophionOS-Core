@@ -288,7 +288,7 @@ export function GoalDetailContent() {
     if (goalData?.goal) map.set(goalData.goal.id, goalData.goal.name);
     for (const g of goalData?.extraGoalNames ?? []) map.set(g.id, g.name);
     return map;
-  }, [goalData?.goal, goalData?.extraGoalNames]);
+  }, [goalData]);
   const projectNamesMap = useMemo(() => {
     const map = new Map(allProjects.map((p) => [p.id, p.name]));
     for (const p of goalData?.projects ?? []) map.set(p.id, p.name);
@@ -432,7 +432,7 @@ export function GoalDetailContent() {
       setCreateContactDefaults(defaults);
       setIsNewContactOpen(true);
     },
-    [goal?.id],
+    [goal],
   );
 
   // Sync page title with goal name
@@ -444,6 +444,7 @@ export function GoalDetailContent() {
   }, [goal, setPageTitle]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTargetDateDraft(goal?.target_date ?? "");
   }, [goal?.target_date]);
 

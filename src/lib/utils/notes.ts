@@ -133,10 +133,11 @@ export function getVisibleNotes(notes: Note[], view: NoteView): Note[] {
       return notes.filter((n) => n.favorite && !n.is_archived);
     case NOTE_VIEW.BY_AREA:
     case NOTE_VIEW.BY_GOAL:
-    case NOTE_VIEW.BY_PROJECT:
     case NOTE_VIEW.BY_TOPIC:
     case NOTE_VIEW.BY_NOTEBOOK:
       return [];
+    case NOTE_VIEW.BY_PROJECT:
+      return notes.filter((n) => getNoteLinkedProjectIds(n).length > 0 && !n.is_archived);
     case NOTE_VIEW.ARCHIVED:
       return notes.filter((n) => n.is_archived);
     case NOTE_VIEW.ALL:

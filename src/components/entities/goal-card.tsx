@@ -130,7 +130,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mt-2">
-              {resolvedAreaNames.map((name, index) => (
+              {resolvedAreaNames.slice(0, 2).map((name, index) => (
                 <Badge
                   key={`${name}-${index}`}
                   variant="outline"
@@ -139,6 +139,11 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
                   {areaIcons?.[index] ? `${areaIcons[index]} ` : ''}{name}
                 </Badge>
               ))}
+              {resolvedAreaNames.length > 2 && (
+                <Badge variant="outline" className={BADGE_CLS}>
+                  +{resolvedAreaNames.length - 2}
+                </Badge>
+              )}
               <Badge
                 variant="outline"
                 className={cn(BADGE_CLS, TERM_COLORS[goal.term] || TERM_COLORS.short)}

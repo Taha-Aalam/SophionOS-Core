@@ -222,11 +222,14 @@ export function ProjectsContent() {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-          <p className="text-muted-foreground">
-            Organize projects by area, status, and linked goals.
-          </p>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl leading-none" aria-hidden="true">📁</span>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
+            <p className="text-muted-foreground">
+              Organize projects by area, status, and linked goals.
+            </p>
+          </div>
         </div>
         <Button onClick={handleCreate}>
           <Plus className="mr-2 size-4" />
