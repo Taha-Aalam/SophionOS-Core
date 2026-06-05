@@ -3,7 +3,7 @@ import type { CreateProjectInput, Project, UpdateProjectInput } from "../types/d
 import { createProjectSchema, updateProjectSchema } from "../validators/project.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
-import type { ProjectStatus } from "../utils/constants";
+import { PROJECT_STATUS, type ProjectStatus } from "../utils/constants";
 import { deriveProjectStatus } from "../utils/status-routing";
 
 type ProjectRecord = Omit<Project, "slug"> & { slug?: string | null };
@@ -800,16 +800,29 @@ export const projectService = {
       status?: ProjectStatus;
     };
 
-    // Context-only update (area_ids and/or goal_ids were sent, but the caller
-    // did not touch status). Re-derive the status from the new context.
+    // Re-derive the status whenever the project's context changes. The
+    // caller may pass a stale `status` (e.g. the dialog default
+    // `planning`) — the context (area/goal + start_date/due_date) is the
+    // source of truth for the inbox/planning split, and a stale bucket
+    // should be corrected.
+    //
+    // User-picked states (active, completed, on_hold) are preserved: once
+    // a project has been moved into a workflow state, inbox/planning logic
+    // no longer applies.
+    const updateInput = projectInput as {
+      start_date?: string | null;
+      due_date?: string | null;
+    };
+    const datesChanged =
+      updateInput.start_date !== undefined || updateInput.due_date !== undefined;
     const touchesContext =
-      (areaIds !== undefined || goalIds !== undefined) &&
-      projectInputWide.status === undefined;
-    if (touchesContext) {
-      const updateInput = projectInput as {
-        start_date?: string | null;
-        due_date?: string | null;
-      };
+      areaIds !== undefined || goalIds !== undefined || datesChanged;
+    const preservesTerminal =
+      projectInputWide.status === PROJECT_STATUS.ACTIVE ||
+      projectInputWide.status === PROJECT_STATUS.COMPLETED ||
+      projectInputWide.status === PROJECT_STATUS.ON_HOLD;
+
+    if (touchesContext && !preservesTerminal) {
       const derived = deriveProjectStatus({
         area_ids: areaIds,
         goal_ids: goalIds,
@@ -839,7 +852,7 @@ export const projectService = {
       await this.replaceAreaLinks(userId, id, areaIds);
     }
 
-    if (goalIds) {
+    if (goalIds !== undefined) {
       await this.replaceGoalLinks(userId, id, goalIds);
     }
 
@@ -1012,15 +1025,23 @@ export const projectService = {
         area_id: primaryAreaId,
       };
       if (currentProject) {
-        const derived = deriveProjectStatus({
-          area_id: primaryAreaId,
-          area_ids: areaIds,
-          goal_ids: existingRelations.goal_ids,
-          start_date: currentProject.start_date,
-          due_date: currentProject.due_date,
-        });
-        if (derived !== currentProject.status) {
-          updatePayload.status = derived;
+        // Preserve user-picked workflow states — linking a new area to an
+        // already-active project should not flip it back to planning/inbox.
+        const terminalStatus =
+          currentProject.status === PROJECT_STATUS.ACTIVE ||
+          currentProject.status === PROJECT_STATUS.COMPLETED ||
+          currentProject.status === PROJECT_STATUS.ON_HOLD;
+        if (!terminalStatus) {
+          const derived = deriveProjectStatus({
+            area_id: primaryAreaId,
+            area_ids: areaIds,
+            goal_ids: existingRelations.goal_ids,
+            start_date: currentProject.start_date,
+            due_date: currentProject.due_date,
+          });
+          if (derived !== currentProject.status) {
+            updatePayload.status = derived;
+          }
         }
       }
 
@@ -1095,6 +1116,13 @@ export const projectService = {
 
     if (!currentProject) return;
 
+    // Preserve user-picked workflow states.
+    const terminalStatus =
+      currentProject.status === PROJECT_STATUS.ACTIVE ||
+      currentProject.status === PROJECT_STATUS.COMPLETED ||
+      currentProject.status === PROJECT_STATUS.ON_HOLD;
+    if (terminalStatus) return;
+
     const derivedStatus = deriveProjectStatus({
       area_id: currentProject.area_id,
       area_ids: existingRelations.area_ids,
@@ -1143,10 +1171,14 @@ export const projectService = {
   },
 
   /**
-   * Re-reads the project's current area + goal context, derives the
-   * expected status, and writes it back if it differs. Used by bypass
-   * link/unlink actions that mutate junction tables without going through
-   * the full `update()` path.
+   * Re-reads the project's current area + goal + dates context, derives
+   * the expected status, and writes it back if it differs. Used by
+   * bypass link/unlink actions that mutate junction tables without going
+   * through the full `update()` path.
+   *
+   * User-picked states (active, completed, on_hold) are preserved: a
+   * project that's been moved into a workflow state is not pulled back
+   * to inbox/planning by a later link/unlink.
    */
   async syncProjectStatusFromContext(userId: string, projectId: string): Promise<void> {
     const relations = await this.getWithRelations(userId, projectId);
@@ -1161,6 +1193,14 @@ export const projectService = {
       throw new DatabaseError(fetchError.message);
     }
     if (!currentProject) return;
+
+    if (
+      currentProject.status === PROJECT_STATUS.ACTIVE ||
+      currentProject.status === PROJECT_STATUS.COMPLETED ||
+      currentProject.status === PROJECT_STATUS.ON_HOLD
+    ) {
+      return;
+    }
 
     const derivedStatus = deriveProjectStatus({
       area_id: currentProject.area_id,
@@ -1200,5 +1240,52 @@ export const projectService = {
     );
 
     return hydrateProjectRelations(projects);
+  },
+
+  /**
+   * One-shot backfill: re-derive status for every non-terminal project
+   * whose stored status does not match the value derived from its
+   * current area/goal + dates context. Terminal states (active,
+   * completed, on_hold) are preserved.
+   */
+  async backfillStaleStatuses(userId: string): Promise<number> {
+    const { data, error } = await createClient()
+      .from("projects")
+      .select(PROJECT_SELECT)
+      .eq("user_id", userId)
+      .eq("is_archived", false)
+      .neq("status", PROJECT_STATUS.ACTIVE)
+      .neq("status", PROJECT_STATUS.COMPLETED)
+      .neq("status", PROJECT_STATUS.ON_HOLD);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    const projects = (data ?? []) as unknown as Project[];
+    let fixed = 0;
+    for (const project of projects) {
+      const relations = await this.getWithRelations(userId, project.id);
+      const derived = deriveProjectStatus({
+        area_id: project.area_id,
+        area_ids: relations.area_ids,
+        goal_ids: relations.goal_ids,
+        start_date: project.start_date,
+        due_date: project.due_date,
+      });
+      if (derived !== project.status) {
+        const { error: updateError } = await createClient()
+          .from("projects")
+          .update({ status: derived })
+          .eq("id", project.id)
+          .eq("user_id", userId);
+        if (updateError) {
+          throw new DatabaseError(updateError.message);
+        }
+        fixed += 1;
+      }
+    }
+
+    return fixed;
   },
 };

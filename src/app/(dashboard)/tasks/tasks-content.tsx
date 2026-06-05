@@ -308,12 +308,15 @@ export function TasksContent() {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between border-b border-border/50">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
-          <p className="text-sm text-muted-foreground">
-            {counts.all} task{counts.all !== 1 ? "s" : ""} ·{" "}
-            {counts.overdue > 0 ? `${counts.overdue} overdue` : "all on track"}
-          </p>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl leading-none" aria-hidden="true">☑️</span>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
+            <p className="text-sm text-muted-foreground">
+              {counts.all} task{counts.all !== 1 ? "s" : ""} ·{" "}
+              {counts.overdue > 0 ? `${counts.overdue} overdue` : "all on track"}
+            </p>
+          </div>
         </div>
         <Button
           onClick={() => {

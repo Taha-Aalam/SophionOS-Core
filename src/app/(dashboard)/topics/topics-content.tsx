@@ -463,11 +463,14 @@ export function TopicsContent() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Topics</h1>
-          <p className="text-sm text-muted-foreground">
-            {topics.length} {topics.length === 1 ? "topic" : "topics"}
-          </p>
+        <div className="flex items-center gap-3">
+          <span className="text-2xl leading-none" aria-hidden="true">🏷️</span>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Topics</h1>
+            <p className="text-sm text-muted-foreground">
+              {topics.length} {topics.length === 1 ? "topic" : "topics"}
+            </p>
+          </div>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} disabled={createTopic.isPending}>
           <FilePlus className="mr-2 size-4" />

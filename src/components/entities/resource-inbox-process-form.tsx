@@ -92,35 +92,73 @@ export function ResourceInboxProcessForm({
   const toggleTopic = (id: string) =>
     setTopicId((cur) => (cur === id ? "" : id));
 
+  // Derive selected entities (objects) from IDs - needed for proper filtering
   const selectedProject = useMemo(
     () => (projectId ? projectOptions.find((p) => p.id === projectId) ?? null : null),
     [projectId, projectOptions],
   );
 
+  const selectedGoals = useMemo(
+    () => goalOptions.filter((g) => goalIds.includes(g.id)),
+    [goalOptions, goalIds],
+  );
+
+  const selectedTasks = useMemo(
+    () => taskOptions.filter((t) => taskIds.includes(t.id)),
+    [taskOptions, taskIds],
+  );
+
+  // Build reverse lookup maps needed for filtering
+  // goalProjectIdsMap: goalId -> projectIds[] (reverse of projectGoalIdsMap)
+  const goalProjectIdsMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const project of projectOptions) {
+      for (const goalId of project.linkedGoalIds ?? []) {
+        const current = map.get(goalId) ?? [];
+        current.push(project.id);
+        map.set(goalId, current);
+      }
+    }
+    return map;
+  }, [projectOptions]);
+
+  // goalTaskIdsMap: goalId -> taskIds[] (reverse of taskGoalIdsMap)
+  const goalTaskIdsMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const task of taskOptions) {
+      for (const goalId of task.linkedGoalIds ?? []) {
+        const current = map.get(goalId) ?? [];
+        current.push(task.id);
+        map.set(goalId, current);
+      }
+    }
+    return map;
+  }, [taskOptions]);
+
   const visibleGoals = useMemo(
     () => computeFilteredGoals(
-      goalOptions, areaIds, projectId || null, projectGoalIdsMap, taskGoalIdsMap, taskIds,
+      goalOptions, areaIds, projectId || null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks,
     ),
-    [goalOptions, areaIds, projectId, projectGoalIdsMap, taskGoalIdsMap, taskIds],
+    [goalOptions, areaIds, projectId, projectGoalIdsMap, taskGoalIdsMap, selectedTasks],
   );
 
   const visibleProjects = useMemo(
     () => computeFilteredProjects(
-      projectOptions, areaIds, goalIds, projectGoalIdsMap, taskIds,
+      projectOptions, areaIds, goalIds, goalProjectIdsMap, selectedTasks,
     ),
-    [projectOptions, areaIds, goalIds, projectGoalIdsMap, taskIds],
+    [projectOptions, areaIds, goalIds, goalProjectIdsMap, selectedTasks],
   );
 
   const visibleAreas = useMemo(
-    () => computeVisibleAreas(areaOptions, selectedProject, goalIds, taskIds),
-    [areaOptions, selectedProject, goalIds, taskIds],
+    () => computeVisibleAreas(areaOptions, selectedProject, selectedGoals, selectedTasks),
+    [areaOptions, selectedProject, selectedGoals, selectedTasks],
   );
 
   const visibleTasks = useMemo(
     () => computeFilteredTasks(
-      taskOptions, areaIds, projectId || null, goalIds, taskGoalIdsMap,
+      taskOptions, areaIds, projectId || null, goalIds, goalTaskIdsMap,
     ),
-    [taskOptions, areaIds, projectId, goalIds, taskGoalIdsMap],
+    [taskOptions, areaIds, projectId, goalIds, goalTaskIdsMap],
   );
 
   useEffect(() => {
@@ -146,6 +184,13 @@ export function ResourceInboxProcessForm({
       setTaskIds(nextTaskIds);
     }
   }, [visibleTasks, taskIds]);
+
+  useEffect(() => {
+    // Clear invalid project selection when filters change
+    if (projectId && !visibleProjects.some((p) => p.id === projectId)) {
+      setProjectId("");
+    }
+  }, [visibleProjects, projectId]);
 
   const handleSave = () => {
     updateResource.mutate(

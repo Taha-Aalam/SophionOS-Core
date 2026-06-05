@@ -242,6 +242,7 @@ export function ProjectDetailContent() {
   }, [project, setPageTitle]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDueDateInput(project?.due_date ?? "");
   }, [project?.due_date]);
 

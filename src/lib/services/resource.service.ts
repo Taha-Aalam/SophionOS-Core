@@ -4,7 +4,7 @@ import { createClient } from "../supabase/client";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "../types/domain.types";
 import { createResourceSchema, updateResourceSchema } from "../validators/resource.schema";
 import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
-import type { ResourceStatus } from "../utils/constants";
+import { RESOURCE_STATUS, type ResourceStatus } from "../utils/constants";
 import { deriveResourceStatus } from "../utils/status-routing";
 
 const RESOURCE_SELECT =
@@ -303,12 +303,13 @@ export const resourceService = {
       const { taskIds, resourceInput } = extractTaskIds(goalCleanedInput);
 
       // Status is always derived from context on create so a contextless
-      // resource (no area/project/goal/topic) is persisted as "inbox"
+      // resource (no area/project/goal/task/topic) is persisted as "inbox"
       // instead of the caller's pre-filled default.
       const status = deriveResourceStatus({
         area_ids: areaIds,
         project_id: validated.project_id,
         goal_ids: goalIds,
+        task_ids: taskIds,
         topic_id: validated.topic_id,
       });
 
@@ -355,19 +356,28 @@ export const resourceService = {
         status?: ResourceStatus;
       };
 
-      // Context-only update (area/project/goal/topic were sent, but the caller
-      // did not touch status). Re-derive the status from the new context.
+      // Re-derive the status whenever the resource's context changes. The
+      // caller may pass a stale `status` (e.g. the dialog default
+      // `to_review`) — the context (area/goal/project/task/topic) is the
+      // source of truth for the inbox/to_review split, and a stale bucket
+      // should be corrected.
+      //
+      // Terminal state (saved) is preserved: once a resource is filed
+      // away, inbox logic no longer applies.
       const touchesContext =
-        (areaIds !== undefined ||
-          validatedWide.project_id !== undefined ||
-          goalIds !== undefined ||
-          validatedWide.topic_id !== undefined) &&
-        validatedWide.status === undefined;
-      if (touchesContext) {
+        areaIds !== undefined ||
+        validatedWide.project_id !== undefined ||
+        goalIds !== undefined ||
+        taskIds !== undefined ||
+        validatedWide.topic_id !== undefined;
+      const preservesTerminal = validatedWide.status === RESOURCE_STATUS.SAVED;
+
+      if (touchesContext && !preservesTerminal) {
         const derived = deriveResourceStatus({
           area_ids: areaIds,
           project_id: validatedWide.project_id as string | null | undefined,
           goal_ids: goalIds,
+          task_ids: taskIds,
           topic_id: validatedWide.topic_id as string | null | undefined,
         });
         if (derived !== validatedWide.status) {
@@ -412,15 +422,15 @@ export const resourceService = {
             return data;
           })();
 
-      if (areaIds) {
+      if (areaIds !== undefined) {
         await this.replaceAreaLinks(id, areaIds);
       }
 
-      if (goalIds) {
+      if (goalIds !== undefined) {
         await this.replaceGoalLinks(id, goalIds);
       }
 
-      if (taskIds) {
+      if (taskIds !== undefined) {
         await this.replaceTaskLinks(id, taskIds);
       }
 
@@ -584,7 +594,8 @@ export const resourceService = {
     if (error) {
       throw new DatabaseError(error.message);
     }
-    // Task link doesn't move resource status (resource context = area/project/goal/topic).
+
+    await this.syncResourceStatusFromContext(resourceId);
   },
 
   async unlinkFromTask(taskId: string, resourceId: string): Promise<void> {
@@ -597,9 +608,11 @@ export const resourceService = {
     if (error) {
       throw new DatabaseError(error.message);
     }
+
+    await this.syncResourceStatusFromContext(resourceId);
   },
 
-  /** Re-derive a resource's status from its current area/project/goal/topic context. */
+  /** Re-derive a resource's status from its current area/project/goal/task/topic context. */
   async syncResourceStatusFromContext(resourceId: string): Promise<void> {
     const relations = await this.getWithRelations(resourceId);
     const { data: resource, error: fetchError } = await createClient()
@@ -613,11 +626,18 @@ export const resourceService = {
     }
     if (!resource) return;
 
+    // Terminal state (saved) is preserved: a filed-away resource is not
+    // pulled back to inbox/to_review by a later link/unlink.
+    if (resource.status === RESOURCE_STATUS.SAVED) {
+      return;
+    }
+
     const derivedStatus = deriveResourceStatus({
       area_id: resource.area_id,
       area_ids: relations.area_ids,
       project_id: resource.project_id,
       goal_ids: relations.goal_ids,
+      task_ids: relations.task_ids,
       topic_id: resource.topic_id,
     });
 
@@ -771,5 +791,52 @@ export const resourceService = {
         }
       }
     }
+
+    await this.syncResourceStatusFromContext(resourceId);
+  },
+
+  /**
+   * One-shot backfill: re-derive status for every non-terminal resource
+   * whose stored status does not match the value derived from its
+   * current context. Terminal state (saved) is preserved.
+   */
+  async backfillStaleStatuses(userId: string): Promise<number> {
+    const { data, error } = await createClient()
+      .from("resources")
+      .select(RESOURCE_SELECT)
+      .eq("user_id", userId)
+      .eq("is_archived", false)
+      .neq("status", RESOURCE_STATUS.SAVED);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    const resources = data ?? [];
+    let fixed = 0;
+    for (const resource of resources) {
+      const relations = await this.getWithRelations(resource.id);
+      const derived = deriveResourceStatus({
+        area_id: resource.area_id,
+        area_ids: relations.area_ids,
+        project_id: resource.project_id,
+        goal_ids: relations.goal_ids,
+        task_ids: relations.task_ids,
+        topic_id: resource.topic_id,
+      });
+      if (derived !== resource.status) {
+        const { error: updateError } = await createClient()
+          .from("resources")
+          .update({ status: derived })
+          .eq("id", resource.id)
+          .eq("user_id", userId);
+        if (updateError) {
+          throw new DatabaseError(updateError.message);
+        }
+        fixed += 1;
+      }
+    }
+
+    return fixed;
   },
 };

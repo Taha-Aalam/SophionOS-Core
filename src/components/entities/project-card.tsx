@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Calendar, RotateCcw } from "lucide-react";
+import { Archive, Calendar, Pencil, RotateCcw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -135,12 +135,17 @@ export function ProjectCard({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mt-2">
-              {resolvedAreaNames.map((name, index) => (
+              {resolvedAreaNames.slice(0, 2).map((name, index) => (
                 <Badge key={`${name}-${index}`} variant="outline" className={BADGE_CLS}>
                   {areaIcons?.[index] ? `${areaIcons[index]} ` : ""}
                   {name}
                 </Badge>
               ))}
+              {resolvedAreaNames.length > 2 && (
+                <Badge variant="outline" className={BADGE_CLS}>
+                  +{resolvedAreaNames.length - 2}
+                </Badge>
+              )}
               <Badge
                 variant="outline"
                 className={cn(BADGE_CLS, "capitalize", STATUS_COLORS[project.status])}
@@ -168,6 +173,22 @@ export function ProjectCard({
             className="shrink-0"
           />
         </div>
+
+        {onEdit && (
+          <div className="absolute right-2 top-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Edit ${project.name}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit(project);
+              }}
+            >
+              <Pencil className="size-4" />
+            </Button>
+          </div>
+        )}
 
         <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1 whitespace-nowrap" title="Goals">
