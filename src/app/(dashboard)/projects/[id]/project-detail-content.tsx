@@ -11,11 +11,11 @@ import {
   Link as LinkIcon,
   Plus,
   Target,
-  Trash2,
   Unlink,
 } from "lucide-react";
 
 import { ContactCard } from "@/components/entities/contact-card";
+import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover";
 import { ContactDialog, type ContactDialogDefaults } from "@/components/entities/contact-dialog";
 import { ContactsByCategoryView } from "@/components/views/contacts-by-category-view";
 import { ContactsFollowUpView } from "@/components/views/contacts-follow-up-view";
@@ -146,7 +146,6 @@ export function ProjectDetailContent() {
   const projectReturnTo = getReturnToFromSearchParams(searchParams);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isLinkGoalOpen, setIsLinkGoalOpen] = useState(false);
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<typeof allContacts[number] | null>(null);
@@ -1353,15 +1352,16 @@ export function ProjectDetailContent() {
                   <Plus className="size-3.5" />
                   Link Area
                 </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setIsDeleteOpen(true)}
-                  className="gap-1.5"
-                >
-                  <Trash2 className="size-3.5" />
-                  Delete
-                </Button>
+                <DeleteEntityPopover
+                  variant="detail"
+                  entityLabel="project"
+                  entityName={project.name}
+                  requireTypedConfirmation
+                  disabled={deleteProject.isPending}
+                  onConfirm={() => {
+                    void handleDelete();
+                  }}
+                />
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
@@ -1831,26 +1831,6 @@ export function ProjectDetailContent() {
               ))}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Project Permanently?</DialogTitle>
-            <DialogDescription>
-              This removes the project and clears its goal links. Tasks already linked to the
-              project keep their own records.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleteProject.isPending}>
-              Delete Project
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

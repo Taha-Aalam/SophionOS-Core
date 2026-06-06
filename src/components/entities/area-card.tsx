@@ -2,13 +2,15 @@
 
 import React, { memo } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, Pencil, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Area } from "@/lib/types/domain.types";
 import { normalizeAreaType } from "@/lib/utils/areas";
+
+import { DeleteEntityPopover } from "./delete-entity-popover";
 
 interface AreaCardProps {
   area: Area;
@@ -171,19 +173,15 @@ const AreaCardComponent = ({
                 </Button>
               )}
               {onDelete && (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(area);
-                  }}
-                  disabled={isDeleting}
-                  aria-label="Delete area permanently"
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="size-4" />
-                </Button>
+                <span onClick={(e) => e.stopPropagation()}>
+                  <DeleteEntityPopover
+                    variant="row"
+                    entityLabel="area"
+                    entityName={area.name}
+                    disabled={isDeleting}
+                    onConfirm={() => onDelete(area)}
+                  />
+                </span>
               )}
             </div>
           )}

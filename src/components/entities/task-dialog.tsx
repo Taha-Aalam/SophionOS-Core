@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
-import { Trash2, X } from "lucide-react";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAreas, useAreasByIds } from "@/lib/hooks/use-areas";
@@ -45,6 +45,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { TaskArchiveToggle } from "./task-archive-toggle";
+import { DeleteEntityPopover } from "./delete-entity-popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1324,22 +1325,17 @@ export function TaskDialog({
                 </span>
               )}
               {task && task.is_archived && onPermanentDelete && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="default"
+                <DeleteEntityPopover
+                  variant="detail"
+                  entityLabel="task"
+                  entityName={task.name}
+                  requireTypedConfirmation={false}
                   disabled={isPending}
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => {
-                    if (window.confirm("Permanently delete this task? This cannot be undone.")) {
-                      onPermanentDelete(task.id);
-                      onOpenChange(false);
-                    }
+                  onConfirm={() => {
+                    onPermanentDelete(task.id);
+                    onOpenChange(false);
                   }}
-                >
-                  <Trash2 className="size-4" />
-                  Delete permanently
-                </Button>
+                />
               )}
               <div className="ml-auto flex gap-3">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
