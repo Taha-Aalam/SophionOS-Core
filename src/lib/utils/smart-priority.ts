@@ -4,6 +4,7 @@ export interface SmartPriorityInput {
   priority: Priority;
   dueDate?: string | null;
   goalCount: number;
+  projectCount: number;
   isImportant: boolean;
   isUrgent: boolean;
 }
@@ -37,8 +38,13 @@ export function calculateSmartPriority(input: SmartPriorityInput): number {
   };
   const priWeight = priWeights[input.priority] ?? 0.75;
 
-  // Goal alignment (25%): 0.5 per goal, capped at 1.25
+  // Goal alignment (25% budget, shared with project alignment)
+  // Goals: 0.5 per goal, capped at 1.25
+  // Projects: 0.25 per project, capped at 0.75 (weaker signal than direct goals)
+  // Combined cap at 1.25 — projects supplement goals, they don't replace them
   const goalWeight = Math.min(1.25, input.goalCount * 0.5);
+  const projectWeight = Math.min(0.75, input.projectCount * 0.25);
+  const alignmentWeight = Math.min(1.25, goalWeight + projectWeight);
 
   // Eisenhower (20%): both=1.0, important=0.7, urgent=0.5, neither=0
   let eisWeight: number;
@@ -52,6 +58,6 @@ export function calculateSmartPriority(input: SmartPriorityInput): number {
     eisWeight = 0;
   }
 
-  const score = dueWeight + priWeight + goalWeight + eisWeight;
+  const score = dueWeight + priWeight + alignmentWeight + eisWeight;
   return Math.max(1, Math.min(5, Math.round(score)));
 }
