@@ -59,5 +59,6 @@ export function calculateSmartPriority(input: SmartPriorityInput): number {
   }
 
   const score = dueWeight + priWeight + alignmentWeight + eisWeight;
-  return Math.max(1, Math.min(5, Math.round(score)));
+  const clamped = Math.max(1, Math.min(5, score));
+  return clamped >= 4.1 ? 5 : Math.round(clamped);
 }
