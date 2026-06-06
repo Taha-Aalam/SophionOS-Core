@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { PRIORITY, TASK_STATUS } from "../utils/constants";
+import {
+  PRIORITY,
+  TASK_REPEAT_CYCLE,
+  TASK_STATUS,
+} from "../utils/constants";
 
 const dateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid ISO date");
 const nullableUuidSchema = z.preprocess(
@@ -22,6 +26,36 @@ const nullableFutureDateSchema = z.preprocess(
     }, "Due date cannot be in the past")
     .nullable()
     .optional(),
+);
+
+/** Positive-integer `repeat_every` accepting string input from `<input type=number>`.
+ *
+ * Important: `undefined` must stay `undefined` so that partial updates
+ * (e.g. `{ is_focused: true }`) don't accidentally write a null
+ * `repeat_every` to the row. Only coerce an empty string to null, which is
+ * what the form sends when the field is cleared.
+ */
+const positiveRepeatEverySchema = z.preprocess(
+  (value) => {
+    if (value === undefined) return undefined;
+    if (value === "" || value === null) return null;
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : value;
+    }
+    return value;
+  },
+  z
+    .number({ error: "Repeat every must be a number" })
+    .int("Repeat every must be a whole number")
+    .min(1, "Repeat every must be at least 1")
+    .nullable()
+    .optional(),
+);
+
+const nullableRepeatCycleSchema = z.preprocess(
+  (value) => (value === undefined ? undefined : value === "" ? null : value),
+  z.nativeEnum(TASK_REPEAT_CYCLE).nullable().optional(),
 );
 
 /**
@@ -52,6 +86,37 @@ export const updateTaskSchema = z
     is_archived: z.boolean().optional(),
     goal_ids: z.array(z.string().uuid()).optional(),
     completed_at: z.string().datetime().optional().nullable(),
+    is_recurring: z.boolean().optional(),
+    repeat_every: positiveRepeatEverySchema,
+    repeat_cycle: nullableRepeatCycleSchema,
+  })
+  .superRefine((data, ctx) => {
+    // Partial update — only enforce the recurring-requires-due-date invariant
+    // when the caller is enabling recurrence. Turning recurrence off leaves
+    // `due_date` untouched.
+    if (data.is_recurring === true) {
+      if (!data.due_date) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["due_date"],
+          message: "Recurring tasks require a due date.",
+        });
+      }
+      if (data.repeat_every === null || data.repeat_every === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["repeat_every"],
+          message: "Repeat every is required.",
+        });
+      }
+      if (!data.repeat_cycle) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["repeat_cycle"],
+          message: "Repeat cycle is required.",
+        });
+      }
+    }
   })
   .strict();
 
@@ -76,5 +141,32 @@ export const createTaskSchema = z
     is_urgent: z.boolean().default(false),
     is_archived: z.boolean().default(false),
     goal_ids: z.array(z.string().uuid()).default([]),
+    is_recurring: z.boolean().default(false),
+    repeat_every: positiveRepeatEverySchema,
+    repeat_cycle: nullableRepeatCycleSchema,
+  })
+  .superRefine((data, ctx) => {
+    if (!data.is_recurring) return;
+    if (!data.due_date) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["due_date"],
+        message: "Recurring tasks require a due date.",
+      });
+    }
+    if (data.repeat_every === null || data.repeat_every === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["repeat_every"],
+        message: "Repeat every is required.",
+      });
+    }
+    if (!data.repeat_cycle) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["repeat_cycle"],
+        message: "Repeat cycle is required.",
+      });
+    }
   })
   .strict();
