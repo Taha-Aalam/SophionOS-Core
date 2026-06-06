@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { BookOpen, ChevronDown, Search, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useUpdateNote } from "@/lib/hooks/use-notes";
+import { useValidIds } from "@/lib/hooks/use-valid-ids";
 import type { Note } from "@/lib/types/domain.types";
 import { NOTE_STATUS } from "@/lib/utils/constants";
 import {
@@ -80,31 +81,31 @@ export function NoteInboxProcessForm({
   onClose,
 }: NoteInboxProcessFormProps) {
   const updateNote = useUpdateNote();
-  const [areaIds, setAreaIds] = useState<string[]>(
+  const [rawAreaIds, setRawAreaIds] = useState<string[]>(
     note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []),
   );
-  const [goalIds, setGoalIds] = useState<string[]>(note.linkedGoalIds ?? []);
-  const [projectIds, setProjectIds] = useState<string[]>(
+  const [rawGoalIds, setRawGoalIds] = useState<string[]>(note.linkedGoalIds ?? []);
+  const [rawProjectIds, setRawProjectIds] = useState<string[]>(
     note.linkedProjectIds ?? (note.project_id ? [note.project_id] : []),
   );
-  const [taskIds, setTaskIds] = useState<string[]>(note.linkedTaskIds ?? []);
+  const [rawTaskIds, setRawTaskIds] = useState<string[]>(note.linkedTaskIds ?? []);
   const [notebooks, setNotebooks] = useState<string[]>(note.notebooks ?? []);
   const [status, setStatus] = useState<string>(NOTE_STATUS.TO_REVIEW);
 
   const toggleArea = (id: string) =>
-    setAreaIds((prev) =>
+    setRawAreaIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   const toggleGoal = (id: string) =>
-    setGoalIds((prev) =>
+    setRawGoalIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   const toggleProject = (id: string) =>
-    setProjectIds((prev) =>
+    setRawProjectIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   const toggleTask = (id: string) =>
-    setTaskIds((prev) =>
+    setRawTaskIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
@@ -116,20 +117,23 @@ export function NoteInboxProcessForm({
     );
   };
 
-  // Derive selected entities (objects) from IDs - needed for proper filtering
+  // Derive selected entities (objects) from raw picks - the raw
+  // user-pick list is the source of truth for "what the user chose";
+  // the filtered `X` derived via useValidIds below is a subset used
+  // for save payloads and to strip server-side removals.
   const selectedProjects = useMemo(
-    () => projectOptions.filter((p) => projectIds.includes(p.id)),
-    [projectOptions, projectIds],
+    () => projectOptions.filter((p) => rawProjectIds.includes(p.id)),
+    [projectOptions, rawProjectIds],
   );
 
   const selectedGoals = useMemo(
-    () => goalOptions.filter((g) => goalIds.includes(g.id)),
-    [goalOptions, goalIds],
+    () => goalOptions.filter((g) => rawGoalIds.includes(g.id)),
+    [goalOptions, rawGoalIds],
   );
 
   const selectedTasks = useMemo(
-    () => taskOptions.filter((t) => taskIds.includes(t.id)),
-    [taskOptions, taskIds],
+    () => taskOptions.filter((t) => rawTaskIds.includes(t.id)),
+    [taskOptions, rawTaskIds],
   );
 
   // Build reverse lookup maps needed for filtering
@@ -161,16 +165,16 @@ export function NoteInboxProcessForm({
 
   const visibleGoals = useMemo(
     () => computeFilteredGoals(
-      goalOptions, areaIds, projectIds[0] ?? null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks,
+      goalOptions, rawAreaIds, rawProjectIds[0] ?? null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks,
     ),
-    [goalOptions, areaIds, projectIds, projectGoalIdsMap, taskGoalIdsMap, selectedTasks],
+    [goalOptions, rawAreaIds, rawProjectIds, projectGoalIdsMap, taskGoalIdsMap, selectedTasks],
   );
 
   const visibleProjects = useMemo(
     () => computeFilteredProjects(
-      projectOptions, areaIds, goalIds, goalProjectIdsMap, selectedTasks,
+      projectOptions, rawAreaIds, rawGoalIds, goalProjectIdsMap, selectedTasks,
     ),
-    [projectOptions, areaIds, goalIds, goalProjectIdsMap, selectedTasks],
+    [projectOptions, rawAreaIds, rawGoalIds, goalProjectIdsMap, selectedTasks],
   );
 
   const visibleAreas = useMemo(
@@ -180,42 +184,19 @@ export function NoteInboxProcessForm({
 
   const visibleTasks = useMemo(
     () => computeFilteredTasks(
-      taskOptions, areaIds, projectIds[0] ?? null, goalIds, goalTaskIdsMap,
+      taskOptions, rawAreaIds, rawProjectIds[0] ?? null, rawGoalIds, goalTaskIdsMap,
     ),
-    [taskOptions, areaIds, projectIds, goalIds, goalTaskIdsMap],
+    [taskOptions, rawAreaIds, rawProjectIds, rawGoalIds, goalTaskIdsMap],
   );
 
-  useEffect(() => {
-    const allowedGoalIds = new Set(visibleGoals.map((goal) => goal.id));
-    const nextGoalIds = goalIds.filter((goalId) => allowedGoalIds.has(goalId));
-    if (nextGoalIds.length !== goalIds.length) {
-      setGoalIds(nextGoalIds);
-    }
-  }, [visibleGoals, goalIds]);
-
-  useEffect(() => {
-    const allowedAreaIds = new Set(visibleAreas.map((area) => area.id));
-    const nextAreaIds = areaIds.filter((areaId) => allowedAreaIds.has(areaId));
-    if (nextAreaIds.length !== areaIds.length) {
-      setAreaIds(nextAreaIds);
-    }
-  }, [visibleAreas, areaIds]);
-
-  useEffect(() => {
-    const allowedProjectIds = new Set(visibleProjects.map((p) => p.id));
-    const nextProjectIds = projectIds.filter((id) => allowedProjectIds.has(id));
-    if (nextProjectIds.length !== projectIds.length) {
-      setProjectIds(nextProjectIds);
-    }
-  }, [visibleProjects, projectIds]);
-
-  useEffect(() => {
-    const allowedTaskIds = new Set(visibleTasks.map((t) => t.id));
-    const nextTaskIds = taskIds.filter((id) => allowedTaskIds.has(id));
-    if (nextTaskIds.length !== taskIds.length) {
-      setTaskIds(nextTaskIds);
-    }
-  }, [visibleTasks, taskIds]);
+  // Derive filtered ID subsets from raw user picks, stripping any IDs
+  // no longer present in the corresponding visible set. Done at render
+  // time instead of via useEffect reconciliation, to avoid the
+  // cascading-render anti-pattern flagged by react-hooks/set-state-in-effect.
+  const goalIds = useValidIds(rawGoalIds, visibleGoals.map((goal) => goal.id));
+  const areaIds = useValidIds(rawAreaIds, visibleAreas.map((area) => area.id));
+  const projectIds = useValidIds(rawProjectIds, visibleProjects.map((project) => project.id));
+  const taskIds = useValidIds(rawTaskIds, visibleTasks.map((task) => task.id));
 
   const handleSave = () => {
     updateNote.mutate(
@@ -246,7 +227,7 @@ export function NoteInboxProcessForm({
           candidates={visibleAreas}
           isSelected={(id) => areaIds.includes(id)}
           onToggle={toggleArea}
-          onClear={() => setAreaIds([])}
+          onClear={() => setRawAreaIds([])}
           emptyMessage={
             areaOptions.length === 0
               ? "No areas available."
@@ -291,7 +272,7 @@ export function NoteInboxProcessForm({
           candidates={visibleGoals}
           isSelected={(id) => goalIds.includes(id)}
           onToggle={toggleGoal}
-          onClear={() => setGoalIds([])}
+          onClear={() => setRawGoalIds([])}
           emptyMessage={
             goalOptions.length === 0
               ? "No goals available."
@@ -342,7 +323,7 @@ export function NoteInboxProcessForm({
           candidates={visibleProjects}
           isSelected={(id) => projectIds.includes(id)}
           onToggle={toggleProject}
-          onClear={() => setProjectIds([])}
+          onClear={() => setRawProjectIds([])}
           emptyMessage={
             projectOptions.length === 0
               ? "No projects available."
@@ -384,7 +365,7 @@ export function NoteInboxProcessForm({
           candidates={visibleTasks}
           isSelected={(id) => taskIds.includes(id)}
           onToggle={toggleTask}
-          onClear={() => setTaskIds([])}
+          onClear={() => setRawTaskIds([])}
           emptyMessage={
             taskOptions.length === 0
               ? "No tasks available."
