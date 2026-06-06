@@ -41,7 +41,6 @@ import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 
@@ -113,14 +112,6 @@ import {
 } from "@/lib/utils/area-detail";
 import { buildReturnTo, encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 import { getTaskLinkedAreaIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
-
-const NOTE_STATUS_COLORS: Record<string, string> = {
-  [NOTE_STATUS.INBOX]: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  [NOTE_STATUS.TO_REVIEW]: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  [NOTE_STATUS.ACTIVE]: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  [NOTE_STATUS.SAVED]: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  [NOTE_STATUS.ARCHIVE]: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-};
 
 const TERM_LABELS: Record<string, string> = {
   short: "Short Term",
@@ -364,7 +355,6 @@ export function GoalDetailContent() {
     () => allLinkedContacts.filter((c) => c.archive),
     [allLinkedContacts],
   );
-  const linkedContacts = activeLinkedContacts;
   const contactTabs = useMemo(
     () => [
       { value: "all", label: "All", count: activeLinkedContacts.length },
@@ -919,13 +909,6 @@ export function GoalDetailContent() {
       input: checked ? { is_completed: true, progress: 100 } : { is_completed: false },
     });
   }, [goal, updateGoal]);
-
-  const handleNoteToggleFavorite = useCallback(
-    (noteId: string, favorite: boolean) => {
-      toggleFavoriteNote.mutate({ id: noteId, favorite });
-    },
-    [toggleFavoriteNote],
-  );
 
   const handleResourceToggleFavorite = useCallback(
     (resourceId: string, favorite: boolean) => {

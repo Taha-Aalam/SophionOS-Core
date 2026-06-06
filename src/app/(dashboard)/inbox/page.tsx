@@ -13,12 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
 import { useAreas } from "@/lib/hooks/use-areas";
@@ -29,19 +23,13 @@ import {
   useInboxTasks,
   useInboxResources,
 } from "@/lib/hooks/use-inbox";
-import { useNotebooks, useUpdateNote } from "@/lib/hooks/use-notes";
+import { useNotebooks } from "@/lib/hooks/use-notes";
 import { useProjects, useUpdateProject } from "@/lib/hooks/use-projects";
-import { useUpdateResource } from "@/lib/hooks/use-resources";
 import { useTopics } from "@/lib/hooks/use-topics";
-import { useTasks, useUpdateTask } from "@/lib/hooks/use-tasks";
+import { useTasks } from "@/lib/hooks/use-tasks";
 import { useValidIds } from "@/lib/hooks/use-valid-ids";
 import type { Note, Project, Resource, Task } from "@/lib/types/domain.types";
-import {
-  NOTE_STATUS,
-  PROJECT_STATUS,
-  RESOURCE_STATUS,
-  TASK_STATUS,
-} from "@/lib/utils/constants";
+import { PROJECT_STATUS } from "@/lib/utils/constants";
 import { relativeTime } from "@/lib/utils/dates";
 import { cn } from "@/lib/utils";
 import {
@@ -57,94 +45,6 @@ const PROJECT_ICON = "📁";
 const TASK_ICON = "☑️";
 const NOTE_ICON = "📝";
 const RESOURCE_ICON = "🔗";
-
-const UNSET = "__none__";
-
-const relationPopoverContentClassName = "w-64 p-2 max-h-72 overflow-hidden";
-const relationOptionClassName =
-  "flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
-
-// ─── Shared compact multi-select (Popover style — matches resource-dialog) ──
-
-interface CompactMultiSelectProps {
-  label: string;
-  placeholder: string;
-  selectedCount: number;
-  selectedLabel?: string;
-  candidates: { id: string; name: string; icon?: string | null }[];
-  isSelected: (id: string) => boolean;
-  onToggle: (id: string) => void;
-  onClear: () => void;
-  emptyMessage: string;
-  /** Render any selected items below the trigger (e.g. as removable badges). */
-  renderSelected?: () => React.ReactNode;
-  /** Custom rendering for option rows (defaults to icon + name). */
-  renderOption?: (opt: { id: string; name: string; icon?: string | null }) => React.ReactNode;
-}
-
-function CompactMultiSelect({
-  label,
-  placeholder,
-  selectedCount,
-  selectedLabel,
-  candidates,
-  isSelected,
-  onToggle,
-  onClear,
-  emptyMessage,
-  renderSelected,
-  renderOption,
-}: CompactMultiSelectProps) {
-  return (
-    <div className="grid gap-1.5">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
-        <Popover>
-          <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-            {selectedCount === 0
-              ? placeholder
-              : selectedLabel ?? `${selectedCount} selected`}
-          </PopoverTrigger>
-          <PopoverContent align="start" className={relationPopoverContentClassName}>
-            <button type="button" onClick={onClear} className={relationOptionClassName}>
-              Clear selection
-            </button>
-            <div className="max-h-56 overflow-y-auto">
-              {candidates.length === 0 ? (
-                <div className="px-2 py-1.5 text-sm text-muted-foreground">{emptyMessage}</div>
-              ) : (
-                candidates.map((opt) => {
-                  const checked = isSelected(opt.id);
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => onToggle(opt.id)}
-                      className={relationOptionClassName}
-                    >
-                      <span className="pointer-events-none">
-                        <Checkbox checked={checked} />
-                      </span>
-                      {renderOption ? (
-                        renderOption(opt)
-                      ) : (
-                        <span className="min-w-0 break-words">
-                          {opt.icon ? `${opt.icon} ` : ""}
-                          {opt.name}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
-      {renderSelected?.()}
-    </div>
-  );
-}
 
 // ─── Compact DropdownMenu multi-select (matches project/task-dialog style) ─
 
@@ -245,7 +145,7 @@ function ProjectProcessForm({
   const [rawGoalIds, setRawGoalIds] = useState<string[]>(project.linkedGoalIds ?? []);
   const [startDate, setStartDate] = useState<string>(project.start_date ?? "");
   const [dueDate, setDueDate] = useState<string>(project.due_date ?? "");
-  const [status, setStatus] = useState<string>(
+  const [status, _setStatus] = useState<string>(
     project.status ?? PROJECT_STATUS.ACTIVE,
   );
 

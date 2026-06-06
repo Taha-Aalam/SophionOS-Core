@@ -79,7 +79,6 @@ export function ProjectCard({
   areaNames,
   areaIcons,
   duplicateIndex,
-  onEdit,
   onArchive,
   onRestore,
   onDelete,

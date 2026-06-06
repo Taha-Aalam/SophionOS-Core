@@ -88,7 +88,6 @@ import { useTopics } from "@/lib/hooks/use-topics";
 import { contactService } from "@/lib/services/contact.service";
 import { useQueryClient } from "@tanstack/react-query";
 import { type Contact, type CreateResourceInput, type Resource, type Task } from "@/lib/types/domain.types";
-import { RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";

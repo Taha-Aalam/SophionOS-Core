@@ -40,11 +40,9 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -114,14 +112,6 @@ import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, taskMatchesProjectId } from
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { buildAreaContactGoalSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections, buildContactByAreaSections } from "@/lib/utils/area-detail";
 import { buildReturnTo, resolveBackNavigation, getReturnToFromSearchParams, encodeReturnTo } from "@/lib/utils/return-to";
-
-const NOTE_STATUS_COLORS: Record<string, string> = {
-  inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  saved: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  archive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-};
 
 const PRIORITY_COLORS: Record<string, string> = {
   high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
@@ -219,7 +209,6 @@ export function ProjectDetailContent() {
   const restoreNote = useRestoreNote();
   const deleteNote = useDeleteNote();
   const updateNote = useUpdateNote();
-  const { data: allTasksGlobal = [] } = useTasks();
   const { data: allNotesGlobal = [] } = useNotes({ status: "all" });
   const { data: allResourcesGlobal = [] } = useResources({ status: "all" });
   const completeTask = useCompleteTask();
@@ -310,7 +299,6 @@ export function ProjectDetailContent() {
     () => allLinkedContacts.filter((c) => c.archive),
     [allLinkedContacts],
   );
-  const linkedContacts = activeLinkedContacts;
   const activeNotes = useMemo(
     () => linkedNotes.filter((n) => !n.is_archived),
     [linkedNotes],
@@ -871,12 +859,6 @@ export function ProjectDetailContent() {
     router.push("/projects");
   };
 
-  const handleNoteToggleFavorite = useCallback(
-    (noteId: string, favorite: boolean) => {
-      toggleFavoriteNote.mutate({ id: noteId, favorite });
-    },
-    [toggleFavoriteNote],
-  );
 
   const handleLinkArea = async (areaId: string) => {
     if (!resolvedProjectId) {
