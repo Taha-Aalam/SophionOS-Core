@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUpdateResource } from "@/lib/hooks/use-resources";
+import { useValidIds } from "@/lib/hooks/use-valid-ids";
 import type { Resource } from "@/lib/types/domain.types";
 import { RESOURCE_STATUS } from "@/lib/utils/constants";
 import {
@@ -66,46 +67,49 @@ export function ResourceInboxProcessForm({
   onClose,
 }: ResourceInboxProcessFormProps) {
   const updateResource = useUpdateResource();
-  const [areaIds, setAreaIds] = useState<string[]>(
+  const [rawAreaIds, setRawAreaIds] = useState<string[]>(
     resource.linkedAreaIds ?? (resource.area_id ? [resource.area_id] : []),
   );
-  const [goalIds, setGoalIds] = useState<string[]>(resource.linkedGoalIds ?? []);
-  const [projectId, setProjectId] = useState<string>(resource.project_id ?? "");
-  const [taskIds, setTaskIds] = useState<string[]>(resource.linkedTaskIds ?? []);
+  const [rawGoalIds, setRawGoalIds] = useState<string[]>(resource.linkedGoalIds ?? []);
+  const [rawProjectId, setRawProjectId] = useState<string>(resource.project_id ?? "");
+  const [rawTaskIds, setRawTaskIds] = useState<string[]>(resource.linkedTaskIds ?? []);
   const [topicId, setTopicId] = useState<string>(resource.topic_id ?? "");
   const [status, setStatus] = useState<string>(RESOURCE_STATUS.ACTIVE);
 
   const toggleArea = (id: string) =>
-    setAreaIds((prev) =>
+    setRawAreaIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   const toggleGoal = (id: string) =>
-    setGoalIds((prev) =>
+    setRawGoalIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   const toggleTask = (id: string) =>
-    setTaskIds((prev) =>
+    setRawTaskIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   const toggleProject = (id: string) =>
-    setProjectId((cur) => (cur === id ? "" : id));
+    setRawProjectId((cur) => (cur === id ? "" : id));
   const toggleTopic = (id: string) =>
     setTopicId((cur) => (cur === id ? "" : id));
 
-  // Derive selected entities (objects) from IDs - needed for proper filtering
+  // Derive selected entities (objects) from raw picks - the raw
+  // user-pick list is the source of truth for "what the user chose";
+  // the filtered `X` derived via useValidIds below is a subset used
+  // for save payloads and to strip server-side removals.
   const selectedProject = useMemo(
-    () => (projectId ? projectOptions.find((p) => p.id === projectId) ?? null : null),
-    [projectId, projectOptions],
+    () => (rawProjectId ? projectOptions.find((p) => p.id === rawProjectId) ?? null : null),
+    [rawProjectId, projectOptions],
   );
 
   const selectedGoals = useMemo(
-    () => goalOptions.filter((g) => goalIds.includes(g.id)),
-    [goalOptions, goalIds],
+    () => goalOptions.filter((g) => rawGoalIds.includes(g.id)),
+    [goalOptions, rawGoalIds],
   );
 
   const selectedTasks = useMemo(
-    () => taskOptions.filter((t) => taskIds.includes(t.id)),
-    [taskOptions, taskIds],
+    () => taskOptions.filter((t) => rawTaskIds.includes(t.id)),
+    [taskOptions, rawTaskIds],
   );
 
   // Build reverse lookup maps needed for filtering
@@ -137,16 +141,16 @@ export function ResourceInboxProcessForm({
 
   const visibleGoals = useMemo(
     () => computeFilteredGoals(
-      goalOptions, areaIds, projectId || null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks,
+      goalOptions, rawAreaIds, rawProjectId || null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks,
     ),
-    [goalOptions, areaIds, projectId, projectGoalIdsMap, taskGoalIdsMap, selectedTasks],
+    [goalOptions, rawAreaIds, rawProjectId, projectGoalIdsMap, taskGoalIdsMap, selectedTasks],
   );
 
   const visibleProjects = useMemo(
     () => computeFilteredProjects(
-      projectOptions, areaIds, goalIds, goalProjectIdsMap, selectedTasks,
+      projectOptions, rawAreaIds, rawGoalIds, goalProjectIdsMap, selectedTasks,
     ),
-    [projectOptions, areaIds, goalIds, goalProjectIdsMap, selectedTasks],
+    [projectOptions, rawAreaIds, rawGoalIds, goalProjectIdsMap, selectedTasks],
   );
 
   const visibleAreas = useMemo(
@@ -156,41 +160,24 @@ export function ResourceInboxProcessForm({
 
   const visibleTasks = useMemo(
     () => computeFilteredTasks(
-      taskOptions, areaIds, projectId || null, goalIds, goalTaskIdsMap,
+      taskOptions, rawAreaIds, rawProjectId || null, rawGoalIds, goalTaskIdsMap,
     ),
-    [taskOptions, areaIds, projectId, goalIds, goalTaskIdsMap],
+    [taskOptions, rawAreaIds, rawProjectId, rawGoalIds, goalTaskIdsMap],
   );
 
-  useEffect(() => {
-    const allowedGoalIds = new Set(visibleGoals.map((goal) => goal.id));
-    const nextGoalIds = goalIds.filter((goalId) => allowedGoalIds.has(goalId));
-    if (nextGoalIds.length !== goalIds.length) {
-      setGoalIds(nextGoalIds);
-    }
-  }, [visibleGoals, goalIds]);
-
-  useEffect(() => {
-    const allowedAreaIds = new Set(visibleAreas.map((area) => area.id));
-    const nextAreaIds = areaIds.filter((areaId) => allowedAreaIds.has(areaId));
-    if (nextAreaIds.length !== areaIds.length) {
-      setAreaIds(nextAreaIds);
-    }
-  }, [visibleAreas, areaIds]);
-
-  useEffect(() => {
-    const allowedTaskIds = new Set(visibleTasks.map((t) => t.id));
-    const nextTaskIds = taskIds.filter((id) => allowedTaskIds.has(id));
-    if (nextTaskIds.length !== taskIds.length) {
-      setTaskIds(nextTaskIds);
-    }
-  }, [visibleTasks, taskIds]);
-
-  useEffect(() => {
-    // Clear invalid project selection when filters change
-    if (projectId && !visibleProjects.some((p) => p.id === projectId)) {
-      setProjectId("");
-    }
-  }, [visibleProjects, projectId]);
+  // Derive filtered ID subsets from raw user picks, stripping any IDs
+  // no longer present in the corresponding visible set. Done at render
+  // time instead of via useEffect reconciliation, to avoid the
+  // cascading-render anti-pattern flagged by react-hooks/set-state-in-effect.
+  const goalIds = useValidIds(rawGoalIds, visibleGoals.map((goal) => goal.id));
+  const areaIds = useValidIds(rawAreaIds, visibleAreas.map((area) => area.id));
+  const taskIds = useValidIds(rawTaskIds, visibleTasks.map((task) => task.id));
+  // projectId is a single ID, not a list. Take the first (and only) valid
+  // match, or fall back to empty string if the raw pick is no longer valid.
+  const projectId = useValidIds(
+    rawProjectId ? [rawProjectId] : [],
+    visibleProjects.map((project) => project.id),
+  )[0] ?? "";
 
   const handleSave = () => {
     updateResource.mutate(
@@ -220,7 +207,7 @@ export function ResourceInboxProcessForm({
           candidates={visibleAreas}
           isSelected={(id) => areaIds.includes(id)}
           onToggle={toggleArea}
-          onClear={() => setAreaIds([])}
+          onClear={() => setRawAreaIds([])}
           emptyMessage={
             areaOptions.length === 0
               ? "No areas available."
@@ -265,7 +252,7 @@ export function ResourceInboxProcessForm({
           candidates={visibleGoals}
           isSelected={(id) => goalIds.includes(id)}
           onToggle={toggleGoal}
-          onClear={() => setGoalIds([])}
+          onClear={() => setRawGoalIds([])}
           emptyMessage={
             goalOptions.length === 0
               ? "No goals available."
@@ -317,7 +304,7 @@ export function ResourceInboxProcessForm({
           candidates={visibleProjects}
           isSelected={(id) => projectId === id}
           onToggle={toggleProject}
-          onClear={() => setProjectId("")}
+          onClear={() => setRawProjectId("")}
           emptyMessage={
             projectOptions.length === 0
               ? "No projects available."
@@ -340,7 +327,7 @@ export function ResourceInboxProcessForm({
                       {p.name}
                       <button
                         type="button"
-                        onClick={() => setProjectId("")}
+                        onClick={() => setRawProjectId("")}
                         className="ml-1 rounded-full p-0.5 hover:bg-muted"
                       >
                         <X className="size-3" />
@@ -360,7 +347,7 @@ export function ResourceInboxProcessForm({
           candidates={visibleTasks}
           isSelected={(id) => taskIds.includes(id)}
           onToggle={toggleTask}
-          onClear={() => setTaskIds([])}
+          onClear={() => setRawTaskIds([])}
           emptyMessage={
             taskOptions.length === 0
               ? "No tasks available."
