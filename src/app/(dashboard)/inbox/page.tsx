@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Inbox as InboxIcon, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,7 @@ import { useProjects, useUpdateProject } from "@/lib/hooks/use-projects";
 import { useUpdateResource } from "@/lib/hooks/use-resources";
 import { useTopics } from "@/lib/hooks/use-topics";
 import { useTasks, useUpdateTask } from "@/lib/hooks/use-tasks";
+import { useValidIds } from "@/lib/hooks/use-valid-ids";
 import type { Note, Project, Resource, Task } from "@/lib/types/domain.types";
 import {
   NOTE_STATUS,
@@ -238,10 +239,10 @@ function ProjectProcessForm({
   onClose,
 }: ProjectProcessFormProps) {
   const updateProject = useUpdateProject();
-  const [areaIds, setAreaIds] = useState<string[]>(
+  const [rawAreaIds, setRawAreaIds] = useState<string[]>(
     project.linkedAreaIds ?? (project.area_id ? [project.area_id] : []),
   );
-  const [goalIds, setGoalIds] = useState<string[]>(project.linkedGoalIds ?? []);
+  const [rawGoalIds, setRawGoalIds] = useState<string[]>(project.linkedGoalIds ?? []);
   const [startDate, setStartDate] = useState<string>(project.start_date ?? "");
   const [dueDate, setDueDate] = useState<string>(project.due_date ?? "");
   const [status, setStatus] = useState<string>(
@@ -249,11 +250,11 @@ function ProjectProcessForm({
   );
 
   const toggleArea = (id: string) =>
-    setAreaIds((prev) =>
+    setRawAreaIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   const toggleGoal = (id: string) =>
-    setGoalIds((prev) =>
+    setRawGoalIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
@@ -261,29 +262,20 @@ function ProjectProcessForm({
   // visible areas by selected goals; prune any selected ids that fall
   // out of the visible set.
   const visibleGoals = useMemo(
-    () => filterProjectDialogGoals(goalOptions, areaIds),
-    [goalOptions, areaIds],
+    () => filterProjectDialogGoals(goalOptions, rawAreaIds),
+    [goalOptions, rawAreaIds],
   );
   const visibleAreas = useMemo(
-    () => filterProjectDialogAreas(areaOptions, goalOptions, areaIds, goalIds),
-    [areaOptions, goalOptions, areaIds, goalIds],
+    () => filterProjectDialogAreas(areaOptions, goalOptions, rawAreaIds, rawGoalIds),
+    [areaOptions, goalOptions, rawAreaIds, rawGoalIds],
   );
 
-  useEffect(() => {
-    const allowedGoalIds = new Set(visibleGoals.map((goal) => goal.id));
-    const nextGoalIds = goalIds.filter((goalId) => allowedGoalIds.has(goalId));
-    if (nextGoalIds.length !== goalIds.length) {
-      setGoalIds(nextGoalIds);
-    }
-  }, [visibleGoals, goalIds]);
-
-  useEffect(() => {
-    const allowedAreaIds = new Set(visibleAreas.map((area) => area.id));
-    const nextAreaIds = areaIds.filter((areaId) => allowedAreaIds.has(areaId));
-    if (nextAreaIds.length !== areaIds.length) {
-      setAreaIds(nextAreaIds);
-    }
-  }, [visibleAreas, areaIds]);
+  // Derive filtered ID subsets from raw user picks, stripping any IDs
+  // no longer present in the corresponding visible set. Done at render
+  // time instead of via useEffect reconciliation, to avoid the
+  // cascading-render anti-pattern flagged by react-hooks/set-state-in-effect.
+  const goalIds = useValidIds(rawGoalIds, visibleGoals.map((goal) => goal.id));
+  const areaIds = useValidIds(rawAreaIds, visibleAreas.map((area) => area.id));
 
   const handleSave = () => {
     updateProject.mutate(
@@ -312,7 +304,7 @@ function ProjectProcessForm({
           candidates={visibleAreas}
           isSelected={(id) => areaIds.includes(id)}
           onToggle={toggleArea}
-          onClear={() => setAreaIds([])}
+          onClear={() => setRawAreaIds([])}
           emptyMessage={
             areaOptions.length === 0
               ? "No areas available."
@@ -357,7 +349,7 @@ function ProjectProcessForm({
           candidates={visibleGoals}
           isSelected={(id) => goalIds.includes(id)}
           onToggle={toggleGoal}
-          onClear={() => setGoalIds([])}
+          onClear={() => setRawGoalIds([])}
           emptyMessage={
             goalOptions.length === 0
               ? "No goals available."
