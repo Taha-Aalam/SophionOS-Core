@@ -202,4 +202,50 @@ describe('calculateSmartPriority', () => {
       expect(score).toBe(4);
     });
   });
+
+  // ── Round-up threshold (4.1+ → 5) ────────────────────────────────────────
+  describe('round-up threshold (4.1+ → 5)', () => {
+    it('score of 4.1+ rounds up to 5', () => {
+      // overdue + medium + 1 goal + 2 projects + both flags = 4.25
+      const score = calculateSmartPriority({
+        priority: PRIORITY.MEDIUM,
+        dueDate: '2020-01-01',
+        goalCount: 1,
+        projectCount: 2,
+        isImportant: true,
+        isUrgent: true,
+      });
+      // 1.5 + 0.75 + min(1.25, 0.5) + min(0.75, 0.5) + 1.0 = 4.25 → 5
+      expect(score).toBe(5);
+    });
+
+    it('score below 4.1 does not round up', () => {
+      // overdue + high + 0 goals + 0 projects + both flags = 1.5+1.25+0+0+1.0 = 3.75 → 4
+      const score = calculateSmartPriority({
+        priority: PRIORITY.HIGH,
+        dueDate: '2020-01-01',
+        goalCount: 0,
+        projectCount: 0,
+        isImportant: true,
+        isUrgent: true,
+      });
+      expect(score).toBe(4);
+    });
+
+    it('score in the 4.1-4.4 band rounds up to 5', () => {
+      // Construct a 4.1-ish case: overdue + medium + 0 goals + 3 projects + important-only
+      // 1.5 + 0.75 + 0 + 0.75 + 0.7 = 3.7 → 4 (not quite)
+      // Try: overdue + high + 0 goals + 3 projects + important-only
+      // 1.5 + 1.25 + 0 + 0.75 + 0.7 = 4.2 → 5 (round-up)
+      const score = calculateSmartPriority({
+        priority: PRIORITY.HIGH,
+        dueDate: '2020-01-01',
+        goalCount: 0,
+        projectCount: 3,
+        isImportant: true,
+        isUrgent: false,
+      });
+      expect(score).toBe(5);
+    });
+  });
 });
