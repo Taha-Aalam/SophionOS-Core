@@ -382,6 +382,13 @@ describe("taskService.complete – recurring completion", () => {
       single: vi.fn().mockResolvedValue({ data: currentTask, error: null }),
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
     } as any;
+    const childLookupClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    } as any;
     const rpcClient = {
       rpc: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({
@@ -405,6 +412,7 @@ describe("taskService.complete – recurring completion", () => {
       .mockImplementationOnce(() => getByIdClient) // task_areas hydration
       .mockImplementationOnce(() => getByIdClient) // goal_tasks hydration
       .mockImplementationOnce(() => getByIdClient) // task_projects hydration
+      .mockImplementationOnce(() => childLookupClient) // forward-edge guard
       .mockImplementationOnce(() => rpcClient)
       .mockImplementationOnce(() => reReadClient)
       .mockImplementationOnce(() => reReadClient) // task_areas hydration on re-read
@@ -461,6 +469,13 @@ describe("taskService.complete – recurring completion", () => {
       single: vi.fn().mockResolvedValue({ data: currentTask, error: null }),
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
     } as any;
+    const childLookupClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    } as any;
     const rpcClient = {
       rpc: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({
@@ -481,6 +496,7 @@ describe("taskService.complete – recurring completion", () => {
       .mockImplementationOnce(() => getByIdClient)
       .mockImplementationOnce(() => getByIdClient)
       .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => childLookupClient) // forward-edge guard
       .mockImplementationOnce(() => rpcClient)
       .mockImplementationOnce(() => reReadClient)
       .mockImplementationOnce(() => reReadClient)
@@ -545,6 +561,158 @@ describe("taskService.complete – recurring completion", () => {
 
     expect(result.completedTask).toEqual(completedTask);
     expect(result.spawnedTaskId).toBeUndefined();
+  });
+});
+
+describe("taskService.complete – forward-edge guard (re-complete dedupe)", () => {
+  const userId = "user-1";
+  const taskId = "task-1";
+  const existingChildId = "task-2";
+
+  function recurringRow(overrides: Record<string, unknown> = {}) {
+    return {
+      id: taskId,
+      user_id: userId,
+      status: TASK_STATUS.TODO,
+      is_completed: false,
+      is_focused: false,
+      is_important: false,
+      is_urgent: false,
+      area_id: null,
+      project_id: null,
+      linkedAreaIds: [],
+      linkedGoalIds: [],
+      linkedProjectIds: [],
+      previous_status: null,
+      due_date: futureDate(1),
+      is_recurring: true,
+      repeat_every: 3,
+      repeat_cycle: TASK_REPEAT_CYCLE.DAYS,
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(createClient).mockReset();
+  });
+
+  it("skips the spawn RPC when a live descendant already exists (re-complete after uncheck)", async () => {
+    const rpcClient = { rpc: vi.fn() } as any;
+    const getByIdClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: recurringRow(), error: null }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    const childLookupClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: existingChildId }, error: null }),
+    } as any;
+    const updateClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { ...recurringRow(), is_completed: true, status: TASK_STATUS.COMPLETED },
+        error: null,
+      }),
+    } as any;
+
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => getByIdClient)     // complete.getById
+      .mockImplementationOnce(() => getByIdClient)     // area hydrate
+      .mockImplementationOnce(() => getByIdClient)     // goal hydrate
+      .mockImplementationOnce(() => getByIdClient)     // project hydrate
+      .mockImplementationOnce(() => childLookupClient) // forward-edge guard
+      .mockImplementationOnce(() => updateClient);     // in-place complete patch
+
+    const result = await taskService.complete(userId, taskId);
+
+    expect(rpcClient.rpc).not.toHaveBeenCalled();
+    expect(updateClient.update).toHaveBeenCalledWith(
+      expect.objectContaining({ is_completed: true, status: TASK_STATUS.COMPLETED }),
+    );
+    expect(result.spawnedTaskId).toBeUndefined();
+    expect(result.completedTask.is_completed).toBe(true);
+  });
+
+  it("skips the spawn RPC even when the existing descendant is itself completed (chain tip moved past)", async () => {
+    // Real-world chain: R1 → C1 (completed) → C2 (live tip). User unchecks R1,
+    // re-checks. C1 still exists, just completed. Forward-edge guard must
+    // detect it the same way it would a live child — the lookup is on
+    // existence, not state.
+    const rpcClient = { rpc: vi.fn() } as any;
+    const getByIdClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: recurringRow(), error: null }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    const childLookupClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: existingChildId }, error: null }),
+    } as any;
+    const updateClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { ...recurringRow(), is_completed: true, status: TASK_STATUS.COMPLETED },
+        error: null,
+      }),
+    } as any;
+
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => childLookupClient)
+      .mockImplementationOnce(() => updateClient);
+
+    await taskService.complete(userId, taskId);
+
+    expect(rpcClient.rpc).not.toHaveBeenCalled();
+  });
+
+  it("propagates DB errors from the forward-edge lookup", async () => {
+    const getByIdClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: recurringRow(), error: null }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    const childLookupClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: "connection lost" },
+      }),
+    } as any;
+
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => childLookupClient);
+
+    await expect(taskService.complete(userId, taskId)).rejects.toThrow("connection lost");
   });
 });
 
@@ -950,6 +1118,13 @@ describe("taskService.update – recurring completion transition delegation", ()
       single: vi.fn().mockResolvedValue({ data: recurringRow(), error: null }),
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
     } as any;
+    const childLookupClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    } as any;
     const rpcClient = {
       rpc: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({
@@ -972,8 +1147,9 @@ describe("taskService.update – recurring completion transition delegation", ()
     //   1. getById (touchesCompletion branch) → consumes 4 createClient calls
     //   2. delegates to complete():
     //      a. complete.getById → 4 createClient calls
-    //      b. RPC → 1 createClient call
-    //      c. completedTask re-read → 4 createClient calls
+    //      b. forward-edge child lookup → 1 createClient call
+    //      c. RPC → 1 createClient call
+    //      d. completedTask re-read → 4 createClient calls
     vi.mocked(createClient)
       .mockImplementation(() => getByIdClient)
       .mockImplementationOnce(() => getByIdClient) // update: getById read
@@ -984,6 +1160,7 @@ describe("taskService.update – recurring completion transition delegation", ()
       .mockImplementationOnce(() => getByIdClient) // complete: area hydrate
       .mockImplementationOnce(() => getByIdClient) // complete: goal hydrate
       .mockImplementationOnce(() => getByIdClient) // complete: project hydrate
+      .mockImplementationOnce(() => childLookupClient) // complete: forward-edge guard
       .mockImplementationOnce(() => rpcClient)     // complete: RPC
       .mockImplementationOnce(() => fallbackGet)   // complete: re-read
       .mockImplementationOnce(() => fallbackGet)   // complete: re-read area hydrate

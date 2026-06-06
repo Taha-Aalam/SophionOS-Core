@@ -6,7 +6,6 @@ import {
   Map as LucideMap,
   Pin,
   Star,
-  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -14,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { encodeReturnTo } from "@/lib/utils/return-to";
 import type { Note } from "@/lib/types/domain.types";
+
+import { DeleteEntityPopover } from "./delete-entity-popover";
 
 export interface NoteRowAreaInfo {
   name: string;
@@ -188,17 +189,13 @@ export function NoteRow({
             </button>
           )}
           {onDelete && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(note.id);
-              }}
-              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
-              title="Delete"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
+            <DeleteEntityPopover
+              variant="row"
+              entityLabel="note"
+              entityName={note.name}
+              requireTypedConfirmation={false}
+              onConfirm={() => onDelete(note.id)}
+            />
           )}
         </div>
       )}

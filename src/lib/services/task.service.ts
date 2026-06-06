@@ -576,6 +576,45 @@ export const taskService = {
       return { completedTask: data };
     }
 
+    // Forward-edge guard: if this row already spawned a descendant — in any
+    // state (live, completed, archived) — the recurrence chain has moved past
+    // it. Re-completing such a row is a historical correction (user
+    // unchecked, fixed, re-checked), not a new occurrence; the spawn must
+    // not run a second time or the workspace ends up with a duplicate sibling
+    // of the chain tip. Polarity is opposite to the `uncomplete()` child
+    // lookup: there we look for a *live* child to delete safely; here we look
+    // for *any* descendant to prove the chain forked.
+    const { data: existingChild, error: childLookupError } = await createClient()
+      .from("tasks")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("recurrence_source_task_id", id)
+      .limit(1)
+      .maybeSingle();
+
+    if (childLookupError) {
+      throw new DatabaseError(childLookupError.message);
+    }
+
+    if (existingChild) {
+      const patch = buildCompletePatch(current.status, new Date().toISOString());
+
+      const { data, error } = await createClient()
+        .from("tasks")
+        .update(patch)
+        .eq("user_id", userId)
+        .eq("id", id)
+        .select(TASK_SELECT)
+        .single();
+
+      if (error) {
+        if (error.code === "PGRST116") throw new NotFoundError("Task", id);
+        throw new DatabaseError(error.message);
+      }
+
+      return { completedTask: data };
+    }
+
     // Recurring completion: atomically mark the source complete and spawn
     // the next instance via the `complete_recurring_task` RPC. The RPC copies
     // area/goal/project links and copies recurrence fields, so the spawned

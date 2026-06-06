@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 import { Goal } from '@/lib/types/domain.types';
 import ProgressRing from '@/components/charts/progress-ring';
 
+import { DeleteEntityPopover } from './delete-entity-popover';
+
 export interface GoalCardRollups {
   projectCount: number;
   taskCount: number;
@@ -28,6 +30,8 @@ interface GoalCardProps {
   onEdit?: (goal: Goal) => void;
   onRestore?: (goal: Goal) => void;
   onArchive?: (goal: Goal) => void;
+  onDelete?: (goal: Goal) => void;
+  isDeleting?: boolean;
   duplicateIndex?: number;
   rollups?: GoalCardRollups;
 }
@@ -94,7 +98,7 @@ function calculateDueState(targetDate: string | null): { text: string; isOverdue
   };
 }
 
-export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onRestore, onArchive, duplicateIndex, rollups }: GoalCardProps) {
+export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onRestore, onArchive, onDelete, isDeleting, duplicateIndex, rollups }: GoalCardProps) {
   const dueState = calculateDueState(goal.target_date);
   const resolvedAreaNames = (() => {
     if (areaNames && areaNames.length > 0) {
@@ -228,23 +232,47 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
                     <RotateCcw className="size-3" />
                   </Button>
                 )}
+                {onDelete && (
+                  <span onClick={(e) => e.stopPropagation()}>
+                    <DeleteEntityPopover
+                      variant="row"
+                      entityLabel="goal"
+                      entityName={goal.name}
+                      disabled={isDeleting}
+                      onConfirm={() => onDelete(goal)}
+                    />
+                  </span>
+                )}
               </>
             ) : (
-              onArchive && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-6"
-                  title="Archive goal"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onArchive(goal);
-                  }}
-                >
-                  <Archive className="size-3" />
-                </Button>
-              )
+              <>
+                {onArchive && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-6"
+                    title="Archive goal"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onArchive(goal);
+                    }}
+                  >
+                    <Archive className="size-3" />
+                  </Button>
+                )}
+                {onDelete && (
+                  <span onClick={(e) => e.stopPropagation()}>
+                    <DeleteEntityPopover
+                      variant="row"
+                      entityLabel="goal"
+                      entityName={goal.name}
+                      disabled={isDeleting}
+                      onConfirm={() => onDelete(goal)}
+                    />
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>

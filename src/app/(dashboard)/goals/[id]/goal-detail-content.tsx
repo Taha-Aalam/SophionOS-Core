@@ -13,7 +13,6 @@ import {
   Edit,
   Link as LinkIcon,
   Target,
-  Trash2,
   Unlink,
 } from "lucide-react";
 
@@ -22,6 +21,7 @@ import { ContactDialog, type ContactDialogDefaults } from "@/components/entities
 import { ContactsByCategoryView } from "@/components/views/contacts-by-category-view";
 import { ContactsFollowUpView } from "@/components/views/contacts-follow-up-view";
 import { GoalDialog } from "@/components/entities/goal-dialog";
+import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { LinkEntityDialog } from "@/components/entities/link-entity-dialog";
 import { PriorityBadge } from "@/components/entities/priority-badge";
@@ -41,7 +41,6 @@ import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
@@ -195,7 +194,6 @@ export function GoalDetailContent() {
 
   // UI state
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isLinkAreaOpen, setIsLinkAreaOpen] = useState(false);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const [targetDateDraft, setTargetDateDraft] = useState("");
@@ -1393,15 +1391,16 @@ export function GoalDetailContent() {
                   <LinkIcon className="size-3.5" />
                   Link Area
                 </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setIsDeleteOpen(true)}
-                  className="gap-1.5"
-                >
-                  <Trash2 className="size-3.5" />
-                  Delete
-                </Button>
+                <DeleteEntityPopover
+                  variant="detail"
+                  entityLabel="goal"
+                  entityName={goal.name}
+                  requireTypedConfirmation
+                  disabled={deleteGoal.isPending}
+                  onConfirm={() => {
+                    void handleDeleteGoal();
+                  }}
+                />
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
@@ -1864,30 +1863,6 @@ export function GoalDetailContent() {
         )}
         onLink={(a) => handleLinkArea(a.id)}
       />
-
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Goal Permanently?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            This removes the goal and clears its linked areas, projects, tasks, notes, and
-            resources relationships.
-          </p>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteGoal}
-              disabled={deleteGoal.isPending}
-            >
-              Delete Goal
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Inline Project Creation */}
       <ProjectDialog

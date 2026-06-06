@@ -9,13 +9,13 @@ import {
   ChevronRightIcon,
   Edit,
   Target,
-  Trash2,
 } from "lucide-react";
 
 import { ContactCard } from "@/components/entities/contact-card";
 import { ContactDialog, type ContactDialogDefaults } from "@/components/entities/contact-dialog";
 import { ContactsByCategoryView } from "@/components/views/contacts-by-category-view";
 import { ContactsFollowUpView } from "@/components/views/contacts-follow-up-view";
+import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
@@ -51,7 +51,6 @@ const KanbanBoard = dynamic(
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -65,7 +64,7 @@ import {
   useUpdateContact,
 } from "@/lib/hooks/use-contacts";
 import { useAreaDetail, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-area-detail";
-import { useAreas, useArchiveArea, useRestoreArea, useUpdateArea } from "@/lib/hooks/use-areas";
+import { useAreas, useArchiveArea, useDeleteArea, useRestoreArea, useUpdateArea } from "@/lib/hooks/use-areas";
 import { useRestoreGoal, useGoals, useLinkGoalToArea, useArchiveGoal } from "@/lib/hooks/use-goals";
 import { useProjects, useLinkProjectToArea, useArchiveProject, useRestoreProject } from "@/lib/hooks/use-projects";
 import {
@@ -123,7 +122,6 @@ export function AreaDetailContent() {
   const areaReturnTo = getReturnToFromSearchParams(searchParams);
   const backTarget = resolveBackNavigation(areaReturnTo, "/areas");
 
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const [goalTab, setGoalTab] = useState("active");
   const [projectTab, setProjectTab] = useState("all");
@@ -169,6 +167,7 @@ export function AreaDetailContent() {
   const archiveArea = useArchiveArea(userId);
   const restoreArea = useRestoreArea(userId);
   const updateArea = useUpdateArea(userId);
+  const deleteArea = useDeleteArea(userId);
   const restoreGoal = useRestoreGoal();
   const archiveGoal = useArchiveGoal();
   const completeTask = useCompleteTaskWithGoalRefresh();
@@ -635,7 +634,7 @@ export function AreaDetailContent() {
 
   const handleDeleteArea = async () => {
     if (!area) return;
-    await archiveArea.mutateAsync(area.id);
+    await deleteArea.mutateAsync(area.id);
     router.push(backTarget);
   };
 
@@ -1152,15 +1151,16 @@ export function AreaDetailContent() {
                   <Edit className="size-3.5" />
                   Edit Area
                 </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setIsDeleteOpen(true)}
-                  className="gap-1.5"
-                >
-                  <Trash2 className="size-3.5" />
-                  Delete
-                </Button>
+                <DeleteEntityPopover
+                  variant="detail"
+                  entityLabel="area"
+                  entityName={area.name}
+                  requireTypedConfirmation
+                  disabled={deleteArea.isPending}
+                  onConfirm={() => {
+                    void handleDeleteArea();
+                  }}
+                />
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
@@ -1697,30 +1697,6 @@ export function AreaDetailContent() {
           ) : null}
         </GoalDetailSection>
       </div>
-
-      {/* Delete Dialog */}
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Archive Area?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            This archives the area. The linked goals, projects, tasks, and notes will become unlinked. You can restore it later from the archive.
-          </p>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteArea}
-              disabled={archiveArea.isPending}
-            >
-              Archive Area
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Inline Goal Creation */}
       <GoalDialog
