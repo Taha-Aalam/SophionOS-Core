@@ -907,3 +907,211 @@ describe("taskService.uncomplete – recurring-aware child cleanup", () => {
     expect(rpcClient.rpc).not.toHaveBeenCalled();
   });
 });
+
+describe("taskService.update – recurring completion transition delegation", () => {
+  const userId = "user-1";
+  const taskId = "task-1";
+  const spawnedId = "task-2";
+  const childId = "task-2";
+
+  function recurringRow(overrides: Record<string, unknown> = {}) {
+    return {
+      id: taskId,
+      user_id: userId,
+      status: TASK_STATUS.TODO,
+      is_completed: false,
+      is_focused: false,
+      is_important: false,
+      is_urgent: false,
+      area_id: null,
+      project_id: null,
+      linkedAreaIds: [],
+      linkedGoalIds: [],
+      linkedProjectIds: [],
+      previous_status: null,
+      due_date: "2026-06-05",
+      is_recurring: true,
+      repeat_every: 2,
+      repeat_cycle: TASK_REPEAT_CYCLE.DAYS,
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(createClient).mockReset();
+  });
+
+  it("delegates to complete() when is_completed flips true on a recurring row", async () => {
+    const getByIdClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: recurringRow(), error: null }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    const rpcClient = {
+      rpc: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { completed_task_id: taskId, spawned_task_id: spawnedId },
+        error: null,
+      }),
+    } as any;
+    const fallbackGet = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { ...recurringRow(), is_completed: true, status: TASK_STATUS.COMPLETED },
+        error: null,
+      }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+
+    // update() flow:
+    //   1. getById (touchesCompletion branch) → consumes 4 createClient calls
+    //   2. delegates to complete():
+    //      a. complete.getById → 4 createClient calls
+    //      b. RPC → 1 createClient call
+    //      c. completedTask re-read → 4 createClient calls
+    vi.mocked(createClient)
+      .mockImplementation(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient) // update: getById read
+      .mockImplementationOnce(() => getByIdClient) // update: area hydrate
+      .mockImplementationOnce(() => getByIdClient) // update: goal hydrate
+      .mockImplementationOnce(() => getByIdClient) // update: project hydrate
+      .mockImplementationOnce(() => getByIdClient) // complete: getById read
+      .mockImplementationOnce(() => getByIdClient) // complete: area hydrate
+      .mockImplementationOnce(() => getByIdClient) // complete: goal hydrate
+      .mockImplementationOnce(() => getByIdClient) // complete: project hydrate
+      .mockImplementationOnce(() => rpcClient)     // complete: RPC
+      .mockImplementationOnce(() => fallbackGet)   // complete: re-read
+      .mockImplementationOnce(() => fallbackGet)   // complete: re-read area hydrate
+      .mockImplementationOnce(() => fallbackGet)   // complete: re-read goal hydrate
+      .mockImplementationOnce(() => fallbackGet);  // complete: re-read project hydrate
+
+    const result = await taskService.update(userId, taskId, {
+      is_completed: true,
+    } as never);
+
+    expect(rpcClient.rpc).toHaveBeenCalledWith(
+      "complete_recurring_task",
+      expect.objectContaining({
+        p_user_id: userId,
+        p_task_id: taskId,
+      }),
+    );
+    expect((result as any).spawnedTaskId).toBe(spawnedId);
+  });
+
+  it("delegates to recurring-aware uncomplete() when is_completed flips false on a recurring row", async () => {
+    const completedRecurring = recurringRow({
+      status: TASK_STATUS.COMPLETED,
+      is_completed: true,
+      previous_status: TASK_STATUS.TODO,
+    });
+    const getByIdClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: completedRecurring, error: null }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    const childLookupClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: childId }, error: null }),
+    } as any;
+    const rpcClient = {
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    } as any;
+    const updateClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { ...completedRecurring, is_completed: false, status: TASK_STATUS.TODO, previous_status: null },
+        error: null,
+      }),
+    } as any;
+
+    // update() flow:
+    //   1. update.getById → 4 createClient calls
+    //   2. delegates to uncomplete():
+    //      a. uncomplete.getById → 4 createClient calls
+    //      b. child lookup → 1 createClient call
+    //      c. RPC → 1 createClient call
+    //      d. final update → 1 createClient call
+    vi.mocked(createClient)
+      .mockImplementation(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)   // update: read
+      .mockImplementationOnce(() => getByIdClient)   // update: area hydrate
+      .mockImplementationOnce(() => getByIdClient)   // update: goal hydrate
+      .mockImplementationOnce(() => getByIdClient)   // update: project hydrate
+      .mockImplementationOnce(() => getByIdClient)   // uncomplete: read
+      .mockImplementationOnce(() => getByIdClient)   // uncomplete: area hydrate
+      .mockImplementationOnce(() => getByIdClient)   // uncomplete: goal hydrate
+      .mockImplementationOnce(() => getByIdClient)   // uncomplete: project hydrate
+      .mockImplementationOnce(() => childLookupClient) // uncomplete: lookup
+      .mockImplementationOnce(() => rpcClient)       // uncomplete: RPC
+      .mockImplementationOnce(() => updateClient);   // uncomplete: final update
+
+    const result = await taskService.update(userId, taskId, {
+      is_completed: false,
+    } as never);
+
+    expect(rpcClient.rpc).toHaveBeenCalledWith("undo_complete_recurring_task", {
+      p_user_id: userId,
+      p_completed_task_id: taskId,
+      p_spawned_task_id: childId,
+    });
+    expect((result as any).is_completed).toBe(false);
+  });
+
+  it("does not delegate on non-recurring rows (existing in-place patch path)", async () => {
+    const nonRecurring = recurringRow({
+      is_recurring: false,
+      repeat_every: null,
+      repeat_cycle: null,
+    });
+    const getByIdClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: nonRecurring, error: null }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    const updateClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { ...nonRecurring, is_completed: true, status: TASK_STATUS.COMPLETED, previous_status: TASK_STATUS.TODO },
+        error: null,
+      }),
+    } as any;
+    const rpcClient = { rpc: vi.fn() } as any;
+
+    // update() flow for non-recurring completion:
+    //   1. update.getById → 4 createClient calls
+    //   2. final update → 1 createClient call
+    vi.mocked(createClient)
+      .mockImplementation(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => updateClient);
+
+    const result = await taskService.update(userId, taskId, {
+      is_completed: true,
+    } as never);
+
+    expect(rpcClient.rpc).not.toHaveBeenCalled();
+    expect((result as any).is_completed).toBe(true);
+  });
+});
