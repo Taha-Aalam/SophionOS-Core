@@ -205,13 +205,13 @@ export function useCompleteTask() {
 
       return { previousData };
     },
-    onSuccess: (_completedTask, id) => {
+    onSuccess: (result, id) => {
       toast.success("Task completed", {
         action: {
           label: "Undo",
           onClick: async () => {
             try {
-              await taskService.uncomplete(user!.id, id);
+              await taskService.undoComplete(user!.id, id, result.spawnedTaskId);
               await invalidateTaskGraph(queryClient);
               toast.success("Task restored");
             } catch {
@@ -237,6 +237,17 @@ export function useCompleteTask() {
   });
 }
 
+/**
+ * Mark a task as not completed.
+ *
+ * For recurring tasks, the service layer also deletes the live spawned
+ * child (the next instance queued by the most recent `complete()` call) by
+ * looking it up via `recurrence_source_task_id`. Callers do not need to
+ * know the spawned child's id — that is the service's job. This hook
+ * supersedes the older "undo via spawnedTaskId" path used by the toast
+ * Undo action; the page-level toggle is now safe to use for any
+ * uncheck.
+ */
 export function useUncompleteTask() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -404,13 +415,13 @@ export function useCompleteTaskWithGoalRefresh() {
 
       return { previousData };
     },
-    onSuccess: (_completedTask, id) => {
+    onSuccess: (result, id) => {
       toast.success("Task completed", {
         action: {
           label: "Undo",
           onClick: async () => {
             try {
-              await taskService.uncomplete(user!.id, id);
+              await taskService.undoComplete(user!.id, id, result.spawnedTaskId);
               await invalidateTaskGraph(queryClient);
               toast.success("Task restored");
             } catch {

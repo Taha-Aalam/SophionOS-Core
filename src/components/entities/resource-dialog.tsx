@@ -159,6 +159,13 @@ export function ResourceDialog({
   const [topicId, setTopicId] = useState<string>("");
   const [goalIds, setGoalIds] = useState<string[]>([]);
   const [taskIds, setTaskIds] = useState<string[]>([]);
+  /**
+   * Flag flipped when the user manually picks a status. While set, the
+   * context-driven auto-derive skips writing `status` so the user's pick
+   * is preserved. Context changes reset the flag, so the system re-derives
+   * (and overrides any prior pick) when the inputs that drive status change.
+   */
+  const statusOverriddenRef = useRef(false);
 
   useEffect(() => {
     if (open && resource) {
@@ -195,10 +202,12 @@ export function ResourceDialog({
     }
   }, [open, resource, initialGoalIds, initialAreaIds, initialProjectId, initialTopicId]);
 
-  // Live re-derive status from current context. The status field is now a
-  // derived display (no manual picker) so we always reflect the current
-  // bucket based on the dialog's area/project/goal/task/topic selections.
+  // Live re-derive status from current context. The status field still
+  // defaults from context, but the user can pick manually — once they do,
+  // we preserve their pick until a context input changes (at which point
+  // we clear the override and re-derive, so a wrong pick is corrected).
   useEffect(() => {
+    statusOverriddenRef.current = false;
     const next = deriveResourceStatus({
       area_ids: areaIds,
       project_id: projectId || null,
@@ -212,6 +221,11 @@ export function ResourceDialog({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaIds, projectId, topicId, goalIds, taskIds]);
+
+  const handleUserStatusChange = (next: ResourceStatus) => {
+    statusOverriddenRef.current = true;
+    setStatus(next);
+  };
 
   const handleUrlBlur = () => {
     if (url && !name) {
@@ -419,11 +433,18 @@ export function ResourceDialog({
             </div>
             <div className="grid gap-2">
               <Label>Status</Label>
-              <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
-                {RESOURCE_STATUS_OPTIONS.find((opt) => opt.value === status)?.label ??
-                  "Inbox"}{" "}
-                <span className="ml-1 text-xs">(derived from context)</span>
-              </div>
+              <Select value={status} onValueChange={(v) => handleUserStatusChange(v as ResourceStatus)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RESOURCE_STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
