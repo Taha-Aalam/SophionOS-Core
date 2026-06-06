@@ -310,7 +310,6 @@ export function AreaDetailContent() {
 
   useEffect(() => {
     if (area) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPageTitle(area.name);
     }
     return () => setPageTitle("");

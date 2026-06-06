@@ -384,30 +384,20 @@ export async function serverFetchAreaDetail(
   ): boolean =>
     entity.area_id === areaId || (entity.linkedAreaIds ?? []).includes(areaId)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const goals = allGoals.filter(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (g: any) => isLinkedToArea(g) || extraGoalIds.includes(g.id),
+    (g) => isLinkedToArea(g) || extraGoalIds.includes((g as { id: string }).id),
   )
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const projects = allProjectsWithRollups.filter(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (p: any) => isLinkedToArea(p) || extraProjectIds.includes(p.id),
+    (p) => isLinkedToArea(p) || extraProjectIds.includes((p as { id: string }).id),
   )
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tasks = allTasks.filter(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (t: any) => isLinkedToArea(t) || extraTaskIds.includes(t.id),
+    (t) => isLinkedToArea(t) || extraTaskIds.includes((t as { id: string }).id),
   )
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const linkedArchivedTasks = archivedTasks.filter(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (t: any) => isLinkedToArea(t) || extraTaskIds.includes(t.id),
+    (t) => isLinkedToArea(t) || extraTaskIds.includes((t as { id: string }).id),
   )
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const notes = allNotes.filter((n: any) => isLinkedToArea(n))
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const resources = allResources.filter((r: any) => isLinkedToArea(r))
+  const notes = allNotes.filter((n) => isLinkedToArea(n))
+  const resources = allResources.filter((r) => isLinkedToArea(r))
 
   return {
     area,
