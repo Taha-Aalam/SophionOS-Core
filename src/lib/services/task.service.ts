@@ -680,6 +680,35 @@ export const taskService = {
 
   async uncomplete(userId: string, id: string): Promise<Task> {
     const current = await this.getById(userId, id);
+
+    // Recurring-aware cleanup: if this row has a live spawned child, the
+    // cleanup RPC deletes the child and its join rows atomically before we
+    // uncomplete the parent. The RPC's own guard (matching the
+    // `recurrence_source_task_id` pointer) protects against a wrong id.
+    if (current.is_recurring && current.repeat_every && current.repeat_cycle) {
+      const { data: child } = await createClient()
+        .from("tasks")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("recurrence_source_task_id", id)
+        .eq("is_completed", false)
+        .eq("is_archived", false)
+        .limit(1)
+        .maybeSingle();
+
+      if (child?.id) {
+        const { error } = await createClient().rpc("undo_complete_recurring_task", {
+          p_user_id: userId,
+          p_completed_task_id: id,
+          p_spawned_task_id: child.id,
+        });
+
+        if (error) {
+          throw new DatabaseError(error.message);
+        }
+      }
+    }
+
     const fallback = deriveTaskStatus({
       area_ids: current.linkedAreaIds,
       goal_ids: current.linkedGoalIds,
