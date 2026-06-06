@@ -55,7 +55,7 @@ describe('calculateSmartPriority', () => {
       expect(calculateSmartPriority({ ...base, dueDate: '2020-01-01' })).toBeGreaterThan(
         calculateSmartPriority({ ...base, dueDate: future(60) })
       );
-      // overdue: 1.5+1.25=2.75→3; 60d future: 0+1.25=1.25→1
+      // overdue: 1.5+1.25+0+0=2.75→3; 60d future: 0.5(floor)+1.25+0+0=1.75→2
     });
 
     it('due in 14+ days has near-zero due weight (≤ no-date score)', () => {
@@ -63,7 +63,74 @@ describe('calculateSmartPriority', () => {
       expect(calculateSmartPriority({ ...base, dueDate: future(20) })).toBeLessThanOrEqual(
         calculateSmartPriority({ ...base, dueDate: null })
       );
-      // 20d future weight = max(0, 1.5-20/14*1.5) = 0 < 0.5 (no-date)
+      // 20d future weight = 0.5 (floor) → 0.5+0.25+0+0=0.75→1
+    });
+
+    it('future date never scores below no-date (due-weight floor of 0.5)', () => {
+      // Setting a date should never HURT you vs. leaving it blank.
+      const base = { priority: PRIORITY.LOW, goalCount: 0, projectCount: 0, isImportant: false, isUrgent: false };
+      const noDate  = calculateSmartPriority({ ...base, dueDate: null });
+      const farOut  = calculateSmartPriority({ ...base, dueDate: future(20) });
+      const veryFar = calculateSmartPriority({ ...base, dueDate: future(180) });
+      const crazy   = calculateSmartPriority({ ...base, dueDate: future(999) });
+      expect(farOut).toBeGreaterThanOrEqual(noDate);
+      expect(veryFar).toBeGreaterThanOrEqual(noDate);
+      expect(crazy).toBeGreaterThanOrEqual(noDate);
+    });
+
+    it('1-7 days overdue: due weight stays at 1.5 (recent overdue band)', () => {
+      // base with low + no flags so due weight drives the visible integer diff
+      const base = { priority: PRIORITY.LOW, goalCount: 0, projectCount: 0, isImportant: false, isUrgent: false };
+      const past1 = calculateSmartPriority({ ...base, dueDate: future(-1) });
+      const past6 = calculateSmartPriority({ ...base, dueDate: future(-6) });
+      expect(past1).toBe(past6);
+      // both: 1.5+0.25+0+0=1.75→2
+    });
+
+    it('>7 days overdue: due weight escalates above the 1.5 band', () => {
+      // Use low + urgent-only (no important) so the 0.25 escalation lands on a .5 boundary
+      // and rounds up to a visible integer. past6 sum = 2.25→2, past15 sum = 2.5→3.
+      // future(-N) can be off-by-one vs local date, so we use a wide gap (-6 vs -15).
+      const base = { priority: PRIORITY.LOW, goalCount: 0, projectCount: 0, isImportant: false, isUrgent: true };
+      const past6   = calculateSmartPriority({ ...base, dueDate: future(-6)  });
+      const past15  = calculateSmartPriority({ ...base, dueDate: future(-15) });
+      const past60  = calculateSmartPriority({ ...base, dueDate: future(-60) });
+      expect(past15).toBeGreaterThan(past6);
+      expect(past60).toBeGreaterThan(past6);
+      // past6:  1.5+0.25+0+0.5=2.25→2
+      // past15: 1.75+0.25+0+0.5=2.5 →3
+      // past60: 1.75+0.25+0+0.5=2.5 →3
+    });
+
+    it('>7 days overdue applies to arbitrarily stale tasks (1 year)', () => {
+      // Confirms the escalation is a sustained step, not a one-day spike.
+      const base = { priority: PRIORITY.LOW, goalCount: 0, projectCount: 0, isImportant: false, isUrgent: true };
+      const recentOverdue = calculateSmartPriority({ ...base, dueDate: future(-6)   });
+      const yearOld       = calculateSmartPriority({ ...base, dueDate: future(-365) });
+      expect(yearOld).toBeGreaterThan(recentOverdue);
+    });
+
+    it('very stale overdue (1 year) still clamps to max score 5', () => {
+      const score = calculateSmartPriority({
+        priority: PRIORITY.HIGH,
+        dueDate: future(-365),
+        goalCount: 10,
+        projectCount: 5,
+        isImportant: true,
+        isUrgent: true,
+      });
+      expect(score).toBeLessThanOrEqual(5);
+    });
+
+    it('due today (1.5) >= due 1-7 days ago (1.25)', () => {
+      // The 0.25 raw delta between today and 1-7d overdue is at the .25 boundary,
+      // so it never produces a visible integer jump on any baseline. The invariant
+      // we can assert is non-decreasing as we approach today.
+      const base = { priority: PRIORITY.HIGH, goalCount: 0, projectCount: 0, isImportant: false, isUrgent: false };
+      const today = calculateSmartPriority({ ...base, dueDate: future(0) });
+      const past1 = calculateSmartPriority({ ...base, dueDate: future(-1) });
+      expect(today).toBeGreaterThanOrEqual(past1);
+      // today: 1.5+1.25+0+0=2.75→3; past1: 1.25+1.25+0+0=2.5→3
     });
   });
 
@@ -163,13 +230,21 @@ describe('calculateSmartPriority', () => {
       expect(urgentOnly).toBeGreaterThan(neither);
     });
 
-    it('important-only raw weight (0.7) is >= urgent-only (0.5)', () => {
-      // Use overdue+high to spread the scores
+    it('important-only raw weight (0.7) equals urgent-only (0.7)', () => {
+      // Both single-flag tiers share the 0.7 weight. Check the integer scores are equal.
       const b = { priority: PRIORITY.HIGH, dueDate: '2020-01-01', goalCount: 0, projectCount: 0 };
       const importantOnly = calculateSmartPriority({ ...b, isImportant: true,  isUrgent: false });
       const urgentOnly    = calculateSmartPriority({ ...b, isImportant: false, isUrgent: true  });
-      expect(importantOnly).toBeGreaterThanOrEqual(urgentOnly);
-      // importantOnly: 1.5+1.25+0+0.7=3.45→3; urgentOnly: 3.25→3
+      expect(importantOnly).toBe(urgentOnly);
+      // both: 1.75+1.25+0+0.7=3.7→4
+    });
+
+    it('both flags (1.25) outscores single flag (0.7)', () => {
+      // MEDIUM + '2020' + 0/0: both = 1.75+0.75+0+1.25=3.75→4; important = 1.75+0.75+0+0.7=3.2→3
+      const b = { priority: PRIORITY.MEDIUM, dueDate: '2020-01-01', goalCount: 0, projectCount: 0 };
+      const both         = calculateSmartPriority({ ...b, isImportant: true,  isUrgent: true  });
+      const importantOnly = calculateSmartPriority({ ...b, isImportant: true,  isUrgent: false });
+      expect(both).toBeGreaterThan(importantOnly);
     });
   });
 
@@ -186,7 +261,7 @@ describe('calculateSmartPriority', () => {
       expect(
         calculateSmartPriority({ priority: PRIORITY.LOW, dueDate: future(30), goalCount: 0, projectCount: 0, isImportant: false, isUrgent: false })
       ).toBe(1);
-      // ~0+0.25+0+0=0.25→0→GREATEST(1,0)=1
+      // 0.5(floor)+0.25+0+0=0.75→1
     });
 
     it('medium priority + 3 goals + overdue produces high score', () => {
@@ -203,10 +278,10 @@ describe('calculateSmartPriority', () => {
     });
   });
 
-  // ── Round-up threshold (4.1+ → 5) ────────────────────────────────────────
-  describe('round-up threshold (4.1+ → 5)', () => {
-    it('score of 4.1+ rounds up to 5', () => {
-      // overdue + medium + 1 goal + 2 projects + both flags = 4.25
+  // ── Round-up threshold (> 4.5 → 5) ───────────────────────────────────────
+  describe('round-up threshold (> 4.5 → 5)', () => {
+    it('score above 4.5 rounds up to 5', () => {
+      // overdue + medium + 1 goal + 2 projects + both flags = 4.75
       const score = calculateSmartPriority({
         priority: PRIORITY.MEDIUM,
         dueDate: '2020-01-01',
@@ -215,7 +290,7 @@ describe('calculateSmartPriority', () => {
         isImportant: true,
         isUrgent: true,
       });
-      // 1.5 + 0.75 + min(1.25, 0.5) + min(0.75, 0.5) + 1.0 = 4.25 → 5
+      // 1.75 + 0.75 + 1.0 + 1.25 = 4.75 → > 4.5 → 5
       expect(score).toBe(5);
     });
 
@@ -232,18 +307,16 @@ describe('calculateSmartPriority', () => {
       expect(score).toBe(4);
     });
 
-    it('score in the 4.1-4.4 band rounds up to 5', () => {
-      // Construct a 4.1-ish case: overdue + medium + 0 goals + 3 projects + important-only
-      // 1.5 + 0.75 + 0 + 0.75 + 0.7 = 3.7 → 4 (not quite)
-      // Try: overdue + high + 0 goals + 3 projects + important-only
-      // 1.5 + 1.25 + 0 + 0.75 + 0.7 = 4.2 → 5 (round-up)
+    it('score in the (4.5, 5.0] band rounds up to 5', () => {
+      // Construct a case just above 4.5: overdue + high + 1 goal + 0 projects + both flags
+      // 1.75 + 1.25 + 0.5 + 1.25 = 4.75 → > 4.5 → 5
       const score = calculateSmartPriority({
         priority: PRIORITY.HIGH,
         dueDate: '2020-01-01',
-        goalCount: 0,
-        projectCount: 3,
+        goalCount: 1,
+        projectCount: 0,
         isImportant: true,
-        isUrgent: false,
+        isUrgent: true,
       });
       expect(score).toBe(5);
     });
