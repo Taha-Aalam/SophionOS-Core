@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { noteService } from "@/lib/services/note.service";
@@ -43,13 +43,24 @@ export function InboxBackfillProvider({ children }: InboxBackfillProviderProps) 
   const inFlightRef = useRef<Promise<unknown> | null>(null);
 
   // Stable references so the mutation-cache subscription can read them
-  // without re-subscribing on every render.
+  // without re-subscribing on every render. The refs themselves hold
+  // the latest snapshots; sync is done in effects (not in render) to
+  // satisfy `react-hooks/refs`. `useEffectEvent` then gives effect
+  // bodies a stable identity that always reads the freshest value.
   const userIdRef = useRef<string | undefined>(userId);
-  userIdRef.current = userId;
   const queryClientRef = useRef(queryClient);
-  queryClientRef.current = queryClient;
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
+  useEffect(() => {
+    queryClientRef.current = queryClient;
+  }, [queryClient]);
 
-  const runBackfill = async () => {
+  // `useEffectEvent` wraps `runBackfill` so it can be called from
+  // effect bodies (and event handlers in effects) without re-firing
+  // those effects when `runBackfill` would otherwise be a fresh
+  // closure on every render.
+  const runBackfill = useEffectEvent(async () => {
     const uid = userIdRef.current;
     if (!uid) return;
     if (inFlightRef.current) return inFlightRef.current;
@@ -73,7 +84,7 @@ export function InboxBackfillProvider({ children }: InboxBackfillProviderProps) 
       });
 
     return inFlightRef.current;
-  };
+  });
 
   // ── On mount: one-shot per session.
   useEffect(() => {
@@ -84,9 +95,8 @@ export function InboxBackfillProvider({ children }: InboxBackfillProviderProps) 
     void runBackfill().catch(() => {
       window.sessionStorage.removeItem(SESSION_FLAG);
     });
-    // We intentionally omit `runBackfill` from deps; it is stable because
-    // every mutable value it touches is read via a ref.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // We intentionally omit `runBackfill` from deps; it is stable
+    // because it is a `useEffectEvent` callback.
   }, [userId]);
 
   // ── Subscribe to the mutation cache: run on any successful mutation.
@@ -114,7 +124,8 @@ export function InboxBackfillProvider({ children }: InboxBackfillProviderProps) 
         debounceTimerRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // `runBackfill` is stable (useEffectEvent), so it is safe to omit
+    // from deps.
   }, [userId, queryClient]);
 
   return <>{children}</>;
