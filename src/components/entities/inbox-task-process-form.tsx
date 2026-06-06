@@ -61,8 +61,8 @@ export function TaskProcessForm({
     task.linkedProjectIds ?? (task.project_id ? [task.project_id] : []),
   );
   const [dueDate, setDueDate] = useState<string>(task.due_date ?? "");
-  const [status, setStatus] = useState<string>(TASK_STATUS.TODO);
-  const [priority, setPriority] = useState<string>(task.priority ?? UNSET);
+  const [status, _setStatus] = useState<string>(TASK_STATUS.TODO);
+  const [priority, _setPriority] = useState<string>(task.priority ?? UNSET);
 
   const toggleArea = (id: string) =>
     setRawAreaIds((prev) =>

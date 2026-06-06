@@ -101,7 +101,6 @@ export function ContactDetailRelationshipSections({
   onUnlinkProject,
   onArchiveProject,
   onRestoreProject,
-  onUnlinkTask,
   onTaskCompletionToggle,
   onTaskFocusToggle,
   onTaskNameSave,

@@ -74,7 +74,7 @@ export function ResourceInboxProcessForm({
   const [rawProjectId, setRawProjectId] = useState<string>(resource.project_id ?? "");
   const [rawTaskIds, setRawTaskIds] = useState<string[]>(resource.linkedTaskIds ?? []);
   const [topicId, setTopicId] = useState<string>(resource.topic_id ?? "");
-  const [status, setStatus] = useState<string>(RESOURCE_STATUS.ACTIVE);
+  const [status, _setStatus] = useState<string>(RESOURCE_STATUS.ACTIVE);
 
   const toggleArea = (id: string) =>
     setRawAreaIds((prev) =>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { BookOpen, ChevronDown, Search, X } from "lucide-react";
+import { BookOpen, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -35,7 +35,6 @@ import {
   computeFilteredGoals,
   computeFilteredTasks,
 } from "@/lib/utils/resource-dialog-filters";
-import { cn } from "@/lib/utils";
 
 const NOTE_ICON = "📝";
 
@@ -90,7 +89,7 @@ export function NoteInboxProcessForm({
   );
   const [rawTaskIds, setRawTaskIds] = useState<string[]>(note.linkedTaskIds ?? []);
   const [notebooks, setNotebooks] = useState<string[]>(note.notebooks ?? []);
-  const [status, setStatus] = useState<string>(NOTE_STATUS.TO_REVIEW);
+  const [status, _setStatus] = useState<string>(NOTE_STATUS.TO_REVIEW);
 
   const toggleArea = (id: string) =>
     setRawAreaIds((prev) =>
