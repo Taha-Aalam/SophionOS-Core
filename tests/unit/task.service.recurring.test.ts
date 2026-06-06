@@ -709,3 +709,201 @@ describe("taskService.update – partial updates do not clobber recurrence", () 
     expect(updatePayload).not.toHaveProperty("repeat_cycle");
   });
 });
+
+describe("taskService.uncomplete – recurring-aware child cleanup", () => {
+  const userId = "user-1";
+  const taskId = "task-1";
+  const childId = "task-2";
+
+  function recurringRow(overrides: Record<string, unknown> = {}) {
+    return {
+      id: taskId,
+      user_id: userId,
+      status: TASK_STATUS.COMPLETED,
+      is_completed: true,
+      area_id: null,
+      project_id: null,
+      linkedAreaIds: [],
+      linkedGoalIds: [],
+      linkedProjectIds: [],
+      previous_status: TASK_STATUS.TODO,
+      is_recurring: true,
+      repeat_every: 1,
+      repeat_cycle: TASK_REPEAT_CYCLE.DAYS,
+      ...overrides,
+    };
+  }
+
+  function uncompletedRow(overrides: Record<string, unknown> = {}) {
+    return {
+      ...recurringRow(),
+      is_completed: false,
+      status: TASK_STATUS.TODO,
+      previous_status: null,
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(createClient).mockReset();
+  });
+
+  it("calls undo RPC and patches the parent when a live spawned child exists", async () => {
+    const childLookupClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: childId }, error: null }),
+    } as any;
+    const rpcClient = {
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    } as any;
+    const getByIdClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: recurringRow(), error: null }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    const updateClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: uncompletedRow(), error: null }),
+    } as any;
+
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => getByIdClient)    // uncomplete.getById
+      .mockImplementationOnce(() => getByIdClient)    // task_areas hydration
+      .mockImplementationOnce(() => getByIdClient)    // goal_tasks hydration
+      .mockImplementationOnce(() => getByIdClient)    // task_projects hydration
+      .mockImplementationOnce(() => childLookupClient) // live child lookup
+      .mockImplementationOnce(() => rpcClient)        // undo RPC
+      .mockImplementationOnce(() => updateClient);    // final patch
+
+    const result = await taskService.uncomplete(userId, taskId);
+
+    expect(rpcClient.rpc).toHaveBeenCalledWith("undo_complete_recurring_task", {
+      p_user_id: userId,
+      p_completed_task_id: taskId,
+      p_spawned_task_id: childId,
+    });
+    expect(result.is_completed).toBe(false);
+  });
+
+  it("does not call undo RPC when no live spawned child exists", async () => {
+    const childLookupClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    } as any;
+    const rpcClient = {
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    } as any;
+    const getByIdClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: recurringRow(), error: null }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    const updateClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: uncompletedRow(), error: null }),
+    } as any;
+
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => childLookupClient)
+      .mockImplementationOnce(() => updateClient);
+
+    await taskService.uncomplete(userId, taskId);
+
+    expect(rpcClient.rpc).not.toHaveBeenCalled();
+  });
+
+  it("skips the lookup and RPC for non-recurring tasks (fast path)", async () => {
+    const rpcClient = { rpc: vi.fn() } as any;
+    const getByIdClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: recurringRow({ is_recurring: false, repeat_every: null, repeat_cycle: null }),
+        error: null,
+      }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    const updateClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: uncompletedRow({ is_recurring: false, repeat_every: null, repeat_cycle: null }),
+        error: null,
+      }),
+    } as any;
+
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => updateClient);
+
+    await taskService.uncomplete(userId, taskId);
+
+    expect(rpcClient.rpc).not.toHaveBeenCalled();
+  });
+
+  it("does not call undo RPC when the only child is archived or completed (filtered out)", async () => {
+    const childLookupClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    } as any;
+    const rpcClient = {
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    } as any;
+    const getByIdClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: recurringRow(), error: null }),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    const updateClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: uncompletedRow(), error: null }),
+    } as any;
+
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => getByIdClient)
+      .mockImplementationOnce(() => childLookupClient)
+      .mockImplementationOnce(() => updateClient);
+
+    await taskService.uncomplete(userId, taskId);
+
+    expect(rpcClient.rpc).not.toHaveBeenCalled();
+  });
+});
