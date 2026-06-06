@@ -29,9 +29,8 @@ export function calculateSmartPriority(input: SmartPriorityInput): number {
     }
   }
 
-  // Priority level (25%): urgent/high=1.25, medium=0.75, low=0.25
+  // Priority level (25%): high=1.25, medium=0.75, low=0.25
   const priWeights: Record<Priority, number> = {
-    urgent: 1.25,
     high: 1.25,
     medium: 0.75,
     low: 0.25,

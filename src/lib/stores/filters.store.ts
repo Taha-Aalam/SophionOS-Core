@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import type { GoalStatusFilter, GoalTermFilter } from "@/lib/utils/goals";
 
-export type GoalPriority = "low" | "medium" | "high" | "urgent";
+export type GoalPriority = "low" | "medium" | "high";
 
 export interface GoalFilters {
   term: GoalTermFilter;

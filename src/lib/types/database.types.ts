@@ -784,7 +784,7 @@ export type Database = {
       goal_term: "short" | "mid" | "long";
       note_status: "inbox" | "to_review" | "active" | "archive" | "saved";
       note_type: "note" | "research" | "journal";
-      priority: "low" | "medium" | "high" | "urgent";
+      priority: "low" | "medium" | "high";
       project_status: "inbox" | "planning" | "active" | "completed" | "on_hold" | "archived";
       resource_status: "inbox" | "to_review" | "active" | "saved";
       resource_type: "website" | "article" | "video" | "document" | "podcast" | "social_media" | "tool";
