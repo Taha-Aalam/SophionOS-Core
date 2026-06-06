@@ -401,7 +401,11 @@ export const taskService = {
     }
   },
 
-  async update(userId: string, id: string, input: UpdateTaskInput): Promise<Task> {
+  async update(
+    userId: string,
+    id: string,
+    input: UpdateTaskInput,
+  ): Promise<Task | CompleteTaskResult> {
     try {
       const validated = updateTaskSchema.parse(input);
       const { areaIds, taskInput: areaCleanedInput } = extractTaskAreaIds(validated);
@@ -429,8 +433,10 @@ export const taskService = {
 
       const touchesCompletion =
         taskInputWide.status !== undefined || taskInputWide.is_completed !== undefined;
+      let currentForTransition: Awaited<ReturnType<typeof this.getById>> | null = null;
       if (touchesCompletion) {
         const current = await this.getById(userId, id);
+        currentForTransition = current;
         const fallback = deriveTaskStatus({
           area_ids: current.linkedAreaIds,
           goal_ids: current.linkedGoalIds,
@@ -449,6 +455,27 @@ export const taskService = {
           now: new Date().toISOString(),
         });
         Object.assign(taskInputWide, syncPatch);
+      }
+
+      // Recurring-aware delegation: when the resolved transition is a
+      // completion flip on a recurring row, route through complete() /
+      // uncomplete() so the spawn / cleanup RPC pair runs. Non-recurring
+      // rows fall through to the in-place patch path below.
+      if (currentForTransition) {
+        const row = currentForTransition;
+        const nowRecurring =
+          row.is_recurring && row.repeat_every && row.repeat_cycle;
+        const transitionedToCompleted =
+          !row.is_completed && taskInputWide.is_completed === true;
+        const transitionedFromCompleted =
+          row.is_completed && taskInputWide.is_completed === false;
+
+        if (nowRecurring && transitionedToCompleted) {
+          return this.complete(userId, id);
+        }
+        if (nowRecurring && transitionedFromCompleted) {
+          return this.uncomplete(userId, id);
+        }
       }
 
       // Re-derive the status whenever the task's context changes. The caller
