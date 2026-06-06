@@ -34,7 +34,7 @@ describe('calculateSmartPriority', () => {
 
     it('never returns above 5 regardless of inputs', () => {
       expect(
-        calculateSmartPriority({ priority: PRIORITY.URGENT, dueDate: '2020-01-01', goalCount: 100, isImportant: true, isUrgent: true })
+        calculateSmartPriority({ priority: PRIORITY.HIGH, dueDate: '2020-01-01', goalCount: 100, isImportant: true, isUrgent: true })
       ).toBeLessThanOrEqual(5);
     });
   });
@@ -69,11 +69,11 @@ describe('calculateSmartPriority', () => {
 
   // ── Priority weight ──────────────────────────────────────────────────────
   describe('priority weight', () => {
-    it('"urgent" and "high" priorities have equal weight', () => {
+    it('"high" is the top priority weight', () => {
       const base = { dueDate: null, goalCount: 0, isImportant: false, isUrgent: false };
-      expect(calculateSmartPriority({ ...base, priority: PRIORITY.HIGH })).toBe(
-        calculateSmartPriority({ ...base, priority: PRIORITY.URGENT })
-      );
+      const high = calculateSmartPriority({ ...base, priority: PRIORITY.HIGH });
+      expect(high).toBe(2);
+      // 0.5+1.25+0+0=1.75→2
     });
 
     it('high scores higher than medium and low', () => {

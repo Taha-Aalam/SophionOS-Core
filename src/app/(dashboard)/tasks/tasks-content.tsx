@@ -436,7 +436,6 @@ export function TasksContent() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_PRIORITY_VALUE}>All priorities</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
                 <SelectItem value="high">High</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
                 <SelectItem value="low">Low</SelectItem>

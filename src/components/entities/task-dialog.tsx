@@ -734,7 +734,6 @@ export function TaskDialog({
                         <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
                         <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
                         <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
-                        <SelectItem value={PRIORITY.URGENT}>Urgent</SelectItem>
                       </SelectContent>
                     </Select>
                   )}

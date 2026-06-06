@@ -150,8 +150,6 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
                                   variant="outline"
                                   className={cn(
                                     "text-xs",
-                                    project.priority === "urgent" &&
-                                      "border-red-300 text-red-600",
                                     project.priority === "high" &&
                                       "border-orange-300 text-orange-600",
                                     project.priority === "medium" &&
