@@ -1,18 +1,12 @@
 "use client";
 
-import {
-  Archive,
-  ArchiveRestore,
-  Map as LucideMap,
-  Pin,
-  Star,
-} from "lucide-react";
+import { Archive, ArchiveRestore, Map as LucideMap, Pin, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
+import type { Note } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
 import { encodeReturnTo } from "@/lib/utils/return-to";
-import type { Note } from "@/lib/types/domain.types";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
 
@@ -110,7 +104,7 @@ export function NoteRow({
             {nb}
           </Badge>
         ))}
-        {areas.map((area, i) => (
+        {areas.slice(0, 2).map((area, i) => (
           <Badge key={i} variant="outline" className="gap-1 text-xs font-normal">
             {area.icon ? (
               <span className="text-xs leading-none">{area.icon}</span>
@@ -120,24 +114,44 @@ export function NoteRow({
             {area.name}
           </Badge>
         ))}
-        {goalNames.map((name) => (
+        {areas.length > 2 && (
+          <Badge variant="secondary" className="text-xs font-normal">
+            +{areas.length - 2}
+          </Badge>
+        )}
+        {goalNames.slice(0, 2).map((name) => (
           <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
             <span className="text-xs leading-none">🎯</span>
             {name}
           </Badge>
         ))}
-        {projectNames.map((name) => (
+        {goalNames.length > 2 && (
+          <Badge variant="secondary" className="text-xs font-normal">
+            +{goalNames.length - 2}
+          </Badge>
+        )}
+        {projectNames.slice(0, 2).map((name) => (
           <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
             <span className="text-xs leading-none">📁</span>
             {name}
           </Badge>
         ))}
-        {taskNames.map((name) => (
+        {projectNames.length > 2 && (
+          <Badge variant="secondary" className="text-xs font-normal">
+            +{projectNames.length - 2}
+          </Badge>
+        )}
+        {taskNames.slice(0, 2).map((name) => (
           <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
             <span className="text-xs leading-none">☑️</span>
             {name}
           </Badge>
         ))}
+        {taskNames.length > 2 && (
+          <Badge variant="secondary" className="text-xs font-normal">
+            +{taskNames.length - 2}
+          </Badge>
+        )}
         <span className="text-xs text-muted-foreground">
           {new Date(note.updated_at).toLocaleDateString("en-US", {
             month: "short",

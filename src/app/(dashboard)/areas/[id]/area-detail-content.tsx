@@ -225,11 +225,14 @@ export function AreaDetailContent() {
 
   const allGoalsById = useMemo(() => {
     const map = new Map<string, string>();
+    for (const g of allGoalsGlobal ?? []) {
+      if (g?.name) map.set(g.id, g.name);
+    }
     for (const g of areaData?.allGoals ?? []) {
       if (g?.name) map.set(g.id, g.name);
     }
     return map;
-  }, [areaData?.allGoals]);
+  }, [allGoalsGlobal, areaData?.allGoals]);
 
   const projectsById = useMemo(() => {
     const map = new Map<string, string>();
@@ -244,11 +247,14 @@ export function AreaDetailContent() {
 
   const tasksById = useMemo(() => {
     const map = new Map<string, string>();
+    for (const t of allTasksGlobal ?? []) {
+      if (t?.name) map.set(t.id, t.name);
+    }
     for (const t of areaData?.tasks ?? []) {
       if (t?.name) map.set(t.id, t.name);
     }
     return map;
-  }, [areaData?.tasks]);
+  }, [allTasksGlobal, areaData?.tasks]);
 
   const topicNamesMap = useMemo(() => {
     const map = new Map(topics.map((t) => [t.id, t.name]));

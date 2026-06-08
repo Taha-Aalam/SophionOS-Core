@@ -75,6 +75,7 @@ import {
 import { useGoalDetail } from "@/lib/hooks/use-goal-detail";
 import {
   useDeleteGoal,
+  useGoals,
   useLinkGoalToArea,
   useUnlinkGoalFromArea,
   useUpdateGoal,
@@ -227,6 +228,7 @@ export function GoalDetailContent() {
   const { data: allNotes = [] } = useNotes({ status: "all" });
   const { data: allResources = [] } = useResources({ status: "all" });
   const { data: allTasksGlobal = [] } = useTasks();
+  const { data: allGoalsGlobal = [] } = useGoals({ status: "all" });
   const { data: topics = [] } = useTopics();
   const { data: allContacts = [] } = useContacts();
   const { data: allArchivedContacts = [] } = useContacts({ archive: true });
@@ -273,10 +275,11 @@ export function GoalDetailContent() {
   const areaIcons = useMemo(() => new Map(areas.map((a) => [a.id, a.icon ?? null])), [areas]);
   const goalNamesMap = useMemo(() => {
     const map = new Map<string, string>();
+    for (const g of allGoalsGlobal ?? []) map.set(g.id, g.name);
     if (goalData?.goal) map.set(goalData.goal.id, goalData.goal.name);
     for (const g of goalData?.extraGoalNames ?? []) map.set(g.id, g.name);
     return map;
-  }, [goalData]);
+  }, [allGoalsGlobal, goalData]);
   const projectNamesMap = useMemo(() => {
     const map = new Map(allProjects.map((p) => [p.id, p.name]));
     for (const p of goalData?.projects ?? []) map.set(p.id, p.name);
@@ -284,10 +287,11 @@ export function GoalDetailContent() {
   }, [allProjects, goalData?.projects]);
   const taskNamesMap = useMemo(() => {
     const map = new Map<string, string>();
+    for (const t of allTasksGlobal ?? []) map.set(t.id, t.name);
     for (const t of goalData?.tasks ?? []) map.set(t.id, t.name);
     for (const t of goalData?.extraTaskNames ?? []) map.set(t.id, t.name);
     return map;
-  }, [goalData?.tasks, goalData?.extraTaskNames]);
+  }, [allTasksGlobal, goalData?.tasks, goalData?.extraTaskNames]);
   const topicNamesMap = useMemo(() => {
     // Prefer names carried in the goal-detail payload (available on first paint)
     // and fall back to the live topics query for anything not yet hydrated.
@@ -745,10 +749,11 @@ export function GoalDetailContent() {
   }, [areas]);
   const taskGroupGoalMap = useMemo(() => {
     const map = new Map<string, { name: string }>();
+    for (const g of allGoalsGlobal ?? []) map.set(g.id, { name: g.name });
     if (goal) map.set(goal.id, { name: goal.name });
     for (const g of goalData?.extraGoalNames ?? []) map.set(g.id, { name: g.name });
     return map;
-  }, [goal, goalData?.extraGoalNames]);
+  }, [allGoalsGlobal, goal, goalData?.extraGoalNames]);
   const taskGroupProjectMap = useMemo(() => {
     const map = new Map<string, { name: string }>();
     for (const p of allProjects) map.set(p.id, { name: p.name });
