@@ -65,6 +65,7 @@ import { buildNoteMetadataUpdateInput } from "@/lib/utils/note-detail-metadata";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
+import { getNoteLinkedGoalIds } from "@/lib/utils/notes";
 
 const STATUS_COLORS: Record<string, string> = {
   inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -138,7 +139,7 @@ export function NoteDetailContent() {
           setLocalTitle(note.name);
           setLocalNotebooks(note.notebooks ?? []);
           setLocalAreaIds(note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []));
-          setLocalGoalIds(note.linkedGoalIds ?? []);
+          setLocalGoalIds(getNoteLinkedGoalIds(note));
           setLocalProjectIds(note.linkedProjectIds ?? (note.project_id ? [note.project_id] : []));
           setLocalTaskIds(note.linkedTaskIds ?? []);
         }
