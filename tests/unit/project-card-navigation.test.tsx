@@ -33,21 +33,22 @@ function createProject(overrides: Partial<Project> = {}): Project {
   };
 }
 
-describe("ProjectCard navigation and edit", () => {
+describe("ProjectCard navigation", () => {
   it("navigates to detail page when card is clicked", () => {
     const project = createProject();
 
     const html = renderToStaticMarkup(<ProjectCard project={project} />);
     expect(html).toContain("Test Project");
-    // The card should not contain an edit button when onEdit is not provided
+    // No edit button is rendered by design — edit happens on the detail page
     expect(html).not.toContain('aria-label="Edit Test Project"');
   });
 
-  it("renders an edit button when onEdit is provided", () => {
+  it("does not render an edit button even when onEdit is provided (design choice)", () => {
     const project = createProject();
     const onEdit = vi.fn();
 
     const html = renderToStaticMarkup(<ProjectCard project={project} onEdit={onEdit} />);
-    expect(html).toContain('aria-label="Edit Test Project"');
+    // Edit button intentionally not rendered — onEdit prop exists for future use / other consumers
+    expect(html).not.toContain('aria-label="Edit Test Project"');
   });
 });

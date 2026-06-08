@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Regression tests for status re-derivation when context is cleared via update.
  *
