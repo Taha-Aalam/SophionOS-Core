@@ -112,13 +112,40 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateTaskInput }) =>
       taskService.update(user!.id, id, input),
-    onSuccess: async () => {
+    // Optimistic update: patch every tasks-list cache with the incoming
+    // changes BEFORE the server roundtrip. Without this, the calendar view
+    // keeps the task on its old date until the post-mutation refetch
+    // arrives, which manifests as a "snap back" for ~50-300ms after a drop.
+    onMutate: async ({ id, input }) => {
+      await queryClient.cancelQueries({ queryKey: [TASKS_QUERY_KEY] });
+      const previousData = queryClient.getQueriesData<Task[]>({
+        queryKey: [TASKS_QUERY_KEY],
+      });
+
+      queryClient.setQueriesData<Task[]>({ queryKey: [TASKS_QUERY_KEY] }, (old) => {
+        if (!Array.isArray(old)) {
+          return old;
+        }
+        return old.map((task) => (task.id === id ? { ...task, ...input } : task));
+      });
+
+      return { previousData };
+    },
+    onError: (error: Error, _variables, context) => {
+      if (context?.previousData) {
+        for (const [queryKey, data] of context.previousData) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+      toast.error(error.message || "Failed to update task");
+    },
+    onSettled: async () => {
+      // Always refetch after settle so server truth wins, even on success.
+      // (onError already restored the snapshot; the refetch re-applies it if
+      // the server's response differs from the optimistic patch.)
       await invalidateTaskCoreGraph(queryClient);
       queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to update task");
     },
   });
 }

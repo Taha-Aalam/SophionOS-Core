@@ -7,14 +7,6 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { AreaCard } from "@/components/entities/area-card";
 import { AreaDialog } from "@/components/entities/area-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GalleryGrid } from "@/components/views/gallery-grid";
 import { EmptyState } from "@/components/views/empty-state";
@@ -50,8 +42,6 @@ export function AreasContent() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingArea, setEditingArea] = useState<Area | undefined>();
   const [defaultType, setDefaultType] = useState<string | undefined>();
-  const [areaPendingDelete, setAreaPendingDelete] = useState<Area | null>(null);
-
   const { data: areas = [], isLoading } = useAreas();
   const { data: goals = [] } = useGoals({ status: "all" });
   const { data: projects = [] } = useProjects({ status: "all" });
@@ -160,13 +150,8 @@ export function AreasContent() {
     await archiveArea.mutateAsync(area.id);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!areaPendingDelete) {
-      return;
-    }
-
-    await deleteArea.mutateAsync(areaPendingDelete.id);
-    setAreaPendingDelete(null);
+  const handleDelete = async (area: Area) => {
+    await deleteArea.mutateAsync(area.id);
   };
 
   return (
@@ -244,7 +229,7 @@ export function AreasContent() {
                   isArchiving={archiveArea.isPending}
                   onRestore={handleRestore}
                   isRestoring={restoreArea.isPending}
-                  onDelete={setAreaPendingDelete}
+                  onDelete={handleDelete}
                   isDeleting={deleteArea.isPending}
                 />
               ))}
@@ -280,7 +265,7 @@ export function AreasContent() {
                   onEdit={handleOpenEdit}
                   onArchive={handleArchive}
                   isArchiving={archiveArea.isPending}
-                  onDelete={setAreaPendingDelete}
+                  onDelete={handleDelete}
                   isDeleting={deleteArea.isPending}
                 />
               ))}
@@ -325,7 +310,7 @@ export function AreasContent() {
                   isArchiving={archiveArea.isPending}
                   onRestore={handleRestore}
                   isRestoring={restoreArea.isPending}
-                  onDelete={setAreaPendingDelete}
+                  onDelete={handleDelete}
                   isDeleting={deleteArea.isPending}
                 />
               ))}
@@ -362,7 +347,7 @@ export function AreasContent() {
                   isArchiving={archiveArea.isPending}
                   onRestore={handleRestore}
                   isRestoring={restoreArea.isPending}
-                  onDelete={setAreaPendingDelete}
+                  onDelete={handleDelete}
                   isDeleting={deleteArea.isPending}
                 />
               ))}
@@ -380,31 +365,6 @@ export function AreasContent() {
         onSubmit={handleSubmit}
         isLoading={createArea.isPending || updateArea.isPending}
       />
-
-      <Dialog open={!!areaPendingDelete} onOpenChange={(open) => !open && setAreaPendingDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Area Permanently?</DialogTitle>
-            <DialogDescription>
-              {areaPendingDelete
-                ? `This will permanently delete "${areaPendingDelete.name}". This cannot be undone.`
-                : "This action cannot be undone."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAreaPendingDelete(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmDelete}
-              disabled={deleteArea.isPending}
-            >
-              Delete Area
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

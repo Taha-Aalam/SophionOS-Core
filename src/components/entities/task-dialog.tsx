@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { Controller, FormProvider, useForm } from "react-hook-form";
-import { Trash2, X } from "lucide-react";
+import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAreas, useAreasByIds } from "@/lib/hooks/use-areas";
@@ -45,6 +45,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { TaskArchiveToggle } from "./task-archive-toggle";
+import { DeleteEntityPopover } from "./delete-entity-popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -393,27 +394,27 @@ export function TaskDialog({
     hasHydratedRelationsRef.current = true;
   }, [open, task, taskRelations, form]);
 
-  const watchedAreaIds = form.watch("area_ids");
-  const watchedGoalIds = form.watch("goal_ids");
-  const watchedProjectIds = form.watch("project_ids");
+  const watchedAreaIds = useWatch({ control: form.control, name: "area_ids" });
+  const watchedGoalIds = useWatch({ control: form.control, name: "goal_ids" });
+  const watchedProjectIds = useWatch({ control: form.control, name: "project_ids" });
   const selectedAreaIds = useMemo(() => watchedAreaIds ?? [], [watchedAreaIds]);
   const selectedGoalIds = useMemo(() => watchedGoalIds ?? [], [watchedGoalIds]);
   const selectedProjectIds = useMemo(() => watchedProjectIds ?? [], [watchedProjectIds]);
   // Primary project_id mirrors the first selected project for backward compat
   // with code paths that read task.project_id directly.
-  const selectedProjectId = form.watch("project_id");
+  const selectedProjectId = useWatch({ control: form.control, name: "project_id" });
   const isPending = createTask.isPending || updateTask.isPending;
 
   // Live re-derive status from current area/goal/project + due_date context
   // (only meaningful in create mode — edit mode keeps the existing entity's
   // stored status untouched).
-  const selectedDueDate = form.watch("due_date") ?? "";
+  const selectedDueDate = useWatch({ control: form.control, name: "due_date" }) ?? "";
 
   // Recurrence preview — the next due date is derived-only, never stored.
   // Re-render whenever any of the four recurrence inputs change.
-  const isRecurring = form.watch("is_recurring");
-  const repeatEvery = form.watch("repeat_every");
-  const repeatCycle = form.watch("repeat_cycle");
+  const isRecurring = useWatch({ control: form.control, name: "is_recurring" });
+  const repeatEvery = useWatch({ control: form.control, name: "repeat_every" });
+  const repeatCycle = useWatch({ control: form.control, name: "repeat_cycle" });
   const nextDueDatePreview = useMemo(() => {
     if (!isRecurring) return "";
     if (!selectedDueDate || !repeatEvery || !repeatCycle) return "";
@@ -488,7 +489,7 @@ export function TaskDialog({
         shouldValidate: true,
       });
     }
-  }, [selectedAreaIds, selectedProjectIds, allGoals, selectedGoalIds, form, isGoalScoped, isProjectScoped, projectById]);
+  }, [selectedAreaIds, selectedProjectIds, allGoals, selectedGoalIds, form, isGoalScoped, isProjectScoped, projectById, isLoadingGoals, isLoadingAreas, isLoadingProjects]);
 
   /** Goals visible in the goal selector — restricted to project-linked goals when project-scoped, or area-linked goals when an area is selected. */
   const visibleGoals = useMemo(() => {
@@ -733,7 +734,6 @@ export function TaskDialog({
                         <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
                         <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
                         <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
-                        <SelectItem value={PRIORITY.URGENT}>Urgent</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -1250,7 +1250,7 @@ export function TaskDialog({
                       type="number"
                       min={1}
                       data-testid="task-dialog-repeat-every-input"
-                      value={form.watch("repeat_every") ?? ""}
+                      value={repeatEvery ?? ""}
                       onChange={(event) => {
                         const raw = event.target.value;
                         form.setValue(
@@ -1324,22 +1324,17 @@ export function TaskDialog({
                 </span>
               )}
               {task && task.is_archived && onPermanentDelete && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="default"
+                <DeleteEntityPopover
+                  variant="detail"
+                  entityLabel="task"
+                  entityName={task.name}
+                  requireTypedConfirmation={false}
                   disabled={isPending}
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => {
-                    if (window.confirm("Permanently delete this task? This cannot be undone.")) {
-                      onPermanentDelete(task.id);
-                      onOpenChange(false);
-                    }
+                  onConfirm={() => {
+                    onPermanentDelete(task.id);
+                    onOpenChange(false);
                   }}
-                >
-                  <Trash2 className="size-4" />
-                  Delete permanently
-                </Button>
+                />
               )}
               <div className="ml-auto flex gap-3">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
