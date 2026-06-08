@@ -119,7 +119,7 @@ export function ResourceRow({
             {topicName}
           </Badge>
         )}
-        {areas.map((area) => (
+        {areas.slice(0, 2).map((area) => (
           <Badge key={`${resource.id}-area-${area.name}`} variant="outline" className="gap-1 text-xs font-normal">
             {area.icon ? (
               <span className="text-xs leading-none">{area.icon}</span>
@@ -129,24 +129,44 @@ export function ResourceRow({
             {area.name}
           </Badge>
         ))}
-        {goalNames.map((name) => (
+        {areas.length > 2 && (
+          <Badge variant="secondary" className="text-xs font-normal">
+            +{areas.length - 2}
+          </Badge>
+        )}
+        {goalNames.slice(0, 2).map((name) => (
           <Badge key={`${resource.id}-goal-${name}`} variant="outline" className="gap-1 text-xs font-normal">
             <span className="text-xs leading-none">🎯</span>
             {name}
           </Badge>
         ))}
-        {projectNames.map((name) => (
+        {goalNames.length > 2 && (
+          <Badge variant="secondary" className="text-xs font-normal">
+            +{goalNames.length - 2}
+          </Badge>
+        )}
+        {projectNames.slice(0, 2).map((name) => (
           <Badge key={`${resource.id}-project-${name}`} variant="outline" className="gap-1 text-xs font-normal">
             <span className="text-xs leading-none">📁</span>
             {name}
           </Badge>
         ))}
-        {taskNames.map((name) => (
+        {projectNames.length > 2 && (
+          <Badge variant="secondary" className="text-xs font-normal">
+            +{projectNames.length - 2}
+          </Badge>
+        )}
+        {taskNames.slice(0, 2).map((name) => (
           <Badge key={`${resource.id}-task-${name}`} variant="outline" className="gap-1 text-xs font-normal">
             <span className="text-xs leading-none">☑️</span>
             {name}
           </Badge>
         ))}
+        {taskNames.length > 2 && (
+          <Badge variant="secondary" className="text-xs font-normal">
+            +{taskNames.length - 2}
+          </Badge>
+        )}
       </div>
 
       {/* Open Link */}

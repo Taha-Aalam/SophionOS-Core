@@ -144,6 +144,7 @@ export function useUpdateTask() {
       // (onError already restored the snapshot; the refetch re-applies it if
       // the server's response differs from the optimistic patch.)
       await invalidateTaskCoreGraph(queryClient);
+      queryClient.invalidateQueries({ queryKey: [TASKS_QUERY_KEY, "relations"] });
       queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
     },

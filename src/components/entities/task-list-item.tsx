@@ -127,7 +127,7 @@ export function TaskListItem({
       </div>
 
       <div className="hidden shrink-0 items-center gap-2.5 md:flex">
-        {displayAreaNames.map((name, index) => (
+        {displayAreaNames.slice(0, 2).map((name, index) => (
           <Badge key={`area-${index}`} variant="outline" className="gap-1 text-xs font-normal">
             {linkedAreaIcons?.[index] ? (
               <span className="text-xs leading-none">{linkedAreaIcons[index]}</span>
@@ -137,18 +137,33 @@ export function TaskListItem({
             {name}
           </Badge>
         ))}
-        {displayGoalNames.map((name, index) => (
+        {displayAreaNames.length > 2 && (
+          <Badge variant="secondary" className="text-xs font-normal">
+            +{displayAreaNames.length - 2}
+          </Badge>
+        )}
+        {displayGoalNames.slice(0, 2).map((name, index) => (
           <Badge key={`goal-${index}`} variant="outline" className="gap-1 text-xs font-normal">
             <span className="text-xs leading-none">🎯</span>
             {name}
           </Badge>
         ))}
-        {displayProjectNames.map((name, index) => (
+        {displayGoalNames.length > 2 && (
+          <Badge variant="secondary" className="text-xs font-normal">
+            +{displayGoalNames.length - 2}
+          </Badge>
+        )}
+        {displayProjectNames.slice(0, 2).map((name, index) => (
           <Badge key={`project-${index}`} variant="outline" className="gap-1 text-xs font-normal">
             <span className="text-xs leading-none">📁</span>
             {name}
           </Badge>
         ))}
+        {displayProjectNames.length > 2 && (
+          <Badge variant="secondary" className="text-xs font-normal">
+            +{displayProjectNames.length - 2}
+          </Badge>
+        )}
         {dueInfo && (
           <Badge
             variant="outline"
