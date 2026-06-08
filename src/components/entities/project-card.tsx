@@ -16,6 +16,8 @@ import {
 import ProgressRing from "@/components/charts/progress-ring";
 import { buildProjectDetailHref } from "@/lib/utils/project-urls";
 
+import { DeleteEntityPopover } from "./delete-entity-popover";
+
 export interface ProjectCardRollups {
   goalCount: number;
   taskCount: number;
@@ -36,6 +38,8 @@ interface ProjectCardProps {
   onEdit?: (project: Project) => void;
   onArchive?: (project: Project) => void;
   onRestore?: (project: Project) => void;
+  onDelete?: (project: Project) => void;
+  isDeleting?: boolean;
   /** When provided, appended as ?returnTo= to the project detail navigation. */
   returnTo?: string | null;
   /**
@@ -48,7 +52,6 @@ interface ProjectCardProps {
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
-  urgent: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
   high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
   medium: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
   low: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
@@ -76,9 +79,10 @@ export function ProjectCard({
   areaNames,
   areaIcons,
   duplicateIndex,
-  onEdit,
   onArchive,
   onRestore,
+  onDelete,
+  isDeleting,
   returnTo,
   rollups,
 }: ProjectCardProps) {
@@ -228,23 +232,47 @@ export function ProjectCard({
                     <RotateCcw className="size-3" />
                   </Button>
                 )}
+                {onDelete && (
+                  <span onClick={(e) => e.stopPropagation()}>
+                    <DeleteEntityPopover
+                      variant="row"
+                      entityLabel="project"
+                      entityName={project.name}
+                      disabled={isDeleting}
+                      onConfirm={() => onDelete(project)}
+                    />
+                  </span>
+                )}
               </>
             ) : (
-              onArchive && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-6"
-                  title="Archive project"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onArchive(project);
-                  }}
-                >
-                  <Archive className="size-3" />
-                </Button>
-              )
+              <>
+                {onArchive && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-6"
+                    title="Archive project"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onArchive(project);
+                    }}
+                  >
+                    <Archive className="size-3" />
+                  </Button>
+                )}
+                {onDelete && (
+                  <span onClick={(e) => e.stopPropagation()}>
+                    <DeleteEntityPopover
+                      variant="row"
+                      entityLabel="project"
+                      entityName={project.name}
+                      disabled={isDeleting}
+                      onConfirm={() => onDelete(project)}
+                    />
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>

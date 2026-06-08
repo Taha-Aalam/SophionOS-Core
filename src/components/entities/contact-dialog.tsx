@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Controller, FormProvider, useForm } from "react-hook-form";
+import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -163,11 +163,11 @@ export function ContactDialog({
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [isRemovingImage, setIsRemovingImage] = useState(false);
+  // Local override for the displayed image. null = follow `contact?.image_url`.
+  // Deriving via ref + display value avoids the cascading-render anti-pattern
+  // of mirroring a prop into state via useEffect.
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
-
-  useEffect(() => {
-    setUploadPreview(contact?.image_url ?? null);
-  }, [contact?.image_url]);
+  const displayImage = uploadPreview ?? contact?.image_url ?? null;
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -187,11 +187,11 @@ export function ContactDialog({
   };
 
   const handleRemoveImage = async () => {
-    if (!uploadPreview) return;
+    if (!displayImage) return;
 
     try {
       setIsRemovingImage(true);
-      await contactService.deleteContactImage(uploadPreview);
+      await contactService.deleteContactImage(displayImage);
       form.setValue("image_url", "");
       setUploadPreview(null);
       toast.success("Profile image removed");
@@ -207,10 +207,10 @@ export function ContactDialog({
   const { data: allProjects = [] } = useProjects({ status: "all" });
   const { data: allTasks = [] } = useTasks();
 
-  const areaIds: string[] = form.watch("area_ids") ?? [];
-  const goalIds: string[] = form.watch("goal_ids") ?? [];
-  const projectIds: string[] = form.watch("project_ids") ?? [];
-  const taskIds: string[] = form.watch("task_ids") ?? [];
+  const areaIds: string[] = useWatch({ control: form.control, name: "area_ids" }) ?? [];
+  const goalIds: string[] = useWatch({ control: form.control, name: "goal_ids" }) ?? [];
+  const projectIds: string[] = useWatch({ control: form.control, name: "project_ids" }) ?? [];
+  const taskIds: string[] = useWatch({ control: form.control, name: "task_ids" }) ?? [];
 
   const {
     visibleAreas,
@@ -638,12 +638,12 @@ export function ContactDialog({
                   {isUploading && (
                     <p className="text-xs text-muted-foreground">Uploading…</p>
                   )}
-                  {uploadPreview && !isUploading && (
+                  {displayImage && !isUploading && (
                     <div className="flex items-center gap-3">
                       <div className="size-10 overflow-hidden rounded-full bg-muted shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={uploadPreview}
+                          src={displayImage}
                           alt="Preview"
                           className="size-full object-cover"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}

@@ -732,6 +732,49 @@ If any step failed, write a failing test that reproduces the failure, fix the co
 
 ---
 
+## Task 5: `taskService.complete()` — forward-edge guard against re-spawn
+
+**Why this task:** After Tasks 1–2 shipped, a second leak surfaced. When a user un-checks a middle-of-chain row, fixes it, and re-checks it, `complete()` re-ran the spawn RPC. The chain already advanced past that row, so a duplicate sibling of the chain tip appeared. The uncheck path was smart (it left a non-live descendant alone); the re-check path was not.
+
+**Rule:** if the row being completed already has *any* descendant — live, completed, or archived — the recurrence chain has moved past it. Re-completing is a historical correction, not a new occurrence. Patch the row in place; do not spawn.
+
+**Files:**
+- Modify: `src/lib/services/task.service.ts` — `complete()` method, just after the `getById` and before the `complete_recurring_task` RPC call
+- Test: `tests/unit/task.service.recurring.test.ts` — new `describe("taskService.complete – forward-edge guard")` block plus mock-chain bumps in the existing recurring-complete and delegation tests (each gains one `childLookupClient` slot)
+
+- [x] **Step 1: Insert the forward-edge guard in `complete()`**
+
+Right after the recurring branch's existence check (and before the `due_date` validation that precedes the RPC call), add a lookup on `tasks.recurrence_source_task_id`. The lookup deliberately does NOT filter on `is_completed`/`is_archived` — polarity is opposite to the `uncomplete()` lookup. If a row comes back, run the same in-place patch the non-recurring branch uses and return early with `{ completedTask: data }` (no `spawnedTaskId`).
+
+- [x] **Step 2: Add three forward-edge guard tests**
+
+In `tests/unit/task.service.recurring.test.ts` add a new `describe("taskService.complete – forward-edge guard (re-complete dedupe)")` block with:
+  1. live descendant → spawn RPC NOT called, in-place patch runs, `spawnedTaskId` undefined.
+  2. existing descendant that is itself completed → spawn RPC still NOT called (proves the lookup is on existence, not state).
+  3. lookup DB error → propagated as `DatabaseError`.
+
+- [x] **Step 3: Bump the existing recurring-complete and delegation mock chains**
+
+The new lookup inserts ONE `createClient()` call between the four-call `getById` hydration and the RPC. Every existing test in `taskService.complete – recurring completion` and the `delegates to complete()` case in `taskService.update – recurring completion transition delegation` needs a `childLookupClient` slot inserted at that position (`maybeSingle` returning `{ data: null }` for the no-descendant path).
+
+- [x] **Step 4: Run the tests**
+
+```bash
+npx vitest run tests/unit/task.service.recurring.test.ts
+npx vitest run tests/unit/task.service.test.ts
+```
+
+Expected: all 37 recurring + 11 non-recurring tests pass.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/lib/services/task.service.ts tests/unit/task.service.recurring.test.ts docs/superpowers/plans/2026-06-05-recurring-task-orphan-fix.md
+git -c core.hooksPath=/dev/null commit -m "fix(tasks): skip recurring spawn when chain already advanced past this row"
+```
+
+---
+
 ## Self-Review
 
 **Spec coverage:**

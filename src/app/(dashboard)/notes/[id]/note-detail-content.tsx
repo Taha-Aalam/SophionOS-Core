@@ -8,7 +8,6 @@ import {
   Link2,
   NotebookPen,
   Pin,
-  Trash2,
   X,
 } from "lucide-react";
 
@@ -26,15 +25,15 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -86,7 +85,6 @@ export function NoteDetailContent() {
   const searchParams = useSearchParams();
   const noteReturnTo = decodeReturnTo(searchParams.get("returnTo") || "");
 
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [localIsArchived, setLocalIsArchived] = useState(false);
   const [optimisticArchivedTarget, setOptimisticArchivedTarget] = useState<boolean | null>(null);
   const [localTitle, setLocalTitle] = useState("");
@@ -292,15 +290,16 @@ export function NoteDetailContent() {
             disabled={isArchiveMutationPending}
             onClick={handleArchiveToggle}
           />
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-destructive hover:text-destructive"
-            onClick={() => setIsDeleteOpen(true)}
-          >
-            <Trash2 className="size-4" />
-            <span>Delete</span>
-          </Button>
+          <DeleteEntityPopover
+            variant="detail"
+            entityLabel="note"
+            entityName={note.name}
+            requireTypedConfirmation={false}
+            disabled={deleteNote.isPending}
+            onConfirm={() => {
+              void handleDelete();
+            }}
+          />
         </div>
       </div>
 
@@ -437,28 +436,6 @@ export function NoteDetailContent() {
         }}
       />
 
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete note permanently?</DialogTitle>
-            <DialogDescription>
-              &quot;{note.name}&quot; will be permanently removed. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleteNote.isPending}
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

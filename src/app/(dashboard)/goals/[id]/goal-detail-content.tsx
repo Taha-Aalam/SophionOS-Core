@@ -13,7 +13,6 @@ import {
   Edit,
   Link as LinkIcon,
   Target,
-  Trash2,
   Unlink,
 } from "lucide-react";
 
@@ -22,6 +21,7 @@ import { ContactDialog, type ContactDialogDefaults } from "@/components/entities
 import { ContactsByCategoryView } from "@/components/views/contacts-by-category-view";
 import { ContactsFollowUpView } from "@/components/views/contacts-follow-up-view";
 import { GoalDialog } from "@/components/entities/goal-dialog";
+import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { LinkEntityDialog } from "@/components/entities/link-entity-dialog";
 import { PriorityBadge } from "@/components/entities/priority-badge";
@@ -41,8 +41,6 @@ import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 
@@ -115,14 +113,6 @@ import {
 import { buildReturnTo, encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 import { getTaskLinkedAreaIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 
-const NOTE_STATUS_COLORS: Record<string, string> = {
-  [NOTE_STATUS.INBOX]: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  [NOTE_STATUS.TO_REVIEW]: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  [NOTE_STATUS.ACTIVE]: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  [NOTE_STATUS.SAVED]: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  [NOTE_STATUS.ARCHIVE]: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-};
-
 const TERM_LABELS: Record<string, string> = {
   short: "Short Term",
   mid: "Mid Term",
@@ -130,7 +120,6 @@ const TERM_LABELS: Record<string, string> = {
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  urgent: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
   high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
   medium: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
   low: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
@@ -195,7 +184,6 @@ export function GoalDetailContent() {
 
   // UI state
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isLinkAreaOpen, setIsLinkAreaOpen] = useState(false);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const [targetDateDraft, setTargetDateDraft] = useState("");
@@ -367,7 +355,6 @@ export function GoalDetailContent() {
     () => allLinkedContacts.filter((c) => c.archive),
     [allLinkedContacts],
   );
-  const linkedContacts = activeLinkedContacts;
   const contactTabs = useMemo(
     () => [
       { value: "all", label: "All", count: activeLinkedContacts.length },
@@ -923,13 +910,6 @@ export function GoalDetailContent() {
     });
   }, [goal, updateGoal]);
 
-  const handleNoteToggleFavorite = useCallback(
-    (noteId: string, favorite: boolean) => {
-      toggleFavoriteNote.mutate({ id: noteId, favorite });
-    },
-    [toggleFavoriteNote],
-  );
-
   const handleResourceToggleFavorite = useCallback(
     (resourceId: string, favorite: boolean) => {
       toggleFavoriteResource.mutate({ id: resourceId, favorite });
@@ -1393,15 +1373,16 @@ export function GoalDetailContent() {
                   <LinkIcon className="size-3.5" />
                   Link Area
                 </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setIsDeleteOpen(true)}
-                  className="gap-1.5"
-                >
-                  <Trash2 className="size-3.5" />
-                  Delete
-                </Button>
+                <DeleteEntityPopover
+                  variant="detail"
+                  entityLabel="goal"
+                  entityName={goal.name}
+                  requireTypedConfirmation
+                  disabled={deleteGoal.isPending}
+                  onConfirm={() => {
+                    void handleDeleteGoal();
+                  }}
+                />
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
@@ -1864,30 +1845,6 @@ export function GoalDetailContent() {
         )}
         onLink={(a) => handleLinkArea(a.id)}
       />
-
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Goal Permanently?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            This removes the goal and clears its linked areas, projects, tasks, notes, and
-            resources relationships.
-          </p>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteGoal}
-              disabled={deleteGoal.isPending}
-            >
-              Delete Goal
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Inline Project Creation */}
       <ProjectDialog

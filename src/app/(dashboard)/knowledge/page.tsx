@@ -2,10 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import {
   Archive,
-  ArchiveRestore,
   BookOpen,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -63,7 +61,6 @@ import { TagEmoji } from "@/components/layout/tag-emoji";
 import { NoteEmoji } from "@/components/layout/note-emoji";
 import { ResourceEmoji } from "@/components/layout/resource-emoji";
 import { encodeReturnTo } from "@/lib/utils/return-to";
-import { useAuth } from "@/components/providers/auth-provider";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
@@ -75,7 +72,6 @@ import {
   useRestoreNote,
   useToggleFavoriteNote,
   useTogglePinNote,
-  NOTES_QUERY_KEY,
 } from "@/lib/hooks/use-notes";
 import {
   useArchiveResource,
@@ -97,7 +93,6 @@ import {
   useArchivedTopics,
   useRestoreTopic,
 } from "@/lib/hooks/use-topics";
-import { noteService } from "@/lib/services/note.service";
 import type { Note, Resource } from "@/lib/types/domain.types";
 import type { TopicWithCounts } from "@/lib/services/topic.service";
 import {
@@ -108,7 +103,6 @@ import {
   getResourceLinkedAreaIds,
   getResourceLinkedGoalIds,
   getResourceLinkedTaskIds,
-  getEffectiveResourceProjectIds,
   type ResourceView,
 } from "@/lib/utils/resources";
 import { ResourcesByGroupView, type ResourceGroup } from "@/components/views/resources-by-group-view";
@@ -269,7 +263,6 @@ function CollapsibleTopicGroup({
 // ─── page ─────────────────────────────────────────────────────────────────────
 export default function KnowledgeHubPage() {
   const router = useRouter();
-  const { user } = useAuth();
 
   // ── global search ─────────────────────────────────────────────────────────
   const [rawQuery, setRawQuery] = useState("");
@@ -297,26 +290,12 @@ export default function KnowledgeHubPage() {
     () => new Map(areas.map((a) => [a.id, (a.icon as string | null | undefined) ?? null])),
     [areas],
   );
-  const areaMap = useMemo(
-    () => new Map(areas.map((a) => [a.id, { name: a.name, icon: a.icon ?? null }])),
-    [areas],
-  );
   const projNames = useMemo(() => new Map(projects.map((p) => [p.id, p.name])), [projects]);
   const topicNames = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
   const goalNames = useMemo(() => new Map(goals.map((g) => [g.id, g.name])), [goals]);
 
   // ── note related counts ──────────────────────────────────────────────────
-  const noteIds = useMemo(() => notes.map((n) => n.id), [notes]);
-  const { data: rCounts } = useQuery({
-    queryKey: [NOTES_QUERY_KEY, "rc", user?.id, noteIds],
-    queryFn: () => noteService.getNoteRelatedCounts(user!.id, noteIds),
-    enabled: !!user && noteIds.length > 0,
-  });
-  const { data: gLinks } = useQuery({
-    queryKey: [NOTES_QUERY_KEY, "gl", user?.id, noteIds],
-    queryFn: () => noteService.getNoteGoalIds(user!.id, noteIds),
-    enabled: !!user && noteIds.length > 0,
-  });
+
 
   // ── topics section state ─────────────────────────────────────────────────
   const [topicsTab, setTopicsTab] = useState("active");
@@ -558,18 +537,6 @@ export default function KnowledgeHubPage() {
       resources: rs,
     }));
   }, [resources, projNames]);
-
-  const resourcesByTopic = useMemo(() => {
-    const map = new Map<string, Resource[]>();
-    for (const r of resources) {
-      if (r.topic_id) {
-        const list = map.get(r.topic_id) ?? [];
-        list.push(r);
-        map.set(r.topic_id, list);
-      }
-    }
-    return map;
-  }, [resources]);
 
   // ── mutations ─────────────────────────────────────────────────────────────
   const createTopic = useCreateTopic();

@@ -436,7 +436,6 @@ export function TasksContent() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_PRIORITY_VALUE}>All priorities</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
                 <SelectItem value="high">High</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
                 <SelectItem value="low">Low</SelectItem>
@@ -620,7 +619,21 @@ export function TasksContent() {
               Loading tasks...
             </div>
           ) : (
-            <CalendarView tasks={visibleTasks} onTaskClick={handleEdit} />
+            <CalendarView
+              tasks={visibleTasks}
+              onTaskClick={handleEdit}
+              onTaskReschedule={(taskId, newDate) => {
+                // Preserve the original time-of-day (and timezone suffix) so a
+                // drag only changes the calendar day, not the scheduled time.
+                const current = tasks.find((t) => t.id === taskId)?.due_date;
+                const timeIndex = current?.indexOf("T") ?? -1;
+                const timePart = timeIndex >= 0 ? current!.slice(timeIndex) : "";
+                updateTask.mutate({
+                  id: taskId,
+                  input: { due_date: `${newDate}${timePart}` },
+                });
+              }}
+            />
           )}
         </TabsContent>
 

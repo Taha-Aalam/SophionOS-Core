@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUpdateTask } from "@/lib/hooks/use-tasks";
+import { useValidIds } from "@/lib/hooks/use-valid-ids";
 import type { Task } from "@/lib/types/domain.types";
 import { TASK_STATUS } from "@/lib/utils/constants";
 import {
@@ -52,27 +53,27 @@ export function TaskProcessForm({
   onClose,
 }: TaskProcessFormProps) {
   const updateTask = useUpdateTask();
-  const [areaIds, setAreaIds] = useState<string[]>(
+  const [rawAreaIds, setRawAreaIds] = useState<string[]>(
     task.linkedAreaIds ?? (task.area_id ? [task.area_id] : []),
   );
-  const [goalIds, setGoalIds] = useState<string[]>(task.linkedGoalIds ?? []);
-  const [projectIds, setProjectIds] = useState<string[]>(
+  const [rawGoalIds, setRawGoalIds] = useState<string[]>(task.linkedGoalIds ?? []);
+  const [rawProjectIds, setRawProjectIds] = useState<string[]>(
     task.linkedProjectIds ?? (task.project_id ? [task.project_id] : []),
   );
   const [dueDate, setDueDate] = useState<string>(task.due_date ?? "");
-  const [status, setStatus] = useState<string>(TASK_STATUS.TODO);
-  const [priority, setPriority] = useState<string>(task.priority ?? UNSET);
+  const [status, _setStatus] = useState<string>(TASK_STATUS.TODO);
+  const [priority, _setPriority] = useState<string>(task.priority ?? UNSET);
 
   const toggleArea = (id: string) =>
-    setAreaIds((prev) =>
+    setRawAreaIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   const toggleGoal = (id: string) =>
-    setGoalIds((prev) =>
+    setRawGoalIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   const toggleProject = (id: string) =>
-    setProjectIds((prev) =>
+    setRawProjectIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
@@ -83,46 +84,30 @@ export function TaskProcessForm({
 
   const visibleGoals = useMemo(
     () => computeVisibleGoalsForProjects(
-      goalOptions, projectIds, areaIds, projectById,
+      goalOptions, rawProjectIds, rawAreaIds, projectById,
     ),
-    [goalOptions, projectIds, areaIds, projectById],
+    [goalOptions, rawProjectIds, rawAreaIds, projectById],
   );
 
   const visibleAreas = useMemo(
     () => computeVisibleAreasForProjects(
-      areaOptions, goalIds, projectIds, projectById, goalOptions,
+      areaOptions, rawGoalIds, rawProjectIds, projectById, goalOptions,
     ),
-    [areaOptions, goalOptions, goalIds, projectIds, projectById],
+    [areaOptions, goalOptions, rawGoalIds, rawProjectIds, projectById],
   );
 
   const filteredProjects = useMemo(
-    () => computeFilteredProjects(projectOptions, goalIds, areaIds),
-    [projectOptions, goalIds, areaIds],
+    () => computeFilteredProjects(projectOptions, rawGoalIds, rawAreaIds),
+    [projectOptions, rawGoalIds, rawAreaIds],
   );
 
-  useEffect(() => {
-    const allowedGoalIds = new Set(visibleGoals.map((goal) => goal.id));
-    const nextGoalIds = goalIds.filter((goalId) => allowedGoalIds.has(goalId));
-    if (nextGoalIds.length !== goalIds.length) {
-      setGoalIds(nextGoalIds);
-    }
-  }, [visibleGoals, goalIds]);
-
-  useEffect(() => {
-    const allowedAreaIds = new Set(visibleAreas.map((area) => area.id));
-    const nextAreaIds = areaIds.filter((areaId) => allowedAreaIds.has(areaId));
-    if (nextAreaIds.length !== areaIds.length) {
-      setAreaIds(nextAreaIds);
-    }
-  }, [visibleAreas, areaIds]);
-
-  useEffect(() => {
-    const allowedProjectIds = new Set(filteredProjects.map((p) => p.id));
-    const nextProjectIds = projectIds.filter((id) => allowedProjectIds.has(id));
-    if (nextProjectIds.length !== projectIds.length) {
-      setProjectIds(nextProjectIds);
-    }
-  }, [filteredProjects, projectIds]);
+  // Derive filtered ID subsets from raw user picks, stripping any IDs
+  // no longer present in the corresponding visible set. Done at render
+  // time instead of via useEffect reconciliation, to avoid the
+  // cascading-render anti-pattern flagged by react-hooks/set-state-in-effect.
+  const goalIds = useValidIds(rawGoalIds, visibleGoals.map((goal) => goal.id));
+  const areaIds = useValidIds(rawAreaIds, visibleAreas.map((area) => area.id));
+  const projectIds = useValidIds(rawProjectIds, filteredProjects.map((p) => p.id));
 
   const handleSave = () => {
     updateTask.mutate(
@@ -153,7 +138,7 @@ export function TaskProcessForm({
           candidates={visibleAreas}
           isSelected={(id) => areaIds.includes(id)}
           onToggle={toggleArea}
-          onClear={() => setAreaIds([])}
+          onClear={() => setRawAreaIds([])}
           emptyMessage={
             areaOptions.length === 0
               ? "No areas available."
@@ -198,7 +183,7 @@ export function TaskProcessForm({
           candidates={visibleGoals}
           isSelected={(id) => goalIds.includes(id)}
           onToggle={toggleGoal}
-          onClear={() => setGoalIds([])}
+          onClear={() => setRawGoalIds([])}
           emptyMessage={
             goalOptions.length === 0
               ? "No goals available."
@@ -248,7 +233,7 @@ export function TaskProcessForm({
         candidates={filteredProjects}
         isSelected={(id) => projectIds.includes(id)}
         onToggle={toggleProject}
-        onClear={() => setProjectIds([])}
+        onClear={() => setRawProjectIds([])}
         emptyMessage={
           projectOptions.length === 0
             ? "No projects available."
