@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Repro: create with caller-supplied stale status + empty context
  * should be persisted as INBOX, not the caller's bucket.

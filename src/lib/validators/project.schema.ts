@@ -15,7 +15,6 @@ const priorityValues = [
   PRIORITY.LOW,
   PRIORITY.MEDIUM,
   PRIORITY.HIGH,
-  PRIORITY.URGENT,
 ] as const;
 const nullableUuidSchema = z.preprocess(
   (value) => (value === "" ? null : value),

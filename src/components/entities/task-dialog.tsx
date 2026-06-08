@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { Controller, FormProvider, useForm } from "react-hook-form";
-import { Trash2, X } from "lucide-react";
+import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAreas, useAreasByIds } from "@/lib/hooks/use-areas";
@@ -16,8 +16,9 @@ import {
 } from "@/lib/hooks/use-tasks";
 import { Task } from "@/lib/types/domain.types";
 import { getStableStringArray } from "@/lib/utils/stable-arrays";
-import { PRIORITY, TASK_STATUS } from "@/lib/utils/constants";
+import { PRIORITY, TASK_REPEAT_CYCLE_OPTIONS, TASK_STATUS } from "@/lib/utils/constants";
 import { deriveTaskStatus } from "@/lib/utils/status-routing";
+import { computeNextTaskDueDate } from "@/lib/utils/task-recurrence";
 import {
   applyGoalScopedDefaults,
   applyProjectScopedAreaGuard,
@@ -44,6 +45,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { TaskArchiveToggle } from "./task-archive-toggle";
+import { DeleteEntityPopover } from "./delete-entity-popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -116,10 +118,13 @@ interface TaskFormValues {
   is_focused: boolean;
   is_important: boolean;
   is_urgent: boolean;
+  is_recurring: boolean;
   name: string;
   priority: Task["priority"];
   project_id: string;
   project_ids: string[];
+  repeat_cycle: Task["repeat_cycle"];
+  repeat_every: number | null;
   status: Task["status"];
 }
 
@@ -134,10 +139,13 @@ const EMPTY_FORM_VALUES: TaskFormValues = {
   is_focused: false,
   is_important: false,
   is_urgent: false,
+  is_recurring: false,
   name: "",
   priority: PRIORITY.MEDIUM,
   project_id: "",
   project_ids: [],
+  repeat_cycle: null,
+  repeat_every: null,
   status: TASK_STATUS.INBOX,
 };
 
@@ -229,10 +237,13 @@ function buildTaskFormValues(
     is_focused: task.is_focused,
     is_important: task.is_important,
     is_urgent: task.is_urgent,
+    is_recurring: task.is_recurring,
     name: task.name,
     priority: task.priority,
     project_id: resolvedProjectIds[0] ?? task.project_id ?? "",
     project_ids: resolvedProjectIds,
+    repeat_cycle: task.repeat_cycle ?? null,
+    repeat_every: task.repeat_every ?? null,
     status: task.status,
   };
 }
@@ -383,21 +394,36 @@ export function TaskDialog({
     hasHydratedRelationsRef.current = true;
   }, [open, task, taskRelations, form]);
 
-  const watchedAreaIds = form.watch("area_ids");
-  const watchedGoalIds = form.watch("goal_ids");
-  const watchedProjectIds = form.watch("project_ids");
+  const watchedAreaIds = useWatch({ control: form.control, name: "area_ids" });
+  const watchedGoalIds = useWatch({ control: form.control, name: "goal_ids" });
+  const watchedProjectIds = useWatch({ control: form.control, name: "project_ids" });
   const selectedAreaIds = useMemo(() => watchedAreaIds ?? [], [watchedAreaIds]);
   const selectedGoalIds = useMemo(() => watchedGoalIds ?? [], [watchedGoalIds]);
   const selectedProjectIds = useMemo(() => watchedProjectIds ?? [], [watchedProjectIds]);
   // Primary project_id mirrors the first selected project for backward compat
   // with code paths that read task.project_id directly.
-  const selectedProjectId = form.watch("project_id");
+  const selectedProjectId = useWatch({ control: form.control, name: "project_id" });
   const isPending = createTask.isPending || updateTask.isPending;
 
   // Live re-derive status from current area/goal/project + due_date context
   // (only meaningful in create mode — edit mode keeps the existing entity's
   // stored status untouched).
-  const selectedDueDate = form.watch("due_date") ?? "";
+  const selectedDueDate = useWatch({ control: form.control, name: "due_date" }) ?? "";
+
+  // Recurrence preview — the next due date is derived-only, never stored.
+  // Re-render whenever any of the four recurrence inputs change.
+  const isRecurring = useWatch({ control: form.control, name: "is_recurring" });
+  const repeatEvery = useWatch({ control: form.control, name: "repeat_every" });
+  const repeatCycle = useWatch({ control: form.control, name: "repeat_cycle" });
+  const nextDueDatePreview = useMemo(() => {
+    if (!isRecurring) return "";
+    if (!selectedDueDate || !repeatEvery || !repeatCycle) return "";
+    try {
+      return computeNextTaskDueDate(selectedDueDate, repeatEvery, repeatCycle);
+    } catch {
+      return "";
+    }
+  }, [isRecurring, selectedDueDate, repeatEvery, repeatCycle]);
   useDerivedStatus<TaskFormValues>(
     form,
     () =>
@@ -463,7 +489,7 @@ export function TaskDialog({
         shouldValidate: true,
       });
     }
-  }, [selectedAreaIds, selectedProjectIds, allGoals, selectedGoalIds, form, isGoalScoped, isProjectScoped, projectById]);
+  }, [selectedAreaIds, selectedProjectIds, allGoals, selectedGoalIds, form, isGoalScoped, isProjectScoped, projectById, isLoadingGoals, isLoadingAreas, isLoadingProjects]);
 
   /** Goals visible in the goal selector — restricted to project-linked goals when project-scoped, or area-linked goals when an area is selected. */
   const visibleGoals = useMemo(() => {
@@ -670,33 +696,25 @@ export function TaskDialog({
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                {task ? (
-                  <Controller
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="w-full h-12">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={TASK_STATUS.INBOX}>Inbox</SelectItem>
-                          <SelectItem value={TASK_STATUS.TODO}>To Do</SelectItem>
-                          <SelectItem value={TASK_STATUS.IN_PROGRESS}>In Progress</SelectItem>
-                          <SelectItem value={TASK_STATUS.COMPLETED}>Completed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                ) : (
-                  <div className="flex h-12 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
-                    {form.watch("status") === TASK_STATUS.TODO
-                      ? "To Do (derived from context)"
-                      : "Inbox (derived from context)"}
-                  </div>
-                )}
+                <Controller
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full h-12">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={TASK_STATUS.INBOX}>Inbox</SelectItem>
+                        <SelectItem value={TASK_STATUS.TODO}>To Do</SelectItem>
+                        <SelectItem value={TASK_STATUS.IN_PROGRESS}>In Progress</SelectItem>
+                        <SelectItem value={TASK_STATUS.COMPLETED}>Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 <FormMessage>{form.formState.errors.status?.message}</FormMessage>
               </FormItem>
 
@@ -716,7 +734,6 @@ export function TaskDialog({
                         <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
                         <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
                         <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
-                        <SelectItem value={PRIORITY.URGENT}>Urgent</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -1148,48 +1165,145 @@ export function TaskDialog({
             )}
 
             <div className="flex flex-wrap items-center gap-6 pt-1">
-              <FormItem className="flex items-center gap-2 space-y-0">
-                <Controller
-                  control={form.control}
-                  name="is_focused"
-                  render={({ field }) => (
+              <Controller
+                control={form.control}
+                name="is_focused"
+                render={({ field }) => (
+                  <label
+                    htmlFor="task-dialog-is-focused"
+                    className="flex cursor-pointer items-center gap-2"
+                  >
                     <Checkbox
+                      id="task-dialog-is-focused"
                       checked={field.value}
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
-                  )}
-                />
-                <FormLabel className="cursor-pointer text-sm font-normal">Focus</FormLabel>
-              </FormItem>
+                    <span className="text-sm font-normal">Focus</span>
+                  </label>
+                )}
+              />
 
-              <FormItem className="flex items-center gap-2 space-y-0">
-                <Controller
-                  control={form.control}
-                  name="is_important"
-                  render={({ field }) => (
+              <Controller
+                control={form.control}
+                name="is_important"
+                render={({ field }) => (
+                  <label
+                    htmlFor="task-dialog-is-important"
+                    className="flex cursor-pointer items-center gap-2"
+                  >
                     <Checkbox
+                      id="task-dialog-is-important"
                       checked={field.value}
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
-                  )}
-                />
-                <FormLabel className="cursor-pointer text-sm font-normal">Important</FormLabel>
-              </FormItem>
+                    <span className="text-sm font-normal">Important</span>
+                  </label>
+                )}
+              />
 
-              <FormItem className="flex items-center gap-2 space-y-0">
-                <Controller
-                  control={form.control}
-                  name="is_urgent"
-                  render={({ field }) => (
+              <Controller
+                control={form.control}
+                name="is_urgent"
+                render={({ field }) => (
+                  <label
+                    htmlFor="task-dialog-is-urgent"
+                    className="flex cursor-pointer items-center gap-2"
+                  >
                     <Checkbox
+                      id="task-dialog-is-urgent"
                       checked={field.value}
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
-                  )}
-                />
-                <FormLabel className="cursor-pointer text-sm font-normal">Urgent</FormLabel>
-              </FormItem>
+                    <span className="text-sm font-normal">Urgent</span>
+                  </label>
+                )}
+              />
             </div>
+
+            <Controller
+              control={form.control}
+              name="is_recurring"
+              render={({ field }) => (
+                <label
+                  htmlFor="task-dialog-is-recurring"
+                  className="flex cursor-pointer items-center gap-2 pt-1"
+                >
+                  <Checkbox
+                    id="task-dialog-is-recurring"
+                    checked={field.value}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                  />
+                  <span className="text-sm font-normal">Make the task as recurring task</span>
+                </label>
+              )}
+            />
+
+            {isRecurring && (
+              <div
+                className="grid gap-4 rounded-lg border border-border bg-muted/30 p-4"
+                data-testid="task-dialog-recurrence-panel"
+              >
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormItem>
+                    <FormLabel>Repeat every #</FormLabel>
+                    <Input
+                      type="number"
+                      min={1}
+                      data-testid="task-dialog-repeat-every-input"
+                      value={repeatEvery ?? ""}
+                      onChange={(event) => {
+                        const raw = event.target.value;
+                        form.setValue(
+                          "repeat_every",
+                          raw === "" ? null : Number(raw),
+                          { shouldDirty: true, shouldTouch: true, shouldValidate: true },
+                        );
+                      }}
+                    />
+                    <FormMessage>{form.formState.errors.repeat_every?.message}</FormMessage>
+                  </FormItem>
+
+                  <FormItem>
+                    <FormLabel>Repeat cycle</FormLabel>
+                    <Controller
+                      control={form.control}
+                      name="repeat_cycle"
+                      render={({ field }) => (
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value ?? ""}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full h-12">
+                              <SelectValue placeholder="Select repeat cycle" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {TASK_REPEAT_CYCLE_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    <FormMessage>{form.formState.errors.repeat_cycle?.message}</FormMessage>
+                  </FormItem>
+                </div>
+
+                <FormItem>
+                  <FormLabel>Next due date</FormLabel>
+                  <div
+                    className="flex h-12 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
+                    data-testid="task-dialog-next-due-date-preview"
+                  >
+                    {nextDueDatePreview ||
+                      "Set due date, repeat every, and repeat cycle to preview the next occurrence."}
+                  </div>
+                </FormItem>
+              </div>
+            )}
 
             <div className="flex items-center justify-between gap-3 pt-4">
               {task && (onArchiveToggle || onDelete) && (
@@ -1210,22 +1324,17 @@ export function TaskDialog({
                 </span>
               )}
               {task && task.is_archived && onPermanentDelete && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="default"
+                <DeleteEntityPopover
+                  variant="detail"
+                  entityLabel="task"
+                  entityName={task.name}
+                  requireTypedConfirmation={false}
                   disabled={isPending}
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => {
-                    if (window.confirm("Permanently delete this task? This cannot be undone.")) {
-                      onPermanentDelete(task.id);
-                      onOpenChange(false);
-                    }
+                  onConfirm={() => {
+                    onPermanentDelete(task.id);
+                    onOpenChange(false);
                   }}
-                >
-                  <Trash2 className="size-4" />
-                  Delete permanently
-                </Button>
+                />
               )}
               <div className="ml-auto flex gap-3">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>

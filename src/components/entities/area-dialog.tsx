@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { Controller, useForm, type Resolver, type SubmitHandler } from "react-hook-form";
+import { Controller, useForm, useWatch, type Resolver, type SubmitHandler } from "react-hook-form";
 import { z } from "zod/v4";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -80,7 +80,7 @@ export function AreaDialog({
     },
   });
 
-  const { register, handleSubmit, setValue, watch, reset, control, formState: { errors } } = form;
+  const { register, handleSubmit, setValue, reset, control, formState: { errors } } = form;
 
   useEffect(() => {
     if (open) {
@@ -94,8 +94,8 @@ export function AreaDialog({
     }
   }, [area, normalizedDefaultType, open, reset]);
 
-  const selectedIcon = watch("icon");
-  const selectedColor = watch("color");
+  const selectedIcon = useWatch({ control, name: "icon" });
+  const selectedColor = useWatch({ control, name: "color" });
 
   const onFormSubmit = async (data: AreaFormValues) => {
     await onSubmit({

@@ -11,11 +11,11 @@ import {
   Link as LinkIcon,
   Plus,
   Target,
-  Trash2,
   Unlink,
 } from "lucide-react";
 
 import { ContactCard } from "@/components/entities/contact-card";
+import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover";
 import { ContactDialog, type ContactDialogDefaults } from "@/components/entities/contact-dialog";
 import { ContactsByCategoryView } from "@/components/views/contacts-by-category-view";
 import { ContactsFollowUpView } from "@/components/views/contacts-follow-up-view";
@@ -40,11 +40,9 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -115,16 +113,7 @@ import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { buildAreaContactGoalSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections, buildContactByAreaSections } from "@/lib/utils/area-detail";
 import { buildReturnTo, resolveBackNavigation, getReturnToFromSearchParams, encodeReturnTo } from "@/lib/utils/return-to";
 
-const NOTE_STATUS_COLORS: Record<string, string> = {
-  inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  saved: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  archive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-};
-
 const PRIORITY_COLORS: Record<string, string> = {
-  urgent: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
   high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
   medium: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
   low: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
@@ -146,7 +135,6 @@ export function ProjectDetailContent() {
   const projectReturnTo = getReturnToFromSearchParams(searchParams);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isLinkGoalOpen, setIsLinkGoalOpen] = useState(false);
   const [isNewContactOpen, setIsNewContactOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<typeof allContacts[number] | null>(null);
@@ -221,7 +209,6 @@ export function ProjectDetailContent() {
   const restoreNote = useRestoreNote();
   const deleteNote = useDeleteNote();
   const updateNote = useUpdateNote();
-  const { data: allTasksGlobal = [] } = useTasks();
   const { data: allNotesGlobal = [] } = useNotes({ status: "all" });
   const { data: allResourcesGlobal = [] } = useResources({ status: "all" });
   const completeTask = useCompleteTask();
@@ -312,7 +299,6 @@ export function ProjectDetailContent() {
     () => allLinkedContacts.filter((c) => c.archive),
     [allLinkedContacts],
   );
-  const linkedContacts = activeLinkedContacts;
   const activeNotes = useMemo(
     () => linkedNotes.filter((n) => !n.is_archived),
     [linkedNotes],
@@ -873,12 +859,6 @@ export function ProjectDetailContent() {
     router.push("/projects");
   };
 
-  const handleNoteToggleFavorite = useCallback(
-    (noteId: string, favorite: boolean) => {
-      toggleFavoriteNote.mutate({ id: noteId, favorite });
-    },
-    [toggleFavoriteNote],
-  );
 
   const handleLinkArea = async (areaId: string) => {
     if (!resolvedProjectId) {
@@ -1353,15 +1333,16 @@ export function ProjectDetailContent() {
                   <Plus className="size-3.5" />
                   Link Area
                 </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setIsDeleteOpen(true)}
-                  className="gap-1.5"
-                >
-                  <Trash2 className="size-3.5" />
-                  Delete
-                </Button>
+                <DeleteEntityPopover
+                  variant="detail"
+                  entityLabel="project"
+                  entityName={project.name}
+                  requireTypedConfirmation
+                  disabled={deleteProject.isPending}
+                  onConfirm={() => {
+                    void handleDelete();
+                  }}
+                />
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
@@ -1831,26 +1812,6 @@ export function ProjectDetailContent() {
               ))}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Project Permanently?</DialogTitle>
-            <DialogDescription>
-              This removes the project and clears its goal links. Tasks already linked to the
-              project keep their own records.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleteProject.isPending}>
-              Delete Project
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

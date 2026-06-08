@@ -169,6 +169,9 @@ export interface CreateTaskInput {
   is_urgent?: boolean;
   is_archived?: boolean;
   goal_ids?: string[];
+  is_recurring?: boolean;
+  repeat_every?: number | null;
+  repeat_cycle?: Task["repeat_cycle"];
 }
 
 export interface UpdateTaskInput extends Partial<CreateTaskInput> {

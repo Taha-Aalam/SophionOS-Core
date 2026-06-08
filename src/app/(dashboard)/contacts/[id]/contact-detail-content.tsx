@@ -12,25 +12,17 @@ import {
   Phone,
   RotateCcw,
   Star,
-  Trash2,
   User2,
 } from "lucide-react";
 
 import { ContactDialog } from "@/components/entities/contact-dialog";
+import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover";
 import { ContactDetailRelationshipSections } from "@/components/entities/contact-detail-relationship-sections";
 import { ContactRelationshipManager } from "@/components/entities/contact-relationship-manager";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -222,7 +214,6 @@ export function ContactDetailContent() {
   const deleteTask = useDeleteTask();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isRelationshipManagerOpen, setIsRelationshipManagerOpen] = useState(false);
   const [logNote, setLogNote] = useState("");
   const [activeTab, setActiveTab] = useState<"details" | "logs">("details");
@@ -470,9 +461,14 @@ export function ContactDetailContent() {
               <Button variant="ghost" size="icon" onClick={handleArchive} title={contact.archive ? "Unarchive" : "Archive"}>
                 {contact.archive ? <RotateCcw className="size-4" /> : <Archive className="size-4" />}
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => setIsDeleteOpen(true)} title="Delete">
-                <Trash2 className="size-4" />
-              </Button>
+              <DeleteEntityPopover
+                variant="detail"
+                entityLabel="contact"
+                entityName={contact.name}
+                requireTypedConfirmation={false}
+                disabled={deleteContact.isPending}
+                onConfirm={() => handleDelete()}
+              />
             </div>
           </div>
 
@@ -700,22 +696,6 @@ export function ContactDetailContent() {
         contact={contact}
         onSubmit={handleEditSubmit}
       />
-
-      {/* Delete confirmation */}
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Contact</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete {contact.name}? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Relationship manager */}
       <ContactRelationshipManager

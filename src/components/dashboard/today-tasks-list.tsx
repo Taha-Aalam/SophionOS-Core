@@ -47,7 +47,7 @@ export function TodayTasksList({ tasks }: TodayTasksListProps) {
               name: task.title,
               description: task.description,
               due_date: task.dueDate,
-              priority: task.priority as "low" | "medium" | "high" | "urgent",
+              priority: task.priority as "low" | "medium" | "high",
               status: task.status as "completed" | "inbox" | "todo" | "in_progress" | "archived",
               is_completed: false,
               is_focused: false,

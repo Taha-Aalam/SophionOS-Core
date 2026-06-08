@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Inbox as InboxIcon, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
 import { useAreas } from "@/lib/hooks/use-areas";
@@ -29,18 +23,13 @@ import {
   useInboxTasks,
   useInboxResources,
 } from "@/lib/hooks/use-inbox";
-import { useNotebooks, useUpdateNote } from "@/lib/hooks/use-notes";
+import { useNotebooks } from "@/lib/hooks/use-notes";
 import { useProjects, useUpdateProject } from "@/lib/hooks/use-projects";
-import { useUpdateResource } from "@/lib/hooks/use-resources";
 import { useTopics } from "@/lib/hooks/use-topics";
-import { useTasks, useUpdateTask } from "@/lib/hooks/use-tasks";
+import { useTasks } from "@/lib/hooks/use-tasks";
+import { useValidIds } from "@/lib/hooks/use-valid-ids";
 import type { Note, Project, Resource, Task } from "@/lib/types/domain.types";
-import {
-  NOTE_STATUS,
-  PROJECT_STATUS,
-  RESOURCE_STATUS,
-  TASK_STATUS,
-} from "@/lib/utils/constants";
+import { PROJECT_STATUS } from "@/lib/utils/constants";
 import { relativeTime } from "@/lib/utils/dates";
 import { cn } from "@/lib/utils";
 import {
@@ -56,94 +45,6 @@ const PROJECT_ICON = "📁";
 const TASK_ICON = "☑️";
 const NOTE_ICON = "📝";
 const RESOURCE_ICON = "🔗";
-
-const UNSET = "__none__";
-
-const relationPopoverContentClassName = "w-64 p-2 max-h-72 overflow-hidden";
-const relationOptionClassName =
-  "flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
-
-// ─── Shared compact multi-select (Popover style — matches resource-dialog) ──
-
-interface CompactMultiSelectProps {
-  label: string;
-  placeholder: string;
-  selectedCount: number;
-  selectedLabel?: string;
-  candidates: { id: string; name: string; icon?: string | null }[];
-  isSelected: (id: string) => boolean;
-  onToggle: (id: string) => void;
-  onClear: () => void;
-  emptyMessage: string;
-  /** Render any selected items below the trigger (e.g. as removable badges). */
-  renderSelected?: () => React.ReactNode;
-  /** Custom rendering for option rows (defaults to icon + name). */
-  renderOption?: (opt: { id: string; name: string; icon?: string | null }) => React.ReactNode;
-}
-
-function CompactMultiSelect({
-  label,
-  placeholder,
-  selectedCount,
-  selectedLabel,
-  candidates,
-  isSelected,
-  onToggle,
-  onClear,
-  emptyMessage,
-  renderSelected,
-  renderOption,
-}: CompactMultiSelectProps) {
-  return (
-    <div className="grid gap-1.5">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
-        <Popover>
-          <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-            {selectedCount === 0
-              ? placeholder
-              : selectedLabel ?? `${selectedCount} selected`}
-          </PopoverTrigger>
-          <PopoverContent align="start" className={relationPopoverContentClassName}>
-            <button type="button" onClick={onClear} className={relationOptionClassName}>
-              Clear selection
-            </button>
-            <div className="max-h-56 overflow-y-auto">
-              {candidates.length === 0 ? (
-                <div className="px-2 py-1.5 text-sm text-muted-foreground">{emptyMessage}</div>
-              ) : (
-                candidates.map((opt) => {
-                  const checked = isSelected(opt.id);
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => onToggle(opt.id)}
-                      className={relationOptionClassName}
-                    >
-                      <span className="pointer-events-none">
-                        <Checkbox checked={checked} />
-                      </span>
-                      {renderOption ? (
-                        renderOption(opt)
-                      ) : (
-                        <span className="min-w-0 break-words">
-                          {opt.icon ? `${opt.icon} ` : ""}
-                          {opt.name}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
-      {renderSelected?.()}
-    </div>
-  );
-}
 
 // ─── Compact DropdownMenu multi-select (matches project/task-dialog style) ─
 
@@ -238,22 +139,22 @@ function ProjectProcessForm({
   onClose,
 }: ProjectProcessFormProps) {
   const updateProject = useUpdateProject();
-  const [areaIds, setAreaIds] = useState<string[]>(
+  const [rawAreaIds, setRawAreaIds] = useState<string[]>(
     project.linkedAreaIds ?? (project.area_id ? [project.area_id] : []),
   );
-  const [goalIds, setGoalIds] = useState<string[]>(project.linkedGoalIds ?? []);
+  const [rawGoalIds, setRawGoalIds] = useState<string[]>(project.linkedGoalIds ?? []);
   const [startDate, setStartDate] = useState<string>(project.start_date ?? "");
   const [dueDate, setDueDate] = useState<string>(project.due_date ?? "");
-  const [status, setStatus] = useState<string>(
+  const [status, _setStatus] = useState<string>(
     project.status ?? PROJECT_STATUS.ACTIVE,
   );
 
   const toggleArea = (id: string) =>
-    setAreaIds((prev) =>
+    setRawAreaIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   const toggleGoal = (id: string) =>
-    setGoalIds((prev) =>
+    setRawGoalIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
@@ -261,29 +162,20 @@ function ProjectProcessForm({
   // visible areas by selected goals; prune any selected ids that fall
   // out of the visible set.
   const visibleGoals = useMemo(
-    () => filterProjectDialogGoals(goalOptions, areaIds),
-    [goalOptions, areaIds],
+    () => filterProjectDialogGoals(goalOptions, rawAreaIds),
+    [goalOptions, rawAreaIds],
   );
   const visibleAreas = useMemo(
-    () => filterProjectDialogAreas(areaOptions, goalOptions, areaIds, goalIds),
-    [areaOptions, goalOptions, areaIds, goalIds],
+    () => filterProjectDialogAreas(areaOptions, goalOptions, rawAreaIds, rawGoalIds),
+    [areaOptions, goalOptions, rawAreaIds, rawGoalIds],
   );
 
-  useEffect(() => {
-    const allowedGoalIds = new Set(visibleGoals.map((goal) => goal.id));
-    const nextGoalIds = goalIds.filter((goalId) => allowedGoalIds.has(goalId));
-    if (nextGoalIds.length !== goalIds.length) {
-      setGoalIds(nextGoalIds);
-    }
-  }, [visibleGoals, goalIds]);
-
-  useEffect(() => {
-    const allowedAreaIds = new Set(visibleAreas.map((area) => area.id));
-    const nextAreaIds = areaIds.filter((areaId) => allowedAreaIds.has(areaId));
-    if (nextAreaIds.length !== areaIds.length) {
-      setAreaIds(nextAreaIds);
-    }
-  }, [visibleAreas, areaIds]);
+  // Derive filtered ID subsets from raw user picks, stripping any IDs
+  // no longer present in the corresponding visible set. Done at render
+  // time instead of via useEffect reconciliation, to avoid the
+  // cascading-render anti-pattern flagged by react-hooks/set-state-in-effect.
+  const goalIds = useValidIds(rawGoalIds, visibleGoals.map((goal) => goal.id));
+  const areaIds = useValidIds(rawAreaIds, visibleAreas.map((area) => area.id));
 
   const handleSave = () => {
     updateProject.mutate(
@@ -312,7 +204,7 @@ function ProjectProcessForm({
           candidates={visibleAreas}
           isSelected={(id) => areaIds.includes(id)}
           onToggle={toggleArea}
-          onClear={() => setAreaIds([])}
+          onClear={() => setRawAreaIds([])}
           emptyMessage={
             areaOptions.length === 0
               ? "No areas available."
@@ -357,7 +249,7 @@ function ProjectProcessForm({
           candidates={visibleGoals}
           isSelected={(id) => goalIds.includes(id)}
           onToggle={toggleGoal}
-          onClear={() => setGoalIds([])}
+          onClear={() => setRawGoalIds([])}
           emptyMessage={
             goalOptions.length === 0
               ? "No goals available."

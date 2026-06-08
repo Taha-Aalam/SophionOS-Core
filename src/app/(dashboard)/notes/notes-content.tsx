@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -557,15 +558,14 @@ export function NotesContent() {
               <Archive className="size-3.5" />
             )}
           </button>
-          <button
-            type="button"
-            onClick={() => deleteNote.mutate(note.id)}
+          <DeleteEntityPopover
+            variant="row"
+            entityLabel="note"
+            entityName={note.name}
+            requireTypedConfirmation={false}
             disabled={deleteNote.isPending}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
-            title="Delete note"
-          >
-            <Trash2 className="size-3.5" />
-          </button>
+            onConfirm={() => deleteNote.mutate(note.id)}
+          />
         </div>
       </div>
     );

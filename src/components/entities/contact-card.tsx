@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Archive, ArchiveRestore, Mail, Phone, Star, Trash2, User2 } from "lucide-react";
+import { Archive, ArchiveRestore, Mail, Phone, Star, User2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/types/domain.types";
 import { contactService } from "@/lib/services/contact.service";
 import { encodeReturnTo } from "@/lib/utils/return-to";
+
+import { DeleteEntityPopover } from "./delete-entity-popover";
 
 const GROUP_COLORS: Record<string, string> = {
   Client: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
@@ -113,14 +115,13 @@ export function ContactCard({
             >
               Edit
             </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => onDelete?.(contact.id)}
-              title="Delete contact"
-            >
-              <Trash2 className="size-3.5 text-destructive" />
-            </Button>
+            <DeleteEntityPopover
+              variant="row"
+              entityLabel="contact"
+              entityName={contact.name}
+              requireTypedConfirmation={false}
+              onConfirm={() => onDelete?.(contact.id)}
+            />
           </div>
         </div>
       </CardHeader>

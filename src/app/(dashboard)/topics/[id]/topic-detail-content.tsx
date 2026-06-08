@@ -8,11 +8,11 @@ import {
   ChevronRightIcon,
   Heart,
   Tag,
-  Trash2,
   Archive,
   Plus,
 } from "lucide-react";
 
+import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { ResourceRow } from "@/components/entities/resource-row";
 import { EmptyState } from "@/components/views/empty-state";
@@ -112,12 +112,10 @@ export function TopicDetailContent() {
     toggleFavorite.mutate({ id: topic.id, favorite: !topic.favorite });
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!topic) return;
-    if (confirm(`Delete topic "${topic.name}"? This cannot be undone.`)) {
-      deleteTopic.mutate(topic.id);
-      router.push(backTarget);
-    }
+    await deleteTopic.mutateAsync(topic.id);
+    router.push(backTarget);
   };
 
   const handleArchive = async () => {
@@ -388,15 +386,16 @@ export function TopicDetailContent() {
                   <Archive className="size-4 mr-2" />
                   Archive
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDelete}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="size-4 mr-2" />
-                  Delete
-                </Button>
+                <DeleteEntityPopover
+                  variant="detail"
+                  entityLabel="topic"
+                  entityName={topic.name}
+                  requireTypedConfirmation
+                  disabled={deleteTopic.isPending}
+                  onConfirm={() => {
+                    void handleDelete();
+                  }}
+                />
               </div>
             </div>
           </>
