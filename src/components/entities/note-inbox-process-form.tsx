@@ -35,6 +35,7 @@ import {
   computeFilteredGoals,
   computeFilteredTasks,
 } from "@/lib/utils/resource-dialog-filters";
+import { getNoteLinkedGoalIds } from "@/lib/utils/notes";
 
 const NOTE_ICON = "📝";
 
@@ -83,7 +84,7 @@ export function NoteInboxProcessForm({
   const [rawAreaIds, setRawAreaIds] = useState<string[]>(
     note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []),
   );
-  const [rawGoalIds, setRawGoalIds] = useState<string[]>(note.linkedGoalIds ?? []);
+  const [rawGoalIds, setRawGoalIds] = useState<string[]>(getNoteLinkedGoalIds(note));
   const [rawProjectIds, setRawProjectIds] = useState<string[]>(
     note.linkedProjectIds ?? (note.project_id ? [note.project_id] : []),
   );

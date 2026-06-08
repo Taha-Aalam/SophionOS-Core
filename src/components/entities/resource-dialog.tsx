@@ -40,6 +40,7 @@ import {
   computeFilteredGoals,
   computeFilteredTasks,
 } from "@/lib/utils/resource-dialog-filters";
+import { getEffectiveResourceProjectIds } from "@/lib/utils/resources";
 
 const RESOURCE_TYPE_OPTIONS = [
   { value: RESOURCE_TYPE.WEBSITE, label: "Website" },
@@ -303,6 +304,23 @@ export function ResourceDialog({
     if (!projectId) return null;
     return projects.find((p) => p.id === projectId) ?? null;
   }, [projectId, projects]);
+
+  const effectiveProjectNames = useMemo(() => {
+    const tasksByIdMap = new Map(tasks.map((t) => [t.id, t]));
+    const virtualResource = {
+      project_id: projectId || null,
+      linkedTaskIds: taskIds,
+      linkedGoalIds: goalIds,
+    } as Resource;
+    const ids = getEffectiveResourceProjectIds({
+      resource: virtualResource,
+      tasksById: tasksByIdMap,
+      goalProjectIdsMap,
+    });
+    return ids
+      .map((id) => projects.find((p) => p.id === id)?.name)
+      .filter((n): n is string => Boolean(n));
+  }, [projectId, taskIds, goalIds, tasks, goalProjectIdsMap, projects]);
 
   const selectedTasks = useMemo(() => {
     return tasks.filter((t) => taskIds.includes(t.id));
@@ -602,6 +620,16 @@ export function ResourceDialog({
                       <X className="size-3" />
                     </button>
                   </Badge>
+                </div>
+              )}
+              {effectiveProjectNames.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {effectiveProjectNames.map((name) => (
+                    <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
+                      <span className="text-xs leading-none">📁</span>
+                      {name}
+                    </Badge>
+                  ))}
                 </div>
               )}
             </div>
