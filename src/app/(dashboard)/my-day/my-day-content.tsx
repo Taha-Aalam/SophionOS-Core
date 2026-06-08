@@ -1,29 +1,37 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
-  Calendar,
   CheckSquare,
   Plus,
   Star,
   Sun,
 } from "lucide-react";
 
+import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskListItem } from "@/components/entities/task-list-item";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
 import { useAreas } from "@/lib/hooks/use-areas";
+import { useGoals } from "@/lib/hooks/use-goals";
 import { useMyDayAvailable, useMyDayTasks } from "@/lib/hooks/use-my-day";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
+  useArchiveTask,
   useCompleteTask,
   useFocusTask,
+  usePermanentDeleteTask,
+  useRestoreTask,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import type { Task } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
+import {
+  getTaskLinkedAreaIds,
+  getTaskLinkedGoalIds,
+  getTaskLinkedProjectIds,
+} from "@/lib/utils/tasks";
 
 function TaskRowSkeleton() {
   return (
@@ -69,25 +77,30 @@ function AvailableTaskRow({ task, areaName, projectName, onAddToDay }: Available
 }
 
 function SectionHeader({
-  icon: Icon,
+  accentClass,
   title,
-  count,
-  className,
+  description,
+  totalCount,
 }: {
-  icon: React.ElementType;
+  accentClass: string;
   title: string;
-  count: number;
-  className?: string;
+  description: string;
+  totalCount?: number;
 }) {
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <Icon className="size-4 text-muted-foreground" />
-      <h2 className="text-sm font-semibold">{title}</h2>
-      {count > 0 && (
-        <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
-          {count}
-        </Badge>
-      )}
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start gap-3">
+        <div className={cn("mt-1.5 h-full min-h-[2.5rem] w-1 shrink-0 rounded-full", accentClass)} />
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">{title}</h2>
+            {typeof totalCount === "number" ? (
+              <span className="text-sm text-muted-foreground">{totalCount} total</span>
+            ) : null}
+          </div>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -97,22 +110,77 @@ export function MyDayContent() {
   const { data: available, isLoading: availableLoading } = useMyDayAvailable();
 
   const { data: allAreas } = useAreas();
+  const { data: allGoals } = useGoals({});
   const { data: allProjects } = useProjects({ status: "all" });
 
   const completeTask = useCompleteTask();
   const focusTask = useFocusTask();
   const updateTask = useUpdateTask();
+  const archiveTask = useArchiveTask();
+  const restoreTask = useRestoreTask();
+  const permanentDelete = usePermanentDeleteTask();
 
   const [planOpen, setPlanOpen] = useState(false);
   const [availableSearch, setAvailableSearch] = useState("");
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const areaMap = useMemo(
-    () => new Map((allAreas ?? []).map((a) => [a.id, a.name])),
+    () => new Map(allAreas?.map((area) => [area.id, area]) ?? []),
     [allAreas],
   );
+  const goalMap = useMemo(
+    () => new Map(allGoals?.map((goal) => [goal.id, goal]) ?? []),
+    [allGoals],
+  );
   const projectMap = useMemo(
-    () => new Map((allProjects ?? []).map((p) => [p.id, p.name])),
+    () => new Map(allProjects?.map((project) => [project.id, project]) ?? []),
     [allProjects],
+  );
+
+  const handleArchiveToggle = useCallback(
+    (task: Task) => {
+      if (task.is_archived) {
+        restoreTask.mutate(task.id);
+      } else {
+        archiveTask.mutate(task.id);
+      }
+    },
+    [archiveTask, restoreTask],
+  );
+
+  const handlePermanentDelete = useCallback(
+    (id: string) => {
+      permanentDelete.mutate(id);
+    },
+    [permanentDelete],
+  );
+
+  const handleEdit = (task: Task) => {
+    setEditingTask(task);
+    setIsDialogOpen(true);
+  };
+
+  const getLinkedAreaIcons = useCallback(
+    (task: Task) =>
+      getTaskLinkedAreaIds(task).map((id) => areaMap.get(id)?.icon ?? null),
+    [areaMap],
+  );
+
+  const getLinkedGoalNames = useCallback(
+    (task: Task) =>
+      getTaskLinkedGoalIds(task)
+        .map((id) => goalMap.get(id)?.name)
+        .filter((n): n is string => Boolean(n)),
+    [goalMap],
+  );
+
+  const getLinkedProjectNames = useCallback(
+    (task: Task) =>
+      getTaskLinkedProjectIds(task)
+        .map((id) => projectMap.get(id)?.name)
+        .filter((n): n is string => Boolean(n)),
+    [projectMap],
   );
 
   const filteredAvailable = useMemo(() => {
@@ -130,19 +198,6 @@ export function MyDayContent() {
     weekday: "long",
     month: "long",
     day: "numeric",
-  });
-
-  const taskHandlers = (_task: Task) => ({
-    onCompletionToggle: (id: string, isCompleted: boolean) => {
-      if (isCompleted) {
-        completeTask.mutate(id);
-      } else {
-        updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
-      }
-    },
-    onFocusToggle: (id: string, focused: boolean) =>
-      focusTask.mutate({ id, is_focused: focused }),
-    onNameSave: (id: string, name: string) => updateTask.mutate({ id, input: { name } }),
   });
 
   return (
@@ -188,23 +243,43 @@ export function MyDayContent() {
           <>
             {/* Due Today */}
             {(todayCount > 0 || !planOpen) && (
-              <section className="flex flex-col gap-2">
-                <SectionHeader icon={Calendar} title="Due Today" count={todayCount} />
+              <section>
+                <SectionHeader
+                  accentClass="bg-amber-500"
+                  title="Due Today"
+                  totalCount={todayCount}
+                  description="Tasks due today."
+                />
                 {todayCount === 0 ? (
-                  <p className="px-1 text-sm text-muted-foreground">
+                  <p className="mt-4 px-1 text-sm text-muted-foreground">
                     No tasks due today.
                   </p>
                 ) : (
-                  <div className="overflow-hidden rounded-lg border border-border/60">
+                  <div className="mt-4 divide-y-0">
                     {myDay.dueToday.map((task) => (
                       <TaskListItem
                         key={task.id}
                         task={task}
-                        areaName={task.area_id ? areaMap.get(task.area_id) ?? null : null}
-                        projectName={
-                          task.project_id ? projectMap.get(task.project_id) ?? null : null
-                        }
-                        {...taskHandlers(task)}
+                        areaName={task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
+                        linkedAreaNames={getTaskLinkedAreaIds(task)
+                          .map((id) => areaMap.get(id)?.name)
+                          .filter((n): n is string => Boolean(n))}
+                        linkedAreaIcons={getLinkedAreaIcons(task)}
+                        linkedGoalNames={getLinkedGoalNames(task)}
+                        projectName={task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
+                        linkedProjectNames={getLinkedProjectNames(task)}
+                        onCompletionToggle={(id, isCompleted) => {
+                          if (isCompleted) {
+                            completeTask.mutate(id);
+                          } else {
+                            updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
+                          }
+                        }}
+                        onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
+                        onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+                        onEdit={handleEdit}
+                        onArchiveToggle={handleArchiveToggle}
+                        onPermanentDelete={handlePermanentDelete}
                       />
                     ))}
                   </div>
@@ -214,23 +289,43 @@ export function MyDayContent() {
 
             {/* Focus */}
             {(focusCount > 0 || !planOpen) && (
-              <section className="flex flex-col gap-2">
-                <SectionHeader icon={Star} title="Focus" count={focusCount} />
+              <section>
+                <SectionHeader
+                  accentClass="bg-yellow-500"
+                  title="Focus"
+                  totalCount={focusCount}
+                  description="Starred tasks for today's focus."
+                />
                 {focusCount === 0 ? (
-                  <p className="px-1 text-sm text-muted-foreground">
+                  <p className="mt-4 px-1 text-sm text-muted-foreground">
                     No tasks in focus. Star a task below to add it to your day.
                   </p>
                 ) : (
-                  <div className="overflow-hidden rounded-lg border border-border/60">
+                  <div className="mt-4 divide-y-0">
                     {myDay.focused.map((task) => (
                       <TaskListItem
                         key={task.id}
                         task={task}
-                        areaName={task.area_id ? areaMap.get(task.area_id) ?? null : null}
-                        projectName={
-                          task.project_id ? projectMap.get(task.project_id) ?? null : null
-                        }
-                        {...taskHandlers(task)}
+                        areaName={task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
+                        linkedAreaNames={getTaskLinkedAreaIds(task)
+                          .map((id) => areaMap.get(id)?.name)
+                          .filter((n): n is string => Boolean(n))}
+                        linkedAreaIcons={getLinkedAreaIcons(task)}
+                        linkedGoalNames={getLinkedGoalNames(task)}
+                        projectName={task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
+                        linkedProjectNames={getLinkedProjectNames(task)}
+                        onCompletionToggle={(id, isCompleted) => {
+                          if (isCompleted) {
+                            completeTask.mutate(id);
+                          } else {
+                            updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
+                          }
+                        }}
+                        onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
+                        onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+                        onEdit={handleEdit}
+                        onArchiveToggle={handleArchiveToggle}
+                        onPermanentDelete={handlePermanentDelete}
                       />
                     ))}
                   </div>
@@ -243,12 +338,13 @@ export function MyDayContent() {
         {/* Plan My Day panel */}
         {planOpen && (
           <section className="flex flex-col gap-2">
-            <SectionHeader
-              icon={CheckSquare}
-              title="Pick tasks to focus"
-              count={available.length}
-              className="text-muted-foreground"
-            />
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <CheckSquare className="size-4" />
+              <h2 className="text-sm font-semibold">Pick tasks to focus</h2>
+              {available.length > 0 && (
+                <span className="text-xs text-muted-foreground">{available.length} available</span>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
               Star any task to add it to your focus list for today.
             </p>
@@ -283,9 +379,9 @@ export function MyDayContent() {
                     <AvailableTaskRow
                       key={task.id}
                       task={task}
-                      areaName={task.area_id ? areaMap.get(task.area_id) ?? null : null}
+                      areaName={task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
                       projectName={
-                        task.project_id ? projectMap.get(task.project_id) ?? null : null
+                        task.project_id ? projectMap.get(task.project_id)?.name ?? null : null
                       }
                       onAddToDay={() => focusTask.mutate({ id: task.id, is_focused: true })}
                     />
@@ -296,6 +392,19 @@ export function MyDayContent() {
           </section>
         )}
       </div>
+
+      <TaskDialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) {
+            setEditingTask(null);
+          }
+        }}
+        task={editingTask}
+        onArchiveToggle={handleArchiveToggle}
+        onPermanentDelete={handlePermanentDelete}
+      />
     </div>
   );
 }
