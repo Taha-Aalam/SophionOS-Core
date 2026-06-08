@@ -112,13 +112,40 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateTaskInput }) =>
       taskService.update(user!.id, id, input),
-    onSuccess: async () => {
+    // Optimistic update: patch every tasks-list cache with the incoming
+    // changes BEFORE the server roundtrip. Without this, the calendar view
+    // keeps the task on its old date until the post-mutation refetch
+    // arrives, which manifests as a "snap back" for ~50-300ms after a drop.
+    onMutate: async ({ id, input }) => {
+      await queryClient.cancelQueries({ queryKey: [TASKS_QUERY_KEY] });
+      const previousData = queryClient.getQueriesData<Task[]>({
+        queryKey: [TASKS_QUERY_KEY],
+      });
+
+      queryClient.setQueriesData<Task[]>({ queryKey: [TASKS_QUERY_KEY] }, (old) => {
+        if (!Array.isArray(old)) {
+          return old;
+        }
+        return old.map((task) => (task.id === id ? { ...task, ...input } : task));
+      });
+
+      return { previousData };
+    },
+    onError: (error: Error, _variables, context) => {
+      if (context?.previousData) {
+        for (const [queryKey, data] of context.previousData) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+      toast.error(error.message || "Failed to update task");
+    },
+    onSettled: async () => {
+      // Always refetch after settle so server truth wins, even on success.
+      // (onError already restored the snapshot; the refetch re-applies it if
+      // the server's response differs from the optimistic patch.)
       await invalidateTaskCoreGraph(queryClient);
       queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to update task");
     },
   });
 }
@@ -205,13 +232,13 @@ export function useCompleteTask() {
 
       return { previousData };
     },
-    onSuccess: (_completedTask, id) => {
+    onSuccess: (result, id) => {
       toast.success("Task completed", {
         action: {
           label: "Undo",
           onClick: async () => {
             try {
-              await taskService.uncomplete(user!.id, id);
+              await taskService.undoComplete(user!.id, id, result.spawnedTaskId);
               await invalidateTaskGraph(queryClient);
               toast.success("Task restored");
             } catch {
@@ -237,6 +264,17 @@ export function useCompleteTask() {
   });
 }
 
+/**
+ * Mark a task as not completed.
+ *
+ * For recurring tasks, the service layer also deletes the live spawned
+ * child (the next instance queued by the most recent `complete()` call) by
+ * looking it up via `recurrence_source_task_id`. Callers do not need to
+ * know the spawned child's id — that is the service's job. This hook
+ * supersedes the older "undo via spawnedTaskId" path used by the toast
+ * Undo action; the page-level toggle is now safe to use for any
+ * uncheck.
+ */
 export function useUncompleteTask() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -404,13 +442,13 @@ export function useCompleteTaskWithGoalRefresh() {
 
       return { previousData };
     },
-    onSuccess: (_completedTask, id) => {
+    onSuccess: (result, id) => {
       toast.success("Task completed", {
         action: {
           label: "Undo",
           onClick: async () => {
             try {
-              await taskService.uncomplete(user!.id, id);
+              await taskService.undoComplete(user!.id, id, result.spawnedTaskId);
               await invalidateTaskGraph(queryClient);
               toast.success("Task restored");
             } catch {

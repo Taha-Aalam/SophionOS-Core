@@ -154,12 +154,15 @@ describe("TaskProcessForm 3D cascade", () => {
   });
 
   it("case 6: multiple selections in different dimensions render multiple 'selected' badges", () => {
+    // Use projects that link to both selected areas so cascade keeps both areas visible
+    // proj-ab links to area-a AND area-b, proj-a links to area-a
     const html = renderForm({
       ...baseTask,
       linkedAreaIds: ["area-a", "area-b"],
-      linkedProjectIds: ["proj-a", "proj-c"],
+      linkedProjectIds: ["proj-ab", "proj-a"],
     });
-    // 2 selected appears at least twice (area count + project count)
+    // Both areas are visible (linked to selected projects) → "2 selected" for area
+    // Both projects are visible (match area/goal filters) → "2 selected" for project
     const matches = html.match(/2 selected/g) ?? [];
     expect(matches.length).toBeGreaterThanOrEqual(2);
   });

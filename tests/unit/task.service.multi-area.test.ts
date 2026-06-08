@@ -80,7 +80,7 @@ describe("taskService – multi-area create", () => {
       insert: vi.fn().mockResolvedValue({ error: null }),
     } as any;
 
-    const touchClient = {
+    const _touchClient = {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -132,7 +132,7 @@ describe("taskService – multi-area create", () => {
       insert: vi.fn().mockResolvedValue({ error: null }),
     } as any;
 
-    const touchClient = {
+    const _touchClient = {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -178,7 +178,7 @@ describe("taskService – multi-area create", () => {
       insert: vi.fn().mockResolvedValue({ error: null }),
     } as any;
 
-    const touchClient = {
+    const _touchClient = {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -234,13 +234,13 @@ describe("taskService – multi-area update", () => {
     } as any;
 
     // replaceGoalLinks([], []) — getGoalLinks lookup returns empty, nothing to add/remove
-    const goalLookupClient = {
+    const _goalLookupClient = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({ data: [], error: null }),
     } as any;
 
-    const touchClient = {
+    const _touchClient = {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),

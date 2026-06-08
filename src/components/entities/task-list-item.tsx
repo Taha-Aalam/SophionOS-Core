@@ -1,13 +1,14 @@
 "use client";
 
 import React from "react";
-import { Calendar, Map, Pencil, Star, Trash2 } from "lucide-react";
+import { Calendar, Map, Pencil, Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Task } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
 
+import { DeleteEntityPopover } from "./delete-entity-popover";
 import { PriorityBadge } from "./priority-badge";
 import { StatusBadge } from "./status-badge";
 import { SmartPriorityBadge } from "./smart-priority-badge";
@@ -207,18 +208,15 @@ export function TaskListItem({
           </span>
         )}
         {onPermanentDelete && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (window.confirm("Permanently delete this task? This cannot be undone.")) {
-                onPermanentDelete(task.id);
-              }
-            }}
-            className="rounded-md p-1.5 text-destructive/70 transition-colors hover:bg-destructive/10 hover:text-destructive"
-            aria-label="Delete task permanently"
-          >
-            <Trash2 className="size-3.5" />
-          </button>
+          <span onClick={(e) => e.stopPropagation()}>
+            <DeleteEntityPopover
+              variant="row"
+              entityLabel="task"
+              entityName={task.name}
+              requireTypedConfirmation={false}
+              onConfirm={() => onPermanentDelete(task.id)}
+            />
+          </span>
         )}
       </div>
     </div>

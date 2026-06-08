@@ -2,7 +2,8 @@
 
 import React, { memo } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, HeartOff, Tag, Pencil, Archive, RotateCcw } from "lucide-react";
+import { Heart, HeartOff, Pencil, Archive, RotateCcw } from "lucide-react";
+import { TagEmoji } from "@/components/layout/tag-emoji";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,9 +55,7 @@ const TopicCardComponent = ({
       <CardContent className={cn("p-4", !compact && "p-5")}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
-              <Tag className="size-4 text-muted-foreground" />
-            </div>
+            <TagEmoji className="text-base leading-none shrink-0" />
             <div className="min-w-0">
               <h3 className="font-medium truncate">
                 {topic.name}

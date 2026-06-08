@@ -462,6 +462,10 @@ export type Database = {
           previous_status: Database["public"]["Enums"]["task_status"] | null;
           smart_priority: number;
           is_archived: boolean;
+          is_recurring: boolean;
+          repeat_every: number | null;
+          repeat_cycle: Database["public"]["Enums"]["task_repeat_cycle"] | null;
+          recurrence_source_task_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -483,6 +487,10 @@ export type Database = {
           previous_status?: Database["public"]["Enums"]["task_status"] | null;
           smart_priority?: number;
           is_archived?: boolean;
+          is_recurring?: boolean;
+          repeat_every?: number | null;
+          repeat_cycle?: Database["public"]["Enums"]["task_repeat_cycle"] | null;
+          recurrence_source_task_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -504,6 +512,10 @@ export type Database = {
           previous_status?: Database["public"]["Enums"]["task_status"] | null;
           smart_priority?: number;
           is_archived?: boolean;
+          is_recurring?: boolean;
+          repeat_every?: number | null;
+          repeat_cycle?: Database["public"]["Enums"]["task_repeat_cycle"] | null;
+          recurrence_source_task_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -772,11 +784,20 @@ export type Database = {
       goal_term: "short" | "mid" | "long";
       note_status: "inbox" | "to_review" | "active" | "archive" | "saved";
       note_type: "note" | "research" | "journal";
-      priority: "low" | "medium" | "high" | "urgent";
+      priority: "low" | "medium" | "high";
       project_status: "inbox" | "planning" | "active" | "completed" | "on_hold" | "archived";
       resource_status: "inbox" | "to_review" | "active" | "saved";
       resource_type: "website" | "article" | "video" | "document" | "podcast" | "social_media" | "tool";
       task_status: "inbox" | "todo" | "in_progress" | "completed" | "archived";
+      task_repeat_cycle:
+        | "days"
+        | "weeks"
+        | "months"
+        | "years"
+        | "months_first_weekday"
+        | "months_last_weekday"
+        | "months_second_saturday"
+        | "months_last_day";
     };
     CompositeTypes: {
       [_ in never]: never;

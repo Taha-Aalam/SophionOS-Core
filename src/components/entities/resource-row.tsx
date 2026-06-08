@@ -7,13 +7,14 @@ import {
   ExternalLink,
   Map as LucideMap,
   Star,
-  Trash2,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Resource } from "@/lib/types/domain.types";
 import type { ResourceStatus } from "@/lib/utils/constants";
+
+import { DeleteEntityPopover } from "./delete-entity-popover";
 
 const STATUS_COLORS: Record<string, string> = {
   inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -210,17 +211,13 @@ export function ResourceRow({
             <Archive className="size-3.5" />
           )}
         </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(resource.id);
-          }}
-          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
-          title="Delete resource"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
+        <DeleteEntityPopover
+          variant="row"
+          entityLabel="resource"
+          entityName={resource.name}
+          requireTypedConfirmation={false}
+          onConfirm={() => onDelete(resource.id)}
+        />
       </div>
     </div>
   );
