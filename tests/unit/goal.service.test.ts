@@ -54,7 +54,7 @@ describe("goalService", () => {
     expect(mockClient.eq).toHaveBeenCalledWith("is_archived", false);
   });
 
-  it("treats inactive goals as archived goals because archive is the persisted model state", async () => {
+  it("queries non-completed, non-archived goals for inactive view; auto-inactive filter applied client-side", async () => {
     const mockClient = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
@@ -66,8 +66,8 @@ describe("goalService", () => {
 
     await goalService.list(userId, { status: "inactive" });
 
-    expect(mockClient.eq).toHaveBeenCalledWith("is_archived", true);
-    expect(mockClient.eq).not.toHaveBeenCalledWith("is_completed", true);
+    expect(mockClient.eq).toHaveBeenCalledWith("is_archived", false);
+    expect(mockClient.eq).toHaveBeenCalledWith("is_completed", false);
   });
 
   it("restores archived goals by clearing is_archived", async () => {

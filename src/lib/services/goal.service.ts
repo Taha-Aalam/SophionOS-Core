@@ -510,7 +510,7 @@ export const goalService = {
     } else if (filters.status === "completed") {
       query = query.eq("is_completed", true).eq("is_archived", false);
     } else if (filters.status === "inactive") {
-      query = query.eq("is_archived", true);
+      query = query.eq("is_completed", false).eq("is_archived", false);
     } else if (filters.status === "archived") {
       query = query.eq("is_archived", true);
     }
