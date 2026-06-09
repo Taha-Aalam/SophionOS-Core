@@ -130,7 +130,7 @@ export function goalMatchesFilters(
     (goal.resourceCount ?? 0);
   const isAutoInactive = countsHydrated && totalLinked === 0 && !goal.is_archived && !goal.is_completed;
 
-  if (normalizedStatus === "active" && (goal.is_completed || goal.is_archived || isAutoInactive)) {
+  if (normalizedStatus === "active" && (goal.is_completed || goal.is_archived || goal.is_inactive || isAutoInactive)) {
     return false;
   }
 
@@ -138,7 +138,7 @@ export function goalMatchesFilters(
     return false;
   }
 
-  if (normalizedStatus === "inactive" && !isAutoInactive) {
+  if (normalizedStatus === "inactive" && !isAutoInactive && !goal.is_inactive) {
     return false;
   }
 

@@ -900,6 +900,14 @@ export function GoalDetailContent() {
     setEditingResource(resource);
   }, []);
 
+  const handleGoalInactiveToggle = useCallback(async (checked: boolean) => {
+    if (!goal || checked === goal.is_inactive) return;
+    await updateGoal.mutateAsync({
+      id: goal.id,
+      input: { is_inactive: checked },
+    });
+  }, [goal, updateGoal]);
+
   const handleGoalArchiveToggle = useCallback(async (checked: boolean) => {
     if (!goal || checked === goal.is_archived) return;
     await updateGoal.mutateAsync({
@@ -1392,6 +1400,17 @@ export function GoalDetailContent() {
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="goal-inactive"
+                    checked={goal.is_inactive ?? false}
+                    disabled={updateGoal.isPending}
+                    onCheckedChange={(checked) => handleGoalInactiveToggle(checked === true)}
+                  />
+                  <Label htmlFor="goal-inactive" className="cursor-pointer text-sm">
+                    Inactive
+                  </Label>
+                </div>
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="goal-archived"

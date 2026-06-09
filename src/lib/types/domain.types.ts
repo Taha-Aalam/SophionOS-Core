@@ -133,6 +133,7 @@ export interface CreateGoalInput {
   progress?: number;
   is_completed?: boolean;
   is_archived?: boolean;
+  is_inactive?: boolean;
 }
 
 export type UpdateGoalInput = Partial<CreateGoalInput>;

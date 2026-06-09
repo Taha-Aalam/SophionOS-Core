@@ -109,9 +109,14 @@ const AreaCardComponent = ({
                 >
                   {areaType}
                 </Badge>
-                {isInactive && !isArchived && (
+                {!isArchived && goalsCount === 0 && projectsCount === 0 && tasksCount === 0 && notesCount === 0 && resourcesCount === 0 && (
                   <Badge variant="outline" className="text-xs text-muted-foreground">
                     No activity
+                  </Badge>
+                )}
+                {isInactive && !isArchived && (goalsCount > 0 || projectsCount > 0 || tasksCount > 0 || notesCount > 0 || resourcesCount > 0) && (
+                  <Badge variant="outline" className="text-xs text-muted-foreground">
+                    Paused
                   </Badge>
                 )}
                 {isArchived && (
