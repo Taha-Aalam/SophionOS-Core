@@ -808,6 +808,19 @@ export function ProjectDetailContent() {
     }
   }, []);
 
+  const handleProjectInactiveToggle = useCallback(
+    async (checked: boolean) => {
+      if (!project) return;
+      const nextStatus = checked ? "on_hold" : "active";
+      if (project.status === nextStatus) return;
+      await updateProject.mutateAsync({
+        id: project.id,
+        input: { status: nextStatus },
+      });
+    },
+    [project, updateProject],
+  );
+
   const handleProjectArchiveToggle = useCallback(
     async (checked: boolean) => {
       if (!project || checked === project.is_archived) {
@@ -1346,6 +1359,17 @@ export function ProjectDetailContent() {
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="project-inactive"
+                    checked={project.status === "on_hold"}
+                    disabled={updateProject.isPending}
+                    onCheckedChange={(checked) => handleProjectInactiveToggle(checked === true)}
+                  />
+                  <Label htmlFor="project-inactive" className="cursor-pointer text-sm">
+                    Inactive
+                  </Label>
+                </div>
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="project-archived"
