@@ -72,6 +72,7 @@ import {
   useRestoreNote,
   useToggleFavoriteNote,
   useTogglePinNote,
+  useUpdateNote,
 } from "@/lib/hooks/use-notes";
 import {
   useArchiveResource,
@@ -465,7 +466,7 @@ export default function KnowledgeHubPage() {
       case RESOURCE_VIEW.INBOX: return resources.filter((r) => r.status === RESOURCE_STATUS.INBOX);
       case RESOURCE_VIEW.TO_REVIEW: return resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW);
       case RESOURCE_VIEW.ACTIVE: return resources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE);
-      case RESOURCE_VIEW.SAVED: return resources.filter((r) => r.status === RESOURCE_STATUS.SAVED);
+      case RESOURCE_VIEW.COMPLETED: return resources.filter((r) => r.status === RESOURCE_STATUS.COMPLETED);
       case RESOURCE_VIEW.FAVORITE: return resources.filter((r) => r.favorite);
       case RESOURCE_VIEW.ARCHIVED: return archivedResources;
       default: return resources;
@@ -551,6 +552,7 @@ export default function KnowledgeHubPage() {
   const archiveNote = useArchiveNoteWithUndo();
   const restoreNote = useRestoreNote();
   const deleteNote = useDeleteNote();
+  const updateNote = useUpdateNote();
 
   const createResource = useCreateResource();
   const toggleFavoriteResource = useToggleFavoriteResource();
@@ -650,6 +652,7 @@ export default function KnowledgeHubPage() {
         taskNames={noteTaskNames}
         onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
         onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+        onSaveStatusChange={(id, saved) => updateNote.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
         onArchive={(id) => archiveNote.mutate(id)}
         onRestore={(id) => restoreNote.mutate(id)}
         onDelete={(id) => deleteNote.mutate(id)}
@@ -687,6 +690,7 @@ export default function KnowledgeHubPage() {
         taskNames={taskNamesList}
         topicName={r.topic_id ? topicNames.get(r.topic_id) : undefined}
         onToggleFavorite={(id, fav) => toggleFavoriteResource.mutate({ id, favorite: fav })}
+        onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
         onArchive={(id) => archiveResource.mutate(id)}
         onUnarchive={(id) => unarchiveResource.mutate(id)}
         onDelete={(id) => deleteResource.mutate(id)}
@@ -1025,7 +1029,7 @@ export default function KnowledgeHubPage() {
                   <TabsTrigger value={NOTE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><FolderOpen className="mr-1 size-3" />By Project</TabsTrigger>
                   <TabsTrigger value={NOTE_VIEW.BY_TOPIC} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Tag className="mr-1 size-3" />By Topic</TabsTrigger>
                   <TabsTrigger value={NOTE_VIEW.BY_NOTEBOOK} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><BookOpen className="mr-1 size-3" />By Notebook</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.SAVED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Bookmark className="mr-1 size-3" />Saved</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.COMPLETED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Bookmark className="mr-1 size-3" />Completed</TabsTrigger>
                   <TabsTrigger value={NOTE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Archive className="mr-1 size-3" />Archived</TabsTrigger>
                 </TabsList>
 
@@ -1036,7 +1040,7 @@ export default function KnowledgeHubPage() {
                   NOTE_VIEW.ACTIVE,
                   NOTE_VIEW.PINNED,
                   NOTE_VIEW.FAVORITE,
-                  NOTE_VIEW.SAVED,
+                  NOTE_VIEW.COMPLETED,
                   NOTE_VIEW.ARCHIVED,
                 ] as NoteView[]).map((tab) => (
                   <TabsContent key={tab} value={tab} className="mt-4">
@@ -1127,13 +1131,13 @@ export default function KnowledgeHubPage() {
                   <TabsTrigger value={RESOURCE_VIEW.BY_AREA} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><MapIcon className="mr-1.5 size-3.5" />By Area</TabsTrigger>
                   <TabsTrigger value={RESOURCE_VIEW.BY_GOAL} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Target className="mr-1.5 size-3.5" />By Goal</TabsTrigger>
                   <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><FolderOpen className="mr-1.5 size-3.5" />By Project</TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.SAVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Bookmark className="mr-1.5 size-3.5" />Saved
+                  <TabsTrigger value={RESOURCE_VIEW.COMPLETED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Bookmark className="mr-1.5 size-3.5" />Completed
                   </TabsTrigger>
                   <TabsTrigger value={RESOURCE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Archive className="mr-1.5 size-3.5" />Archived
                   </TabsTrigger>
                 </TabsList>
 
-                {([RESOURCE_VIEW.ALL, RESOURCE_VIEW.INBOX, RESOURCE_VIEW.TO_REVIEW, RESOURCE_VIEW.ACTIVE, RESOURCE_VIEW.FAVORITE, RESOURCE_VIEW.SAVED, RESOURCE_VIEW.ARCHIVED] as ResourceView[]).map((v) => (
+                {([RESOURCE_VIEW.ALL, RESOURCE_VIEW.INBOX, RESOURCE_VIEW.TO_REVIEW, RESOURCE_VIEW.ACTIVE, RESOURCE_VIEW.FAVORITE, RESOURCE_VIEW.COMPLETED, RESOURCE_VIEW.ARCHIVED] as ResourceView[]).map((v) => (
                   <TabsContent key={v} value={v} className="mt-4">
                     {resourcesLoading && v !== RESOURCE_VIEW.ARCHIVED ? (
                       <div className="flex flex-col">

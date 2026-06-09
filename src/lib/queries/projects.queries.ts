@@ -279,7 +279,7 @@ export async function hydrateProjectProgress<T extends ProjectLike>(
     if (seen.has(n.id)) continue;
     seen.add(n.id);
     seenNotesByProject.set(n.project_id, seen);
-    bump(n.project_id, n.status === "saved");
+    bump(n.project_id, n.status === "completed");
   }
 
   for (const link of (noteJunctionRows ?? []) as Array<{
@@ -295,7 +295,7 @@ export async function hydrateProjectProgress<T extends ProjectLike>(
     if (seen.has(note.id)) continue;
     seen.add(note.id);
     seenNotesByProject.set(link.project_id, seen);
-    bump(link.project_id, note.status === "saved");
+    bump(link.project_id, note.status === "completed");
   }
 
   for (const r of (resourceRows ?? []) as Array<{
@@ -304,7 +304,7 @@ export async function hydrateProjectProgress<T extends ProjectLike>(
     is_archived: boolean;
   }>) {
     if (!r.project_id || r.is_archived) continue;
-    bump(r.project_id, r.status === "saved");
+    bump(r.project_id, r.status === "completed");
   }
 
   return projects.map((project) => {

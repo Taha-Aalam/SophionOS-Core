@@ -72,11 +72,11 @@ function buildTask(overrides: Partial<{ is_archived: boolean; is_completed: bool
   return { is_archived: false, is_completed: false, ...overrides };
 }
 
-function buildNote(overrides: Partial<{ is_archived: boolean; status: "active" | "inbox" | "to_review" | "archive" | "saved" }> = {}) {
+function buildNote(overrides: Partial<{ is_archived: boolean; status: "active" | "inbox" | "to_review" | "archive" | "completed" }> = {}) {
   return { is_archived: false, status: "inbox" as const, ...overrides };
 }
 
-function buildResource(overrides: Partial<{ is_archived: boolean; status: "active" | "inbox" | "to_review" | "saved" }> = {}) {
+function buildResource(overrides: Partial<{ is_archived: boolean; status: "active" | "inbox" | "to_review" | "completed" }> = {}) {
   return { is_archived: false, status: "inbox" as const, ...overrides };
 }
 
@@ -97,10 +97,10 @@ describe("calculateGoalProgress", () => {
       buildTask(),
       buildTask(),
     ];
-    const notes = [buildNote({ status: "saved" }), buildNote()];
+    const notes = [buildNote({ status: "completed" }), buildNote()];
     const resources = [
-      buildResource({ status: "saved" }),
-      buildResource({ status: "saved" }),
+      buildResource({ status: "completed" }),
+      buildResource({ status: "completed" }),
       buildResource(),
       buildResource(),
     ];
@@ -125,19 +125,19 @@ describe("calculateGoalProgress", () => {
 
   it("excludes notes with status archive", () => {
     const notes = [
-      buildNote({ status: "saved" }),
+      buildNote({ status: "completed" }),
       buildNote({ status: "archive" }),
     ];
     expect(calculateGoalProgress({ is_completed: false, progress: 0 }, [], [], notes)).toBe(100);
   });
 
   it("excludes archived notes (is_archived=true)", () => {
-    const notes = [buildNote({ status: "saved" }), buildNote({ is_archived: true })];
+    const notes = [buildNote({ status: "completed" }), buildNote({ is_archived: true })];
     expect(calculateGoalProgress({ is_completed: false, progress: 0 }, [], [], notes)).toBe(100);
   });
 
   it("excludes archived resources", () => {
-    const resources = [buildResource({ status: "saved" }), buildResource({ is_archived: true })];
+    const resources = [buildResource({ status: "completed" }), buildResource({ is_archived: true })];
     expect(calculateGoalProgress({ is_completed: false, progress: 0 }, [], [], [], resources)).toBe(100);
   });
 

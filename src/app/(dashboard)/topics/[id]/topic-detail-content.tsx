@@ -192,7 +192,7 @@ export function TopicDetailContent() {
     { value: "inbox", label: "Inbox" },
     { value: "to_review", label: "To Review" },
     { value: "active", label: "Active" },
-    { value: "saved", label: "Saved" },
+    { value: "completed", label: "Completed" },
     { value: "archived", label: "Archived" },
   ], []);
 
@@ -201,7 +201,7 @@ export function TopicDetailContent() {
       case "inbox": return notes.filter((n) => n.status === "inbox" && !n.is_archived);
       case "to_review": return notes.filter((n) => n.status === "to_review" && !n.is_archived);
       case "active": return notes.filter((n) => n.status === "active" && !n.is_archived);
-      case "saved": return notes.filter((n) => n.status === "saved" && !n.is_archived);
+      case "completed": return notes.filter((n) => n.status === "completed" && !n.is_archived);
       case "archived": return notes.filter((n) => n.is_archived);
       default: return notes.filter((n) => !n.is_archived);
     }
@@ -212,7 +212,7 @@ export function TopicDetailContent() {
     { value: "inbox", label: "Inbox" },
     { value: "to_review", label: "To Review" },
     { value: "active", label: "Active" },
-    { value: "saved", label: "Saved" },
+    { value: "completed", label: "Completed" },
     { value: "archived", label: "Archived" },
   ], []);
 
@@ -221,7 +221,7 @@ export function TopicDetailContent() {
       case "inbox": return resources.filter((r) => r.status === "inbox" && !r.is_archived);
       case "to_review": return resources.filter((r) => r.status === "to_review" && !r.is_archived);
       case "active": return resources.filter((r) => r.status === "active" && !r.is_archived);
-      case "saved": return resources.filter((r) => r.status === "saved" && !r.is_archived);
+      case "completed": return resources.filter((r) => r.status === "completed" && !r.is_archived);
       case "archived": return resources.filter((r) => r.is_archived);
       default: return resources.filter((r) => !r.is_archived);
     }

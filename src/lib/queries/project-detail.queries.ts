@@ -117,7 +117,7 @@ async function hydrateProject(supabase: SupabaseClient, project: any): Promise<a
     if (n.status !== "archive" && !seenAllNotes.has(n.id)) {
       seenAllNotes.add(n.id)
       totalNotes += 1
-      if (n.status === "saved") completedNotes += 1
+      if (n.status === "completed") completedNotes += 1
     }
     if (NOTE_ACTIVE.has(n.status) && !seenNotes.has(n.id)) {
       seenNotes.add(n.id)
@@ -132,7 +132,7 @@ async function hydrateProject(supabase: SupabaseClient, project: any): Promise<a
     if (note.status !== "archive" && !seenAllNotes.has(note.id)) {
       seenAllNotes.add(note.id)
       totalNotes += 1
-      if (note.status === "saved") completedNotes += 1
+      if (note.status === "completed") completedNotes += 1
     }
     if (NOTE_ACTIVE.has(note.status) && !seenNotes.has(note.id)) {
       seenNotes.add(note.id)
@@ -142,7 +142,7 @@ async function hydrateProject(supabase: SupabaseClient, project: any): Promise<a
   for (const r of (resourceRows ?? []) as Array<{ status: string; is_archived: boolean }>) {
     if (r.is_archived) continue
     totalResources += 1
-    if (r.status === "saved") completedResources += 1
+    if (r.status === "completed") completedResources += 1
     if (RESOURCE_ACTIVE.has(r.status)) activeResourceCount += 1
   }
   const goalCount = linkedGoalIds.filter((id: string) => activeGoalIdSet.has(id)).length

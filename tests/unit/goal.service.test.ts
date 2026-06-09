@@ -475,7 +475,7 @@ describe("goalService", () => {
       in: vi.fn().mockResolvedValue({
         data: [
           { goal_id: goalRow.id, note: { id: "n1", is_archived: false, status: "inbox" } },
-          { goal_id: goalRow.id, note: { id: "n2", is_archived: false, status: "saved" } },
+          { goal_id: goalRow.id, note: { id: "n2", is_archived: false, status: "completed" } },
           { goal_id: goalRow.id, note: { id: "n3", is_archived: false, status: "archive" } },
         ],
         error: null,
@@ -486,7 +486,7 @@ describe("goalService", () => {
       in: vi.fn().mockResolvedValue({
         data: [
           { goal_id: goalRow.id, resource: { is_archived: false, status: "active" } },
-          { goal_id: goalRow.id, resource: { is_archived: false, status: "saved" } },
+          { goal_id: goalRow.id, resource: { is_archived: false, status: "completed" } },
         ],
         error: null,
       }),
@@ -519,9 +519,9 @@ describe("goalService", () => {
     expect(result.projectCount).toBe(1);
     // Active task: !archived && !is_completed → 2 tasks.
     expect(result.taskCount).toBe(2);
-    // Active note: !archived && status not in {archive, saved} → only n1.
+    // Active note: !archived && status not in {archive, completed} → only n1.
     expect(result.noteCount).toBe(1);
-    // Active resource: !archived && status !== "saved" → only the "active" one.
+    // Active resource: !archived && status !== "completed" → only the "active" one.
     expect(result.resourceCount).toBe(1);
   });
 });

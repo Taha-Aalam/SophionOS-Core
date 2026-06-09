@@ -90,7 +90,7 @@ import {
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import { useProjects, useLinkProjectToGoal, useArchiveProject, useRestoreProject } from "@/lib/hooks/use-projects";
-import { useNotes, useToggleFavoriteNote, useTogglePinNote, useArchiveNote, useRestoreNote, useDeleteNote, useLinkNoteToGoal } from "@/lib/hooks/use-notes";
+import { useNotes, useToggleFavoriteNote, useTogglePinNote, useArchiveNote, useRestoreNote, useDeleteNote, useUpdateNote, useLinkNoteToGoal } from "@/lib/hooks/use-notes";
 import { useResources, useToggleFavoriteResource, useCreateResource, useUpdateResource, useArchiveResource, useUnarchiveResource, useLinkResourceToGoal } from "@/lib/hooks/use-resources";
 import { useTopics } from "@/lib/hooks/use-topics";
 import { cn } from "@/lib/utils";
@@ -250,6 +250,7 @@ export function GoalDetailContent() {
   const archiveNote = useArchiveNote();
   const restoreNote = useRestoreNote();
   const deleteNote = useDeleteNote();
+  const updateNote = useUpdateNote();
   const toggleFavoriteResource = useToggleFavoriteResource();
   const createResource = useCreateResource();
   const updateResource = useUpdateResource();
@@ -462,7 +463,7 @@ export function GoalDetailContent() {
       { value: "active", label: "Active", count: active.filter((n) => n.status === NOTE_STATUS.ACTIVE).length },
       { value: "by_area", label: "By Area" },
       { value: "by_project", label: "By Project" },
-      { value: "saved", label: "Saved", count: active.filter((n) => n.status === NOTE_STATUS.SAVED).length },
+      { value: "completed", label: "Completed", count: active.filter((n) => n.status === NOTE_STATUS.COMPLETED).length },
       { value: "archived", label: "Archive", count: archived.length },
     ];
   }, [goalData?.notes]);
@@ -479,8 +480,8 @@ export function GoalDetailContent() {
         return activeNotes.filter((n) => n.status === NOTE_STATUS.TO_REVIEW);
       case "active":
         return activeNotes.filter((n) => n.status === NOTE_STATUS.ACTIVE);
-      case "saved":
-        return activeNotes.filter((n) => n.status === NOTE_STATUS.SAVED);
+      case "completed":
+        return activeNotes.filter((n) => n.status === NOTE_STATUS.COMPLETED);
       case "by_area":
       case "by_project":
         return activeNotes;
@@ -537,7 +538,7 @@ export function GoalDetailContent() {
       { value: "active", label: "Active", count: active.filter((r) => r.status === RESOURCE_STATUS.ACTIVE).length },
       { value: "by_area", label: "By Area" },
       { value: "by_project", label: "By Project" },
-      { value: "saved", label: "Saved", count: active.filter((r) => r.status === RESOURCE_STATUS.SAVED).length },
+      { value: "completed", label: "Completed", count: active.filter((r) => r.status === RESOURCE_STATUS.COMPLETED).length },
       { value: "archived", label: "Archive", count: archived.length },
     ];
   }, [goalData?.resources]);
@@ -552,8 +553,8 @@ export function GoalDetailContent() {
         return resources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW && !r.is_archived);
       case "active":
         return resources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE && !r.is_archived);
-      case "saved":
-        return resources.filter((r) => r.status === RESOURCE_STATUS.SAVED && !r.is_archived);
+      case "completed":
+        return resources.filter((r) => r.status === RESOURCE_STATUS.COMPLETED && !r.is_archived);
       case "archived":
         return resources.filter((r) => r.is_archived);
       case "by_area":
@@ -1617,6 +1618,7 @@ export function GoalDetailContent() {
                     taskNames={noteTaskNames}
                     onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
                     onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                    onSaveStatusChange={(id, saved) => updateNote.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                     onArchive={(id) => archiveNote.mutate(id)}
                     onRestore={(id) => restoreNote.mutate(id)}
                     onDelete={(id) => deleteNote.mutate(id)}
@@ -1656,6 +1658,7 @@ export function GoalDetailContent() {
                     taskNames={noteTaskNames}
                     onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
                     onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                    onSaveStatusChange={(id, saved) => updateNote.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                     onArchive={(id) => archiveNote.mutate(id)}
                     onRestore={(id) => restoreNote.mutate(id)}
                     onDelete={(id) => deleteNote.mutate(id)}
@@ -1703,6 +1706,7 @@ export function GoalDetailContent() {
               onUnarchive={(id) => unarchiveResource.mutate(id)}
               onDelete={() => {}}
               onEdit={handleResourceEdit}
+              onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
               onNewResource={(groupId) => {
                 setNewResourceGroupId(groupId === "unassigned" ? null : groupId);
                 setNewResourceGroupType(resourceTab === "by_area" ? "area" : "project");
@@ -1738,6 +1742,7 @@ export function GoalDetailContent() {
                     taskNames={resourceTaskNames}
                     topicName={resource.topic_id ? topicNamesMap.get(resource.topic_id) : undefined}
                     onToggleFavorite={handleResourceToggleFavorite}
+                    onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                     onArchive={(id) => archiveResource.mutate(id)}
                     onUnarchive={(id) => unarchiveResource.mutate(id)}
                     onDelete={() => {}}

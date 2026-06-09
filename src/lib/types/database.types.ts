@@ -782,11 +782,11 @@ export type Database = {
     };
     Enums: {
       goal_term: "short" | "mid" | "long";
-      note_status: "inbox" | "to_review" | "active" | "archive" | "saved";
+      note_status: "inbox" | "to_review" | "active" | "archive" | "completed";
       note_type: "note" | "research" | "journal";
       priority: "low" | "medium" | "high";
       project_status: "inbox" | "planning" | "active" | "completed" | "on_hold" | "archived";
-      resource_status: "inbox" | "to_review" | "active" | "saved";
+      resource_status: "inbox" | "to_review" | "active" | "completed";
       resource_type: "website" | "article" | "video" | "document" | "podcast" | "social_media" | "tool";
       task_status: "inbox" | "todo" | "in_progress" | "completed" | "archived";
       task_repeat_cycle:

@@ -233,8 +233,8 @@ async function hydrateGoalProgress(
 
       const completed =
         projectTasks.filter((task) => task.is_completed).length +
-        projectNotes.filter((note) => note.status === "saved").length +
-        projectResources.filter((resource) => resource.status === "saved").length;
+        projectNotes.filter((note) => note.status === "completed").length +
+        projectResources.filter((resource) => resource.status === "completed").length;
 
       return {
         ...project,
@@ -354,13 +354,13 @@ async function hydrateGoalRollupCounts(
       noteLinks as Array<{ goal_id: string } & Record<string, unknown>>,
       goal.id,
       "note",
-      (entity) => !entity.is_archived && entity.status !== "archive" && entity.status !== "saved",
+      (entity) => !entity.is_archived && entity.status !== "archive" && entity.status !== "completed",
     ),
     resourceCount: countFor(
       resourceLinks as Array<{ goal_id: string } & Record<string, unknown>>,
       goal.id,
       "resource",
-      (entity) => !entity.is_archived && entity.status !== "saved",
+      (entity) => !entity.is_archived && entity.status !== "completed",
     ),
   }));
 }
