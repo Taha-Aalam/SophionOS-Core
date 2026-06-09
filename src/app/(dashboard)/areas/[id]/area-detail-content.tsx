@@ -788,7 +788,7 @@ export function AreaDetailContent() {
       inbox: active.filter((n) => n.status === "inbox").length,
       to_review: active.filter((n) => n.status === "to_review").length,
       active: active.filter((n) => n.status === "active").length,
-      saved: active.filter((n) => n.status === "saved").length,
+      completed: active.filter((n) => n.status === "completed").length,
       archived: notes.filter((n) => n.is_archived).length,
     };
   }, [areaData?.notes]);
@@ -800,7 +800,7 @@ export function AreaDetailContent() {
       inbox: active.filter((r) => r.status === "inbox").length,
       to_review: active.filter((r) => r.status === "to_review").length,
       active: active.filter((r) => r.status === "active").length,
-      saved: active.filter((r) => r.status === "saved").length,
+      completed: active.filter((r) => r.status === "completed").length,
       archived: linkedResources.filter((r) => r.is_archived).length,
     };
   }, [linkedResources]);
@@ -1440,7 +1440,7 @@ export function AreaDetailContent() {
             { value: "active", label: "Active", count: noteTabCounts.active },
             { value: "by_goal", label: "By Goal" },
             { value: "by_project", label: "By Project" },
-            { value: "saved", label: "Saved", count: noteTabCounts.saved },
+            { value: "completed", label: "Completed", count: noteTabCounts.completed },
             { value: "archived", label: "Archive", count: noteTabCounts.archived },
           ]}
           activeTab={noteTab}
@@ -1474,6 +1474,7 @@ export function AreaDetailContent() {
                     taskNames={noteTaskNames}
                     onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
                     onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                    onSaveStatusChange={(id, saved) => updateNote.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                     onArchive={(id) => archiveNote.mutate(id)}
                     onRestore={(id) => restoreNote.mutate(id)}
                     onDelete={(id) => deleteNote.mutate(id)}
@@ -1516,6 +1517,7 @@ export function AreaDetailContent() {
                     taskNames={noteTaskNames}
                     onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
                     onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                    onSaveStatusChange={(id, saved) => updateNote.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                     onArchive={(id) => archiveNote.mutate(id)}
                     onRestore={(id) => restoreNote.mutate(id)}
                     onDelete={(id) => deleteNote.mutate(id)}
@@ -1539,7 +1541,7 @@ export function AreaDetailContent() {
             { value: "active", label: "Active", count: resourceTabCounts.active },
             { value: "by_goal", label: "By Goal" },
             { value: "by_project", label: "By Project" },
-            { value: "saved", label: "Saved", count: resourceTabCounts.saved },
+            { value: "completed", label: "Completed", count: resourceTabCounts.completed },
             { value: "archived", label: "Archive", count: resourceTabCounts.archived },
           ]}
           activeTab={resourceTab}
@@ -1572,6 +1574,7 @@ export function AreaDetailContent() {
               onUnarchive={(id) => unarchiveResource.mutate(id)}
               onDelete={() => {}}
               onEdit={(r) => setEditingResource(r)}
+              onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
               onNewResource={(groupId) => {
                 if (resourceTab === "by_goal") {
                   setNewResourceGoalId(groupId === "unassigned" ? null : groupId);
@@ -1619,6 +1622,7 @@ export function AreaDetailContent() {
                     onToggleFavorite={(id, favorite) =>
                       toggleFavoriteResource.mutate({ id, favorite })
                     }
+                    onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                     onArchive={(id) => archiveResource.mutate(id)}
                     onUnarchive={(id) => unarchiveResource.mutate(id)}
                     onDelete={() => {}}

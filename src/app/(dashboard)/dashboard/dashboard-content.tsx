@@ -141,7 +141,7 @@ export function DashboardContent() {
   const _restoreTaskHook = useRestoreTask();
   const permanentDelete = usePermanentDeleteTask();
   const togglePinNote = useTogglePinNote();
-  const _updateNote = useUpdateNote();
+  const updateNote = useUpdateNote();
   const archiveNote = useArchiveNote();
   const restoreNote = useRestoreNote();
   const deleteNote = useDeleteNote();
@@ -528,6 +528,7 @@ export function DashboardContent() {
                     .filter((n): n is string => Boolean(n))}
                   onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
                   onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                  onSaveStatusChange={(id, saved) => updateNote.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                   onArchive={(id) => archiveNote.mutate(id)}
                   onRestore={(id) => restoreNote.mutate(id)}
                   onDelete={(id) => deleteNote.mutate(id)}
@@ -576,6 +577,7 @@ export function DashboardContent() {
                     .map((id) => taskNamesMap.get(id))
                     .filter((n): n is string => Boolean(n))}
                   topicName={resource.topic_id ? topicNamesMap.get(resource.topic_id) : undefined}
+                  onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                   onToggleFavorite={(id, favorite) =>
                     toggleFavoriteResource.mutate({ id, favorite })
                   }

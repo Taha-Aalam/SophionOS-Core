@@ -56,7 +56,7 @@ const RESOURCE_STATUS_OPTIONS = [
   { value: RESOURCE_STATUS.INBOX, label: "Inbox" },
   { value: RESOURCE_STATUS.TO_REVIEW, label: "To Review" },
   { value: RESOURCE_STATUS.ACTIVE, label: "Active" },
-  { value: RESOURCE_STATUS.SAVED, label: "Saved" },
+  { value: RESOURCE_STATUS.COMPLETED, label: "Completed" },
 ];
 
 interface ResourceDialogProps {

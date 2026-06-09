@@ -362,7 +362,7 @@ export const resourceService = {
       // source of truth for the inbox/to_review split, and a stale bucket
       // should be corrected.
       //
-      // Terminal state (saved) is preserved: once a resource is filed
+      // Terminal state (completed) is preserved: once a resource is filed
       // away, inbox logic no longer applies.
       const touchesContext =
         areaIds !== undefined ||
@@ -370,7 +370,7 @@ export const resourceService = {
         goalIds !== undefined ||
         taskIds !== undefined ||
         validatedWide.topic_id !== undefined;
-      const preservesTerminal = validatedWide.status === RESOURCE_STATUS.SAVED;
+      const preservesTerminal = validatedWide.status === RESOURCE_STATUS.COMPLETED;
 
       if (touchesContext && !preservesTerminal) {
         const derived = deriveResourceStatus({
@@ -626,9 +626,9 @@ export const resourceService = {
     }
     if (!resource) return;
 
-    // Terminal state (saved) is preserved: a filed-away resource is not
+    // Terminal state (completed) is preserved: a filed-away resource is not
     // pulled back to inbox/to_review by a later link/unlink.
-    if (resource.status === RESOURCE_STATUS.SAVED) {
+    if (resource.status === RESOURCE_STATUS.COMPLETED) {
       return;
     }
 
@@ -798,7 +798,7 @@ export const resourceService = {
   /**
    * One-shot backfill: re-derive status for every non-terminal resource
    * whose stored status does not match the value derived from its
-   * current context. Terminal state (saved) is preserved.
+   * current context. Terminal state (completed) is preserved.
    */
   async backfillStaleStatuses(userId: string): Promise<number> {
     const { data, error } = await createClient()
@@ -806,7 +806,7 @@ export const resourceService = {
       .select(RESOURCE_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .neq("status", RESOURCE_STATUS.SAVED);
+      .neq("status", RESOURCE_STATUS.COMPLETED);
 
     if (error) {
       throw new DatabaseError(error.message);

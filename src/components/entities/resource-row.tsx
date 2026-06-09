@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { Resource } from "@/lib/types/domain.types";
 import type { ResourceStatus } from "@/lib/utils/constants";
@@ -19,8 +20,8 @@ import { DeleteEntityPopover } from "./delete-entity-popover";
 const STATUS_COLORS: Record<string, string> = {
   inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
   to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  saved: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  active: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  completed: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -49,6 +50,7 @@ interface ResourceRowProps {
   onArchive: (id: string) => void;
   onUnarchive: (id: string) => void;
   onDelete: (id: string) => void;
+  onSaveStatusChange?: (id: string, saved: boolean) => void;
   onStatusChange?: (id: string, status: ResourceStatus) => void;
   onEdit?: (resource: Resource) => void;
 }
@@ -64,6 +66,7 @@ export function ResourceRow({
   onArchive,
   onUnarchive,
   onDelete,
+  onSaveStatusChange,
   onEdit,
 }: ResourceRowProps) {
   const handleEdit = () => {
@@ -72,13 +75,24 @@ export function ResourceRow({
 
   return (
     <div className="group flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30">
+      {/* Save checkbox */}
+      {onSaveStatusChange && (
+        <span onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={resource.status === "completed"}
+            onCheckedChange={(checked) => onSaveStatusChange(resource.id, checked === true)}
+            className="shrink-0"
+          />
+        </span>
+      )}
+
       {/* Status + Type — LEFT of name */}
       <div className="hidden md:flex shrink-0 items-center gap-1">
         <Badge
           variant="outline"
           className={cn("text-[10px] uppercase", STATUS_COLORS[resource.status])}
         >
-          {resource.status.replace("_", " ")}
+          {resource.status === "completed" ? "Done" : resource.status.replace("_", " ")}
         </Badge>
         <Badge
           variant="secondary"

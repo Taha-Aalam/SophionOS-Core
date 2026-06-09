@@ -4,6 +4,7 @@ import { Archive, ArchiveRestore, Map as LucideMap, Pin, Star } from "lucide-rea
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { Note } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
 import { encodeReturnTo } from "@/lib/utils/return-to";
@@ -24,6 +25,7 @@ interface NoteRowProps {
   taskNames?: string[];
   onPinToggle: (id: string, pin: boolean) => void;
   onFavoriteToggle: (id: string, favorite: boolean) => void;
+  onSaveStatusChange?: (id: string, saved: boolean) => void;
   onArchive?: (id: string) => void;
   onRestore?: (id: string) => void;
   onDelete?: (id: string) => void;
@@ -32,8 +34,8 @@ interface NoteRowProps {
 const STATUS_COLORS: Record<string, string> = {
   inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
   to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  saved: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  active: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  completed: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
   archive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
 };
 
@@ -46,6 +48,7 @@ export function NoteRow({
   taskNames = [],
   onPinToggle,
   onFavoriteToggle,
+  onSaveStatusChange,
   onArchive,
   onRestore,
   onDelete,
@@ -61,6 +64,17 @@ export function NoteRow({
       className="group flex cursor-pointer items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30"
       onClick={() => router.push(href)}
     >
+      {/* Save checkbox */}
+      {onSaveStatusChange && (
+        <span onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={note.status === "completed"}
+            onCheckedChange={(checked) => onSaveStatusChange(note.id, checked === true)}
+            className="shrink-0"
+          />
+        </span>
+      )}
+
       {/* Pin */}
       <div onClick={(e) => e.stopPropagation()} className="shrink-0">
         <button
@@ -84,7 +98,7 @@ export function NoteRow({
           variant="outline"
           className={cn("text-[10px] uppercase", STATUS_COLORS[note.status])}
         >
-          {note.status.replace("_", " ")}
+          {note.status === "completed" ? "Done" : note.status.replace("_", " ")}
         </Badge>
         <Badge variant="secondary" className="text-xs">
           {note.type}

@@ -365,8 +365,8 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
       }
       const pCompleted =
         pTasks.filter((t) => t.is_completed).length +
-        pNotes.filter((n) => n.status === "saved").length +
-        pResources.filter((r) => r.status === "saved").length;
+        pNotes.filter((n) => n.status === "completed").length +
+        pResources.filter((r) => r.status === "completed").length;
       return { ...p, progress: Math.round((pCompleted / pTotal) * 100) };
     });
 
@@ -462,8 +462,8 @@ async function hydrateGoalRollupCounts(goals: Goal[]): Promise<Goal[]> {
       ...goal,
       projectCount: countFor(projectLinks, id, "project", (e) => !e.is_archived && e.status !== "completed"),
       taskCount: countFor(taskLinks, id, "task", (e) => !e.is_archived && !e.is_completed),
-      noteCount: countFor(noteLinks, id, "note", (e) => !e.is_archived && e.status !== "archive" && e.status !== "saved"),
-      resourceCount: countFor(resourceLinks, id, "resource", (e) => !e.is_archived && e.status !== "saved"),
+      noteCount: countFor(noteLinks, id, "note", (e) => !e.is_archived && e.status !== "archive" && e.status !== "completed"),
+      resourceCount: countFor(resourceLinks, id, "resource", (e) => !e.is_archived && e.status !== "completed"),
     };
   });
 }

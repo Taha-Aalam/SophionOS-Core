@@ -327,11 +327,11 @@ export function ProjectDetailContent() {
     [activeLinkedTasks],
   );
   const completedNoteCount = useMemo(
-    () => activeNotes.filter((n) => n.status === NOTE_STATUS.SAVED).length,
+    () => activeNotes.filter((n) => n.status === NOTE_STATUS.COMPLETED).length,
     [activeNotes],
   );
   const completedResourceCount = useMemo(
-    () => activeResources.filter((r) => r.status === RESOURCE_STATUS.SAVED).length,
+    () => activeResources.filter((r) => r.status === RESOURCE_STATUS.COMPLETED).length,
     [activeResources],
   );
   const totalItemCount = activeLinkedTasks.length + activeNotes.length + activeResources.length;
@@ -601,7 +601,7 @@ export function ProjectDetailContent() {
         { value: "active", label: "Active", count: active.filter((note) => note.status === "active").length },
         { value: "by_area", label: "By Area" },
         { value: "by_goal", label: "By Goal" },
-        { value: "saved", label: "Saved", count: active.filter((note) => note.status === "saved").length },
+        { value: "completed", label: "Completed", count: active.filter((note) => note.status === "completed").length },
         { value: "archived", label: "Archive", count: archived.length },
       ];
     },
@@ -617,8 +617,8 @@ export function ProjectDetailContent() {
         return activeNotes.filter((note) => note.status === "to_review");
       case "active":
         return activeNotes.filter((note) => note.status === "active");
-      case "saved":
-        return activeNotes.filter((note) => note.status === "saved");
+      case "completed":
+        return activeNotes.filter((note) => note.status === "completed");
       case "by_area":
       case "by_goal":
         return activeNotes;
@@ -738,7 +738,7 @@ export function ProjectDetailContent() {
       { value: "active", label: "Active", count: active.filter((r) => r.status === "active").length },
       { value: "by_area", label: "By Area" },
       { value: "by_goal", label: "By Goal" },
-      { value: "saved", label: "Saved", count: active.filter((r) => r.status === "saved").length },
+      { value: "completed", label: "Completed", count: active.filter((r) => r.status === "completed").length },
       { value: "archived", label: "Archive", count: archived.length },
     ];
   }, [linkedResources]);
@@ -751,8 +751,8 @@ export function ProjectDetailContent() {
         return linkedResources.filter((r) => r.status === "to_review" && !r.is_archived);
       case "active":
         return linkedResources.filter((r) => r.status === "active" && !r.is_archived);
-      case "saved":
-        return linkedResources.filter((r) => r.status === "saved" && !r.is_archived);
+      case "completed":
+        return linkedResources.filter((r) => r.status === "completed" && !r.is_archived);
       case "archived":
         return linkedResources.filter((r) => r.is_archived);
       case "by_area":
@@ -1550,6 +1550,7 @@ export function ProjectDetailContent() {
                     taskNames={noteTaskNames}
                     onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
                     onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                    onSaveStatusChange={(id, saved) => updateNote.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                     onArchive={(id) => archiveNote.mutate(id)}
                     onRestore={(id) => restoreNote.mutate(id)}
                     onDelete={(id) => deleteNote.mutate(id)}
@@ -1591,6 +1592,7 @@ export function ProjectDetailContent() {
                     taskNames={noteTaskNames}
                     onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
                     onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                    onSaveStatusChange={(id, saved) => updateNote.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                     onArchive={(id) => archiveNote.mutate(id)}
                     onRestore={(id) => restoreNote.mutate(id)}
                     onDelete={(id) => deleteNote.mutate(id)}
@@ -1637,6 +1639,7 @@ export function ProjectDetailContent() {
               onUnarchive={(id) => unarchiveResource.mutate(id)}
               onDelete={() => {}}
               onEdit={handleResourceEdit}
+              onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
               onNewResource={(groupId) => {
                 setNewResourceGroupId(groupId === "unassigned" ? null : groupId);
                 setNewResourceGroupType(resourceTab === "by_area" ? "area" : "goal");
@@ -1674,6 +1677,7 @@ export function ProjectDetailContent() {
                     onToggleFavorite={(id, favorite) =>
                       toggleFavoriteResource.mutate({ id, favorite })
                     }
+                    onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                     onArchive={(id) => archiveResource.mutate(id)}
                     onUnarchive={(id) => unarchiveResource.mutate(id)}
                     onDelete={() => {}}

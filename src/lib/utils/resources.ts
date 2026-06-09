@@ -10,7 +10,7 @@ export const RESOURCE_VIEW = {
   BY_AREA: "by_area",
   BY_GOAL: "by_goal",
   BY_PROJECT: "by_project",
-  SAVED: "saved",
+  COMPLETED: "completed",
   ARCHIVED: "archived",
 } as const;
 

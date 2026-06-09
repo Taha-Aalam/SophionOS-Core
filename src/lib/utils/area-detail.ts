@@ -42,7 +42,7 @@ export function getFilteredAreaNotes(notes: Note[], tab: string): Note[] {
   if (tab === "inbox") return activeNotes.filter((note) => note.status === "inbox");
   if (tab === "to_review") return activeNotes.filter((note) => note.status === "to_review");
   if (tab === "active") return activeNotes.filter((note) => note.status === "active");
-  if (tab === "saved") return activeNotes.filter((note) => note.status === "saved");
+  if (tab === "completed") return activeNotes.filter((note) => note.status === "completed");
   return activeNotes;
 }
 
@@ -54,7 +54,7 @@ export function getFilteredAreaResources(resources: Resource[], tab: string): Re
   if (tab === "inbox") return activeResources.filter((resource) => resource.status === RESOURCE_STATUS.INBOX);
   if (tab === "to_review") return activeResources.filter((resource) => resource.status === RESOURCE_STATUS.TO_REVIEW);
   if (tab === "active") return activeResources.filter((resource) => resource.status === RESOURCE_STATUS.ACTIVE);
-  if (tab === "saved") return activeResources.filter((resource) => resource.status === RESOURCE_STATUS.SAVED);
+  if (tab === "completed") return activeResources.filter((resource) => resource.status === RESOURCE_STATUS.COMPLETED);
   return activeResources;
 }
 

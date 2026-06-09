@@ -260,8 +260,8 @@ export async function serverFetchGoalDetail(
       if (pTotal === 0) continue
       const pCompleted =
         pTasks.filter((t) => t.is_completed).length +
-        pNotes.filter((n) => n.status === "saved").length +
-        pResources.filter((r) => r.status === "saved").length
+        pNotes.filter((n) => n.status === "completed").length +
+        pResources.filter((r) => r.status === "completed").length
       projectsWithLiveProgress[i] = { ...p, progress: Math.round((pCompleted / pTotal) * 100) }
     }
   }
@@ -324,9 +324,9 @@ export async function serverFetchGoalDetail(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const activeTaskCount = rawTasks.filter((t: any) => !t.is_archived && !t.is_completed).length
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const activeNoteCount = rawNotes.filter((n: any) => !n.is_archived && n.status !== "archive" && n.status !== "saved").length
+  const activeNoteCount = rawNotes.filter((n: any) => !n.is_archived && n.status !== "archive" && n.status !== "completed").length
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const activeResourceCount = rawResources.filter((r: any) => !r.is_archived && r.status !== "saved").length
+  const activeResourceCount = rawResources.filter((r: any) => !r.is_archived && r.status !== "completed").length
 
   const hydratedGoal = {
     ...goal,

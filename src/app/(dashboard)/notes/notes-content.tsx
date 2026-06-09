@@ -89,8 +89,8 @@ const ALL_NOTEBOOK_VALUE = "__all_notebooks__";
 const statusColors: Record<string, string> = {
   inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
   to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  saved: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  active: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  completed: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
   archive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
 };
 
@@ -359,13 +359,6 @@ export function NotesContent() {
   const compactTabTriggerClassName =
     "rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
 
-  const toggleSelect = (id: string) => {
-    const next = new Set(selectedIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelectedIds(next);
-  };
-
   const handleArchiveSelected = async () => {
     if (selectedIds.size === 0) return;
     await bulkArchive.mutateAsync(Array.from(selectedIds));
@@ -421,11 +414,16 @@ export function NotesContent() {
         )}
         onClick={() => router.push(`/notes/${note.slug ?? note.id}`)}
       >
-        {/* Checkbox */}
+        {/* Save checkbox */}
         <div onClick={(e) => e.stopPropagation()} className="shrink-0">
           <Checkbox
-            checked={isSelected}
-            onCheckedChange={() => toggleSelect(note.id)}
+            checked={note.status === "completed"}
+            onCheckedChange={(checked) => {
+              updateNote.mutate({
+                id: note.id,
+                input: { status: checked ? "completed" : "inbox" },
+              });
+            }}
           />
         </div>
 
@@ -457,7 +455,7 @@ export function NotesContent() {
             variant="outline"
             className={cn("text-[10px] uppercase", statusColors[note.status])}
           >
-            {note.status.replace("_", " ")}
+            {note.status === "completed" ? "Done" : note.status.replace("_", " ")}
           </Badge>
           <Badge variant="secondary" className="text-xs">
             {note.type}
@@ -642,9 +640,9 @@ export function NotesContent() {
               <BookOpen className="mr-1 size-3" />
               By Notebook
             </TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.SAVED} className={compactTabTriggerClassName}>
+            <TabsTrigger value={NOTE_VIEW.COMPLETED} className={compactTabTriggerClassName}>
               <Bookmark className="mr-1 size-3" />
-              Saved
+              Completed
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.ARCHIVED} className={compactTabTriggerClassName}>
               <Archive className="mr-1 size-3" />
@@ -680,7 +678,7 @@ export function NotesContent() {
                 <SelectItem value="inbox">Inbox</SelectItem>
                 <SelectItem value="to_review">To Review</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="saved">Saved</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="archive">Archive</SelectItem>
               </SelectContent>
             </Select>
@@ -959,7 +957,7 @@ export function NotesContent() {
           NOTE_VIEW.ACTIVE,
           NOTE_VIEW.PINNED,
           NOTE_VIEW.FAVORITE,
-          NOTE_VIEW.SAVED,
+          NOTE_VIEW.COMPLETED,
           NOTE_VIEW.ARCHIVED,
         ] as NoteView[]).map((tab) => (
           <TabsContent key={tab} value={tab} className="mt-0 flex-1">

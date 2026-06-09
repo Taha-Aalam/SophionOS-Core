@@ -15,7 +15,7 @@ describe("area-detail helpers", () => {
     const result = getFilteredAreaNotes(
       [
         { id: "n1", is_archived: false, status: "active" },
-        { id: "n2", is_archived: true, status: "saved" },
+        { id: "n2", is_archived: true, status: "completed" },
       ] as never,
       "archived",
     );
@@ -53,7 +53,7 @@ describe("area-detail helpers", () => {
     const result = getFilteredAreaResources(
       [
         { id: "r1", is_archived: false, status: "active" },
-        { id: "r2", is_archived: true, status: "saved" },
+        { id: "r2", is_archived: true, status: "completed" },
       ] as never,
       "archived",
     );

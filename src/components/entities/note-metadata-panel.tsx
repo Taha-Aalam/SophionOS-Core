@@ -48,7 +48,7 @@ const STATUS_OPTIONS = [
   { value: NOTE_STATUS.INBOX, label: "Inbox" },
   { value: NOTE_STATUS.TO_REVIEW, label: "To Review" },
   { value: NOTE_STATUS.ACTIVE, label: "Active" },
-  { value: NOTE_STATUS.SAVED, label: "Saved" },
+  { value: NOTE_STATUS.COMPLETED, label: "Completed" },
 ];
 
 interface NoteMetadataPanelProps {

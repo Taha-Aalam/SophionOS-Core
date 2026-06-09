@@ -156,8 +156,8 @@ export function ResourcesContent() {
       case RESOURCE_VIEW.ACTIVE:
         result = allResources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE);
         break;
-      case RESOURCE_VIEW.SAVED:
-        result = allResources.filter((r) => r.status === RESOURCE_STATUS.SAVED);
+      case RESOURCE_VIEW.COMPLETED:
+        result = allResources.filter((r) => r.status === RESOURCE_STATUS.COMPLETED);
         break;
       case RESOURCE_VIEW.FAVORITE:
         result = allResources.filter((r) => r.favorite);
@@ -354,6 +354,10 @@ export function ResourcesContent() {
     deleteResource.mutate(id);
   };
 
+  const handleSaveStatusChange = (id: string, saved: boolean) => {
+    updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } });
+  };
+
   const handleStatusChange = (id: string, status: ResourceStatus) => {
     updateResource.mutate({ id, input: { status } });
   };
@@ -394,8 +398,8 @@ export function ResourcesContent() {
         return allResources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW).length;
       case RESOURCE_VIEW.ACTIVE:
         return allResources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE).length;
-      case RESOURCE_VIEW.SAVED:
-        return allResources.filter((r) => r.status === RESOURCE_STATUS.SAVED).length;
+      case RESOURCE_VIEW.COMPLETED:
+        return allResources.filter((r) => r.status === RESOURCE_STATUS.COMPLETED).length;
       case RESOURCE_VIEW.FAVORITE:
         return allResources.filter((r) => r.favorite).length;
       case RESOURCE_VIEW.ARCHIVED:
@@ -487,12 +491,12 @@ export function ResourcesContent() {
             <Folder className="mr-1.5 size-3.5" />
             By Project
           </TabsTrigger>
-          <TabsTrigger value={RESOURCE_VIEW.SAVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value={RESOURCE_VIEW.COMPLETED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Bookmark className="mr-1.5 size-3.5" />
-            Saved
-            {countForTab(RESOURCE_VIEW.SAVED) > 0 && (
+            Completed
+            {countForTab(RESOURCE_VIEW.COMPLETED) > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab(RESOURCE_VIEW.SAVED)}
+                {countForTab(RESOURCE_VIEW.COMPLETED)}
               </Badge>
             )}
           </TabsTrigger>
@@ -752,7 +756,7 @@ export function ResourcesContent() {
         </div>
 
         {/* Flat list views: All, Inbox, To Review, Active, Favorite, Saved, Archived */}
-        {([RESOURCE_VIEW.ALL, RESOURCE_VIEW.INBOX, RESOURCE_VIEW.TO_REVIEW, RESOURCE_VIEW.ACTIVE, RESOURCE_VIEW.FAVORITE, RESOURCE_VIEW.SAVED, RESOURCE_VIEW.ARCHIVED] as ResourceView[]).includes(tab) && (
+        {([RESOURCE_VIEW.ALL, RESOURCE_VIEW.INBOX, RESOURCE_VIEW.TO_REVIEW, RESOURCE_VIEW.ACTIVE, RESOURCE_VIEW.FAVORITE, RESOURCE_VIEW.COMPLETED, RESOURCE_VIEW.ARCHIVED] as ResourceView[]).includes(tab) && (
           <TabsContent value={tab} className="mt-4">
             {isLoading ? (
               <div className="flex flex-col">
@@ -774,8 +778,8 @@ export function ResourcesContent() {
                           ? "No favorite resources"
                           : tab === RESOURCE_VIEW.ARCHIVED
                             ? "No archived resources"
-                            : tab === RESOURCE_VIEW.SAVED
-                              ? "No saved resources"
+                            : tab === RESOURCE_VIEW.COMPLETED
+                              ? "No completed resources"
                               : "No resources yet"
                 }
                 description={
@@ -796,6 +800,7 @@ export function ResourcesContent() {
                     taskNames={getTaskNamesForResource(resource)}
                     topicName={resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
                     onToggleFavorite={handleToggleFavorite}
+                    onSaveStatusChange={handleSaveStatusChange}
                     onArchive={handleArchive}
                     onUnarchive={handleUnarchive}
                     onDelete={handleDelete}
@@ -818,6 +823,7 @@ export function ResourcesContent() {
             getTaskNames={getTaskNamesForResource}
             getTopicName={(resource) => resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
             onToggleFavorite={handleToggleFavorite}
+            onSaveStatusChange={handleSaveStatusChange}
             onArchive={handleArchive}
             onUnarchive={handleUnarchive}
             onDelete={handleDelete}
@@ -836,6 +842,7 @@ export function ResourcesContent() {
             getTaskNames={getTaskNamesForResource}
             getTopicName={(resource) => resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
             onToggleFavorite={handleToggleFavorite}
+            onSaveStatusChange={handleSaveStatusChange}
             onArchive={handleArchive}
             onUnarchive={handleUnarchive}
             onDelete={handleDelete}
@@ -854,6 +861,7 @@ export function ResourcesContent() {
             getTaskNames={getTaskNamesForResource}
             getTopicName={(resource) => resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
             onToggleFavorite={handleToggleFavorite}
+            onSaveStatusChange={handleSaveStatusChange}
             onArchive={handleArchive}
             onUnarchive={handleUnarchive}
             onDelete={handleDelete}
@@ -872,6 +880,7 @@ export function ResourcesContent() {
             getTaskNames={getTaskNamesForResource}
             getTopicName={(resource) => resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
             onToggleFavorite={handleToggleFavorite}
+            onSaveStatusChange={handleSaveStatusChange}
             onArchive={handleArchive}
             onUnarchive={handleUnarchive}
             onDelete={handleDelete}

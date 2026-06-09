@@ -19,9 +19,9 @@ ALTER TABLE projects ALTER COLUMN priority DROP DEFAULT;
 ALTER TABLE projects ALTER COLUMN priority TYPE TEXT USING priority::TEXT;
 DROP TYPE IF EXISTS priority CASCADE;
 CREATE TYPE priority AS ENUM ('low', 'medium', 'high');
-ALTER TABLE tasks ALTER COLUMN priority TYPE priority USING priority::TEXT;
+ALTER TABLE tasks ALTER COLUMN priority TYPE priority USING priority::text::priority;
 ALTER TABLE tasks ALTER COLUMN priority SET DEFAULT 'medium'::priority;
-ALTER TABLE projects ALTER COLUMN priority TYPE priority USING priority::TEXT;
+ALTER TABLE projects ALTER COLUMN priority TYPE priority USING priority::text::priority;
 ALTER TABLE projects ALTER COLUMN priority SET DEFAULT 'medium'::priority;
 
 -- Step 4: recreate the smart priority function (Task 2/3 will add project_count + round-up)
