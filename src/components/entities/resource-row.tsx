@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { Resource } from "@/lib/types/domain.types";
-import type { ResourceStatus } from "@/lib/utils/constants";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
 
@@ -51,7 +50,6 @@ interface ResourceRowProps {
   onUnarchive: (id: string) => void;
   onDelete: (id: string) => void;
   onSaveStatusChange?: (id: string, saved: boolean) => void;
-  onStatusChange?: (id: string, status: ResourceStatus) => void;
   onEdit?: (resource: Resource) => void;
 }
 

@@ -75,6 +75,7 @@ import {
 import {
   useArchiveResource,
   useCreateResource,
+  useDeleteResource,
   useResourcesByProject,
   useToggleFavoriteResource,
   useUnarchiveResource,
@@ -203,6 +204,7 @@ export function ProjectDetailContent() {
   const toggleFavoriteResource = useToggleFavoriteResource();
   const archiveResource = useArchiveResource();
   const unarchiveResource = useUnarchiveResource();
+  const deleteResource = useDeleteResource();
   const toggleFavoriteNote = useToggleFavoriteNote();
   const togglePinNote = useTogglePinNote();
   const archiveNote = useArchiveNote();
@@ -1661,7 +1663,7 @@ export function ProjectDetailContent() {
               onToggleFavorite={(id, favorite) => toggleFavoriteResource.mutate({ id, favorite })}
               onArchive={(id) => archiveResource.mutate(id)}
               onUnarchive={(id) => unarchiveResource.mutate(id)}
-              onDelete={() => {}}
+              onDelete={(id) => deleteResource.mutate(id)}
               onEdit={handleResourceEdit}
               onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
               onNewResource={(groupId) => {
@@ -1672,7 +1674,7 @@ export function ProjectDetailContent() {
               emptyMessage={resourceTab === "by_area" ? "Resources will be grouped by area here." : "Resources will be grouped by goal here."}
             />
           ) : filteredResources.length > 0 ? (
-            <div className="rounded-lg border bg-card">
+            <div className="rounded-lg border border-border">
               {filteredResources.map((resource) => {
                 const resourceAreaIds = (resource.linkedAreaIds && resource.linkedAreaIds.length > 0)
                   ? resource.linkedAreaIds
@@ -1704,7 +1706,7 @@ export function ProjectDetailContent() {
                     onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                     onArchive={(id) => archiveResource.mutate(id)}
                     onUnarchive={(id) => unarchiveResource.mutate(id)}
-                    onDelete={() => {}}
+                    onDelete={(id) => deleteResource.mutate(id)}
                     onEdit={handleResourceEdit}
                   />
                 );

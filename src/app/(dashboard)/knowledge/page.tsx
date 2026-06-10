@@ -694,7 +694,6 @@ export default function KnowledgeHubPage() {
         onArchive={(id) => archiveResource.mutate(id)}
         onUnarchive={(id) => unarchiveResource.mutate(id)}
         onDelete={(id) => deleteResource.mutate(id)}
-        onStatusChange={(id, status) => updateResource.mutate({ id, input: { status } })}
         onEdit={(res) => setEditingResource(res)}
       />
     );
