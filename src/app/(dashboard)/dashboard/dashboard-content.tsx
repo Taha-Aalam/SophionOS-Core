@@ -12,7 +12,7 @@ import { ProjectCard } from "@/components/entities/project-card";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
 import { ResourceRow } from "@/components/entities/resource-row";
 import { TaskDialog } from "@/components/entities/task-dialog";
-import { TaskListItem } from "@/components/entities/task-list-item";
+import { TaskList } from "@/components/entities/task-list";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
@@ -66,9 +66,10 @@ import {
   getResourceLinkedTaskIds,
 } from "@/lib/utils/resources";
 import {
-  getTaskLinkedAreaIds,
-  getTaskLinkedGoalIds,
-  getTaskLinkedProjectIds,
+  getTaskLinkedAreaNames,
+  getTaskLinkedAreaIcons,
+  getTaskLinkedGoalNames,
+  getTaskLinkedProjectNames,
 } from "@/lib/utils/tasks";
 
 function SectionHeader({
@@ -441,54 +442,28 @@ export function DashboardContent() {
           description="Tasks in To do and In progress status."
         />
         <div className="mt-4">
-          {todoInProgressTasks.length === 0 ? (
-            <EmptyState
-              icon={NotebookPen}
-              title="No active tasks"
-              description="Tasks in To do and In progress will appear here."
-            />
-          ) : (
-            <div className="rounded-lg border border-border">
-              {todoInProgressTasks.map((task) => (
-                <TaskListItem
-                  key={task.id}
-                  task={task}
-                  areaName={task.area_id ? (areaNamesMap.get(task.area_id) ?? null) : null}
-                  linkedAreaNames={getTaskLinkedAreaIds(task)
-                    .map((id) => areaNamesMap.get(id))
-                    .filter((n): n is string => Boolean(n))}
-                  linkedAreaIcons={getTaskLinkedAreaIds(task).map((id) => {
-                    const area = areas.find((a) => a.id === id);
-                    return area?.icon ?? null;
-                  })}
-                  linkedGoalNames={getTaskLinkedGoalIds(task)
-                    .map((id) => goalNamesMap.get(id))
-                    .filter((n): n is string => Boolean(n))}
-                  projectName={
-                    task.project_id ? (projectNamesMap.get(task.project_id) ?? null) : null
-                  }
-                  linkedProjectNames={getTaskLinkedProjectIds(task)
-                    .map((id) => projectNamesMap.get(id))
-                    .filter((n): n is string => Boolean(n))}
-                  onCompletionToggle={(id, isCompleted) => {
-                    if (isCompleted) {
-                      completeTask.mutate(id);
-                      return;
-                    }
-                    updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
-                  }}
-                  onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
-                  onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
-                  onEdit={(t) => {
-                    setEditingTask(t);
-                    setTaskDialogOpen(true);
-                  }}
-                  onArchiveToggle={(task) => archiveTask.mutate(task.id)}
-                  onPermanentDelete={(id) => permanentDelete.mutate(id)}
-                />
-              ))}
-            </div>
-          )}
+          <TaskList
+            tasks={todoInProgressTasks}
+            variant="card"
+            emptyTitle="No active tasks"
+            emptyDescription="Tasks in To do and In progress will appear here."
+            emptyIcon={NotebookPen}
+            getAreaName={(task) => (task.area_id ? areaNamesMap.get(task.area_id) ?? null : null)}
+            getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesMap)}
+            getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsMap)}
+            getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, goalNamesMap)}
+            getProjectName={(task) => (task.project_id ? projectNamesMap.get(task.project_id) ?? null : null)}
+            getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectNamesMap)}
+            onCompletionToggle={(id, isCompleted) => {
+              if (isCompleted) { completeTask.mutate(id); return; }
+              updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
+            }}
+            onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
+            onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+            onEdit={(t) => { setEditingTask(t); setTaskDialogOpen(true); }}
+            onArchiveToggle={(task) => archiveTask.mutate(task.id)}
+            onPermanentDelete={(id) => permanentDelete.mutate(id)}
+          />
         </div>
       </section>
 
