@@ -54,7 +54,7 @@ describe("TaskListItem multi-project badge display", () => {
     expect(html).toContain("Customer onboarding");
   });
 
-  it("renders three badges for three linked projects", () => {
+  it("renders two badges + +1 overflow for three linked projects", () => {
     const html = renderToStaticMarkup(
       <TaskListItem
         task={createTask({ linkedProjectIds: ["p1", "p2", "p3"] })}
@@ -64,7 +64,8 @@ describe("TaskListItem multi-project badge display", () => {
     );
     expect(html).toContain("P1");
     expect(html).toContain("P2");
-    expect(html).toContain("P3");
+    expect(html).not.toContain("P3");
+    expect(html).toContain("+1");
   });
 
   it("falls back to projectName prop when linkedProjectNames is empty", () => {

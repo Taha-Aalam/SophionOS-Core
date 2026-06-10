@@ -138,10 +138,6 @@ export function MyDayContent() {
     () => new Map(allAreas?.map((a) => [a.id, a.icon ?? null]) ?? []),
     [allAreas],
   );
-  const goalMap = useMemo(
-    () => new Map(allGoals?.map((goal) => [goal.id, goal]) ?? []),
-    [allGoals],
-  );
   const goalNamesMap = useMemo(
     () => new Map(allGoals?.map((g) => [g.id, g.name]) ?? []),
     [allGoals],

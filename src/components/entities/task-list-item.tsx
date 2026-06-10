@@ -126,41 +126,41 @@ export function TaskListItem({
         )}
       </div>
 
-      <div className="hidden shrink-0 items-center gap-2.5 md:flex">
+      <div className="hidden shrink-0 items-center gap-2 md:flex">
         {displayAreaNames.slice(0, 2).map((name, index) => (
-          <Badge key={`area-${index}`} variant="outline" className="gap-1 text-xs font-normal">
+          <Badge key={`area-${index}`} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
             {linkedAreaIcons?.[index] ? (
-              <span className="text-xs leading-none">{linkedAreaIcons[index]}</span>
+              <span className="text-[10px] leading-none">{linkedAreaIcons[index]}</span>
             ) : (
-              <Map className="size-3" />
+              <Map className="size-2.5" />
             )}
             {name}
           </Badge>
         ))}
         {displayAreaNames.length > 2 && (
-          <Badge variant="secondary" className="text-xs font-normal">
+          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
             +{displayAreaNames.length - 2}
           </Badge>
         )}
         {displayGoalNames.slice(0, 2).map((name, index) => (
-          <Badge key={`goal-${index}`} variant="outline" className="gap-1 text-xs font-normal">
-            <span className="text-xs leading-none">🎯</span>
+          <Badge key={`goal-${index}`} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
+            <span className="text-[10px] leading-none">🎯</span>
             {name}
           </Badge>
         ))}
         {displayGoalNames.length > 2 && (
-          <Badge variant="secondary" className="text-xs font-normal">
+          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
             +{displayGoalNames.length - 2}
           </Badge>
         )}
         {displayProjectNames.slice(0, 2).map((name, index) => (
-          <Badge key={`project-${index}`} variant="outline" className="gap-1 text-xs font-normal">
-            <span className="text-xs leading-none">📁</span>
+          <Badge key={`project-${index}`} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
+            <span className="text-[10px] leading-none">📁</span>
             {name}
           </Badge>
         ))}
         {displayProjectNames.length > 2 && (
-          <Badge variant="secondary" className="text-xs font-normal">
+          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
             +{displayProjectNames.length - 2}
           </Badge>
         )}
@@ -168,11 +168,11 @@ export function TaskListItem({
           <Badge
             variant="outline"
             className={cn(
-              "gap-1 text-xs font-normal",
+              "gap-1 text-[10px] leading-none font-normal",
               dueInfo.overdue ? "text-red-500 dark:text-red-400" : "text-muted-foreground",
             )}
           >
-            <Calendar className="size-3" />
+            <Calendar className="size-2.5" />
             {dueInfo.label}
           </Badge>
         )}

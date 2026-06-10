@@ -96,6 +96,7 @@ vi.mock("@/lib/hooks/use-notes", () => ({
   useDeleteNote: () => ({ mutateAsync: vi.fn() }),
   useLinkNoteToGoal: () => ({ mutateAsync: vi.fn() }),
   useNotes: () => ({ data: [] }),
+  useUpdateNote: () => ({ mutateAsync: vi.fn() }),
 }));
 
 vi.mock("@/lib/hooks/use-resources", () => ({
@@ -104,6 +105,7 @@ vi.mock("@/lib/hooks/use-resources", () => ({
   useUpdateResource: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
   useArchiveResource: () => ({ mutateAsync: vi.fn() }),
   useUnarchiveResource: () => ({ mutateAsync: vi.fn() }),
+  useDeleteResource: () => ({ mutateAsync: vi.fn() }),
   useLinkResourceToGoal: () => ({ mutateAsync: vi.fn() }),
   useResources: () => ({ data: [] }),
 }));

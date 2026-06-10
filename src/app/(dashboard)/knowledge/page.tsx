@@ -630,7 +630,7 @@ export default function KnowledgeHubPage() {
 
   function renderNoteRow(note: Note) {
     const noteAreas = getNoteLinkedAreaIds(note)
-      .map((id) => ({ name: areaNames.get(id) ?? id, icon: null }))
+      .map((id) => ({ name: areaNames.get(id) ?? id, icon: areaIcons.get(id) ?? null }))
       .filter((a) => Boolean(a.name));
     const noteGoalNames = getNoteLinkedGoalIds(note)
       .map((id) => goalNames.get(id))
@@ -670,9 +670,8 @@ export default function KnowledgeHubPage() {
 
   function renderResourceRow(r: Resource) {
     const areas = getResourceLinkedAreaIds(r)
-      .map((id) => areaNames.get(id))
-      .filter((n): n is string => Boolean(n))
-      .map((name) => ({ name }));
+      .map((id) => ({ name: areaNames.get(id), icon: areaIcons.get(id) ?? null }))
+      .filter((a): a is { name: string; icon: string | null } => Boolean(a.name));
     const goalNamesList = getResourceLinkedGoalIds(r)
       .map((id) => goalNames.get(id))
       .filter((n): n is string => Boolean(n));
@@ -709,9 +708,8 @@ export default function KnowledgeHubPage() {
 
   function getAreasForResource(r: Resource) {
     return getResourceLinkedAreaIds(r)
-      .map((id) => areaNames.get(id))
-      .filter((n): n is string => Boolean(n))
-      .map((name) => ({ name }));
+      .map((id) => ({ name: areaNames.get(id), icon: areaIcons.get(id) ?? null }))
+      .filter((a): a is { name: string; icon: string | null } => Boolean(a.name));
   }
   function getGoalNamesForResource(r: Resource) {
     return getResourceLinkedGoalIds(r)

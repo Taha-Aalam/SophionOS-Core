@@ -134,6 +134,7 @@ vi.mock("@/lib/hooks/use-resources", () => ({
   useUpdateResource: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
   useArchiveResource: () => ({ mutateAsync: vi.fn() }),
   useUnarchiveResource: () => ({ mutateAsync: vi.fn() }),
+  useDeleteResource: () => ({ mutateAsync: vi.fn() }),
 }));
 
 vi.mock("@/components/entities/project-dialog", () => ({
