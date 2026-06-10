@@ -56,7 +56,7 @@ describe("TaskListItem multi-goal badge display", () => {
     expect(html).not.toContain("+2");
   });
 
-  it("renders three badges for three linked goals", () => {
+  it("renders two badges + +1 overflow for three linked goals", () => {
     const html = renderToStaticMarkup(
       <TaskListItem
         task={createTask()}
@@ -66,9 +66,8 @@ describe("TaskListItem multi-goal badge display", () => {
     );
     expect(html).toContain("G1");
     expect(html).toContain("G2");
-    expect(html).toContain("G3");
-    expect(html).not.toContain("+1");
-    expect(html).not.toContain("+2");
+    expect(html).not.toContain("G3");
+    expect(html).toContain("+1");
   });
 
   it("renders a single badge for a single goal", () => {

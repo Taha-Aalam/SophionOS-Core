@@ -23,6 +23,7 @@ interface NoteRowProps {
   goalNames?: string[];
   projectNames?: string[];
   taskNames?: string[];
+  isSelected?: boolean;
   onPinToggle: (id: string, pin: boolean) => void;
   onFavoriteToggle: (id: string, favorite: boolean) => void;
   onSaveStatusChange?: (id: string, saved: boolean) => void;
@@ -46,6 +47,7 @@ export function NoteRow({
   goalNames = [],
   projectNames = [],
   taskNames = [],
+  isSelected,
   onPinToggle,
   onFavoriteToggle,
   onSaveStatusChange,
@@ -61,7 +63,10 @@ export function NoteRow({
 
   return (
     <div
-      className="group flex cursor-pointer items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30"
+      className={cn(
+        "group flex cursor-pointer items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30",
+        isSelected && "bg-muted/50",
+      )}
       onClick={() => router.push(href)}
     >
       {/* Save checkbox */}
@@ -110,63 +115,63 @@ export function NoteRow({
         <span className="block truncate text-sm font-medium">{note.name}</span>
       </div>
 
-      {/* Metadata cluster */}
-      <div className="hidden shrink-0 flex-wrap items-center gap-1.5 md:flex">
+      {/* Metadata cluster — max 2 per category, +N overflow per category, smaller */}
+      <div className="hidden shrink-0 flex-wrap items-center gap-1 md:flex">
         {(note.notebooks ?? []).map((nb) => (
-          <Badge key={nb} variant="outline" className="gap-1 text-xs font-normal">
-            <span className="text-xs leading-none">📓</span>
+          <Badge key={nb} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
+            <span className="text-[10px] leading-none">📓</span>
             {nb}
           </Badge>
         ))}
         {areas.slice(0, 2).map((area, i) => (
-          <Badge key={i} variant="outline" className="gap-1 text-xs font-normal">
+          <Badge key={i} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
             {area.icon ? (
-              <span className="text-xs leading-none">{area.icon}</span>
+              <span className="text-[10px] leading-none">{area.icon}</span>
             ) : (
-              <LucideMap className="size-3" />
+              <LucideMap className="size-2.5" />
             )}
             {area.name}
           </Badge>
         ))}
         {areas.length > 2 && (
-          <Badge variant="secondary" className="text-xs font-normal">
+          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
             +{areas.length - 2}
           </Badge>
         )}
         {goalNames.slice(0, 2).map((name) => (
-          <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
-            <span className="text-xs leading-none">🎯</span>
+          <Badge key={name} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
+            <span className="text-[10px] leading-none">🎯</span>
             {name}
           </Badge>
         ))}
         {goalNames.length > 2 && (
-          <Badge variant="secondary" className="text-xs font-normal">
+          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
             +{goalNames.length - 2}
           </Badge>
         )}
         {projectNames.slice(0, 2).map((name) => (
-          <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
-            <span className="text-xs leading-none">📁</span>
+          <Badge key={name} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
+            <span className="text-[10px] leading-none">📁</span>
             {name}
           </Badge>
         ))}
         {projectNames.length > 2 && (
-          <Badge variant="secondary" className="text-xs font-normal">
+          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
             +{projectNames.length - 2}
           </Badge>
         )}
         {taskNames.slice(0, 2).map((name) => (
-          <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
-            <span className="text-xs leading-none">☑️</span>
+          <Badge key={name} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
+            <span className="text-[10px] leading-none">☑️</span>
             {name}
           </Badge>
         ))}
         {taskNames.length > 2 && (
-          <Badge variant="secondary" className="text-xs font-normal">
+          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
             +{taskNames.length - 2}
           </Badge>
         )}
-        <span className="text-xs text-muted-foreground">
+        <span className="text-[10px] leading-none text-muted-foreground">
           {new Date(note.updated_at).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
