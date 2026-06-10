@@ -499,6 +499,7 @@ export function TopicDetailContent() {
                   onToggleFavorite={(id, favorite) =>
                     toggleFavoriteResource.mutate({ id, favorite })
                   }
+                  onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                   onArchive={(id) => archiveResource.mutate(id)}
                   onUnarchive={(id) => unarchiveResource.mutate(id)}
                   onDelete={(id) => deleteResource.mutate(id)}

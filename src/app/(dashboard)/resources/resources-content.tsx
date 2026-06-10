@@ -38,7 +38,7 @@ import { useTasks } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "@/lib/types/domain.types";
 import { createClient } from "@/lib/supabase/client";
-import { RESOURCE_STATUS, type ResourceStatus, RESOURCE_TYPE } from "@/lib/utils/constants";
+import { RESOURCE_STATUS, RESOURCE_TYPE } from "@/lib/utils/constants";
 import {
   RESOURCE_VIEW,
   type ResourceView,
@@ -356,10 +356,6 @@ export function ResourcesContent() {
 
   const handleSaveStatusChange = (id: string, saved: boolean) => {
     updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } });
-  };
-
-  const handleStatusChange = (id: string, status: ResourceStatus) => {
-    updateResource.mutate({ id, input: { status } });
   };
 
   const handleEdit = (resource: Resource) => {
@@ -804,7 +800,6 @@ export function ResourcesContent() {
                     onArchive={handleArchive}
                     onUnarchive={handleUnarchive}
                     onDelete={handleDelete}
-                    onStatusChange={handleStatusChange}
                     onEdit={handleEdit}
                   />
                 ))}
