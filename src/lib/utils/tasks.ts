@@ -219,3 +219,37 @@ export function getTaskCounts(tasks: Task[]): TaskCounts {
     upcoming: getVisibleTasks(tasks, TASK_VIEW.UPCOMING).length,
   };
 }
+
+export function getTaskLinkedAreaNames(
+  task: Task,
+  areaNames: Map<string, string>,
+): string[] {
+  return getTaskLinkedAreaIds(task)
+    .map((id) => areaNames.get(id))
+    .filter((n): n is string => Boolean(n));
+}
+
+export function getTaskLinkedAreaIcons(
+  task: Task,
+  areaIcons: Map<string, string | null>,
+): (string | null)[] {
+  return getTaskLinkedAreaIds(task).map((id) => areaIcons.get(id) ?? null);
+}
+
+export function getTaskLinkedGoalNames(
+  task: Task,
+  goalNames: Map<string, string>,
+): string[] {
+  return getTaskLinkedGoalIds(task)
+    .map((id) => goalNames.get(id))
+    .filter((n): n is string => Boolean(n));
+}
+
+export function getTaskLinkedProjectNames(
+  task: Task,
+  projectNames: Map<string, string>,
+): string[] {
+  return getTaskLinkedProjectIds(task)
+    .map((id) => projectNames.get(id))
+    .filter((n): n is string => Boolean(n));
+}
