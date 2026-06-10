@@ -175,24 +175,29 @@ export function ResourceRow({
         )}
       </div>
 
-      {/* Action buttons — Favorite, Edit, Archive, Delete */}
+      {/* Favorite — always visible when starred, hover-only otherwise (like note-row) */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleFavorite(resource.id, !resource.favorite);
+        }}
+        className={cn(
+          "shrink-0 rounded-md p-1.5 transition-colors",
+          resource.favorite
+            ? "text-amber-500"
+            : "text-muted-foreground/20 opacity-0 hover:text-amber-400 group-hover:opacity-100",
+        )}
+        title={resource.favorite ? "Unfavorite" : "Favorite"}
+      >
+        <Star className={cn("size-4", resource.favorite && "fill-current")} />
+      </button>
+
+      {/* Action buttons — Edit, Archive, Delete (hover-only) */}
       <div
         className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Favorite */}
-        <button
-          type="button"
-          onClick={() => onToggleFavorite(resource.id, !resource.favorite)}
-          className={cn(
-            "rounded-md p-1.5 text-muted-foreground transition-colors hover:text-yellow-400",
-            resource.favorite && "text-yellow-500",
-          )}
-          title={resource.favorite ? "Remove from favorites" : "Add to favorites"}
-        >
-          <Star className={cn("size-3.5", resource.favorite && "fill-current")} />
-        </button>
-
         {/* Edit */}
         <button
           type="button"
