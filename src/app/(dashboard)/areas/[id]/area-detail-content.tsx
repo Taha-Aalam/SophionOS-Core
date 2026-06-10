@@ -31,7 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useArchiveNote, useRestoreNote, useDeleteNote, useToggleFavoriteNote, useTogglePinNote, useUpdateNote, useNotes } from "@/lib/hooks/use-notes";
 import { ResourceRow } from "@/components/entities/resource-row";
 import { TaskDialog } from "@/components/entities/task-dialog";
-import { TaskListItem } from "@/components/entities/task-list-item";
+import { TaskList } from "@/components/entities/task-list";
 import { EmptyState } from "@/components/views/empty-state";
 import { TasksByGroupView } from "@/components/views/tasks-by-group-view";
 
@@ -94,7 +94,12 @@ import { cn } from "@/lib/utils";
 import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { buildReturnTo, encodeReturnTo, getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
-import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
+import {
+  getTaskLinkedAreaNames,
+  getTaskLinkedAreaIcons,
+  getTaskLinkedGoalNames,
+  getTaskLinkedProjectNames,
+} from "@/lib/utils/tasks";
 import { buildAreaTaskGroupsByGoal, buildAreaTaskGroupsByProject, getFilteredAreaProjects, getFilteredAreaNotes, getFilteredAreaResources, buildAreaContactGoalSections, buildAreaContactProjectSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections } from "@/lib/utils/area-detail";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
@@ -687,36 +692,6 @@ export function AreaDetailContent() {
     });
     await focusTask.mutateAsync({ id: taskId, is_focused: focused });
   };
-
-  const getLinkedAreaNames = useCallback(
-    (task: Task) =>
-      getTaskLinkedAreaIds(task)
-        .map((id) => areaNamesById.get(id))
-        .filter((n): n is string => Boolean(n)),
-    [areaNamesById],
-  );
-
-  const getLinkedAreaIcons = useCallback(
-    (task: Task) =>
-      getTaskLinkedAreaIds(task).map((id) => areaIconsById.get(id) ?? null),
-    [areaIconsById],
-  );
-
-  const getLinkedGoalNames = useCallback(
-    (task: Task) =>
-      getTaskLinkedGoalIds(task)
-        .map((id) => allGoalsById.get(id))
-        .filter((n): n is string => Boolean(n)),
-    [allGoalsById],
-  );
-
-  const getLinkedProjectNames = useCallback(
-    (task: Task) =>
-      getTaskLinkedProjectIds(task)
-        .map((id) => projectsById.get(id))
-        .filter((n): n is string => Boolean(n)),
-    [projectsById],
-  );
 
   const handleNewGroupTask = (groupId: string) => {
     setEditingTask(null);
@@ -1376,10 +1351,10 @@ export function AreaDetailContent() {
               onArchiveToggle={handleTaskArchiveToggle}
               onPermanentDelete={handlePermanentDelete}
               onNewTask={handleNewGroupTask}
-              getLinkedAreaNames={getLinkedAreaNames}
-              getLinkedAreaIcons={getLinkedAreaIcons}
-              getLinkedGoalNames={getLinkedGoalNames}
-              getLinkedProjectNames={getLinkedProjectNames}
+              getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesById)}
+              getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsById)}
+              getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, allGoalsById)}
+              getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectsById)}
               emptyMessage="Tasks will be grouped by goal here."
             />
           ) : taskTab === "by_project" ? (
@@ -1398,34 +1373,27 @@ export function AreaDetailContent() {
               onArchiveToggle={handleTaskArchiveToggle}
               onPermanentDelete={handlePermanentDelete}
               onNewTask={handleNewGroupTask}
-              getLinkedAreaNames={getLinkedAreaNames}
-              getLinkedAreaIcons={getLinkedAreaIcons}
-              getLinkedGoalNames={getLinkedGoalNames}
-              getLinkedProjectNames={getLinkedProjectNames}
+              getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesById)}
+              getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsById)}
+              getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, allGoalsById)}
+              getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectsById)}
               emptyMessage="Tasks will be grouped by project here."
             />
           ) : filteredTasks.length > 0 ? (
-            <div className="rounded-lg border bg-card">
-              {filteredTasks.map((task) => (
-                <TaskListItem
-                  key={task.id}
-                  task={task}
-                  linkedAreaNames={getLinkedAreaNames(task)}
-                  linkedAreaIcons={getLinkedAreaIcons(task)}
-                  linkedGoalNames={getLinkedGoalNames(task)}
-                  linkedProjectNames={getLinkedProjectNames(task)}
-                  onCompletionToggle={handleTaskCompletion}
-                  onFocusToggle={handleTaskFocus}
-                  onNameSave={handleTaskNameSave}
-                  onArchiveToggle={handleTaskArchiveToggle}
-                  onPermanentDelete={handlePermanentDelete}
-                  onEdit={(task) => {
-                    setEditingTask(task);
-                    setIsTaskEditOpen(true);
-                  }}
-                />
-              ))}
-            </div>
+            <TaskList
+              tasks={filteredTasks}
+              variant="card"
+              getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesById)}
+              getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsById)}
+              getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, allGoalsById)}
+              getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectsById)}
+              onCompletionToggle={handleTaskCompletion}
+              onFocusToggle={handleTaskFocus}
+              onNameSave={handleTaskNameSave}
+              onEdit={(task) => { setEditingTask(task); setIsTaskEditOpen(true); }}
+              onArchiveToggle={handleTaskArchiveToggle}
+              onPermanentDelete={handlePermanentDelete}
+            />
           ) : null}
         </GoalDetailSection>
       </div>
