@@ -26,7 +26,6 @@ const baseResource: Resource = {
   type: "website",
   status: "inbox",
   area_id: null,
-  project_id: null,
   topic_id: null,
   is_archived: false,
   favorite: false,
@@ -89,7 +88,7 @@ describe("ResourceInboxProcessForm 4D cascade", () => {
     const html = renderForm(baseResource);
     expect(html).toContain("Select area…");
     expect(html).toContain("Select goal…");
-    expect(html).toContain("Select project…");
+    expect(html).toContain("Select projects…");
     expect(html).toContain("Select task…");
     expect(html).toContain("Select topic…");
   });
@@ -101,7 +100,7 @@ describe("ResourceInboxProcessForm 4D cascade", () => {
     });
     expect(html).toContain("1 selected");
     expect(html).toContain("Select goal…");
-    expect(html).toContain("Select project…");
+    expect(html).toContain("Select projects…");
     expect(html).toContain("Select task…");
     expect(html).toContain("Select topic…");
   });
@@ -113,7 +112,7 @@ describe("ResourceInboxProcessForm 4D cascade", () => {
     });
     expect(html).toContain("1 selected");
     expect(html).toContain("Select area…");
-    expect(html).toContain("Select project…");
+    expect(html).toContain("Select projects…");
     expect(html).toContain("Select task…");
     expect(html).toContain("Select topic…");
   });
@@ -139,7 +138,7 @@ describe("ResourceInboxProcessForm 4D cascade", () => {
     expect(html).toContain("1 selected");
     expect(html).toContain("Select area…");
     expect(html).toContain("Select goal…");
-    expect(html).toContain("Select project…");
+    expect(html).toContain("Select projects…");
     expect(html).toContain("Select topic…");
   });
 
@@ -171,7 +170,7 @@ describe("ResourceInboxProcessForm 4D cascade", () => {
     // All PARA placeholders still shown (cascade not affected by topic)
     expect(html).toContain("Select area…");
     expect(html).toContain("Select goal…");
-    expect(html).toContain("Select project…");
+    expect(html).toContain("Select projects…");
     expect(html).toContain("Select task…");
   });
 });

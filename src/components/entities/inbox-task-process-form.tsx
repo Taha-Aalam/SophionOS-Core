@@ -22,6 +22,7 @@ import {
   computeVisibleGoalsForProjects,
   computeVisibleAreasForProjects,
 } from "@/lib/utils/task-dialog-filters";
+import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 
 const TASK_ICON = "☑️";
 const UNSET = "__none__";
@@ -53,13 +54,9 @@ export function TaskProcessForm({
   onClose,
 }: TaskProcessFormProps) {
   const updateTask = useUpdateTask();
-  const [rawAreaIds, setRawAreaIds] = useState<string[]>(
-    task.linkedAreaIds ?? (task.area_id ? [task.area_id] : []),
-  );
-  const [rawGoalIds, setRawGoalIds] = useState<string[]>(task.linkedGoalIds ?? []);
-  const [rawProjectIds, setRawProjectIds] = useState<string[]>(
-    task.linkedProjectIds ?? (task.project_id ? [task.project_id] : []),
-  );
+  const [rawAreaIds, setRawAreaIds] = useState<string[]>(getTaskLinkedAreaIds(task));
+  const [rawGoalIds, setRawGoalIds] = useState<string[]>(getTaskLinkedGoalIds(task));
+  const [rawProjectIds, setRawProjectIds] = useState<string[]>(getTaskLinkedProjectIds(task));
   const [dueDate, setDueDate] = useState<string>(task.due_date ?? "");
   const [status, _setStatus] = useState<string>(TASK_STATUS.TODO);
   const [priority, _setPriority] = useState<string>(task.priority ?? UNSET);

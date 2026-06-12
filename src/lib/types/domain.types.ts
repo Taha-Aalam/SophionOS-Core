@@ -41,6 +41,7 @@ export interface Project extends DatabaseTable<"projects"> {
 export interface Resource extends DatabaseTable<"resources"> {
   linkedAreaIds?: string[];
   linkedGoalIds?: string[];
+  linkedProjectIds?: string[];
   linkedTaskIds?: string[];
 }
 
@@ -202,7 +203,7 @@ export type UpdateNoteInput = Partial<CreateNoteInput>;
 export interface CreateResourceInput {
   area_id?: string | null;
   area_ids?: string[];
-  project_id?: string | null;
+  project_ids?: string[];
   topic_id?: string | null;
   name: string;
   url?: string | null;

@@ -64,6 +64,7 @@ import {
   getNoteLinkedAreaIds,
   getNoteLinkedGoalIds,
   getNoteLinkedProjectIds,
+  getNoteLinkedTaskIds,
   getNoteCounts,
   getVisibleNotes,
   NOTE_VIEW,
@@ -383,7 +384,7 @@ export function NotesContent() {
 
   const renderNoteRow = (note: Note) => {
     const isSelected = selectedIds.has(note.id);
-    const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+    const noteAreas = getNoteLinkedAreaIds(note)
       .map((id) => {
         const area = areaMap.get(id);
         return area ? { name: area.name, icon: area.icon } : null;
@@ -395,7 +396,7 @@ export function NotesContent() {
     const noteProjectNames = getNoteLinkedProjectIds(note)
       .map((id) => projectMap.get(id)?.name)
       .filter((n): n is string => Boolean(n));
-    const noteTaskNames = (note.linkedTaskIds ?? [])
+    const noteTaskNames = getNoteLinkedTaskIds(note)
       .map((id) => taskMap.get(id)?.name)
       .filter((n): n is string => Boolean(n));
 

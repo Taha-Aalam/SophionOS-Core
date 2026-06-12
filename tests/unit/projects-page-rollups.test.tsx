@@ -74,15 +74,15 @@ describe("projects page rollup computation", () => {
     const projects = [{ id: "p-1", name: "Project 1" }] as Project[];
 
     const resources = [
-      { id: "r-1", project_id: "p-1" },
-    ] as unknown as { id: string; project_id: string }[];
+      { id: "r-1", linkedProjectIds: ["p-1"] },
+    ] as unknown as { id: string; linkedProjectIds: string[] }[];
 
     const rollupsByProject = new Map<string, ProjectCardRollups>();
     for (const project of projects) {
       const linkedGoalIds = (project as unknown as { linkedGoalIds?: string[] }).linkedGoalIds ?? [];
       const goalCount = linkedGoalIds.length;
       const noteCount = 0;
-      const resourceCount = resources.filter((r) => r.project_id === project.id).length;
+      const resourceCount = resources.filter((r) => r.linkedProjectIds.includes(project.id)).length;
       const taskCount = 0;
       rollupsByProject.set(project.id, { goalCount, taskCount, noteCount, resourceCount });
     }
@@ -116,14 +116,14 @@ describe("projects page rollup computation", () => {
     const projects = [{ id: "p-1", name: "Project 1" }] as Project[];
     const tasks: { id: string; project_id: string; is_archived: boolean }[] = [];
     const notes: { id: string; project_id: string }[] = [];
-    const resources: { id: string; project_id: string }[] = [];
+    const resources: { id: string; linkedProjectIds: string[] }[] = [];
 
     const rollupsByProject = new Map<string, ProjectCardRollups>();
     for (const project of projects) {
       const linkedGoalIds = (project as unknown as { linkedGoalIds?: string[] }).linkedGoalIds ?? [];
       const goalCount = linkedGoalIds.length;
       const noteCount = notes.filter((n) => n.project_id === project.id).length;
-      const resourceCount = resources.filter((r) => r.project_id === project.id).length;
+      const resourceCount = resources.filter((r) => r.linkedProjectIds.includes(project.id)).length;
       const taskCount = tasks.filter((t) => t.project_id === project.id && !t.is_archived).length;
       rollupsByProject.set(project.id, { goalCount, taskCount, noteCount, resourceCount });
     }

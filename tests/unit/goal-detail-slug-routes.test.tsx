@@ -88,6 +88,10 @@ vi.mock("@/lib/hooks/use-tasks", () => ({
   useTasks: () => ({ data: [] }),
 }));
 
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: () => ({ data: [], isLoading: false }),
+}));
+
 vi.mock("@/lib/hooks/use-notes", () => ({
   useToggleFavoriteNote: () => ({ mutate: vi.fn() }),
   useTogglePinNote: () => ({ mutate: vi.fn() }),

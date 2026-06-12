@@ -50,12 +50,14 @@ const ALL_AREAS = [A1, A2, A3];
 const P1 = project("proj-1", "area-1");
 const P2 = project("proj-2", "area-2");
 const P3 = project("proj-3", null, ["area-1"]); // linkedAreaIds only
-const ALL_PROJECTS = [P1, P2, P3];
+const P4 = project("proj-4", null, []); // unassigned — no area_id, no linkedAreaIds
+const ALL_PROJECTS = [P1, P2, P3, P4];
 
 const G1 = goal("goal-1", "area-1");
 const G2 = goal("goal-2", "area-2");
 const G3 = goal("goal-3", null, ["area-1"]); // linkedAreaIds only
-const ALL_GOALS = [G1, G2, G3];
+const G4 = goal("goal-4", null, []); // unassigned — no area_id, no linkedAreaIds
+const ALL_GOALS = [G1, G2, G3, G4];
 
 const T1 = task("task-1", { area_id: "area-1", project_id: "proj-1" });
 const T2 = task("task-2", { area_id: "area-2", project_id: "proj-2" });
@@ -64,7 +66,8 @@ const T4 = task("task-4", {
   area_id: "area-1",
   project_id: "proj-1",
 }); // no direct goal link
-const ALL_TASKS = [T1, T2, T3, T4];
+const T5 = task("task-5", { project_id: "proj-4" }); // unassigned — no area_id, no linkedAreaIds
+const ALL_TASKS = [T1, T2, T3, T4, T5];
 
 // Relation maps (from join tables)
 const goalProjectIdsMap = new Map<string, string[]>([
@@ -149,6 +152,33 @@ describe("computeVisibleAreas", () => {
   });
 });
 
+// ── unassigned (no area) candidates stay visible when area filter active ─────
+
+describe("unassigned candidates are kept visible alongside area-scoped ones", () => {
+  const emptyMap = new Map<string, string[]>();
+
+  it("computeFilteredProjects keeps projects with no area assignment", () => {
+    // area-1 only → P1 (area-1), P3 (linkedAreaIds), P4 (unassigned)
+    expect(
+      computeFilteredProjects(ALL_PROJECTS, ["area-1"], [], emptyMap),
+    ).toEqual([P1, P3, P4]);
+  });
+
+  it("computeFilteredGoals keeps goals with no area assignment", () => {
+    // area-1 only → G1 (area-1), G3 (linkedAreaIds), G4 (unassigned)
+    expect(
+      computeFilteredGoals(ALL_GOALS, ["area-1"], null, emptyMap),
+    ).toEqual([G1, G3, G4]);
+  });
+
+  it("computeFilteredTasks keeps tasks with no area assignment", () => {
+    // area-1 only → T1, T3, T4 (in area-1) + T5 (unassigned)
+    expect(computeFilteredTasks(ALL_TASKS, ["area-1"], null, [])).toEqual([
+      T1, T3, T4, T5,
+    ]);
+  });
+});
+
 // ── computeFilteredProjects ──────────────────────────────────────────────────
 
 describe("computeFilteredProjects", () => {
@@ -163,7 +193,7 @@ describe("computeFilteredProjects", () => {
   it("filters by areas only", () => {
     expect(
       computeFilteredProjects(ALL_PROJECTS, ["area-1"], [], emptyMap),
-    ).toEqual([P1, P3]);
+    ).toEqual([P1, P3, P4]); // P1 area-1, P3 linkedAreaIds area-1, P4 unassigned
   });
 
   it("filters by goals only", () => {
@@ -259,7 +289,7 @@ describe("computeFilteredGoals", () => {
   it("filters by areas only", () => {
     expect(
       computeFilteredGoals(ALL_GOALS, ["area-1"], null, emptyMap),
-    ).toEqual([G1, G3]); // G1 area-1, G3 linkedAreaIds area-1
+    ).toEqual([G1, G3, G4]); // G1 area-1, G3 linkedAreaIds area-1, G4 unassigned
   });
 
   it("filters by project only", () => {
@@ -359,8 +389,9 @@ describe("computeFilteredTasks", () => {
 
   it("filters by areas only", () => {
     // T1 (area-1), T3 (linkedAreaIds area-1), T4 (area-1) all match
+    // T5 (no area assignment) is also included — unassigned candidates stay visible
     expect(computeFilteredTasks(ALL_TASKS, ["area-1"], null, [])).toEqual([
-      T1, T3, T4,
+      T1, T3, T4, T5,
     ]);
   });
 

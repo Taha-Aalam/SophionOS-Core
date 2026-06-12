@@ -40,7 +40,7 @@ import {
   computeFilteredGoals,
   computeFilteredTasks,
 } from "@/lib/utils/resource-dialog-filters";
-import { getEffectiveResourceProjectIds } from "@/lib/utils/resources";
+import { useGoalProjectRelations } from "@/lib/hooks/use-goal-project-ids-map";
 
 const RESOURCE_TYPE_OPTIONS = [
   { value: RESOURCE_TYPE.WEBSITE, label: "Website" },
@@ -90,14 +90,8 @@ export function ResourceDialog({
   const { data: tasks = [] } = useTasks();
 
   // Fetch relation tables for cross-filtering
-  const { data: goalProjectRelations = [], isLoading: isLoadingGoalProjectRelations } = useQuery({
-    queryKey: ["goal-project-relations"],
-    queryFn: async () => {
-      const { data } = await createClient().from("goal_projects").select("goal_id, project_id");
-      return data ?? [];
-    },
-    enabled: open,
-  });
+  const { goalProjectIdsMap, projectGoalIdsMap, isLoading: isLoadingGoalProjectRelations } =
+    useGoalProjectRelations({ enabled: open });
 
   const { data: goalTaskRelations = [], isLoading: isLoadingGoalTaskRelations } = useQuery({
     queryKey: ["goal-task-relations"],
@@ -109,27 +103,6 @@ export function ResourceDialog({
   });
 
   const isRelationsLoading = isLoadingGoalProjectRelations || isLoadingGoalTaskRelations;
-
-  // Build bidirectional lookup maps
-  const goalProjectIdsMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const row of goalProjectRelations) {
-      const current = map.get(row.goal_id) ?? [];
-      current.push(row.project_id);
-      map.set(row.goal_id, current);
-    }
-    return map;
-  }, [goalProjectRelations]);
-
-  const projectGoalIdsMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const row of goalProjectRelations) {
-      const current = map.get(row.project_id) ?? [];
-      current.push(row.goal_id);
-      map.set(row.project_id, current);
-    }
-    return map;
-  }, [goalProjectRelations]);
 
   const goalTaskIdsMap = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -156,7 +129,7 @@ export function ResourceDialog({
   const [type, setType] = useState<Resource["type"]>(RESOURCE_TYPE.WEBSITE);
   const [status, setStatus] = useState<ResourceStatus>(RESOURCE_STATUS.INBOX);
   const [areaIds, setAreaIds] = useState<string[]>([]);
-  const [projectId, setProjectId] = useState<string>("");
+  const [projectIds, setProjectIds] = useState<string[]>([]);
   const [topicId, setTopicId] = useState<string>("");
   const [goalIds, setGoalIds] = useState<string[]>([]);
   const [taskIds, setTaskIds] = useState<string[]>([]);
@@ -176,7 +149,7 @@ export function ResourceDialog({
         setType(resource.type);
         setStatus(resource.status as ResourceStatus);
         setAreaIds(resource.linkedAreaIds ?? (resource.area_id ? [resource.area_id] : []));
-        setProjectId(resource.project_id ?? "");
+        setProjectIds(resource.linkedProjectIds ?? []);
         setTopicId(resource.topic_id ?? "");
         setGoalIds(resource.linkedGoalIds ?? []);
         setTaskIds(resource.linkedTaskIds ?? []);
@@ -189,13 +162,13 @@ export function ResourceDialog({
         setStatus(
           deriveResourceStatus({
             area_ids: initialAreaIds,
-            project_id: initialProjectId,
+            project_ids: initialProjectId ? [initialProjectId] : undefined,
             goal_ids: initialGoalIds,
             topic_id: initialTopicId,
           }),
         );
         setAreaIds(initialAreaIds ?? []);
-        setProjectId(initialProjectId ?? "");
+        setProjectIds(initialProjectId ? [initialProjectId] : []);
         setTopicId(initialTopicId ?? "");
         setGoalIds(initialGoalIds ?? []);
         setTaskIds([]);
@@ -211,7 +184,7 @@ export function ResourceDialog({
     statusOverriddenRef.current = false;
     const next = deriveResourceStatus({
       area_ids: areaIds,
-      project_id: projectId || null,
+      project_ids: projectIds,
       goal_ids: goalIds,
       task_ids: taskIds,
       topic_id: topicId || null,
@@ -221,7 +194,7 @@ export function ResourceDialog({
       setStatus(next);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [areaIds, projectId, topicId, goalIds, taskIds]);
+  }, [areaIds, projectIds, topicId, goalIds, taskIds]);
 
   const handleUserStatusChange = (next: ResourceStatus) => {
     statusOverriddenRef.current = true;
@@ -246,7 +219,6 @@ export function ResourceDialog({
       url: url || null,
       type: type as Resource["type"],
       status: status as ResourceStatus,
-      project_id: projectId || null,
       topic_id: topicId || null,
     };
 
@@ -254,6 +226,7 @@ export function ResourceDialog({
       const input: UpdateResourceInput = {
         ...baseInput,
         area_ids: areaIds.length > 0 ? areaIds : undefined,
+        project_ids: projectIds.length > 0 ? projectIds : undefined,
         goal_ids: goalIds.length > 0 ? goalIds : undefined,
         task_ids: taskIds.length > 0 ? taskIds : undefined,
       };
@@ -262,6 +235,7 @@ export function ResourceDialog({
       const input: CreateResourceInput = {
         ...baseInput,
         area_ids: areaIds.length > 0 ? areaIds : undefined,
+        project_ids: projectIds.length > 0 ? projectIds : undefined,
         goal_ids: goalIds.length > 0 ? goalIds : undefined,
         task_ids: taskIds.length > 0 ? taskIds : undefined,
       };
@@ -291,8 +265,9 @@ export function ResourceDialog({
   };
 
   const toggleProject = (nextProjectId: string) => {
-    const isDeselecting = projectId === nextProjectId;
-    setProjectId(isDeselecting ? "" : nextProjectId);
+    setProjectIds((prev) =>
+      prev.includes(nextProjectId) ? prev.filter((id) => id !== nextProjectId) : [...prev, nextProjectId],
+    );
   };
 
   const relationPopoverContentClassName = "w-56 p-2 max-h-72 overflow-hidden";
@@ -300,27 +275,12 @@ export function ResourceDialog({
     "flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
 
   // ── Derived selections ────────────────────────────────────────────────────
-  const selectedProject = useMemo(() => {
-    if (!projectId) return null;
-    return projects.find((p) => p.id === projectId) ?? null;
-  }, [projectId, projects]);
-
-  const effectiveProjectNames = useMemo(() => {
-    const tasksByIdMap = new Map(tasks.map((t) => [t.id, t]));
-    const virtualResource = {
-      project_id: projectId || null,
-      linkedTaskIds: taskIds,
-      linkedGoalIds: goalIds,
-    } as Resource;
-    const ids = getEffectiveResourceProjectIds({
-      resource: virtualResource,
-      tasksById: tasksByIdMap,
-      goalProjectIdsMap,
-    });
-    return ids
-      .map((id) => projects.find((p) => p.id === id)?.name)
-      .filter((n): n is string => Boolean(n));
-  }, [projectId, taskIds, goalIds, tasks, goalProjectIdsMap, projects]);
+  const selectedProjects = useMemo(() => {
+    if (projectIds.length === 0) return [];
+    return projectIds
+      .map((id) => projects.find((p) => p.id === id))
+      .filter((p): p is NonNullable<typeof p> => Boolean(p));
+  }, [projectIds, projects]);
 
   const selectedTasks = useMemo(() => {
     return tasks.filter((t) => taskIds.includes(t.id));
@@ -332,8 +292,8 @@ export function ResourceDialog({
 
   // ── Areas filtering (AND-intersection) ─────────────────────────────────────
   const visibleAreas = useMemo(() => {
-    return computeVisibleAreas(areas, selectedProject, selectedGoals, selectedTasks);
-  }, [areas, selectedProject, selectedGoals, selectedTasks]);
+    return computeVisibleAreas(areas, selectedProjects[0] ?? null, selectedGoals, selectedTasks);
+  }, [areas, selectedProjects, selectedGoals, selectedTasks]);
 
   // ── Projects filtering (AND-intersection) ──────────────────────────────────
   const filteredProjects = useMemo(() => {
@@ -342,13 +302,13 @@ export function ResourceDialog({
 
   // ── Goals filtering (AND-intersection) ─────────────────────────────────────
   const filteredGoals = useMemo(() => {
-    return computeFilteredGoals(goals, areaIds, projectId, projectGoalIdsMap, taskGoalIdsMap, selectedTasks);
-  }, [goals, areaIds, projectId, projectGoalIdsMap, taskGoalIdsMap, selectedTasks]);
+    return computeFilteredGoals(goals, areaIds, projectIds[0] ?? null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks);
+  }, [goals, areaIds, projectIds, projectGoalIdsMap, taskGoalIdsMap, selectedTasks]);
 
   // ── Tasks filtering (AND-intersection) ─────────────────────────────────────
   const filteredTasks = useMemo(() => {
-    return computeFilteredTasks(tasks, areaIds, projectId, goalIds, goalTaskIdsMap);
-  }, [tasks, areaIds, projectId, goalIds, goalTaskIdsMap]);
+    return computeFilteredTasks(tasks, areaIds, projectIds[0] ?? null, goalIds, goalTaskIdsMap);
+  }, [tasks, areaIds, projectIds, goalIds, goalTaskIdsMap]);
 
   // ── Clear invalid selections when filters change ───────────────────────────
   useEffect(() => {
@@ -365,11 +325,12 @@ export function ResourceDialog({
   useEffect(() => {
     // Clear invalid projects
     if (isRelationsLoading) return;
-    if (projectId && !filteredProjects.some((p) => p.id === projectId)) {
+    const validProjectIds = projectIds.filter((id) => filteredProjects.some((p) => p.id === id));
+    if (validProjectIds.length !== projectIds.length) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setProjectId("");
+      setProjectIds(validProjectIds);
     }
-  }, [filteredProjects, projectId, isRelationsLoading]);
+  }, [filteredProjects, projectIds, isRelationsLoading]);
 
   useEffect(() => {
     // Clear invalid goals
@@ -483,7 +444,7 @@ export function ResourceDialog({
                     <div className="max-h-48 overflow-y-auto">
                       {visibleAreas.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                          {taskIds.length > 0 || goalIds.length > 0 || projectId
+                          {taskIds.length > 0 || goalIds.length > 0 || projectIds.length > 0
                             ? "No areas match selection."
                             : "No areas available."}
                         </div>
@@ -534,7 +495,7 @@ export function ResourceDialog({
                     <div className="max-h-48 overflow-y-auto">
                       {filteredGoals.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                          {taskIds.length > 0 || projectId || areaIds.length > 0
+                          {taskIds.length > 0 || projectIds.length > 0 || areaIds.length > 0
                             ? "No goals match selection."
                             : "No goals available."}
                         </div>
@@ -576,23 +537,25 @@ export function ResourceDialog({
             {/* Project — single select with DropdownMenu style */}
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
-                <Label>Project</Label>
+                <Label>Projects</Label>
                 <Popover>
                   <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                    {!projectId ? "Select project..." : (selectedProject?.name ?? "...")}
+                    {projectIds.length === 0 ? "Select projects..." : `${projectIds.length} selected`}
                   </PopoverTrigger>
                   <PopoverContent align="start" className={relationPopoverContentClassName}>
                     <button
                       type="button"
-                      onClick={() => setProjectId("")}
+                      onClick={() => setProjectIds([])}
                       className={relationOptionClassName}
                     >
-                      <span className="text-muted-foreground">None</span>
+                      Clear selection
                     </button>
                     <div className="max-h-48 overflow-y-auto">
                       {filteredProjects.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                          No projects available.
+                          {taskIds.length > 0 || goalIds.length > 0 || areaIds.length > 0
+                            ? "No projects match selection."
+                            : "No projects available."}
                         </div>
                       ) : (
                         filteredProjects.map((project) => (
@@ -601,7 +564,7 @@ export function ResourceDialog({
                             className={relationOptionClassName}
                           >
                             <Checkbox
-                              checked={projectId === project.id}
+                              checked={projectIds.includes(project.id)}
                               onCheckedChange={() => toggleProject(project.id)}
                             />
                             {project.name}
@@ -612,22 +575,19 @@ export function ResourceDialog({
                   </PopoverContent>
                 </Popover>
               </div>
-              {selectedProject && (
+              {selectedProjects.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-1">
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    {selectedProject.name}
-                    <button type="button" onClick={() => setProjectId("")} className="ml-1 rounded-full p-0.5 hover:bg-muted">
-                      <X className="size-3" />
-                    </button>
-                  </Badge>
-                </div>
-              )}
-              {effectiveProjectNames.length > 0 && (
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {effectiveProjectNames.map((name) => (
-                    <Badge key={name} variant="outline" className="gap-1 text-xs font-normal">
+                  {selectedProjects.map((project) => (
+                    <Badge key={project.id} variant="secondary" className="flex items-center gap-1">
                       <span className="text-xs leading-none">📁</span>
-                      {name}
+                      {project.name}
+                      <button
+                        type="button"
+                        onClick={() => toggleProject(project.id)}
+                        className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                      >
+                        <X className="size-3" />
+                      </button>
                     </Badge>
                   ))}
                 </div>
@@ -649,7 +609,7 @@ export function ResourceDialog({
                     <div className="max-h-48 overflow-y-auto">
                       {filteredTasks.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                          {goalIds.length > 0 || projectId || areaIds.length > 0
+                          {goalIds.length > 0 || projectIds.length > 0 || areaIds.length > 0
                             ? "No tasks match selection."
                             : "No tasks available."}
                         </div>

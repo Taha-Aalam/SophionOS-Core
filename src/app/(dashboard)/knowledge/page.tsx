@@ -103,6 +103,7 @@ import {
   RESOURCE_VIEW,
   getResourceLinkedAreaIds,
   getResourceLinkedGoalIds,
+  getResourceLinkedProjectIds,
   getResourceLinkedTaskIds,
   type ResourceView,
 } from "@/lib/utils/resources";
@@ -527,10 +528,13 @@ export default function KnowledgeHubPage() {
   const resourceGroupsByProject = useMemo((): ResourceGroup[] => {
     const grouped = new Map<string, Resource[]>();
     for (const r of resources.filter((x) => !x.is_archived)) {
-      const id = r.project_id ?? "unassigned";
-      const cur = grouped.get(id) ?? [];
-      cur.push(r);
-      grouped.set(id, cur);
+      const ids = getResourceLinkedProjectIds(r);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const id of keys) {
+        const cur = grouped.get(id) ?? [];
+        cur.push(r);
+        grouped.set(id, cur);
+      }
     }
     return Array.from(grouped.entries()).map(([id, rs]) => ({
       groupId: id,
@@ -675,7 +679,9 @@ export default function KnowledgeHubPage() {
     const goalNamesList = getResourceLinkedGoalIds(r)
       .map((id) => goalNames.get(id))
       .filter((n): n is string => Boolean(n));
-    const projectNamesList = r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : [];
+    const projectNamesList = getResourceLinkedProjectIds(r)
+      .map((id) => projNames.get(id))
+      .filter((n): n is string => Boolean(n));
     const taskNamesList = getResourceLinkedTaskIds(r)
       .map((id) => allTasks.find((t) => t.id === id)?.name)
       .filter((n): n is string => Boolean(n));
@@ -717,7 +723,9 @@ export default function KnowledgeHubPage() {
       .filter((n): n is string => Boolean(n));
   }
   function getProjectNamesForResource(r: Resource) {
-    return r.project_id && projNames.get(r.project_id) ? [projNames.get(r.project_id)!] : [];
+    return getResourceLinkedProjectIds(r)
+      .map((id) => projNames.get(id))
+      .filter((n): n is string => Boolean(n));
   }
   function getTaskNamesForResource(r: Resource) {
     return getResourceLinkedTaskIds(r)

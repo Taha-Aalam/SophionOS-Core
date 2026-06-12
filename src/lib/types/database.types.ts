@@ -293,7 +293,6 @@ export type Database = {
           id: string;
           user_id: string;
           area_id: string | null;
-          project_id: string | null;
           topic_id: string | null;
           name: string;
           url: string | null;
@@ -309,7 +308,6 @@ export type Database = {
           id?: string;
           user_id: string;
           area_id?: string | null;
-          project_id?: string | null;
           topic_id?: string | null;
           name: string;
           url?: string | null;
@@ -325,7 +323,6 @@ export type Database = {
           id?: string;
           user_id?: string;
           area_id?: string | null;
-          project_id?: string | null;
           topic_id?: string | null;
           name?: string;
           url?: string | null;
@@ -350,6 +347,20 @@ export type Database = {
         Update: {
           resource_id?: string;
           area_id?: string;
+        };
+      };
+      resource_projects: {
+        Row: {
+          resource_id: string;
+          project_id: string;
+        };
+        Insert: {
+          resource_id: string;
+          project_id: string;
+        };
+        Update: {
+          resource_id?: string;
+          project_id?: string;
         };
       };
       topics: {

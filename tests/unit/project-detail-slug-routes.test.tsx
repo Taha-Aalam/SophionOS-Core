@@ -66,6 +66,7 @@ vi.mock("@/lib/hooks/use-areas", () => ({
 
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  useQuery: () => ({ data: [], isLoading: false }),
 }));
 
 vi.mock("@/lib/hooks/use-tasks", () => ({

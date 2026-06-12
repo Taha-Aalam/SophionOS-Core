@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Archive, Bookmark, ChevronDownIcon, Eye, FilePlus, Filter, Folder, Globe, Heart, Inbox as InboxIcon, Map as LucideMap, Tag, Target, Zap } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
@@ -37,15 +36,14 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "@/lib/types/domain.types";
-import { createClient } from "@/lib/supabase/client";
 import { RESOURCE_STATUS, RESOURCE_TYPE } from "@/lib/utils/constants";
 import {
   RESOURCE_VIEW,
   type ResourceView,
   getResourceLinkedAreaIds,
   getResourceLinkedGoalIds,
+  getResourceLinkedProjectIds,
   getResourceLinkedTaskIds,
-  getEffectiveResourceProjectIds,
 } from "@/lib/utils/resources";
 import { cn } from "@/lib/utils";
 
@@ -86,14 +84,6 @@ export function ResourcesContent() {
   const archiveResource = useArchiveResource();
   const unarchiveResource = useUnarchiveResource();
 
-  const { data: goalProjectRelations = [] } = useQuery({
-    queryKey: ["goal-project-relations", "resources-page"],
-    queryFn: async () => {
-      const { data } = await createClient().from("goal_projects").select("goal_id, project_id");
-      return data ?? [];
-    },
-  });
-
   const areaMap = useMemo(
     () => new Map(areas.map((a) => [a.id, { name: a.name, icon: a.icon ?? null }])),
     [areas],
@@ -102,21 +92,6 @@ export function ResourcesContent() {
   const projectNames = useMemo(() => new Map(projects.map((p) => [p.id, p.name])), [projects]);
   const taskNames = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks]);
   const topicNames = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
-
-  const goalProjectIdsMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const row of goalProjectRelations) {
-      const current = map.get(row.goal_id) ?? [];
-      current.push(row.project_id);
-      map.set(row.goal_id, current);
-    }
-    return map;
-  }, [goalProjectRelations]);
-
-  const tasksById = useMemo(
-    () => new Map(tasks.map((task) => [task.id, task])),
-    [tasks],
-  );
 
   const getAreasForResource = (resource: Resource) =>
     getResourceLinkedAreaIds(resource)
@@ -129,7 +104,7 @@ export function ResourcesContent() {
       .filter((name): name is string => Boolean(name));
 
   const getProjectNamesForResource = (resource: Resource) =>
-    getEffectiveResourceProjectIds({ resource, tasksById, goalProjectIdsMap })
+    getResourceLinkedProjectIds(resource)
       .map((id) => projectNames.get(id))
       .filter((name): name is string => Boolean(name));
 
@@ -311,7 +286,7 @@ export function ResourcesContent() {
   const resourceGroupsByProject = useMemo((): ResourceGroup[] => {
     const grouped = new Map<string, Resource[]>();
     for (const resource of allResources.filter((item) => !item.is_archived)) {
-      const projectIds = getEffectiveResourceProjectIds({ resource, tasksById, goalProjectIdsMap });
+      const projectIds = getResourceLinkedProjectIds(resource);
       const keys = projectIds.length > 0 ? projectIds : ["unassigned"];
       for (const projectId of keys) {
         const current = grouped.get(projectId) ?? [];
@@ -324,7 +299,7 @@ export function ResourcesContent() {
       groupName: projectId === "unassigned" ? "No Project" : (projectNames.get(projectId) ?? projectId),
       resources,
     }));
-  }, [allResources, projectNames, tasksById, goalProjectIdsMap]);
+  }, [allResources, projectNames]);
 
   const handleCreate = async (input: CreateResourceInput) => {
     await createResource.mutateAsync(input);

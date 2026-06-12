@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 const PROJECT_SELECT =
   "id, user_id, area_id, name, description, status, priority, start_date, due_date, progress, is_archived, slug, created_at, updated_at"
 const RESOURCE_SELECT =
-  "id, user_id, area_id, project_id, topic_id, name, url, type, status, favorite, is_archived, metadata, created_at, updated_at"
+  "id, user_id, area_id, topic_id, name, url, type, status, favorite, is_archived, metadata, created_at, updated_at"
 
 function isUuid(v: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
@@ -69,8 +69,8 @@ async function hydrateProject(supabase: SupabaseClient, project: any): Promise<a
       .select("project_id, note:notes(id, status, is_archived)")
       .eq("project_id", projectId),
     supabase
-      .from("resources")
-      .select("project_id, status, is_archived")
+      .from("resource_projects")
+      .select("resource:resources(status, is_archived)")
       .eq("project_id", projectId),
   ])
 
@@ -139,8 +139,14 @@ async function hydrateProject(supabase: SupabaseClient, project: any): Promise<a
       activeNoteCount += 1
     }
   }
-  for (const r of (resourceRows ?? []) as Array<{ status: string; is_archived: boolean }>) {
-    if (r.is_archived) continue
+  for (const link of (resourceRows ?? []) as Array<{
+    resource:
+      | { status: string; is_archived: boolean }
+      | { status: string; is_archived: boolean }[]
+      | null;
+  }>) {
+    const r = Array.isArray(link.resource) ? link.resource[0] : link.resource
+    if (!r || r.is_archived) continue
     totalResources += 1
     if (r.status === "completed") completedResources += 1
     if (RESOURCE_ACTIVE.has(r.status)) activeResourceCount += 1
@@ -219,11 +225,19 @@ export async function serverFetchResourcesByProject(
   userId: string,
   projectId: string,
 ) {
+  const { data: linkRows } = await supabase
+    .from("resource_projects")
+    .select("resource_id")
+    .eq("project_id", projectId)
+  const resourceIds = (linkRows ?? []).map((r: { resource_id: string }) => r.resource_id)
+  if (resourceIds.length === 0) {
+    return hydrateResourceLinks(supabase, [])
+  }
   const { data } = await supabase
     .from("resources")
     .select(RESOURCE_SELECT)
     .eq("user_id", userId)
-    .eq("project_id", projectId)
+    .in("id", resourceIds)
     .order("updated_at", { ascending: false })
   return hydrateResourceLinks(supabase, data ?? [])
 }

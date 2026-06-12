@@ -42,7 +42,6 @@ const urlSchema = z.preprocess(
 const resourceBaseSchema = z
   .object({
     area_id: nullableUuidSchema,
-    project_id: nullableUuidSchema,
     topic_id: nullableUuidSchema,
     name: z.string().min(1, "Name is required").max(255),
     url: urlSchema,
@@ -57,6 +56,7 @@ export const createResourceSchema = resourceBaseSchema.extend({
   goal_ids: z.array(z.string().uuid()).default([]),
   task_ids: z.array(z.string().uuid()).default([]),
   area_ids: z.array(z.string().uuid()).default([]),
+  project_ids: z.array(z.string().uuid()).default([]),
 });
 
 export const updateResourceSchema = resourceBaseSchema
@@ -68,6 +68,7 @@ export const updateResourceSchema = resourceBaseSchema
     goal_ids: z.array(z.string().uuid()).optional(),
     task_ids: z.array(z.string().uuid()).optional(),
     area_ids: z.array(z.string().uuid()).optional(),
+    project_ids: z.array(z.string().uuid()).optional(),
   })
   .partial()
   .strict();

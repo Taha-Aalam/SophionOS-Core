@@ -88,15 +88,17 @@ async function hydrateGoalDetailNotes(supabase: SupabaseClient, notes: any[]): P
 async function hydrateGoalDetailResources(supabase: SupabaseClient, resources: any[]): Promise<any[]> {
   if (resources.length === 0) return resources
   const resourceIds = resources.map((r) => r.id as string)
-  const [areas, goals, tasks] = await Promise.all([
+  const [areas, goals, projects, tasks] = await Promise.all([
     groupJunction(supabase, "resource_areas", "resource_id, area_id", "resource_id", resourceIds, "area_id"),
     groupJunction(supabase, "goal_resources", "resource_id, goal_id", "resource_id", resourceIds, "goal_id"),
+    groupJunction(supabase, "resource_projects", "resource_id, project_id", "resource_id", resourceIds, "project_id"),
     groupJunction(supabase, "task_resources", "resource_id, task_id", "resource_id", resourceIds, "task_id"),
   ])
   return resources.map((r) => ({
     ...r,
     linkedAreaIds: dedupe([r.area_id, ...(areas.get(r.id) ?? [])]),
     linkedGoalIds: dedupe(goals.get(r.id) ?? []),
+    linkedProjectIds: dedupe(projects.get(r.id) ?? []),
     linkedTaskIds: dedupe(tasks.get(r.id) ?? []),
   }))
 }
@@ -192,8 +194,8 @@ export async function serverFetchGoalDetail(
         .select("project_id, note:notes(id, status, is_archived)")
         .in("project_id", projectIdsArr),
       supabase
-        .from("resources")
-        .select("project_id, status, is_archived")
+        .from("resource_projects")
+        .select("project_id, resource:resources(status, is_archived)")
         .in("project_id", projectIdsArr),
     ])
     const projTasks = new Map<string, Array<{ is_completed: boolean; is_archived: boolean }>>()
@@ -241,15 +243,15 @@ export async function serverFetchGoalDetail(
       projNotes.set(link.project_id, arr)
       seenNotes.set(link.project_id, seen)
     }
-    for (const r of (projResourceRows ?? []) as Array<{
-      project_id: string | null
-      status: string
-      is_archived: boolean
+    for (const link of (projResourceRows ?? []) as Array<{
+      project_id: string
+      resource: { status: string; is_archived: boolean } | { status: string; is_archived: boolean }[] | null
     }>) {
-      if (!r.project_id) continue
-      const arr = projResources.get(r.project_id) ?? []
+      const r = Array.isArray(link.resource) ? link.resource[0] : link.resource
+      if (!r) continue
+      const arr = projResources.get(link.project_id) ?? []
       arr.push({ status: r.status, is_archived: r.is_archived })
-      projResources.set(r.project_id, arr)
+      projResources.set(link.project_id, arr)
     }
     for (let i = 0; i < projectsWithLiveProgress.length; i++) {
       const p = projectsWithLiveProgress[i]
@@ -305,10 +307,10 @@ export async function serverFetchGoalDetail(
       )
   const unlinkedResourcesForProgress: typeof rawResources = goalProjectIds.size === 0
     ? rawResources
-    : rawResources.filter(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (r: any) => !r.project_id || !goalProjectIds.has(r.project_id),
-      )
+    : rawResources.filter((r) => {
+        const rProjectIds = r.linkedProjectIds ?? [];
+        return !rProjectIds.some((pId: string) => goalProjectIds.has(pId));
+      })
 
   const liveProgress = calculateGoalProgress(
     goal,
