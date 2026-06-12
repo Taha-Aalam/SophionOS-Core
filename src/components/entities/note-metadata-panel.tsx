@@ -174,6 +174,13 @@ export function NoteMetadataPanel({
         if (g.linkedAreaIds?.includes(aId)) fromAreas.add(g.id);
       }
     }
+    // Unassigned (no linkedAreaIds) goals stay visible alongside
+    // area-scoped ones — the user might still want to link them.
+    if (areaIds.length > 0) {
+      for (const g of activeGoals) {
+        if ((g.linkedAreaIds ?? []).length === 0) fromAreas.add(g.id);
+      }
+    }
     const fromProjects = new Set<string>();
     for (const pId of projectIds) {
       const proj = activeProjects.find((p) => p.id === pId);
@@ -199,6 +206,13 @@ export function NoteMetadataPanel({
         if (p.linkedAreaIds?.includes(aId)) fromAreas.add(p.id);
       }
     }
+    // Unassigned (no linkedAreaIds) projects stay visible alongside
+    // area-scoped ones — the user might still want to attach them.
+    if (areaIds.length > 0) {
+      for (const p of activeProjects) {
+        if ((p.linkedAreaIds ?? []).length === 0) fromAreas.add(p.id);
+      }
+    }
     const fromGoals = new Set<string>();
     for (const gId of goalIds) {
       for (const p of activeProjects) {
@@ -220,6 +234,13 @@ export function NoteMetadataPanel({
     for (const aId of areaIds) {
       for (const p of activeProjects) {
         if (p.linkedAreaIds?.includes(aId)) fromAreas.add(p.id);
+      }
+    }
+    // Unassigned (no linkedAreaIds) projects still contribute their tasks
+    // — the user might want to attach them across areas.
+    if (areaIds.length > 0) {
+      for (const p of activeProjects) {
+        if ((p.linkedAreaIds ?? []).length === 0) fromAreas.add(p.id);
       }
     }
     const fromGoals = new Set<string>();

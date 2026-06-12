@@ -50,6 +50,7 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds } from "@/lib/utils/notes";
+import { getResourceLinkedProjectIds } from "@/lib/utils/resources";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
 import { cn } from "@/lib/utils";
@@ -172,7 +173,6 @@ export function TopicDetailContent() {
   const goalNamesMap = useMemo(() => new Map(allGoals.map((g) => [g.id, g.name])), [allGoals]);
   const projectNamesMap = useMemo(() => new Map(allProjects.map((p) => [p.id, p.name])), [allProjects]);
   const taskNamesMap = useMemo(() => new Map(allTasks.map((t) => [t.id, t.name])), [allTasks]);
-
   const linkableNotes = useMemo(() => {
     const linkedNoteIds = new Set(notes.map((n) => n.id));
     const unlinked = allNotes.filter((n) => !linkedNoteIds.has(n.id));
@@ -481,9 +481,9 @@ export function TopicDetailContent() {
               const resourceGoalNames = (resource.linkedGoalIds ?? [])
                 .map((id) => goalNamesMap.get(id))
                 .filter((name): name is string => Boolean(name));
-              const resourceProjectNames = resource.project_id
-                ? [projectNamesMap.get(resource.project_id)].filter((n): n is string => Boolean(n))
-                : [];
+              const resourceProjectNames = getResourceLinkedProjectIds(resource)
+                .map((id) => projectNamesMap.get(id))
+                .filter((n): n is string => Boolean(n));
               const resourceTaskNames = (resource.linkedTaskIds ?? [])
                 .map((id) => taskNamesMap.get(id))
                 .filter((name): name is string => Boolean(name));

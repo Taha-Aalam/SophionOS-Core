@@ -720,11 +720,11 @@ export function TasksContent() {
               <TaskList
                 tasks={visibleTasks}
                 variant="simple"
-                getAreaName={(task) => task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
+                getAreaName={(task) => { const id = getTaskLinkedAreaIds(task)[0]; return id ? areaMap.get(id)?.name ?? null : null; }}
                 getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesMap)}
                 getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsMap)}
                 getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, goalNamesMap)}
-                getProjectName={(task) => task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
+                getProjectName={(task) => { const id = getTaskLinkedProjectIds(task)[0]; return id ? projectMap.get(id)?.name ?? null : null; }}
                 getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectNamesMap)}
                 showSmartPriority={tab === TASK_VIEW.SMART_PRIORITY}
                 onCompletionToggle={(id, isCompleted) => {
@@ -846,11 +846,11 @@ export function TasksContent() {
             <TaskList
               tasks={archivedTasks}
               variant="simple"
-              getAreaName={(task) => task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
+              getAreaName={(task) => { const id = getTaskLinkedAreaIds(task)[0]; return id ? areaMap.get(id)?.name ?? null : null; }}
               getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesMap)}
               getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsMap)}
               getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, goalNamesMap)}
-              getProjectName={(task) => task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
+              getProjectName={(task) => { const id = getTaskLinkedProjectIds(task)[0]; return id ? projectMap.get(id)?.name ?? null : null; }}
               getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectNamesMap)}
               onCompletionToggle={(id, isCompleted) => {
                 if (isCompleted) { completeTask.mutate(id); return; }

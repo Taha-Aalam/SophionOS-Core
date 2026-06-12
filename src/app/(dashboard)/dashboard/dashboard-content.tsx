@@ -60,16 +60,18 @@ import {
   getNoteLinkedProjectIds,
 } from "@/lib/utils/notes";
 import {
-  getEffectiveResourceProjectIds,
   getResourceLinkedAreaIds,
   getResourceLinkedGoalIds,
+  getResourceLinkedProjectIds,
   getResourceLinkedTaskIds,
 } from "@/lib/utils/resources";
 import {
   getTaskLinkedAreaNames,
   getTaskLinkedAreaIcons,
+  getTaskLinkedAreaIds,
   getTaskLinkedGoalNames,
   getTaskLinkedProjectNames,
+  getTaskLinkedProjectIds,
 } from "@/lib/utils/tasks";
 
 function SectionHeader({
@@ -366,7 +368,7 @@ export function DashboardContent() {
                   <GoalCard
                     key={goal.id}
                     goal={goal}
-                    areaName={goal.area_id ? areaNamesMap.get(goal.area_id) : "Unassigned"}
+                    areaName={(() => { const id = getGoalLinkedAreaIds(goal)[0]; return id ? areaNamesMap.get(id) : "Unassigned"; })()}
                     areaNames={linkedAreaNames}
                     areaIcons={linkedAreaIcons}
                     rollups={
@@ -448,11 +450,17 @@ export function DashboardContent() {
             emptyTitle="No active tasks"
             emptyDescription="Tasks in To do and In progress will appear here."
             emptyIcon={NotebookPen}
-            getAreaName={(task) => (task.area_id ? areaNamesMap.get(task.area_id) ?? null : null)}
+            getAreaName={(task) => {
+              const firstId = getTaskLinkedAreaIds(task)[0];
+              return firstId ? areaNamesMap.get(firstId) ?? null : null;
+            }}
             getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesMap)}
             getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsMap)}
             getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, goalNamesMap)}
-            getProjectName={(task) => (task.project_id ? projectNamesMap.get(task.project_id) ?? null : null)}
+            getProjectName={(task) => {
+              const firstId = getTaskLinkedProjectIds(task)[0];
+              return firstId ? projectNamesMap.get(firstId) ?? null : null;
+            }}
             getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectNamesMap)}
             onCompletionToggle={(id, isCompleted) => {
               if (isCompleted) { completeTask.mutate(id); return; }
@@ -541,11 +549,7 @@ export function DashboardContent() {
                   goalNames={getResourceLinkedGoalIds(resource)
                     .map((id) => goalNamesMap.get(id))
                     .filter((n): n is string => Boolean(n))}
-                  projectNames={getEffectiveResourceProjectIds({
-                    resource,
-                    tasksById: new Map(allTasks.map((t) => [t.id, t])),
-                    goalProjectIdsMap: new Map(),
-                  })
+                  projectNames={getResourceLinkedProjectIds(resource)
                     .map((id) => projectNamesMap.get(id))
                     .filter((n): n is string => Boolean(n))}
                   taskNames={getResourceLinkedTaskIds(resource)

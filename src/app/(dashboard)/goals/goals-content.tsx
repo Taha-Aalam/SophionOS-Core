@@ -174,7 +174,7 @@ export function GoalsContent() {
               <GoalCard
                 key={goal.id}
                 goal={goal}
-                areaName={goal.area_id ? areaNamesById.get(goal.area_id) : "Unassigned"}
+                areaName={(() => { const id = getGoalLinkedAreaIds(goal)[0]; return id ? areaNamesById.get(id) : "Unassigned"; })()}
                 areaNames={linkedAreaNames}
                 areaIcons={linkedAreaIcons}
                 duplicateIndex={duplicateIndices.get(goal.id)}

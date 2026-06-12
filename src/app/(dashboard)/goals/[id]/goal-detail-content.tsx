@@ -98,13 +98,10 @@ import type { Contact, CreateResourceInput, Project, Resource, Task } from "@/li
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
+import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
-import {
-  filterCandidatesByAreaScope,
-  getContactLinkedAreaIds,
-  getNoteLinkedAreaIds,
-  getResourceLinkedAreaIds,
-} from "@/lib/utils/area-scoped-candidates";
+import { getResourceLinkedAreaIds, getResourceLinkedProjectIds } from "@/lib/utils/resources";
+import { filterCandidatesByAreaScope, getContactLinkedAreaIds } from "@/lib/utils/area-scoped-candidates";
 import {
   buildAreaContactGroupSections,
   buildAreaContactFollowUpSections,
@@ -112,7 +109,7 @@ import {
   buildContactByAreaSections,
 } from "@/lib/utils/area-detail";
 import { buildReturnTo, encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
-import { getTaskLinkedAreaIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
+import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 
 const TERM_LABELS: Record<string, string> = {
   short: "Short Term",
@@ -294,6 +291,7 @@ export function GoalDetailContent() {
     for (const t of goalData?.extraTaskNames ?? []) map.set(t.id, t.name);
     return map;
   }, [allTasksGlobal, goalData?.tasks, goalData?.extraTaskNames]);
+
   const topicNamesMap = useMemo(() => {
     // Prefer names carried in the goal-detail payload (available on first paint)
     // and fall back to the live topics query for anything not yet hydrated.
@@ -494,7 +492,7 @@ export function GoalDetailContent() {
   const noteGroupsByArea = useMemo<NoteGroup[]>(() => {
     const grouped = new Map<string, typeof filteredNotes>();
     for (const note of filteredNotes) {
-      const ids = note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []);
+      const ids = getNoteLinkedAreaIds(note);
       const keys = ids.length > 0 ? ids : ["unassigned"];
       for (const areaId of keys) {
         const current = grouped.get(areaId) ?? [];
@@ -512,7 +510,7 @@ export function GoalDetailContent() {
   const noteGroupsByProject = useMemo<NoteGroup[]>(() => {
     const grouped = new Map<string, typeof filteredNotes>();
     for (const note of filteredNotes) {
-      const ids = note.linkedProjectIds ?? [];
+      const ids = getNoteLinkedProjectIds(note);
       const keys = ids.length > 0 ? ids : ["unassigned"];
       for (const projectId of keys) {
         const current = grouped.get(projectId) ?? [];
@@ -589,10 +587,13 @@ export function GoalDetailContent() {
   const resourceGroupsByProject = useMemo<ResourceGroup[]>(() => {
     const grouped = new Map<string, typeof filteredResources>();
     for (const resource of filteredResources) {
-      const projectId = resource.project_id ?? "unassigned";
-      const current = grouped.get(projectId) ?? [];
-      current.push(resource);
-      grouped.set(projectId, current);
+      const ids = getResourceLinkedProjectIds(resource);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const projectId of keys) {
+        const current = grouped.get(projectId) ?? [];
+        current.push(resource);
+        grouped.set(projectId, current);
+      }
     }
     return Array.from(grouped.entries()).map(([projectId, resources]) => ({
       groupId: projectId,
@@ -1576,13 +1577,11 @@ export function GoalDetailContent() {
                     task={task}
                     linkedAreaNames={taskLinkedAreaIds.map((id) => areaNames.get(id)).filter((n): n is string => Boolean(n))}
                     linkedAreaIcons={taskLinkedAreaIds.map((id) => areaIcons.get(id) ?? null)}
-                    linkedGoalNames={task.linkedGoalIds?.map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n)) ?? []}
+                    linkedGoalNames={getTaskLinkedGoalIds(task).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n))}
                     projectName={
-                      task.project_id
-                        ? projectNamesMap.get(task.project_id) ?? null
-                        : null
+                      (() => { const id = getTaskLinkedProjectIds(task)[0]; return id ? projectNamesMap.get(id) ?? null : null; })()
                     }
-                    linkedProjectNames={task.linkedProjectIds?.map((id) => projectNamesMap.get(id)).filter((n): n is string => Boolean(n)) ?? []}
+                    linkedProjectNames={getTaskLinkedProjectIds(task).map((id) => projectNamesMap.get(id)).filter((n): n is string => Boolean(n))}
                     onCompletionToggle={handleTaskCompletion}
                     onFocusToggle={handleTaskFocus}
                     onNameSave={handleTaskNameSave}
@@ -1622,12 +1621,12 @@ export function GoalDetailContent() {
             <NotesByGroupView
               groups={noteTab === "by_area" ? noteGroupsByArea : noteGroupsByProject}
               renderNote={(note) => {
-                const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                const noteAreas = getNoteLinkedAreaIds(note)
                   .map((id) => { const name = areaNames.get(id); return name ? { name, icon: areaIcons.get(id) ?? null } : null; })
                   .filter((a): a is { name: string; icon: string | null } => Boolean(a));
-                const noteGoalNames = (note.linkedGoalIds ?? []).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
-                const noteProjectNames = (note.linkedProjectIds ?? []).map((id) => projectNamesMap.get(id)).filter((n): n is string => Boolean(n));
-                const noteTaskNames = (note.linkedTaskIds ?? []).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteGoalNames = getNoteLinkedGoalIds(note).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteProjectNames = getNoteLinkedProjectIds(note).map((id) => projectNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteTaskNames = getNoteLinkedTaskIds(note).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
                 return (
                   <NoteRow
                     note={note}
@@ -1661,12 +1660,12 @@ export function GoalDetailContent() {
           ) : filteredNotes.length > 0 ? (
             <div className="rounded-lg border bg-card">
               {filteredNotes.map((note) => {
-                const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                const noteAreas = getNoteLinkedAreaIds(note)
                   .map((id) => { const name = areaNames.get(id); return name ? { name, icon: areaIcons.get(id) ?? null } : null; })
                   .filter((a): a is { name: string; icon: string | null } => Boolean(a));
-                const noteGoalNames = (note.linkedGoalIds ?? []).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
-                const noteProjectNames = (note.linkedProjectIds ?? []).map((id) => projectNamesMap.get(id)).filter((n): n is string => Boolean(n));
-                const noteTaskNames = (note.linkedTaskIds ?? []).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteGoalNames = getNoteLinkedGoalIds(note).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteProjectNames = getNoteLinkedProjectIds(note).map((id) => projectNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteTaskNames = getNoteLinkedTaskIds(note).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
                 return (
                   <NoteRow
                     key={note.id}
@@ -1718,7 +1717,7 @@ export function GoalDetailContent() {
                   .filter((e): e is { name: string; icon: string | null } => Boolean(e.name));
               }}
               getGoalNames={(resource) => (resource.linkedGoalIds ?? []).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n))}
-              getProjectNames={(resource) => resource.project_id ? [projectNamesMap.get(resource.project_id)].filter((n): n is string => Boolean(n)) : []}
+              getProjectNames={(resource) => getResourceLinkedProjectIds(resource).map((id) => projectNamesMap.get(id)).filter((n): n is string => Boolean(n))}
               getTaskNames={(resource) => (resource.linkedTaskIds ?? []).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n))}
               getTopicName={(resource) => resource.topic_id ? topicNamesMap.get(resource.topic_id) : undefined}
               onToggleFavorite={handleResourceToggleFavorite}
@@ -1746,9 +1745,9 @@ export function GoalDetailContent() {
                 const resourceGoalNames = (resource.linkedGoalIds ?? [])
                   .map((id) => goalNamesMap.get(id))
                   .filter((name): name is string => Boolean(name));
-                const resourceProjectNames = resource.project_id
-                  ? [projectNamesMap.get(resource.project_id)].filter((n): n is string => Boolean(n))
-                  : [];
+                const resourceProjectNames = getResourceLinkedProjectIds(resource)
+                  .map((id) => projectNamesMap.get(id))
+                  .filter((n): n is string => Boolean(n));
                 const resourceTaskNames = (resource.linkedTaskIds ?? [])
                   .map((id) => taskNamesMap.get(id))
                   .filter((name): name is string => Boolean(name));

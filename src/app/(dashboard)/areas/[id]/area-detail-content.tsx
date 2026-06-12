@@ -29,6 +29,7 @@ import { ResourcesByGroupView, type ResourceGroup } from "@/components/views/res
 import { ProjectsByGoalView, type ProjectsByGoalGroup } from "@/components/views/projects-by-goal-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useArchiveNote, useRestoreNote, useDeleteNote, useToggleFavoriteNote, useTogglePinNote, useUpdateNote, useNotes } from "@/lib/hooks/use-notes";
+import type { Note } from "@/lib/types/domain.types";
 import { ResourceRow } from "@/components/entities/resource-row";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskList } from "@/components/entities/task-list";
@@ -95,14 +96,19 @@ import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/ut
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { buildReturnTo, encodeReturnTo, getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
 import {
+  getTaskLinkedAreaIds,
   getTaskLinkedAreaNames,
   getTaskLinkedAreaIcons,
+  getTaskLinkedGoalIds,
   getTaskLinkedGoalNames,
+  getTaskLinkedProjectIds,
   getTaskLinkedProjectNames,
 } from "@/lib/utils/tasks";
 import { buildAreaTaskGroupsByGoal, buildAreaTaskGroupsByProject, getFilteredAreaProjects, getFilteredAreaNotes, getFilteredAreaResources, buildAreaContactGoalSections, buildAreaContactProjectSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections } from "@/lib/utils/area-detail";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
+import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
+import { getResourceLinkedProjectIds } from "@/lib/utils/resources";
 
 const AREA_TYPE_COLORS: Record<string, string> = {
   Business: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
@@ -416,7 +422,7 @@ export function AreaDetailContent() {
     const notes = (areaData?.notes ?? []).filter((n) => !n.is_archived);
     const grouped = new Map<string, typeof notes>();
     for (const note of notes) {
-      const ids = note.linkedGoalIds ?? [];
+      const ids = getNoteLinkedGoalIds(note);
       const keys = ids.length > 0 ? ids : ["unassigned"];
       for (const goalId of keys) {
         const current = grouped.get(goalId) ?? [];
@@ -435,7 +441,7 @@ export function AreaDetailContent() {
     const notes = (areaData?.notes ?? []).filter((n) => !n.is_archived);
     const grouped = new Map<string, typeof notes>();
     for (const note of notes) {
-      const ids = note.linkedProjectIds ?? [];
+      const ids = getNoteLinkedProjectIds(note);
       const keys = ids.length > 0 ? ids : ["unassigned"];
       for (const projectId of keys) {
         const current = grouped.get(projectId) ?? [];
@@ -478,10 +484,13 @@ export function AreaDetailContent() {
     const resources = linkedResources.filter((r) => !r.is_archived);
     const grouped = new Map<string, typeof resources>();
     for (const resource of resources) {
-      const projectId = resource.project_id ?? "unassigned";
-      const current = grouped.get(projectId) ?? [];
-      current.push(resource);
-      grouped.set(projectId, current);
+      const ids = getResourceLinkedProjectIds(resource);
+      const keys = ids.length > 0 ? ids : ["unassigned"];
+      for (const projectId of keys) {
+        const current = grouped.get(projectId) ?? [];
+        current.push(resource);
+        grouped.set(projectId, current);
+      }
     }
     return Array.from(grouped.entries()).map(([projectId, rs]) => ({
       groupId: projectId,
@@ -838,14 +847,14 @@ export function AreaDetailContent() {
   };
   const handleLinkTask = (task: Task) => {
     if (!area) return;
-    const nextAreaIds = Array.from(new Set([...(task.linkedAreaIds ?? (task.area_id ? [task.area_id] : [])), area.id]));
+    const nextAreaIds = Array.from(new Set([...getTaskLinkedAreaIds(task), area.id]));
     updateTask.mutate({ id: task.id, input: { area_ids: nextAreaIds } });
     setIsLinkTaskOpen(false);
   };
   const handleLinkNote = (note: { id: string; linkedAreaIds?: string[] | null; area_id?: string | null }) => {
     if (!area) return;
     const nextAreaIds = Array.from(new Set([
-      ...((note.linkedAreaIds ?? (note.area_id ? [note.area_id] : [])).filter(Boolean) as string[]),
+      ...(getNoteLinkedAreaIds(note as Note).filter(Boolean) as string[]),
       area.id,
     ]));
     updateNote.mutate({ id: note.id, input: { area_ids: nextAreaIds } });
@@ -1428,12 +1437,12 @@ export function AreaDetailContent() {
               groups={noteTab === "by_goal" ? noteGroupsByGoal : noteGroupsByProject}
               renderNote={(note) => {
                 const noteReturnTo = buildReturnTo(`/areas/${area.slug ?? area.id}`);
-                const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                const noteAreas = getNoteLinkedAreaIds(note)
                   .map((id) => { const name = areaNamesById.get(id); return name ? { name, icon: areaIconsById.get(id) ?? null } : null; })
                   .filter((a): a is { name: string; icon: string | null } => Boolean(a));
-                const noteGoalNames = (note.linkedGoalIds ?? []).map((id) => allGoalsById.get(id)).filter((n): n is string => Boolean(n));
-                const noteProjectNames = (note.linkedProjectIds ?? []).map((id) => projectsById.get(id)).filter((n): n is string => Boolean(n));
-                const noteTaskNames = (note.linkedTaskIds ?? []).map((id) => tasksById.get(id)).filter((n): n is string => Boolean(n));
+                const noteGoalNames = getNoteLinkedGoalIds(note).map((id) => allGoalsById.get(id)).filter((n): n is string => Boolean(n));
+                const noteProjectNames = getNoteLinkedProjectIds(note).map((id) => projectsById.get(id)).filter((n): n is string => Boolean(n));
+                const noteTaskNames = getNoteLinkedTaskIds(note).map((id) => tasksById.get(id)).filter((n): n is string => Boolean(n));
                 return (
                   <NoteRow
                     note={note}
@@ -1468,12 +1477,12 @@ export function AreaDetailContent() {
             <div className="rounded-lg border bg-card">
               {filteredNotes.map((note) => {
                 const noteReturnTo = buildReturnTo(`/areas/${area.slug ?? area.id}`);
-                const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                const noteAreas = getNoteLinkedAreaIds(note)
                   .map((id) => { const name = areaNamesById.get(id); return name ? { name, icon: areaIconsById.get(id) ?? null } : null; })
                   .filter((a): a is { name: string; icon: string | null } => Boolean(a));
-                const noteGoalNames = (note.linkedGoalIds ?? []).map((id) => allGoalsById.get(id)).filter((n): n is string => Boolean(n));
-                const noteProjectNames = (note.linkedProjectIds ?? []).map((id) => projectsById.get(id)).filter((n): n is string => Boolean(n));
-                const noteTaskNames = (note.linkedTaskIds ?? [])
+                const noteGoalNames = getNoteLinkedGoalIds(note).map((id) => allGoalsById.get(id)).filter((n): n is string => Boolean(n));
+                const noteProjectNames = getNoteLinkedProjectIds(note).map((id) => projectsById.get(id)).filter((n): n is string => Boolean(n));
+                const noteTaskNames = getNoteLinkedTaskIds(note)
                   .map((id) => tasksById.get(id))
                   .filter((n): n is string => Boolean(n));
                 return (
@@ -1536,7 +1545,7 @@ export function AreaDetailContent() {
                   .filter((e): e is { name: string; icon: string | null } => Boolean(e.name));
               }}
               getGoalNames={(resource) => (resource.linkedGoalIds ?? []).map((id) => allGoalsById.get(id)).filter((n): n is string => Boolean(n))}
-              getProjectNames={(resource) => resource.project_id ? [projectsById.get(resource.project_id)].filter((n): n is string => Boolean(n)) : []}
+              getProjectNames={(resource) => getResourceLinkedProjectIds(resource).map((id) => projectsById.get(id)).filter((n): n is string => Boolean(n))}
               getTaskNames={(resource) => (resource.linkedTaskIds ?? []).map((id) => tasksById.get(id)).filter((n): n is string => Boolean(n))}
               getTopicName={(resource) => resource.topic_id ? topicNamesMap.get(resource.topic_id) : undefined}
               onToggleFavorite={(id, favorite) => toggleFavoriteResource.mutate({ id, favorite })}
@@ -1574,9 +1583,9 @@ export function AreaDetailContent() {
                 const resourceGoalNames = (resource.linkedGoalIds ?? [])
                   .map((id) => allGoalsById.get(id))
                   .filter((name): name is string => Boolean(name));
-                const resourceProjectName = resource.project_id
-                  ? projectsById.get(resource.project_id)
-                  : undefined;
+                const resourceProjectNames = getResourceLinkedProjectIds(resource)
+                  .map((id) => projectsById.get(id))
+                  .filter((n): n is string => Boolean(n));
                 const resourceTaskNames = (resource.linkedTaskIds ?? [])
                   .map((id) => tasksById.get(id))
                   .filter((name): name is string => Boolean(name));
@@ -1586,7 +1595,7 @@ export function AreaDetailContent() {
                     resource={resource}
                     areas={resourceAreas}
                     goalNames={resourceGoalNames}
-                    projectNames={resourceProjectName ? [resourceProjectName] : []}
+                    projectNames={resourceProjectNames}
                     taskNames={resourceTaskNames}
                     topicName={resource.topic_id ? topicNamesMap.get(resource.topic_id) : undefined}
                     onToggleFavorite={(id, favorite) =>

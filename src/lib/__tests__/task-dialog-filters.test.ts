@@ -48,10 +48,12 @@ const G1 = "goal-1";
 const G2 = "goal-2";
 const P1 = project("proj-1", A1, [G1]);
 const P2 = project("proj-2", A1, [G2]);
+const P3 = project("proj-3", null, []); // unassigned — no area_id, no linkedGoalIds
 const GOAL_1 = goal(G1, A1);
 const GOAL_2 = goal(G2, A1);
-const ALL_PROJECTS = [P1, P2];
-const ALL_GOALS = [GOAL_1, GOAL_2];
+const GOAL_3 = goal("goal-3", null, []); // unassigned — no area_id, no linkedAreaIds
+const ALL_PROJECTS = [P1, P2, P3];
+const ALL_GOALS = [GOAL_1, GOAL_2, GOAL_3];
 
 // ── computeFilteredProjects ───────────────────────────────────────────────────
 
@@ -64,6 +66,12 @@ describe("computeFilteredProjects", () => {
     const A2 = "area-2";
     const P3 = project("proj-3", A2, []);
     expect(computeFilteredProjects([P1, P2, P3], [], [A1])).toEqual([P1, P2]);
+  });
+
+  it("includes unassigned projects (no area_id, no linkedAreaIds) when area filter is active", () => {
+    // P1, P2 in A1, P3 unassigned — P3 stays visible alongside area-scoped ones
+    const P_unassigned = project("proj-unassigned", null, []);
+    expect(computeFilteredProjects([P1, P2, P_unassigned], [], [A1])).toEqual([P1, P2, P_unassigned]);
   });
 
   it("filters by goal only", () => {
@@ -142,6 +150,11 @@ describe("computeVisibleGoals", () => {
   it("excludes goal that is not in project linkedGoalIds even if it matches area", () => {
     // P2 is only linked to G2; G1 is also in A1, but should NOT appear
     expect(computeVisibleGoals(ALL_GOALS, P2.id, [A1], projectById)).not.toContainEqual(GOAL_1);
+  });
+
+  it("includes unassigned goals (no area_id, no linkedAreaIds) when area filter is active", () => {
+    // GOAL_3 (unassigned) stays visible alongside area-scoped goals
+    expect(computeVisibleGoals([GOAL_1, GOAL_2, GOAL_3], null, [A1], projectById)).toEqual([GOAL_1, GOAL_2, GOAL_3]);
   });
 });
 

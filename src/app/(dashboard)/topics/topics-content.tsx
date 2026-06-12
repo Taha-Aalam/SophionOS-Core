@@ -198,7 +198,9 @@ export function TopicsContent() {
         .map((id) => allResources.find((r) => r.id === id))
         .filter(Boolean) as typeof allResources;
       const allowedAreaIds = new Set(selectedResources.map((r) => r.area_id).filter(Boolean) as string[]);
-      const allowedProjectIds = new Set(selectedResources.map((r) => r.project_id).filter(Boolean) as string[]);
+      const allowedProjectIds = new Set(
+        selectedResources.flatMap((r) => r.linkedProjectIds ?? []),
+      );
       if (allowedAreaIds.size === 0 && allowedProjectIds.size === 0) return allNotes;
       return allNotes.filter((n) =>
         (n.area_id && allowedAreaIds.has(n.area_id)) ||
@@ -219,9 +221,10 @@ export function TopicsContent() {
       const allowedAreaIds = new Set(selectedNotes.map((n) => n.area_id).filter(Boolean) as string[]);
       const allowedProjectIds = new Set(selectedNotes.map((n) => n.project_id).filter(Boolean) as string[]);
       if (allowedAreaIds.size === 0 && allowedProjectIds.size === 0) return allResources;
-      return allResources.filter((r) =>
-        (r.area_id && allowedAreaIds.has(r.area_id)) ||
-        (r.project_id && allowedProjectIds.has(r.project_id))
+      return allResources.filter(
+        (r) =>
+          (r.area_id && allowedAreaIds.has(r.area_id)) ||
+          (r.linkedProjectIds?.some((pid) => allowedProjectIds.has(pid)) ?? false),
       );
     }
     if (form.area_ids.length > 0) {

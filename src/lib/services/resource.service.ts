@@ -8,7 +8,7 @@ import { RESOURCE_STATUS, type ResourceStatus } from "../utils/constants";
 import { deriveResourceStatus } from "../utils/status-routing";
 
 const RESOURCE_SELECT =
-  "id, user_id, area_id, project_id, topic_id, name, url, type, status, favorite, is_archived, metadata, created_at, updated_at";
+  "id, user_id, area_id, topic_id, name, url, type, status, favorite, is_archived, metadata, created_at, updated_at";
 
 // ─── Area ID helpers ──────────────────────────────────────────────────────────
 
@@ -139,6 +139,35 @@ function extractTaskIds(input: { task_ids?: string[] }): {
   };
 }
 
+// ─── Project ID helpers ───────────────────────────────────────────────────────
+
+function extractProjectIds(input: { project_ids?: string[] }): {
+  projectIds: string[] | undefined;
+  resourceInput: Omit<typeof input, "project_ids">;
+} {
+  const { project_ids, ...resourceInput } = input;
+
+  return {
+    projectIds: project_ids ? Array.from(new Set(project_ids)) : undefined,
+    resourceInput,
+  };
+}
+
+function isMissingResourceProjectsTableError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const e = error as Record<string, unknown>;
+  const code = typeof e.code === "string" ? e.code : undefined;
+  const message = typeof e.message === "string" ? e.message : "";
+  const normalizedMessage = message.toLowerCase();
+  return (
+    code === "42P01" ||
+    (normalizedMessage.includes("resource_projects") &&
+      (normalizedMessage.includes("does not exist") ||
+        normalizedMessage.includes("unexpected table") ||
+        normalizedMessage.includes("relation")))
+  );
+}
+
 function isMissingTaskResourcesTableError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const e = error as Record<string, unknown>;
@@ -224,10 +253,48 @@ async function hydrateResourceTaskLinks(resources: Resource[]): Promise<Resource
   }
 }
 
+async function hydrateResourceProjectLinks(resources: Resource[]): Promise<Resource[]> {
+  if (resources.length === 0) return resources;
+
+  const resourceIds = resources.map((r) => r.id);
+
+  try {
+    const result = await createClient()
+      .from("resource_projects")
+      .select("resource_id, project_id")
+      .in("resource_id", resourceIds);
+
+    if (result.error) {
+      if (isMissingResourceProjectsTableError(result.error)) {
+        return resources.map((r) => ({ ...r, linkedProjectIds: [] }));
+      }
+      throw new DatabaseError(result.error.message);
+    }
+
+    const projectIdsByResourceId = new Map<string, string[]>();
+    for (const row of result.data ?? []) {
+      const current = projectIdsByResourceId.get(row.resource_id) ?? [];
+      current.push(row.project_id);
+      projectIdsByResourceId.set(row.resource_id, current);
+    }
+
+    return resources.map((resource) => ({
+      ...resource,
+      linkedProjectIds: projectIdsByResourceId.get(resource.id) ?? [],
+    }));
+  } catch (error) {
+    if (isMissingResourceProjectsTableError(error)) {
+      return resources.map((r) => ({ ...r, linkedProjectIds: [] }));
+    }
+    throw error;
+  }
+}
+
 async function hydrateResourceRelations(resources: Resource[]): Promise<Resource[]> {
   const withAreas = await hydrateResourceAreaLinks(resources);
   const withGoals = await hydrateResourceGoalLinks(withAreas);
-  return await hydrateResourceTaskLinks(withGoals);
+  const withProjects = await hydrateResourceProjectLinks(withGoals);
+  return await hydrateResourceTaskLinks(withProjects);
 }
 
 async function hydrateSingleResourceRelations(resource: Resource): Promise<Resource> {
@@ -262,14 +329,37 @@ export const resourceService = {
     if (filters?.areaId) {
       query = query.eq("area_id", filters.areaId);
     }
-    if (filters?.projectId) {
-      query = query.eq("project_id", filters.projectId);
-    }
     if (filters?.topicId) {
       query = query.eq("topic_id", filters.topicId);
     }
 
-    const { data, error } = await query;
+    let data: Resource[] | null = null;
+    let error: { message: string } | null = null;
+
+    if (filters?.projectId) {
+      // Use junction table to filter by project
+      const linkResult = await createClient()
+        .from("resource_projects")
+        .select("resource_id")
+        .eq("project_id", filters.projectId);
+      if (linkResult.error) {
+        if (!isMissingResourceProjectsTableError(linkResult.error)) {
+          throw new DatabaseError(linkResult.error.message);
+        }
+      }
+      const resourceIds = (linkResult.data ?? []).map((r) => r.resource_id);
+      if (resourceIds.length === 0) {
+        return hydrateResourceRelations([]);
+      }
+      const result = await query.in("id", resourceIds);
+      data = (result.data as Resource[] | null) ?? null;
+      error = result.error;
+    } else {
+      const result = await query;
+      data = (result.data as Resource[] | null) ?? null;
+      error = result.error;
+    }
+
     if (error) {
       throw new DatabaseError(error.message);
     }
@@ -300,14 +390,15 @@ export const resourceService = {
       const validated = createResourceSchema.parse(input);
       const { areaIds, resourceInput: areaCleanedInput } = extractResourceAreaIds(validated);
       const { goalIds, resourceInput: goalCleanedInput } = extractGoalIds(areaCleanedInput);
-      const { taskIds, resourceInput } = extractTaskIds(goalCleanedInput);
+      const { taskIds, resourceInput: taskCleanedInput } = extractTaskIds(goalCleanedInput);
+      const { projectIds, resourceInput } = extractProjectIds(taskCleanedInput);
 
       // Status is always derived from context on create so a contextless
       // resource (no area/project/goal/task/topic) is persisted as "inbox"
       // instead of the caller's pre-filled default.
       const status = deriveResourceStatus({
         area_ids: areaIds,
-        project_id: validated.project_id,
+        project_ids: projectIds,
         goal_ids: goalIds,
         task_ids: taskIds,
         topic_id: validated.topic_id,
@@ -335,6 +426,10 @@ export const resourceService = {
         await this.replaceTaskLinks(data.id, taskIds);
       }
 
+      if (projectIds?.length) {
+        await this.replaceProjectLinks(data.id, projectIds);
+      }
+
       return hydrateSingleResourceRelations(data);
     } catch (e) {
       if (e instanceof ValidationError) throw e;
@@ -346,9 +441,10 @@ export const resourceService = {
 
   async update(userId: string, id: string, input: UpdateResourceInput): Promise<Resource> {
     try {
-      const { goal_ids, task_ids, ...rest } = input;
+      const { goal_ids, task_ids, project_ids, ...rest } = input;
       const goalIds = goal_ids ? Array.from(new Set(goal_ids)) : undefined;
       const taskIds = task_ids ? Array.from(new Set(task_ids)) : undefined;
+      const projectIds = project_ids ? Array.from(new Set(project_ids)) : undefined;
       const { areaIds, resourceInput: areaCleanedInput } = extractResourceAreaIds(rest);
       const validated = updateResourceSchema.parse(areaCleanedInput);
       const hasResourceUpdates = Object.keys(validated).length > 0;
@@ -366,7 +462,7 @@ export const resourceService = {
       // away, inbox logic no longer applies.
       const touchesContext =
         areaIds !== undefined ||
-        validatedWide.project_id !== undefined ||
+        projectIds !== undefined ||
         goalIds !== undefined ||
         taskIds !== undefined ||
         validatedWide.topic_id !== undefined;
@@ -375,10 +471,10 @@ export const resourceService = {
       if (touchesContext && !preservesTerminal) {
         const derived = deriveResourceStatus({
           area_ids: areaIds,
-          project_id: validatedWide.project_id as string | null | undefined,
           goal_ids: goalIds,
           task_ids: taskIds,
           topic_id: validatedWide.topic_id as string | null | undefined,
+          ...(projectIds ? { project_ids: projectIds } : {}),
         });
         if (derived !== validatedWide.status) {
           validatedWide.status = derived;
@@ -432,6 +528,10 @@ export const resourceService = {
 
       if (taskIds !== undefined) {
         await this.replaceTaskLinks(id, taskIds);
+      }
+
+      if (projectIds !== undefined) {
+        await this.replaceProjectLinks(id, projectIds);
       }
 
       return hydrateSingleResourceRelations(resource);
@@ -498,11 +598,28 @@ export const resourceService = {
   },
 
   async listByProject(userId: string, projectId: string): Promise<Resource[]> {
+    const linkResult = await createClient()
+      .from("resource_projects")
+      .select("resource_id")
+      .eq("project_id", projectId);
+
+    if (linkResult.error) {
+      if (isMissingResourceProjectsTableError(linkResult.error)) {
+        return hydrateResourceRelations([]);
+      }
+      throw new DatabaseError(linkResult.error.message);
+    }
+
+    const resourceIds = (linkResult.data ?? []).map((r) => r.resource_id);
+    if (resourceIds.length === 0) {
+      return hydrateResourceRelations([]);
+    }
+
     const { data, error } = await createClient()
       .from("resources")
       .select(RESOURCE_SELECT)
       .eq("user_id", userId)
-      .eq("project_id", projectId)
+      .in("id", resourceIds)
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -617,7 +734,7 @@ export const resourceService = {
     const relations = await this.getWithRelations(resourceId);
     const { data: resource, error: fetchError } = await createClient()
       .from("resources")
-      .select("status, area_id, project_id, topic_id")
+      .select("status, area_id, topic_id")
       .eq("id", resourceId)
       .maybeSingle();
 
@@ -635,7 +752,7 @@ export const resourceService = {
     const derivedStatus = deriveResourceStatus({
       area_id: resource.area_id,
       area_ids: relations.area_ids,
-      project_id: resource.project_id,
+      project_ids: relations.project_ids,
       goal_ids: relations.goal_ids,
       task_ids: relations.task_ids,
       topic_id: resource.topic_id,
@@ -653,45 +770,37 @@ export const resourceService = {
     }
   },
 
-  async getWithRelations(resourceId: string): Promise<{ goal_ids: string[]; task_ids: string[]; area_ids: string[] }> {
-    const [goalResult, taskResult, areaResult] = await Promise.all([
+  async getWithRelations(
+    resourceId: string,
+  ): Promise<{ goal_ids: string[]; task_ids: string[]; area_ids: string[]; project_ids: string[] }> {
+    const [goalResult, taskResult, areaResult, projectResult] = await Promise.all([
       createClient().from("goal_resources").select("goal_id").eq("resource_id", resourceId),
       createClient().from("task_resources").select("task_id").eq("resource_id", resourceId),
       createClient().from("resource_areas").select("area_id").eq("resource_id", resourceId),
+      createClient().from("resource_projects").select("project_id").eq("resource_id", resourceId),
     ]);
 
     if (goalResult.error) {
       throw new DatabaseError(goalResult.error.message);
     }
 
-    if (taskResult.error) {
-      if (isMissingTaskResourcesTableError(taskResult.error)) {
-        return {
-          goal_ids: goalResult.data?.map((r) => r.goal_id) || [],
-          task_ids: [],
-          area_ids: areaResult.error && isMissingResourceAreasTableError(areaResult.error)
-            ? []
-            : areaResult.data?.map((r) => r.area_id) || [],
-        };
-      }
+    if (taskResult.error && !isMissingTaskResourcesTableError(taskResult.error)) {
       throw new DatabaseError(taskResult.error.message);
     }
 
-    if (areaResult.error) {
-      if (isMissingResourceAreasTableError(areaResult.error)) {
-        return {
-          goal_ids: goalResult.data?.map((r) => r.goal_id) || [],
-          task_ids: taskResult.data?.map((r) => r.task_id) || [],
-          area_ids: [],
-        };
-      }
+    if (areaResult.error && !isMissingResourceAreasTableError(areaResult.error)) {
       throw new DatabaseError(areaResult.error.message);
+    }
+
+    if (projectResult.error && !isMissingResourceProjectsTableError(projectResult.error)) {
+      throw new DatabaseError(projectResult.error.message);
     }
 
     return {
       goal_ids: goalResult.data?.map((r) => r.goal_id) || [],
       task_ids: taskResult.data?.map((r) => r.task_id) || [],
       area_ids: areaResult.data?.map((r) => r.area_id) || [],
+      project_ids: projectResult.data?.map((r) => r.project_id) || [],
     };
   },
 
@@ -795,6 +904,40 @@ export const resourceService = {
     await this.syncResourceStatusFromContext(resourceId);
   },
 
+  async replaceProjectLinks(resourceId: string, projectIds: string[]): Promise<void> {
+    const existingRelations = await this.getWithRelations(resourceId);
+    const existingProjectIds = new Set(existingRelations.project_ids);
+    const nextProjectIds = new Set(projectIds);
+    const projectIdsToAdd = projectIds.filter((projectId) => !existingProjectIds.has(projectId));
+    const projectIdsToRemove = existingRelations.project_ids.filter(
+      (projectId) => !nextProjectIds.has(projectId),
+    );
+
+    if (projectIdsToAdd.length > 0) {
+      const { error } = await createClient()
+        .from("resource_projects")
+        .insert(projectIdsToAdd.map((project_id) => ({ project_id, resource_id: resourceId })));
+
+      if (error && !isMissingResourceProjectsTableError(error)) {
+        throw new DatabaseError(error.message);
+      }
+    }
+
+    if (projectIdsToRemove.length > 0) {
+      const { error } = await createClient()
+        .from("resource_projects")
+        .delete()
+        .eq("resource_id", resourceId)
+        .in("project_id", projectIdsToRemove);
+
+      if (error && !isMissingResourceProjectsTableError(error)) {
+        throw new DatabaseError(error.message);
+      }
+    }
+
+    await this.syncResourceStatusFromContext(resourceId);
+  },
+
   /**
    * One-shot backfill: re-derive status for every non-terminal resource
    * whose stored status does not match the value derived from its
@@ -819,7 +962,7 @@ export const resourceService = {
       const derived = deriveResourceStatus({
         area_id: resource.area_id,
         area_ids: relations.area_ids,
-        project_id: resource.project_id,
+        project_ids: relations.project_ids,
         goal_ids: relations.goal_ids,
         task_ids: relations.task_ids,
         topic_id: resource.topic_id,

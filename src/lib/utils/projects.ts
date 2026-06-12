@@ -211,8 +211,13 @@ export function buildProjectCompletionStats(
   }
 
   for (const resource of resources) {
-    if (!resource.project_id || resource.is_archived) continue;
-    bump(resource.project_id, resource.status === RESOURCE_STATUS.COMPLETED);
+    if (resource.is_archived) continue;
+    const projectIds = new Set<string>();
+    for (const pid of resource.linkedProjectIds ?? []) projectIds.add(pid);
+    if (projectIds.size === 0) continue;
+    for (const pid of projectIds) {
+      bump(pid, resource.status === RESOURCE_STATUS.COMPLETED);
+    }
   }
 
   return stats;

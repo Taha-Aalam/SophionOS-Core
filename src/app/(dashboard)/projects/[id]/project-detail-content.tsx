@@ -102,14 +102,11 @@ import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
-import {
-  filterCandidatesByAreaScope,
-  getContactLinkedAreaIds,
-  getNoteLinkedAreaIds,
-  getResourceLinkedAreaIds,
-} from "@/lib/utils/area-scoped-candidates";
+import { filterCandidatesByAreaScope, getContactLinkedAreaIds } from "@/lib/utils/area-scoped-candidates";
 import { getProjectDueState, getProjectLinkedAreaIds, getProjectStatusLabel } from "@/lib/utils/projects";
-import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, taskMatchesProjectId } from "@/lib/utils/tasks";
+import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds, taskMatchesProjectId } from "@/lib/utils/tasks";
+import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
+import { getResourceLinkedAreaIds, getResourceLinkedProjectIds } from "@/lib/utils/resources";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { buildAreaContactGoalSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections, buildContactByAreaSections } from "@/lib/utils/area-detail";
 import { buildReturnTo, resolveBackNavigation, getReturnToFromSearchParams, encodeReturnTo } from "@/lib/utils/return-to";
@@ -369,6 +366,10 @@ export function ProjectDetailContent() {
   }, [goals, relations?.goals]);
   const taskNamesMap = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks]);
   const topicNamesMap = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
+  const allProjectNamesMap = useMemo(
+    () => new Map(allProjects.map((p) => [p.id, p.name])),
+    [allProjects],
+  );
 
   const goalTabs = useMemo(
     () => [
@@ -632,7 +633,7 @@ export function ProjectDetailContent() {
   const noteGroupsByArea = useMemo<NoteGroup[]>(() => {
     const grouped = new Map<string, typeof filteredNotes>();
     for (const note of filteredNotes) {
-      const ids = note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []);
+      const ids = getNoteLinkedAreaIds(note);
       const keys = ids.length > 0 ? ids : ["unassigned"];
       for (const areaId of keys) {
         const current = grouped.get(areaId) ?? [];
@@ -650,7 +651,7 @@ export function ProjectDetailContent() {
   const noteGroupsByGoal = useMemo<NoteGroup[]>(() => {
     const grouped = new Map<string, typeof filteredNotes>();
     for (const note of filteredNotes) {
-      const ids = note.linkedGoalIds ?? [];
+      const ids = getNoteLinkedGoalIds(note);
       const keys = ids.length > 0 ? ids : ["unassigned"];
       for (const goalId of keys) {
         const current = grouped.get(goalId) ?? [];
@@ -947,21 +948,25 @@ export function ProjectDetailContent() {
 
   const handleLinkTask = (task: typeof tasks[number]) => {
     if (!resolvedProjectId) return;
-    const existing = task.linkedProjectIds ?? (task.project_id ? [task.project_id] : []);
+    const existing = getTaskLinkedProjectIds(task);
     const nextProjectIds = Array.from(new Set([...existing, resolvedProjectId]));
     updateTask.mutate({ id: task.id, input: { project_ids: nextProjectIds } });
     setIsLinkTaskOpen(false);
   };
   const handleLinkNote = (note: typeof allNotesGlobal[number]) => {
     if (!resolvedProjectId) return;
-    const existing = note.linkedProjectIds ?? (note.project_id ? [note.project_id] : []);
+    const existing = getNoteLinkedProjectIds(note);
     const nextProjectIds = Array.from(new Set([...existing, resolvedProjectId]));
     updateNote.mutate({ id: note.id, input: { project_ids: nextProjectIds } });
     setIsLinkNoteOpen(false);
   };
   const handleLinkResourceExisting = (resource: typeof allResourcesGlobal[number]) => {
     if (!resolvedProjectId) return;
-    updateResource.mutate({ id: resource.id, input: { project_id: resolvedProjectId } });
+    const existingIds = resource.linkedProjectIds ?? [];
+    const nextProjectIds = existingIds.includes(resolvedProjectId)
+      ? existingIds
+      : [...existingIds, resolvedProjectId];
+    updateResource.mutate({ id: resource.id, input: { project_ids: nextProjectIds } });
     setIsLinkResourceOpen(false);
   };
   const handleLinkContactExisting = (contactId: string) => {
@@ -1514,11 +1519,11 @@ export function ProjectDetailContent() {
                 <TaskListItem
                   key={task.id}
                   task={task}
-                  linkedAreaNames={task.linkedAreaIds?.map((id) => areas.find((a) => a.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
-                  linkedAreaIcons={task.linkedAreaIds?.map((id) => areas.find((a) => a.id === id)?.icon ?? null) ?? []}
-                  linkedGoalNames={task.linkedGoalIds?.map((id) => goals.find((g) => g.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
+                  linkedAreaNames={getTaskLinkedAreaIds(task).map((id) => areas.find((a) => a.id === id)?.name).filter((n): n is string => Boolean(n))}
+                  linkedAreaIcons={getTaskLinkedAreaIds(task).map((id) => areas.find((a) => a.id === id)?.icon ?? null)}
+                  linkedGoalNames={getTaskLinkedGoalIds(task).map((id) => goals.find((g) => g.id === id)?.name).filter((n): n is string => Boolean(n))}
                   projectName={project?.name}
-                  linkedProjectNames={task.linkedProjectIds?.map((id) => allProjects.find((p) => p.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
+                  linkedProjectNames={getTaskLinkedProjectIds(task).map((id) => allProjects.find((p) => p.id === id)?.name).filter((n): n is string => Boolean(n))}
                   onCompletionToggle={handleTaskCompletion}
                   onFocusToggle={handleTaskFocus}
                   onNameSave={handleTaskNameSave}
@@ -1560,12 +1565,12 @@ export function ProjectDetailContent() {
               groups={noteTab === "by_area" ? noteGroupsByArea : noteGroupsByGoal}
               renderNote={(note) => {
                 const noteReturnTo = `/projects/${project?.slug ?? project?.id}`;
-                const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                const noteAreas = getNoteLinkedAreaIds(note)
                   .map((id) => { const name = areaNamesMap.get(id); return name ? { name, icon: areaIconsMap.get(id) ?? null } : null; })
                   .filter((a): a is { name: string; icon: string | null } => Boolean(a));
-                const noteGoalNames = (note.linkedGoalIds ?? []).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteGoalNames = getNoteLinkedGoalIds(note).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
                 const noteProjectNames = project?.name ? [project.name] : [];
-                const noteTaskNames = (note.linkedTaskIds ?? []).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteTaskNames = getNoteLinkedTaskIds(note).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
                 return (
                   <NoteRow
                     note={note}
@@ -1601,12 +1606,12 @@ export function ProjectDetailContent() {
             <div className="rounded-lg border bg-card">
               {filteredNotes.map((note) => {
                 const noteReturnTo = `/projects/${project?.slug ?? project?.id}`;
-                const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                const noteAreas = getNoteLinkedAreaIds(note)
                   .map((id) => { const name = areaNamesMap.get(id); return name ? { name, icon: areaIconsMap.get(id) ?? null } : null; })
                   .filter((a): a is { name: string; icon: string | null } => Boolean(a));
-                const noteGoalNames = (note.linkedGoalIds ?? []).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteGoalNames = getNoteLinkedGoalIds(note).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
                 const noteProjectNames = project?.name ? [project.name] : [];
-                const noteTaskNames = (note.linkedTaskIds ?? []).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteTaskNames = getNoteLinkedTaskIds(note).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
                 return (
                   <NoteRow
                     key={note.id}
@@ -1685,9 +1690,9 @@ export function ProjectDetailContent() {
                 const resourceGoalNames = (resource.linkedGoalIds ?? [])
                   .map((id) => goalNamesMap.get(id))
                   .filter((name): name is string => Boolean(name));
-                const resourceProjectNames = resource.project_id
-                  ? [project?.name].filter((n): n is string => Boolean(n))
-                  : [];
+                const resourceProjectNames = getResourceLinkedProjectIds(resource)
+                  .map((id) => allProjectNamesMap.get(id))
+                  .filter((n): n is string => Boolean(n));
                 const resourceTaskNames = (resource.linkedTaskIds ?? [])
                   .map((id) => taskNamesMap.get(id))
                   .filter((name): name is string => Boolean(name));

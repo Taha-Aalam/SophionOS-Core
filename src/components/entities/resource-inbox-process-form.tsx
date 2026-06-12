@@ -71,7 +71,7 @@ export function ResourceInboxProcessForm({
     resource.linkedAreaIds ?? (resource.area_id ? [resource.area_id] : []),
   );
   const [rawGoalIds, setRawGoalIds] = useState<string[]>(resource.linkedGoalIds ?? []);
-  const [rawProjectId, setRawProjectId] = useState<string>(resource.project_id ?? "");
+  const [rawProjectIds, setRawProjectIds] = useState<string[]>(resource.linkedProjectIds ?? []);
   const [rawTaskIds, setRawTaskIds] = useState<string[]>(resource.linkedTaskIds ?? []);
   const [topicId, setTopicId] = useState<string>(resource.topic_id ?? "");
   const [status, _setStatus] = useState<string>(RESOURCE_STATUS.ACTIVE);
@@ -89,7 +89,9 @@ export function ResourceInboxProcessForm({
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   const toggleProject = (id: string) =>
-    setRawProjectId((cur) => (cur === id ? "" : id));
+    setRawProjectIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
   const toggleTopic = (id: string) =>
     setTopicId((cur) => (cur === id ? "" : id));
 
@@ -97,9 +99,9 @@ export function ResourceInboxProcessForm({
   // user-pick list is the source of truth for "what the user chose";
   // the filtered `X` derived via useValidIds below is a subset used
   // for save payloads and to strip server-side removals.
-  const selectedProject = useMemo(
-    () => (rawProjectId ? projectOptions.find((p) => p.id === rawProjectId) ?? null : null),
-    [rawProjectId, projectOptions],
+  const selectedProjects = useMemo(
+    () => projectOptions.filter((p) => rawProjectIds.includes(p.id)),
+    [projectOptions, rawProjectIds],
   );
 
   const selectedGoals = useMemo(
@@ -141,9 +143,9 @@ export function ResourceInboxProcessForm({
 
   const visibleGoals = useMemo(
     () => computeFilteredGoals(
-      goalOptions, rawAreaIds, rawProjectId || null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks,
+      goalOptions, rawAreaIds, rawProjectIds[0] ?? null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks,
     ),
-    [goalOptions, rawAreaIds, rawProjectId, projectGoalIdsMap, taskGoalIdsMap, selectedTasks],
+    [goalOptions, rawAreaIds, rawProjectIds, projectGoalIdsMap, taskGoalIdsMap, selectedTasks],
   );
 
   const visibleProjects = useMemo(
@@ -154,15 +156,15 @@ export function ResourceInboxProcessForm({
   );
 
   const visibleAreas = useMemo(
-    () => computeVisibleAreas(areaOptions, selectedProject, selectedGoals, selectedTasks),
-    [areaOptions, selectedProject, selectedGoals, selectedTasks],
+    () => computeVisibleAreas(areaOptions, selectedProjects[0] ?? null, selectedGoals, selectedTasks),
+    [areaOptions, selectedProjects, selectedGoals, selectedTasks],
   );
 
   const visibleTasks = useMemo(
     () => computeFilteredTasks(
-      taskOptions, rawAreaIds, rawProjectId || null, rawGoalIds, goalTaskIdsMap,
+      taskOptions, rawAreaIds, rawProjectIds[0] ?? null, rawGoalIds, goalTaskIdsMap,
     ),
-    [taskOptions, rawAreaIds, rawProjectId, rawGoalIds, goalTaskIdsMap],
+    [taskOptions, rawAreaIds, rawProjectIds, rawGoalIds, goalTaskIdsMap],
   );
 
   // Derive filtered ID subsets from raw user picks, stripping any IDs
@@ -172,12 +174,7 @@ export function ResourceInboxProcessForm({
   const goalIds = useValidIds(rawGoalIds, visibleGoals.map((goal) => goal.id));
   const areaIds = useValidIds(rawAreaIds, visibleAreas.map((area) => area.id));
   const taskIds = useValidIds(rawTaskIds, visibleTasks.map((task) => task.id));
-  // projectId is a single ID, not a list. Take the first (and only) valid
-  // match, or fall back to empty string if the raw pick is no longer valid.
-  const projectId = useValidIds(
-    rawProjectId ? [rawProjectId] : [],
-    visibleProjects.map((project) => project.id),
-  )[0] ?? "";
+  const projectIds = useValidIds(rawProjectIds, visibleProjects.map((project) => project.id));
 
   const handleSave = () => {
     updateResource.mutate(
@@ -187,7 +184,7 @@ export function ResourceInboxProcessForm({
           area_id: areaIds[0] ?? null,
           area_ids: areaIds,
           goal_ids: goalIds,
-          project_id: projectId || null,
+          project_ids: projectIds,
           task_ids: taskIds,
           topic_id: topicId || null,
           status: status as Resource["status"],
@@ -298,13 +295,12 @@ export function ResourceInboxProcessForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <DropdownMultiSelect
           label="Project"
-          placeholder="Select project…"
-          selectedCount={projectId ? 1 : 0}
-          selectedLabel={projectOptions.find((p) => p.id === projectId)?.name}
+          placeholder="Select projects…"
+          selectedCount={projectIds.length}
           candidates={visibleProjects}
-          isSelected={(id) => projectId === id}
+          isSelected={(id) => projectIds.includes(id)}
           onToggle={toggleProject}
-          onClear={() => setRawProjectId("")}
+          onClear={() => setRawProjectIds([])}
           emptyMessage={
             projectOptions.length === 0
               ? "No projects available."
@@ -312,13 +308,13 @@ export function ResourceInboxProcessForm({
                 ? "No projects match selected context."
                 : "No projects available."
           }
-          renderSelected={() =>
-            projectId ? (
+          renderSelected={() => (
+            projectIds.length > 0 ? (
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {(() => {
-                  const p = projectOptions.find((x) => x.id === projectId);
-                  if (!p) return null;
-                  return (
+                {projectIds
+                  .map((id) => projectOptions.find((p) => p.id === id))
+                  .filter((p): p is { id: string; name: string } => Boolean(p))
+                  .map((p) => (
                     <Badge
                       key={p.id}
                       variant="secondary"
@@ -327,17 +323,16 @@ export function ResourceInboxProcessForm({
                       {p.name}
                       <button
                         type="button"
-                        onClick={() => setRawProjectId("")}
+                        onClick={() => toggleProject(p.id)}
                         className="ml-1 rounded-full p-0.5 hover:bg-muted"
                       >
                         <X className="size-3" />
                       </button>
                     </Badge>
-                  );
-                })()}
+                  ))}
               </div>
             ) : null
-          }
+          )}
         />
 
         <DropdownMultiSelect
@@ -351,7 +346,7 @@ export function ResourceInboxProcessForm({
           emptyMessage={
             taskOptions.length === 0
               ? "No tasks available."
-              : areaIds.length > 0 || goalIds.length > 0 || projectId
+              : areaIds.length > 0 || goalIds.length > 0 || projectIds.length > 0
                 ? "No tasks match selected context."
                 : "No tasks available."
           }

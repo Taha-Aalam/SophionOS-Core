@@ -112,6 +112,7 @@ describe("goalService", () => {
         if (table === "goal_tasks") return goalTasksTable;
         if (table === "goal_notes") return emptyTable;
         if (table === "goal_resources") return emptyTable;
+        if (table === "resource_projects") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -196,6 +197,7 @@ describe("goalService", () => {
         if (table === "notes") return emptyTable;
         if (table === "note_projects") return emptyTable;
         if (table === "resources") return emptyTable;
+        if (table === "resource_projects") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -271,6 +273,7 @@ describe("goalService", () => {
         if (table === "notes") return emptyTable;
         if (table === "note_projects") return emptyTable;
         if (table === "resources") return emptyTable;
+        if (table === "resource_projects") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -335,6 +338,7 @@ describe("goalService", () => {
         if (table === "goal_tasks") return goalTasksTable;
         if (table === "goal_notes") return emptyTable;
         if (table === "goal_resources") return emptyTable;
+        if (table === "resource_projects") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -411,6 +415,7 @@ describe("goalService", () => {
         if (table === "goal_tasks") return goalTasksTable;
         if (table === "goal_notes") return emptyTable;
         if (table === "goal_resources") return emptyTable;
+        if (table === "resource_projects") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -507,6 +512,7 @@ describe("goalService", () => {
         if (table === "notes") return emptyTable;
         if (table === "note_projects") return emptyTable;
         if (table === "resources") return emptyTable;
+        if (table === "resource_projects") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };

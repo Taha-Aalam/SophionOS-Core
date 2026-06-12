@@ -28,9 +28,11 @@ import {
 import type { Task } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
 import {
+  getTaskLinkedAreaIds,
   getTaskLinkedAreaNames,
   getTaskLinkedAreaIcons,
   getTaskLinkedGoalNames,
+  getTaskLinkedProjectIds,
   getTaskLinkedProjectNames,
 } from "@/lib/utils/tasks";
 
@@ -250,11 +252,17 @@ export function MyDayContent() {
                     <TaskList
                       tasks={myDay.dueToday}
                       variant="simple"
-                      getAreaName={(task) => task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
+                      getAreaName={(task) => {
+                        const firstId = getTaskLinkedAreaIds(task)[0];
+                        return firstId ? areaMap.get(firstId)?.name ?? null : null;
+                      }}
                       getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesMap)}
                       getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsMap)}
                       getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, goalNamesMap)}
-                      getProjectName={(task) => task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
+                      getProjectName={(task) => {
+                        const firstId = getTaskLinkedProjectIds(task)[0];
+                        return firstId ? projectMap.get(firstId)?.name ?? null : null;
+                      }}
                       getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectNamesMap)}
                       onCompletionToggle={(id, isCompleted) => {
                         if (isCompleted) { completeTask.mutate(id); } else { updateTask.mutate({ id, input: { completed_at: null, is_completed: false } }); }
@@ -288,11 +296,17 @@ export function MyDayContent() {
                     <TaskList
                       tasks={myDay.focused}
                       variant="simple"
-                      getAreaName={(task) => task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
+                      getAreaName={(task) => {
+                        const firstId = getTaskLinkedAreaIds(task)[0];
+                        return firstId ? areaMap.get(firstId)?.name ?? null : null;
+                      }}
                       getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesMap)}
                       getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsMap)}
                       getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, goalNamesMap)}
-                      getProjectName={(task) => task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
+                      getProjectName={(task) => {
+                        const firstId = getTaskLinkedProjectIds(task)[0];
+                        return firstId ? projectMap.get(firstId)?.name ?? null : null;
+                      }}
                       getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectNamesMap)}
                       onCompletionToggle={(id, isCompleted) => {
                         if (isCompleted) { completeTask.mutate(id); } else { updateTask.mutate({ id, input: { completed_at: null, is_completed: false } }); }
@@ -354,9 +368,9 @@ export function MyDayContent() {
                     <AvailableTaskRow
                       key={task.id}
                       task={task}
-                      areaName={task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
+                      areaName={(() => { const firstId = getTaskLinkedAreaIds(task)[0]; return firstId ? areaMap.get(firstId)?.name ?? null : null; })()}
                       projectName={
-                        task.project_id ? projectMap.get(task.project_id)?.name ?? null : null
+                        (() => { const firstId = getTaskLinkedProjectIds(task)[0]; return firstId ? projectMap.get(firstId)?.name ?? null : null; })()
                       }
                       onAddToDay={() => focusTask.mutate({ id: task.id, is_focused: true })}
                     />

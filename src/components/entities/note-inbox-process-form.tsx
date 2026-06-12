@@ -35,7 +35,7 @@ import {
   computeFilteredGoals,
   computeFilteredTasks,
 } from "@/lib/utils/resource-dialog-filters";
-import { getNoteLinkedGoalIds } from "@/lib/utils/notes";
+import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
 
 const NOTE_ICON = "📝";
 
@@ -81,14 +81,10 @@ export function NoteInboxProcessForm({
   onClose,
 }: NoteInboxProcessFormProps) {
   const updateNote = useUpdateNote();
-  const [rawAreaIds, setRawAreaIds] = useState<string[]>(
-    note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []),
-  );
+  const [rawAreaIds, setRawAreaIds] = useState<string[]>(getNoteLinkedAreaIds(note));
   const [rawGoalIds, setRawGoalIds] = useState<string[]>(getNoteLinkedGoalIds(note));
-  const [rawProjectIds, setRawProjectIds] = useState<string[]>(
-    note.linkedProjectIds ?? (note.project_id ? [note.project_id] : []),
-  );
-  const [rawTaskIds, setRawTaskIds] = useState<string[]>(note.linkedTaskIds ?? []);
+  const [rawProjectIds, setRawProjectIds] = useState<string[]>(getNoteLinkedProjectIds(note));
+  const [rawTaskIds, setRawTaskIds] = useState<string[]>(getNoteLinkedTaskIds(note));
   const [notebooks, setNotebooks] = useState<string[]>(note.notebooks ?? []);
   const [status, _setStatus] = useState<string>(NOTE_STATUS.TO_REVIEW);
 

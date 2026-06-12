@@ -253,7 +253,7 @@ function buildTaskFormValues(
     is_recurring: task.is_recurring,
     name: task.name,
     priority: task.priority,
-    project_id: resolvedProjectIds[0] ?? task.project_id ?? "",
+    project_id: resolvedProjectIds[0] ?? getTaskLinkedProjectIds(task)[0] ?? "",
     project_ids: resolvedProjectIds,
     repeat_cycle: task.repeat_cycle ?? null,
     repeat_every: task.repeat_every ?? null,
