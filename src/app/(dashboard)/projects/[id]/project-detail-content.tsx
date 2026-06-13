@@ -109,7 +109,7 @@ import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, ge
 import { getResourceLinkedAreaIds, getResourceLinkedProjectIds } from "@/lib/utils/resources";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { buildAreaContactGoalSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections, buildContactByAreaSections } from "@/lib/utils/area-detail";
-import { buildReturnTo, resolveBackNavigation, getReturnToFromSearchParams, encodeReturnTo } from "@/lib/utils/return-to";
+import { buildReturnTo, buildReturnToChain, resolveBackNavigation, getReturnToFromSearchParams, encodeReturnTo } from "@/lib/utils/return-to";
 
 const PRIORITY_COLORS: Record<string, string> = {
   high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
@@ -131,6 +131,7 @@ export function ProjectDetailContent() {
   const projectIdentifier = params.id as string;
   const { setPageTitle } = useUIStore();
   const projectReturnTo = getReturnToFromSearchParams(searchParams);
+  const returnToChain = buildReturnToChain(searchParams);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isLinkGoalOpen, setIsLinkGoalOpen] = useState(false);
@@ -1438,7 +1439,7 @@ export function ProjectDetailContent() {
                     areaIcons={goalAreaIcons}
                     onEdit={() =>
                       router.push(
-                        `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(`/projects/${project.slug ?? project.id}`)}`,
+                        `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(`/projects/${project.slug ?? project.id}`)}&chain=${returnToChain}`,
                       )
                     }
                     onRestore={(g) => restoreGoal.mutate(g.id)}
@@ -1551,6 +1552,7 @@ export function ProjectDetailContent() {
               const noteReturnTo = `/projects/${project?.slug ?? project?.id}`;
               const params = new URLSearchParams();
               params.set("returnTo", encodeReturnTo(noteReturnTo));
+              params.set("chain", returnToChain);
               if (project?.id) {
                 params.set("projectId", project.id);
               }
@@ -1575,6 +1577,7 @@ export function ProjectDetailContent() {
                   <NoteRow
                     note={note}
                     returnTo={noteReturnTo}
+                    returnToChain={returnToChain}
                     areas={noteAreas}
                     goalNames={noteGoalNames}
                     projectNames={noteProjectNames}
@@ -1592,6 +1595,8 @@ export function ProjectDetailContent() {
                 const noteReturnTo = `/projects/${project?.slug ?? project?.id}`;
                 const params = new URLSearchParams();
                 params.set("returnTo", encodeReturnTo(noteReturnTo));
+                params.set("chain", returnToChain);
+              params.set("chain", returnToChain);
                 if (project?.id) params.set("projectId", project.id);
                 if (noteTab === "by_area") {
                   params.set("areaId", groupId);
@@ -1617,6 +1622,7 @@ export function ProjectDetailContent() {
                     key={note.id}
                     note={note}
                     returnTo={noteReturnTo}
+                    returnToChain={returnToChain}
                     areas={noteAreas}
                     goalNames={noteGoalNames}
                     projectNames={noteProjectNames}
@@ -1783,6 +1789,7 @@ export function ProjectDetailContent() {
                     onToggleFavorite={handleContactToggleFavorite}
                     onArchive={handleContactArchive}
                     returnTo={buildReturnTo(`/projects/${project.slug ?? project.id}`)}
+                    returnToChain={returnToChain}
                   />
                 </div>
               ))}
