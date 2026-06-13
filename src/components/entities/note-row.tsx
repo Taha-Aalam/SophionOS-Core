@@ -19,6 +19,7 @@ export interface NoteRowAreaInfo {
 interface NoteRowProps {
   note: Note;
   returnTo?: string;
+  returnToChain?: string;
   areas?: NoteRowAreaInfo[];
   goalNames?: string[];
   projectNames?: string[];
@@ -43,6 +44,7 @@ const STATUS_COLORS: Record<string, string> = {
 export function NoteRow({
   note,
   returnTo,
+  returnToChain,
   areas = [],
   goalNames = [],
   projectNames = [],
@@ -58,7 +60,9 @@ export function NoteRow({
   const router = useRouter();
 
   const href = returnTo
-    ? `/notes/${note.slug ?? note.id}?returnTo=${encodeReturnTo(returnTo)}`
+    ? `/notes/${note.slug ?? note.id}?returnTo=${encodeReturnTo(returnTo)}${
+        returnToChain ? `&chain=${returnToChain}` : ""
+      }`
     : `/notes/${note.slug ?? note.id}`;
 
   return (

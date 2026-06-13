@@ -94,7 +94,7 @@ import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
-import { buildReturnTo, encodeReturnTo, getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
+import { buildReturnTo, buildReturnToChain, encodeReturnTo, getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
 import {
   getTaskLinkedAreaIds,
   getTaskLinkedAreaNames,
@@ -132,6 +132,7 @@ export function AreaDetailContent() {
   const { setPageTitle } = useUIStore();
   const areaReturnTo = getReturnToFromSearchParams(searchParams);
   const backTarget = resolveBackNavigation(areaReturnTo, "/areas");
+  const areaReturnToChain = buildReturnToChain(searchParams);
 
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const [goalTab, setGoalTab] = useState("active");
@@ -1231,7 +1232,7 @@ export function AreaDetailContent() {
                     areaName={area.name}
                     areaNames={goalAreaNames.length > 0 ? goalAreaNames : [area.name]}
                     areaIcons={goalAreaIcons.length > 0 ? goalAreaIcons : [area.icon ?? null]}
-                    onEdit={() => router.push(`${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(goalReturnTo)}`)}
+                    onEdit={() => router.push(`${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(goalReturnTo)}&chain=${areaReturnToChain}`)}
                     onRestore={(g) => restoreGoal.mutate(g.id)}
                     onArchive={(g) => archiveGoal.mutate(g.id)}
                     rollups={goalRollups.get(goal.id)}
@@ -1273,7 +1274,7 @@ export function AreaDetailContent() {
             <KanbanBoard
               projects={(areaData?.projects ?? []).filter((p) => !p.is_archived)}
               areas={allAreasList}
-              onProjectClick={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}`)}
+              onProjectClick={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}&chain=${areaReturnToChain}`)}
             />
           ) : projectTab === "by_goal" ? (
             <ProjectsByGoalView
@@ -1281,12 +1282,13 @@ export function AreaDetailContent() {
               areaNames={areaNamesById}
               duplicateIndices={new Map()}
               isLoading={isLoading}
-              onEdit={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}`)}
+              onEdit={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}&chain=${areaReturnToChain}`)}
               onCreateProject={(goalId) => {
                 setNewProjectGoalId(goalId === "unassigned" ? null : goalId);
                 setIsNewProjectOpen(true);
               }}
               returnTo={buildReturnTo(`/areas/${area.slug ?? area.id}`)}
+              returnToChain={areaReturnToChain}
             />
           ) : filteredProjects.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1309,6 +1311,7 @@ export function AreaDetailContent() {
                       projectAreaIcons.length > 0 ? projectAreaIcons : [area.icon ?? null]
                     }
                     returnTo={projectReturnTo}
+                    returnToChain={areaReturnToChain}
                     onArchive={(p) => archiveProject.mutate(p.id)}
                     onRestore={(p) => restoreProject.mutate(p.id)}
                   />
@@ -1427,7 +1430,7 @@ export function AreaDetailContent() {
           isLoading={isLoading}
           emptyTitle="No notes linked to this area"
           emptyDescription="Create a note to capture thoughts for this area."
-          onCreateNew={() => area && router.push(`/notes/new?areaId=${area.id}&returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}`)}
+          onCreateNew={() => area && router.push(`/notes/new?areaId=${area.id}&returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}&chain=${areaReturnToChain}`)}
           createLabel="New Note"
           onLinkExisting={() => setIsLinkNoteOpen(true)}
           linkLabel="Link Note"
@@ -1447,6 +1450,7 @@ export function AreaDetailContent() {
                   <NoteRow
                     note={note}
                     returnTo={noteReturnTo}
+                    returnToChain={areaReturnToChain}
                     areas={noteAreas}
                     goalNames={noteGoalNames}
                     projectNames={noteProjectNames}
@@ -1464,6 +1468,7 @@ export function AreaDetailContent() {
                 const params = new URLSearchParams();
                 params.set("areaId", area.id);
                 params.set("returnTo", encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`)));
+                params.set("chain", areaReturnToChain);
                 if (noteTab === "by_goal") {
                   params.set("goalId", groupId);
                 } else {
@@ -1490,6 +1495,7 @@ export function AreaDetailContent() {
                     key={note.id}
                     note={note}
                     returnTo={noteReturnTo}
+                    returnToChain={areaReturnToChain}
                     areas={noteAreas}
                     goalNames={noteGoalNames}
                     projectNames={noteProjectNames}
@@ -1677,6 +1683,7 @@ export function AreaDetailContent() {
                     onToggleFavorite={handleContactToggleFavorite}
                     onArchive={handleContactArchive}
                     returnTo={buildReturnTo(`/areas/${area.slug ?? area.id}`)}
+                    returnToChain={areaReturnToChain}
                   />
                 </div>
               ))}
