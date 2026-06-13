@@ -75,6 +75,7 @@ interface ContactDetailRelationshipSectionsProps {
   onRestoreGoal?: (goal: Goal) => void;
   onArchiveGoal?: (goal: Goal) => void;
   returnTo: string;
+  returnToChain?: string;
   areaTab: string;
   onAreaTabChange: (tab: string) => void;
   goalTab: string;
@@ -110,6 +111,7 @@ export function ContactDetailRelationshipSections({
   onRestoreGoal,
   onArchiveGoal,
   returnTo,
+  returnToChain,
   areaTab,
   onAreaTabChange,
   goalTab,
@@ -362,6 +364,7 @@ export function ContactDetailRelationshipSections({
                   notesCount={areaCountsMap.get(area.id)?.notes ?? 0}
                   resourcesCount={areaCountsMap.get(area.id)?.resources ?? 0}
                   returnTo={returnTo}
+                  returnToChain={returnToChain}
                 />
                 <Button
                   variant="ghost"
@@ -405,7 +408,7 @@ export function ContactDetailRelationshipSections({
                     rollups={goalRollupsMap.get(goal.id)}
                     onEdit={() =>
                       router.push(
-                        `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(returnTo)}`,
+                        `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(returnTo)}${returnToChain ? `&chain=${returnToChain}` : ""}`,
                       )
                     }
                     onRestore={onRestoreGoal ? (g) => onRestoreGoal(g) : undefined}
@@ -453,6 +456,7 @@ export function ContactDetailRelationshipSections({
                     areaNames={areaNames}
                     areaIcons={areaIcons}
                     returnTo={returnTo}
+                  returnToChain={returnToChain}
                     onArchive={onArchiveProject}
                     onRestore={onRestoreProject}
                   />

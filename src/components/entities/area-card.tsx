@@ -29,6 +29,8 @@ interface AreaCardProps {
   isDeleting?: boolean;
   /** When provided, appended as ?returnTo= to the area detail navigation. */
   returnTo?: string | null;
+  /** When provided, appended as ?chain= to preserve the return-to chain. */
+  returnToChain?: string | null;
 }
 
 const AREA_TYPE_COLORS: Record<string, string> = {
@@ -53,6 +55,7 @@ const AreaCardComponent = ({
   onDelete,
   isDeleting = false,
   returnTo,
+  returnToChain,
 }: AreaCardProps) => {
   const router = useRouter();
   const isArchived = area.archive;
@@ -60,7 +63,8 @@ const AreaCardComponent = ({
   const areaHref = (() => {
     const base = `/areas/${area.slug || area.id}`;
     if (returnTo) {
-      return `${base}?returnTo=${encodeURIComponent(returnTo)}`;
+      const chain = returnToChain ? `&chain=${returnToChain}` : "";
+      return `${base}?returnTo=${encodeURIComponent(returnTo)}${chain}`;
     }
     return base;
   })();
@@ -248,6 +252,7 @@ export const AreaCard = memo(AreaCardComponent, (prevProps, nextProps) => {
     prevProps.isArchiving === nextProps.isArchiving &&
     prevProps.isRestoring === nextProps.isRestoring &&
     prevProps.isDeleting === nextProps.isDeleting &&
-    prevProps.returnTo === nextProps.returnTo
+    prevProps.returnTo === nextProps.returnTo &&
+    prevProps.returnToChain === nextProps.returnToChain
   );
 });
