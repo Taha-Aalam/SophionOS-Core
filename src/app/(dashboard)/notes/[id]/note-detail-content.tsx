@@ -64,7 +64,7 @@ import type { Note, UpdateNoteInput } from "@/lib/types/domain.types";
 import { buildNoteMetadataUpdateInput } from "@/lib/utils/note-detail-metadata";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/stores/ui.store";
-import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
+import { popReturnToHref } from "@/lib/utils/return-to";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -84,7 +84,6 @@ export function NoteDetailContent() {
   const { setPageTitle } = useUIStore();
 
   const searchParams = useSearchParams();
-  const noteReturnTo = decodeReturnTo(searchParams.get("returnTo") || "");
 
   const [localIsArchived, setLocalIsArchived] = useState(false);
   const [optimisticArchivedTarget, setOptimisticArchivedTarget] = useState<boolean | null>(null);
@@ -269,7 +268,7 @@ export function NoteDetailContent() {
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon-sm" onClick={() => router.push(resolveBackNavigation(noteReturnTo, "/notes"))}>
+          <Button variant="ghost" size="icon-sm" onClick={() => router.push(popReturnToHref(searchParams, "/notes"))}>
             <ArrowLeft className="size-4" />
           </Button>
           <span className="text-sm text-muted-foreground">/ Notes / {note.name}</span>

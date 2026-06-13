@@ -108,7 +108,7 @@ import {
   buildAreaContactProjectSections,
   buildContactByAreaSections,
 } from "@/lib/utils/area-detail";
-import { buildReturnTo, buildReturnToChain, encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
+import { buildReturnTo, buildReturnToChain, encodeReturnTo, popReturnToHref, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 
 const TERM_LABELS: Record<string, string> = {
@@ -317,9 +317,9 @@ export function GoalDetailContent() {
     () => resolveGoalDetailNavigation(searchParams, currentPagePathWithSlug),
     [currentPagePathWithSlug, searchParams],
   );
-  const goalBreadcrumbTarget = goalNavigation.breadcrumbTarget;
   const goalNestedReturnTo = goalNavigation.nestedReturnTo;
   const returnToChain = buildReturnToChain(searchParams);
+  const goalBackHref = popReturnToHref(searchParams, "/goals");
   const allowedProjectIds = useMemo(
     () => (goalData?.projects ?? []).map((p) => p.id),
     [goalData?.projects],
@@ -1162,7 +1162,7 @@ export function GoalDetailContent() {
           variant="ghost"
           size="icon"
           className="size-6"
-          onClick={() => router.push(goalBreadcrumbTarget)}
+          onClick={() => router.push(goalBackHref)}
         >
           <ArrowLeft className="size-3.5" />
         </Button>

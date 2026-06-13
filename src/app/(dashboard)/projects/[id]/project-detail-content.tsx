@@ -109,7 +109,7 @@ import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, ge
 import { getResourceLinkedAreaIds, getResourceLinkedProjectIds } from "@/lib/utils/resources";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { buildAreaContactGoalSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections, buildContactByAreaSections } from "@/lib/utils/area-detail";
-import { buildReturnTo, buildReturnToChain, resolveBackNavigation, getReturnToFromSearchParams, encodeReturnTo } from "@/lib/utils/return-to";
+import { buildReturnTo, buildReturnToChain, popReturnToHref, encodeReturnTo } from "@/lib/utils/return-to";
 
 const PRIORITY_COLORS: Record<string, string> = {
   high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
@@ -130,7 +130,7 @@ export function ProjectDetailContent() {
   const searchParams = useSearchParams();
   const projectIdentifier = params.id as string;
   const { setPageTitle } = useUIStore();
-  const projectReturnTo = getReturnToFromSearchParams(searchParams);
+  const backHref = popReturnToHref(searchParams, "/projects");
   const returnToChain = buildReturnToChain(searchParams);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -1140,7 +1140,7 @@ export function ProjectDetailContent() {
           variant="ghost"
           size="icon"
           className="size-6"
-          onClick={() => router.push(resolveBackNavigation(projectReturnTo, "/projects"))}
+          onClick={() => router.push(backHref)}
         >
           <ArrowLeft className="size-3.5" />
         </Button>
