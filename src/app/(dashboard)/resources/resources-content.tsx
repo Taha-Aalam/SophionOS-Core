@@ -69,6 +69,10 @@ export function ResourcesContent() {
   const [topicPopoverOpen, setTopicPopoverOpen] = useState(false);
 
   const { data: allResources = [], isLoading } = useResources({ status: "all" });
+  // Show skeletons only on the first load. On refetch (mutation invalidated the
+  // query, user navigated back to a cached page, etc.) keep showing the cached
+  // data so the list doesn't flash to an empty state and back.
+  const isInitialLoad = isLoading && allResources.length === 0;
   const { data: archivedResources = [] } = useArchivedResources();
   const { data: areas = [] } = useAreas();
   const { data: goals = [] } = useGoals({});
@@ -729,7 +733,7 @@ export function ResourcesContent() {
         {/* Flat list views: All, Inbox, To Review, Active, Favorite, Saved, Archived */}
         {([RESOURCE_VIEW.ALL, RESOURCE_VIEW.INBOX, RESOURCE_VIEW.TO_REVIEW, RESOURCE_VIEW.ACTIVE, RESOURCE_VIEW.FAVORITE, RESOURCE_VIEW.COMPLETED, RESOURCE_VIEW.ARCHIVED] as ResourceView[]).includes(tab) && (
           <TabsContent value={tab} className="mt-4">
-            {isLoading ? (
+            {isInitialLoad ? (
               <div className="flex flex-col">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <ResourceRowSkeleton key={i} />
