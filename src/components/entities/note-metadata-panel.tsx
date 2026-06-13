@@ -174,8 +174,6 @@ export function NoteMetadataPanel({
         if (g.linkedAreaIds?.includes(aId)) fromAreas.add(g.id);
       }
     }
-    // Unassigned (no linkedAreaIds) goals stay visible alongside
-    // area-scoped ones — the user might still want to link them.
     if (areaIds.length > 0) {
       for (const g of activeGoals) {
         if ((g.linkedAreaIds ?? []).length === 0) fromAreas.add(g.id);
@@ -194,7 +192,15 @@ export function NoteMetadataPanel({
         for (const gId of proj?.linkedGoalIds ?? []) fromTasks.add(gId);
       }
     }
-    return filterByIntersection(activeGoals, [fromAreas, fromProjects, fromTasks]);
+    const intersected = new Set(
+      filterByIntersection(activeGoals, [fromAreas, fromProjects, fromTasks]).map((g) => g.id),
+    );
+    if (areaIds.length === 0) return activeGoals.filter((g) => intersected.has(g.id));
+    // When area constraint is active, unassigned goals (no linkedAreaIds) stay visible
+    // even when project/task constraints would otherwise exclude them.
+    return activeGoals.filter(
+      (g) => intersected.has(g.id) || (g.linkedAreaIds ?? []).length === 0,
+    );
   }, [activeGoals, areaIds, projectIds, taskIds, activeProjects, tasks]);
 
   const filteredProjects = useMemo(() => {
@@ -206,8 +212,6 @@ export function NoteMetadataPanel({
         if (p.linkedAreaIds?.includes(aId)) fromAreas.add(p.id);
       }
     }
-    // Unassigned (no linkedAreaIds) projects stay visible alongside
-    // area-scoped ones — the user might still want to attach them.
     if (areaIds.length > 0) {
       for (const p of activeProjects) {
         if ((p.linkedAreaIds ?? []).length === 0) fromAreas.add(p.id);
@@ -224,7 +228,15 @@ export function NoteMetadataPanel({
       const task = tasks.find((t) => t.id === tId);
       if (task?.project_id) fromTasks.add(task.project_id);
     }
-    return filterByIntersection(activeProjects, [fromAreas, fromGoals, fromTasks]);
+    const intersected = new Set(
+      filterByIntersection(activeProjects, [fromAreas, fromGoals, fromTasks]).map((p) => p.id),
+    );
+    if (areaIds.length === 0) return activeProjects.filter((p) => intersected.has(p.id));
+    // When area constraint is active, unassigned projects (no linkedAreaIds) stay visible
+    // even when goal/task constraints would otherwise exclude them.
+    return activeProjects.filter(
+      (p) => intersected.has(p.id) || (p.linkedAreaIds ?? []).length === 0,
+    );
   }, [activeProjects, areaIds, goalIds, taskIds, tasks]);
 
   const filteredTasks = useMemo(() => {
@@ -236,8 +248,6 @@ export function NoteMetadataPanel({
         if (p.linkedAreaIds?.includes(aId)) fromAreas.add(p.id);
       }
     }
-    // Unassigned (no linkedAreaIds) projects still contribute their tasks
-    // — the user might want to attach them across areas.
     if (areaIds.length > 0) {
       for (const p of activeProjects) {
         if ((p.linkedAreaIds ?? []).length === 0) fromAreas.add(p.id);
@@ -252,8 +262,23 @@ export function NoteMetadataPanel({
     const fromProjects = new Set<string>(projectIds);
     const applicable = [fromAreas, fromGoals, fromProjects].filter((s) => s.size > 0);
     if (applicable.length === 0) return tasks;
+    const intersectedProjectIds = new Set(
+      activeProjects.filter((p) => applicable.every((s) => s.has(p.id))).map((p) => p.id),
+    );
+    if (areaIds.length === 0) {
+      return tasks.filter(
+        (t) => t.project_id !== null && intersectedProjectIds.has(t.project_id!),
+      );
+    }
+    // When area constraint is active, tasks belonging to unassigned projects
+    // (no linkedAreaIds) stay visible even when goal/project constraints would exclude them.
+    const unassignedProjectIds = new Set(
+      activeProjects.filter((p) => (p.linkedAreaIds ?? []).length === 0).map((p) => p.id),
+    );
     return tasks.filter(
-      (t) => t.project_id !== null && applicable.every((s) => s.has(t.project_id!)),
+      (t) =>
+        t.project_id !== null &&
+        (intersectedProjectIds.has(t.project_id!) || unassignedProjectIds.has(t.project_id!)),
     );
   }, [tasks, areaIds, goalIds, projectIds, activeProjects]);
 

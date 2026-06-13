@@ -120,14 +120,14 @@ export function computeFilteredProjects<T extends FilterableProject>(
     : null;
 
   return projects.filter((project) => {
+    const projectAreas = getEntityAreaIds(project);
+    // Unassigned projects (no area_id, no linkedAreaIds) stay visible when an
+    // area filter is active — the user can still attach them. When no area
+    // filter is active, they must satisfy the goal/task constraints like any other.
+    if (hasAreas && projectAreas.length === 0) return true;
+
     if (hasAreas) {
-      const projectAreas = getEntityAreaIds(project);
-      // Unassigned (no area_id, no linkedAreaIds) candidates stay visible
-      // alongside area-scoped ones — the user might still want to attach
-      // them. But they must still satisfy the other active constraints.
-      if (projectAreas.length > 0 && !projectAreas.some((aId) => areaSet.has(aId))) {
-        return false;
-      }
+      if (!projectAreas.some((aId) => areaSet.has(aId))) return false;
     }
 
     if (hasGoals && goalProjectIds) {
@@ -191,23 +191,18 @@ export function computeFilteredGoals<T extends FilterableGoal>(
   }
 
   return goals.filter((goal) => {
-    if (projectConstraintActive && !projectGoalSet!.has(goal.id)) return false;
-
-    if (hasTasks && taskGoalIds!.size > 0 && !taskGoalIds!.has(goal.id))
-      return false;
+    const goalAreaIds = getEntityAreaIds(goal);
+    // Unassigned goals stay visible when an area filter is active.
+    // Without an area filter they must satisfy project/task constraints.
+    if (hasAreas && goalAreaIds.length === 0) return true;
 
     if (hasAreas) {
-      // Unassigned (no area_id, no linkedAreaIds) goals stay visible
-      // alongside area-scoped ones — the user might still want to link
-      // them. They must still satisfy project/task constraints above.
-      const goalAreaIds = getEntityAreaIds(goal);
-      if (
-        goalAreaIds.length > 0 &&
-        !selectedAreaIds!.some((aId) => goalMatchesAreaId(goal, aId))
-      ) {
-        return false;
-      }
+      if (!selectedAreaIds!.some((aId) => goalMatchesAreaId(goal, aId))) return false;
     }
+
+    if (projectConstraintActive && !projectGoalSet!.has(goal.id)) return false;
+
+    if (hasTasks && taskGoalIds!.size > 0 && !taskGoalIds!.has(goal.id)) return false;
 
     return true;
   });
@@ -247,12 +242,10 @@ export function computeFilteredTasks<T extends FilterableTask>(
   return tasks.filter((t) => {
     if (hasAreas) {
       const taskAreas = getEntityAreaIds(t);
-      // Unassigned (no area_id, no linkedAreaIds) tasks stay visible
-      // alongside area-scoped ones — the user might still want to attach
-      // them. They must still satisfy project/goal constraints below.
-      if (taskAreas.length > 0 && !taskAreas.some((aId) => areaSet!.has(aId))) {
-        return false;
-      }
+      // Unassigned tasks (no area_id, no linkedAreaIds) are always shown so
+      // the user can still attach them regardless of what area/project/goal is active.
+      if (taskAreas.length === 0) return true;
+      if (!taskAreas.some((aId) => areaSet!.has(aId))) return false;
     }
 
     if (hasProject && t.project_id !== selectedProjectId) return false;
