@@ -7,6 +7,7 @@ import { TaskListItem } from "@/components/entities/task-list-item";
 import { EmptyState } from "@/components/views/empty-state";
 import { CheckSquare } from "lucide-react";
 import type { Task } from "@/lib/types/domain.types";
+import { getTaskLinkedAreaIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 
 export interface TaskGroup {
   groupId: string;
@@ -103,11 +104,11 @@ function CollapsibleTaskGroup({
             <TaskListItem
               key={task.id}
               task={task}
-              areaName={task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
+              areaName={(() => { const id = getTaskLinkedAreaIds(task)[0]; return id ? areaMap.get(id)?.name ?? null : null; })()}
               linkedAreaNames={getLinkedAreaNames(task)}
               linkedAreaIcons={getLinkedAreaIcons(task)}
               linkedGoalNames={getLinkedGoalNames(task)}
-              projectName={task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
+              projectName={(() => { const id = getTaskLinkedProjectIds(task)[0]; return id ? projectMap.get(id)?.name ?? null : null; })()}
               linkedProjectNames={getLinkedProjectNames?.(task)}
               onCompletionToggle={onCompletionToggle}
               onFocusToggle={onFocusToggle}

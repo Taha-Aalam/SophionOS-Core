@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 import { TaskDialog } from "@/components/entities/task-dialog";
-import { TaskListItem } from "@/components/entities/task-list-item";
+import { TaskList } from "@/components/entities/task-list";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
@@ -29,8 +29,11 @@ import type { Task } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
 import {
   getTaskLinkedAreaIds,
-  getTaskLinkedGoalIds,
+  getTaskLinkedAreaNames,
+  getTaskLinkedAreaIcons,
+  getTaskLinkedGoalNames,
   getTaskLinkedProjectIds,
+  getTaskLinkedProjectNames,
 } from "@/lib/utils/tasks";
 
 function TaskRowSkeleton() {
@@ -129,12 +132,24 @@ export function MyDayContent() {
     () => new Map(allAreas?.map((area) => [area.id, area]) ?? []),
     [allAreas],
   );
-  const goalMap = useMemo(
-    () => new Map(allGoals?.map((goal) => [goal.id, goal]) ?? []),
+  const areaNamesMap = useMemo(
+    () => new Map(allAreas?.map((a) => [a.id, a.name]) ?? []),
+    [allAreas],
+  );
+  const areaIconsMap = useMemo(
+    () => new Map(allAreas?.map((a) => [a.id, a.icon ?? null]) ?? []),
+    [allAreas],
+  );
+  const goalNamesMap = useMemo(
+    () => new Map(allGoals?.map((g) => [g.id, g.name]) ?? []),
     [allGoals],
   );
   const projectMap = useMemo(
     () => new Map(allProjects?.map((project) => [project.id, project]) ?? []),
+    [allProjects],
+  );
+  const projectNamesMap = useMemo(
+    () => new Map(allProjects?.map((p) => [p.id, p.name]) ?? []),
     [allProjects],
   );
 
@@ -160,28 +175,6 @@ export function MyDayContent() {
     setEditingTask(task);
     setIsDialogOpen(true);
   };
-
-  const getLinkedAreaIcons = useCallback(
-    (task: Task) =>
-      getTaskLinkedAreaIds(task).map((id) => areaMap.get(id)?.icon ?? null),
-    [areaMap],
-  );
-
-  const getLinkedGoalNames = useCallback(
-    (task: Task) =>
-      getTaskLinkedGoalIds(task)
-        .map((id) => goalMap.get(id)?.name)
-        .filter((n): n is string => Boolean(n)),
-    [goalMap],
-  );
-
-  const getLinkedProjectNames = useCallback(
-    (task: Task) =>
-      getTaskLinkedProjectIds(task)
-        .map((id) => projectMap.get(id)?.name)
-        .filter((n): n is string => Boolean(n)),
-    [projectMap],
-  );
 
   const filteredAvailable = useMemo(() => {
     if (!availableSearch.trim()) return available;
@@ -255,33 +248,31 @@ export function MyDayContent() {
                     No tasks due today.
                   </p>
                 ) : (
-                  <div className="mt-4 divide-y-0">
-                    {myDay.dueToday.map((task) => (
-                      <TaskListItem
-                        key={task.id}
-                        task={task}
-                        areaName={task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
-                        linkedAreaNames={getTaskLinkedAreaIds(task)
-                          .map((id) => areaMap.get(id)?.name)
-                          .filter((n): n is string => Boolean(n))}
-                        linkedAreaIcons={getLinkedAreaIcons(task)}
-                        linkedGoalNames={getLinkedGoalNames(task)}
-                        projectName={task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
-                        linkedProjectNames={getLinkedProjectNames(task)}
-                        onCompletionToggle={(id, isCompleted) => {
-                          if (isCompleted) {
-                            completeTask.mutate(id);
-                          } else {
-                            updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
-                          }
-                        }}
-                        onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
-                        onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
-                        onEdit={handleEdit}
-                        onArchiveToggle={handleArchiveToggle}
-                        onPermanentDelete={handlePermanentDelete}
-                      />
-                    ))}
+                  <div className="mt-4">
+                    <TaskList
+                      tasks={myDay.dueToday}
+                      variant="simple"
+                      getAreaName={(task) => {
+                        const firstId = getTaskLinkedAreaIds(task)[0];
+                        return firstId ? areaMap.get(firstId)?.name ?? null : null;
+                      }}
+                      getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesMap)}
+                      getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsMap)}
+                      getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, goalNamesMap)}
+                      getProjectName={(task) => {
+                        const firstId = getTaskLinkedProjectIds(task)[0];
+                        return firstId ? projectMap.get(firstId)?.name ?? null : null;
+                      }}
+                      getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectNamesMap)}
+                      onCompletionToggle={(id, isCompleted) => {
+                        if (isCompleted) { completeTask.mutate(id); } else { updateTask.mutate({ id, input: { completed_at: null, is_completed: false } }); }
+                      }}
+                      onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
+                      onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+                      onEdit={handleEdit}
+                      onArchiveToggle={handleArchiveToggle}
+                      onPermanentDelete={handlePermanentDelete}
+                    />
                   </div>
                 )}
               </section>
@@ -301,33 +292,31 @@ export function MyDayContent() {
                     No tasks in focus. Star a task below to add it to your day.
                   </p>
                 ) : (
-                  <div className="mt-4 divide-y-0">
-                    {myDay.focused.map((task) => (
-                      <TaskListItem
-                        key={task.id}
-                        task={task}
-                        areaName={task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
-                        linkedAreaNames={getTaskLinkedAreaIds(task)
-                          .map((id) => areaMap.get(id)?.name)
-                          .filter((n): n is string => Boolean(n))}
-                        linkedAreaIcons={getLinkedAreaIcons(task)}
-                        linkedGoalNames={getLinkedGoalNames(task)}
-                        projectName={task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
-                        linkedProjectNames={getLinkedProjectNames(task)}
-                        onCompletionToggle={(id, isCompleted) => {
-                          if (isCompleted) {
-                            completeTask.mutate(id);
-                          } else {
-                            updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
-                          }
-                        }}
-                        onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
-                        onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
-                        onEdit={handleEdit}
-                        onArchiveToggle={handleArchiveToggle}
-                        onPermanentDelete={handlePermanentDelete}
-                      />
-                    ))}
+                  <div className="mt-4">
+                    <TaskList
+                      tasks={myDay.focused}
+                      variant="simple"
+                      getAreaName={(task) => {
+                        const firstId = getTaskLinkedAreaIds(task)[0];
+                        return firstId ? areaMap.get(firstId)?.name ?? null : null;
+                      }}
+                      getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesMap)}
+                      getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsMap)}
+                      getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, goalNamesMap)}
+                      getProjectName={(task) => {
+                        const firstId = getTaskLinkedProjectIds(task)[0];
+                        return firstId ? projectMap.get(firstId)?.name ?? null : null;
+                      }}
+                      getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectNamesMap)}
+                      onCompletionToggle={(id, isCompleted) => {
+                        if (isCompleted) { completeTask.mutate(id); } else { updateTask.mutate({ id, input: { completed_at: null, is_completed: false } }); }
+                      }}
+                      onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
+                      onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+                      onEdit={handleEdit}
+                      onArchiveToggle={handleArchiveToggle}
+                      onPermanentDelete={handlePermanentDelete}
+                    />
                   </div>
                 )}
               </section>
@@ -379,9 +368,9 @@ export function MyDayContent() {
                     <AvailableTaskRow
                       key={task.id}
                       task={task}
-                      areaName={task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
+                      areaName={(() => { const firstId = getTaskLinkedAreaIds(task)[0]; return firstId ? areaMap.get(firstId)?.name ?? null : null; })()}
                       projectName={
-                        task.project_id ? projectMap.get(task.project_id)?.name ?? null : null
+                        (() => { const firstId = getTaskLinkedProjectIds(task)[0]; return firstId ? projectMap.get(firstId)?.name ?? null : null; })()
                       }
                       onAddToDay={() => focusTask.mutate({ id: task.id, is_focused: true })}
                     />

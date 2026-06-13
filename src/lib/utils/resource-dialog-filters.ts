@@ -122,7 +122,12 @@ export function computeFilteredProjects<T extends FilterableProject>(
   return projects.filter((project) => {
     if (hasAreas) {
       const projectAreas = getEntityAreaIds(project);
-      if (!projectAreas.some((aId) => areaSet.has(aId))) return false;
+      // Unassigned (no area_id, no linkedAreaIds) candidates stay visible
+      // alongside area-scoped ones — the user might still want to attach
+      // them. But they must still satisfy the other active constraints.
+      if (projectAreas.length > 0 && !projectAreas.some((aId) => areaSet.has(aId))) {
+        return false;
+      }
     }
 
     if (hasGoals && goalProjectIds) {
@@ -191,11 +196,18 @@ export function computeFilteredGoals<T extends FilterableGoal>(
     if (hasTasks && taskGoalIds!.size > 0 && !taskGoalIds!.has(goal.id))
       return false;
 
-    if (
-      hasAreas &&
-      !selectedAreaIds!.some((aId) => goalMatchesAreaId(goal, aId))
-    )
-      return false;
+    if (hasAreas) {
+      // Unassigned (no area_id, no linkedAreaIds) goals stay visible
+      // alongside area-scoped ones — the user might still want to link
+      // them. They must still satisfy project/task constraints above.
+      const goalAreaIds = getEntityAreaIds(goal);
+      if (
+        goalAreaIds.length > 0 &&
+        !selectedAreaIds!.some((aId) => goalMatchesAreaId(goal, aId))
+      ) {
+        return false;
+      }
+    }
 
     return true;
   });
@@ -235,7 +247,12 @@ export function computeFilteredTasks<T extends FilterableTask>(
   return tasks.filter((t) => {
     if (hasAreas) {
       const taskAreas = getEntityAreaIds(t);
-      if (!taskAreas.some((aId) => areaSet!.has(aId))) return false;
+      // Unassigned (no area_id, no linkedAreaIds) tasks stay visible
+      // alongside area-scoped ones — the user might still want to attach
+      // them. They must still satisfy project/goal constraints below.
+      if (taskAreas.length > 0 && !taskAreas.some((aId) => areaSet!.has(aId))) {
+        return false;
+      }
     }
 
     if (hasProject && t.project_id !== selectedProjectId) return false;

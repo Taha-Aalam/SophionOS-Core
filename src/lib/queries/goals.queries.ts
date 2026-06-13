@@ -77,7 +77,7 @@ async function hydrateGoalProgress(
       .then((result) => result.data ?? []),
     supabase
       .from("goal_resources")
-      .select("goal_id, resource:resources(status, is_archived, project_id)")
+      .select("goal_id, resource_id, resource:resources(id, status, is_archived)")
       .in("goal_id", goalIds)
       .then((result) => result.data ?? []),
   ]);
@@ -85,7 +85,8 @@ async function hydrateGoalProgress(
   type ProjectEntry = Pick<Project, "is_archived" | "progress" | "status"> & { id: string };
   type TaskEntry = Pick<Task, "is_archived" | "is_completed" | "project_id">;
   type NoteEntry = Pick<Note, "is_archived" | "project_id" | "status"> & { id: string };
-  type ResourceEntry = Pick<Resource, "is_archived" | "project_id" | "status">;
+  type ResourceEntry = Pick<Resource, "is_archived" | "status"> & { id: string; linkedProjectIds: string[] };
+  type ResourceLinkRow = { goal_id: string; resource_id: string; resource: { id: string; is_archived: boolean; status: string } | { id: string; is_archived: boolean; status: string }[] | null };
 
   const projectsByGoalId = new Map<string, ProjectEntry[]>();
   for (const link of projectLinks as Array<{ goal_id: string; project: ProjectEntry | ProjectEntry[] | null }>) {
@@ -115,12 +116,38 @@ async function hydrateGoalProgress(
   }
 
   const resourcesByGoalId = new Map<string, ResourceEntry[]>();
-  for (const link of resourceLinks as Array<{ goal_id: string; resource: ResourceEntry | ResourceEntry[] | null }>) {
+  for (const link of (resourceLinks ?? []) as ResourceLinkRow[]) {
     const resource = Array.isArray(link.resource) ? link.resource[0] : link.resource;
     if (!resource) continue;
+    const entry: ResourceEntry = { ...resource, linkedProjectIds: [] } as ResourceEntry;
     const current = resourcesByGoalId.get(link.goal_id) ?? [];
-    current.push(resource);
+    current.push(entry);
     resourcesByGoalId.set(link.goal_id, current);
+  }
+
+  const allGoalResourceIds = Array.from(
+    new Set(Array.from(resourcesByGoalId.values()).flat().map((r) => r.id)),
+  );
+  const resourceProjectIdsByResourceId = new Map<string, Set<string>>();
+  if (allGoalResourceIds.length > 0) {
+    const { data: resourceProjectData } = await supabase
+      .from("resource_projects")
+      .select("resource_id, project_id")
+      .in("resource_id", allGoalResourceIds);
+
+    for (const row of resourceProjectData ?? []) {
+      const current = resourceProjectIdsByResourceId.get(row.resource_id) ?? new Set<string>();
+      current.add(row.project_id);
+      resourceProjectIdsByResourceId.set(row.resource_id, current);
+    }
+
+    for (const resources of resourcesByGoalId.values()) {
+      for (const resource of resources) {
+        resource.linkedProjectIds = Array.from(
+          resourceProjectIdsByResourceId.get(resource.id) ?? [],
+        );
+      }
+    }
   }
 
   const allNoteIds = Array.from(new Set(Array.from(notesByGoalId.values()).flat().map((note) => note.id)));
@@ -165,8 +192,8 @@ async function hydrateGoalProgress(
           .in("project_id", allGoalProjectIds)
           .then((result) => result.data ?? []),
         supabase
-          .from("resources")
-          .select("project_id, status, is_archived")
+          .from("resource_projects")
+          .select("project_id, resource:resources(status, is_archived)")
           .in("project_id", allGoalProjectIds)
           .then((result) => result.data ?? []),
       ]);
@@ -203,11 +230,12 @@ async function hydrateGoalProgress(
       seenNotesByProjectId.set(link.project_id, seen);
     }
 
-    for (const resource of allProjectResources as Array<{ project_id: string | null; is_archived: boolean; status: string }>) {
-      if (!resource.project_id) continue;
-      const current = projectResourcesByProjectId.get(resource.project_id) ?? [];
+    for (const link of allProjectResources as Array<{ project_id: string; resource: { status: string; is_archived: boolean } | { status: string; is_archived: boolean }[] | null }>) {
+      const resource = Array.isArray(link.resource) ? link.resource[0] : link.resource;
+      if (!resource) continue;
+      const current = projectResourcesByProjectId.get(link.project_id) ?? [];
       current.push({ is_archived: resource.is_archived, status: resource.status });
-      projectResourcesByProjectId.set(resource.project_id, current);
+      projectResourcesByProjectId.set(link.project_id, current);
     }
   }
 
@@ -233,8 +261,8 @@ async function hydrateGoalProgress(
 
       const completed =
         projectTasks.filter((task) => task.is_completed).length +
-        projectNotes.filter((note) => note.status === "saved").length +
-        projectResources.filter((resource) => resource.status === "saved").length;
+        projectNotes.filter((note) => note.status === "completed").length +
+        projectResources.filter((resource) => resource.status === "completed").length;
 
       return {
         ...project,
@@ -270,9 +298,10 @@ async function hydrateGoalProgress(
     const unlinkedResources =
       goalProjectIds.size === 0
         ? goalResources
-        : goalResources.filter(
-            (resource) => !resource.project_id || !goalProjectIds.has(resource.project_id),
-          );
+        : goalResources.filter((resource) => {
+            const projectIds = resource.linkedProjectIds ?? [];
+            return !projectIds.some((pId) => goalProjectIds.has(pId));
+          });
 
     return {
       ...goal,
@@ -354,13 +383,13 @@ async function hydrateGoalRollupCounts(
       noteLinks as Array<{ goal_id: string } & Record<string, unknown>>,
       goal.id,
       "note",
-      (entity) => !entity.is_archived && entity.status !== "archive" && entity.status !== "saved",
+      (entity) => !entity.is_archived && entity.status !== "archive" && entity.status !== "completed",
     ),
     resourceCount: countFor(
       resourceLinks as Array<{ goal_id: string } & Record<string, unknown>>,
       goal.id,
       "resource",
-      (entity) => !entity.is_archived && entity.status !== "saved",
+      (entity) => !entity.is_archived && entity.status !== "completed",
     ),
   }));
 }

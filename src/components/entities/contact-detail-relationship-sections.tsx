@@ -554,8 +554,9 @@ export function ContactDetailRelationshipSections({
                 areaIds,
                 areaLookup,
               );
-              const projectName = task.project_id
-                ? allProjects.find((p) => p.id === task.project_id)?.name ?? null
+              const projectId = getTaskLinkedProjectIds(task)[0];
+              const projectName = projectId
+                ? allProjects.find((p) => p.id === projectId)?.name ?? null
                 : null;
               return (
                 <TaskListItem
@@ -563,9 +564,9 @@ export function ContactDetailRelationshipSections({
                   task={task}
                   linkedAreaNames={linkedAreaNames}
                   linkedAreaIcons={linkedAreaIcons}
-                  linkedGoalNames={task.linkedGoalIds?.map((id) => allGoals.find((g) => g.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
+                  linkedGoalNames={getTaskLinkedGoalIds(task).map((id) => allGoals.find((g) => g.id === id)?.name).filter((n): n is string => Boolean(n))}
                   projectName={projectName}
-                  linkedProjectNames={task.linkedProjectIds?.map((id) => allProjects.find((p) => p.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
+                  linkedProjectNames={getTaskLinkedProjectIds(task).map((id) => allProjects.find((p) => p.id === id)?.name).filter((n): n is string => Boolean(n))}
                   onCompletionToggle={onTaskCompletionToggle}
                   onFocusToggle={onTaskFocusToggle}
                   onNameSave={onTaskNameSave}

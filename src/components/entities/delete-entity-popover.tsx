@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from "react";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { Trash2 } from "lucide-react";
-
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -12,8 +13,6 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 /** Lowercase singular label used for titles and button copy, e.g. "task", "area". */
 export type DeleteEntityLabel =
@@ -39,15 +38,58 @@ interface DeleteEntityPopoverProps {
   onConfirm: () => void;
 }
 
-const LABELS: Record<DeleteEntityLabel, { title: string; verb: string; rowAria: string; detailLabel: string }> = {
-  task: { title: "Delete this task?", verb: "Delete", rowAria: "Delete task permanently", detailLabel: "Delete permanently" },
-  area: { title: "Delete this area?", verb: "Delete", rowAria: "Delete area permanently", detailLabel: "Delete" },
-  goal: { title: "Delete this goal?", verb: "Delete", rowAria: "Delete goal permanently", detailLabel: "Delete" },
-  project: { title: "Delete this project?", verb: "Delete", rowAria: "Delete project permanently", detailLabel: "Delete" },
-  note: { title: "Delete this note?", verb: "Delete", rowAria: "Delete note permanently", detailLabel: "Delete note permanently" },
-  resource: { title: "Delete this resource?", verb: "Delete", rowAria: "Delete resource permanently", detailLabel: "Delete resource permanently" },
-  contact: { title: "Delete this contact?", verb: "Delete", rowAria: "Delete contact permanently", detailLabel: "Delete contact permanently" },
-  topic: { title: "Delete this topic?", verb: "Delete", rowAria: "Delete topic permanently", detailLabel: "Delete" },
+const LABELS: Record<
+  DeleteEntityLabel,
+  { title: string; verb: string; rowAria: string; detailLabel: string }
+> = {
+  task: {
+    title: "Delete this task?",
+    verb: "Delete",
+    rowAria: "Delete task permanently",
+    detailLabel: "Delete permanently",
+  },
+  area: {
+    title: "Delete this area?",
+    verb: "Delete",
+    rowAria: "Delete area permanently",
+    detailLabel: "Delete",
+  },
+  goal: {
+    title: "Delete this goal?",
+    verb: "Delete",
+    rowAria: "Delete goal permanently",
+    detailLabel: "Delete",
+  },
+  project: {
+    title: "Delete this project?",
+    verb: "Delete",
+    rowAria: "Delete project permanently",
+    detailLabel: "Delete",
+  },
+  note: {
+    title: "Delete this note?",
+    verb: "Delete",
+    rowAria: "Delete note permanently",
+    detailLabel: "Delete",
+  },
+  resource: {
+    title: "Delete this resource?",
+    verb: "Delete",
+    rowAria: "Delete resource permanently",
+    detailLabel: "Delete resource permanently",
+  },
+  contact: {
+    title: "Delete this contact?",
+    verb: "Delete",
+    rowAria: "Delete contact permanently",
+    detailLabel: "Delete contact permanently",
+  },
+  topic: {
+    title: "Delete this topic?",
+    verb: "Delete",
+    rowAria: "Delete topic permanently",
+    detailLabel: "Delete",
+  },
 };
 
 /**
@@ -128,7 +170,8 @@ export function DeleteEntityPopover({
             {copy.title}
           </PopoverTitle>
           <PopoverDescription className="text-xs text-muted-foreground">
-            <span className="line-clamp-2">“{entityName}”</span> will be removed permanently. This cannot be undone.
+            <span className="line-clamp-2">“{entityName}”</span> will be removed permanently. This
+            cannot be undone.
           </PopoverDescription>
         </PopoverHeader>
 

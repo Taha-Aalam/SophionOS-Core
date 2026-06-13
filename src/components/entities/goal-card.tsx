@@ -130,6 +130,16 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
                   copy {duplicateIndex}
                 </Badge>
               )}
+              {rollups && rollups.projectCount === 0 && rollups.taskCount === 0 && rollups.noteCount === 0 && rollups.resourceCount === 0 && !goal.is_archived && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  No activity
+                </Badge>
+              )}
+              {goal.is_inactive && rollups && (rollups.projectCount > 0 || rollups.taskCount > 0 || rollups.noteCount > 0 || rollups.resourceCount > 0) && !goal.is_archived && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  Paused
+                </Badge>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mt-2">

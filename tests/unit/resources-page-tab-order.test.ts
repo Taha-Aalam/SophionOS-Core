@@ -27,7 +27,6 @@ describe("resources page tab order", () => {
       "By Area",
       "By Goal",
       "By Project",
-      "Saved",
       "Archived",
     ];
 

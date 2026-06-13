@@ -164,7 +164,7 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
       .in("goal_id", goalIds),
     createClient()
       .from("goal_resources")
-      .select("goal_id, resource:resources(status, is_archived, project_id)")
+      .select("goal_id, resource:resources(id, status, is_archived)")
       .in("goal_id", goalIds),
   ]);
 
@@ -176,7 +176,10 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
   type ProjectEntry = Pick<Project, "is_archived" | "status" | "progress"> & { id: string };
   type TaskEntry = Pick<Task, "is_archived" | "is_completed" | "project_id">;
   type NoteEntry = Pick<Note, "is_archived" | "status"> & { id: string; project_id: string | null };
-  type ResourceEntry = Pick<Resource, "is_archived" | "status"> & { project_id: string | null };
+  type ResourceEntry = Pick<Resource, "is_archived" | "status"> & {
+    id: string;
+    linkedProjectIds: string[];
+  };
 
   const projectsByGoalId = new Map<string, ProjectEntry[]>();
   for (const link of projectLinks ?? []) {
@@ -225,11 +228,38 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
     if (!r) continue;
     const current = resourcesByGoalId.get(link.goal_id) ?? [];
     current.push({
+      id: r.id,
       is_archived: r.is_archived,
       status: r.status as Resource["status"],
-      project_id: r.project_id,
+      linkedProjectIds: [],
     });
     resourcesByGoalId.set(link.goal_id, current);
+  }
+
+  // For goal-linked resources: fetch their resource_projects junction entries
+  // to detect which goal projects they belong to (for unlinked-item filtering).
+  const allResourceIds = [...resourcesByGoalId.values()].flat().map((r) => r.id);
+  const resourceProjectIdsByResourceId = new Map<string, Set<string>>();
+  if (allResourceIds.length > 0) {
+    const { data: resourceProjectData, error: resourceProjectError } = await createClient()
+      .from("resource_projects")
+      .select("resource_id, project_id")
+      .in("resource_id", allResourceIds);
+    if (resourceProjectError && resourceProjectError.code !== "42P01") {
+      throw new DatabaseError(resourceProjectError.message);
+    }
+    for (const row of resourceProjectData ?? []) {
+      const set = resourceProjectIdsByResourceId.get(row.resource_id) ?? new Set<string>();
+      set.add(row.project_id);
+      resourceProjectIdsByResourceId.set(row.resource_id, set);
+    }
+    for (const entries of resourcesByGoalId.values()) {
+      for (const entry of entries) {
+        entry.linkedProjectIds = Array.from(
+          resourceProjectIdsByResourceId.get(entry.id) ?? [],
+        );
+      }
+    }
   }
 
   // For goal-linked notes: fetch their note_projects junction entries to detect
@@ -287,8 +317,8 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
         .select("project_id, note:notes(id, status, is_archived)")
         .in("project_id", allGoalProjectIds),
       createClient()
-        .from("resources")
-        .select("project_id, status, is_archived")
+        .from("resource_projects")
+        .select("project_id, resource:resources(status, is_archived)")
         .in("project_id", allGoalProjectIds),
     ]);
 
@@ -333,11 +363,12 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
       seenNotesByProject.set(jlink.project_id, seen);
     }
 
-    for (const r of allProjResources ?? []) {
-      if (!r.project_id) continue;
-      const arr = projectResourcesByProjectId.get(r.project_id) ?? [];
-      arr.push({ status: r.status as string, is_archived: r.is_archived });
-      projectResourcesByProjectId.set(r.project_id, arr);
+    for (const link of allProjResources ?? []) {
+      const resource = Array.isArray(link.resource) ? link.resource[0] : link.resource;
+      if (!resource || !link.project_id) continue;
+      const arr = projectResourcesByProjectId.get(link.project_id) ?? [];
+      arr.push({ status: resource.status as string, is_archived: resource.is_archived });
+      projectResourcesByProjectId.set(link.project_id, arr);
     }
   }
 
@@ -365,8 +396,8 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
       }
       const pCompleted =
         pTasks.filter((t) => t.is_completed).length +
-        pNotes.filter((n) => n.status === "saved").length +
-        pResources.filter((r) => r.status === "saved").length;
+        pNotes.filter((n) => n.status === "completed").length +
+        pResources.filter((r) => r.status === "completed").length;
       return { ...p, progress: Math.round((pCompleted / pTotal) * 100) };
     });
 
@@ -394,7 +425,11 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
     const unlinkedResources =
       goalProjectIds.size === 0
         ? allResources
-        : allResources.filter((r) => !r.project_id || !goalProjectIds.has(r.project_id));
+        : allResources.filter(
+            (r) =>
+              r.linkedProjectIds.length === 0 ||
+              !r.linkedProjectIds.some((pid) => goalProjectIds.has(pid)),
+          );
 
     return {
       ...goal,
@@ -462,8 +497,8 @@ async function hydrateGoalRollupCounts(goals: Goal[]): Promise<Goal[]> {
       ...goal,
       projectCount: countFor(projectLinks, id, "project", (e) => !e.is_archived && e.status !== "completed"),
       taskCount: countFor(taskLinks, id, "task", (e) => !e.is_archived && !e.is_completed),
-      noteCount: countFor(noteLinks, id, "note", (e) => !e.is_archived && e.status !== "archive" && e.status !== "saved"),
-      resourceCount: countFor(resourceLinks, id, "resource", (e) => !e.is_archived && e.status !== "saved"),
+      noteCount: countFor(noteLinks, id, "note", (e) => !e.is_archived && e.status !== "archive" && e.status !== "completed"),
+      resourceCount: countFor(resourceLinks, id, "resource", (e) => !e.is_archived && e.status !== "completed"),
     };
   });
 }
@@ -510,7 +545,7 @@ export const goalService = {
     } else if (filters.status === "completed") {
       query = query.eq("is_completed", true).eq("is_archived", false);
     } else if (filters.status === "inactive") {
-      query = query.eq("is_archived", true);
+      query = query.eq("is_completed", false).eq("is_archived", false);
     } else if (filters.status === "archived") {
       query = query.eq("is_archived", true);
     }

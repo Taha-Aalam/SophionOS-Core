@@ -66,6 +66,7 @@ vi.mock("@/lib/hooks/use-areas", () => ({
 
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+  useQuery: () => ({ data: [], isLoading: false }),
 }));
 
 vi.mock("@/lib/hooks/use-tasks", () => ({
@@ -134,6 +135,7 @@ vi.mock("@/lib/hooks/use-resources", () => ({
   useUpdateResource: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
   useArchiveResource: () => ({ mutateAsync: vi.fn() }),
   useUnarchiveResource: () => ({ mutateAsync: vi.fn() }),
+  useDeleteResource: () => ({ mutateAsync: vi.fn() }),
 }));
 
 vi.mock("@/components/entities/project-dialog", () => ({

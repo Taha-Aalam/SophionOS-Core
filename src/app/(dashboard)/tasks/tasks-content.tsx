@@ -19,7 +19,7 @@ import {
 import React, { useCallback, useMemo, useState } from "react";
 
 import { TaskDialog } from "@/components/entities/task-dialog";
-import { TaskListItem } from "@/components/entities/task-list-item";
+import { TaskList } from "@/components/entities/task-list";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -54,8 +54,12 @@ import { cn } from "@/lib/utils";
 import {
   getTaskCounts,
   getTaskLinkedAreaIds,
+  getTaskLinkedAreaNames,
+  getTaskLinkedAreaIcons,
   getTaskLinkedGoalIds,
+  getTaskLinkedGoalNames,
   getTaskLinkedProjectIds,
+  getTaskLinkedProjectNames,
   getVisibleTasks,
   TASK_VIEW,
   type TaskView,
@@ -118,12 +122,28 @@ export function TasksContent() {
     () => new Map(allAreas?.map((area) => [area.id, area]) ?? []),
     [allAreas],
   );
+  const areaNamesMap = useMemo(
+    () => new Map(allAreas?.map((a) => [a.id, a.name]) ?? []),
+    [allAreas],
+  );
+  const areaIconsMap = useMemo(
+    () => new Map(allAreas?.map((a) => [a.id, a.icon ?? null]) ?? []),
+    [allAreas],
+  );
   const goalMap = useMemo(
     () => new Map(allGoals?.map((goal) => [goal.id, goal]) ?? []),
     [allGoals],
   );
+  const goalNamesMap = useMemo(
+    () => new Map(allGoals?.map((g) => [g.id, g.name]) ?? []),
+    [allGoals],
+  );
   const projectMap = useMemo(
     () => new Map(allProjects?.map((project) => [project.id, project]) ?? []),
+    [allProjects],
+  );
+  const projectNamesMap = useMemo(
+    () => new Map(allProjects?.map((p) => [p.id, p.name]) ?? []),
     [allProjects],
   );
 
@@ -697,44 +717,32 @@ export function TasksContent() {
                 }
               />
             ) : (
-              <div className="divide-y-0">
-                {visibleTasks.map((task) => (
-                  <TaskListItem
-                    key={task.id}
-                    task={task}
-                    areaName={task.area_id ? areaMap.get(task.area_id)?.name : null}
-                    linkedAreaNames={getTaskLinkedAreaIds(task)
-                      .map((id) => areaMap.get(id)?.name)
-                      .filter((n): n is string => Boolean(n))}
-                    linkedAreaIcons={getLinkedAreaIcons(task)}
-                    linkedGoalNames={getTaskLinkedGoalIds(task)
-                      .map((id) => goalMap.get(id)?.name)
-                      .filter((n): n is string => Boolean(n))}
-                    projectName={task.project_id ? projectMap.get(task.project_id)?.name : null}
-                    linkedProjectNames={getLinkedProjectNames(task)}
-                    showSmartPriority={tab === TASK_VIEW.SMART_PRIORITY}
-                    onCompletionToggle={(id, isCompleted) => {
-                      if (isCompleted) {
-                        completeTask.mutate(id);
-                        return;
-                      }
-
-                      updateTask.mutate({
-                        id,
-                        input: {
-                          completed_at: null,
-                          is_completed: false,
-                        },
-                      });
-                    }}
-                    onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
-                    onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
-                    onEdit={handleEdit}
-                    onArchiveToggle={handleArchiveToggle}
-                    onPermanentDelete={handlePermanentDelete}
-                  />
-                ))}
-              </div>
+              <TaskList
+                tasks={visibleTasks}
+                variant="simple"
+                getAreaName={(task) => { const id = getTaskLinkedAreaIds(task)[0]; return id ? areaMap.get(id)?.name ?? null : null; }}
+                getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesMap)}
+                getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsMap)}
+                getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, goalNamesMap)}
+                getProjectName={(task) => { const id = getTaskLinkedProjectIds(task)[0]; return id ? projectMap.get(id)?.name ?? null : null; }}
+                getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectNamesMap)}
+                showSmartPriority={tab === TASK_VIEW.SMART_PRIORITY}
+                onCompletionToggle={(id, isCompleted) => {
+                  if (isCompleted) {
+                    completeTask.mutate(id);
+                    return;
+                  }
+                  updateTask.mutate({
+                    id,
+                    input: { completed_at: null, is_completed: false },
+                  });
+                }}
+                onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
+                onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+                onEdit={handleEdit}
+                onArchiveToggle={handleArchiveToggle}
+                onPermanentDelete={handlePermanentDelete}
+              />
             )}
           </TabsContent>
         ))}
@@ -835,29 +843,25 @@ export function TasksContent() {
               description="Archived tasks will appear here. Use the archive icon on a task row to archive it."
             />
           ) : (
-            <div className="divide-y-0">
-              {archivedTasks.map((task) => (
-                <TaskListItem
-                  key={task.id}
-                  task={task}
-                  areaName={task.area_id ? areaMap.get(task.area_id)?.name ?? null : null}
-                  linkedAreaNames={getLinkedAreaNames(task)}
-                  linkedAreaIcons={getLinkedAreaIcons(task)}
-                  linkedGoalNames={getLinkedGoalNames(task)}
-                  projectName={task.project_id ? projectMap.get(task.project_id)?.name ?? null : null}
-                  linkedProjectNames={getLinkedProjectNames(task)}
-                  onCompletionToggle={(id, isCompleted) => {
-                    if (isCompleted) { completeTask.mutate(id); return; }
-                    updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
-                  }}
-                  onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
-                  onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
-                  onEdit={handleEdit}
-                  onArchiveToggle={handleArchiveToggle}
-                  onPermanentDelete={handlePermanentDelete}
-                />
-              ))}
-            </div>
+            <TaskList
+              tasks={archivedTasks}
+              variant="simple"
+              getAreaName={(task) => { const id = getTaskLinkedAreaIds(task)[0]; return id ? areaMap.get(id)?.name ?? null : null; }}
+              getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesMap)}
+              getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsMap)}
+              getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, goalNamesMap)}
+              getProjectName={(task) => { const id = getTaskLinkedProjectIds(task)[0]; return id ? projectMap.get(id)?.name ?? null : null; }}
+              getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectNamesMap)}
+              onCompletionToggle={(id, isCompleted) => {
+                if (isCompleted) { completeTask.mutate(id); return; }
+                updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
+              }}
+              onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
+              onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+              onEdit={handleEdit}
+              onArchiveToggle={handleArchiveToggle}
+              onPermanentDelete={handlePermanentDelete}
+            />
           )}
         </TabsContent>
       </Tabs>

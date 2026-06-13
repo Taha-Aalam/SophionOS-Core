@@ -258,7 +258,7 @@ function extractTaskProjectIds<
 } {
   const { project_ids, project_id, ...rest } = input;
 
-  if (project_ids !== undefined && project_ids.length > 0) {
+  if (project_ids !== undefined) {
     const normalizedProjectIds = dedupeProjectIds(project_ids);
     return {
       projectIds: normalizedProjectIds,

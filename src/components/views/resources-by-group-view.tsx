@@ -26,6 +26,7 @@ interface ResourcesByGroupViewProps {
   onUnarchive: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (resource: Resource) => void;
+  onSaveStatusChange?: (id: string, saved: boolean) => void;
   onNewResource?: (groupId: string) => void;
   emptyMessage?: string;
 }
@@ -42,6 +43,7 @@ function CollapsibleResourceGroup({
   onUnarchive,
   onDelete,
   onEdit,
+  onSaveStatusChange,
   onNewResource,
   defaultOpen = true,
 }: {
@@ -56,6 +58,7 @@ function CollapsibleResourceGroup({
   onUnarchive: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (resource: Resource) => void;
+  onSaveStatusChange?: (id: string, saved: boolean) => void;
   onNewResource?: (groupId: string) => void;
   defaultOpen?: boolean;
 }) {
@@ -106,6 +109,7 @@ function CollapsibleResourceGroup({
               onUnarchive={onUnarchive}
               onDelete={onDelete}
               onEdit={onEdit}
+              onSaveStatusChange={onSaveStatusChange}
             />
           ))}
           {onNewResource && group.groupId !== "unassigned" && (
@@ -135,6 +139,7 @@ export function ResourcesByGroupView({
   onUnarchive,
   onDelete,
   onEdit,
+  onSaveStatusChange,
   onNewResource,
   emptyMessage = "No resources in this view.",
 }: ResourcesByGroupViewProps) {
@@ -169,6 +174,7 @@ export function ResourcesByGroupView({
           onUnarchive={onUnarchive}
           onDelete={onDelete}
           onEdit={onEdit}
+          onSaveStatusChange={onSaveStatusChange}
           onNewResource={onNewResource}
           defaultOpen={group.groupId !== "unassigned"}
         />
