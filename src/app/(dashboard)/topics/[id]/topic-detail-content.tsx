@@ -52,7 +52,7 @@ import { useTasks } from "@/lib/hooks/use-tasks";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds } from "@/lib/utils/notes";
 import { getResourceLinkedProjectIds } from "@/lib/utils/resources";
 import { useUIStore } from "@/lib/stores/ui.store";
-import { buildReturnToChain, decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
+import { buildReturnToChain, popReturnToHref } from "@/lib/utils/return-to";
 import { cn } from "@/lib/utils";
 
 export function TopicDetailContent() {
@@ -98,8 +98,7 @@ export function TopicDetailContent() {
   const { data: allResources = [] } = useResources({});
 
   const searchParams = useSearchParams();
-  const topicReturnTo = decodeReturnTo(searchParams.get("returnTo") || "");
-  const backTarget = resolveBackNavigation(topicReturnTo, "/topics");
+  const backHref = popReturnToHref(searchParams, "/topics");
 
   useEffect(() => {
     if (topic) {
@@ -116,13 +115,13 @@ export function TopicDetailContent() {
   const handleDelete = async () => {
     if (!topic) return;
     await deleteTopic.mutateAsync(topic.id);
-    router.push(backTarget);
+    router.push(backHref);
   };
 
   const handleArchive = async () => {
     if (!topic) return;
     await archiveTopic.mutateAsync(topic.id);
-    router.push(backTarget);
+    router.push(backHref);
   };
 
   const handleLinkNotes = async () => {
@@ -254,7 +253,7 @@ export function TopicDetailContent() {
           title="Topic not found"
           description="This topic doesn't exist or you don't have access to it"
           actionLabel="Go Back"
-          onAction={() => router.push(backTarget)}
+          onAction={() => router.push(backHref)}
         />
       </div>
     );
@@ -268,7 +267,7 @@ export function TopicDetailContent() {
           variant="ghost"
           size="icon"
           className="size-6"
-          onClick={() => router.push(backTarget)}
+          onClick={() => router.push(backHref)}
         >
           <ArrowLeft className="size-3.5" />
         </Button>

@@ -65,7 +65,7 @@ import { contactService } from "@/lib/services/contact.service";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { mergeProjectQueryResults } from "@/lib/utils/projects";
 import { resolveLinkedProjectsAcrossStatuses } from "@/lib/utils/contact-detail-relations";
-import { buildReturnToChain, getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
+import { buildReturnToChain, popReturnToHref } from "@/lib/utils/return-to";
 
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -160,8 +160,7 @@ export function ContactDetailContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const contactSlug = params.id as string;
-  const contactReturnToParam = getReturnToFromSearchParams(searchParams);
-  const backTarget = resolveBackNavigation(contactReturnToParam, "/contacts");
+  const backHref = popReturnToHref(searchParams, "/contacts");
   const returnToChain = buildReturnToChain(searchParams);
 
   const { setPageTitle } = useUIStore();
@@ -326,7 +325,7 @@ export function ContactDetailContent() {
           title="Contact not found"
           description="This contact may have been deleted or the link is incorrect."
           actionLabel="Back to Contacts"
-          onAction={() => router.push(backTarget)}
+          onAction={() => router.push(backHref)}
         />
       </div>
     );
@@ -390,7 +389,7 @@ export function ContactDetailContent() {
             variant="ghost"
             size="icon"
             className="size-6"
-            onClick={() => router.push(backTarget)}
+            onClick={() => router.push(backHref)}
           >
             <ArrowLeft className="size-3.5" />
           </Button>

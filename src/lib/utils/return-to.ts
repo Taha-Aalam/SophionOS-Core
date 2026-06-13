@@ -185,3 +185,32 @@ export function popReturnToChain(searchParams: URLSearchParams): {
     chain: rest.slice(1),
   };
 }
+
+// Compute the Back-button href from the current page's URL state.
+//
+// Three cases:
+// 1. No incoming returnTo and no chain -> fresh visit, send user to the fallback
+//    (e.g. "/goals") with no params, matching the legacy resolveBackNavigation
+//    behavior.
+// 2. Incoming returnTo with empty chain -> back goes to the immediate
+//    predecessor; that destination is the "last" page, so no chain param is
+//    appended (keeps the URL clean).
+// 3. Incoming returnTo with non-empty chain -> pop the head off the helper view
+//    [returnTo, ...chain], producing (returnTo = chain[0], chain = rest). The
+//    destination then renders its own Back button using the new state.
+export function popReturnToHref(
+  searchParams: URLSearchParams,
+  fallback: string,
+): string {
+  const { returnTo: nextReturnTo, chain: nextChain } = popReturnToChain(searchParams);
+  if (!nextReturnTo) {
+    return fallback;
+  }
+
+  const params = new URLSearchParams();
+  params.set("returnTo", encodeReturnTo(nextReturnTo));
+  if (nextChain.length > 0) {
+    params.set("chain", encodeReturnToChain(nextChain));
+  }
+  return `${fallback}?${params.toString()}`;
+}
