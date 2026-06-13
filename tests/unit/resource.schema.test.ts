@@ -67,7 +67,7 @@ describe("resource.service", () => {
         status: "to_review",
         favorite: true,
         area_id: null,
-        project_id: null,
+        project_ids: [],
         topic_id: null,
       });
       expect(result.name).toBe("My Resource");

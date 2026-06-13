@@ -50,6 +50,7 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds } from "@/lib/utils/notes";
+import { getResourceLinkedProjectIds } from "@/lib/utils/resources";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
 import { cn } from "@/lib/utils";
@@ -172,7 +173,6 @@ export function TopicDetailContent() {
   const goalNamesMap = useMemo(() => new Map(allGoals.map((g) => [g.id, g.name])), [allGoals]);
   const projectNamesMap = useMemo(() => new Map(allProjects.map((p) => [p.id, p.name])), [allProjects]);
   const taskNamesMap = useMemo(() => new Map(allTasks.map((t) => [t.id, t.name])), [allTasks]);
-
   const linkableNotes = useMemo(() => {
     const linkedNoteIds = new Set(notes.map((n) => n.id));
     const unlinked = allNotes.filter((n) => !linkedNoteIds.has(n.id));
@@ -192,7 +192,7 @@ export function TopicDetailContent() {
     { value: "inbox", label: "Inbox" },
     { value: "to_review", label: "To Review" },
     { value: "active", label: "Active" },
-    { value: "saved", label: "Saved" },
+    { value: "completed", label: "Completed" },
     { value: "archived", label: "Archived" },
   ], []);
 
@@ -201,7 +201,7 @@ export function TopicDetailContent() {
       case "inbox": return notes.filter((n) => n.status === "inbox" && !n.is_archived);
       case "to_review": return notes.filter((n) => n.status === "to_review" && !n.is_archived);
       case "active": return notes.filter((n) => n.status === "active" && !n.is_archived);
-      case "saved": return notes.filter((n) => n.status === "saved" && !n.is_archived);
+      case "completed": return notes.filter((n) => n.status === "completed" && !n.is_archived);
       case "archived": return notes.filter((n) => n.is_archived);
       default: return notes.filter((n) => !n.is_archived);
     }
@@ -212,7 +212,7 @@ export function TopicDetailContent() {
     { value: "inbox", label: "Inbox" },
     { value: "to_review", label: "To Review" },
     { value: "active", label: "Active" },
-    { value: "saved", label: "Saved" },
+    { value: "completed", label: "Completed" },
     { value: "archived", label: "Archived" },
   ], []);
 
@@ -221,7 +221,7 @@ export function TopicDetailContent() {
       case "inbox": return resources.filter((r) => r.status === "inbox" && !r.is_archived);
       case "to_review": return resources.filter((r) => r.status === "to_review" && !r.is_archived);
       case "active": return resources.filter((r) => r.status === "active" && !r.is_archived);
-      case "saved": return resources.filter((r) => r.status === "saved" && !r.is_archived);
+      case "completed": return resources.filter((r) => r.status === "completed" && !r.is_archived);
       case "archived": return resources.filter((r) => r.is_archived);
       default: return resources.filter((r) => !r.is_archived);
     }
@@ -481,9 +481,9 @@ export function TopicDetailContent() {
               const resourceGoalNames = (resource.linkedGoalIds ?? [])
                 .map((id) => goalNamesMap.get(id))
                 .filter((name): name is string => Boolean(name));
-              const resourceProjectNames = resource.project_id
-                ? [projectNamesMap.get(resource.project_id)].filter((n): n is string => Boolean(n))
-                : [];
+              const resourceProjectNames = getResourceLinkedProjectIds(resource)
+                .map((id) => projectNamesMap.get(id))
+                .filter((n): n is string => Boolean(n));
               const resourceTaskNames = (resource.linkedTaskIds ?? [])
                 .map((id) => taskNamesMap.get(id))
                 .filter((name): name is string => Boolean(name));
@@ -499,6 +499,7 @@ export function TopicDetailContent() {
                   onToggleFavorite={(id, favorite) =>
                     toggleFavoriteResource.mutate({ id, favorite })
                   }
+                  onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                   onArchive={(id) => archiveResource.mutate(id)}
                   onUnarchive={(id) => unarchiveResource.mutate(id)}
                   onDelete={(id) => deleteResource.mutate(id)}

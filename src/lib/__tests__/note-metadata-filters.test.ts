@@ -35,18 +35,21 @@ const ALL_AREAS = [A1, A2, A3];
 const P1 = project("proj-1", { linkedAreaIds: ["area-1"], linkedGoalIds: ["goal-1"] });
 const P2 = project("proj-2", { linkedAreaIds: ["area-2"], linkedGoalIds: ["goal-2"] });
 const P3 = project("proj-3", { linkedAreaIds: ["area-1"] });
-const ALL_PROJECTS = [P1, P2, P3];
+const P4 = project("proj-4", {}); // unassigned — no linkedAreaIds, no linkedGoalIds
+const ALL_PROJECTS = [P1, P2, P3, P4];
 
 const G1 = goal("goal-1", { linkedAreaIds: ["area-1"] });
 const G2 = goal("goal-2", { linkedAreaIds: ["area-2"] });
 const G3 = goal("goal-3", { linkedAreaIds: ["area-1"] });
-const ALL_GOALS = [G1, G2, G3];
+const G4 = goal("goal-4", {}); // unassigned — no linkedAreaIds
+const ALL_GOALS = [G1, G2, G3, G4];
 
 const T1 = task("task-1", { project_id: "proj-1" });
 const T2 = task("task-2", { project_id: "proj-2" });
 const T3 = task("task-3", { project_id: "proj-3" });
 const T4 = task("task-4", { project_id: "proj-1" }); // no direct goal link
-const ALL_TASKS = [T1, T2, T3, T4];
+const T5 = task("task-5", { project_id: "proj-4" }); // unassigned project
+const ALL_TASKS = [T1, T2, T3, T4, T5];
 
 // ── computeNoteVisibleAreas ──────────────────────────────────────────────────
 
@@ -87,7 +90,8 @@ describe("computeNoteFilteredProjects", () => {
   });
 
   it("filters by areas only", () => {
-    expect(computeNoteFilteredProjects(ALL_PROJECTS, ["area-1"], [], [], ALL_TASKS)).toEqual([P1, P3]);
+    // P1 (area-1), P3 (area-1), P4 (unassigned) all included
+    expect(computeNoteFilteredProjects(ALL_PROJECTS, ["area-1"], [], [], ALL_TASKS)).toEqual([P1, P3, P4]);
   });
 
   it("filters by goals only", () => {
@@ -119,7 +123,8 @@ describe("computeNoteFilteredGoals", () => {
   });
 
   it("filters by areas only", () => {
-    expect(computeNoteFilteredGoals(ALL_GOALS, ["area-1"], [], [], ALL_PROJECTS, ALL_TASKS)).toEqual([G1, G3]);
+    // G1 (area-1), G3 (area-1), G4 (unassigned) all included
+    expect(computeNoteFilteredGoals(ALL_GOALS, ["area-1"], [], [], ALL_PROJECTS, ALL_TASKS)).toEqual([G1, G3, G4]);
   });
 
   it("filters by projects only", () => {
@@ -151,8 +156,8 @@ describe("computeNoteFilteredTasks", () => {
   });
 
   it("filters by areas only", () => {
-    // area-1 → P1, P3 → proj-1, proj-3 → T1, T3, T4
-    expect(computeNoteFilteredTasks(ALL_TASKS, ["area-1"], [], [], ALL_PROJECTS)).toEqual([T1, T3, T4]);
+    // area-1 → P1, P3 → proj-1, proj-3 → T1, T3, T4; T5 (proj-4 unassigned) also included
+    expect(computeNoteFilteredTasks(ALL_TASKS, ["area-1"], [], [], ALL_PROJECTS)).toEqual([T1, T3, T4, T5]);
   });
 
   it("filters by projects only", () => {

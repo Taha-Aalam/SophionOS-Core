@@ -54,7 +54,7 @@ describe("goalService", () => {
     expect(mockClient.eq).toHaveBeenCalledWith("is_archived", false);
   });
 
-  it("treats inactive goals as archived goals because archive is the persisted model state", async () => {
+  it("queries non-completed, non-archived goals for inactive view; auto-inactive filter applied client-side", async () => {
     const mockClient = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
@@ -66,8 +66,8 @@ describe("goalService", () => {
 
     await goalService.list(userId, { status: "inactive" });
 
-    expect(mockClient.eq).toHaveBeenCalledWith("is_archived", true);
-    expect(mockClient.eq).not.toHaveBeenCalledWith("is_completed", true);
+    expect(mockClient.eq).toHaveBeenCalledWith("is_archived", false);
+    expect(mockClient.eq).toHaveBeenCalledWith("is_completed", false);
   });
 
   it("restores archived goals by clearing is_archived", async () => {
@@ -112,6 +112,7 @@ describe("goalService", () => {
         if (table === "goal_tasks") return goalTasksTable;
         if (table === "goal_notes") return emptyTable;
         if (table === "goal_resources") return emptyTable;
+        if (table === "resource_projects") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -196,6 +197,7 @@ describe("goalService", () => {
         if (table === "notes") return emptyTable;
         if (table === "note_projects") return emptyTable;
         if (table === "resources") return emptyTable;
+        if (table === "resource_projects") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -271,6 +273,7 @@ describe("goalService", () => {
         if (table === "notes") return emptyTable;
         if (table === "note_projects") return emptyTable;
         if (table === "resources") return emptyTable;
+        if (table === "resource_projects") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -335,6 +338,7 @@ describe("goalService", () => {
         if (table === "goal_tasks") return goalTasksTable;
         if (table === "goal_notes") return emptyTable;
         if (table === "goal_resources") return emptyTable;
+        if (table === "resource_projects") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -411,6 +415,7 @@ describe("goalService", () => {
         if (table === "goal_tasks") return goalTasksTable;
         if (table === "goal_notes") return emptyTable;
         if (table === "goal_resources") return emptyTable;
+        if (table === "resource_projects") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -475,7 +480,7 @@ describe("goalService", () => {
       in: vi.fn().mockResolvedValue({
         data: [
           { goal_id: goalRow.id, note: { id: "n1", is_archived: false, status: "inbox" } },
-          { goal_id: goalRow.id, note: { id: "n2", is_archived: false, status: "saved" } },
+          { goal_id: goalRow.id, note: { id: "n2", is_archived: false, status: "completed" } },
           { goal_id: goalRow.id, note: { id: "n3", is_archived: false, status: "archive" } },
         ],
         error: null,
@@ -486,7 +491,7 @@ describe("goalService", () => {
       in: vi.fn().mockResolvedValue({
         data: [
           { goal_id: goalRow.id, resource: { is_archived: false, status: "active" } },
-          { goal_id: goalRow.id, resource: { is_archived: false, status: "saved" } },
+          { goal_id: goalRow.id, resource: { is_archived: false, status: "completed" } },
         ],
         error: null,
       }),
@@ -507,6 +512,7 @@ describe("goalService", () => {
         if (table === "notes") return emptyTable;
         if (table === "note_projects") return emptyTable;
         if (table === "resources") return emptyTable;
+        if (table === "resource_projects") return emptyTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };
@@ -519,9 +525,9 @@ describe("goalService", () => {
     expect(result.projectCount).toBe(1);
     // Active task: !archived && !is_completed → 2 tasks.
     expect(result.taskCount).toBe(2);
-    // Active note: !archived && status not in {archive, saved} → only n1.
+    // Active note: !archived && status not in {archive, completed} → only n1.
     expect(result.noteCount).toBe(1);
-    // Active resource: !archived && status !== "saved" → only the "active" one.
+    // Active resource: !archived && status !== "completed" → only the "active" one.
     expect(result.resourceCount).toBe(1);
   });
 });

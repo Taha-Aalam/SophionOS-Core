@@ -131,7 +131,7 @@ describe("server query hydration", () => {
       goal_notes: [
         {
           goal_id: "goal-1",
-          note: { id: "note-1", status: "saved", is_archived: false, project_id: null },
+          note: { id: "note-1", status: "completed", is_archived: false, project_id: null },
         },
       ],
       goal_resources: [],

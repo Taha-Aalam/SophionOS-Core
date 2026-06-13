@@ -10,7 +10,7 @@ export const RESOURCE_VIEW = {
   BY_AREA: "by_area",
   BY_GOAL: "by_goal",
   BY_PROJECT: "by_project",
-  SAVED: "saved",
+  COMPLETED: "completed",
   ARCHIVED: "archived",
 } as const;
 
@@ -31,6 +31,10 @@ export function getResourceLinkedGoalIds(resource: Resource): string[] {
   return resource.linkedGoalIds ?? [];
 }
 
+export function getResourceLinkedProjectIds(resource: Resource): string[] {
+  return resource.linkedProjectIds ?? [];
+}
+
 export function getResourceLinkedTaskIds(resource: Resource): string[] {
   return resource.linkedTaskIds ?? [];
 }
@@ -40,21 +44,4 @@ export function getTaskLinkedProjectIds(task: Pick<Task, "project_id" | "linkedP
     return task.linkedProjectIds;
   }
   return task.project_id ? [task.project_id] : [];
-}
-
-export function getEffectiveResourceProjectIds(params: {
-  resource: Resource;
-  tasksById: Map<string, Pick<Task, "project_id" | "linkedProjectIds">>;
-  goalProjectIdsMap: Map<string, string[]>;
-}): string[] {
-  const { resource, tasksById, goalProjectIdsMap } = params;
-
-  const taskProjectIds = getResourceLinkedTaskIds(resource).flatMap((taskId) =>
-    getTaskLinkedProjectIds(tasksById.get(taskId) ?? { project_id: null, linkedProjectIds: [] }),
-  );
-  const goalProjectIds = getResourceLinkedGoalIds(resource).flatMap(
-    (goalId) => goalProjectIdsMap.get(goalId) ?? [],
-  );
-
-  return dedupe([resource.project_id, ...taskProjectIds, ...goalProjectIds]);
 }

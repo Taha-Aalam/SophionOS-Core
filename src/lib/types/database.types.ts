@@ -293,7 +293,6 @@ export type Database = {
           id: string;
           user_id: string;
           area_id: string | null;
-          project_id: string | null;
           topic_id: string | null;
           name: string;
           url: string | null;
@@ -309,7 +308,6 @@ export type Database = {
           id?: string;
           user_id: string;
           area_id?: string | null;
-          project_id?: string | null;
           topic_id?: string | null;
           name: string;
           url?: string | null;
@@ -325,7 +323,6 @@ export type Database = {
           id?: string;
           user_id?: string;
           area_id?: string | null;
-          project_id?: string | null;
           topic_id?: string | null;
           name?: string;
           url?: string | null;
@@ -350,6 +347,20 @@ export type Database = {
         Update: {
           resource_id?: string;
           area_id?: string;
+        };
+      };
+      resource_projects: {
+        Row: {
+          resource_id: string;
+          project_id: string;
+        };
+        Insert: {
+          resource_id: string;
+          project_id: string;
+        };
+        Update: {
+          resource_id?: string;
+          project_id?: string;
         };
       };
       topics: {
@@ -782,11 +793,11 @@ export type Database = {
     };
     Enums: {
       goal_term: "short" | "mid" | "long";
-      note_status: "inbox" | "to_review" | "active" | "archive" | "saved";
+      note_status: "inbox" | "to_review" | "active" | "archive" | "completed";
       note_type: "note" | "research" | "journal";
       priority: "low" | "medium" | "high";
       project_status: "inbox" | "planning" | "active" | "completed" | "on_hold" | "archived";
-      resource_status: "inbox" | "to_review" | "active" | "saved";
+      resource_status: "inbox" | "to_review" | "active" | "completed";
       resource_type: "website" | "article" | "video" | "document" | "podcast" | "social_media" | "tool";
       task_status: "inbox" | "todo" | "in_progress" | "completed" | "archived";
       task_repeat_cycle:
