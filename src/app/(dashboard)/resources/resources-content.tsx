@@ -35,6 +35,7 @@ import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
+import { useAuth } from "@/components/providers/auth-provider";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "@/lib/types/domain.types";
 import { RESOURCE_STATUS, RESOURCE_TYPE } from "@/lib/utils/constants";
 import {
@@ -48,6 +49,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export function ResourcesContent() {
+  const { isLoading: authLoading, user } = useAuth();
   const [tab, setTab] = useState<ResourceView>(RESOURCE_VIEW.ALL);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
@@ -68,11 +70,11 @@ export function ResourcesContent() {
   const [taskPopoverOpen, setTaskPopoverOpen] = useState(false);
   const [topicPopoverOpen, setTopicPopoverOpen] = useState(false);
 
-  const { data: allResources = [], isLoading } = useResources({ status: "all" });
-  // Show skeletons only on the first load. On refetch (mutation invalidated the
-  // query, user navigated back to a cached page, etc.) keep showing the cached
-  // data so the list doesn't flash to an empty state and back.
-  const isInitialLoad = isLoading && allResources.length === 0;
+  const { data: allResources = [], isLoading, isFetching } = useResources({ status: "all" });
+  // Show skeletons while auth resolves, user is absent, or any fetch is in
+  // flight with no cached data. isFetching covers refetch/retry windows that
+  // isLoading misses — prevents flashing to empty when data transiently clears.
+  const isInitialLoad = authLoading || !user || (isFetching && allResources.length === 0);
   const { data: archivedResources = [] } = useArchivedResources();
   const { data: areas = [] } = useAreas();
   const { data: goals = [] } = useGoals({});
