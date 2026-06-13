@@ -8,6 +8,10 @@ import {
   resolveBackNavigation,
   getEffectiveReturnTo,
   getReturnToParam,
+  buildReturnToChain,
+  decodeReturnToChain,
+  encodeReturnToChain,
+  popReturnToChain,
 } from "@/lib/utils/return-to";
 
 describe("return-to navigation utilities", () => {
@@ -209,6 +213,78 @@ describe("origin-aware navigation integration", () => {
     it("preserves root /areas path", () => {
       const result = getEffectiveReturnTo("/areas", "/goals/my-goal");
       expect(result).toBe("/areas");
+    });
+  });
+
+  describe("deep navigation chain preservation", () => {
+    it("preserves the chain across dashboard -> area -> goal -> project -> goal", () => {
+      // Helper view: [returnTo, ...chain]
+
+      // Step 1: dashboard -> area-A. Area page URL: returnTo=/dashboard, chain=[].
+      // buildReturnToChain(areaParams) is the chain stamped on the *child goal* link
+      // = [current returnTo, ...current chain] = [/dashboard].
+      const areaParams = new URLSearchParams();
+      areaParams.set("returnTo", encodeReturnTo("/dashboard"));
+      expect(decodeReturnToChain(buildReturnToChain(areaParams))).toEqual([
+        "/dashboard",
+      ]);
+
+      // Step 2: area page -> goal-X. Goal page emits project link with
+      // returnTo = current page, chain = [current returnTo, ...current chain].
+      const goalParams = new URLSearchParams();
+      goalParams.set("returnTo", encodeReturnTo("/areas/area-A"));
+      goalParams.set("chain", encodeReturnToChain(["/dashboard"]));
+      expect(decodeReturnToChain(buildReturnToChain(goalParams))).toEqual([
+        "/areas/area-A",
+        "/dashboard",
+      ]);
+
+      // Step 3: project page URL = goal's emitted link.
+      // Step 4: project page -> goal-Z. Goal-Z link chain = [returnTo, ...chain].
+      const projectParams = new URLSearchParams();
+      projectParams.set("returnTo", encodeReturnTo("/goals/goal-X"));
+      projectParams.set("chain", encodeReturnToChain(["/areas/area-A", "/dashboard"]));
+      expect(decodeReturnToChain(buildReturnToChain(projectParams))).toEqual([
+        "/goals/goal-X",
+        "/areas/area-A",
+        "/dashboard",
+      ]);
+
+      // Step 5: goal-Z receives that URL. Back button pops the head.
+      const goalZParams = new URLSearchParams();
+      goalZParams.set("returnTo", encodeReturnTo("/projects/proj-1"));
+      goalZParams.set("chain", encodeReturnToChain([
+        "/goals/goal-X",
+        "/areas/area-A",
+        "/dashboard",
+      ]));
+      const pop1 = popReturnToChain(goalZParams);
+      expect(pop1.returnTo).toBe("/goals/goal-X");
+      expect(pop1.chain).toEqual(["/areas/area-A", "/dashboard"]);
+
+      // Back on project page (now with popped state).
+      const projectAfterBack = new URLSearchParams();
+      projectAfterBack.set("returnTo", encodeReturnTo(pop1.returnTo ?? ""));
+      projectAfterBack.set("chain", encodeReturnToChain(pop1.chain));
+      const pop2 = popReturnToChain(projectAfterBack);
+      expect(pop2.returnTo).toBe("/areas/area-A");
+      expect(pop2.chain).toEqual(["/dashboard"]);
+
+      // Back on goal page.
+      const goalAfterBack = new URLSearchParams();
+      goalAfterBack.set("returnTo", encodeReturnTo(pop2.returnTo ?? ""));
+      goalAfterBack.set("chain", encodeReturnToChain(pop2.chain));
+      const pop3 = popReturnToChain(goalAfterBack);
+      expect(pop3.returnTo).toBe("/dashboard");
+      expect(pop3.chain).toEqual([]);
+
+      // Back on area page.
+      const areaAfterBack = new URLSearchParams();
+      areaAfterBack.set("returnTo", encodeReturnTo(pop3.returnTo ?? ""));
+      areaAfterBack.set("chain", encodeReturnToChain(pop3.chain));
+      const pop4 = popReturnToChain(areaAfterBack);
+      expect(pop4.returnTo).toBeNull();
+      expect(pop4.chain).toEqual([]);
     });
   });
 });

@@ -125,3 +125,65 @@ export function resolveGoalDetailNavigation(
     nestedReturnTo: getEffectiveReturnTo(decodedReturnTo, currentPagePath),
   };
 }
+
+// Chain-preserving return-to navigation.
+// `returnTo` = immediate predecessor (single path).
+// `chain` = outer origins, encoded as a JSON array of paths.
+// Helper view on any page: [returnTo, ...decode(chain)].
+
+const CHAIN_DELIM = "|";
+
+export function decodeReturnToChain(encoded: string | null | undefined): string[] {
+  if (!encoded) return [];
+  try {
+    const json = decodeURIComponent(encoded);
+    const parsed = JSON.parse(json) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((entry): entry is string => typeof entry === "string");
+  } catch {
+    return [];
+  }
+}
+
+export function encodeReturnToChain(chain: string[]): string {
+  return encodeURIComponent(JSON.stringify(chain));
+}
+
+export function getReturnToChainFromSearchParams(
+  searchParams: URLSearchParams,
+): string[] {
+  return decodeReturnToChain(searchParams.get("chain") ?? null);
+}
+
+// Computes the new `chain` value for a child link from the current page's
+// URL state. The new chain = [currentReturnTo, ...currentChain]. The current
+// page's own path is NOT included — it is stamped on the child via
+// `buildReturnTo(currentPagePath)`.
+export function buildReturnToChain(
+  searchParams: URLSearchParams,
+): string {
+  const incomingReturnTo = getReturnToFromSearchParams(searchParams);
+  const incomingChain = getReturnToChainFromSearchParams(searchParams);
+  if (!incomingReturnTo) {
+    return encodeReturnToChain([]);
+  }
+  return encodeReturnToChain([incomingReturnTo, ...incomingChain]);
+}
+
+// Pop the head of the helper view: given the current page's URL state,
+// return the new (returnTo, chain) values for the destination page after
+// a back navigation.
+export function popReturnToChain(searchParams: URLSearchParams): {
+  returnTo: string | null;
+  chain: string[];
+} {
+  const head = getReturnToFromSearchParams(searchParams);
+  const rest = getReturnToChainFromSearchParams(searchParams);
+  if (!head) {
+    return { returnTo: null, chain: [] };
+  }
+  return {
+    returnTo: rest[0] ?? null,
+    chain: rest.slice(1),
+  };
+}
