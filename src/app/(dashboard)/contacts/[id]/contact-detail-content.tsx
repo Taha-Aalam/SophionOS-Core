@@ -65,7 +65,7 @@ import { contactService } from "@/lib/services/contact.service";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { mergeProjectQueryResults } from "@/lib/utils/projects";
 import { resolveLinkedProjectsAcrossStatuses } from "@/lib/utils/contact-detail-relations";
-import { getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
+import { buildReturnToChain, getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
 
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -162,6 +162,7 @@ export function ContactDetailContent() {
   const contactSlug = params.id as string;
   const contactReturnToParam = getReturnToFromSearchParams(searchParams);
   const backTarget = resolveBackNavigation(contactReturnToParam, "/contacts");
+  const returnToChain = buildReturnToChain(searchParams);
 
   const { setPageTitle } = useUIStore();
   const { data: contact, isLoading, error } = useContactBySlug(contactSlug);
@@ -634,6 +635,7 @@ export function ContactDetailContent() {
               onRestoreGoal={(goal) => restoreGoal.mutate(goal.id)}
               onArchiveGoal={(goal) => archiveGoal.mutate(goal.id)}
               returnTo={contactReturnTo}
+              returnToChain={returnToChain}
               areaTab={areaTab}
               onAreaTabChange={setAreaTab}
               goalTab={goalTab}
