@@ -52,6 +52,33 @@ async function hydrateAreaLinks(
   }));
 }
 
+export async function hydrateGoalLinks(
+  supabase: SupabaseClient,
+  notes: NoteLike[],
+): Promise<Array<NoteLike & { linkedGoalIds: string[] }>> {
+  if (notes.length === 0) {
+    return [];
+  }
+
+  const noteIds = notes.map((note) => note.id);
+  const { data } = await supabase
+    .from("goal_notes")
+    .select("note_id, goal_id")
+    .in("note_id", noteIds);
+
+  const goalIdsByNoteId = new Map<string, string[]>();
+  for (const row of data ?? []) {
+    const current = goalIdsByNoteId.get(row.note_id) ?? [];
+    current.push(row.goal_id);
+    goalIdsByNoteId.set(row.note_id, current);
+  }
+
+  return notes.map((note) => ({
+    ...note,
+    linkedGoalIds: goalIdsByNoteId.get(note.id) ?? [],
+  }));
+}
+
 async function hydrateProjectLinks(
   supabase: SupabaseClient,
   notes: NoteLike[],
@@ -97,15 +124,17 @@ export async function serverFetchNotes(
   const { data } = await query;
   const notes = (data ?? []) as NoteLike[];
 
-  const [withAreas, withProjects] = await Promise.all([
+  const [withAreas, withProjects, withGoals] = await Promise.all([
     hydrateAreaLinks(supabase, notes),
     hydrateProjectLinks(supabase, notes),
+    hydrateGoalLinks(supabase, notes),
   ]);
 
   const mapped = notes.map((note, index) => ({
     ...note,
     linkedAreaIds: withAreas[index]?.linkedAreaIds ?? dedupe([note.area_id]),
     linkedProjectIds: withProjects[index]?.linkedProjectIds ?? dedupe([note.project_id]),
+    linkedGoalIds: withGoals[index]?.linkedGoalIds ?? [],
   }));
 
   return hydrateNotebooks(supabase, mapped);

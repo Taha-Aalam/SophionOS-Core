@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Archive, Bookmark, ChevronDownIcon, Eye, FilePlus, Filter, Folder, Globe, Heart, Inbox as InboxIcon, Map as LucideMap, Tag, Target, Zap } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
@@ -37,15 +36,14 @@ import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "@/lib/types/domain.types";
-import { createClient } from "@/lib/supabase/client";
-import { RESOURCE_STATUS, type ResourceStatus, RESOURCE_TYPE } from "@/lib/utils/constants";
+import { RESOURCE_STATUS, RESOURCE_TYPE } from "@/lib/utils/constants";
 import {
   RESOURCE_VIEW,
   type ResourceView,
   getResourceLinkedAreaIds,
   getResourceLinkedGoalIds,
+  getResourceLinkedProjectIds,
   getResourceLinkedTaskIds,
-  getEffectiveResourceProjectIds,
 } from "@/lib/utils/resources";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +69,10 @@ export function ResourcesContent() {
   const [topicPopoverOpen, setTopicPopoverOpen] = useState(false);
 
   const { data: allResources = [], isLoading } = useResources({ status: "all" });
+  // Show skeletons only on the first load. On refetch (mutation invalidated the
+  // query, user navigated back to a cached page, etc.) keep showing the cached
+  // data so the list doesn't flash to an empty state and back.
+  const isInitialLoad = isLoading && allResources.length === 0;
   const { data: archivedResources = [] } = useArchivedResources();
   const { data: areas = [] } = useAreas();
   const { data: goals = [] } = useGoals({});
@@ -86,14 +88,6 @@ export function ResourcesContent() {
   const archiveResource = useArchiveResource();
   const unarchiveResource = useUnarchiveResource();
 
-  const { data: goalProjectRelations = [] } = useQuery({
-    queryKey: ["goal-project-relations", "resources-page"],
-    queryFn: async () => {
-      const { data } = await createClient().from("goal_projects").select("goal_id, project_id");
-      return data ?? [];
-    },
-  });
-
   const areaMap = useMemo(
     () => new Map(areas.map((a) => [a.id, { name: a.name, icon: a.icon ?? null }])),
     [areas],
@@ -102,21 +96,6 @@ export function ResourcesContent() {
   const projectNames = useMemo(() => new Map(projects.map((p) => [p.id, p.name])), [projects]);
   const taskNames = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks]);
   const topicNames = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
-
-  const goalProjectIdsMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const row of goalProjectRelations) {
-      const current = map.get(row.goal_id) ?? [];
-      current.push(row.project_id);
-      map.set(row.goal_id, current);
-    }
-    return map;
-  }, [goalProjectRelations]);
-
-  const tasksById = useMemo(
-    () => new Map(tasks.map((task) => [task.id, task])),
-    [tasks],
-  );
 
   const getAreasForResource = (resource: Resource) =>
     getResourceLinkedAreaIds(resource)
@@ -129,7 +108,7 @@ export function ResourcesContent() {
       .filter((name): name is string => Boolean(name));
 
   const getProjectNamesForResource = (resource: Resource) =>
-    getEffectiveResourceProjectIds({ resource, tasksById, goalProjectIdsMap })
+    getResourceLinkedProjectIds(resource)
       .map((id) => projectNames.get(id))
       .filter((name): name is string => Boolean(name));
 
@@ -156,8 +135,8 @@ export function ResourcesContent() {
       case RESOURCE_VIEW.ACTIVE:
         result = allResources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE);
         break;
-      case RESOURCE_VIEW.SAVED:
-        result = allResources.filter((r) => r.status === RESOURCE_STATUS.SAVED);
+      case RESOURCE_VIEW.COMPLETED:
+        result = allResources.filter((r) => r.status === RESOURCE_STATUS.COMPLETED);
         break;
       case RESOURCE_VIEW.FAVORITE:
         result = allResources.filter((r) => r.favorite);
@@ -311,7 +290,7 @@ export function ResourcesContent() {
   const resourceGroupsByProject = useMemo((): ResourceGroup[] => {
     const grouped = new Map<string, Resource[]>();
     for (const resource of allResources.filter((item) => !item.is_archived)) {
-      const projectIds = getEffectiveResourceProjectIds({ resource, tasksById, goalProjectIdsMap });
+      const projectIds = getResourceLinkedProjectIds(resource);
       const keys = projectIds.length > 0 ? projectIds : ["unassigned"];
       for (const projectId of keys) {
         const current = grouped.get(projectId) ?? [];
@@ -324,7 +303,7 @@ export function ResourcesContent() {
       groupName: projectId === "unassigned" ? "No Project" : (projectNames.get(projectId) ?? projectId),
       resources,
     }));
-  }, [allResources, projectNames, tasksById, goalProjectIdsMap]);
+  }, [allResources, projectNames]);
 
   const handleCreate = async (input: CreateResourceInput) => {
     await createResource.mutateAsync(input);
@@ -354,8 +333,8 @@ export function ResourcesContent() {
     deleteResource.mutate(id);
   };
 
-  const handleStatusChange = (id: string, status: ResourceStatus) => {
-    updateResource.mutate({ id, input: { status } });
+  const handleSaveStatusChange = (id: string, saved: boolean) => {
+    updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } });
   };
 
   const handleEdit = (resource: Resource) => {
@@ -394,8 +373,8 @@ export function ResourcesContent() {
         return allResources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW).length;
       case RESOURCE_VIEW.ACTIVE:
         return allResources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE).length;
-      case RESOURCE_VIEW.SAVED:
-        return allResources.filter((r) => r.status === RESOURCE_STATUS.SAVED).length;
+      case RESOURCE_VIEW.COMPLETED:
+        return allResources.filter((r) => r.status === RESOURCE_STATUS.COMPLETED).length;
       case RESOURCE_VIEW.FAVORITE:
         return allResources.filter((r) => r.favorite).length;
       case RESOURCE_VIEW.ARCHIVED:
@@ -487,12 +466,12 @@ export function ResourcesContent() {
             <Folder className="mr-1.5 size-3.5" />
             By Project
           </TabsTrigger>
-          <TabsTrigger value={RESOURCE_VIEW.SAVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value={RESOURCE_VIEW.COMPLETED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Bookmark className="mr-1.5 size-3.5" />
-            Saved
-            {countForTab(RESOURCE_VIEW.SAVED) > 0 && (
+            Completed
+            {countForTab(RESOURCE_VIEW.COMPLETED) > 0 && (
               <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab(RESOURCE_VIEW.SAVED)}
+                {countForTab(RESOURCE_VIEW.COMPLETED)}
               </Badge>
             )}
           </TabsTrigger>
@@ -752,9 +731,9 @@ export function ResourcesContent() {
         </div>
 
         {/* Flat list views: All, Inbox, To Review, Active, Favorite, Saved, Archived */}
-        {([RESOURCE_VIEW.ALL, RESOURCE_VIEW.INBOX, RESOURCE_VIEW.TO_REVIEW, RESOURCE_VIEW.ACTIVE, RESOURCE_VIEW.FAVORITE, RESOURCE_VIEW.SAVED, RESOURCE_VIEW.ARCHIVED] as ResourceView[]).includes(tab) && (
+        {([RESOURCE_VIEW.ALL, RESOURCE_VIEW.INBOX, RESOURCE_VIEW.TO_REVIEW, RESOURCE_VIEW.ACTIVE, RESOURCE_VIEW.FAVORITE, RESOURCE_VIEW.COMPLETED, RESOURCE_VIEW.ARCHIVED] as ResourceView[]).includes(tab) && (
           <TabsContent value={tab} className="mt-4">
-            {isLoading ? (
+            {isInitialLoad ? (
               <div className="flex flex-col">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <ResourceRowSkeleton key={i} />
@@ -774,8 +753,8 @@ export function ResourcesContent() {
                           ? "No favorite resources"
                           : tab === RESOURCE_VIEW.ARCHIVED
                             ? "No archived resources"
-                            : tab === RESOURCE_VIEW.SAVED
-                              ? "No saved resources"
+                            : tab === RESOURCE_VIEW.COMPLETED
+                              ? "No completed resources"
                               : "No resources yet"
                 }
                 description={
@@ -796,10 +775,10 @@ export function ResourcesContent() {
                     taskNames={getTaskNamesForResource(resource)}
                     topicName={resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
                     onToggleFavorite={handleToggleFavorite}
+                    onSaveStatusChange={handleSaveStatusChange}
                     onArchive={handleArchive}
                     onUnarchive={handleUnarchive}
                     onDelete={handleDelete}
-                    onStatusChange={handleStatusChange}
                     onEdit={handleEdit}
                   />
                 ))}
@@ -818,6 +797,7 @@ export function ResourcesContent() {
             getTaskNames={getTaskNamesForResource}
             getTopicName={(resource) => resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
             onToggleFavorite={handleToggleFavorite}
+            onSaveStatusChange={handleSaveStatusChange}
             onArchive={handleArchive}
             onUnarchive={handleUnarchive}
             onDelete={handleDelete}
@@ -836,6 +816,7 @@ export function ResourcesContent() {
             getTaskNames={getTaskNamesForResource}
             getTopicName={(resource) => resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
             onToggleFavorite={handleToggleFavorite}
+            onSaveStatusChange={handleSaveStatusChange}
             onArchive={handleArchive}
             onUnarchive={handleUnarchive}
             onDelete={handleDelete}
@@ -854,6 +835,7 @@ export function ResourcesContent() {
             getTaskNames={getTaskNamesForResource}
             getTopicName={(resource) => resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
             onToggleFavorite={handleToggleFavorite}
+            onSaveStatusChange={handleSaveStatusChange}
             onArchive={handleArchive}
             onUnarchive={handleUnarchive}
             onDelete={handleDelete}
@@ -872,6 +854,7 @@ export function ResourcesContent() {
             getTaskNames={getTaskNamesForResource}
             getTopicName={(resource) => resource.topic_id ? topicNames.get(resource.topic_id) : undefined}
             onToggleFavorite={handleToggleFavorite}
+            onSaveStatusChange={handleSaveStatusChange}
             onArchive={handleArchive}
             onUnarchive={handleUnarchive}
             onDelete={handleDelete}

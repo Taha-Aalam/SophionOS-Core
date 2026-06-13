@@ -18,6 +18,11 @@ import { Task } from "@/lib/types/domain.types";
 import { getStableStringArray } from "@/lib/utils/stable-arrays";
 import { PRIORITY, TASK_REPEAT_CYCLE_OPTIONS, TASK_STATUS } from "@/lib/utils/constants";
 import { deriveTaskStatus } from "@/lib/utils/status-routing";
+import {
+  getTaskLinkedAreaIds,
+  getTaskLinkedGoalIds,
+  getTaskLinkedProjectIds,
+} from "@/lib/utils/tasks";
 import { computeNextTaskDueDate } from "@/lib/utils/task-recurrence";
 import {
   applyGoalScopedDefaults,
@@ -220,18 +225,26 @@ function buildTaskFormValues(
     };
   }
 
+  const resolvedAreaIds =
+    linkedAreaIds.length > 0
+      ? linkedAreaIds
+      : getTaskLinkedAreaIds(task);
+
+  const resolvedGoalIds =
+    goalIds.length > 0
+      ? goalIds
+      : getTaskLinkedGoalIds(task);
+
   const resolvedProjectIds =
     linkedProjectIds.length > 0
       ? linkedProjectIds
-      : task.project_id
-        ? [task.project_id]
-        : [];
+      : getTaskLinkedProjectIds(task);
 
   return {
-    area_ids: linkedAreaIds.length > 0 ? linkedAreaIds : (task.area_id ? [task.area_id] : []),
+    area_ids: resolvedAreaIds,
     description: task.description ?? "",
     due_date: task.due_date ?? "",
-    goal_ids: goalIds,
+    goal_ids: resolvedGoalIds,
     is_archived: task.is_archived,
     is_completed: task.is_completed,
     is_focused: task.is_focused,
@@ -240,7 +253,7 @@ function buildTaskFormValues(
     is_recurring: task.is_recurring,
     name: task.name,
     priority: task.priority,
-    project_id: resolvedProjectIds[0] ?? task.project_id ?? "",
+    project_id: resolvedProjectIds[0] ?? getTaskLinkedProjectIds(task)[0] ?? "",
     project_ids: resolvedProjectIds,
     repeat_cycle: task.repeat_cycle ?? null,
     repeat_every: task.repeat_every ?? null,

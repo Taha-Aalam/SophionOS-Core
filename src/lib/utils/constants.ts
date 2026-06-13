@@ -50,7 +50,7 @@ export const NOTE_STATUS = {
   INBOX: 'inbox',
   TO_REVIEW: 'to_review',
   ACTIVE: 'active',
-  SAVED: 'saved',
+  COMPLETED: 'completed',
   ARCHIVE: 'archive',
 } as const;
 
@@ -68,7 +68,7 @@ export const RESOURCE_STATUS = {
   INBOX: 'inbox',
   TO_REVIEW: 'to_review',
   ACTIVE: 'active',
-  SAVED: 'saved',
+  COMPLETED: 'completed',
 } as const;
 
 export type ResourceStatus = typeof RESOURCE_STATUS[keyof typeof RESOURCE_STATUS];

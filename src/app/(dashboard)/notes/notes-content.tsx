@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Archive,
-  ArchiveRestore,
   Bookmark,
   BookOpen,
   ChevronDownIcon,
@@ -25,7 +24,6 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -44,8 +42,9 @@ import {
 } from "@/components/ui/select";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EmptyState } from "@/components/views/empty-state";
+import { NoteRow } from "@/components/entities/note-row";
 import { NotesByGroupView, type NoteGroup } from "@/components/views/notes-by-group-view";
+import { EmptyState } from "@/components/views/empty-state";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import {
@@ -65,6 +64,7 @@ import {
   getNoteLinkedAreaIds,
   getNoteLinkedGoalIds,
   getNoteLinkedProjectIds,
+  getNoteLinkedTaskIds,
   getNoteCounts,
   getVisibleNotes,
   NOTE_VIEW,
@@ -85,14 +85,6 @@ import type { Note } from "@/lib/types/domain.types";
 
 const ALL_STATUS_VALUE = "__all_status__";
 const ALL_NOTEBOOK_VALUE = "__all_notebooks__";
-
-const statusColors: Record<string, string> = {
-  inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  saved: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  archive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-};
 
 export function NotesContent() {
   const router = useRouter();
@@ -359,13 +351,6 @@ export function NotesContent() {
   const compactTabTriggerClassName =
     "rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
 
-  const toggleSelect = (id: string) => {
-    const next = new Set(selectedIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelectedIds(next);
-  };
-
   const handleArchiveSelected = async () => {
     if (selectedIds.size === 0) return;
     await bulkArchive.mutateAsync(Array.from(selectedIds));
@@ -399,175 +384,38 @@ export function NotesContent() {
 
   const renderNoteRow = (note: Note) => {
     const isSelected = selectedIds.has(note.id);
-    const linkedAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
-      .map((id) => areaMap.get(id))
+    const noteAreas = getNoteLinkedAreaIds(note)
+      .map((id) => {
+        const area = areaMap.get(id);
+        return area ? { name: area.name, icon: area.icon } : null;
+      })
       .filter((a): a is NonNullable<typeof a> => Boolean(a));
-    const linkedGoals = getNoteLinkedGoalIds(note)
-      .map((id) => goalMap.get(id))
-      .filter((g): g is NonNullable<typeof g> => Boolean(g));
-    const linkedProjects = getNoteLinkedProjectIds(note)
-      .map((id) => projectMap.get(id))
-      .filter((p): p is NonNullable<typeof p> => Boolean(p));
-    const linkedTasks = (note.linkedTaskIds ?? [])
-      .map((id) => taskMap.get(id))
-      .filter((t): t is NonNullable<typeof t> => Boolean(t));
+    const noteGoalNames = getNoteLinkedGoalIds(note)
+      .map((id) => goalMap.get(id)?.name)
+      .filter((n): n is string => Boolean(n));
+    const noteProjectNames = getNoteLinkedProjectIds(note)
+      .map((id) => projectMap.get(id)?.name)
+      .filter((n): n is string => Boolean(n));
+    const noteTaskNames = getNoteLinkedTaskIds(note)
+      .map((id) => taskMap.get(id)?.name)
+      .filter((n): n is string => Boolean(n));
 
     return (
-      <div
+      <NoteRow
         key={note.id}
-        className={cn(
-          "group flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30 cursor-pointer",
-          isSelected && "bg-muted/50",
-        )}
-        onClick={() => router.push(`/notes/${note.slug ?? note.id}`)}
-      >
-        {/* Checkbox */}
-        <div onClick={(e) => e.stopPropagation()} className="shrink-0">
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={() => toggleSelect(note.id)}
-          />
-        </div>
-
-        {/* Pin button */}
-        <div onClick={(e) => e.stopPropagation()} className="shrink-0">
-          <button
-            type="button"
-            onClick={() =>
-              updateNote.mutate({
-                id: note.id,
-                input: { pin: !note.pin },
-              })
-            }
-            className={cn(
-              "rounded p-1 transition-colors",
-              note.pin
-                ? "text-primary"
-                : "text-muted-foreground opacity-0 hover:text-primary group-hover:opacity-100",
-            )}
-            title={note.pin ? "Unpin" : "Pin"}
-          >
-            <Pin className={cn("size-3.5", note.pin && "fill-current")} />
-          </button>
-        </div>
-
-        {/* Status + Type */}
-        <div className="hidden md:flex shrink-0 items-center gap-1">
-          <Badge
-            variant="outline"
-            className={cn("text-[10px] uppercase", statusColors[note.status])}
-          >
-            {note.status.replace("_", " ")}
-          </Badge>
-          <Badge variant="secondary" className="text-xs">
-            {note.type}
-          </Badge>
-        </div>
-
-        {/* Name */}
-        <div className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium">{note.name}</span>
-        </div>
-
-        {/* Metadata cluster — all badges, no +N collapse */}
-        <div className="hidden md:flex shrink-0 items-center gap-1.5 flex-wrap">
-          {(note.notebooks ?? []).map((nb) => (
-            <Badge key={nb} variant="outline" className="gap-1 text-xs font-normal">
-              <span className="text-xs leading-none">📓</span>
-              {nb}
-            </Badge>
-          ))}
-          {linkedAreas.map((area) => (
-            <Badge key={area.id} variant="outline" className="gap-1 text-xs font-normal">
-              {area.icon ? (
-                <span className="text-xs leading-none">{area.icon}</span>
-              ) : (
-                <LucideMap className="size-3" />
-              )}
-              {area.name}
-            </Badge>
-          ))}
-          {linkedGoals.map((goal) => (
-            <Badge key={goal.id} variant="outline" className="gap-1 text-xs font-normal">
-              <span className="text-xs leading-none">🎯</span>
-              {goal.name}
-            </Badge>
-          ))}
-          {linkedProjects.map((project) => (
-            <Badge key={project.id} variant="outline" className="gap-1 text-xs font-normal">
-              <span className="text-xs leading-none">📁</span>
-              {project.name}
-            </Badge>
-          ))}
-          {linkedTasks.map((task) => (
-            <Badge key={task.id} variant="outline" className="gap-1 text-xs font-normal">
-              <span className="text-xs leading-none">☑️</span>
-              {task.name}
-            </Badge>
-          ))}
-          <span className="text-xs text-muted-foreground">
-            {new Date(note.updated_at).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })}
-          </span>
-        </div>
-
-        {/* Favorite button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            updateNote.mutate({
-              id: note.id,
-              input: { favorite: !note.favorite },
-            });
-          }}
-          className={cn(
-            "shrink-0 rounded-md p-1.5 transition-colors",
-            note.favorite
-              ? "text-amber-500"
-              : "text-muted-foreground/20 opacity-0 hover:text-amber-400 group-hover:opacity-100",
-          )}
-          title={note.favorite ? "Unfavorite" : "Favorite"}
-        >
-          <Star className={cn("size-4", note.favorite && "fill-current")} />
-        </button>
-
-        {/* Archive + Delete */}
-        <div
-          className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              if (note.is_archived) {
-                restoreNote.mutate(note.id);
-              } else {
-                archiveNote.mutate(note.id);
-              }
-            }}
-            disabled={archiveNote.isPending || restoreNote.isPending}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
-            title={note.is_archived ? "Restore" : "Archive"}
-          >
-            {note.is_archived ? (
-              <ArchiveRestore className="size-3.5" />
-            ) : (
-              <Archive className="size-3.5" />
-            )}
-          </button>
-          <DeleteEntityPopover
-            variant="row"
-            entityLabel="note"
-            entityName={note.name}
-            requireTypedConfirmation={false}
-            disabled={deleteNote.isPending}
-            onConfirm={() => deleteNote.mutate(note.id)}
-          />
-        </div>
-      </div>
+        note={note}
+        areas={noteAreas}
+        goalNames={noteGoalNames}
+        projectNames={noteProjectNames}
+        taskNames={noteTaskNames}
+        isSelected={isSelected}
+        onPinToggle={(id, pin) => updateNote.mutate({ id, input: { pin } })}
+        onFavoriteToggle={(id, favorite) => updateNote.mutate({ id, input: { favorite } })}
+        onSaveStatusChange={(id, saved) => updateNote.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
+        onArchive={(id) => archiveNote.mutate(id)}
+        onRestore={(id) => restoreNote.mutate(id)}
+        onDelete={(id) => deleteNote.mutate(id)}
+      />
     );
   };
 
@@ -642,9 +490,9 @@ export function NotesContent() {
               <BookOpen className="mr-1 size-3" />
               By Notebook
             </TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.SAVED} className={compactTabTriggerClassName}>
+            <TabsTrigger value={NOTE_VIEW.COMPLETED} className={compactTabTriggerClassName}>
               <Bookmark className="mr-1 size-3" />
-              Saved
+              Completed
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.ARCHIVED} className={compactTabTriggerClassName}>
               <Archive className="mr-1 size-3" />
@@ -680,7 +528,7 @@ export function NotesContent() {
                 <SelectItem value="inbox">Inbox</SelectItem>
                 <SelectItem value="to_review">To Review</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="saved">Saved</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="archive">Archive</SelectItem>
               </SelectContent>
             </Select>
@@ -959,7 +807,7 @@ export function NotesContent() {
           NOTE_VIEW.ACTIVE,
           NOTE_VIEW.PINNED,
           NOTE_VIEW.FAVORITE,
-          NOTE_VIEW.SAVED,
+          NOTE_VIEW.COMPLETED,
           NOTE_VIEW.ARCHIVED,
         ] as NoteView[]).map((tab) => (
           <TabsContent key={tab} value={tab} className="mt-0 flex-1">

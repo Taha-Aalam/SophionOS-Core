@@ -114,7 +114,13 @@ export function computeNoteFilteredProjects<T extends FilterableProject>(
     const areaSet = new Set(selectedAreaIds);
     allowed = new Set(
       projects
-        .filter((p) => (p.linkedAreaIds ?? []).some((aId) => areaSet.has(aId)))
+        .filter((p) => {
+          // Unassigned (no linkedAreaIds) projects stay visible alongside
+          // area-scoped ones — the user might still want to attach them.
+          const linked = p.linkedAreaIds ?? [];
+          if (linked.length === 0) return true;
+          return linked.some((aId) => areaSet.has(aId));
+        })
         .map((p) => p.id),
     );
   }
@@ -171,7 +177,13 @@ export function computeNoteFilteredGoals<T extends FilterableGoal>(
     const areaSet = new Set(selectedAreaIds);
     allowed = new Set(
       goals
-        .filter((g) => (g.linkedAreaIds ?? []).some((aId) => areaSet.has(aId)))
+        .filter((g) => {
+          // Unassigned (no linkedAreaIds) goals stay visible alongside
+          // area-scoped ones — the user might still want to link them.
+          const linked = g.linkedAreaIds ?? [];
+          if (linked.length === 0) return true;
+          return linked.some((aId) => areaSet.has(aId));
+        })
         .map((g) => g.id),
     );
   }
@@ -235,7 +247,13 @@ export function computeNoteFilteredTasks<T extends FilterableTask>(
     const areaSet = new Set(selectedAreaIds);
     const areaProjIds = new Set(
       allProjects
-        .filter((p) => (p.linkedAreaIds ?? []).some((aId) => areaSet.has(aId)))
+        .filter((p) => {
+          // Unassigned projects (no linkedAreaIds) still contribute — the
+          // user might want to attach tasks to them across areas.
+          const linked = p.linkedAreaIds ?? [];
+          if (linked.length === 0) return true;
+          return linked.some((aId) => areaSet.has(aId));
+        })
         .map((p) => p.id),
     );
     allowed = new Set(

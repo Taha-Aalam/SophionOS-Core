@@ -75,6 +75,7 @@ import {
 import {
   useArchiveResource,
   useCreateResource,
+  useDeleteResource,
   useResourcesByProject,
   useToggleFavoriteResource,
   useUnarchiveResource,
@@ -101,14 +102,11 @@ import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
-import {
-  filterCandidatesByAreaScope,
-  getContactLinkedAreaIds,
-  getNoteLinkedAreaIds,
-  getResourceLinkedAreaIds,
-} from "@/lib/utils/area-scoped-candidates";
+import { filterCandidatesByAreaScope, getContactLinkedAreaIds } from "@/lib/utils/area-scoped-candidates";
 import { getProjectDueState, getProjectLinkedAreaIds, getProjectStatusLabel } from "@/lib/utils/projects";
-import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, taskMatchesProjectId } from "@/lib/utils/tasks";
+import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds, taskMatchesProjectId } from "@/lib/utils/tasks";
+import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
+import { getResourceLinkedAreaIds, getResourceLinkedProjectIds } from "@/lib/utils/resources";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { buildAreaContactGoalSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections, buildContactByAreaSections } from "@/lib/utils/area-detail";
 import { buildReturnTo, resolveBackNavigation, getReturnToFromSearchParams, encodeReturnTo } from "@/lib/utils/return-to";
@@ -203,6 +201,7 @@ export function ProjectDetailContent() {
   const toggleFavoriteResource = useToggleFavoriteResource();
   const archiveResource = useArchiveResource();
   const unarchiveResource = useUnarchiveResource();
+  const deleteResource = useDeleteResource();
   const toggleFavoriteNote = useToggleFavoriteNote();
   const togglePinNote = useTogglePinNote();
   const archiveNote = useArchiveNote();
@@ -327,11 +326,11 @@ export function ProjectDetailContent() {
     [activeLinkedTasks],
   );
   const completedNoteCount = useMemo(
-    () => activeNotes.filter((n) => n.status === NOTE_STATUS.SAVED).length,
+    () => activeNotes.filter((n) => n.status === NOTE_STATUS.COMPLETED).length,
     [activeNotes],
   );
   const completedResourceCount = useMemo(
-    () => activeResources.filter((r) => r.status === RESOURCE_STATUS.SAVED).length,
+    () => activeResources.filter((r) => r.status === RESOURCE_STATUS.COMPLETED).length,
     [activeResources],
   );
   const totalItemCount = activeLinkedTasks.length + activeNotes.length + activeResources.length;
@@ -367,6 +366,10 @@ export function ProjectDetailContent() {
   }, [goals, relations?.goals]);
   const taskNamesMap = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks]);
   const topicNamesMap = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
+  const allProjectNamesMap = useMemo(
+    () => new Map(allProjects.map((p) => [p.id, p.name])),
+    [allProjects],
+  );
 
   const goalTabs = useMemo(
     () => [
@@ -601,7 +604,7 @@ export function ProjectDetailContent() {
         { value: "active", label: "Active", count: active.filter((note) => note.status === "active").length },
         { value: "by_area", label: "By Area" },
         { value: "by_goal", label: "By Goal" },
-        { value: "saved", label: "Saved", count: active.filter((note) => note.status === "saved").length },
+        { value: "completed", label: "Completed", count: active.filter((note) => note.status === "completed").length },
         { value: "archived", label: "Archive", count: archived.length },
       ];
     },
@@ -617,8 +620,8 @@ export function ProjectDetailContent() {
         return activeNotes.filter((note) => note.status === "to_review");
       case "active":
         return activeNotes.filter((note) => note.status === "active");
-      case "saved":
-        return activeNotes.filter((note) => note.status === "saved");
+      case "completed":
+        return activeNotes.filter((note) => note.status === "completed");
       case "by_area":
       case "by_goal":
         return activeNotes;
@@ -630,7 +633,7 @@ export function ProjectDetailContent() {
   const noteGroupsByArea = useMemo<NoteGroup[]>(() => {
     const grouped = new Map<string, typeof filteredNotes>();
     for (const note of filteredNotes) {
-      const ids = note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []);
+      const ids = getNoteLinkedAreaIds(note);
       const keys = ids.length > 0 ? ids : ["unassigned"];
       for (const areaId of keys) {
         const current = grouped.get(areaId) ?? [];
@@ -648,7 +651,7 @@ export function ProjectDetailContent() {
   const noteGroupsByGoal = useMemo<NoteGroup[]>(() => {
     const grouped = new Map<string, typeof filteredNotes>();
     for (const note of filteredNotes) {
-      const ids = note.linkedGoalIds ?? [];
+      const ids = getNoteLinkedGoalIds(note);
       const keys = ids.length > 0 ? ids : ["unassigned"];
       for (const goalId of keys) {
         const current = grouped.get(goalId) ?? [];
@@ -738,7 +741,7 @@ export function ProjectDetailContent() {
       { value: "active", label: "Active", count: active.filter((r) => r.status === "active").length },
       { value: "by_area", label: "By Area" },
       { value: "by_goal", label: "By Goal" },
-      { value: "saved", label: "Saved", count: active.filter((r) => r.status === "saved").length },
+      { value: "completed", label: "Completed", count: active.filter((r) => r.status === "completed").length },
       { value: "archived", label: "Archive", count: archived.length },
     ];
   }, [linkedResources]);
@@ -751,8 +754,8 @@ export function ProjectDetailContent() {
         return linkedResources.filter((r) => r.status === "to_review" && !r.is_archived);
       case "active":
         return linkedResources.filter((r) => r.status === "active" && !r.is_archived);
-      case "saved":
-        return linkedResources.filter((r) => r.status === "saved" && !r.is_archived);
+      case "completed":
+        return linkedResources.filter((r) => r.status === "completed" && !r.is_archived);
       case "archived":
         return linkedResources.filter((r) => r.is_archived);
       case "by_area":
@@ -807,6 +810,19 @@ export function ProjectDetailContent() {
       element.scrollIntoView({ behavior: "smooth" });
     }
   }, []);
+
+  const handleProjectInactiveToggle = useCallback(
+    async (checked: boolean) => {
+      if (!project) return;
+      const nextStatus = checked ? "on_hold" : "active";
+      if (project.status === nextStatus) return;
+      await updateProject.mutateAsync({
+        id: project.id,
+        input: { status: nextStatus },
+      });
+    },
+    [project, updateProject],
+  );
 
   const handleProjectArchiveToggle = useCallback(
     async (checked: boolean) => {
@@ -932,21 +948,25 @@ export function ProjectDetailContent() {
 
   const handleLinkTask = (task: typeof tasks[number]) => {
     if (!resolvedProjectId) return;
-    const existing = task.linkedProjectIds ?? (task.project_id ? [task.project_id] : []);
+    const existing = getTaskLinkedProjectIds(task);
     const nextProjectIds = Array.from(new Set([...existing, resolvedProjectId]));
     updateTask.mutate({ id: task.id, input: { project_ids: nextProjectIds } });
     setIsLinkTaskOpen(false);
   };
   const handleLinkNote = (note: typeof allNotesGlobal[number]) => {
     if (!resolvedProjectId) return;
-    const existing = note.linkedProjectIds ?? (note.project_id ? [note.project_id] : []);
+    const existing = getNoteLinkedProjectIds(note);
     const nextProjectIds = Array.from(new Set([...existing, resolvedProjectId]));
     updateNote.mutate({ id: note.id, input: { project_ids: nextProjectIds } });
     setIsLinkNoteOpen(false);
   };
   const handleLinkResourceExisting = (resource: typeof allResourcesGlobal[number]) => {
     if (!resolvedProjectId) return;
-    updateResource.mutate({ id: resource.id, input: { project_id: resolvedProjectId } });
+    const existingIds = resource.linkedProjectIds ?? [];
+    const nextProjectIds = existingIds.includes(resolvedProjectId)
+      ? existingIds
+      : [...existingIds, resolvedProjectId];
+    updateResource.mutate({ id: resource.id, input: { project_ids: nextProjectIds } });
     setIsLinkResourceOpen(false);
   };
   const handleLinkContactExisting = (contactId: string) => {
@@ -1348,6 +1368,17 @@ export function ProjectDetailContent() {
               <div className="flex flex-wrap items-center gap-6">
                 <div className="flex items-center gap-2">
                   <Checkbox
+                    id="project-inactive"
+                    checked={project.status === "on_hold"}
+                    disabled={updateProject.isPending}
+                    onCheckedChange={(checked) => handleProjectInactiveToggle(checked === true)}
+                  />
+                  <Label htmlFor="project-inactive" className="cursor-pointer text-sm">
+                    Inactive
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
                     id="project-archived"
                     checked={project.is_archived}
                     disabled={updateProject.isPending}
@@ -1488,11 +1519,11 @@ export function ProjectDetailContent() {
                 <TaskListItem
                   key={task.id}
                   task={task}
-                  linkedAreaNames={task.linkedAreaIds?.map((id) => areas.find((a) => a.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
-                  linkedAreaIcons={task.linkedAreaIds?.map((id) => areas.find((a) => a.id === id)?.icon ?? null) ?? []}
-                  linkedGoalNames={task.linkedGoalIds?.map((id) => goals.find((g) => g.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
+                  linkedAreaNames={getTaskLinkedAreaIds(task).map((id) => areas.find((a) => a.id === id)?.name).filter((n): n is string => Boolean(n))}
+                  linkedAreaIcons={getTaskLinkedAreaIds(task).map((id) => areas.find((a) => a.id === id)?.icon ?? null)}
+                  linkedGoalNames={getTaskLinkedGoalIds(task).map((id) => goals.find((g) => g.id === id)?.name).filter((n): n is string => Boolean(n))}
                   projectName={project?.name}
-                  linkedProjectNames={task.linkedProjectIds?.map((id) => allProjects.find((p) => p.id === id)?.name).filter((n): n is string => Boolean(n)) ?? []}
+                  linkedProjectNames={getTaskLinkedProjectIds(task).map((id) => allProjects.find((p) => p.id === id)?.name).filter((n): n is string => Boolean(n))}
                   onCompletionToggle={handleTaskCompletion}
                   onFocusToggle={handleTaskFocus}
                   onNameSave={handleTaskNameSave}
@@ -1534,12 +1565,12 @@ export function ProjectDetailContent() {
               groups={noteTab === "by_area" ? noteGroupsByArea : noteGroupsByGoal}
               renderNote={(note) => {
                 const noteReturnTo = `/projects/${project?.slug ?? project?.id}`;
-                const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                const noteAreas = getNoteLinkedAreaIds(note)
                   .map((id) => { const name = areaNamesMap.get(id); return name ? { name, icon: areaIconsMap.get(id) ?? null } : null; })
                   .filter((a): a is { name: string; icon: string | null } => Boolean(a));
-                const noteGoalNames = (note.linkedGoalIds ?? []).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteGoalNames = getNoteLinkedGoalIds(note).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
                 const noteProjectNames = project?.name ? [project.name] : [];
-                const noteTaskNames = (note.linkedTaskIds ?? []).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteTaskNames = getNoteLinkedTaskIds(note).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
                 return (
                   <NoteRow
                     note={note}
@@ -1550,6 +1581,7 @@ export function ProjectDetailContent() {
                     taskNames={noteTaskNames}
                     onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
                     onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                    onSaveStatusChange={(id, saved) => updateNote.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                     onArchive={(id) => archiveNote.mutate(id)}
                     onRestore={(id) => restoreNote.mutate(id)}
                     onDelete={(id) => deleteNote.mutate(id)}
@@ -1574,12 +1606,12 @@ export function ProjectDetailContent() {
             <div className="rounded-lg border bg-card">
               {filteredNotes.map((note) => {
                 const noteReturnTo = `/projects/${project?.slug ?? project?.id}`;
-                const noteAreas = (note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []))
+                const noteAreas = getNoteLinkedAreaIds(note)
                   .map((id) => { const name = areaNamesMap.get(id); return name ? { name, icon: areaIconsMap.get(id) ?? null } : null; })
                   .filter((a): a is { name: string; icon: string | null } => Boolean(a));
-                const noteGoalNames = (note.linkedGoalIds ?? []).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteGoalNames = getNoteLinkedGoalIds(note).map((id) => goalNamesMap.get(id)).filter((n): n is string => Boolean(n));
                 const noteProjectNames = project?.name ? [project.name] : [];
-                const noteTaskNames = (note.linkedTaskIds ?? []).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
+                const noteTaskNames = getNoteLinkedTaskIds(note).map((id) => taskNamesMap.get(id)).filter((n): n is string => Boolean(n));
                 return (
                   <NoteRow
                     key={note.id}
@@ -1591,6 +1623,7 @@ export function ProjectDetailContent() {
                     taskNames={noteTaskNames}
                     onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
                     onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                    onSaveStatusChange={(id, saved) => updateNote.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                     onArchive={(id) => archiveNote.mutate(id)}
                     onRestore={(id) => restoreNote.mutate(id)}
                     onDelete={(id) => deleteNote.mutate(id)}
@@ -1635,8 +1668,9 @@ export function ProjectDetailContent() {
               onToggleFavorite={(id, favorite) => toggleFavoriteResource.mutate({ id, favorite })}
               onArchive={(id) => archiveResource.mutate(id)}
               onUnarchive={(id) => unarchiveResource.mutate(id)}
-              onDelete={() => {}}
+              onDelete={(id) => deleteResource.mutate(id)}
               onEdit={handleResourceEdit}
+              onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
               onNewResource={(groupId) => {
                 setNewResourceGroupId(groupId === "unassigned" ? null : groupId);
                 setNewResourceGroupType(resourceTab === "by_area" ? "area" : "goal");
@@ -1645,7 +1679,7 @@ export function ProjectDetailContent() {
               emptyMessage={resourceTab === "by_area" ? "Resources will be grouped by area here." : "Resources will be grouped by goal here."}
             />
           ) : filteredResources.length > 0 ? (
-            <div className="rounded-lg border bg-card">
+            <div className="rounded-lg border border-border">
               {filteredResources.map((resource) => {
                 const resourceAreaIds = (resource.linkedAreaIds && resource.linkedAreaIds.length > 0)
                   ? resource.linkedAreaIds
@@ -1656,9 +1690,9 @@ export function ProjectDetailContent() {
                 const resourceGoalNames = (resource.linkedGoalIds ?? [])
                   .map((id) => goalNamesMap.get(id))
                   .filter((name): name is string => Boolean(name));
-                const resourceProjectNames = resource.project_id
-                  ? [project?.name].filter((n): n is string => Boolean(n))
-                  : [];
+                const resourceProjectNames = getResourceLinkedProjectIds(resource)
+                  .map((id) => allProjectNamesMap.get(id))
+                  .filter((n): n is string => Boolean(n));
                 const resourceTaskNames = (resource.linkedTaskIds ?? [])
                   .map((id) => taskNamesMap.get(id))
                   .filter((name): name is string => Boolean(name));
@@ -1674,9 +1708,10 @@ export function ProjectDetailContent() {
                     onToggleFavorite={(id, favorite) =>
                       toggleFavoriteResource.mutate({ id, favorite })
                     }
+                    onSaveStatusChange={(id, saved) => updateResource.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                     onArchive={(id) => archiveResource.mutate(id)}
                     onUnarchive={(id) => unarchiveResource.mutate(id)}
-                    onDelete={() => {}}
+                    onDelete={(id) => deleteResource.mutate(id)}
                     onEdit={handleResourceEdit}
                   />
                 );

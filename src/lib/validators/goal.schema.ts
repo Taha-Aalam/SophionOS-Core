@@ -51,6 +51,7 @@ const createGoalSchemaBase = z
     progress: goalProgressSchema.default(0),
     is_completed: z.boolean().default(false),
     is_archived: z.boolean().default(false),
+    is_inactive: z.boolean().default(false),
     slug: z.string().optional(),
   })
   .strict();
@@ -67,6 +68,7 @@ const updateGoalSchemaBase = z
     progress: goalProgressSchema.optional(),
     is_completed: z.boolean().optional(),
     is_archived: z.boolean().optional(),
+    is_inactive: z.boolean().optional(),
   })
   .strict();
 
@@ -76,6 +78,7 @@ export const createGoalFormSchema = createGoalSchemaBase
   .omit({
     is_archived: true,
     is_completed: true,
+    is_inactive: true,
     slug: true,
   })
   .superRefine(validateFutureTargetDate);
@@ -85,4 +88,5 @@ export const updateGoalSchema = updateGoalSchemaBase;
 export const updateGoalFormSchema = updateGoalSchemaBase.omit({
   is_archived: true,
   is_completed: true,
+  is_inactive: true,
 });

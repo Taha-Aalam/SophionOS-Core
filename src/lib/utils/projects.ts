@@ -206,13 +206,18 @@ export function buildProjectCompletionStats(
     if (note.project_id) projectIds.add(note.project_id);
     for (const pid of note.linkedProjectIds ?? []) projectIds.add(pid);
     for (const pid of projectIds) {
-      bump(pid, note.status === NOTE_STATUS.SAVED);
+      bump(pid, note.status === NOTE_STATUS.COMPLETED);
     }
   }
 
   for (const resource of resources) {
-    if (!resource.project_id || resource.is_archived) continue;
-    bump(resource.project_id, resource.status === RESOURCE_STATUS.SAVED);
+    if (resource.is_archived) continue;
+    const projectIds = new Set<string>();
+    for (const pid of resource.linkedProjectIds ?? []) projectIds.add(pid);
+    if (projectIds.size === 0) continue;
+    for (const pid of projectIds) {
+      bump(pid, resource.status === RESOURCE_STATUS.COMPLETED);
+    }
   }
 
   return stats;

@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -70,6 +70,7 @@ vi.mock("@/lib/hooks/use-topics", () => ({
 }));
 
 vi.mock("@/lib/hooks/use-goals", () => ({
+  useGoals: () => ({ data: [], isLoading: false }),
   useUpdateGoal: () => ({ mutateAsync: vi.fn() }),
   useDeleteGoal: () => ({ mutateAsync: vi.fn() }),
   useLinkGoalToArea: () => ({ mutateAsync: vi.fn(), mutate: vi.fn() }),
@@ -87,6 +88,10 @@ vi.mock("@/lib/hooks/use-tasks", () => ({
   useTasks: () => ({ data: [] }),
 }));
 
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: () => ({ data: [], isLoading: false }),
+}));
+
 vi.mock("@/lib/hooks/use-notes", () => ({
   useToggleFavoriteNote: () => ({ mutate: vi.fn() }),
   useTogglePinNote: () => ({ mutate: vi.fn() }),
@@ -95,6 +100,7 @@ vi.mock("@/lib/hooks/use-notes", () => ({
   useDeleteNote: () => ({ mutateAsync: vi.fn() }),
   useLinkNoteToGoal: () => ({ mutateAsync: vi.fn() }),
   useNotes: () => ({ data: [] }),
+  useUpdateNote: () => ({ mutateAsync: vi.fn() }),
 }));
 
 vi.mock("@/lib/hooks/use-resources", () => ({
@@ -103,6 +109,7 @@ vi.mock("@/lib/hooks/use-resources", () => ({
   useUpdateResource: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
   useArchiveResource: () => ({ mutateAsync: vi.fn() }),
   useUnarchiveResource: () => ({ mutateAsync: vi.fn() }),
+  useDeleteResource: () => ({ mutateAsync: vi.fn() }),
   useLinkResourceToGoal: () => ({ mutateAsync: vi.fn() }),
   useResources: () => ({ data: [] }),
 }));
@@ -184,7 +191,9 @@ vi.mock("@/components/ui/badge", () => ({
 }));
 
 vi.mock("@/components/ui/button", () => ({
-  Button: ({ children }: { children?: React.ReactNode }) => <button type="button">{children}</button>,
+  Button: ({ children }: { children?: React.ReactNode }) => (
+    <button type="button">{children}</button>
+  ),
 }));
 
 vi.mock("@/components/ui/checkbox", () => ({

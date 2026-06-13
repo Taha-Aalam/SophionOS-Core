@@ -17,6 +17,8 @@ import {
   getGoalFiltersForView,
   getGoalLinkedAreaIds,
   getGoalViewFromFilters,
+  goalMatchesFilters,
+  type GoalStatusFilter,
   type GoalView,
 } from "@/lib/utils/goals";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
@@ -35,6 +37,11 @@ export function GoalsContent() {
     status: filters.status,
     term: filters.term,
   });
+  const filteredGoals = useMemo(
+    () => (goals ?? []).filter((goal) => goalMatchesFilters(goal, { ...filters, status: filters.status as GoalStatusFilter })),
+    [goals, filters],
+  );
+
   const areaNamesById = useMemo(
     () =>
       new Map(
@@ -49,11 +56,11 @@ export function GoalsContent() {
 
   // Compute duplicate occurrence index per goal name (real duplicates only)
   const duplicateIndices = useMemo(() => {
-    if (!goals) return new Map<string, number>();
+    if (!filteredGoals) return new Map<string, number>();
     const result = new Map<string, number>();
 
     const grouped = new Map<string, Goal[]>();
-    for (const goal of goals) {
+    for (const goal of filteredGoals) {
       if (!grouped.has(goal.name)) {
         grouped.set(goal.name, []);
       }
@@ -73,7 +80,7 @@ export function GoalsContent() {
     }
 
     return result;
-  }, [goals]);
+  }, [filteredGoals]);
 
   const handleViewChange = (view: string) => {
     const nextView = view as GoalView;
@@ -154,9 +161,9 @@ export function GoalsContent() {
             <div key={index} className="h-32 rounded-xl bg-muted animate-pulse" />
           ))}
         </div>
-      ) : goals && goals.length > 0 ? (
+      ) : filteredGoals && filteredGoals.length > 0 ? (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {goals.map((goal) => {
+          {filteredGoals.map((goal) => {
             const linkedAreaNames = getGoalLinkedAreaIds(goal)
               .map((id) => areaNamesById.get(id))
               .filter((name): name is string => Boolean(name));
@@ -167,7 +174,7 @@ export function GoalsContent() {
               <GoalCard
                 key={goal.id}
                 goal={goal}
-                areaName={goal.area_id ? areaNamesById.get(goal.area_id) : "Unassigned"}
+                areaName={(() => { const id = getGoalLinkedAreaIds(goal)[0]; return id ? areaNamesById.get(id) : "Unassigned"; })()}
                 areaNames={linkedAreaNames}
                 areaIcons={linkedAreaIcons}
                 duplicateIndex={duplicateIndices.get(goal.id)}

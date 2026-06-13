@@ -12,18 +12,18 @@ const src = readFileSync(
 );
 
 describe("topic detail page – note tabs", () => {
-  it("defines tabs in order: all, inbox, to_review, active, saved, archived", () => {
+  it("defines tabs in order: all, inbox, to_review, active, completed, archived", () => {
     // The noteTabs array must contain all six values.
     expect(src).toContain('"inbox"');
     expect(src).toContain('"to_review"');
-    expect(src).toContain('"saved"');
+    expect(src).toContain('"completed"');
 
     // Verify positional order by checking index positions.
     const allIdx = src.indexOf('"all"');
     const inboxIdx = src.indexOf('"inbox"');
     const toReviewIdx = src.indexOf('"to_review"');
     const activeIdx = src.indexOf('"active"');
-    const savedIdx = src.indexOf('"saved"');
+    const savedIdx = src.indexOf('"completed"');
     const archivedIdx = src.indexOf('"archived"');
 
     expect(allIdx).toBeLessThan(inboxIdx);
@@ -35,9 +35,9 @@ describe("topic detail page – note tabs", () => {
 });
 
 describe("topic detail page – resource tabs", () => {
-  it("includes a saved tab", () => {
-    // resourceTabs must also have a saved entry.
-    // We look for the 'saved' label string in the resourceTabs block.
-    expect(src).toContain('"Saved"');
+  it("includes a completed tab", () => {
+    // resourceTabs must also have a completed entry.
+    // We look for the 'completed' label string in the resourceTabs block.
+    expect(src).toContain('"Completed"');
   });
 });

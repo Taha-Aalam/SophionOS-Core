@@ -74,6 +74,7 @@ export function deriveResourceStatus(input: {
   area_id?: Maybe;
   area_ids?: string[];
   project_id?: Maybe;
+  project_ids?: string[];
   goal_ids?: string[];
   task_ids?: string[];
   topic_id?: Maybe;
@@ -82,6 +83,7 @@ export function deriveResourceStatus(input: {
     input.area_id,
     input.area_ids,
     input.project_id,
+    input.project_ids,
     input.goal_ids,
     input.task_ids,
     input.topic_id,
