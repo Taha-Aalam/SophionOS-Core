@@ -221,7 +221,7 @@ describe("computeFilteredProjects", () => {
   });
 
   it("intersects areas + goals", () => {
-    // area-1 → P1, P3; goal-2 → P2; intersection = empty
+    // area-1 → P1, P3; goal-2 → P2; intersection = empty — but P4 (unassigned) always shown
     expect(
       computeFilteredProjects(
         ALL_PROJECTS,
@@ -229,8 +229,8 @@ describe("computeFilteredProjects", () => {
         ["goal-2"],
         goalProjectIdsMap,
       ),
-    ).toEqual([]);
-    // area-1 → P1, P3; goal-1 → P1; intersection = P1
+    ).toEqual([P4]);
+    // area-1 → P1, P3; goal-1 → P1; intersection = P1 — P4 (unassigned) also shown
     expect(
       computeFilteredProjects(
         ALL_PROJECTS,
@@ -238,18 +238,19 @@ describe("computeFilteredProjects", () => {
         ["goal-1"],
         goalProjectIdsMap,
       ),
-    ).toEqual([P1]);
+    ).toEqual([P1, P4]);
   });
 
   it("intersects areas + tasks", () => {
-    // area-1 → P1, P3; T2 (proj-2) → P2; intersection = empty
+    // area-1 → P1, P3; T2 (proj-2) → P2; intersection = empty — but P4 (unassigned) always shown
     expect(
       computeFilteredProjects(ALL_PROJECTS, ["area-1"], [], emptyMap, [T2]),
-    ).toEqual([]);
+    ).toEqual([P4]);
   });
 
   it("intersects goals + tasks", () => {
     // goal-1 → P1; T2 (proj-2) → P2; intersection = empty
+    // No area constraint active → P4 is not exempt here (unassigned bypass only fires when hasAreas)
     expect(
       computeFilteredProjects(
         ALL_PROJECTS,
@@ -262,7 +263,7 @@ describe("computeFilteredProjects", () => {
   });
 
   it("intersects all three", () => {
-    // area-1 → P1, P3; goal-1 → P1; T1 (proj-1) → P1
+    // area-1 → P1, P3; goal-1 → P1; T1 (proj-1) → P1 — P4 (unassigned) also shown
     expect(
       computeFilteredProjects(
         ALL_PROJECTS,
@@ -271,7 +272,7 @@ describe("computeFilteredProjects", () => {
         goalProjectIdsMap,
         [T1],
       ),
-    ).toEqual([P1]);
+    ).toEqual([P1, P4]);
   });
 });
 
@@ -326,7 +327,7 @@ describe("computeFilteredGoals", () => {
   });
 
   it("intersects areas + project", () => {
-    // area-1 → G1, G3; proj-2 → G2; intersection = empty
+    // area-1 → G1, G3; proj-2 → G2; intersection = empty — but G4 (unassigned) always shown
     expect(
       computeFilteredGoals(
         ALL_GOALS,
@@ -334,11 +335,11 @@ describe("computeFilteredGoals", () => {
         "proj-2",
         projectGoalIdsMap,
       ),
-    ).toEqual([]);
+    ).toEqual([G4]);
   });
 
   it("intersects areas + tasks", () => {
-    // area-1 → G1, G3; T2 → G2; intersection = empty
+    // area-1 → G1, G3; T2 → G2; intersection = empty — but G4 (unassigned) always shown
     expect(
       computeFilteredGoals(
         ALL_GOALS,
@@ -348,11 +349,12 @@ describe("computeFilteredGoals", () => {
         taskGoalIdsMap,
         [T2],
       ),
-    ).toEqual([]);
+    ).toEqual([G4]);
   });
 
   it("intersects project + tasks", () => {
     // proj-1 → G1; T2 → G2; intersection = empty
+    // No area constraint → G4 not exempt
     expect(
       computeFilteredGoals(
         ALL_GOALS,
@@ -366,7 +368,7 @@ describe("computeFilteredGoals", () => {
   });
 
   it("intersects all three", () => {
-    // area-1 → G1, G3; proj-1 → G1; T1 → G1
+    // area-1 → G1, G3; proj-1 → G1; T1 → G1 — G4 (unassigned) also shown
     expect(
       computeFilteredGoals(
         ALL_GOALS,
@@ -376,7 +378,7 @@ describe("computeFilteredGoals", () => {
         taskGoalIdsMap,
         [T1],
       ),
-    ).toEqual([G1]);
+    ).toEqual([G1, G4]);
   });
 });
 
@@ -410,14 +412,14 @@ describe("computeFilteredTasks", () => {
   });
 
   it("intersects areas + project", () => {
-    // area-1 → T1, T3; proj-2 → T2; intersection = empty
+    // area-1 → T1, T3; proj-2 → T2; intersection = empty — but T5 (unassigned) always shown when area active
     expect(computeFilteredTasks(ALL_TASKS, ["area-1"], "proj-2", [])).toEqual(
-      [],
+      [T5],
     );
   });
 
   it("intersects areas + goals", () => {
-    // area-1 → T1, T3; goal-2 → T2; intersection = empty
+    // area-1 → T1, T3; goal-2 → T2; intersection = empty — but T5 (unassigned) always shown when area active
     expect(
       computeFilteredTasks(
         ALL_TASKS,
@@ -426,11 +428,12 @@ describe("computeFilteredTasks", () => {
         ["goal-2"],
         goalTaskIdsMap,
       ),
-    ).toEqual([]);
+    ).toEqual([T5]);
   });
 
   it("intersects project + goals", () => {
     // proj-1 → T1; goal-2 → T2; intersection = empty
+    // No area constraint → T5 not exempt
     expect(
       computeFilteredTasks(
         ALL_TASKS,
@@ -444,7 +447,7 @@ describe("computeFilteredTasks", () => {
 
   it("intersects all three", () => {
     // area-1 → T1, T3, T4; proj-1 → T1, T4; goal-1 → T1 (direct link only)
-    // Intersection: T1 (only task matching all 3)
+    // T5 (unassigned) also shown because area constraint is active
     expect(
       computeFilteredTasks(
         ALL_TASKS,
@@ -453,7 +456,7 @@ describe("computeFilteredTasks", () => {
         ["goal-1"],
         goalTaskIdsMap,
       ),
-    ).toEqual([T1]);
+    ).toEqual([T1, T5]);
   });
 });
 
