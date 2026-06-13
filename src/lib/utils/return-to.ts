@@ -131,8 +131,6 @@ export function resolveGoalDetailNavigation(
 // `chain` = outer origins, encoded as a JSON array of paths.
 // Helper view on any page: [returnTo, ...decode(chain)].
 
-const CHAIN_DELIM = "|";
-
 export function decodeReturnToChain(encoded: string | null | undefined): string[] {
   if (!encoded) return [];
   try {
