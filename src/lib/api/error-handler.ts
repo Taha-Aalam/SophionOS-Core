@@ -8,7 +8,15 @@ export class AppError extends Error {
 
 export class ValidationError extends AppError {
   constructor(message: string, public details?: unknown) {
-    super(message, 400, 'VALIDATION_ERROR');
+    const detailsMessage =
+      Array.isArray(details) && details.length > 0
+        ? `: ${details
+            .map((d: { path?: Array<string | number>; message?: string }) =>
+              `${(d.path ?? []).join('.') || 'field'}: ${d.message ?? 'invalid'}`,
+            )
+            .join('; ')}`
+        : '';
+    super(`${message}${detailsMessage}`, 400, 'VALIDATION_ERROR');
   }
 }
 
