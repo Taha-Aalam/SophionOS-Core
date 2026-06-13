@@ -52,7 +52,7 @@ import { useTasks } from "@/lib/hooks/use-tasks";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds } from "@/lib/utils/notes";
 import { getResourceLinkedProjectIds } from "@/lib/utils/resources";
 import { useUIStore } from "@/lib/stores/ui.store";
-import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
+import { buildReturnToChain, decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
 import { cn } from "@/lib/utils";
 
 export function TopicDetailContent() {
@@ -151,12 +151,16 @@ export function TopicDetailContent() {
 
   const handleNewNote = useCallback(() => {
     const urlParams = new URLSearchParams({ returnTo: `/topics/${topicId}` });
+    const chain = buildReturnToChain(searchParams);
+    if (chain) {
+      urlParams.set("chain", chain);
+    }
     if (topic?.linkedAreaIds && topic.linkedAreaIds.length > 0) {
       urlParams.set("areaIds", topic.linkedAreaIds.join(","));
     }
     urlParams.set("topicId", topic?.id ?? topicId);
     router.push(`/notes/new?${urlParams.toString()}`);
-  }, [router, topicId, topic]);
+  }, [router, topicId, topic, searchParams]);
 
   const linkedAreas = useMemo(() => {
     if (!topic?.linkedAreaIds) return [];
