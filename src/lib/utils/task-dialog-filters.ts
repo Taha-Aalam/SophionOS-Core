@@ -1,5 +1,5 @@
 // src/lib/utils/task-dialog-filters.ts
-import { goalMatchesAreaId } from "@/lib/utils/goals";
+import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 
 interface FilterableProject {
   id: string;
@@ -45,6 +45,9 @@ export function computeFilteredProjects<T extends FilterableProject>(
         project.area_id,
         ...(project.linkedAreaIds ?? []),
       ].filter((id): id is string => Boolean(id));
+      // Unassigned (no area_id, no linkedAreaIds) projects stay visible
+      // alongside area-scoped ones — the user might still want to attach them.
+      if (projectAreas.length === 0) return true;
       if (!projectAreas.some((aId) => areaSet.has(aId))) return false;
     }
 
@@ -78,7 +81,13 @@ export function computeVisibleGoals<T extends FilterableGoal>(
   return goals.filter((goal) => {
     if (projectConstraintActive && !projectGoalSet.has(goal.id)) return false;
 
-    if (hasAreas && !selectedAreaIds.some((aId) => goalMatchesAreaId(goal, aId))) return false;
+    if (hasAreas) {
+      // Unassigned (no area_id, no linkedAreaIds) goals stay visible
+      // alongside area-scoped ones — the user might still want to link them.
+      const goalAreaIds = getGoalLinkedAreaIds(goal);
+      if (goalAreaIds.length === 0) return true;
+      if (!selectedAreaIds.some((aId) => goalAreaIds.includes(aId))) return false;
+    }
 
     return true;
   });
@@ -185,7 +194,12 @@ export function computeVisibleGoalsForProjects<T extends FilterableGoal>(
 
   return goals.filter((goal) => {
     if (projectConstraintActive && projectGoalSet && !projectGoalSet.has(goal.id)) return false;
-    if (hasAreas && !selectedAreaIds.some((aId) => goalMatchesAreaId(goal, aId))) return false;
+    if (hasAreas) {
+      // Unassigned goals stay visible alongside area-scoped ones.
+      const goalAreaIds = getGoalLinkedAreaIds(goal);
+      if (goalAreaIds.length === 0) return true;
+      if (!selectedAreaIds.some((aId) => goalAreaIds.includes(aId))) return false;
+    }
     return true;
   });
 }

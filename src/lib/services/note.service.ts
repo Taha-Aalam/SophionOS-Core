@@ -424,7 +424,7 @@ export const noteService = {
       // source of truth for the inbox/to_review split, and a stale bucket
       // should be corrected.
       //
-      // Terminal states (saved, archive) are preserved: once a note is
+      // Terminal states (completed, archive) are preserved: once a note is
       // filed away, inbox logic no longer applies.
       const touchesContext =
         areaIds !== undefined ||
@@ -433,7 +433,7 @@ export const noteService = {
         taskIds !== undefined ||
         validatedWide.topic_id !== undefined;
       const preservesTerminal =
-        validatedWide.status === NOTE_STATUS.SAVED ||
+        validatedWide.status === NOTE_STATUS.COMPLETED ||
         validatedWide.status === NOTE_STATUS.ARCHIVE;
 
       if (touchesContext && !preservesTerminal) {
@@ -689,9 +689,9 @@ export const noteService = {
     }
     if (!note) return;
 
-    // Terminal states (saved, archive) are preserved: a filed-away note
+    // Terminal states (completed, archive) are preserved: a filed-away note
     // is not pulled back to inbox/to_review by a later link/unlink.
-    if (note.status === NOTE_STATUS.SAVED || note.status === NOTE_STATUS.ARCHIVE) {
+    if (note.status === NOTE_STATUS.COMPLETED || note.status === NOTE_STATUS.ARCHIVE) {
       return;
     }
 
@@ -1049,7 +1049,7 @@ export const noteService = {
   /**
    * One-shot backfill: re-derive status for every non-terminal note
    * whose stored status does not match the value derived from its
-   * current context. Terminal states (saved, archive) are preserved.
+   * current context. Terminal states (completed, archive) are preserved.
    */
   async backfillStaleStatuses(userId: string): Promise<number> {
     const { data, error } = await createClient()
@@ -1057,7 +1057,7 @@ export const noteService = {
       .select(NOTE_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .neq("status", NOTE_STATUS.SAVED)
+      .neq("status", NOTE_STATUS.COMPLETED)
       .neq("status", NOTE_STATUS.ARCHIVE);
 
     if (error) {

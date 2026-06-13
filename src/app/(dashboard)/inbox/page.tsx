@@ -31,6 +31,8 @@ import { useValidIds } from "@/lib/hooks/use-valid-ids";
 import type { Note, Project, Resource, Task } from "@/lib/types/domain.types";
 import { PROJECT_STATUS } from "@/lib/utils/constants";
 import { relativeTime } from "@/lib/utils/dates";
+import { getNoteLinkedAreaIds } from "@/lib/utils/notes";
+import { getResourceLinkedAreaIds } from "@/lib/utils/resources";
 import { cn } from "@/lib/utils";
 import {
   filterProjectDialogAreas,
@@ -870,7 +872,10 @@ export default function InboxPage() {
                     <InboxNoteRow
                       key={note.id}
                       note={note}
-                      areaName={note.area_id ? areaMap.get(note.area_id) : undefined}
+                      areaName={getNoteLinkedAreaIds(note)
+                        .map((id) => areaMap.get(id))
+                        .filter((n): n is string => Boolean(n))
+                        .join(", ") || undefined}
                       areaOptions={areaOptions}
                       goalOptions={goalOptions}
                       projectOptions={projectOptions}
@@ -899,7 +904,10 @@ export default function InboxPage() {
                     <InboxResourceRow
                       key={resource.id}
                       resource={resource}
-                      areaName={resource.area_id ? areaMap.get(resource.area_id) : undefined}
+                      areaName={getResourceLinkedAreaIds(resource)
+                        .map((id) => areaMap.get(id))
+                        .filter((n): n is string => Boolean(n))
+                        .join(", ") || undefined}
                       areaOptions={areaOptions}
                       goalOptions={goalOptions}
                       projectOptions={projectOptions}

@@ -25,11 +25,11 @@ describe("buildProjectCompletionStats", () => {
       makeTask({ id: "t2", is_completed: false }),
     ];
     const notes = [
-      makeNote({ status: "saved" }),
+      makeNote({ status: "completed" }),
       makeNote({ id: "n2", status: "active" }),
     ];
     const resources = [
-      makeResource({ status: "saved" }),
+      makeResource({ status: "completed" }),
       makeResource({ id: "r2", status: "inbox" }),
     ];
     const stats = buildProjectCompletionStats(tasks, notes, resources);
@@ -48,7 +48,7 @@ describe("buildProjectCompletionStats", () => {
   it("excludes is_archived notes", () => {
     const stats = buildProjectCompletionStats(
       [],
-      [makeNote({ is_archived: true, status: "saved" })],
+      [makeNote({ is_archived: true, status: "completed" })],
       [],
     );
     expect(stats.get("p1")).toBeUndefined();
@@ -75,26 +75,26 @@ describe("buildProjectCompletionStats", () => {
   it("counts notes linked via linkedProjectIds when project_id is null", () => {
     const stats = buildProjectCompletionStats(
       [],
-      [makeNote({ project_id: null, linkedProjectIds: ["p2"], status: "saved" })],
+      [makeNote({ project_id: null, linkedProjectIds: ["p2"], status: "completed" })],
       [],
     );
     expect(stats.get("p2")).toEqual({ completed: 1, total: 1 });
   });
 
-  it("counts saved note as completed and inbox note as incomplete", () => {
+  it("counts completed note as completed and inbox note as incomplete", () => {
     const stats = buildProjectCompletionStats(
       [],
-      [makeNote({ status: "saved" }), makeNote({ id: "n2", status: "inbox" })],
+      [makeNote({ status: "completed" }), makeNote({ id: "n2", status: "inbox" })],
       [],
     );
     expect(stats.get("p1")).toEqual({ completed: 1, total: 2 });
   });
 
-  it("counts saved resource as completed and inbox resource as incomplete", () => {
+  it("counts completed resource as completed and inbox resource as incomplete", () => {
     const stats = buildProjectCompletionStats(
       [],
       [],
-      [makeResource({ status: "saved" }), makeResource({ id: "r2", status: "inbox" })],
+      [makeResource({ status: "completed" }), makeResource({ id: "r2", status: "inbox" })],
     );
     expect(stats.get("p1")).toEqual({ completed: 1, total: 2 });
   });

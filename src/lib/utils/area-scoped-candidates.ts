@@ -25,26 +25,6 @@ export function filterCandidatesByAreaScope<T>(
   });
 }
 
-export function getNoteLinkedAreaIds<T extends { linkedAreaIds?: string[]; area_id?: string | null }>(
-  note: T,
-): string[] {
-  const ids = note.linkedAreaIds ?? [];
-  if (ids.length > 0) {
-    return ids;
-  }
-  return note.area_id ? [note.area_id] : [];
-}
-
-export function getResourceLinkedAreaIds<
-  T extends { linkedAreaIds?: string[]; area_id?: string | null },
->(resource: T): string[] {
-  const ids = resource.linkedAreaIds ?? [];
-  if (ids.length > 0) {
-    return ids;
-  }
-  return resource.area_id ? [resource.area_id] : [];
-}
-
 export function getContactLinkedAreaIds<T extends { linkedAreaIds?: string[] }>(
   contact: T,
 ): string[] {

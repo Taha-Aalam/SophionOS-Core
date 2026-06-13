@@ -170,12 +170,12 @@ describe("getAreaRollups", () => {
     expect(tasksCount).toBe(1);
   });
 
-  it("counts only inbox/to_review/active notes (not saved or archived)", () => {
+  it("counts only inbox/to_review/active notes (not completed or archived)", () => {
     const notes = [
       makeNote({ id: "n-inbox", status: "inbox" }),
       makeNote({ id: "n-review", status: "to_review" }),
       makeNote({ id: "n-active", status: "active" }),
-      makeNote({ id: "n-saved", status: "saved" }),
+      makeNote({ id: "n-completed", status: "completed" }),
       makeNote({ id: "n-archive", status: "archive" }),
       makeNote({ id: "n-is-arch", is_archived: true }),
     ];
@@ -183,12 +183,12 @@ describe("getAreaRollups", () => {
     expect(notesCount).toBe(3);
   });
 
-  it("counts only inbox/to_review/active resources (not saved or archived)", () => {
+  it("counts only inbox/to_review/active resources (not completed or archived)", () => {
     const resources = [
       makeResource({ id: "r-inbox", status: "inbox" }),
       makeResource({ id: "r-review", status: "to_review" }),
       makeResource({ id: "r-active", status: "active" }),
-      makeResource({ id: "r-saved", status: "saved" }),
+      makeResource({ id: "r-completed", status: "completed" }),
       makeResource({ id: "r-is-arch", is_archived: true }),
     ];
     const { resourcesCount } = getAreaRollups({ areaId: AREA_ID, goals: [], projects: [], tasks: [], notes: [], resources });

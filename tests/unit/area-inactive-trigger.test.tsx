@@ -49,6 +49,11 @@ describe("AreasByTypeView", () => {
     },
   ];
 
+  const activeAreaRollups = new Map([
+    ["1", { goalsCount: 2, projectsCount: 1, tasksCount: 5, notesCount: 3, resourcesCount: 1 }],
+    ["2", { goalsCount: 0, projectsCount: 0, tasksCount: 0, notesCount: 3, resourcesCount: 0 }],
+  ]);
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -57,6 +62,7 @@ describe("AreasByTypeView", () => {
     const html = renderToStaticMarkup(
       <AreasByTypeView
         groupedAreas={groupedAreas}
+        rollupsByAreaId={activeAreaRollups}
         onCreateArea={mockOnCreateArea}
         onArchive={mockOnArchive}
         isArchiving={false}
@@ -67,6 +73,36 @@ describe("AreasByTypeView", () => {
     expect(html).toContain("(2 areas)");
     expect(html).toContain("Active Area");
     expect(html).toContain("Inactive Area");
+    expect(html).toContain("Paused");
+  });
+
+  it("shows 'No activity' badge for areas with zero rollups but not explicitly marked inactive", () => {
+    const noActivityAreas = [
+      {
+        type: "Personal",
+        areas: [
+          {
+            ...areaBase,
+            id: "3",
+            name: "Empty Area",
+            slug: "empty-area",
+            type: "Personal",
+            inactive: false,
+            archive: false,
+          },
+        ],
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      <AreasByTypeView
+        groupedAreas={noActivityAreas}
+        onCreateArea={mockOnCreateArea}
+        onArchive={mockOnArchive}
+        isArchiving={false}
+      />
+    );
+
     expect(html).toContain("No activity");
   });
 
@@ -74,6 +110,7 @@ describe("AreasByTypeView", () => {
     const html = renderToStaticMarkup(
       <AreasByTypeView
         groupedAreas={groupedAreas}
+        rollupsByAreaId={activeAreaRollups}
         onCreateArea={mockOnCreateArea}
         onArchive={mockOnArchive}
         isArchiving={false}
@@ -110,9 +147,14 @@ describe("AreasByTypeView", () => {
       },
     ];
 
+    const businessRollups = new Map([
+      ["1", { goalsCount: 1, projectsCount: 0, tasksCount: 0, notesCount: 0, resourcesCount: 0 }],
+    ]);
+
     const html = renderToStaticMarkup(
       <AreasByTypeView
         groupedAreas={groupedAreasWithArchived}
+        rollupsByAreaId={businessRollups}
         onCreateArea={mockOnCreateArea}
         onArchive={mockOnArchive}
         isArchiving={false}

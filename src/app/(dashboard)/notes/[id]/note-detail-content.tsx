@@ -65,12 +65,13 @@ import { buildNoteMetadataUpdateInput } from "@/lib/utils/note-detail-metadata";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
+import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
 
 const STATUS_COLORS: Record<string, string> = {
   inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
   to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  saved: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  active: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  completed: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
   archive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
 };
 
@@ -137,10 +138,10 @@ export function NoteDetailContent() {
         if (isFirstSync) {
           setLocalTitle(note.name);
           setLocalNotebooks(note.notebooks ?? []);
-          setLocalAreaIds(note.linkedAreaIds ?? (note.area_id ? [note.area_id] : []));
-          setLocalGoalIds(note.linkedGoalIds ?? []);
-          setLocalProjectIds(note.linkedProjectIds ?? (note.project_id ? [note.project_id] : []));
-          setLocalTaskIds(note.linkedTaskIds ?? []);
+          setLocalAreaIds(getNoteLinkedAreaIds(note));
+          setLocalGoalIds(getNoteLinkedGoalIds(note));
+          setLocalProjectIds(getNoteLinkedProjectIds(note));
+          setLocalTaskIds(getNoteLinkedTaskIds(note));
         }
       });
     }
@@ -273,7 +274,7 @@ export function NoteDetailContent() {
           </Button>
           <span className="text-sm text-muted-foreground">/ Notes / {note.name}</span>
           <Badge variant="secondary" className={cn("text-xs", STATUS_COLORS[note.status])}>
-            {note.status.replace("_", " ")}
+            {note.status === "completed" ? "Done" : note.status.replace("_", " ")}
           </Badge>
           {note.pin && (
             <Badge variant="outline" className="text-xs gap-1">

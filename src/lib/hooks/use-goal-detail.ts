@@ -177,10 +177,10 @@ export function useGoalDetail(goalId: string, filters?: GoalDetailFilters) {
           ).length,
           activeTaskCount: tasksResult.filter((t) => !t.is_archived && !t.is_completed).length,
           activeNoteCount: notesResult.filter(
-            (n) => !n.is_archived && n.status !== "archive" && n.status !== "saved",
+            (n) => !n.is_archived && n.status !== "archive" && n.status !== "completed",
           ).length,
           activeResourceCount: resourcesResult.filter(
-            (r) => !r.is_archived && r.status !== "saved",
+            (r) => !r.is_archived && r.status !== "completed",
           ).length,
         },
       };
