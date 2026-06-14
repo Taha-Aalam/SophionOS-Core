@@ -13,6 +13,7 @@ import {
   getReturnToFallback,
   getReturnToParam,
   isValidReturnTo,
+  popReturnToHref,
   popReturnToChain,
   resolveGoalDetailNavigation,
   resolveBackNavigation,
@@ -151,6 +152,64 @@ describe("popReturnToChain", () => {
     const params = new URLSearchParams();
     params.set("returnTo", encodeReturnTo("/areas/area-A"));
     expect(popReturnToChain(params)).toEqual({ returnTo: null, chain: [] });
+  });
+});
+
+describe("popReturnToHref", () => {
+  it("returns just the fallback when the current page has no chain state", () => {
+    const params = new URLSearchParams();
+    expect(popReturnToHref(params, "/goals")).toBe("/goals");
+  });
+
+  it("returns the popped returnTo as the destination when chain is empty", () => {
+    // Helper view: [/areas/area-A]. Pop -> returnTo=null (no next), chain=[].
+    // This case is only reached when the current page is the deepest in the
+    // stack (no chain), so the Back button should go to the immediate
+    // predecessor as a plain path (no params on the destination because it's
+    // the end of the chain).
+    const params = new URLSearchParams();
+    params.set("returnTo", encodeReturnTo("/projects/project-1"));
+    expect(popReturnToHref(params, "/goals")).toBe("/goals");
+  });
+
+  it("navigates to the popped returnTo and re-emits the rest as new chain params", () => {
+    // Helper view: [/projects/project-1, /goals/goal-X, /areas/area-A, /dashboard].
+    // Pop -> (returnTo=/goals/goal-X, chain=[/areas/area-A, /dashboard]).
+    // Back button must go to /goals/goal-X with those as the new params.
+    const params = new URLSearchParams();
+    params.set("returnTo", encodeReturnTo("/projects/project-1"));
+    params.set(
+      "chain",
+      encodeReturnToChain(["/goals/goal-X", "/areas/area-A", "/dashboard"]),
+    );
+
+    const href = popReturnToHref(params, "/goals");
+    const url = new URL(href, "https://example.test");
+    expect(url.pathname).toBe("/goals/goal-X");
+    expect(url.searchParams.get("returnTo")).toBe("/areas/area-A");
+    expect(JSON.parse(url.searchParams.get("chain") ?? "[]")).toEqual([
+      "/dashboard",
+    ]);
+  });
+
+  it("round-trips through the user's reported regression URL", () => {
+    // The user's URL on the inner goal:
+    //   ?returnTo=%2Fprojects%2Fcheck-1
+    //   &chain=%5B%22%2Fgoals%2Ftest-22%22%2C%22%2Fareas%2Ffinance-wealth%22%2C%22%2Fdashboard%22%5D
+    // After pop, Back must navigate to /projects/check-1 with the new
+    // returnTo=/goals/test-22 and chain=[/areas/finance-wealth, /dashboard].
+    const params = new URLSearchParams(
+      'returnTo=%2Fprojects%2Fcheck-1' +
+        '&chain=%5B%22%2Fgoals%2Ftest-22%22%2C%22%2Fareas%2Ffinance-wealth%22%2C%22%2Fdashboard%22%5D',
+    );
+    const href = popReturnToHref(params, "/goals");
+    const url = new URL(href, "https://example.test");
+    expect(url.pathname).toBe("/projects/check-1");
+    expect(url.searchParams.get("returnTo")).toBe("/goals/test-22");
+    expect(JSON.parse(url.searchParams.get("chain") ?? "[]")).toEqual([
+      "/areas/finance-wealth",
+      "/dashboard",
+    ]);
   });
 });
 

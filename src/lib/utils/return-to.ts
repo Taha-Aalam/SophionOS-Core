@@ -224,7 +224,11 @@ export function popReturnToHref(
   if (nextChain.length > 0) {
     params.set("chain", JSON.stringify(nextChain));
   }
-  return `${fallback}?${params.toString()}`;
+  // Navigate to the popped returnTo (the immediate predecessor), not the
+  // fallback (which is the *current* page's canonical list path). The
+  // destination page receives the new (returnTo, chain) state and renders
+  // its own Back button.
+  return `${nextReturnTo}?${params.toString()}`;
 }
 
 // Append `returnTo` and `chain` to an existing URLSearchParams, using the
