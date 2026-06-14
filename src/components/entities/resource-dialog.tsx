@@ -144,6 +144,7 @@ export function ResourceDialog({
   useEffect(() => {
     if (open && resource) {
       startTransition(() => {
+        statusOverriddenRef.current = true;
         setName(resource.name);
         setUrl(resource.url ?? "");
         setType(resource.type);
@@ -173,15 +174,22 @@ export function ResourceDialog({
         setGoalIds(initialGoalIds ?? []);
         setTaskIds([]);
       });
+    } else {
+      // Closed: reset the override so a future open starts fresh.
+      statusOverriddenRef.current = false;
     }
   }, [open, resource, initialGoalIds, initialAreaIds, initialProjectId, initialTopicId]);
 
-  // Live re-derive status from current context. The status field still
-  // defaults from context, but the user can pick manually — once they do,
-  // we preserve their pick until a context input changes (at which point
-  // we clear the override and re-derive, so a wrong pick is corrected).
+  // Live re-derive status from current context. Default behavior: keep the
+  // user's pick. If the user hasn't manually overridden status, derive from
+  // the current context so a contextless resource starts as `inbox` and a
+  // linked one starts as `to_review`. Once the user picks, only a change to
+  // a context input clears the override and re-derives (a wrong pick is
+  // corrected only when the inputs that drive status change).
   useEffect(() => {
-    statusOverriddenRef.current = false;
+    if (statusOverriddenRef.current) {
+      return;
+    }
     const next = deriveResourceStatus({
       area_ids: areaIds,
       project_ids: projectIds,

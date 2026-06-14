@@ -494,8 +494,13 @@ export const taskService = {
       const preservesTerminal =
         taskInputWide.status === TASK_STATUS.COMPLETED ||
         taskInputWide.status === TASK_STATUS.ARCHIVED;
+      const preservesManual =
+        taskInputWide.status === TASK_STATUS.TODO ||
+        taskInputWide.status === TASK_STATUS.IN_PROGRESS ||
+        taskInputWide.status === TASK_STATUS.COMPLETED ||
+        taskInputWide.status === TASK_STATUS.ARCHIVED;
 
-      if (touchesContext && !preservesTerminal && taskInputWide.is_completed === undefined) {
+      if (touchesContext && !preservesManual && taskInputWide.is_completed === undefined) {
         const derived = deriveTaskStatus({
           area_ids: areaIds,
           goal_ids: goalIds,
@@ -1021,7 +1026,12 @@ export const taskService = {
 
     // Terminal states are preserved: a completed/archived task is not
     // pulled back to inbox/todo by a later link/unlink.
-    if (task.status === TASK_STATUS.COMPLETED || task.status === TASK_STATUS.ARCHIVED) {
+    if (
+      task.status === TASK_STATUS.TODO ||
+      task.status === TASK_STATUS.IN_PROGRESS ||
+      task.status === TASK_STATUS.COMPLETED ||
+      task.status === TASK_STATUS.ARCHIVED
+    ) {
       return;
     }
 
@@ -1099,8 +1109,7 @@ export const taskService = {
       .select(TASK_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .neq("status", TASK_STATUS.COMPLETED)
-      .neq("status", TASK_STATUS.ARCHIVED);
+      .not("status", "in", `(${TASK_STATUS.TODO},${TASK_STATUS.IN_PROGRESS},${TASK_STATUS.COMPLETED},${TASK_STATUS.ARCHIVED})`);
 
     if (error) {
       throw new DatabaseError(error.message);

@@ -435,8 +435,12 @@ export const noteService = {
       const preservesTerminal =
         validatedWide.status === NOTE_STATUS.COMPLETED ||
         validatedWide.status === NOTE_STATUS.ARCHIVE;
+      const preservesManual =
+        validatedWide.status === NOTE_STATUS.ACTIVE ||
+        validatedWide.status === NOTE_STATUS.COMPLETED ||
+        validatedWide.status === NOTE_STATUS.ARCHIVE;
 
-      if (touchesContext && !preservesTerminal) {
+      if (touchesContext && !preservesManual) {
         const derived = deriveNoteStatus({
           area_ids: areaIds,
           project_ids: projectIds,
@@ -689,9 +693,14 @@ export const noteService = {
     }
     if (!note) return;
 
-    // Terminal states (completed, archive) are preserved: a filed-away note
-    // is not pulled back to inbox/to_review by a later link/unlink.
-    if (note.status === NOTE_STATUS.COMPLETED || note.status === NOTE_STATUS.ARCHIVE) {
+    // Manual states (active, completed, archive) are preserved: a user
+    // who explicitly filed a note to one of those states should not have
+    // it pulled back to a derived inbox/to_review by a later link/unlink.
+    if (
+      note.status === NOTE_STATUS.ACTIVE ||
+      note.status === NOTE_STATUS.COMPLETED ||
+      note.status === NOTE_STATUS.ARCHIVE
+    ) {
       return;
     }
 
@@ -1057,8 +1066,7 @@ export const noteService = {
       .select(NOTE_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .neq("status", NOTE_STATUS.COMPLETED)
-      .neq("status", NOTE_STATUS.ARCHIVE);
+      .not("status", "in", `(${NOTE_STATUS.ACTIVE},${NOTE_STATUS.COMPLETED},${NOTE_STATUS.ARCHIVE})`);
 
     if (error) {
       throw new DatabaseError(error.message);
