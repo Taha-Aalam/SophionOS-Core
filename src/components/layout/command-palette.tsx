@@ -17,19 +17,44 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import { useAuth } from "@/components/providers/auth-provider";
 import { useKeyboardShortcut } from "@/lib/hooks/use-keyboard";
-import { useAreas } from "@/lib/hooks/use-areas";
-import { useContacts } from "@/lib/hooks/use-contacts";
-import { useGoals } from "@/lib/hooks/use-goals";
+import { useCreateArea, useAreas, useUpdateArea } from "@/lib/hooks/use-areas";
+import { useCreateContact, useContacts, useUpdateContact } from "@/lib/hooks/use-contacts";
+import { useCreateGoal, useGoals, useUpdateGoal } from "@/lib/hooks/use-goals";
 import { useCreateNote, useNotes } from "@/lib/hooks/use-notes";
-import { useProjects } from "@/lib/hooks/use-projects";
-import { useCreateResource, useResources } from "@/lib/hooks/use-resources";
-import { useCreateTask, useTasks } from "@/lib/hooks/use-tasks";
-import { useTopics } from "@/lib/hooks/use-topics";
+import { useCreateProject, useProjects, useUpdateProject } from "@/lib/hooks/use-projects";
+import { useCreateResource, useResources, useUpdateResource } from "@/lib/hooks/use-resources";
+import { useCreateTask, useTasks, useUpdateTask } from "@/lib/hooks/use-tasks";
+import { useCreateTopic, useTopics, useUpdateTopic } from "@/lib/hooks/use-topics";
 import { useUIStore } from "@/lib/stores/ui.store";
+import type { TopicWithCounts } from "@/lib/services/topic.service";
+import type { Area, Contact, Goal, Note, Project, Resource, Task } from "@/lib/types/domain.types";
 import { buildAreaDetailHref } from "@/lib/utils/area-urls";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { buildProjectDetailHref } from "@/lib/utils/project-urls";
+
+type EntityType = "area" | "goal" | "project" | "task" | "note" | "contact" | "topic" | "resource";
+
+type CreateIntent =
+  | { entity: "area"; name?: string }
+  | { entity: "goal"; name?: string }
+  | { entity: "project"; name?: string }
+  | { entity: "task"; name: string }
+  | { entity: "note"; name: string }
+  | { entity: "contact" }
+  | { entity: "topic"; name?: string }
+  | { entity: "resource"; url: string };
+
+type EditIntent =
+  | { entity: "area"; entityRef: Area }
+  | { entity: "goal"; entityRef: Goal }
+  | { entity: "project"; entityRef: Project }
+  | { entity: "task"; entityRef: Task }
+  | { entity: "note"; entityRef: Note }
+  | { entity: "contact"; entityRef: Contact }
+  | { entity: "topic"; entityRef: TopicWithCounts }
+  | { entity: "resource"; entityRef: Resource };
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -50,11 +75,18 @@ const NAV_ITEMS = [
 const CREATE_TASK_RE = /^create\s+task:\s*(.+)/i;
 const CREATE_NOTE_RE = /^create\s+note:\s*(.+)/i;
 const CREATE_RESOURCE_RE = /^create\s+resource:\s*(.+)/i;
+const CREATE_AREA_RE = /^create\s+area:\s*(.+)/i;
+const CREATE_GOAL_RE = /^create\s+goal:\s*(.+)/i;
+const CREATE_PROJECT_RE = /^create\s+project:\s*(.+)/i;
+const CREATE_CONTACT_RE = /^create\s+contact:\s*(.+)/i;
+const CREATE_TOPIC_RE = /^create\s+topic:\s*(.+)/i;
 
 export function CommandPalette() {
   const router = useRouter();
   const { commandPaletteOpen, closeCommandPalette, toggleCommandPalette } = useUIStore();
   const [query, setQuery] = useState("");
+  const [createIntent, setCreateIntent] = useState<CreateIntent | null>(null);
+  const [editIntent, setEditIntent] = useState<EditIntent | null>(null);
 
   const { data: tasks = [] } = useTasks({ enabled: commandPaletteOpen });
   const { data: goals = [] } = useGoals({ status: "all" }, { enabled: commandPaletteOpen });
@@ -65,9 +97,22 @@ export function CommandPalette() {
   const { data: areas = [] } = useAreas({ archive: false });
   const { data: topics = [] } = useTopics();
 
+  const { user } = useAuth();
   const createTask = useCreateTask();
   const createNote = useCreateNote();
   const createResource = useCreateResource();
+  const createArea = useCreateArea(user?.id);
+  const createGoal = useCreateGoal();
+  const createProject = useCreateProject();
+  const createContact = useCreateContact();
+  const createTopic = useCreateTopic();
+  const updateArea = useUpdateArea(user?.id);
+  const updateGoal = useUpdateGoal();
+  const updateProject = useUpdateProject();
+  const updateContact = useUpdateContact();
+  const updateTopic = useUpdateTopic();
+  const updateTask = useUpdateTask();
+  const updateResource = useUpdateResource();
 
   // Cmd+K (macOS) / Ctrl+K (Windows/Linux) — skip when inside a rich-text editor
   useKeyboardShortcut(
@@ -81,6 +126,8 @@ export function CommandPalette() {
 
   const close = useCallback(() => {
     setQuery("");
+    setCreateIntent(null);
+    setEditIntent(null);
     closeCommandPalette();
   }, [closeCommandPalette]);
 
@@ -99,7 +146,20 @@ export function CommandPalette() {
   const explicitTaskName = taskMatch?.[1]?.trim() ?? null;
   const explicitNoteName = noteMatch?.[1]?.trim() ?? null;
   const explicitResourceUrl = resourceMatch?.[1]?.trim() ?? null;
-  const isExplicitCreate = explicitTaskName !== null || explicitNoteName !== null || explicitResourceUrl !== null;
+  const explicitAreaName = CREATE_AREA_RE.exec(query)?.[1]?.trim() ?? null;
+  const explicitGoalName = CREATE_GOAL_RE.exec(query)?.[1]?.trim() ?? null;
+  const explicitProjectName = CREATE_PROJECT_RE.exec(query)?.[1]?.trim() ?? null;
+  const explicitContactName = CREATE_CONTACT_RE.exec(query)?.[1]?.trim() ?? null;
+  const explicitTopicName = CREATE_TOPIC_RE.exec(query)?.[1]?.trim() ?? null;
+  const isExplicitCreate =
+    explicitTaskName !== null ||
+    explicitNoteName !== null ||
+    explicitResourceUrl !== null ||
+    explicitAreaName !== null ||
+    explicitGoalName !== null ||
+    explicitProjectName !== null ||
+    explicitContactName !== null ||
+    explicitTopicName !== null;
 
   const hasQuery = query.length > 0;
   const q = query.toLowerCase();
@@ -248,6 +308,51 @@ export function CommandPalette() {
                   </span>
                 </CommandItem>
               )}
+              {explicitAreaName && (
+                <CommandItem
+                  value="explicit-create-area"
+                  onSelect={() => setCreateIntent({ entity: "area", name: explicitAreaName })}
+                >
+                  <Plus className="size-4 text-muted-foreground" />
+                  <span>Create area: <span className="font-medium">{explicitAreaName}</span></span>
+                </CommandItem>
+              )}
+              {explicitGoalName && (
+                <CommandItem
+                  value="explicit-create-goal"
+                  onSelect={() => setCreateIntent({ entity: "goal", name: explicitGoalName })}
+                >
+                  <Plus className="size-4 text-muted-foreground" />
+                  <span>Create goal: <span className="font-medium">{explicitGoalName}</span></span>
+                </CommandItem>
+              )}
+              {explicitProjectName && (
+                <CommandItem
+                  value="explicit-create-project"
+                  onSelect={() => setCreateIntent({ entity: "project", name: explicitProjectName })}
+                >
+                  <Plus className="size-4 text-muted-foreground" />
+                  <span>Create project: <span className="font-medium">{explicitProjectName}</span></span>
+                </CommandItem>
+              )}
+              {explicitContactName && (
+                <CommandItem
+                  value="explicit-create-contact"
+                  onSelect={() => setCreateIntent({ entity: "contact" })}
+                >
+                  <Plus className="size-4 text-muted-foreground" />
+                  <span>Create contact</span>
+                </CommandItem>
+              )}
+              {explicitTopicName && (
+                <CommandItem
+                  value="explicit-create-topic"
+                  onSelect={() => setCreateIntent({ entity: "topic", name: explicitTopicName })}
+                >
+                  <Plus className="size-4 text-muted-foreground" />
+                  <span>Create topic: <span className="font-medium">{explicitTopicName}</span></span>
+                </CommandItem>
+              )}
             </CommandGroup>
           )}
 
@@ -292,6 +397,21 @@ export function CommandPalette() {
                       <Plus className="size-4 text-muted-foreground" />
                       Create note…
                     </CommandItem>
+                    <CommandItem value="hint-create-area" onSelect={() => setCreateIntent({ entity: "area" })}>
+                      <Plus className="size-4 text-muted-foreground" /> Create area…
+                    </CommandItem>
+                    <CommandItem value="hint-create-goal" onSelect={() => setCreateIntent({ entity: "goal" })}>
+                      <Plus className="size-4 text-muted-foreground" /> Create goal…
+                    </CommandItem>
+                    <CommandItem value="hint-create-project" onSelect={() => setCreateIntent({ entity: "project" })}>
+                      <Plus className="size-4 text-muted-foreground" /> Create project…
+                    </CommandItem>
+                    <CommandItem value="hint-create-contact" onSelect={() => setCreateIntent({ entity: "contact" })}>
+                      <Plus className="size-4 text-muted-foreground" /> Create contact…
+                    </CommandItem>
+                    <CommandItem value="hint-create-topic" onSelect={() => setCreateIntent({ entity: "topic" })}>
+                      <Plus className="size-4 text-muted-foreground" /> Create topic…
+                    </CommandItem>
                   </CommandGroup>
                 </>
               ) : (
@@ -319,6 +439,25 @@ export function CommandPalette() {
                         Create note:{" "}
                         <span className="font-medium">{query.trim()}</span>
                       </span>
+                    </CommandItem>
+                    <CommandItem value="quick-create-area" onSelect={() => setCreateIntent({ entity: "area", name: query.trim() })}>
+                      <Plus className="size-4 text-muted-foreground" />
+                      <span>Create area: <span className="font-medium">{query.trim()}</span></span>
+                    </CommandItem>
+                    <CommandItem value="quick-create-goal" onSelect={() => setCreateIntent({ entity: "goal", name: query.trim() })}>
+                      <Plus className="size-4 text-muted-foreground" />
+                      <span>Create goal: <span className="font-medium">{query.trim()}</span></span>
+                    </CommandItem>
+                    <CommandItem value="quick-create-project" onSelect={() => setCreateIntent({ entity: "project", name: query.trim() })}>
+                      <Plus className="size-4 text-muted-foreground" />
+                      <span>Create project: <span className="font-medium">{query.trim()}</span></span>
+                    </CommandItem>
+                    <CommandItem value="quick-create-contact" onSelect={() => setCreateIntent({ entity: "contact" })}>
+                      <Plus className="size-4 text-muted-foreground" /> Create contact…
+                    </CommandItem>
+                    <CommandItem value="quick-create-topic" onSelect={() => setCreateIntent({ entity: "topic", name: query.trim() })}>
+                      <Plus className="size-4 text-muted-foreground" />
+                      <span>Create topic: <span className="font-medium">{query.trim()}</span></span>
                     </CommandItem>
                   </CommandGroup>
                 </>
