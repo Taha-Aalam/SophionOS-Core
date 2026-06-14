@@ -7,6 +7,8 @@ import {
   BookOpen,
   Link2,
   NotebookPen,
+  PanelRightClose,
+  PanelRightOpen,
   Pin,
   X,
 } from "lucide-react";
@@ -90,6 +92,7 @@ export function NoteDetailContent() {
   const [localTitle, setLocalTitle] = useState("");
   const [localNotebooks, setLocalNotebooks] = useState<string[]>([]);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [isMetadataOpen, setIsMetadataOpen] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
   const [localAreaIds, setLocalAreaIds] = useState<string[]>([]);
@@ -284,6 +287,19 @@ export function NoteDetailContent() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {saveState === "saving" && <span className="text-xs">Saving…</span>}
           {saveState === "saved" && <span className="text-xs text-green-600 dark:text-green-400">Saved</span>}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setIsMetadataOpen((open) => !open)}
+            aria-label={isMetadataOpen ? "Hide metadata" : "Show metadata"}
+            title={isMetadataOpen ? "Hide metadata" : "Show metadata"}
+          >
+            {isMetadataOpen ? (
+              <PanelRightClose className="size-4" />
+            ) : (
+              <PanelRightOpen className="size-4" />
+            )}
+          </Button>
           <NoteArchiveToggle
             isArchived={localIsArchived}
             mode="detail"
@@ -374,56 +390,64 @@ export function NoteDetailContent() {
           </div>
         </div>
 
-        <aside className="hidden w-72 shrink-0 flex-col gap-5 overflow-y-auto border-l border-border p-4 xl:flex">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Metadata
-          </p>
-
-          <NoteMetadataPanel
-            areas={areas}
-            goals={goals}
-            projects={projects}
-            tasks={tasks}
-            noteTypes={noteTypes}
-            status={note.status}
-            type={note.type}
-            notebooks={localNotebooks}
-            notebookOptions={notebookOptions}
-            areaIds={localAreaIds}
-            goalIds={localGoalIds}
-            projectIds={localProjectIds}
-            taskIds={localTaskIds}
-            favorite={note.favorite}
-            pin={note.pin}
-            onStatusChange={(status) => handleMetaChange({ status })}
-            onTypeChange={(type) => handleMetaChange({ type })}
-            onNotebooksChange={(notebooks) => { setLocalNotebooks(notebooks); handleMetaChange({ notebooks }); }}
-            onAreaIdsChange={(ids) => { setLocalAreaIds(ids); handleMetaChange({ area_ids: ids }); }}
-            onGoalIdsChange={(ids) => { setLocalGoalIds(ids); handleMetaChange({ goal_ids: ids }); }}
-            onProjectIdsChange={(ids) => { setLocalProjectIds(ids); handleMetaChange({ project_ids: ids }); }}
-            onTaskIdsChange={(ids) => { setLocalTaskIds(ids); handleMetaChange({ task_ids: ids }); }}
-            onFavoriteChange={(favorite) => handleMetaChange({ favorite })}
-            onPinChange={(pin) => handleMetaChange({ pin })}
-            disabled={updateNote.isPending}
-          />
-
-          <div className="mt-auto space-y-1 border-t border-border pt-4 text-xs text-muted-foreground">
-            <p>
-              Created{" "}
-              {new Date(note.created_at).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+        <aside
+          className={cn(
+            "shrink-0 overflow-hidden border-l border-border transition-[width] duration-200",
+            isMetadataOpen ? "w-72" : "w-0",
+          )}
+          aria-hidden={!isMetadataOpen}
+        >
+          <div className="flex h-full w-72 flex-col gap-5 overflow-y-auto p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Metadata
             </p>
-            <p>
-              Updated{" "}
-              {new Date(note.updated_at).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </p>
+
+            <NoteMetadataPanel
+              areas={areas}
+              goals={goals}
+              projects={projects}
+              tasks={tasks}
+              noteTypes={noteTypes}
+              status={note.status}
+              type={note.type}
+              notebooks={localNotebooks}
+              notebookOptions={notebookOptions}
+              areaIds={localAreaIds}
+              goalIds={localGoalIds}
+              projectIds={localProjectIds}
+              taskIds={localTaskIds}
+              favorite={note.favorite}
+              pin={note.pin}
+              onStatusChange={(status) => handleMetaChange({ status })}
+              onTypeChange={(type) => handleMetaChange({ type })}
+              onNotebooksChange={(notebooks) => { setLocalNotebooks(notebooks); handleMetaChange({ notebooks }); }}
+              onAreaIdsChange={(ids) => { setLocalAreaIds(ids); handleMetaChange({ area_ids: ids }); }}
+              onGoalIdsChange={(ids) => { setLocalGoalIds(ids); handleMetaChange({ goal_ids: ids }); }}
+              onProjectIdsChange={(ids) => { setLocalProjectIds(ids); handleMetaChange({ project_ids: ids }); }}
+              onTaskIdsChange={(ids) => { setLocalTaskIds(ids); handleMetaChange({ task_ids: ids }); }}
+              onFavoriteChange={(favorite) => handleMetaChange({ favorite })}
+              onPinChange={(pin) => handleMetaChange({ pin })}
+              disabled={updateNote.isPending}
+            />
+
+            <div className="mt-auto space-y-1 border-t border-border pt-4 text-xs text-muted-foreground">
+              <p>
+                Created{" "}
+                {new Date(note.created_at).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
+              <p>
+                Updated{" "}
+                {new Date(note.updated_at).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
+            </div>
           </div>
         </aside>
       </div>
