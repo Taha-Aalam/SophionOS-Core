@@ -300,23 +300,23 @@ export function ResourceDialog({
 
   // ── Areas filtering (AND-intersection) ─────────────────────────────────────
   const visibleAreas = useMemo(() => {
-    return computeVisibleAreas(areas, selectedProjects[0] ?? null, selectedGoals, selectedTasks);
-  }, [areas, selectedProjects, selectedGoals, selectedTasks]);
+    return computeVisibleAreas(areas, selectedProjects[0] ?? null, selectedGoals, selectedTasks, areaIds);
+  }, [areas, selectedProjects, selectedGoals, selectedTasks, areaIds]);
 
   // ── Projects filtering (AND-intersection) ──────────────────────────────────
   const filteredProjects = useMemo(() => {
-    return computeFilteredProjects(projects, areaIds, goalIds, goalProjectIdsMap, selectedTasks);
-  }, [projects, areaIds, goalIds, goalProjectIdsMap, selectedTasks]);
+    return computeFilteredProjects(projects, areaIds, goalIds, goalProjectIdsMap, selectedTasks, projectIds);
+  }, [projects, areaIds, goalIds, goalProjectIdsMap, selectedTasks, projectIds]);
 
   // ── Goals filtering (AND-intersection) ─────────────────────────────────────
   const filteredGoals = useMemo(() => {
-    return computeFilteredGoals(goals, areaIds, projectIds[0] ?? null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks);
-  }, [goals, areaIds, projectIds, projectGoalIdsMap, taskGoalIdsMap, selectedTasks]);
+    return computeFilteredGoals(goals, areaIds, projectIds[0] ?? null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks, goalIds);
+  }, [goals, areaIds, projectIds, projectGoalIdsMap, taskGoalIdsMap, selectedTasks, goalIds]);
 
   // ── Tasks filtering (AND-intersection) ─────────────────────────────────────
   const filteredTasks = useMemo(() => {
-    return computeFilteredTasks(tasks, areaIds, projectIds[0] ?? null, goalIds, goalTaskIdsMap);
-  }, [tasks, areaIds, projectIds, goalIds, goalTaskIdsMap]);
+    return computeFilteredTasks(tasks, areaIds, projectIds[0] ?? null, goalIds, goalTaskIdsMap, taskIds);
+  }, [tasks, areaIds, projectIds, goalIds, goalTaskIdsMap, taskIds]);
 
   // ── Clear invalid selections when filters change ───────────────────────────
   useEffect(() => {
