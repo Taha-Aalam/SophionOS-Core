@@ -415,7 +415,17 @@ export async function serverFetchGoals(
     query = query.eq("term", filters.term);
   }
 
-  const { data } = await query;
+  const { data, error } = await query;
+
+  // Surface the error rather than swallowing it into an empty array — a
+  // transient failure would otherwise dehydrate an empty success state that
+  // the client trusts permanently (refetchOnMount is off). Throwing leaves the
+  // prefetched query errored (not dehydrated), so the client refetches on
+  // mount and recovers. See serverFetchResources for the full rationale.
+  if (error) {
+    throw error;
+  }
+
   const rawGoals = (data ?? []) as GoalLike[];
 
   const [goalsWithAreas, goalsWithProgress, goalsWithRollups] = await Promise.all([

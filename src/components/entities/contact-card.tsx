@@ -30,6 +30,7 @@ interface ContactCardProps {
   onToggleFavorite?: (id: string) => void;
   onArchive?: (id: string, archive: boolean) => void;
   returnTo?: string;
+  returnToChain?: string;
 }
 
 export function ContactCard({
@@ -39,6 +40,7 @@ export function ContactCard({
   onToggleFavorite,
   onArchive,
   returnTo,
+  returnToChain,
 }: ContactCardProps) {
   const router = useRouter();
   const groupColor = contact.group ? GROUP_COLORS[contact.group] ?? "" : "";
@@ -48,7 +50,13 @@ export function ContactCard({
       className="cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 h-full flex flex-col"
       onClick={() => {
         const base = `/contacts/${contact.slug ?? contact.id}`;
-        router.push(returnTo ? `${base}?returnTo=${encodeReturnTo(returnTo)}` : base);
+        router.push(
+          returnTo
+            ? `${base}?returnTo=${encodeReturnTo(returnTo)}${
+                returnToChain ? `&chain=${returnToChain}` : ""
+              }`
+            : base,
+        );
       }}
     >
       <CardHeader className="pb-2">

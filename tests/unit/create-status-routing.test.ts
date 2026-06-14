@@ -172,7 +172,7 @@ describe("taskService.create status routing (bug #3, #4)", () => {
       name: "Tidy desk",
       status: TASK_STATUS.TODO,
       area_ids: [areaA],
-      due_date: "2026-06-10",
+      due_date: "2026-12-31",
     } as any);
 
     // Has area + due_date => todo is correct, derivation agrees with caller

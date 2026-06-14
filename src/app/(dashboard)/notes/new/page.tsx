@@ -17,7 +17,7 @@ import { PROJECTS_QUERY_KEY, useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
 import { NOTE_STATUS, NOTE_TYPE, type NoteStatus } from "@/lib/utils/constants";
-import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
+import { decodeReturnTo, popReturnToHref } from "@/lib/utils/return-to";
 
 function parseMultiValue(param: string | null): string[] {
   if (!param) return [];
@@ -161,7 +161,7 @@ export default function NewNotePage() {
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon-sm" onClick={() => router.push(resolveBackNavigation(noteReturnTo, "/notes"))}>
+          <Button variant="ghost" size="icon-sm" onClick={() => router.push(popReturnToHref(searchParams, "/notes"))}>
             <ArrowLeft className="size-4" />
           </Button>
           <h1 className="text-xl font-bold tracking-tight">New Note</h1>

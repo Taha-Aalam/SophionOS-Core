@@ -57,6 +57,7 @@ export const createResourceSchema = resourceBaseSchema.extend({
   task_ids: z.array(z.string().uuid()).default([]),
   area_ids: z.array(z.string().uuid()).default([]),
   project_ids: z.array(z.string().uuid()).default([]),
+  project_id: z.string().uuid().nullable().optional(),
 });
 
 export const updateResourceSchema = resourceBaseSchema
@@ -64,6 +65,7 @@ export const updateResourceSchema = resourceBaseSchema
     type: z.enum(resourceTypeValues).optional(),
     status: z.enum(resourceStatusValues).optional(),
     favorite: z.boolean().optional(),
+    project_id: z.string().uuid().nullable().optional(),
     is_archived: z.boolean().optional(),
     goal_ids: z.array(z.string().uuid()).optional(),
     task_ids: z.array(z.string().uuid()).optional(),

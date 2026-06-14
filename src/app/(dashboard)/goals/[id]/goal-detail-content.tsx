@@ -108,7 +108,7 @@ import {
   buildAreaContactProjectSections,
   buildContactByAreaSections,
 } from "@/lib/utils/area-detail";
-import { buildReturnTo, encodeReturnTo, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
+import { buildReturnTo, buildReturnToChain, encodeReturnTo, getRawReturnToChain, popReturnToHref, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 
 const TERM_LABELS: Record<string, string> = {
@@ -317,8 +317,9 @@ export function GoalDetailContent() {
     () => resolveGoalDetailNavigation(searchParams, currentPagePathWithSlug),
     [currentPagePathWithSlug, searchParams],
   );
-  const goalBreadcrumbTarget = goalNavigation.breadcrumbTarget;
   const goalNestedReturnTo = goalNavigation.nestedReturnTo;
+  const returnToChain = buildReturnToChain(searchParams);
+  const goalBackHref = popReturnToHref(searchParams, "/goals");
   const allowedProjectIds = useMemo(
     () => (goalData?.projects ?? []).map((p) => p.id),
     [goalData?.projects],
@@ -1161,7 +1162,7 @@ export function GoalDetailContent() {
           variant="ghost"
           size="icon"
           className="size-6"
-          onClick={() => router.push(goalBreadcrumbTarget)}
+          onClick={() => router.push(goalBackHref)}
         >
           <ArrowLeft className="size-3.5" />
         </Button>
@@ -1470,7 +1471,7 @@ export function GoalDetailContent() {
             <KanbanBoard
               projects={filteredProjects}
               areas={areas}
-              onProjectClick={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(currentPagePathWithSlug)}`)}
+              onProjectClick={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(currentPagePathWithSlug)}&chain=${returnToChain}`)}
             />
           ) : projectTab === "by_area" ? (
             <ProjectsByAreaView
@@ -1478,12 +1479,13 @@ export function GoalDetailContent() {
               areaNames={areaNames}
               duplicateIndices={new Map()}
               isLoading={isLoading}
-              onEdit={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(currentPagePathWithSlug)}`)}
+              onEdit={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(currentPagePathWithSlug)}&chain=${returnToChain}`)}
               onCreateProject={(areaId) => {
                 setNewProjectAreaId(areaId === "unassigned" ? null : areaId);
                 setIsNewProjectOpen(true);
               }}
               returnTo={currentPagePathWithSlug}
+              returnToChain={returnToChain}
             />
           ) : filteredProjects.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1495,6 +1497,7 @@ export function GoalDetailContent() {
                   areaNames={getProjectAreaNames(project)}
                   areaIcons={getProjectAreaIcons(project)}
                   returnTo={currentPagePathWithSlug}
+                  returnToChain={returnToChain}
                   onArchive={(p) => archiveProject.mutate(p.id)}
                   onRestore={(p) => restoreProject.mutate(p.id)}
                 />
@@ -1609,7 +1612,8 @@ export function GoalDetailContent() {
           emptyDescription="Create a note to capture thoughts that contribute to this goal."
           onCreateNew={() => {
             const params = new URLSearchParams();
-            params.set("returnTo", encodeReturnTo(goalNestedReturnTo));
+            params.set("returnTo", goalNestedReturnTo);
+            params.set("chain", JSON.stringify(getRawReturnToChain(searchParams)));
             params.set("goalId", goal.id);
             router.push(`/notes/new?${params.toString()}`);
           }}
@@ -1631,6 +1635,7 @@ export function GoalDetailContent() {
                   <NoteRow
                     note={note}
                     returnTo={goalNestedReturnTo}
+                    returnToChain={returnToChain}
                     areas={noteAreas}
                     goalNames={noteGoalNames}
                     projectNames={noteProjectNames}
@@ -1646,7 +1651,8 @@ export function GoalDetailContent() {
               }}
               onNewNote={(groupId) => {
                 const params = new URLSearchParams();
-                params.set("returnTo", encodeReturnTo(goalNestedReturnTo));
+                params.set("returnTo", goalNestedReturnTo);
+                params.set("chain", JSON.stringify(getRawReturnToChain(searchParams)));
                 params.set("goalId", goal.id);
                 if (noteTab === "by_area") {
                   params.set("areaId", groupId);
@@ -1671,6 +1677,7 @@ export function GoalDetailContent() {
                     key={note.id}
                     note={note}
                     returnTo={goalNestedReturnTo}
+                    returnToChain={returnToChain}
                     areas={noteAreas}
                     goalNames={noteGoalNames}
                     projectNames={noteProjectNames}
@@ -1837,6 +1844,7 @@ export function GoalDetailContent() {
                     onToggleFavorite={handleContactToggleFavorite}
                     onArchive={handleContactArchive}
                     returnTo={buildReturnTo(`/goals/${goalId}`)}
+                    returnToChain={returnToChain}
                   />
                 </div>
               ))}

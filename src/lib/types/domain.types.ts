@@ -39,6 +39,7 @@ export interface Project extends DatabaseTable<"projects"> {
 }
 
 export interface Resource extends DatabaseTable<"resources"> {
+  project_id?: string | null;
   linkedAreaIds?: string[];
   linkedGoalIds?: string[];
   linkedProjectIds?: string[];

@@ -94,14 +94,12 @@ import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
-import { buildReturnTo, encodeReturnTo, getReturnToFromSearchParams, resolveBackNavigation } from "@/lib/utils/return-to";
+import { buildReturnTo, buildReturnToChain, encodeReturnTo, getRawReturnToChain, popReturnToHref } from "@/lib/utils/return-to";
 import {
   getTaskLinkedAreaIds,
   getTaskLinkedAreaNames,
   getTaskLinkedAreaIcons,
-  getTaskLinkedGoalIds,
   getTaskLinkedGoalNames,
-  getTaskLinkedProjectIds,
   getTaskLinkedProjectNames,
 } from "@/lib/utils/tasks";
 import { buildAreaTaskGroupsByGoal, buildAreaTaskGroupsByProject, getFilteredAreaProjects, getFilteredAreaNotes, getFilteredAreaResources, buildAreaContactGoalSections, buildAreaContactProjectSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections } from "@/lib/utils/area-detail";
@@ -130,8 +128,8 @@ export function AreaDetailContent() {
   const userId = user?.id;
   const areaIdentifier = params.id as string;
   const { setPageTitle } = useUIStore();
-  const areaReturnTo = getReturnToFromSearchParams(searchParams);
-  const backTarget = resolveBackNavigation(areaReturnTo, "/areas");
+  const backHref = popReturnToHref(searchParams, "/areas");
+  const areaReturnToChain = buildReturnToChain(searchParams);
 
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const [goalTab, setGoalTab] = useState("active");
@@ -641,7 +639,7 @@ export function AreaDetailContent() {
     if (!area || checked === area.archive) return;
     if (checked) {
       await archiveArea.mutateAsync(area.id);
-      router.push(backTarget);
+      router.push(backHref);
     } else {
       await restoreArea.mutateAsync(area.id);
     }
@@ -655,7 +653,7 @@ export function AreaDetailContent() {
   const handleDeleteArea = async () => {
     if (!area) return;
     await deleteArea.mutateAsync(area.id);
-    router.push(backTarget);
+    router.push(backHref);
   };
 
   const handleTaskCompletion = async (taskId: string, completed: boolean) => {
@@ -946,7 +944,7 @@ export function AreaDetailContent() {
   if (!area) {
     return (
       <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-        <Button variant="ghost" onClick={() => router.push(backTarget)}>
+        <Button variant="ghost" onClick={() => router.push(backHref)}>
           <ArrowLeft className="mr-2 size-4" />
           Back to Areas
         </Button>
@@ -955,7 +953,7 @@ export function AreaDetailContent() {
           title="Area not found"
           description="This area may have been deleted or you do not have access to it."
           actionLabel="Return to Areas"
-          onAction={() => router.push(backTarget)}
+          onAction={() => router.push(backHref)}
         />
       </div>
     );
@@ -969,7 +967,7 @@ export function AreaDetailContent() {
           variant="ghost"
           size="icon"
           className="size-6"
-          onClick={() => router.push(backTarget)}
+          onClick={() => router.push(backHref)}
         >
           <ArrowLeft className="size-3.5" />
         </Button>
@@ -1231,7 +1229,7 @@ export function AreaDetailContent() {
                     areaName={area.name}
                     areaNames={goalAreaNames.length > 0 ? goalAreaNames : [area.name]}
                     areaIcons={goalAreaIcons.length > 0 ? goalAreaIcons : [area.icon ?? null]}
-                    onEdit={() => router.push(`${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(goalReturnTo)}`)}
+                    onEdit={() => router.push(`${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(goalReturnTo)}&chain=${areaReturnToChain}`)}
                     onRestore={(g) => restoreGoal.mutate(g.id)}
                     onArchive={(g) => archiveGoal.mutate(g.id)}
                     rollups={goalRollups.get(goal.id)}
@@ -1273,7 +1271,7 @@ export function AreaDetailContent() {
             <KanbanBoard
               projects={(areaData?.projects ?? []).filter((p) => !p.is_archived)}
               areas={allAreasList}
-              onProjectClick={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}`)}
+              onProjectClick={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}&chain=${areaReturnToChain}`)}
             />
           ) : projectTab === "by_goal" ? (
             <ProjectsByGoalView
@@ -1281,12 +1279,13 @@ export function AreaDetailContent() {
               areaNames={areaNamesById}
               duplicateIndices={new Map()}
               isLoading={isLoading}
-              onEdit={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}`)}
+              onEdit={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}&chain=${areaReturnToChain}`)}
               onCreateProject={(goalId) => {
                 setNewProjectGoalId(goalId === "unassigned" ? null : goalId);
                 setIsNewProjectOpen(true);
               }}
               returnTo={buildReturnTo(`/areas/${area.slug ?? area.id}`)}
+              returnToChain={areaReturnToChain}
             />
           ) : filteredProjects.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1309,6 +1308,7 @@ export function AreaDetailContent() {
                       projectAreaIcons.length > 0 ? projectAreaIcons : [area.icon ?? null]
                     }
                     returnTo={projectReturnTo}
+                    returnToChain={areaReturnToChain}
                     onArchive={(p) => archiveProject.mutate(p.id)}
                     onRestore={(p) => restoreProject.mutate(p.id)}
                   />
@@ -1427,7 +1427,7 @@ export function AreaDetailContent() {
           isLoading={isLoading}
           emptyTitle="No notes linked to this area"
           emptyDescription="Create a note to capture thoughts for this area."
-          onCreateNew={() => area && router.push(`/notes/new?areaId=${area.id}&returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}`)}
+          onCreateNew={() => area && router.push(`/notes/new?areaId=${area.id}&returnTo=${encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`))}&chain=${areaReturnToChain}`)}
           createLabel="New Note"
           onLinkExisting={() => setIsLinkNoteOpen(true)}
           linkLabel="Link Note"
@@ -1447,6 +1447,7 @@ export function AreaDetailContent() {
                   <NoteRow
                     note={note}
                     returnTo={noteReturnTo}
+                    returnToChain={areaReturnToChain}
                     areas={noteAreas}
                     goalNames={noteGoalNames}
                     projectNames={noteProjectNames}
@@ -1463,7 +1464,8 @@ export function AreaDetailContent() {
               onNewNote={(groupId) => {
                 const params = new URLSearchParams();
                 params.set("areaId", area.id);
-                params.set("returnTo", encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`)));
+                params.set("returnTo", buildReturnTo(`/areas/${area.slug ?? area.id}`));
+                params.set("chain", JSON.stringify(getRawReturnToChain(searchParams)));
                 if (noteTab === "by_goal") {
                   params.set("goalId", groupId);
                 } else {
@@ -1490,6 +1492,7 @@ export function AreaDetailContent() {
                     key={note.id}
                     note={note}
                     returnTo={noteReturnTo}
+                    returnToChain={areaReturnToChain}
                     areas={noteAreas}
                     goalNames={noteGoalNames}
                     projectNames={noteProjectNames}
@@ -1677,6 +1680,7 @@ export function AreaDetailContent() {
                     onToggleFavorite={handleContactToggleFavorite}
                     onArchive={handleContactArchive}
                     returnTo={buildReturnTo(`/areas/${area.slug ?? area.id}`)}
+                    returnToChain={areaReturnToChain}
                   />
                 </div>
               ))}

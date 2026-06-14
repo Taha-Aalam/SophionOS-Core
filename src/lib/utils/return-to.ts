@@ -125,3 +125,134 @@ export function resolveGoalDetailNavigation(
     nestedReturnTo: getEffectiveReturnTo(decodedReturnTo, currentPagePath),
   };
 }
+
+// Chain-preserving return-to navigation.
+// `returnTo` = immediate predecessor (single path).
+// `chain` = outer origins, encoded as a JSON array of paths.
+// Helper view on any page: [returnTo, ...decode(chain)].
+
+export function decodeReturnToChain(encoded: string | null | undefined): string[] {
+  if (!encoded) return [];
+  try {
+    const json = decodeURIComponent(encoded);
+    const parsed = JSON.parse(json) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((entry): entry is string => typeof entry === "string");
+  } catch {
+    return [];
+  }
+}
+
+export function encodeReturnToChain(chain: string[]): string {
+  return encodeURIComponent(JSON.stringify(chain));
+}
+
+export function getReturnToChainFromSearchParams(
+  searchParams: URLSearchParams,
+): string[] {
+  return decodeReturnToChain(searchParams.get("chain") ?? null);
+}
+
+// Computes the new `chain` value for a child link from the current page's
+// URL state. The new chain = [currentReturnTo, ...currentChain]. The current
+// page's own path is NOT included — it is stamped on the child via
+// `buildReturnTo(currentPagePath)`.
+export function buildReturnToChain(
+  searchParams: URLSearchParams,
+): string {
+  const incomingReturnTo = getReturnToFromSearchParams(searchParams);
+  const incomingChain = getReturnToChainFromSearchParams(searchParams);
+  if (!incomingReturnTo) {
+    return encodeReturnToChain([]);
+  }
+  return encodeReturnToChain([incomingReturnTo, ...incomingChain]);
+}
+
+// Pop the head of the helper view: given the current page's URL state,
+// return the new (returnTo, chain) values for the destination page after
+// a back navigation.
+export function popReturnToChain(searchParams: URLSearchParams): {
+  returnTo: string | null;
+  chain: string[];
+} {
+  const head = getReturnToFromSearchParams(searchParams);
+  const rest = getReturnToChainFromSearchParams(searchParams);
+  if (!head) {
+    return { returnTo: null, chain: [] };
+  }
+  return {
+    returnTo: rest[0] ?? null,
+    chain: rest.slice(1),
+  };
+}
+
+// Returns the raw (decoded) chain array for use with `URLSearchParams.set()`.
+// Use this when you need the chain to be set via `params.set("chain", ...)` +
+// `params.toString()`, which will percent-encode the value once.
+export function getRawReturnToChain(searchParams: URLSearchParams): string[] {
+  return decodeReturnToChain(searchParams.get("chain") ?? null);
+}
+
+// Compute the Back-button href from the current page's URL state.
+//
+// Three cases:
+// 1. No incoming returnTo and no chain -> fresh visit, send user to the fallback
+//    (e.g. "/goals") with no params, matching the legacy resolveBackNavigation
+//    behavior.
+// 2. Incoming returnTo with empty chain -> back goes to the immediate
+//    predecessor; that destination is the "last" page, so no chain param is
+//    appended (keeps the URL clean).
+// 3. Incoming returnTo with non-empty chain -> the destination is the current
+//    page's `returnTo` (the immediate predecessor). The new returnTo param on
+//    the destination is `chain[0]`, and the new chain param is `chain.slice(1)`.
+//    The destination page then renders its own Back button using this state.
+//
+// Values are written via `params.set()` (NOT pre-encoded) so that
+// `URLSearchParams.toString()` produces a single layer of percent-encoding.
+// Mixing pre-encoded values with `set()` causes double-encoding
+// (`%252F` instead of `%2F`).
+export function popReturnToHref(
+  searchParams: URLSearchParams,
+  fallback: string,
+): string {
+  const currentReturnTo = getReturnToFromSearchParams(searchParams);
+  const currentChain = getRawReturnToChain(searchParams);
+  if (!currentReturnTo) {
+    return fallback;
+  }
+
+  // Helper view: [currentReturnTo, ...currentChain].
+  // Back destination: currentReturnTo, with the new state being
+  // (returnTo=currentChain[0], chain=currentChain.slice(1)).
+  const newReturnTo = currentChain[0] ?? null;
+  const newChain = currentChain.slice(1);
+
+  if (!newReturnTo) {
+    // currentReturnTo is the end of the chain — destination gets no chain
+    // params (clean URL on the last step).
+    return currentReturnTo;
+  }
+
+  const params = new URLSearchParams();
+  params.set("returnTo", newReturnTo);
+  if (newChain.length > 0) {
+    params.set("chain", JSON.stringify(newChain));
+  }
+  return `${currentReturnTo}?${params.toString()}`;
+}
+
+// Append `returnTo` and `chain` to an existing URLSearchParams, using the
+// raw (decoded) values so that `toString()` produces a single layer of
+// percent-encoding. Use this instead of manually interpolating
+// `encodeReturnTo(...)` / `encodeReturnToChain(...)` into a query string when
+// the value will be passed through `URLSearchParams`.
+export function setReturnToParams(
+  params: URLSearchParams,
+  returnTo: string,
+  chain: string[] = [],
+): void {
+  params.set("returnTo", returnTo);
+  if (chain.length > 0) {
+    params.set("chain", JSON.stringify(chain));
+  }
+}
