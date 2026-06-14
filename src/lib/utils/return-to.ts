@@ -202,9 +202,10 @@ export function getRawReturnToChain(searchParams: URLSearchParams): string[] {
 // 2. Incoming returnTo with empty chain -> back goes to the immediate
 //    predecessor; that destination is the "last" page, so no chain param is
 //    appended (keeps the URL clean).
-// 3. Incoming returnTo with non-empty chain -> pop the head off the helper view
-//    [returnTo, ...chain], producing (returnTo = chain[0], chain = rest). The
-//    destination then renders its own Back button using the new state.
+// 3. Incoming returnTo with non-empty chain -> the destination is the current
+//    page's `returnTo` (the immediate predecessor). The new returnTo param on
+//    the destination is `chain[0]`, and the new chain param is `chain.slice(1)`.
+//    The destination page then renders its own Back button using this state.
 //
 // Values are written via `params.set()` (NOT pre-encoded) so that
 // `URLSearchParams.toString()` produces a single layer of percent-encoding.
@@ -214,21 +215,30 @@ export function popReturnToHref(
   searchParams: URLSearchParams,
   fallback: string,
 ): string {
-  const { returnTo: nextReturnTo, chain: nextChain } = popReturnToChain(searchParams);
-  if (!nextReturnTo) {
+  const currentReturnTo = getReturnToFromSearchParams(searchParams);
+  const currentChain = getRawReturnToChain(searchParams);
+  if (!currentReturnTo) {
     return fallback;
   }
 
-  const params = new URLSearchParams();
-  params.set("returnTo", nextReturnTo);
-  if (nextChain.length > 0) {
-    params.set("chain", JSON.stringify(nextChain));
+  // Helper view: [currentReturnTo, ...currentChain].
+  // Back destination: currentReturnTo, with the new state being
+  // (returnTo=currentChain[0], chain=currentChain.slice(1)).
+  const newReturnTo = currentChain[0] ?? null;
+  const newChain = currentChain.slice(1);
+
+  if (!newReturnTo) {
+    // currentReturnTo is the end of the chain — destination gets no chain
+    // params (clean URL on the last step).
+    return currentReturnTo;
   }
-  // Navigate to the popped returnTo (the immediate predecessor), not the
-  // fallback (which is the *current* page's canonical list path). The
-  // destination page receives the new (returnTo, chain) state and renders
-  // its own Back button.
-  return `${nextReturnTo}?${params.toString()}`;
+
+  const params = new URLSearchParams();
+  params.set("returnTo", newReturnTo);
+  if (newChain.length > 0) {
+    params.set("chain", JSON.stringify(newChain));
+  }
+  return `${currentReturnTo}?${params.toString()}`;
 }
 
 // Append `returnTo` and `chain` to an existing URLSearchParams, using the

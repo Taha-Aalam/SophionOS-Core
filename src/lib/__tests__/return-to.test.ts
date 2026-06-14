@@ -161,21 +161,20 @@ describe("popReturnToHref", () => {
     expect(popReturnToHref(params, "/goals")).toBe("/goals");
   });
 
-  it("returns the popped returnTo as the destination when chain is empty", () => {
-    // Helper view: [/areas/area-A]. Pop -> returnTo=null (no next), chain=[].
-    // This case is only reached when the current page is the deepest in the
-    // stack (no chain), so the Back button should go to the immediate
-    // predecessor as a plain path (no params on the destination because it's
-    // the end of the chain).
+  it("returns the current returnTo as the destination when chain is empty", () => {
+    // Helper view: [/projects/project-1]. No chain, so the destination
+    // (/projects/project-1) is the end of the chain and gets no params.
     const params = new URLSearchParams();
     params.set("returnTo", encodeReturnTo("/projects/project-1"));
-    expect(popReturnToHref(params, "/goals")).toBe("/goals");
+    expect(popReturnToHref(params, "/goals")).toBe("/projects/project-1");
   });
 
-  it("navigates to the popped returnTo and re-emits the rest as new chain params", () => {
+  it("navigates to the current returnTo and re-emits the popped state as the new params", () => {
     // Helper view: [/projects/project-1, /goals/goal-X, /areas/area-A, /dashboard].
-    // Pop -> (returnTo=/goals/goal-X, chain=[/areas/area-A, /dashboard]).
-    // Back button must go to /goals/goal-X with those as the new params.
+    // Destination path: /projects/project-1 (the current returnTo, i.e. the
+    // immediate predecessor). The new state on the destination is
+    // (returnTo=/goals/goal-X, chain=[/areas/area-A, /dashboard]) so that
+    // destination's own Back button can step further back.
     const params = new URLSearchParams();
     params.set("returnTo", encodeReturnTo("/projects/project-1"));
     params.set(
@@ -185,9 +184,10 @@ describe("popReturnToHref", () => {
 
     const href = popReturnToHref(params, "/goals");
     const url = new URL(href, "https://example.test");
-    expect(url.pathname).toBe("/goals/goal-X");
-    expect(url.searchParams.get("returnTo")).toBe("/areas/area-A");
+    expect(url.pathname).toBe("/projects/project-1");
+    expect(url.searchParams.get("returnTo")).toBe("/goals/goal-X");
     expect(JSON.parse(url.searchParams.get("chain") ?? "[]")).toEqual([
+      "/areas/area-A",
       "/dashboard",
     ]);
   });
