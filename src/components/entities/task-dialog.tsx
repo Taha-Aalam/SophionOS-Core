@@ -371,10 +371,23 @@ export function TaskDialog({
 
   /** Hydrate relation fields once after async taskRelations resolve. */
   const hasHydratedRelationsRef = useRef(false);
+  /**
+   * Snapshot of the ids that the init effect just hydrated. The
+   * clear-invalid cascades treat these as "preselected" and exempt them
+   * from the cross-filter, so opening edit never strips an existing
+   * relation even if the goal/project cross-filter would otherwise
+   * hide it.
+   */
+  const preselectedIdsRef = useRef<{
+    areaIds: string[];
+    projectIds: string[];
+    goalIds: string[];
+  }>({ areaIds: [], projectIds: [], goalIds: [] });
 
   useEffect(() => {
     if (!open || !task) {
       hasHydratedRelationsRef.current = false;
+      preselectedIdsRef.current = { areaIds: [], projectIds: [], goalIds: [] };
       return;
     }
     if (!taskRelations || hasHydratedRelationsRef.current) return;
@@ -382,6 +395,11 @@ export function TaskDialog({
     const nextGoalIds = getStableStringArray(taskRelations.goal_ids);
     const nextAreaIds = getStableStringArray(taskRelations.area_ids ?? []);
     const nextProjectIds = getStableStringArray(taskRelations.project_ids ?? []);
+    preselectedIdsRef.current = {
+      areaIds: nextAreaIds,
+      projectIds: nextProjectIds,
+      goalIds: nextGoalIds,
+    };
     form.setValue("goal_ids", nextGoalIds, {
       shouldDirty: false,
       shouldTouch: false,
@@ -471,7 +489,12 @@ export function TaskDialog({
     // would mark every existing goal as "invalid" and wipe junction links.
     if (isLoadingGoals || isLoadingAreas || isLoadingProjects) return;
 
+    const preselectedGoals = new Set(preselectedIdsRef.current.goalIds);
     const invalidGoalIds = selectedGoalIds.filter((goalId) => {
+      // Preselected (already-linked) goals are always kept — the
+      // cross-filter is for narrowing dropdown options, not for
+      // stripping existing junction links on open.
+      if (preselectedGoals.has(goalId)) return false;
       // A goal is allowed if at least one selected project allows it.
       // If no projects are selected, the project dimension imposes no
       // constraint. If a selected project has no linkedGoalIds, treat it
@@ -535,8 +558,11 @@ export function TaskDialog({
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
     if (selectedProjectIds.length === 0) return;
+    const preselectedProjects = new Set(preselectedIdsRef.current.projectIds);
     const allowedIds = new Set(filteredProjects.map((p) => p.id));
-    const filtered = selectedProjectIds.filter((id) => allowedIds.has(id));
+    const filtered = selectedProjectIds.filter(
+      (id) => preselectedProjects.has(id) || allowedIds.has(id),
+    );
     if (filtered.length !== selectedProjectIds.length) {
       form.setValue("project_ids", filtered, {
         shouldDirty: true,
@@ -562,7 +588,12 @@ export function TaskDialog({
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
 
+    const preselectedAreas = new Set(preselectedIdsRef.current.areaIds);
     const invalidAreaIds = selectedAreaIds.filter((areaId) => {
+      // Preselected (already-linked) areas are always kept — the
+      // cross-filter is for narrowing dropdown options, not for
+      // stripping existing junction links on open.
+      if (preselectedAreas.has(areaId)) return false;
       // An area is allowed if it appears in ANY selected project's chain.
       // Empty selectedProjectIds means no project constraint.
       if (selectedProjectIds.length > 0) {
