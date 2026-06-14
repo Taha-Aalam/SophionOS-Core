@@ -18,15 +18,18 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { useKeyboardShortcut } from "@/lib/hooks/use-keyboard";
+import { useAreas } from "@/lib/hooks/use-areas";
 import { useContacts } from "@/lib/hooks/use-contacts";
 import { useGoals } from "@/lib/hooks/use-goals";
+import { useCreateNote, useNotes } from "@/lib/hooks/use-notes";
+import { useProjects } from "@/lib/hooks/use-projects";
+import { useCreateResource, useResources } from "@/lib/hooks/use-resources";
+import { useCreateTask, useTasks } from "@/lib/hooks/use-tasks";
+import { useTopics } from "@/lib/hooks/use-topics";
+import { useUIStore } from "@/lib/stores/ui.store";
+import { buildAreaDetailHref } from "@/lib/utils/area-urls";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { buildProjectDetailHref } from "@/lib/utils/project-urls";
-import { useCreateNote, useNotes } from "@/lib/hooks/use-notes";
-import { useCreateResource, useResources } from "@/lib/hooks/use-resources";
-import { useProjects } from "@/lib/hooks/use-projects";
-import { useCreateTask, useTasks } from "@/lib/hooks/use-tasks";
-import { useUIStore } from "@/lib/stores/ui.store";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -59,6 +62,8 @@ export function CommandPalette() {
   const { data: notes = [] } = useNotes(undefined, { enabled: commandPaletteOpen });
   const { data: resources = [] } = useResources({ status: "all" }, { enabled: commandPaletteOpen });
   const { data: contacts = [] } = useContacts(undefined, { enabled: commandPaletteOpen });
+  const { data: areas = [] } = useAreas({ archive: false });
+  const { data: topics = [] } = useTopics();
 
   const createTask = useCreateTask();
   const createNote = useCreateNote();
@@ -118,16 +123,24 @@ export function CommandPalette() {
   const filteredContacts = hasQuery && !isExplicitCreate
     ? contacts.filter((c) => !c.archive && c.name.toLowerCase().includes(q)).slice(0, 5)
     : [];
+  const filteredAreas = hasQuery && !isExplicitCreate
+    ? areas.filter((a) => !a.archive && a.name.toLowerCase().includes(q)).slice(0, 5)
+    : [];
+  const filteredTopics = hasQuery && !isExplicitCreate
+    ? topics.filter((t) => !t.inactive && t.name.toLowerCase().includes(q)).slice(0, 5)
+    : [];
   const filteredNav = NAV_ITEMS.filter(
     (item) => !hasQuery || item.label.toLowerCase().includes(q),
   );
 
   const hasEntityResults =
     filteredTasks.length > 0 ||
+    filteredAreas.length > 0 ||
     filteredGoals.length > 0 ||
     filteredProjects.length > 0 ||
     filteredNotes.length > 0 ||
     filteredResources.length > 0 ||
+    filteredTopics.length > 0 ||
     filteredContacts.length > 0;
 
   const handleCreateTask = useCallback(
@@ -366,6 +379,24 @@ export function CommandPalette() {
                 </>
               )}
 
+              {filteredAreas.length > 0 && (
+                <>
+                  <CommandSeparator />
+                  <CommandGroup heading="Areas">
+                    {filteredAreas.map((area) => (
+                      <CommandItem
+                        key={area.id}
+                        value={`area-${area.id}`}
+                        onSelect={() => go(buildAreaDetailHref(area))}
+                      >
+                        <Map className="size-4 text-muted-foreground" />
+                        {area.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </>
+              )}
+
               {filteredNotes.length > 0 && (
                 <>
                   <CommandSeparator />
@@ -396,6 +427,24 @@ export function CommandPalette() {
                       >
                         <Globe className="size-4 text-muted-foreground" />
                         {resource.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </>
+              )}
+
+              {filteredTopics.length > 0 && (
+                <>
+                  <CommandSeparator />
+                  <CommandGroup heading="Topics">
+                    {filteredTopics.map((topic) => (
+                      <CommandItem
+                        key={topic.id}
+                        value={`topic-${topic.id}`}
+                        onSelect={() => go(`/topics/${topic.id}`)}
+                      >
+                        <Tag className="size-4 text-muted-foreground" />
+                        {topic.name}
                       </CommandItem>
                     ))}
                   </CommandGroup>
