@@ -472,7 +472,7 @@ export function CommandPalette() {
                       <CommandItem
                         key={task.id}
                         value={`task-${task.id}`}
-                        onSelect={() => go("/tasks")}
+                        onSelect={() => setEditIntent({ entity: "task", entityRef: task })}
                       >
                         <CheckSquare className="size-4 text-muted-foreground" />
                         {task.name}
@@ -562,7 +562,7 @@ export function CommandPalette() {
                       <CommandItem
                         key={resource.id}
                         value={`resource-${resource.id}`}
-                        onSelect={() => go("/resources")}
+                        onSelect={() => setEditIntent({ entity: "resource", entityRef: resource })}
                       >
                         <Globe className="size-4 text-muted-foreground" />
                         {resource.name}
@@ -598,7 +598,7 @@ export function CommandPalette() {
                       <CommandItem
                         key={contact.id}
                         value={`contact-${contact.id}`}
-                        onSelect={() => go("/contacts")}
+                        onSelect={() => setEditIntent({ entity: "contact", entityRef: contact })}
                       >
                         <Users className="size-4 text-muted-foreground" />
                         {contact.name}
