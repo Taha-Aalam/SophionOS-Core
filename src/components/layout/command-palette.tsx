@@ -3,16 +3,8 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  CheckSquare,
-  FolderKanban,
-  Globe,
-  LayoutDashboard,
-  Map,
-  NotebookPen,
-  Plus,
-  Settings,
-  Target,
-  Users,
+  BookOpen, CheckSquare, FolderKanban, Globe, Inbox,
+  LayoutDashboard, Map, NotebookPen, Plus, Settings, Sun, Tag, Target, Users,
 } from "lucide-react";
 
 import {
@@ -38,11 +30,17 @@ import { useUIStore } from "@/lib/stores/ui.store";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Inbox", href: "/inbox", icon: Inbox },
+  { label: "My Day", href: "/my-day", icon: Sun },
+  { label: "Knowledge", href: "/knowledge", icon: BookOpen },
   { label: "Areas", href: "/areas", icon: Map },
+  { label: "Goals", href: "/goals", icon: Target },
   { label: "Projects", href: "/projects", icon: FolderKanban },
   { label: "Tasks", href: "/tasks", icon: CheckSquare },
-  { label: "Goals", href: "/goals", icon: Target },
   { label: "Notes", href: "/notes", icon: NotebookPen },
+  { label: "Resources", href: "/resources", icon: Globe },
+  { label: "Topics", href: "/topics", icon: Tag },
+  { label: "Contacts", href: "/contacts", icon: Users },
   { label: "Settings", href: "/settings", icon: Settings },
 ] as const;
 
