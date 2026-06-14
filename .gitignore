@@ -62,3 +62,7 @@ tsconfig.tsbuildinfo
 # OS
 .DS_Store
 Thumbs.db
+
+# Worktrees
+.worktrees/
+worktrees/

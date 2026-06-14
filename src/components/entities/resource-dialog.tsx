@@ -144,6 +144,7 @@ export function ResourceDialog({
   useEffect(() => {
     if (open && resource) {
       startTransition(() => {
+        statusOverriddenRef.current = true;
         setName(resource.name);
         setUrl(resource.url ?? "");
         setType(resource.type);
@@ -173,15 +174,22 @@ export function ResourceDialog({
         setGoalIds(initialGoalIds ?? []);
         setTaskIds([]);
       });
+    } else {
+      // Closed: reset the override so a future open starts fresh.
+      statusOverriddenRef.current = false;
     }
   }, [open, resource, initialGoalIds, initialAreaIds, initialProjectId, initialTopicId]);
 
-  // Live re-derive status from current context. The status field still
-  // defaults from context, but the user can pick manually — once they do,
-  // we preserve their pick until a context input changes (at which point
-  // we clear the override and re-derive, so a wrong pick is corrected).
+  // Live re-derive status from current context. Default behavior: keep the
+  // user's pick. If the user hasn't manually overridden status, derive from
+  // the current context so a contextless resource starts as `inbox` and a
+  // linked one starts as `to_review`. Once the user picks, only a change to
+  // a context input clears the override and re-derives (a wrong pick is
+  // corrected only when the inputs that drive status change).
   useEffect(() => {
-    statusOverriddenRef.current = false;
+    if (statusOverriddenRef.current) {
+      return;
+    }
     const next = deriveResourceStatus({
       area_ids: areaIds,
       project_ids: projectIds,
@@ -292,23 +300,23 @@ export function ResourceDialog({
 
   // ── Areas filtering (AND-intersection) ─────────────────────────────────────
   const visibleAreas = useMemo(() => {
-    return computeVisibleAreas(areas, selectedProjects[0] ?? null, selectedGoals, selectedTasks);
-  }, [areas, selectedProjects, selectedGoals, selectedTasks]);
+    return computeVisibleAreas(areas, selectedProjects[0] ?? null, selectedGoals, selectedTasks, areaIds);
+  }, [areas, selectedProjects, selectedGoals, selectedTasks, areaIds]);
 
   // ── Projects filtering (AND-intersection) ──────────────────────────────────
   const filteredProjects = useMemo(() => {
-    return computeFilteredProjects(projects, areaIds, goalIds, goalProjectIdsMap, selectedTasks);
-  }, [projects, areaIds, goalIds, goalProjectIdsMap, selectedTasks]);
+    return computeFilteredProjects(projects, areaIds, goalIds, goalProjectIdsMap, selectedTasks, projectIds);
+  }, [projects, areaIds, goalIds, goalProjectIdsMap, selectedTasks, projectIds]);
 
   // ── Goals filtering (AND-intersection) ─────────────────────────────────────
   const filteredGoals = useMemo(() => {
-    return computeFilteredGoals(goals, areaIds, projectIds[0] ?? null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks);
-  }, [goals, areaIds, projectIds, projectGoalIdsMap, taskGoalIdsMap, selectedTasks]);
+    return computeFilteredGoals(goals, areaIds, projectIds[0] ?? null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks, goalIds);
+  }, [goals, areaIds, projectIds, projectGoalIdsMap, taskGoalIdsMap, selectedTasks, goalIds]);
 
   // ── Tasks filtering (AND-intersection) ─────────────────────────────────────
   const filteredTasks = useMemo(() => {
-    return computeFilteredTasks(tasks, areaIds, projectIds[0] ?? null, goalIds, goalTaskIdsMap);
-  }, [tasks, areaIds, projectIds, goalIds, goalTaskIdsMap]);
+    return computeFilteredTasks(tasks, areaIds, projectIds[0] ?? null, goalIds, goalTaskIdsMap, taskIds);
+  }, [tasks, areaIds, projectIds, goalIds, goalTaskIdsMap, taskIds]);
 
   // ── Clear invalid selections when filters change ───────────────────────────
   useEffect(() => {

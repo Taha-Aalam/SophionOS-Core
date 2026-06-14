@@ -42,6 +42,8 @@ interface ProjectCardProps {
   isDeleting?: boolean;
   /** When provided, appended as ?returnTo= to the project detail navigation. */
   returnTo?: string | null;
+  /** When provided, appended as ?chain= to preserve the return-to chain. */
+  returnToChain?: string | null;
   /**
    * Correlation rollups for Goals, Tasks, Notes, and Resources. When omitted,
    * falls back to the server-hydrated `project.{goalCount,taskCount,noteCount,
@@ -84,6 +86,7 @@ export function ProjectCard({
   onDelete,
   isDeleting,
   returnTo,
+  returnToChain,
   rollups,
 }: ProjectCardProps) {
   const router = useRouter();
@@ -107,7 +110,8 @@ export function ProjectCard({
   const projectHref = (() => {
     const base = buildProjectDetailHref(project);
     if (returnTo) {
-      return `${base}?returnTo=${encodeURIComponent(returnTo)}`;
+      const chain = returnToChain ? `&chain=${returnToChain}` : "";
+      return `${base}?returnTo=${encodeURIComponent(returnTo)}${chain}`;
     }
     return base;
   })();

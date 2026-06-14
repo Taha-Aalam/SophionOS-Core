@@ -212,18 +212,17 @@ describe("status re-routing on update", () => {
     vi.mocked(createClient).mockReturnValue(client as never);
     client._setTerminal("single", fullTaskRow);
 
+    // Caller does not pass `status` (only the context change). The
+    // service treats this as "let status be re-derived from context" and
+    // flips TODO → INBOX because the row has no area/goal/project and
+    // the due_date is being cleared. Passing `status: TODO` explicitly
+    // would be a manual pick and is preserved by design.
     await taskService.update(userId, taskId, {
       due_date: null,
-      status: TASK_STATUS.TODO,
     });
 
-    // touchesCompletion fires getById (1st .single()), then row update (2nd .single())
-    const singleCalls = client._calls.filter((c: any) => c.method === "single");
-    expect(singleCalls.length).toBeGreaterThanOrEqual(1);
-    // The 2nd update is the row update; its payload should carry inbox
     const updateCalls = client._calls.filter((c: any) => c.method === "update");
     expect(updateCalls.length).toBeGreaterThanOrEqual(1);
-    // Find the update that has a status field
     const rowUpdate = updateCalls.find(
       (c: any) => (c.args[0] as any).status !== undefined,
     );
@@ -241,18 +240,17 @@ describe("status re-routing on update", () => {
       project_id: null,
     });
 
+    // No `status` field — service re-derives from the (now empty) context.
     await taskService.update(userId, taskId, {
       area_ids: [],
       goal_ids: [],
       project_ids: [],
-      status: TASK_STATUS.TODO,
     });
 
-    // 1st update is the row update — must carry INBOX
     const updateCalls = client._calls.filter((c: any) => c.method === "update");
     const firstUpdate = updateCalls[0];
     expect(firstUpdate).toBeDefined();
-    expect((firstUpdate.args[0] as any).status).toBe(TASK_STATUS.INBOX);
+    expect((firstUpdate!.args[0] as any).status).toBe(TASK_STATUS.INBOX);
   });
 
   // ─── NOTE BUGS ────────────────────────────────────────────────────────

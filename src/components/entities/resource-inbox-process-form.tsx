@@ -71,7 +71,9 @@ export function ResourceInboxProcessForm({
     resource.linkedAreaIds ?? (resource.area_id ? [resource.area_id] : []),
   );
   const [rawGoalIds, setRawGoalIds] = useState<string[]>(resource.linkedGoalIds ?? []);
-  const [rawProjectIds, setRawProjectIds] = useState<string[]>(resource.linkedProjectIds ?? []);
+  const [rawProjectIds, setRawProjectIds] = useState<string[]>(
+    resource.linkedProjectIds ?? (resource.project_id ? [resource.project_id] : []),
+  );
   const [rawTaskIds, setRawTaskIds] = useState<string[]>(resource.linkedTaskIds ?? []);
   const [topicId, setTopicId] = useState<string>(resource.topic_id ?? "");
   const [status, _setStatus] = useState<string>(RESOURCE_STATUS.ACTIVE);
@@ -297,6 +299,7 @@ export function ResourceInboxProcessForm({
           label="Project"
           placeholder="Select projects…"
           selectedCount={projectIds.length}
+          selectedLabel={projectOptions.find((p) => p.id === projectIds[0])?.name}
           candidates={visibleProjects}
           isSelected={(id) => projectIds.includes(id)}
           onToggle={toggleProject}

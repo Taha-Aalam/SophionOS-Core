@@ -46,10 +46,12 @@ export function computeVisibleAreas<T extends FilterableArea>(
   selectedProject: FilterableProject | null | undefined,
   selectedGoals: FilterableGoal[],
   selectedTasks: FilterableTask[],
+  preselectedAreaIds?: string[],
 ): T[] {
   const hasProject = Boolean(selectedProject);
   const hasGoals = selectedGoals.length > 0;
   const hasTasks = selectedTasks.length > 0;
+  const preselected = new Set(preselectedAreaIds ?? []);
 
   if (!hasProject && !hasGoals && !hasTasks) return areas;
 
@@ -79,8 +81,18 @@ export function computeVisibleAreas<T extends FilterableArea>(
       : taskAreas;
   }
 
-  if (allowed && allowed.size === 0) return [];
-  return allowed ? areas.filter((a) => allowed!.has(a.id)) : areas;
+  if (allowed && allowed.size === 0) {
+    // No area satisfies the AND-intersection, but the resource may still
+    // have preselected (e.g. existing junction-linked) areas. Keep those
+    // visible so the user can keep or remove them on edit.
+    if (preselected.size > 0) {
+      return areas.filter((a) => preselected.has(a.id));
+    }
+    return [];
+  }
+  return allowed
+    ? areas.filter((a) => preselected.has(a.id) || allowed!.has(a.id))
+    : areas;
 }
 
 /**
@@ -96,10 +108,12 @@ export function computeFilteredProjects<T extends FilterableProject>(
   selectedGoalIds: string[],
   goalProjectIdsMap: Map<string, string[]>,
   selectedTasks?: FilterableTask[],
+  preselectedProjectIds?: string[],
 ): T[] {
   const hasAreas = selectedAreaIds.length > 0;
   const hasGoals = selectedGoalIds.length > 0;
   const hasTasks = selectedTasks && selectedTasks.length > 0;
+  const preselected = new Set(preselectedProjectIds ?? []);
 
   if (!hasAreas && !hasGoals && !hasTasks) return projects;
 
@@ -120,6 +134,13 @@ export function computeFilteredProjects<T extends FilterableProject>(
     : null;
 
   return projects.filter((project) => {
+    // Preselected projects (e.g. the resource's existing junction links
+    // when editing) must always remain visible in the dropdown so the user
+    // can keep or remove them, even if the cross-filter would otherwise
+    // hide them. The clear-invalid effect relies on this to avoid
+    // stripping valid links on open.
+    if (preselected.has(project.id)) return true;
+
     const projectAreas = getEntityAreaIds(project);
     // Unassigned projects (no area_id, no linkedAreaIds) stay visible when an
     // area filter is active — the user can still attach them. When no area
@@ -157,6 +178,7 @@ export function computeFilteredGoals<T extends FilterableGoal>(
   projectGoalIdsMap: Map<string, string[]>,
   taskGoalIdsMap?: Map<string, string[]>,
   selectedTasks?: FilterableTask[],
+  preselectedGoalIds?: string[],
 ): T[] {
   const hasAreas = selectedAreaIds && selectedAreaIds.length > 0;
   const hasProject = Boolean(selectedProjectId);
@@ -191,6 +213,7 @@ export function computeFilteredGoals<T extends FilterableGoal>(
   }
 
   return goals.filter((goal) => {
+    if (preselectedGoalIds?.includes(goal.id)) return true;
     const goalAreaIds = getEntityAreaIds(goal);
     // Unassigned goals stay visible when an area filter is active.
     // Without an area filter they must satisfy project/task constraints.
@@ -222,6 +245,7 @@ export function computeFilteredTasks<T extends FilterableTask>(
   selectedProjectId: string | null | undefined,
   selectedGoalIds: string[],
   goalTaskIdsMap?: Map<string, string[]>,
+  preselectedTaskIds?: string[],
 ): T[] {
   const hasAreas = selectedAreaIds && selectedAreaIds.length > 0;
   const hasProject = Boolean(selectedProjectId);
@@ -240,6 +264,7 @@ export function computeFilteredTasks<T extends FilterableTask>(
   const goalConstraintActive = hasGoals && goalTaskIdSet!.size > 0;
 
   return tasks.filter((t) => {
+    if (preselectedTaskIds?.includes(t.id)) return true;
     if (hasAreas) {
       const taskAreas = getEntityAreaIds(t);
       // Unassigned tasks (no area_id, no linkedAreaIds) are always shown so

@@ -22,6 +22,7 @@ interface ProjectsByAreaViewProps {
   onEdit: (project: Project) => void;
   onCreateProject: (areaId: string) => void;
   returnTo?: string | null;
+  returnToChain?: string | null;
 }
 
 function CollapsibleAreaSection({
@@ -31,6 +32,7 @@ function CollapsibleAreaSection({
   onEdit,
   onCreateProject,
   returnTo,
+  returnToChain,
 }: {
   group: ProjectsByAreaGroup;
   areaNames: Map<string, string>;
@@ -38,6 +40,7 @@ function CollapsibleAreaSection({
   onEdit: (project: Project) => void;
   onCreateProject: (areaId: string) => void;
   returnTo?: string | null;
+  returnToChain?: string | null;
 }) {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -101,6 +104,7 @@ function CollapsibleAreaSection({
               duplicateIndex={duplicateIndices.get(project.id)}
               onEdit={onEdit}
               returnTo={returnTo}
+              returnToChain={returnToChain}
             />
           ))}
           {group.areaId !== "unassigned" && (
@@ -126,6 +130,7 @@ export function ProjectsByAreaView({
   onEdit,
   onCreateProject,
   returnTo,
+  returnToChain,
 }: ProjectsByAreaViewProps) {
   if (isLoading) {
     return (
@@ -163,6 +168,7 @@ export function ProjectsByAreaView({
           onEdit={onEdit}
           onCreateProject={onCreateProject}
           returnTo={returnTo}
+          returnToChain={returnToChain}
         />
       ))}
     </div>

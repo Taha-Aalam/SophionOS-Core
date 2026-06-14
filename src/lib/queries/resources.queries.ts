@@ -83,12 +83,25 @@ export async function serverFetchResources(
   supabase: SupabaseClient,
   userId: string,
 ) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("resources")
     .select(RESOURCE_SELECT)
     .eq("user_id", userId)
     .eq("is_archived", false)
     .order("created_at", { ascending: false });
+
+  // Surface the error instead of swallowing it into an empty array. A
+  // transient failure here (e.g. an auth token rotating mid-render or a
+  // pooled-connection hiccup) would otherwise dehydrate an empty *success*
+  // state, which the client trusts permanently (refetchOnMount is off), so
+  // the page sticks on "no resources" until enough hard refreshes happen to
+  // land a successful fetch. Throwing leaves the prefetched query in an error
+  // state — React Query does not dehydrate errored queries, so the client
+  // mounts with no cached data and fetches it itself on mount, recovering
+  // automatically.
+  if (error) {
+    throw error;
+  }
 
   const resources = (data ?? []) as ResourceLike[];
   const resourceIds = resources.map((r) => r.id);

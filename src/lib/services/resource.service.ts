@@ -458,6 +458,10 @@ export const resourceService = {
       // source of truth for the inbox/to_review split, and a stale bucket
       // should be corrected.
       //
+      // Manual picks (active/completed) are always preserved — those
+      // statuses represent the user filing the resource away, not an
+      // auto-derived bucket.
+      //
       // Terminal state (completed) is preserved: once a resource is filed
       // away, inbox logic no longer applies.
       const touchesContext =
@@ -467,8 +471,11 @@ export const resourceService = {
         taskIds !== undefined ||
         validatedWide.topic_id !== undefined;
       const preservesTerminal = validatedWide.status === RESOURCE_STATUS.COMPLETED;
+      const preservesManual =
+        validatedWide.status === RESOURCE_STATUS.ACTIVE ||
+        validatedWide.status === RESOURCE_STATUS.COMPLETED;
 
-      if (touchesContext && !preservesTerminal) {
+      if (touchesContext && !preservesManual) {
         const derived = deriveResourceStatus({
           area_ids: areaIds,
           goal_ids: goalIds,
@@ -743,9 +750,14 @@ export const resourceService = {
     }
     if (!resource) return;
 
-    // Terminal state (completed) is preserved: a filed-away resource is not
-    // pulled back to inbox/to_review by a later link/unlink.
-    if (resource.status === RESOURCE_STATUS.COMPLETED) {
+    // Manual states (active/completed) are preserved: a user who
+    // explicitly filed a resource to `active` or `completed` should not
+    // have it pulled back to a derived inbox/to_review by a later
+    // link/unlink that re-runs the derive.
+    if (
+      resource.status === RESOURCE_STATUS.ACTIVE ||
+      resource.status === RESOURCE_STATUS.COMPLETED
+    ) {
       return;
     }
 
@@ -949,7 +961,7 @@ export const resourceService = {
       .select(RESOURCE_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .neq("status", RESOURCE_STATUS.COMPLETED);
+      .not("status", "in", `(${RESOURCE_STATUS.COMPLETED},${RESOURCE_STATUS.ACTIVE})`);
 
     if (error) {
       throw new DatabaseError(error.message);

@@ -7,6 +7,8 @@ import {
   BookOpen,
   Link2,
   NotebookPen,
+  PanelRightClose,
+  PanelRightOpen,
   Pin,
   X,
 } from "lucide-react";
@@ -64,7 +66,7 @@ import type { Note, UpdateNoteInput } from "@/lib/types/domain.types";
 import { buildNoteMetadataUpdateInput } from "@/lib/utils/note-detail-metadata";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/stores/ui.store";
-import { decodeReturnTo, resolveBackNavigation } from "@/lib/utils/return-to";
+import { buildReturnToChain, encodeReturnTo, popReturnToHref } from "@/lib/utils/return-to";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -84,13 +86,13 @@ export function NoteDetailContent() {
   const { setPageTitle } = useUIStore();
 
   const searchParams = useSearchParams();
-  const noteReturnTo = decodeReturnTo(searchParams.get("returnTo") || "");
 
   const [localIsArchived, setLocalIsArchived] = useState(false);
   const [optimisticArchivedTarget, setOptimisticArchivedTarget] = useState<boolean | null>(null);
   const [localTitle, setLocalTitle] = useState("");
   const [localNotebooks, setLocalNotebooks] = useState<string[]>([]);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [isMetadataOpen, setIsMetadataOpen] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
   const [localAreaIds, setLocalAreaIds] = useState<string[]>([]);
@@ -269,7 +271,7 @@ export function NoteDetailContent() {
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon-sm" onClick={() => router.push(resolveBackNavigation(noteReturnTo, "/notes"))}>
+          <Button variant="ghost" size="icon-sm" onClick={() => router.push(popReturnToHref(searchParams, "/notes"))}>
             <ArrowLeft className="size-4" />
           </Button>
           <span className="text-sm text-muted-foreground">/ Notes / {note.name}</span>
@@ -285,6 +287,19 @@ export function NoteDetailContent() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {saveState === "saving" && <span className="text-xs">Saving…</span>}
           {saveState === "saved" && <span className="text-xs text-green-600 dark:text-green-400">Saved</span>}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setIsMetadataOpen((open) => !open)}
+            aria-label={isMetadataOpen ? "Hide metadata" : "Show metadata"}
+            title={isMetadataOpen ? "Hide metadata" : "Show metadata"}
+          >
+            {isMetadataOpen ? (
+              <PanelRightClose className="size-4" />
+            ) : (
+              <PanelRightOpen className="size-4" />
+            )}
+          </Button>
           <NoteArchiveToggle
             isArchived={localIsArchived}
             mode="detail"
@@ -341,7 +356,14 @@ export function NoteDetailContent() {
                       <div
                         key={rn.id}
                         className="group flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 cursor-pointer"
-                        onClick={() => router.push(`/notes/${rn.slug ?? rn.id}`)}
+                        onClick={() => {
+                          const sourcePath = `/notes/${note.slug ?? note.id}`;
+                          const params = new URLSearchParams();
+                          params.set("returnTo", encodeReturnTo(sourcePath));
+                          params.set("chain", buildReturnToChain(searchParams));
+                          const destination = `/notes/${rn.slug ?? rn.id}`;
+                          router.push(`${destination}?${params.toString()}`);
+                        }}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <NotebookPen className="size-3.5 shrink-0 text-muted-foreground" />
@@ -368,56 +390,64 @@ export function NoteDetailContent() {
           </div>
         </div>
 
-        <aside className="hidden w-72 shrink-0 flex-col gap-5 overflow-y-auto border-l border-border p-4 xl:flex">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Metadata
-          </p>
-
-          <NoteMetadataPanel
-            areas={areas}
-            goals={goals}
-            projects={projects}
-            tasks={tasks}
-            noteTypes={noteTypes}
-            status={note.status}
-            type={note.type}
-            notebooks={localNotebooks}
-            notebookOptions={notebookOptions}
-            areaIds={localAreaIds}
-            goalIds={localGoalIds}
-            projectIds={localProjectIds}
-            taskIds={localTaskIds}
-            favorite={note.favorite}
-            pin={note.pin}
-            onStatusChange={(status) => handleMetaChange({ status })}
-            onTypeChange={(type) => handleMetaChange({ type })}
-            onNotebooksChange={(notebooks) => { setLocalNotebooks(notebooks); handleMetaChange({ notebooks }); }}
-            onAreaIdsChange={(ids) => { setLocalAreaIds(ids); handleMetaChange({ area_ids: ids }); }}
-            onGoalIdsChange={(ids) => { setLocalGoalIds(ids); handleMetaChange({ goal_ids: ids }); }}
-            onProjectIdsChange={(ids) => { setLocalProjectIds(ids); handleMetaChange({ project_ids: ids }); }}
-            onTaskIdsChange={(ids) => { setLocalTaskIds(ids); handleMetaChange({ task_ids: ids }); }}
-            onFavoriteChange={(favorite) => handleMetaChange({ favorite })}
-            onPinChange={(pin) => handleMetaChange({ pin })}
-            disabled={updateNote.isPending}
-          />
-
-          <div className="mt-auto space-y-1 border-t border-border pt-4 text-xs text-muted-foreground">
-            <p>
-              Created{" "}
-              {new Date(note.created_at).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+        <aside
+          className={cn(
+            "shrink-0 overflow-hidden border-l border-border transition-[width] duration-200",
+            isMetadataOpen ? "w-72" : "w-0",
+          )}
+          aria-hidden={!isMetadataOpen}
+        >
+          <div className="flex h-full w-72 flex-col gap-5 overflow-y-auto p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Metadata
             </p>
-            <p>
-              Updated{" "}
-              {new Date(note.updated_at).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </p>
+
+            <NoteMetadataPanel
+              areas={areas}
+              goals={goals}
+              projects={projects}
+              tasks={tasks}
+              noteTypes={noteTypes}
+              status={note.status}
+              type={note.type}
+              notebooks={localNotebooks}
+              notebookOptions={notebookOptions}
+              areaIds={localAreaIds}
+              goalIds={localGoalIds}
+              projectIds={localProjectIds}
+              taskIds={localTaskIds}
+              favorite={note.favorite}
+              pin={note.pin}
+              onStatusChange={(status) => handleMetaChange({ status })}
+              onTypeChange={(type) => handleMetaChange({ type })}
+              onNotebooksChange={(notebooks) => { setLocalNotebooks(notebooks); handleMetaChange({ notebooks }); }}
+              onAreaIdsChange={(ids) => { setLocalAreaIds(ids); handleMetaChange({ area_ids: ids }); }}
+              onGoalIdsChange={(ids) => { setLocalGoalIds(ids); handleMetaChange({ goal_ids: ids }); }}
+              onProjectIdsChange={(ids) => { setLocalProjectIds(ids); handleMetaChange({ project_ids: ids }); }}
+              onTaskIdsChange={(ids) => { setLocalTaskIds(ids); handleMetaChange({ task_ids: ids }); }}
+              onFavoriteChange={(favorite) => handleMetaChange({ favorite })}
+              onPinChange={(pin) => handleMetaChange({ pin })}
+              disabled={updateNote.isPending}
+            />
+
+            <div className="mt-auto space-y-1 border-t border-border pt-4 text-xs text-muted-foreground">
+              <p>
+                Created{" "}
+                {new Date(note.created_at).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
+              <p>
+                Updated{" "}
+                {new Date(note.updated_at).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
+            </div>
           </div>
         </aside>
       </div>
