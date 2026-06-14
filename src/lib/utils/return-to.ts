@@ -186,6 +186,13 @@ export function popReturnToChain(searchParams: URLSearchParams): {
   };
 }
 
+// Returns the raw (decoded) chain array for use with `URLSearchParams.set()`.
+// Use this when you need the chain to be set via `params.set("chain", ...)` +
+// `params.toString()`, which will percent-encode the value once.
+export function getRawReturnToChain(searchParams: URLSearchParams): string[] {
+  return decodeReturnToChain(searchParams.get("chain") ?? null);
+}
+
 // Compute the Back-button href from the current page's URL state.
 //
 // Three cases:
@@ -198,6 +205,11 @@ export function popReturnToChain(searchParams: URLSearchParams): {
 // 3. Incoming returnTo with non-empty chain -> pop the head off the helper view
 //    [returnTo, ...chain], producing (returnTo = chain[0], chain = rest). The
 //    destination then renders its own Back button using the new state.
+//
+// Values are written via `params.set()` (NOT pre-encoded) so that
+// `URLSearchParams.toString()` produces a single layer of percent-encoding.
+// Mixing pre-encoded values with `set()` causes double-encoding
+// (`%252F` instead of `%2F`).
 export function popReturnToHref(
   searchParams: URLSearchParams,
   fallback: string,
@@ -208,9 +220,25 @@ export function popReturnToHref(
   }
 
   const params = new URLSearchParams();
-  params.set("returnTo", encodeReturnTo(nextReturnTo));
+  params.set("returnTo", nextReturnTo);
   if (nextChain.length > 0) {
-    params.set("chain", encodeReturnToChain(nextChain));
+    params.set("chain", JSON.stringify(nextChain));
   }
   return `${fallback}?${params.toString()}`;
+}
+
+// Append `returnTo` and `chain` to an existing URLSearchParams, using the
+// raw (decoded) values so that `toString()` produces a single layer of
+// percent-encoding. Use this instead of manually interpolating
+// `encodeReturnTo(...)` / `encodeReturnToChain(...)` into a query string when
+// the value will be passed through `URLSearchParams`.
+export function setReturnToParams(
+  params: URLSearchParams,
+  returnTo: string,
+  chain: string[] = [],
+): void {
+  params.set("returnTo", returnTo);
+  if (chain.length > 0) {
+    params.set("chain", JSON.stringify(chain));
+  }
 }

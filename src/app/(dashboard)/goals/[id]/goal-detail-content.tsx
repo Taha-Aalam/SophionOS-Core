@@ -108,7 +108,7 @@ import {
   buildAreaContactProjectSections,
   buildContactByAreaSections,
 } from "@/lib/utils/area-detail";
-import { buildReturnTo, buildReturnToChain, encodeReturnTo, popReturnToHref, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
+import { buildReturnTo, buildReturnToChain, encodeReturnTo, getRawReturnToChain, popReturnToHref, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 
 const TERM_LABELS: Record<string, string> = {
@@ -1612,8 +1612,8 @@ export function GoalDetailContent() {
           emptyDescription="Create a note to capture thoughts that contribute to this goal."
           onCreateNew={() => {
             const params = new URLSearchParams();
-            params.set("returnTo", encodeReturnTo(goalNestedReturnTo));
-            params.set("chain", returnToChain);
+            params.set("returnTo", goalNestedReturnTo);
+            params.set("chain", JSON.stringify(getRawReturnToChain(searchParams)));
             params.set("goalId", goal.id);
             router.push(`/notes/new?${params.toString()}`);
           }}
@@ -1651,8 +1651,8 @@ export function GoalDetailContent() {
               }}
               onNewNote={(groupId) => {
                 const params = new URLSearchParams();
-                params.set("returnTo", encodeReturnTo(goalNestedReturnTo));
-                params.set("chain", returnToChain);
+                params.set("returnTo", goalNestedReturnTo);
+                params.set("chain", JSON.stringify(getRawReturnToChain(searchParams)));
                 params.set("goalId", goal.id);
                 if (noteTab === "by_area") {
                   params.set("areaId", groupId);
