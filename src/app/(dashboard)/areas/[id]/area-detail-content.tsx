@@ -94,7 +94,7 @@ import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
-import { buildReturnTo, buildReturnToChain, encodeReturnTo, popReturnToHref } from "@/lib/utils/return-to";
+import { buildReturnTo, buildReturnToChain, encodeReturnTo, getRawReturnToChain, popReturnToHref } from "@/lib/utils/return-to";
 import {
   getTaskLinkedAreaIds,
   getTaskLinkedAreaNames,
@@ -1464,8 +1464,8 @@ export function AreaDetailContent() {
               onNewNote={(groupId) => {
                 const params = new URLSearchParams();
                 params.set("areaId", area.id);
-                params.set("returnTo", encodeReturnTo(buildReturnTo(`/areas/${area.slug ?? area.id}`)));
-                params.set("chain", areaReturnToChain);
+                params.set("returnTo", buildReturnTo(`/areas/${area.slug ?? area.id}`));
+                params.set("chain", JSON.stringify(getRawReturnToChain(searchParams)));
                 if (noteTab === "by_goal") {
                   params.set("goalId", groupId);
                 } else {

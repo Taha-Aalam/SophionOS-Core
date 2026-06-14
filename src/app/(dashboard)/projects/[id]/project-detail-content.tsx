@@ -109,7 +109,7 @@ import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, ge
 import { getResourceLinkedAreaIds, getResourceLinkedProjectIds } from "@/lib/utils/resources";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { buildAreaContactGoalSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections, buildContactByAreaSections } from "@/lib/utils/area-detail";
-import { buildReturnTo, buildReturnToChain, popReturnToHref, encodeReturnTo } from "@/lib/utils/return-to";
+import { buildReturnTo, buildReturnToChain, popReturnToHref, encodeReturnTo, getRawReturnToChain } from "@/lib/utils/return-to";
 
 const PRIORITY_COLORS: Record<string, string> = {
   high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
@@ -1551,8 +1551,8 @@ export function ProjectDetailContent() {
           onCreateNew={() => {
               const noteReturnTo = `/projects/${project?.slug ?? project?.id}`;
               const params = new URLSearchParams();
-              params.set("returnTo", encodeReturnTo(noteReturnTo));
-              params.set("chain", returnToChain);
+              params.set("returnTo", noteReturnTo);
+              params.set("chain", JSON.stringify(getRawReturnToChain(searchParams)));
               if (project?.id) {
                 params.set("projectId", project.id);
               }
@@ -1594,9 +1594,8 @@ export function ProjectDetailContent() {
               onNewNote={(groupId) => {
                 const noteReturnTo = `/projects/${project?.slug ?? project?.id}`;
                 const params = new URLSearchParams();
-                params.set("returnTo", encodeReturnTo(noteReturnTo));
-                params.set("chain", returnToChain);
-              params.set("chain", returnToChain);
+                params.set("returnTo", noteReturnTo);
+                params.set("chain", JSON.stringify(getRawReturnToChain(searchParams)));
                 if (project?.id) params.set("projectId", project.id);
                 if (noteTab === "by_area") {
                   params.set("areaId", groupId);
