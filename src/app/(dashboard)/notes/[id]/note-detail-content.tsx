@@ -64,7 +64,7 @@ import type { Note, UpdateNoteInput } from "@/lib/types/domain.types";
 import { buildNoteMetadataUpdateInput } from "@/lib/utils/note-detail-metadata";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/stores/ui.store";
-import { popReturnToHref } from "@/lib/utils/return-to";
+import { buildReturnToChain, encodeReturnTo, getRawReturnToChain, popReturnToHref } from "@/lib/utils/return-to";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -340,7 +340,14 @@ export function NoteDetailContent() {
                       <div
                         key={rn.id}
                         className="group flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 cursor-pointer"
-                        onClick={() => router.push(`/notes/${rn.slug ?? rn.id}`)}
+                        onClick={() => {
+                          const sourcePath = `/notes/${note.slug ?? note.id}`;
+                          const params = new URLSearchParams();
+                          params.set("returnTo", encodeReturnTo(sourcePath));
+                          params.set("chain", buildReturnToChain(searchParams));
+                          const destination = `/notes/${rn.slug ?? rn.id}`;
+                          router.push(`${destination}?${params.toString()}`);
+                        }}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <NotebookPen className="size-3.5 shrink-0 text-muted-foreground" />
