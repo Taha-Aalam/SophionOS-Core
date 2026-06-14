@@ -33,6 +33,14 @@ import type { Area, Contact, Goal, Note, Project, Resource, Task } from "@/lib/t
 import { buildAreaDetailHref } from "@/lib/utils/area-urls";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { buildProjectDetailHref } from "@/lib/utils/project-urls";
+import { AreaDialog } from "@/components/entities/area-dialog";
+import { GoalDialog } from "@/components/entities/goal-dialog";
+import { ProjectDialog } from "@/components/entities/project-dialog";
+import { TaskDialog } from "@/components/entities/task-dialog";
+import { ContactDialog } from "@/components/entities/contact-dialog";
+import { ResourceDialog } from "@/components/entities/resource-dialog";
+import { TopicDialog } from "@/components/entities/topic-dialog";
+import { NoteEditorDialog } from "@/components/entities/note-editor-dialog";
 
 type EntityType = "area" | "goal" | "project" | "task" | "note" | "contact" | "topic" | "resource";
 
@@ -252,12 +260,13 @@ export function CommandPalette() {
   );
 
   return (
-    <CommandDialog
-      open={commandPaletteOpen}
-      onOpenChange={(open) => {
-        if (!open) close();
-      }}
-    >
+    <>
+      <CommandDialog
+        open={commandPaletteOpen}
+        onOpenChange={(open) => {
+          if (!open) close();
+        }}
+      >
       <Command shouldFilter={false}>
         <CommandInput
           placeholder="Search or type 'Create task: …' / 'Create note: …'"
@@ -621,5 +630,111 @@ export function CommandPalette() {
         </CommandList>
       </Command>
     </CommandDialog>
+
+    <AreaDialog
+      open={createIntent?.entity === "area" || editIntent?.entity === "area"}
+      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
+      area={editIntent?.entity === "area" ? editIntent.entityRef : undefined}
+      onSubmit={async (data) => {
+        if (editIntent?.entity === "area") {
+          await updateArea.mutateAsync({ id: editIntent.entityRef.id, ...data });
+        } else {
+          await createArea.mutateAsync(data);
+        }
+        setCreateIntent(null);
+        setEditIntent(null);
+      }}
+      isLoading={createArea.isPending || updateArea.isPending}
+    />
+
+    <GoalDialog
+      open={createIntent?.entity === "goal" || editIntent?.entity === "goal"}
+      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
+      goal={editIntent?.entity === "goal" ? editIntent.entityRef : undefined}
+      onSuccess={() => { setCreateIntent(null); setEditIntent(null); }}
+    />
+
+    <ProjectDialog
+      open={createIntent?.entity === "project" || editIntent?.entity === "project"}
+      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
+      project={editIntent?.entity === "project" ? editIntent.entityRef : undefined}
+      onSuccess={() => { setCreateIntent(null); setEditIntent(null); }}
+    />
+
+    <TaskDialog
+      open={createIntent?.entity === "task" || editIntent?.entity === "task"}
+      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
+      task={editIntent?.entity === "task" ? editIntent.entityRef : undefined}
+      onSuccess={() => { setCreateIntent(null); setEditIntent(null); }}
+      onDelete={() => { setCreateIntent(null); setEditIntent(null); }}
+    />
+
+    <NoteEditorDialog
+      open={createIntent?.entity === "note" || editIntent?.entity === "note"}
+      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
+      note={editIntent?.entity === "note" ? editIntent.entityRef : null}
+      onSuccess={() => { setCreateIntent(null); setEditIntent(null); }}
+    />
+
+    <ContactDialog
+      open={createIntent?.entity === "contact" || editIntent?.entity === "contact"}
+      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
+      contact={editIntent?.entity === "contact" ? editIntent.entityRef : undefined}
+      onSubmit={async (data) => {
+        const input = {
+          name: data.name,
+          role: data.role || null,
+          organization: data.organization || null,
+          group: data.group || null,
+          phone: data.phone || null,
+          email: data.email || null,
+          linkedin: data.linkedin || null,
+          website: data.website || null,
+          image_url: data.image_url || null,
+          follow_up_interval_days:
+            data.follow_up_interval_days === "none"
+              ? null
+              : data.follow_up_interval_days
+                ? parseInt(data.follow_up_interval_days, 10)
+                : 14,
+          notes: data.notes || null,
+          area_ids: data.area_ids ?? [],
+          goal_ids: data.goal_ids ?? [],
+          project_ids: data.project_ids ?? [],
+          task_ids: data.task_ids ?? [],
+        };
+        if (editIntent?.entity === "contact") {
+          await updateContact.mutateAsync({ id: editIntent.entityRef.id, input });
+        } else {
+          await createContact.mutateAsync(input);
+        }
+        setCreateIntent(null);
+        setEditIntent(null);
+      }}
+    />
+
+    <ResourceDialog
+      open={createIntent?.entity === "resource" || editIntent?.entity === "resource"}
+      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
+      resource={editIntent?.entity === "resource" ? editIntent.entityRef : undefined}
+      onSubmit={(data) => {
+        if (editIntent?.entity === "resource") {
+          updateResource.mutate({ id: editIntent.entityRef.id, input: data as Parameters<typeof updateResource.mutate>[0]["input"] });
+        } else {
+          createResource.mutate(data as Parameters<typeof createResource.mutate>[0]);
+        }
+        setCreateIntent(null);
+        setEditIntent(null);
+      }}
+      isPending={createResource.isPending || updateResource.isPending}
+    />
+
+    <TopicDialog
+      open={createIntent?.entity === "topic" || editIntent?.entity === "topic"}
+      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
+      topic={editIntent?.entity === "topic" ? editIntent.entityRef : undefined}
+      onSuccess={() => { setCreateIntent(null); setEditIntent(null); }}
+    />
+    </>
   );
 }
