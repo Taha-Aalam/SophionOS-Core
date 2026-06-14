@@ -44,7 +44,7 @@ import { useToggleFavoriteResource, useResources, useCreateResource, useUpdateRe
 import { NoteRow } from "@/components/entities/note-row";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
 import type { Resource, CreateResourceInput, UpdateResourceInput } from "@/lib/types/domain.types";
-import { useArchiveNote, useDeleteNote, useNotes, useRestoreNote, useToggleFavoriteNote, useTogglePinNote } from "@/lib/hooks/use-notes";
+import { useArchiveNote, useDeleteNote, useNotes, useRestoreNote, useToggleFavoriteNote, useTogglePinNote, useUpdateNote } from "@/lib/hooks/use-notes";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useAreas } from "@/lib/hooks/use-areas";
@@ -94,6 +94,7 @@ export function TopicDetailContent() {
   const archiveNote = useArchiveNote();
   const restoreNote = useRestoreNote();
   const deleteNote = useDeleteNote();
+  const updateNote = useUpdateNote();
   const { data: allNotes = [] } = useNotes({ includeArchived: false });
   const { data: allResources = [] } = useResources({});
 
@@ -447,6 +448,7 @@ export function TopicDetailContent() {
                   taskNames={noteTaskNames}
                   onPinToggle={(id, pin) => togglePinNote.mutate({ id, pin })}
                   onFavoriteToggle={(id, favorite) => toggleFavoriteNote.mutate({ id, favorite })}
+                  onSaveStatusChange={(id, saved) => updateNote.mutate({ id, input: { status: saved ? "completed" : "inbox" } })}
                   onArchive={(id) => archiveNote.mutate(id)}
                   onRestore={(id) => restoreNote.mutate(id)}
                   onDelete={(id) => deleteNote.mutate(id)}
