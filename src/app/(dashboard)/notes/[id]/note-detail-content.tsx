@@ -64,7 +64,7 @@ import type { Note, UpdateNoteInput } from "@/lib/types/domain.types";
 import { buildNoteMetadataUpdateInput } from "@/lib/utils/note-detail-metadata";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/stores/ui.store";
-import { buildReturnToChain, encodeReturnTo, getRawReturnToChain, popReturnToHref } from "@/lib/utils/return-to";
+import { buildReturnToChain, encodeReturnTo, popReturnToHref } from "@/lib/utils/return-to";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
 
 const STATUS_COLORS: Record<string, string> = {
