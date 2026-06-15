@@ -53,6 +53,11 @@ export function TopicDialog({ open, onOpenChange, topic, defaultAreaId, onSucces
   useEffect(() => {
     if (!open) return;
     if (topic) {
+      // Sync local form to incoming entity when the dialog is opened in edit
+      // mode. setState-in-effect is intentional here: we don't control how
+      // often the parent re-renders, and we want the form to mirror `topic`
+      // on each open transition (the common dialog mount/unmount pattern).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         name: topic.name,
         area_ids: topic.linkedAreaIds ?? [],
