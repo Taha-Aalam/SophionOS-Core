@@ -111,8 +111,11 @@ vi.mock("@/lib/hooks/use-keyboard", () => ({
 // Sentinel-bearing dialog mocks. The sentinel exposes the dialog name + the
 // `open` prop so tests can assert whether a given dialog was actually opened.
 function makeDialogMock(name: string) {
-  return ({ open }: { open: boolean }) =>
-    open ? <div data-testid={`dialog-${name}`}>{`open:${name}`}</div> : null;
+  function DialogSentinel({ open }: { open: boolean }) {
+    return open ? <div data-testid={`dialog-${name}`}>{`open:${name}`}</div> : null;
+  }
+  DialogSentinel.displayName = `${name}DialogSentinel`;
+  return DialogSentinel;
 }
 
 vi.mock("@/components/entities/area-dialog", () => ({
