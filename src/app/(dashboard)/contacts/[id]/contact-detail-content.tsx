@@ -60,12 +60,16 @@ import {
   useUpdateTask,
   useUncompleteTask,
 } from "@/lib/hooks/use-tasks";
-import type { CreateContactInput, Task } from "@/lib/types/domain.types";
+import type { Task } from "@/lib/types/domain.types";
 import { contactService } from "@/lib/services/contact.service";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { mergeProjectQueryResults } from "@/lib/utils/projects";
 import { resolveLinkedProjectsAcrossStatuses } from "@/lib/utils/contact-detail-relations";
 import { buildReturnToChain, popReturnToHref } from "@/lib/utils/return-to";
+import {
+  type ContactFormValues,
+  buildContactCreateInput,
+} from "@/lib/utils/contact-input";
 
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -115,45 +119,7 @@ function RelationshipSummary({
   );
 }
 
-function buildCreateInput(values: {
-  name: string;
-  role: string;
-  organization: string;
-  group: string;
-  phone: string;
-  email: string;
-  linkedin: string;
-  website: string;
-  image_url: string;
-  follow_up_interval_days: string;
-  notes: string;
-  area_ids?: string[];
-  goal_ids?: string[];
-  project_ids?: string[];
-  task_ids?: string[];
-}): CreateContactInput {
-  return {
-    name: values.name,
-    role: values.role || null,
-    organization: values.organization || null,
-    group: values.group || null,
-    phone: values.phone || null,
-    email: values.email || null,
-    linkedin: values.linkedin || null,
-    website: values.website || null,
-    image_url: values.image_url || null,
-    follow_up_interval_days: values.follow_up_interval_days === "none"
-      ? null
-      : values.follow_up_interval_days
-        ? parseInt(values.follow_up_interval_days, 10)
-        : 14,
-    notes: values.notes || null,
-    area_ids: values.area_ids ?? [],
-    goal_ids: values.goal_ids ?? [],
-    project_ids: values.project_ids ?? [],
-    task_ids: values.task_ids ?? [],
-  };
-}
+
 
 export function ContactDetailContent() {
   const router = useRouter();
@@ -333,9 +299,9 @@ export function ContactDetailContent() {
 
   const handleEdit = () => setIsEditOpen(true);
 
-  const handleEditSubmit = (values: Parameters<typeof buildCreateInput>[0]) => {
+  const handleEditSubmit = (values: ContactFormValues) => {
     updateContact.mutate(
-      { id: contact.id, input: buildCreateInput(values) },
+      { id: contact.id, input: buildContactCreateInput(values) },
       { onSuccess: () => setIsEditOpen(false) },
     );
   };

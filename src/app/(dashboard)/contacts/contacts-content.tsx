@@ -15,7 +15,8 @@ import { useAreas } from "@/lib/hooks/use-areas";
 import { useContacts, useContactsByArea, useContactsByGoal, useContactsByProject, useCreateContact, useDeleteContact, useToggleContactFavorite, useUpdateContact, useArchiveContact } from "@/lib/hooks/use-contacts";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
-import type { Contact, CreateContactInput } from "@/lib/types/domain.types";
+import type { Contact } from "@/lib/types/domain.types";
+import { buildContactCreateInput } from "@/lib/utils/contact-input";
 import { contactService } from "@/lib/services/contact.service";
 import {
   buildAreaSections,
@@ -25,46 +26,6 @@ import {
   buildProjectSections,
 } from "@/lib/utils/contact-category-sections";
 import type { ContactCategorySection } from "@/lib/utils/contact-category-sections";
-
-function buildCreateInput(values: {
-  name: string;
-  role: string;
-  organization: string;
-  group: string;
-  phone: string;
-  email: string;
-  linkedin: string;
-  website: string;
-  image_url: string;
-  follow_up_interval_days: string;
-  notes: string;
-  area_ids?: string[];
-  goal_ids?: string[];
-  project_ids?: string[];
-  task_ids?: string[];
-}): CreateContactInput {
-  return {
-    name: values.name,
-    role: values.role || null,
-    organization: values.organization || null,
-    group: values.group || null,
-    phone: values.phone || null,
-    email: values.email || null,
-    linkedin: values.linkedin || null,
-    website: values.website || null,
-    image_url: values.image_url || null,
-    follow_up_interval_days: values.follow_up_interval_days === "none"
-      ? null
-      : values.follow_up_interval_days
-        ? parseInt(values.follow_up_interval_days, 10)
-        : 14,
-    notes: values.notes || null,
-    area_ids: values.area_ids ?? [],
-    goal_ids: values.goal_ids ?? [],
-    project_ids: values.project_ids ?? [],
-    task_ids: values.task_ids ?? [],
-  };
-}
 
 export function ContactsContent() {
   const [activeTab, setActiveTab] = useState<
@@ -124,7 +85,7 @@ export function ContactsContent() {
     project_ids: string[];
     task_ids: string[];
   }) => {
-    const input = buildCreateInput(values);
+    const input = buildContactCreateInput(values);
     if (editingContact) {
       updateContact.mutate({ id: editingContact.id, input });
     } else {
