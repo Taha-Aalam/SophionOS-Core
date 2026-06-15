@@ -2,10 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  BookOpen, CheckSquare, FolderKanban, Globe, Inbox,
-  LayoutDashboard, Map, NotebookPen, Plus, Settings, Sun, Tag, Target, Users,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 
 import {
   Command,
@@ -15,112 +12,76 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
 } from "@/components/ui/command";
-import { useAuth } from "@/components/providers/auth-provider";
-import { useKeyboardShortcut } from "@/lib/hooks/use-keyboard";
-import { useCreateArea, useAreas, useUpdateArea } from "@/lib/hooks/use-areas";
-import { useCreateContact, useContacts, useUpdateContact } from "@/lib/hooks/use-contacts";
-import { useCreateGoal, useGoals, useUpdateGoal } from "@/lib/hooks/use-goals";
-import { useCreateNote, useNotes } from "@/lib/hooks/use-notes";
-import { useCreateProject, useProjects, useUpdateProject } from "@/lib/hooks/use-projects";
-import { useCreateResource, useResources, useUpdateResource } from "@/lib/hooks/use-resources";
-import { useCreateTask, useTasks, useUpdateTask } from "@/lib/hooks/use-tasks";
-import { useCreateTopic, useTopics, useUpdateTopic } from "@/lib/hooks/use-topics";
-import { useUIStore } from "@/lib/stores/ui.store";
-import type { TopicWithCounts } from "@/lib/services/topic.service";
-import type { Area, Contact, Goal, Note, Project, Resource, Task } from "@/lib/types/domain.types";
-import { buildAreaDetailHref } from "@/lib/utils/area-urls";
-import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
-import { buildProjectDetailHref } from "@/lib/utils/project-urls";
+import { AreaEmoji } from "@/components/layout/area-emoji";
+import { ContactsEmoji } from "@/components/layout/contacts-emoji";
+import { GoalEmoji } from "@/components/layout/goal-emoji";
+import { NoteEmoji } from "@/components/layout/note-emoji";
+import { ProjectEmoji } from "@/components/layout/project-emoji";
+import { ResourceEmoji } from "@/components/layout/resource-emoji";
+import { TagEmoji } from "@/components/layout/tag-emoji";
+import { TaskEmoji } from "@/components/layout/task-emoji";
 import { AreaDialog } from "@/components/entities/area-dialog";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { ProjectDialog } from "@/components/entities/project-dialog";
 import { TaskDialog } from "@/components/entities/task-dialog";
+import { NoteEditorDialog } from "@/components/entities/note-editor-dialog";
 import { ContactDialog } from "@/components/entities/contact-dialog";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
 import { TopicDialog } from "@/components/entities/topic-dialog";
-import { NoteEditorDialog } from "@/components/entities/note-editor-dialog";
+import { useAuth } from "@/components/providers/auth-provider";
+import { useKeyboardShortcut } from "@/lib/hooks/use-keyboard";
+import { useCreateArea, useAreas } from "@/lib/hooks/use-areas";
+import { useCreateContact, useContacts } from "@/lib/hooks/use-contacts";
+import { useGoals } from "@/lib/hooks/use-goals";
+import { useNotes } from "@/lib/hooks/use-notes";
+import { useProjects } from "@/lib/hooks/use-projects";
+import { useCreateResource, useResources, useUpdateResource } from "@/lib/hooks/use-resources";
+import { useTasks } from "@/lib/hooks/use-tasks";
+import { useTopics } from "@/lib/hooks/use-topics";
+import { useUIStore } from "@/lib/stores/ui.store";
+import { coreNavItems, systemNavItems } from "@/components/layout/navigation";
+import type { Resource, Task } from "@/lib/types/domain.types";
+import { buildAreaDetailHref } from "@/lib/utils/area-urls";
+import { buildContactCreateInput } from "@/lib/utils/contact-input";
+import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
+import { buildProjectDetailHref } from "@/lib/utils/project-urls";
 
-type EntityType = "area" | "goal" | "project" | "task" | "note" | "contact" | "topic" | "resource";
+type CreateEntity = "area" | "goal" | "project" | "task" | "note" | "resource" | "contact" | "topic";
 
-type CreateIntent =
-  | { entity: "area"; name?: string }
-  | { entity: "goal"; name?: string }
-  | { entity: "project"; name?: string }
-  | { entity: "task"; name: string }
-  | { entity: "note"; name: string }
-  | { entity: "contact" }
-  | { entity: "topic"; name?: string }
-  | { entity: "resource"; url: string };
-
-type EditIntent =
-  | { entity: "area"; entityRef: Area }
-  | { entity: "goal"; entityRef: Goal }
-  | { entity: "project"; entityRef: Project }
-  | { entity: "task"; entityRef: Task }
-  | { entity: "note"; entityRef: Note }
-  | { entity: "contact"; entityRef: Contact }
-  | { entity: "topic"; entityRef: TopicWithCounts }
-  | { entity: "resource"; entityRef: Resource };
-
-const NAV_ITEMS = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Inbox", href: "/inbox", icon: Inbox },
-  { label: "My Day", href: "/my-day", icon: Sun },
-  { label: "Knowledge", href: "/knowledge", icon: BookOpen },
-  { label: "Areas", href: "/areas", icon: Map },
-  { label: "Goals", href: "/goals", icon: Target },
-  { label: "Projects", href: "/projects", icon: FolderKanban },
-  { label: "Tasks", href: "/tasks", icon: CheckSquare },
-  { label: "Notes", href: "/notes", icon: NotebookPen },
-  { label: "Resources", href: "/resources", icon: Globe },
-  { label: "Topics", href: "/topics", icon: Tag },
-  { label: "Contacts", href: "/contacts", icon: Users },
-  { label: "Settings", href: "/settings", icon: Settings },
-] as const;
-
-const CREATE_TASK_RE = /^create\s+task:\s*(.+)/i;
-const CREATE_NOTE_RE = /^create\s+note:\s*(.+)/i;
-const CREATE_RESOURCE_RE = /^create\s+resource:\s*(.+)/i;
-const CREATE_AREA_RE = /^create\s+area:\s*(.+)/i;
-const CREATE_GOAL_RE = /^create\s+goal:\s*(.+)/i;
-const CREATE_PROJECT_RE = /^create\s+project:\s*(.+)/i;
-const CREATE_CONTACT_RE = /^create\s+contact:\s*(.+)/i;
-const CREATE_TOPIC_RE = /^create\s+topic:\s*(.+)/i;
+const CREATE_ACTIONS: Array<{ entity: CreateEntity; label: string }> = [
+  { entity: "area", label: "Create area" },
+  { entity: "goal", label: "Create goal" },
+  { entity: "project", label: "Create project" },
+  { entity: "task", label: "Create task" },
+  { entity: "note", label: "Create note" },
+  { entity: "resource", label: "Create resource" },
+  { entity: "contact", label: "Create contact" },
+  { entity: "topic", label: "Create topic" },
+];
 
 export function CommandPalette() {
   const router = useRouter();
   const { commandPaletteOpen, closeCommandPalette, toggleCommandPalette } = useUIStore();
   const [query, setQuery] = useState("");
-  const [createIntent, setCreateIntent] = useState<CreateIntent | null>(null);
-  const [editIntent, setEditIntent] = useState<EditIntent | null>(null);
+  const [createEntity, setCreateEntity] = useState<CreateEntity | null>(null);
+  const [editTask, setEditTask] = useState<Task | null>(null);
+  const [editResource, setEditResource] = useState<Resource | null>(null);
 
-  const { data: tasks = [] } = useTasks({ enabled: commandPaletteOpen });
-  const { data: goals = [] } = useGoals({ status: "all" }, { enabled: commandPaletteOpen });
-  const { data: projects = [] } = useProjects({ status: "all" }, { enabled: commandPaletteOpen });
-  const { data: notes = [] } = useNotes(undefined, { enabled: commandPaletteOpen });
-  const { data: resources = [] } = useResources({ status: "all" }, { enabled: commandPaletteOpen });
-  const { data: contacts = [] } = useContacts(undefined, { enabled: commandPaletteOpen });
+  const { data: tasks = [] } = useTasks();
+  const { data: goals = [] } = useGoals({ status: "all" });
+  const { data: projects = [] } = useProjects({ status: "all" });
+  const { data: notes = [] } = useNotes();
+  const { data: resources = [] } = useResources({ status: "all" });
+  const { data: contacts = [] } = useContacts();
   const { data: areas = [] } = useAreas({ archive: false });
   const { data: topics = [] } = useTopics();
 
   const { user } = useAuth();
-  const createTask = useCreateTask();
-  const createNote = useCreateNote();
-  const createResource = useCreateResource();
   const createArea = useCreateArea(user?.id);
-  const createGoal = useCreateGoal();
-  const createProject = useCreateProject();
-  const createContact = useCreateContact();
-  const createTopic = useCreateTopic();
-  const updateArea = useUpdateArea(user?.id);
-  const updateGoal = useUpdateGoal();
-  const updateProject = useUpdateProject();
-  const updateContact = useUpdateContact();
-  const updateTopic = useUpdateTopic();
-  const updateTask = useUpdateTask();
+  const createResource = useCreateResource();
   const updateResource = useUpdateResource();
+  const createContact = useCreateContact();
 
   // Cmd+K (macOS) / Ctrl+K (Windows/Linux) — skip when inside a rich-text editor
   useKeyboardShortcut(
@@ -134,8 +95,6 @@ export function CommandPalette() {
 
   const close = useCallback(() => {
     setQuery("");
-    setCreateIntent(null);
-    setEditIntent(null);
     closeCommandPalette();
   }, [closeCommandPalette]);
 
@@ -147,59 +106,54 @@ export function CommandPalette() {
     [router, close],
   );
 
-  // Parse explicit create-mode patterns
-  const taskMatch = CREATE_TASK_RE.exec(query);
-  const noteMatch = CREATE_NOTE_RE.exec(query);
-  const resourceMatch = CREATE_RESOURCE_RE.exec(query);
-  const explicitTaskName = taskMatch?.[1]?.trim() ?? null;
-  const explicitNoteName = noteMatch?.[1]?.trim() ?? null;
-  const explicitResourceUrl = resourceMatch?.[1]?.trim() ?? null;
-  const explicitAreaName = CREATE_AREA_RE.exec(query)?.[1]?.trim() ?? null;
-  const explicitGoalName = CREATE_GOAL_RE.exec(query)?.[1]?.trim() ?? null;
-  const explicitProjectName = CREATE_PROJECT_RE.exec(query)?.[1]?.trim() ?? null;
-  const explicitContactName = CREATE_CONTACT_RE.exec(query)?.[1]?.trim() ?? null;
-  const explicitTopicName = CREATE_TOPIC_RE.exec(query)?.[1]?.trim() ?? null;
-  const isExplicitCreate =
-    explicitTaskName !== null ||
-    explicitNoteName !== null ||
-    explicitResourceUrl !== null ||
-    explicitAreaName !== null ||
-    explicitGoalName !== null ||
-    explicitProjectName !== null ||
-    explicitContactName !== null ||
-    explicitTopicName !== null;
+  const openCreate = useCallback(
+    (entity: CreateEntity) => {
+      setCreateEntity(entity);
+      setQuery("");
+      closeCommandPalette();
+    },
+    [closeCommandPalette],
+  );
 
   const hasQuery = query.length > 0;
   const q = query.toLowerCase();
 
   // Client-side search (entities already in cache from their own pages)
-  const filteredTasks = hasQuery && !isExplicitCreate
+  const filteredTasks = hasQuery
     ? tasks.filter((t) => !t.is_archived && t.name.toLowerCase().includes(q)).slice(0, 5)
     : [];
-  const filteredGoals = hasQuery && !isExplicitCreate
+  const filteredGoals = hasQuery
     ? goals.filter((g) => !g.is_archived && g.name.toLowerCase().includes(q)).slice(0, 5)
     : [];
-  const filteredProjects = hasQuery && !isExplicitCreate
+  const filteredProjects = hasQuery
     ? projects.filter((p) => !p.is_archived && p.name.toLowerCase().includes(q)).slice(0, 5)
     : [];
-  const filteredNotes = hasQuery && !isExplicitCreate
+  const filteredNotes = hasQuery
     ? notes.filter((n) => !n.is_archived && n.name.toLowerCase().includes(q)).slice(0, 5)
     : [];
-  const filteredResources = hasQuery && !isExplicitCreate
+  const filteredResources = hasQuery
     ? resources.filter((r) => !r.is_archived && r.name.toLowerCase().includes(q)).slice(0, 5)
     : [];
-  const filteredContacts = hasQuery && !isExplicitCreate
+  const filteredContacts = hasQuery
     ? contacts.filter((c) => !c.archive && c.name.toLowerCase().includes(q)).slice(0, 5)
     : [];
-  const filteredAreas = hasQuery && !isExplicitCreate
+  const filteredAreas = hasQuery
     ? areas.filter((a) => !a.archive && a.name.toLowerCase().includes(q)).slice(0, 5)
     : [];
-  const filteredTopics = hasQuery && !isExplicitCreate
+  const filteredTopics = hasQuery
     ? topics.filter((t) => !t.inactive && t.name.toLowerCase().includes(q)).slice(0, 5)
     : [];
-  const filteredNav = NAV_ITEMS.filter(
-    (item) => !hasQuery || item.label.toLowerCase().includes(q),
+
+  const filteredCore = coreNavItems.filter(
+    (i) => !hasQuery || i.label.toLowerCase().includes(q),
   );
+  const filteredSystem = systemNavItems.filter(
+    (i) => !hasQuery || i.label.toLowerCase().includes(q),
+  );
+
+  const filteredCreateActions = hasQuery
+    ? CREATE_ACTIONS.filter((c) => c.label.toLowerCase().includes(q))
+    : CREATE_ACTIONS;
 
   const hasEntityResults =
     filteredTasks.length > 0 ||
@@ -211,53 +165,7 @@ export function CommandPalette() {
     filteredTopics.length > 0 ||
     filteredContacts.length > 0;
 
-  const handleCreateTask = useCallback(
-    async (name: string) => {
-      if (!name) return;
-      try {
-        await createTask.mutateAsync({ name });
-        close();
-      } catch {
-        // toast handled inside the mutation
-      }
-    },
-    [createTask, close],
-  );
-
-  const handleCreateNote = useCallback(
-    async (name: string) => {
-      if (!name) return;
-      try {
-        const note = await createNote.mutateAsync({ name });
-        router.push(`/notes/${note.id}`);
-        close();
-      } catch {
-        // toast handled inside the mutation
-      }
-    },
-    [createNote, router, close],
-  );
-
-  const handleCreateResource = useCallback(
-    async (url: string) => {
-      if (!url) return;
-      try {
-        // Try to extract a name from the URL
-        let name = url;
-        try {
-          const u = new URL(url);
-          name = u.hostname.replace(/^www\./, "");
-        } catch {
-          // use the URL as name
-        }
-        await createResource.mutateAsync({ name, url });
-        close();
-      } catch {
-        // toast handled inside the mutation
-      }
-    },
-    [createResource, close],
-  );
+  const showEmptyState = hasQuery && !hasEntityResults && filteredCore.length === 0 && filteredSystem.length === 0 && filteredCreateActions.length === 0;
 
   return (
     <>
@@ -267,474 +175,289 @@ export function CommandPalette() {
           if (!open) close();
         }}
       >
-      <Command shouldFilter={false}>
-        <CommandInput
-          placeholder="Search or type 'Create task: …' / 'Create note: …'"
-          value={query}
-          onValueChange={setQuery}
-          autoFocus
-        />
-        <CommandList>
-          {/* ── Explicit create mode ── */}
-          {isExplicitCreate && (
-            <CommandGroup heading="Create">
-              {explicitTaskName && (
-                <CommandItem
-                  value="explicit-create-task"
-                  disabled={createTask.isPending}
-                  onSelect={() => handleCreateTask(explicitTaskName)}
-                >
-                  <Plus className="size-4 text-muted-foreground" />
-                  <span>
-                    Create task:{" "}
-                    <span className="font-medium">{explicitTaskName}</span>
-                  </span>
-                </CommandItem>
-              )}
-              {explicitNoteName && (
-                <CommandItem
-                  value="explicit-create-note"
-                  disabled={createNote.isPending}
-                  onSelect={() => handleCreateNote(explicitNoteName)}
-                >
-                  <Plus className="size-4 text-muted-foreground" />
-                  <span>
-                    Create note:{" "}
-                    <span className="font-medium">{explicitNoteName}</span>
-                  </span>
-                </CommandItem>
-              )}
-              {explicitResourceUrl && (
-                <CommandItem
-                  value="explicit-create-resource"
-                  disabled={createResource.isPending}
-                  onSelect={() => handleCreateResource(explicitResourceUrl)}
-                >
-                  <Globe className="size-4 text-muted-foreground" />
-                  <span>
-                    Create resource:{" "}
-                    <span className="font-medium">{explicitResourceUrl}</span>
-                  </span>
-                </CommandItem>
-              )}
-              {explicitAreaName && (
-                <CommandItem
-                  value="explicit-create-area"
-                  onSelect={() => setCreateIntent({ entity: "area", name: explicitAreaName })}
-                >
-                  <Plus className="size-4 text-muted-foreground" />
-                  <span>Create area: <span className="font-medium">{explicitAreaName}</span></span>
-                </CommandItem>
-              )}
-              {explicitGoalName && (
-                <CommandItem
-                  value="explicit-create-goal"
-                  onSelect={() => setCreateIntent({ entity: "goal", name: explicitGoalName })}
-                >
-                  <Plus className="size-4 text-muted-foreground" />
-                  <span>Create goal: <span className="font-medium">{explicitGoalName}</span></span>
-                </CommandItem>
-              )}
-              {explicitProjectName && (
-                <CommandItem
-                  value="explicit-create-project"
-                  onSelect={() => setCreateIntent({ entity: "project", name: explicitProjectName })}
-                >
-                  <Plus className="size-4 text-muted-foreground" />
-                  <span>Create project: <span className="font-medium">{explicitProjectName}</span></span>
-                </CommandItem>
-              )}
-              {explicitContactName && (
-                <CommandItem
-                  value="explicit-create-contact"
-                  onSelect={() => setCreateIntent({ entity: "contact" })}
-                >
-                  <Plus className="size-4 text-muted-foreground" />
-                  <span>Create contact</span>
-                </CommandItem>
-              )}
-              {explicitTopicName && (
-                <CommandItem
-                  value="explicit-create-topic"
-                  onSelect={() => setCreateIntent({ entity: "topic", name: explicitTopicName })}
-                >
-                  <Plus className="size-4 text-muted-foreground" />
-                  <span>Create topic: <span className="font-medium">{explicitTopicName}</span></span>
-                </CommandItem>
-              )}
-            </CommandGroup>
-          )}
-
-          {/* ── Normal mode ── */}
-          {!isExplicitCreate && (
-            <>
-              {/* Navigation */}
-              {filteredNav.length > 0 && (
-                <CommandGroup heading="Navigation">
-                  {filteredNav.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <CommandItem
-                        key={item.href}
-                        value={`nav-${item.href}`}
-                        onSelect={() => go(item.href)}
-                      >
-                        <Icon className="size-4 text-muted-foreground" />
-                        {item.label}
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              )}
-
-              {/* Create actions */}
-              {!hasQuery ? (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading="Create">
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Search or create…"
+            value={query}
+            onValueChange={setQuery}
+            autoFocus
+          />
+          <CommandList>
+            {filteredCore.length > 0 && (
+              <CommandGroup heading="Core">
+                {filteredCore.map((item) => {
+                  const Icon = item.icon;
+                  return (
                     <CommandItem
-                      value="hint-create-task"
-                      onSelect={() => setQuery("Create task: ")}
+                      key={item.href}
+                      value={`nav-${item.href}`}
+                      onSelect={() => go(item.href)}
                     >
-                      <Plus className="size-4 text-muted-foreground" />
-                      Create task…
+                      <Icon className="size-4 text-muted-foreground" />
+                      {item.label}
                     </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            )}
+
+            {filteredSystem.length > 0 && (
+              <CommandGroup heading="System">
+                {filteredSystem.map((item) => {
+                  const Icon = item.icon;
+                  return (
                     <CommandItem
-                      value="hint-create-note"
-                      onSelect={() => setQuery("Create note: ")}
+                      key={item.href}
+                      value={`nav-${item.href}`}
+                      onSelect={() => go(item.href)}
                     >
-                      <Plus className="size-4 text-muted-foreground" />
-                      Create note…
+                      <Icon className="size-4 text-muted-foreground" />
+                      {item.label}
                     </CommandItem>
-                    <CommandItem value="hint-create-area" onSelect={() => setCreateIntent({ entity: "area" })}>
-                      <Plus className="size-4 text-muted-foreground" /> Create area…
-                    </CommandItem>
-                    <CommandItem value="hint-create-goal" onSelect={() => setCreateIntent({ entity: "goal" })}>
-                      <Plus className="size-4 text-muted-foreground" /> Create goal…
-                    </CommandItem>
-                    <CommandItem value="hint-create-project" onSelect={() => setCreateIntent({ entity: "project" })}>
-                      <Plus className="size-4 text-muted-foreground" /> Create project…
-                    </CommandItem>
-                    <CommandItem value="hint-create-contact" onSelect={() => setCreateIntent({ entity: "contact" })}>
-                      <Plus className="size-4 text-muted-foreground" /> Create contact…
-                    </CommandItem>
-                    <CommandItem value="hint-create-topic" onSelect={() => setCreateIntent({ entity: "topic" })}>
-                      <Plus className="size-4 text-muted-foreground" /> Create topic…
-                    </CommandItem>
-                  </CommandGroup>
-                </>
-              ) : (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading="Create">
-                    <CommandItem
-                      value="quick-create-task"
-                      disabled={createTask.isPending}
-                      onSelect={() => handleCreateTask(query.trim())}
-                    >
-                      <Plus className="size-4 text-muted-foreground" />
-                      <span>
-                        Create task:{" "}
-                        <span className="font-medium">{query.trim()}</span>
-                      </span>
-                    </CommandItem>
-                    <CommandItem
-                      value="quick-create-note"
-                      disabled={createNote.isPending}
-                      onSelect={() => handleCreateNote(query.trim())}
-                    >
-                      <Plus className="size-4 text-muted-foreground" />
-                      <span>
-                        Create note:{" "}
-                        <span className="font-medium">{query.trim()}</span>
-                      </span>
-                    </CommandItem>
-                    <CommandItem value="quick-create-area" onSelect={() => setCreateIntent({ entity: "area", name: query.trim() })}>
-                      <Plus className="size-4 text-muted-foreground" />
-                      <span>Create area: <span className="font-medium">{query.trim()}</span></span>
-                    </CommandItem>
-                    <CommandItem value="quick-create-goal" onSelect={() => setCreateIntent({ entity: "goal", name: query.trim() })}>
-                      <Plus className="size-4 text-muted-foreground" />
-                      <span>Create goal: <span className="font-medium">{query.trim()}</span></span>
-                    </CommandItem>
-                    <CommandItem value="quick-create-project" onSelect={() => setCreateIntent({ entity: "project", name: query.trim() })}>
-                      <Plus className="size-4 text-muted-foreground" />
-                      <span>Create project: <span className="font-medium">{query.trim()}</span></span>
-                    </CommandItem>
-                    <CommandItem value="quick-create-contact" onSelect={() => setCreateIntent({ entity: "contact" })}>
-                      <Plus className="size-4 text-muted-foreground" /> Create contact…
-                    </CommandItem>
-                    <CommandItem value="quick-create-topic" onSelect={() => setCreateIntent({ entity: "topic", name: query.trim() })}>
-                      <Plus className="size-4 text-muted-foreground" />
-                      <span>Create topic: <span className="font-medium">{query.trim()}</span></span>
-                    </CommandItem>
-                  </CommandGroup>
-                </>
-              )}
+                  );
+                })}
+              </CommandGroup>
+            )}
 
-              {/* Entity results (only when searching) */}
-              {filteredTasks.length > 0 && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading="Tasks">
-                    {filteredTasks.map((task) => (
-                      <CommandItem
-                        key={task.id}
-                        value={`task-${task.id}`}
-                        onSelect={() => setEditIntent({ entity: "task", entityRef: task })}
-                      >
-                        <CheckSquare className="size-4 text-muted-foreground" />
-                        {task.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </>
-              )}
+            {filteredCreateActions.length > 0 && (
+              <CommandGroup heading="Create">
+                {filteredCreateActions.map((c) => (
+                  <CommandItem
+                    key={c.entity}
+                    value={`create-${c.entity}`}
+                    onSelect={() => openCreate(c.entity)}
+                  >
+                    <Plus className="size-4 text-muted-foreground" />
+                    {c.label}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
-              {filteredGoals.length > 0 && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading="Goals">
-                    {filteredGoals.map((goal) => (
-                      <CommandItem
-                        key={goal.id}
-                        value={`goal-${goal.id}`}
-                        onSelect={() => go(buildGoalDetailHref(goal))}
-                      >
-                        <Target className="size-4 text-muted-foreground" />
-                        {goal.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </>
-              )}
+            {filteredTasks.length > 0 && (
+              <CommandGroup heading="Tasks">
+                {filteredTasks.map((task) => (
+                  <CommandItem
+                    key={task.id}
+                    value={`task-${task.id}`}
+                    onSelect={() => {
+                      setEditTask(task);
+                      setQuery("");
+                      closeCommandPalette();
+                    }}
+                  >
+                    <TaskEmoji className="size-4 text-muted-foreground" />
+                    {task.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
-              {filteredProjects.length > 0 && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading="Projects">
-                    {filteredProjects.map((project) => (
-                      <CommandItem
-                        key={project.id}
-                        value={`project-${project.id}`}
-                        onSelect={() => go(buildProjectDetailHref(project))}
-                      >
-                        <FolderKanban className="size-4 text-muted-foreground" />
-                        {project.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </>
-              )}
+            {filteredGoals.length > 0 && (
+              <CommandGroup heading="Goals">
+                {filteredGoals.map((goal) => (
+                  <CommandItem
+                    key={goal.id}
+                    value={`goal-${goal.id}`}
+                    onSelect={() => go(buildGoalDetailHref(goal))}
+                  >
+                    <GoalEmoji className="size-4 text-muted-foreground" />
+                    {goal.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
-              {filteredAreas.length > 0 && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading="Areas">
-                    {filteredAreas.map((area) => (
-                      <CommandItem
-                        key={area.id}
-                        value={`area-${area.id}`}
-                        onSelect={() => go(buildAreaDetailHref(area))}
-                      >
-                        <Map className="size-4 text-muted-foreground" />
-                        {area.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </>
-              )}
+            {filteredProjects.length > 0 && (
+              <CommandGroup heading="Projects">
+                {filteredProjects.map((project) => (
+                  <CommandItem
+                    key={project.id}
+                    value={`project-${project.id}`}
+                    onSelect={() => go(buildProjectDetailHref(project))}
+                  >
+                    <ProjectEmoji className="size-4 text-muted-foreground" />
+                    {project.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
-              {filteredNotes.length > 0 && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading="Notes">
-                    {filteredNotes.map((note) => (
-                      <CommandItem
-                        key={note.id}
-                        value={`note-${note.id}`}
-                        onSelect={() => go(`/notes/${note.id}`)}
-                      >
-                        <NotebookPen className="size-4 text-muted-foreground" />
-                        {note.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </>
-              )}
+            {filteredAreas.length > 0 && (
+              <CommandGroup heading="Areas">
+                {filteredAreas.map((area) => (
+                  <CommandItem
+                    key={area.id}
+                    value={`area-${area.id}`}
+                    onSelect={() => go(buildAreaDetailHref(area))}
+                  >
+                    <AreaEmoji className="size-4 text-muted-foreground" />
+                    {area.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
-              {filteredResources.length > 0 && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading="Resources">
-                    {filteredResources.map((resource) => (
-                      <CommandItem
-                        key={resource.id}
-                        value={`resource-${resource.id}`}
-                        onSelect={() => setEditIntent({ entity: "resource", entityRef: resource })}
-                      >
-                        <Globe className="size-4 text-muted-foreground" />
-                        {resource.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </>
-              )}
+            {filteredNotes.length > 0 && (
+              <CommandGroup heading="Notes">
+                {filteredNotes.map((note) => (
+                  <CommandItem
+                    key={note.id}
+                    value={`note-${note.id}`}
+                    onSelect={() => go(`/notes/${note.id}`)}
+                  >
+                    <NoteEmoji className="size-4 text-muted-foreground" />
+                    {note.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
-              {filteredTopics.length > 0 && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading="Topics">
-                    {filteredTopics.map((topic) => (
-                      <CommandItem
-                        key={topic.id}
-                        value={`topic-${topic.id}`}
-                        onSelect={() => go(`/topics/${topic.id}`)}
-                      >
-                        <Tag className="size-4 text-muted-foreground" />
-                        {topic.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </>
-              )}
+            {filteredResources.length > 0 && (
+              <CommandGroup heading="Resources">
+                {filteredResources.map((resource) => (
+                  <CommandItem
+                    key={resource.id}
+                    value={`resource-${resource.id}`}
+                    onSelect={() => {
+                      setEditResource(resource);
+                      setQuery("");
+                      closeCommandPalette();
+                    }}
+                  >
+                    <ResourceEmoji className="size-4 text-muted-foreground" />
+                    {resource.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
-              {filteredContacts.length > 0 && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading="Contacts">
-                    {filteredContacts.map((contact) => (
-                      <CommandItem
-                        key={contact.id}
-                        value={`contact-${contact.id}`}
-                        onSelect={() => setEditIntent({ entity: "contact", entityRef: contact })}
-                      >
-                        <Users className="size-4 text-muted-foreground" />
-                        {contact.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </>
-              )}
+            {filteredTopics.length > 0 && (
+              <CommandGroup heading="Topics">
+                {filteredTopics.map((topic) => (
+                  <CommandItem
+                    key={topic.id}
+                    value={`topic-${topic.id}`}
+                    onSelect={() => go(`/topics/${topic.id}`)}
+                  >
+                    <TagEmoji className="size-4 text-muted-foreground" />
+                    {topic.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
-              {/* Empty state: query present but no matches anywhere */}
-              {hasQuery &&
-                filteredNav.length === 0 &&
-                !hasEntityResults && (
-                  <CommandEmpty>
-                    No results for &ldquo;{query}&rdquo;
-                  </CommandEmpty>
-                )}
-            </>
-          )}
-        </CommandList>
-      </Command>
-    </CommandDialog>
+            {filteredContacts.length > 0 && (
+              <CommandGroup heading="Contacts">
+                {filteredContacts.map((contact) => (
+                  <CommandItem
+                    key={contact.id}
+                    value={`contact-${contact.id}`}
+                    onSelect={() => go(`/contacts/${contact.id}`)}
+                  >
+                    <ContactsEmoji className="size-4 text-muted-foreground" />
+                    {contact.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
-    <AreaDialog
-      open={createIntent?.entity === "area" || editIntent?.entity === "area"}
-      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
-      area={editIntent?.entity === "area" ? editIntent.entityRef : undefined}
-      onSubmit={async (data) => {
-        if (editIntent?.entity === "area") {
-          await updateArea.mutateAsync({ id: editIntent.entityRef.id, ...data });
-        } else {
+            {showEmptyState && <CommandEmpty>No results for &ldquo;{query}&rdquo;</CommandEmpty>}
+          </CommandList>
+        </Command>
+      </CommandDialog>
+
+      <AreaDialog
+        open={createEntity === "area"}
+        onOpenChange={(o) => {
+          if (!o) setCreateEntity(null);
+        }}
+        onSubmit={async (data) => {
           await createArea.mutateAsync(data);
-        }
-        setCreateIntent(null);
-        setEditIntent(null);
-      }}
-      isLoading={createArea.isPending || updateArea.isPending}
-    />
+          setCreateEntity(null);
+        }}
+        isLoading={createArea.isPending}
+      />
 
-    <GoalDialog
-      open={createIntent?.entity === "goal" || editIntent?.entity === "goal"}
-      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
-      goal={editIntent?.entity === "goal" ? editIntent.entityRef : undefined}
-      onSuccess={() => { setCreateIntent(null); setEditIntent(null); }}
-    />
+      <GoalDialog
+        open={createEntity === "goal"}
+        onOpenChange={(o) => {
+          if (!o) setCreateEntity(null);
+        }}
+        onSuccess={() => setCreateEntity(null)}
+      />
 
-    <ProjectDialog
-      open={createIntent?.entity === "project" || editIntent?.entity === "project"}
-      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
-      project={editIntent?.entity === "project" ? editIntent.entityRef : undefined}
-      onSuccess={() => { setCreateIntent(null); setEditIntent(null); }}
-    />
+      <ProjectDialog
+        open={createEntity === "project"}
+        onOpenChange={(o) => {
+          if (!o) setCreateEntity(null);
+        }}
+        onSuccess={() => setCreateEntity(null)}
+      />
 
-    <TaskDialog
-      open={createIntent?.entity === "task" || editIntent?.entity === "task"}
-      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
-      task={editIntent?.entity === "task" ? editIntent.entityRef : undefined}
-      onSuccess={() => { setCreateIntent(null); setEditIntent(null); }}
-      onDelete={() => { setCreateIntent(null); setEditIntent(null); }}
-    />
+      <TaskDialog
+        open={createEntity === "task" || !!editTask}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCreateEntity(null);
+            setEditTask(null);
+          }
+        }}
+        task={editTask}
+        onSuccess={() => {
+          setCreateEntity(null);
+          setEditTask(null);
+        }}
+      />
 
-    <NoteEditorDialog
-      open={createIntent?.entity === "note" || editIntent?.entity === "note"}
-      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
-      note={editIntent?.entity === "note" ? editIntent.entityRef : null}
-      onSuccess={() => { setCreateIntent(null); setEditIntent(null); }}
-    />
+      <NoteEditorDialog
+        open={createEntity === "note"}
+        onOpenChange={(o) => {
+          if (!o) setCreateEntity(null);
+        }}
+        note={null}
+        onSuccess={() => setCreateEntity(null)}
+      />
 
-    <ContactDialog
-      open={createIntent?.entity === "contact" || editIntent?.entity === "contact"}
-      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
-      contact={editIntent?.entity === "contact" ? editIntent.entityRef : undefined}
-      onSubmit={async (data) => {
-        const input = {
-          name: data.name,
-          role: data.role || null,
-          organization: data.organization || null,
-          group: data.group || null,
-          phone: data.phone || null,
-          email: data.email || null,
-          linkedin: data.linkedin || null,
-          website: data.website || null,
-          image_url: data.image_url || null,
-          follow_up_interval_days:
-            data.follow_up_interval_days === "none"
-              ? null
-              : data.follow_up_interval_days
-                ? parseInt(data.follow_up_interval_days, 10)
-                : 14,
-          notes: data.notes || null,
-          area_ids: data.area_ids ?? [],
-          goal_ids: data.goal_ids ?? [],
-          project_ids: data.project_ids ?? [],
-          task_ids: data.task_ids ?? [],
-        };
-        if (editIntent?.entity === "contact") {
-          await updateContact.mutateAsync({ id: editIntent.entityRef.id, input });
-        } else {
-          await createContact.mutateAsync(input);
-        }
-        setCreateIntent(null);
-        setEditIntent(null);
-      }}
-    />
+      <ContactDialog
+        open={createEntity === "contact"}
+        onOpenChange={(o) => {
+          if (!o) setCreateEntity(null);
+        }}
+        onSubmit={(values) => {
+          createContact.mutate(buildContactCreateInput(values));
+          setCreateEntity(null);
+        }}
+      />
 
-    <ResourceDialog
-      open={createIntent?.entity === "resource" || editIntent?.entity === "resource"}
-      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
-      resource={editIntent?.entity === "resource" ? editIntent.entityRef : undefined}
-      onSubmit={(data) => {
-        if (editIntent?.entity === "resource") {
-          updateResource.mutate({ id: editIntent.entityRef.id, input: data as Parameters<typeof updateResource.mutate>[0]["input"] });
-        } else {
-          createResource.mutate(data as Parameters<typeof createResource.mutate>[0]);
-        }
-        setCreateIntent(null);
-        setEditIntent(null);
-      }}
-      isPending={createResource.isPending || updateResource.isPending}
-    />
+      <ResourceDialog
+        open={createEntity === "resource" || !!editResource}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCreateEntity(null);
+            setEditResource(null);
+          }
+        }}
+        resource={editResource}
+        onSubmit={(input) => {
+          if (editResource) {
+            updateResource.mutate({ id: editResource.id, input });
+          } else {
+            createResource.mutate(input as Parameters<typeof createResource.mutate>[0]);
+          }
+          setCreateEntity(null);
+          setEditResource(null);
+        }}
+        isPending={createResource.isPending || updateResource.isPending}
+      />
 
-    <TopicDialog
-      open={createIntent?.entity === "topic" || editIntent?.entity === "topic"}
-      onOpenChange={(o) => { if (!o) { setCreateIntent(null); setEditIntent(null); } }}
-      topic={editIntent?.entity === "topic" ? editIntent.entityRef : undefined}
-      onSuccess={() => { setCreateIntent(null); setEditIntent(null); }}
-    />
+      <TopicDialog
+        open={createEntity === "topic"}
+        onOpenChange={(o) => {
+          if (!o) setCreateEntity(null);
+        }}
+        onSuccess={() => setCreateEntity(null)}
+      />
     </>
   );
 }
