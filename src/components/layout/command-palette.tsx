@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import type { ComponentType } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
   Command,
@@ -25,7 +25,6 @@ import { AreaDialog } from "@/components/entities/area-dialog";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { ProjectDialog } from "@/components/entities/project-dialog";
 import { TaskDialog } from "@/components/entities/task-dialog";
-import { NoteEditorDialog } from "@/components/entities/note-editor-dialog";
 import { ContactDialog } from "@/components/entities/contact-dialog";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
 import { TopicDialog } from "@/components/entities/topic-dialog";
@@ -46,22 +45,34 @@ import { buildAreaDetailHref } from "@/lib/utils/area-urls";
 import { buildContactCreateInput } from "@/lib/utils/contact-input";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { buildProjectDetailHref } from "@/lib/utils/project-urls";
+import {
+  getRawReturnToChain,
+  getReturnToFromSearchParams,
+  isValidReturnTo,
+  setReturnToParams,
+} from "@/lib/utils/return-to";
 
 type CreateEntity = "area" | "goal" | "project" | "task" | "note" | "resource" | "contact" | "topic";
 
-const CREATE_ACTIONS: Array<{ entity: CreateEntity; label: string }> = [
-  { entity: "area", label: "Create area" },
-  { entity: "goal", label: "Create goal" },
-  { entity: "project", label: "Create project" },
-  { entity: "task", label: "Create task" },
-  { entity: "note", label: "Create note" },
-  { entity: "resource", label: "Create resource" },
-  { entity: "contact", label: "Create contact" },
-  { entity: "topic", label: "Create topic" },
+const CREATE_ACTIONS: Array<{
+  entity: CreateEntity;
+  label: string;
+  Icon: ComponentType<{ className?: string }>;
+}> = [
+  { entity: "area", label: "Create area", Icon: AreaEmoji },
+  { entity: "goal", label: "Create goal", Icon: GoalEmoji },
+  { entity: "project", label: "Create project", Icon: ProjectEmoji },
+  { entity: "task", label: "Create task", Icon: TaskEmoji },
+  { entity: "note", label: "Create note", Icon: NoteEmoji },
+  { entity: "resource", label: "Create resource", Icon: ResourceEmoji },
+  { entity: "contact", label: "Create contact", Icon: ContactsEmoji },
+  { entity: "topic", label: "Create topic", Icon: TagEmoji },
 ];
 
 export function CommandPalette() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { commandPaletteOpen, closeCommandPalette, toggleCommandPalette } = useUIStore();
   const [query, setQuery] = useState("");
   const [createEntity, setCreateEntity] = useState<CreateEntity | null>(null);
@@ -83,7 +94,6 @@ export function CommandPalette() {
   const updateResource = useUpdateResource();
   const createContact = useCreateContact();
 
-  // Cmd+K (macOS) / Ctrl+K (Windows/Linux) — skip when inside a rich-text editor
   useKeyboardShortcut(
     (e) => {
       if (!((e.metaKey || e.ctrlKey) && e.key === "k")) return false;
@@ -98,6 +108,21 @@ export function CommandPalette() {
     closeCommandPalette();
   }, [closeCommandPalette]);
 
+  const withReturnTo = useCallback(
+    (base: string): string => {
+      if (!isValidReturnTo(pathname)) return base;
+      const incomingReturnTo = getReturnToFromSearchParams(searchParams);
+      const incomingChain = getRawReturnToChain(searchParams);
+      const destChain = incomingReturnTo
+        ? [incomingReturnTo, ...incomingChain]
+        : incomingChain;
+      const params = new URLSearchParams();
+      setReturnToParams(params, pathname, destChain);
+      return `${base}?${params.toString()}`;
+    },
+    [pathname, searchParams],
+  );
+
   const go = useCallback(
     (href: string) => {
       router.push(href);
@@ -108,17 +133,20 @@ export function CommandPalette() {
 
   const openCreate = useCallback(
     (entity: CreateEntity) => {
+      if (entity === "note") {
+        go(withReturnTo("/notes/new"));
+        return;
+      }
       setCreateEntity(entity);
       setQuery("");
       closeCommandPalette();
     },
-    [closeCommandPalette],
+    [go, withReturnTo, closeCommandPalette],
   );
 
   const hasQuery = query.length > 0;
   const q = query.toLowerCase();
 
-  // Client-side search (entities already in cache from their own pages)
   const filteredTasks = hasQuery
     ? tasks.filter((t) => !t.is_archived && t.name.toLowerCase().includes(q)).slice(0, 5)
     : [];
@@ -165,7 +193,12 @@ export function CommandPalette() {
     filteredTopics.length > 0 ||
     filteredContacts.length > 0;
 
-  const showEmptyState = hasQuery && !hasEntityResults && filteredCore.length === 0 && filteredSystem.length === 0 && filteredCreateActions.length === 0;
+  const showEmptyState =
+    hasQuery &&
+    !hasEntityResults &&
+    filteredCore.length === 0 &&
+    filteredSystem.length === 0 &&
+    filteredCreateActions.length === 0;
 
   return (
     <>
@@ -193,7 +226,7 @@ export function CommandPalette() {
                       value={`nav-${item.href}`}
                       onSelect={() => go(item.href)}
                     >
-                      <Icon className="size-4 text-muted-foreground" />
+                      <Icon className="size-4" />
                       {item.label}
                     </CommandItem>
                   );
@@ -211,7 +244,7 @@ export function CommandPalette() {
                       value={`nav-${item.href}`}
                       onSelect={() => go(item.href)}
                     >
-                      <Icon className="size-4 text-muted-foreground" />
+                      <Icon className="size-4" />
                       {item.label}
                     </CommandItem>
                   );
@@ -221,16 +254,19 @@ export function CommandPalette() {
 
             {filteredCreateActions.length > 0 && (
               <CommandGroup heading="Create">
-                {filteredCreateActions.map((c) => (
-                  <CommandItem
-                    key={c.entity}
-                    value={`create-${c.entity}`}
-                    onSelect={() => openCreate(c.entity)}
-                  >
-                    <Plus className="size-4 text-muted-foreground" />
-                    {c.label}
-                  </CommandItem>
-                ))}
+                {filteredCreateActions.map((c) => {
+                  const Icon = c.Icon;
+                  return (
+                    <CommandItem
+                      key={c.entity}
+                      value={`create-${c.entity}`}
+                      onSelect={() => openCreate(c.entity)}
+                    >
+                      <Icon className="size-4" />
+                      {c.label}
+                    </CommandItem>
+                  );
+                })}
               </CommandGroup>
             )}
 
@@ -246,7 +282,7 @@ export function CommandPalette() {
                       closeCommandPalette();
                     }}
                   >
-                    <TaskEmoji className="size-4 text-muted-foreground" />
+                    <TaskEmoji className="size-4" />
                     {task.name}
                   </CommandItem>
                 ))}
@@ -259,9 +295,9 @@ export function CommandPalette() {
                   <CommandItem
                     key={goal.id}
                     value={`goal-${goal.id}`}
-                    onSelect={() => go(buildGoalDetailHref(goal))}
+                    onSelect={() => go(withReturnTo(buildGoalDetailHref(goal)))}
                   >
-                    <GoalEmoji className="size-4 text-muted-foreground" />
+                    <GoalEmoji className="size-4" />
                     {goal.name}
                   </CommandItem>
                 ))}
@@ -274,9 +310,9 @@ export function CommandPalette() {
                   <CommandItem
                     key={project.id}
                     value={`project-${project.id}`}
-                    onSelect={() => go(buildProjectDetailHref(project))}
+                    onSelect={() => go(withReturnTo(buildProjectDetailHref(project)))}
                   >
-                    <ProjectEmoji className="size-4 text-muted-foreground" />
+                    <ProjectEmoji className="size-4" />
                     {project.name}
                   </CommandItem>
                 ))}
@@ -289,9 +325,19 @@ export function CommandPalette() {
                   <CommandItem
                     key={area.id}
                     value={`area-${area.id}`}
-                    onSelect={() => go(buildAreaDetailHref(area))}
+                    onSelect={() => go(withReturnTo(buildAreaDetailHref(area)))}
                   >
-                    <AreaEmoji className="size-4 text-muted-foreground" />
+                    {area.icon ? (
+                      <span
+                        role="img"
+                        aria-hidden="true"
+                        className="inline-flex size-4 items-center justify-center leading-none"
+                      >
+                        {area.icon}
+                      </span>
+                    ) : (
+                      <AreaEmoji className="size-4" />
+                    )}
                     {area.name}
                   </CommandItem>
                 ))}
@@ -304,9 +350,9 @@ export function CommandPalette() {
                   <CommandItem
                     key={note.id}
                     value={`note-${note.id}`}
-                    onSelect={() => go(`/notes/${note.id}`)}
+                    onSelect={() => go(withReturnTo(`/notes/${note.slug ?? note.id}`))}
                   >
-                    <NoteEmoji className="size-4 text-muted-foreground" />
+                    <NoteEmoji className="size-4" />
                     {note.name}
                   </CommandItem>
                 ))}
@@ -325,7 +371,7 @@ export function CommandPalette() {
                       closeCommandPalette();
                     }}
                   >
-                    <ResourceEmoji className="size-4 text-muted-foreground" />
+                    <ResourceEmoji className="size-4" />
                     {resource.name}
                   </CommandItem>
                 ))}
@@ -338,9 +384,9 @@ export function CommandPalette() {
                   <CommandItem
                     key={topic.id}
                     value={`topic-${topic.id}`}
-                    onSelect={() => go(`/topics/${topic.id}`)}
+                    onSelect={() => go(withReturnTo(`/topics/${topic.slug ?? topic.id}`))}
                   >
-                    <TagEmoji className="size-4 text-muted-foreground" />
+                    <TagEmoji className="size-4" />
                     {topic.name}
                   </CommandItem>
                 ))}
@@ -353,9 +399,9 @@ export function CommandPalette() {
                   <CommandItem
                     key={contact.id}
                     value={`contact-${contact.id}`}
-                    onSelect={() => go(`/contacts/${contact.id}`)}
+                    onSelect={() => go(withReturnTo(`/contacts/${contact.slug ?? contact.id}`))}
                   >
-                    <ContactsEmoji className="size-4 text-muted-foreground" />
+                    <ContactsEmoji className="size-4" />
                     {contact.name}
                   </CommandItem>
                 ))}
@@ -408,15 +454,6 @@ export function CommandPalette() {
           setCreateEntity(null);
           setEditTask(null);
         }}
-      />
-
-      <NoteEditorDialog
-        open={createEntity === "note"}
-        onOpenChange={(o) => {
-          if (!o) setCreateEntity(null);
-        }}
-        note={null}
-        onSuccess={() => setCreateEntity(null)}
       />
 
       <ContactDialog
