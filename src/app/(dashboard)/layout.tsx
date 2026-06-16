@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
@@ -19,7 +19,9 @@ export default function DashboardGroupLayout({
           <main className="flex-1 overflow-y-auto">{children}</main>
         </div>
       </div>
-      <CommandPalette />
+      <Suspense fallback={null}>
+        <CommandPalette />
+      </Suspense>
     </>
   );
 }
