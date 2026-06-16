@@ -294,4 +294,31 @@ describe("CommandPalette", () => {
     await user.click(screen.getByRole("option", { name: /Example Site/ }));
     expect(screen.getByTestId("dialog-resource")).toBeInTheDocument();
   });
+
+  it("renders the My Day nav icon tinted orange", () => {
+    openPalette();
+    renderPalette();
+    const myDay = screen.getByRole("option", { name: /My Day/ });
+    const svg = myDay.querySelector("svg");
+    expect(svg).not.toBeNull();
+    expect(svg?.getAttribute("class") ?? "").toContain("text-orange-500");
+  });
+
+  it("renders the Knowledge Hub nav icon tinted blue", () => {
+    openPalette();
+    renderPalette();
+    const knowledge = screen.getByRole("option", { name: /Knowledge Hub/ });
+    const svg = knowledge.querySelector("svg");
+    expect(svg).not.toBeNull();
+    expect(svg?.getAttribute("class") ?? "").toContain("text-blue-500");
+  });
+
+  it("does not force selected command-item svg icons to the foreground color", () => {
+    openPalette();
+    renderPalette();
+    const myDay = screen.getByRole("option", { name: /My Day/ });
+    // The washing-out override lived on the command-item wrapper. It must be gone
+    // so a highlighted (data-selected) row keeps its brand-colored svg icon.
+    expect(myDay.className).not.toContain("data-selected:*:[svg]:text-foreground");
+  });
 });
