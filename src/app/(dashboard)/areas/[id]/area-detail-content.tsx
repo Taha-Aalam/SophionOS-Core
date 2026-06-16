@@ -87,6 +87,7 @@ import {
   useResources,
 } from "@/lib/hooks/use-resources";
 import { useTopics } from "@/lib/hooks/use-topics";
+import { useEscapeBack } from "@/lib/hooks/use-escape-back";
 import { contactService } from "@/lib/services/contact.service";
 import { useQueryClient } from "@tanstack/react-query";
 import { type Contact, type CreateResourceInput, type Resource, type Task } from "@/lib/types/domain.types";
@@ -129,6 +130,7 @@ export function AreaDetailContent() {
   const areaIdentifier = params.id as string;
   const { setPageTitle } = useUIStore();
   const backHref = popReturnToHref(searchParams, "/areas");
+  useEscapeBack(backHref);
   const areaReturnToChain = buildReturnToChain(searchParams);
 
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);

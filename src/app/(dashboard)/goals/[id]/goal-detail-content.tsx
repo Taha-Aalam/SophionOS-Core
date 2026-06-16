@@ -93,6 +93,7 @@ import { useProjects, useLinkProjectToGoal, useArchiveProject, useRestoreProject
 import { useNotes, useToggleFavoriteNote, useTogglePinNote, useArchiveNote, useRestoreNote, useDeleteNote, useUpdateNote, useLinkNoteToGoal } from "@/lib/hooks/use-notes";
 import { useResources, useToggleFavoriteResource, useCreateResource, useDeleteResource, useUpdateResource, useArchiveResource, useUnarchiveResource, useLinkResourceToGoal } from "@/lib/hooks/use-resources";
 import { useTopics } from "@/lib/hooks/use-topics";
+import { useEscapeBack } from "@/lib/hooks/use-escape-back";
 import { cn } from "@/lib/utils";
 import type { Contact, CreateResourceInput, Project, Resource, Task } from "@/lib/types/domain.types";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
@@ -320,6 +321,7 @@ export function GoalDetailContent() {
   const goalNestedReturnTo = goalNavigation.nestedReturnTo;
   const returnToChain = buildReturnToChain(searchParams);
   const goalBackHref = popReturnToHref(searchParams, "/goals");
+  useEscapeBack(goalBackHref);
   const allowedProjectIds = useMemo(
     () => (goalData?.projects ?? []).map((p) => p.id),
     [goalData?.projects],

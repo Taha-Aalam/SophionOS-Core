@@ -82,7 +82,7 @@ const LABELS: Record<
     title: "Delete this contact?",
     verb: "Delete",
     rowAria: "Delete contact permanently",
-    detailLabel: "Delete contact permanently",
+    detailLabel: "Delete",
   },
   topic: {
     title: "Delete this topic?",

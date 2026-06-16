@@ -84,6 +84,7 @@ import {
 } from "@/lib/hooks/use-resources";
 import { useTopics } from "@/lib/hooks/use-topics";
 import { useTasks } from "@/lib/hooks/use-tasks";
+import { useEscapeBack } from "@/lib/hooks/use-escape-back";
 import type { Task } from "@/lib/types/domain.types";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -131,6 +132,7 @@ export function ProjectDetailContent() {
   const projectIdentifier = params.id as string;
   const { setPageTitle } = useUIStore();
   const backHref = popReturnToHref(searchParams, "/projects");
+  useEscapeBack(backHref);
   const returnToChain = buildReturnToChain(searchParams);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
