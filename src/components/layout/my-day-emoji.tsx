@@ -9,7 +9,7 @@ export function MyDayEmoji({
 }: Omit<SVGProps<SVGSVGElement>, "children">) {
   return (
     <Sun
-      className={cn("text-yellow-500", className)}
+      className={cn("text-orange-500", className)}
       {...(rest as SVGProps<SVGSVGElement>)}
     />
   );
