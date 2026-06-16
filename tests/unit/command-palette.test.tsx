@@ -45,8 +45,12 @@ vi.mock("@/components/providers/auth-provider", () => ({
   useAuth: () => ({ user: { id: "u1" } }),
 }));
 
+const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: pushMock }),
+  usePathname: () => "/dashboard",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 // Data hooks: return small fixture sets so the search results groups are
@@ -130,9 +134,6 @@ vi.mock("@/components/entities/project-dialog", () => ({
 vi.mock("@/components/entities/task-dialog", () => ({
   TaskDialog: makeDialogMock("task"),
 }));
-vi.mock("@/components/entities/note-editor-dialog", () => ({
-  NoteEditorDialog: makeDialogMock("note"),
-}));
 vi.mock("@/components/entities/contact-dialog", () => ({
   ContactDialog: makeDialogMock("contact"),
 }));
@@ -164,6 +165,7 @@ function renderPalette() {
 
 describe("CommandPalette", () => {
   beforeEach(() => {
+    pushMock.mockClear();
     useUIStore.setState({ commandPaletteOpen: false });
   });
 
@@ -207,14 +209,14 @@ describe("CommandPalette", () => {
       .getAllByRole("option")
       .map((el) => el.textContent);
     expect(labels).toEqual([
-      "Create area",
-      "Create goal",
-      "Create project",
-      "Create task",
-      "Create note",
-      "Create resource",
-      "Create contact",
-      "Create topic",
+      "🗺️Create area",
+      "🎯Create goal",
+      "📁Create project",
+      "☑️Create task",
+      "📝Create note",
+      "🔗Create resource",
+      "👥Create contact",
+      "🏷️Create topic",
     ]);
   });
 
@@ -230,7 +232,7 @@ describe("CommandPalette", () => {
     expect(screen.getByTestId("dialog-task")).toBeInTheDocument();
   });
 
-  it("navigates to the area detail page when an existing area is selected", async () => {
+  it("navigates to the area detail page by slug with a stamped returnTo", async () => {
     openPalette();
     renderPalette();
     const user = userEvent.setup();
@@ -239,13 +241,12 @@ describe("CommandPalette", () => {
     await user.type(input, "heal");
 
     await user.click(screen.getByRole("option", { name: /Health/ }));
-    // router.push is a noop vi.fn() — the assertion here is the absence of a
-    // crash and the palette closing (open sentinel for the area dialog is NOT
-    // shown, since area selection is detail-nav, not edit).
+
+    expect(pushMock).toHaveBeenCalledWith(expect.stringMatching(/^\/areas\/health\?returnTo=/));
     expect(screen.queryByTestId("dialog-area")).not.toBeInTheDocument();
   });
 
-  it("navigates to the contact detail page when an existing contact is selected", async () => {
+  it("navigates to the contact detail page by slug (not uuid) with a stamped returnTo", async () => {
     openPalette();
     renderPalette();
     const user = userEvent.setup();
@@ -254,7 +255,20 @@ describe("CommandPalette", () => {
     await user.type(input, "jane");
 
     await user.click(screen.getByRole("option", { name: /Jane Doe/ }));
+
+    expect(pushMock).toHaveBeenCalledWith(expect.stringMatching(/^\/contacts\/jane-doe\?returnTo=/));
     expect(screen.queryByTestId("dialog-contact")).not.toBeInTheDocument();
+  });
+
+  it("navigates to the new-note page (no dialog) when 'Create note' is selected", async () => {
+    openPalette();
+    renderPalette();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("option", { name: "Create note" }));
+
+    expect(pushMock).toHaveBeenCalledWith(expect.stringContaining("/notes/new"));
+    expect(screen.queryByTestId("dialog-note")).not.toBeInTheDocument();
   });
 
   it("opens the TaskDialog sentinel in edit mode when an existing task is selected", async () => {
