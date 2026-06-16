@@ -62,6 +62,7 @@ import {
 } from "@/lib/hooks/use-notes";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
+import { useEscapeBack } from "@/lib/hooks/use-escape-back";
 import type { Note, UpdateNoteInput } from "@/lib/types/domain.types";
 import { buildNoteMetadataUpdateInput } from "@/lib/utils/note-detail-metadata";
 import { cn } from "@/lib/utils";
@@ -86,6 +87,8 @@ export function NoteDetailContent() {
   const { setPageTitle } = useUIStore();
 
   const searchParams = useSearchParams();
+  const noteBackHref = popReturnToHref(searchParams, "/notes");
+  useEscapeBack(noteBackHref);
 
   const [localIsArchived, setLocalIsArchived] = useState(false);
   const [optimisticArchivedTarget, setOptimisticArchivedTarget] = useState<boolean | null>(null);
@@ -271,7 +274,7 @@ export function NoteDetailContent() {
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon-sm" onClick={() => router.push(popReturnToHref(searchParams, "/notes"))}>
+          <Button variant="ghost" size="icon-sm" onClick={() => router.push(noteBackHref)}>
             <ArrowLeft className="size-4" />
           </Button>
           <span className="text-sm text-muted-foreground">/ Notes / {note.name}</span>

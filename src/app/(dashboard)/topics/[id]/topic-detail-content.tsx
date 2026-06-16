@@ -49,6 +49,7 @@ import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useTasks } from "@/lib/hooks/use-tasks";
+import { useEscapeBack } from "@/lib/hooks/use-escape-back";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds } from "@/lib/utils/notes";
 import { getResourceLinkedProjectIds } from "@/lib/utils/resources";
 import { useUIStore } from "@/lib/stores/ui.store";
@@ -100,6 +101,7 @@ export function TopicDetailContent() {
 
   const searchParams = useSearchParams();
   const backHref = popReturnToHref(searchParams, "/topics");
+  useEscapeBack(backHref);
 
   useEffect(() => {
     if (topic) {

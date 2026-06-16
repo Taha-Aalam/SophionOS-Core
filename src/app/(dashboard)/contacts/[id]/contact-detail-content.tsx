@@ -60,6 +60,7 @@ import {
   useUpdateTask,
   useUncompleteTask,
 } from "@/lib/hooks/use-tasks";
+import { useEscapeBack } from "@/lib/hooks/use-escape-back";
 import type { Task } from "@/lib/types/domain.types";
 import { contactService } from "@/lib/services/contact.service";
 import { useUIStore } from "@/lib/stores/ui.store";
@@ -128,6 +129,7 @@ export function ContactDetailContent() {
   const contactSlug = params.id as string;
   const backHref = popReturnToHref(searchParams, "/contacts");
   const returnToChain = buildReturnToChain(searchParams);
+  useEscapeBack(backHref);
 
   const { setPageTitle } = useUIStore();
   const { data: contact, isLoading, error } = useContactBySlug(contactSlug);
