@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { useArea, useAreas, useUpdateArea } from "@/lib/hooks/use-areas";
+import { useEscapeBack } from "@/lib/hooks/use-escape-back";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ export default function EditAreaPage() {
   const { data: areas = [] } = useAreas();
   const { data: area, isLoading } = useArea(areaSlug);
   const updateArea = useUpdateArea(userId);
+  useEscapeBack(area ? `/areas/${area.slug ?? area.id}` : null);
   const submittedRef = useRef(false);
 
   useEffect(() => {
