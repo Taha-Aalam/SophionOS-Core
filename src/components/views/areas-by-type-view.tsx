@@ -5,10 +5,12 @@ import { Plus, ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import { GalleryGrid } from "@/components/views/gallery-grid";
 import { AreaCard } from "@/components/entities/area-card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Area } from "@/lib/types/domain.types";
 import type { AreaRollups, GroupedAreas } from "@/lib/utils/areas";
+import { AREA_TYPE_COLORS, AREA_TYPE_FALLBACK } from "@/lib/constants/entity-colors";
 
 interface AreasByTypeViewProps {
   groupedAreas: GroupedAreas[];
@@ -21,15 +23,8 @@ interface AreasByTypeViewProps {
   onCreateArea: (type: string) => void;
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  Business: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  Personal: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  Studies: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-};
-
 function getTypeBadgeClass(type: string): string {
-  const normalized = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-  return TYPE_COLORS[normalized] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+  return AREA_TYPE_COLORS[type.toLowerCase()] ?? AREA_TYPE_FALLBACK;
 }
 
 function CollapsibleSection({
@@ -145,10 +140,10 @@ export function AreasByTypeView({
       <div className="space-y-6">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i}>
-            <div className="h-6 w-32 rounded bg-muted animate-pulse mb-3" />
+            <Skeleton className="h-6 w-32 mb-3" />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 4 }).map((_, j) => (
-                <div key={j} className="h-48 rounded-xl bg-muted animate-pulse" />
+                <Skeleton key={j} className="h-48 rounded-xl" />
               ))}
             </div>
           </div>

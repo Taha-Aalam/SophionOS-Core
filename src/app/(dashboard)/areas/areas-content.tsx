@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { AreaCard } from "@/components/entities/area-card";
 import { AreaDialog } from "@/components/entities/area-dialog";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GalleryGrid } from "@/components/views/gallery-grid";
 import { EmptyState } from "@/components/views/empty-state";
@@ -155,8 +156,8 @@ export function AreasContent() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">🗺️</span>
           <div>
@@ -200,7 +201,7 @@ export function AreasContent() {
           {isLoading ? (
             <GalleryGrid>
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-48 rounded-xl bg-muted animate-pulse" />
+                <Skeleton key={i} className="h-48 rounded-xl" />
               ))}
             </GalleryGrid>
           ) : areasByStatus.active.length === 0 ? (
@@ -241,7 +242,7 @@ export function AreasContent() {
           {isLoading ? (
             <GalleryGrid>
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-48 rounded-xl bg-muted animate-pulse" />
+                <Skeleton key={i} className="h-48 rounded-xl" />
               ))}
             </GalleryGrid>
           ) : areasByStatus.inactive.length === 0 ? (
@@ -290,7 +291,7 @@ export function AreasContent() {
           {isLoading ? (
             <GalleryGrid>
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-48 rounded-xl bg-muted animate-pulse" />
+                <Skeleton key={i} className="h-48 rounded-xl" />
               ))}
             </GalleryGrid>
           ) : (
@@ -322,7 +323,7 @@ export function AreasContent() {
           {isLoading ? (
             <GalleryGrid>
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-48 rounded-xl bg-muted animate-pulse" />
+                <Skeleton key={i} className="h-48 rounded-xl" />
               ))}
             </GalleryGrid>
           ) : areasByStatus.archived.length === 0 ? (

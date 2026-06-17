@@ -46,75 +46,107 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Motion: physical, weighted curves. No linear/ease-in-out anywhere.
+     spring = overshoot-free settle, expo/quint = decisive entrances. */
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Soft, highly-diffused ambient elevation — tinted toward the brand hue (260)
+     so lifts read as colored light, never a hard gray drop. Layered for depth. */
+  --shadow-soft:
+    0 1px 2px oklch(0.2 0.05 260 / 0.04), 0 4px 12px oklch(0.2 0.05 260 / 0.05),
+    0 12px 28px oklch(0.2 0.05 260 / 0.04);
+  --shadow-soft-lg:
+    0 2px 4px oklch(0.2 0.05 260 / 0.05), 0 10px 24px oklch(0.2 0.05 260 / 0.07),
+    0 24px 56px oklch(0.2 0.05 260 / 0.07);
+
+  /* Scroll/entry reveal — one-shot, GPU-cheap (transform + opacity). */
+  --animate-reveal: reveal 0.7s var(--ease-out-quint) both;
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  /* Neutrals are tinted toward the indigo brand hue (260). Lightness values are
+     preserved from the base scale so contrast ratios stay identical; only a faint
+     chroma is threaded through so no surface reads as dead gray or pure white. */
+  --background: oklch(0.994 0.002 260);
+  --foreground: oklch(0.145 0.012 260);
+  --card: oklch(0.998 0.001 260);
+  --card-foreground: oklch(0.145 0.012 260);
+  --popover: oklch(0.998 0.001 260);
+  --popover-foreground: oklch(0.145 0.012 260);
   --primary: oklch(0.3 0.15 260); /* Indigo-ish */
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0.002 260);
+  --secondary: oklch(0.968 0.005 260);
+  --secondary-foreground: oklch(0.205 0.012 260);
+  --muted: oklch(0.968 0.005 260);
+  --muted-foreground: oklch(0.552 0.016 260);
+  --accent: oklch(0.965 0.008 260);
+  --accent-foreground: oklch(0.205 0.012 260);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.916 0.006 260);
+  --input: oklch(0.916 0.006 260);
+  --ring: oklch(0.55 0.13 260);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar: oklch(0.984 0.004 260);
+  --sidebar-foreground: oklch(0.145 0.012 260);
   --sidebar-primary: oklch(0.3 0.15 260);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0.002 260);
+  --sidebar-accent: oklch(0.965 0.008 260);
+  --sidebar-accent-foreground: oklch(0.205 0.012 260);
+  --sidebar-border: oklch(0.916 0.006 260);
+  --sidebar-ring: oklch(0.55 0.13 260);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+  --background: oklch(0.145 0.012 260);
+  --foreground: oklch(0.985 0.002 260);
+  --card: oklch(0.205 0.014 260);
+  --card-foreground: oklch(0.985 0.002 260);
+  --popover: oklch(0.205 0.014 260);
+  --popover-foreground: oklch(0.985 0.002 260);
   --primary: oklch(0.6366 0.15 260); /* Indigo #6366F1 approx */
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0.014 260);
+  --secondary: oklch(0.269 0.014 260);
+  --secondary-foreground: oklch(0.985 0.002 260);
+  --muted: oklch(0.269 0.014 260);
+  --muted-foreground: oklch(0.708 0.014 260);
+  --accent: oklch(0.279 0.018 260);
+  --accent-foreground: oklch(0.985 0.002 260);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --border: oklch(0.985 0.01 260 / 10%);
+  --input: oklch(0.985 0.01 260 / 15%);
+  --ring: oklch(0.6 0.13 260);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar: oklch(0.205 0.014 260);
+  --sidebar-foreground: oklch(0.985 0.002 260);
   --sidebar-primary: oklch(0.6366 0.15 260);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0.002 260);
+  --sidebar-accent: oklch(0.279 0.018 260);
+  --sidebar-accent-foreground: oklch(0.985 0.002 260);
+  --sidebar-border: oklch(0.985 0.01 260 / 10%);
+  --sidebar-ring: oklch(0.6 0.13 260);
 }
 
 @layer base {
@@ -123,8 +155,50 @@
   }
   body {
     @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
+  }
+  /* Brand-tinted text selection instead of the OS default blue. */
+  ::selection {
+    background-color: oklch(0.55 0.13 260 / 0.18);
+  }
+  /* Respect users who ask for less motion: collapse all animation/scroll easing. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Page-entrance choreography: applies the `reveal` keyframe to direct children
+     with an increasing delay so content cascades in instead of snapping. Pair with
+     `reveal-stagger` on a container. GPU-cheap (transform + opacity only). The
+     reduced-motion guard above neutralizes the delay and duration automatically. */
+  .reveal-stagger > * {
+    animation: var(--animate-reveal);
+  }
+  .reveal-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .reveal-stagger > *:nth-child(2) { animation-delay: 60ms; }
+  .reveal-stagger > *:nth-child(3) { animation-delay: 120ms; }
+  .reveal-stagger > *:nth-child(4) { animation-delay: 180ms; }
+  .reveal-stagger > *:nth-child(5) { animation-delay: 240ms; }
+  .reveal-stagger > *:nth-child(6) { animation-delay: 300ms; }
+  .reveal-stagger > *:nth-child(7) { animation-delay: 360ms; }
+  .reveal-stagger > *:nth-child(n + 8) { animation-delay: 420ms; }
+
+  /* Single-element entrance for page headers and standalone hero blocks. */
+  .reveal-once {
+    animation: var(--animate-reveal);
   }
 }

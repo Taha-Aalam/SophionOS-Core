@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { Note } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
 import { encodeReturnTo } from "@/lib/utils/return-to";
+import { STATUS_COLORS } from "@/lib/constants/entity-colors";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
 
@@ -32,14 +33,6 @@ interface NoteRowProps {
   onRestore?: (id: string) => void;
   onDelete?: (id: string) => void;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  active: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  completed: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
-  archive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-};
 
 export function NoteRow({
   note,

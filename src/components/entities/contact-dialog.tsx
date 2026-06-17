@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
-import { X } from "lucide-react";
+import { ImageUpIcon, Loader2, X, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { cn } from "@/lib/utils";
 import { Contact } from "@/lib/types/domain.types";
 import { useAuth } from "@/components/providers/auth-provider";
 import { CONTACT_GROUPS } from "@/lib/constants/contact-groups";
@@ -75,6 +76,11 @@ interface ContactFormValues {
   project_ids: string[];
   task_ids: string[];
 }
+
+// Profile image upload constraints
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_IMAGE_SIZE_MB = 5;
+const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 
 // Phone must contain 7-15 digits and only allow digits, spaces, +, -, (, )
 const PHONE_PATTERN = /^[\d\s+\-()]+$/;
@@ -163,15 +169,23 @@ export function ContactDialog({
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [isRemovingImage, setIsRemovingImage] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // Local override for the displayed image. null = follow `contact?.image_url`.
   // Deriving via ref + display value avoids the cascading-render anti-pattern
   // of mirroring a prop into state via useEffect.
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   const displayImage = uploadPreview ?? contact?.image_url ?? null;
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadFile = async (file: File) => {
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Please choose a JPEG, PNG, WebP, or GIF image");
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      toast.error(`Image must be smaller than ${MAX_IMAGE_SIZE_MB}MB`);
+      return;
+    }
 
     try {
       setIsUploading(true);
@@ -184,6 +198,21 @@ export function ContactDialog({
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset so selecting the same file again re-triggers change
+    e.target.value = "";
+    if (file) await uploadFile(file);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (isUploading || isRemovingImage) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) await uploadFile(file);
   };
 
   const handleRemoveImage = async () => {
@@ -629,38 +658,89 @@ export function ContactDialog({
               <FormControl>
                 <div className="flex flex-col gap-2">
                   <input
+                    ref={fileInputRef}
                     type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    accept={ACCEPTED_IMAGE_TYPES.join(",")}
                     onChange={handleFileChange}
-                    disabled={isUploading}
-                    className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-muted/80 disabled:opacity-50"
+                    disabled={isUploading || isRemovingImage}
+                    className="sr-only"
+                    aria-label="Upload profile image"
                   />
-                  {isUploading && (
-                    <p className="text-xs text-muted-foreground">Uploading…</p>
-                  )}
-                  {displayImage && !isUploading && (
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 overflow-hidden rounded-full bg-muted shrink-0">
+
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => fileInputRef.current?.click()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (!isUploading && !isRemovingImage) setIsDragging(true);
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDrop}
+                    data-dragging={isDragging || undefined}
+                    className={cn(
+                      "relative flex min-h-44 flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border border-dashed border-input bg-background px-4 py-6 text-center outline-none transition-colors",
+                      "hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring",
+                      "data-[dragging]:border-primary data-[dragging]:bg-accent",
+                      (isUploading || isRemovingImage) && "pointer-events-none opacity-60",
+                    )}
+                  >
+                    {displayImage ? (
+                      <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={displayImage}
-                          alt="Preview"
-                          className="size-full object-cover"
+                          alt="Profile preview"
+                          className="absolute inset-0 size-full object-cover"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                         />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs text-muted-foreground">Image preview</p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={handleRemoveImage}
-                          disabled={isUploading || isRemovingImage}
+                        {isUploading && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+                            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <div
+                          className="flex size-11 items-center justify-center rounded-full border bg-background"
+                          aria-hidden="true"
                         >
-                          Remove Image
-                        </Button>
+                          {isUploading ? (
+                            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                          ) : (
+                            <ImageUpIcon className="size-5 text-muted-foreground" />
+                          )}
+                        </div>
+                        <p className="text-sm font-medium">
+                          {isUploading ? "Uploading…" : "Drop your image here or click to browse"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          JPEG, PNG, WebP or GIF (max. {MAX_IMAGE_SIZE_MB}MB)
+                        </p>
                       </div>
+                    )}
+                  </div>
+
+                  {displayImage && !isUploading && (
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveImage}
+                        disabled={isUploading || isRemovingImage}
+                        className="text-muted-foreground"
+                      >
+                        <XIcon className="size-4" />
+                        Remove image
+                      </Button>
                     </div>
                   )}
                 </div>
