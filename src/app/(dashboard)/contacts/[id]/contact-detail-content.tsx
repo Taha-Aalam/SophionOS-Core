@@ -38,9 +38,6 @@ import {
   useToggleContactFavorite,
   useUpdateContact,
   useArchiveContact,
-  useUnlinkContactFromArea,
-  useUnlinkContactFromGoal,
-  useUnlinkContactFromProject,
   useUnlinkContactFromTask,
 } from "@/lib/hooks/use-contacts";
 import { useAreas } from "@/lib/hooks/use-areas";
@@ -152,12 +149,9 @@ export function ContactDetailContent() {
   const restoreGoal = useRestoreGoal();
   const archiveGoal = useArchiveGoal();
   const createLog = useCreateContactLog(contact?.id ?? "", contactSlug);
-  const unlinkProject = useUnlinkContactFromProject();
   const archiveProject = useArchiveProject();
   const restoreProject = useRestoreProject();
   const unlinkTask = useUnlinkContactFromTask();
-  const unlinkArea = useUnlinkContactFromArea();
-  const unlinkGoal = useUnlinkContactFromGoal();
 
   const { data: activeProjects = [] } = useProjects({});
   const { data: archivedProjects = [] } = useProjects({ status: "archived" });
@@ -587,9 +581,6 @@ export function ContactDetailContent() {
               allGoals={allGoals}
               allProjects={allProjects}
               allTasks={allTasks}
-              onUnlinkArea={(areaId) => unlinkArea.mutate({ contactId: contact.id, areaId })}
-              onUnlinkGoal={(goalId) => unlinkGoal.mutate({ contactId: contact.id, goalId })}
-              onUnlinkProject={(projectId) => unlinkProject.mutate({ contactId: contact.id, projectId })}
               onArchiveProject={(project) => archiveProject.mutate(project.id)}
               onRestoreProject={(project) => restoreProject.mutate(project.id)}
               onUnlinkTask={(taskId) => unlinkTask.mutate({ contactId: contact.id, taskId })}

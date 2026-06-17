@@ -2,7 +2,6 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Unlink } from "lucide-react";
 
 import { AreaCard } from "@/components/entities/area-card";
 import { AreasByTypeView } from "@/components/views/areas-by-type-view";
@@ -11,7 +10,6 @@ import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { ProjectCard } from "@/components/entities/project-card";
 import { TaskListItem } from "@/components/entities/task-list-item";
 import { TasksByGroupView, type TaskGroup } from "@/components/views/tasks-by-group-view";
-import { Button } from "@/components/ui/button";
 import type { Area, Goal, Note, Project, Resource, Task } from "@/lib/types/domain.types";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import {
@@ -60,9 +58,6 @@ interface ContactDetailRelationshipSectionsProps {
   allGoals: Goal[];
   allProjects: Project[];
   allTasks: Task[];
-  onUnlinkArea: (areaId: string) => void;
-  onUnlinkGoal: (goalId: string) => void;
-  onUnlinkProject: (projectId: string) => void;
   onArchiveProject?: (project: Project) => void;
   onRestoreProject?: (project: Project) => void;
   onUnlinkTask: (taskId: string) => void;
@@ -97,9 +92,6 @@ export function ContactDetailRelationshipSections({
   allGoals,
   allProjects,
   allTasks,
-  onUnlinkArea,
-  onUnlinkGoal,
-  onUnlinkProject,
   onArchiveProject,
   onRestoreProject,
   onTaskCompletionToggle,
@@ -355,29 +347,17 @@ export function ContactDetailRelationshipSections({
         ) : filteredAreas.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
             {filteredAreas.map((area) => (
-              <div key={area.id} className="relative">
-                <AreaCard
-                  area={area}
-                  goalsCount={areaCountsMap.get(area.id)?.goals ?? 0}
-                  projectsCount={areaCountsMap.get(area.id)?.projects ?? 0}
-                  tasksCount={areaCountsMap.get(area.id)?.tasks ?? 0}
-                  notesCount={areaCountsMap.get(area.id)?.notes ?? 0}
-                  resourcesCount={areaCountsMap.get(area.id)?.resources ?? 0}
-                  returnTo={returnTo}
-                  returnToChain={returnToChain}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 top-2"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onUnlinkArea(area.id);
-                  }}
-                >
-                  <Unlink className="size-3" />
-                </Button>
-              </div>
+              <AreaCard
+                key={area.id}
+                area={area}
+                goalsCount={areaCountsMap.get(area.id)?.goals ?? 0}
+                projectsCount={areaCountsMap.get(area.id)?.projects ?? 0}
+                tasksCount={areaCountsMap.get(area.id)?.tasks ?? 0}
+                notesCount={areaCountsMap.get(area.id)?.notes ?? 0}
+                resourcesCount={areaCountsMap.get(area.id)?.resources ?? 0}
+                returnTo={returnTo}
+                returnToChain={returnToChain}
+              />
             ))}
           </div>
         ) : null}
@@ -400,32 +380,20 @@ export function ContactDetailRelationshipSections({
               const areaIds = getGoalLinkedAreaIds(goal);
               const areaNames = getAreaNamesForEntity(areaIds, areaLookup);
               return (
-                <div key={goal.id} className="relative">
-                  <GoalCard
-                    goal={goal}
-                    areaNames={areaNames}
-                    areaIcons={goalAreaIconsMap.get(goal.id)}
-                    rollups={goalRollupsMap.get(goal.id)}
-                    onEdit={() =>
-                      router.push(
-                        `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(returnTo)}${returnToChain ? `&chain=${returnToChain}` : ""}`,
-                      )
-                    }
-                    onRestore={onRestoreGoal ? (g) => onRestoreGoal(g) : undefined}
-                    onArchive={onArchiveGoal ? (g) => onArchiveGoal(g) : undefined}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-2 top-2"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onUnlinkGoal(goal.id);
-                    }}
-                  >
-                    <Unlink className="size-3" />
-                  </Button>
-                </div>
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  areaNames={areaNames}
+                  areaIcons={goalAreaIconsMap.get(goal.id)}
+                  rollups={goalRollupsMap.get(goal.id)}
+                  onEdit={() =>
+                    router.push(
+                      `${buildGoalDetailHref(goal)}?returnTo=${encodeReturnTo(returnTo)}${returnToChain ? `&chain=${returnToChain}` : ""}`,
+                    )
+                  }
+                  onRestore={onRestoreGoal ? (g) => onRestoreGoal(g) : undefined}
+                  onArchive={onArchiveGoal ? (g) => onArchiveGoal(g) : undefined}
+                />
               );
             })}
           </div>
@@ -450,28 +418,16 @@ export function ContactDetailRelationshipSections({
               const areaNames = getAreaNamesForEntity(areaIds, areaLookup);
               const areaIcons = getAreaIconsForEntity(areaIds, areaLookup);
               return (
-                <div key={project.id} className="relative">
-                  <ProjectCard
-                    project={project}
-                    areaNames={areaNames}
-                    areaIcons={areaIcons}
-                    returnTo={returnTo}
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  areaNames={areaNames}
+                  areaIcons={areaIcons}
+                  returnTo={returnTo}
                   returnToChain={returnToChain}
-                    onArchive={onArchiveProject}
-                    onRestore={onRestoreProject}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-2 top-2"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onUnlinkProject(project.id);
-                    }}
-                  >
-                    <Unlink className="size-3" />
-                  </Button>
-                </div>
+                  onArchive={onArchiveProject}
+                  onRestore={onRestoreProject}
+                />
               );
             })}
           </div>
