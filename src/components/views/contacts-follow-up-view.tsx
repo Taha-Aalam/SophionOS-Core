@@ -8,13 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/types/domain.types";
 import type { FollowUpSection } from "@/lib/utils/contact-category-sections";
+import { BADGE_COLOR } from "@/lib/constants/entity-colors";
 
 const SECTION_BADGE_CLASSES: Record<string, string> = {
-  overdue:       "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-  upcoming:      "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  "this-month":  "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  "next-month":  "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  "this-quarter":"bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+  overdue:       BADGE_COLOR.red,
+  upcoming:      BADGE_COLOR.orange,
+  "this-month":  BADGE_COLOR.blue,
+  "next-month":  BADGE_COLOR.green,
+  "this-quarter":BADGE_COLOR.neutral,
 };
 
 interface ContactsFollowUpViewProps {

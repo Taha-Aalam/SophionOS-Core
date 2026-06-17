@@ -141,7 +141,7 @@ export function ContactsContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-start justify-between border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">👥</span>

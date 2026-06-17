@@ -49,7 +49,7 @@ export default function ProgressRing({
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          className={cn("transition-all duration-500 ease-out", color)}
+          className={cn("transition-all duration-700 ease-[var(--ease-out-quint)]", color)}
         />
       </svg>
       <span className="absolute text-xs font-bold">

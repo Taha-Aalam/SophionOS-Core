@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ProjectCard } from "@/components/entities/project-card";
 import { GalleryGrid } from "@/components/views/gallery-grid";
 import type { Project } from "@/lib/types/domain.types";
@@ -137,10 +138,10 @@ export function ProjectsByAreaView({
       <div className="space-y-6">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i}>
-            <div className="h-6 w-32 rounded bg-muted animate-pulse mb-3" />
+            <Skeleton className="h-6 w-32 mb-3" />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, j) => (
-                <div key={j} className="h-48 rounded-xl bg-muted animate-pulse" />
+                <Skeleton key={j} className="h-48 rounded-xl" />
               ))}
             </div>
           </div>

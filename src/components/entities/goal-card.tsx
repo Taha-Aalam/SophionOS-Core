@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Goal } from '@/lib/types/domain.types';
+import { PRIORITY_COLORS } from '@/lib/constants/entity-colors';
 import ProgressRing from '@/components/charts/progress-ring';
 
 import { DeleteEntityPopover } from './delete-entity-popover';
@@ -35,12 +36,6 @@ interface GoalCardProps {
   duplicateIndex?: number;
   rollups?: GoalCardRollups;
 }
-
-const PRIORITY_COLORS: Record<string, string> = {
-  high: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
-  medium: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-  low: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-};
 
 const TERM_LABELS: Record<string, string> = {
   short: 'Short Term',
@@ -113,8 +108,8 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
   return (
     <Card
       className={cn(
-        "group relative overflow-hidden transition-all",
-        isInteractive && "cursor-pointer hover:ring-2 hover:ring-primary/20",
+        "group relative overflow-hidden transition-all duration-500 ease-[var(--ease-out-quint)] will-change-transform",
+        isInteractive && "cursor-pointer hover:-translate-y-1 hover:shadow-soft-lg hover:ring-2 hover:ring-primary/20 active:translate-y-0 active:duration-150",
         goal.is_archived && "opacity-60 grayscale"
       )}
       onClick={() => onEdit?.(goal)}

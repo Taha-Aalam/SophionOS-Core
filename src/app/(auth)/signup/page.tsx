@@ -83,7 +83,7 @@ function SignupForm() {
   }
 
   return (
-    <div className="space-y-6 rounded-2xl border bg-card p-6 text-card-foreground shadow-sm">
+    <div className="space-y-6 rounded-3xl bg-card p-6 text-card-foreground shadow-soft-lg ring-1 ring-foreground/10">
       <div className="space-y-2">
         <h2 className="text-center text-xl font-semibold">Create Account</h2>
         <p className="text-center text-sm text-muted-foreground">
@@ -150,7 +150,7 @@ export default function SignupPage() {
   return (
     <Suspense
       fallback={
-        <div className="space-y-6 rounded-2xl border bg-card p-6 text-card-foreground shadow-sm animate-pulse">
+        <div className="space-y-6 rounded-3xl bg-card p-6 text-card-foreground shadow-soft-lg ring-1 ring-foreground/10 animate-pulse">
           <div className="h-64 rounded bg-muted" />
         </div>
       }
