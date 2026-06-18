@@ -36,10 +36,19 @@ export function ContactsContent() {
   const [createDefaults, setCreateDefaults] = useState<ContactDialogDefaults | undefined>(undefined);
 
   const { data: allContacts = [], isLoading } = useContacts();
-  const { data: archivedContacts = [], isLoading: isLoadingArchived } = useContacts({ archive: true });
-  const { data: byProject = [], isLoading: isLoadingByProject } = useContactsByProject();
-  const { data: byArea = [], isLoading: isLoadingByArea } = useContactsByArea();
-  const { data: byGoal = [], isLoading: isLoadingByGoal } = useContactsByGoal();
+  const { data: archivedContacts = [], isLoading: isLoadingArchived } = useContacts(
+    { archive: true },
+    { enabled: activeTab === "archive" },
+  );
+  const { data: byProject = [], isLoading: isLoadingByProject } = useContactsByProject({
+    enabled: activeTab === "by-project",
+  });
+  const { data: byArea = [], isLoading: isLoadingByArea } = useContactsByArea({
+    enabled: activeTab === "by-area",
+  });
+  const { data: byGoal = [], isLoading: isLoadingByGoal } = useContactsByGoal({
+    enabled: activeTab === "by-goal",
+  });
 
   const { data: areas = [] } = useAreas();
   const { data: goals = [] } = useGoals({});

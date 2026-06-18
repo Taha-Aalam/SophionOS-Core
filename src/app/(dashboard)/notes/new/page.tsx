@@ -1,15 +1,25 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save } from "lucide-react";
 
-import { NoteEditor } from "@/components/entities/note-editor";
 import { NoteMetadataPanel } from "@/components/entities/note-metadata-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+
+// TipTap (StarterKit + ProseMirror) is heavy (~150KB+ gz). Defer it out of the
+// notes route bundle; the editor mounts client-side once the page renders.
+const NoteEditor = dynamic(
+  () => import("@/components/entities/note-editor").then((m) => m.NoteEditor),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="min-h-[400px] flex-1" />,
+  },
+);
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { NOTES_QUERY_KEY, useCreateNote, useNotebooks, useNoteTypes } from "@/lib/hooks/use-notes";

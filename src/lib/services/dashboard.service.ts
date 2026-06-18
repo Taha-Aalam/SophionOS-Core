@@ -56,37 +56,38 @@ export interface TodayData {
 async function getRecentActivity(userId: string): Promise<ActivityItem[]> {
   const supabase = createClient();
 
-  // Fetch recent tasks
-  const { data: tasks } = await supabase
-    .from("tasks")
-    .select("id, title, description, created_at, updated_at")
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false })
-    .limit(5);
-
-  // Fetch recent goals
-  const { data: goals } = await supabase
-    .from("goals")
-    .select("id, title, description, created_at, updated_at")
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false })
-    .limit(5);
-
-  // Fetch recent projects
-  const { data: projects } = await supabase
-    .from("projects")
-    .select("id, name, description, created_at, updated_at")
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false })
-    .limit(5);
-
-  // Fetch recent areas
-  const { data: areas } = await supabase
-    .from("areas")
-    .select("id, name, description, created_at, updated_at")
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false })
-    .limit(5);
+  // Fire all four "recent" fetches in parallel — they are independent.
+  const [
+    { data: tasks },
+    { data: goals },
+    { data: projects },
+    { data: areas },
+  ] = await Promise.all([
+    supabase
+      .from("tasks")
+      .select("id, title, description, created_at, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("goals")
+      .select("id, title, description, created_at, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("projects")
+      .select("id, name, description, created_at, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("areas")
+      .select("id, name, description, created_at, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(5),
+  ]);
 
   const activity: ActivityItem[] = [
     ...(tasks ?? []).map((t) => ({
@@ -150,27 +151,60 @@ export const dashboardService = {
     const todayEnd = getLocalDateEnd();
     const weekStart = getWeekStart();
 
-    // ── 1. Today's tasks (due today or set as focus) ────────────────────────
-    const { data: tasksData } = await supabase
-      .from("tasks")
-      .select(
-        "id, title, description, due_date, priority, status, project_id, area_id, projects(name), goals(title), areas(name)"
-      )
-      .eq("user_id", userId)
-      .eq("status", "pending")
-      .or(`due_date.gte.${todayStart},due_date.lte.${todayEnd}`)
-      .order("due_date", { ascending: true });
+    const taskSelect =
+      "id, title, description, due_date, priority, status, project_id, area_id, projects(name), goals(title), areas(name)";
 
-    // Also pull focus tasks (tasks with is_focus = true)
-    const { data: focusTasks } = await supabase
-      .from("tasks")
-      .select(
-        "id, title, description, due_date, priority, status, project_id, area_id, projects(name), goals(title), areas(name)"
-      )
-      .eq("user_id", userId)
-      .eq("status", "pending")
-      .eq("is_focus", true)
-      .limit(20);
+    // All dashboard reads are independent — run them concurrently instead of
+    // awaiting one at a time (was ~9 serial round-trips incl. recent activity).
+    const [
+      { data: tasksData },
+      { data: focusTasks },
+      { data: goalsData },
+      { count: completedThisWeek },
+      { count: activeGoalsCount },
+      { count: overdueCount },
+      recentActivity,
+    ] = await Promise.all([
+      supabase
+        .from("tasks")
+        .select(taskSelect)
+        .eq("user_id", userId)
+        .eq("status", "pending")
+        .or(`due_date.gte.${todayStart},due_date.lte.${todayEnd}`)
+        .order("due_date", { ascending: true }),
+      supabase
+        .from("tasks")
+        .select(taskSelect)
+        .eq("user_id", userId)
+        .eq("status", "pending")
+        .eq("is_focus", true)
+        .limit(20),
+      supabase
+        .from("goals")
+        .select("id, title, description, progress, target_date, area_id, areas(name)")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .order("priority", { ascending: false })
+        .limit(5),
+      supabase
+        .from("tasks")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("status", "completed")
+        .gte("updated_at", weekStart),
+      supabase
+        .from("goals")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("status", "active"),
+      supabase
+        .from("tasks")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("status", "pending")
+        .lt("due_date", todayStart),
+      getRecentActivity(userId),
+    ]);
 
     // Deduplicate: merge focus + due-today, prefer the focus version for duplicates
     type TodayTaskRow = NonNullable<typeof tasksData>[number];
@@ -206,15 +240,6 @@ export const dashboardService = {
       };
     });
 
-    // ── 2. Active goals (top 5 by priority) ─────────────────────────────────
-    const { data: goalsData } = await supabase
-      .from("goals")
-      .select("id, title, description, progress, target_date, area_id, areas(name)")
-      .eq("user_id", userId)
-      .eq("status", "active")
-      .order("priority", { ascending: false })
-      .limit(5);
-
     const activeGoals = (goalsData ?? []).map((g) => ({
       id: g.id,
       title: g.title,
@@ -223,34 +248,6 @@ export const dashboardService = {
       targetDate: g.target_date,
       areaName: (g.areas as { name: string }[] | null)?.[0]?.name ?? null,
     }));
-
-    // ── 3. Stats ─────────────────────────────────────────────────────────────
-
-    // Completed this week
-    const { count: completedThisWeek } = await supabase
-      .from("tasks")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("status", "completed")
-      .gte("updated_at", weekStart);
-
-    // Active goals count
-    const { count: activeGoalsCount } = await supabase
-      .from("goals")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("status", "active");
-
-    // Overdue count (pending tasks with past due date)
-    const { count: overdueCount } = await supabase
-      .from("tasks")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("status", "pending")
-      .lt("due_date", todayStart);
-
-    // ── 4. Recent activity ───────────────────────────────────────────────────
-    const recentActivity = await getRecentActivity(userId);
 
     return {
       greeting: this.buildGreeting(),

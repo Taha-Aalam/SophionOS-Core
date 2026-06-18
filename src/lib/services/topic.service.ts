@@ -3,6 +3,7 @@ import type { CreateTopicInput, Topic, UpdateTopicInput } from "../types/domain.
 import { createTopicSchema, updateTopicSchema } from "../validators/topic.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
+import { LIST_SAFETY_CAP } from "../utils/constants";
 
 const TOPIC_SELECT =
   "id, user_id, area_id, name, slug, favorite, inactive, is_archived, metadata, created_at, updated_at";
@@ -26,7 +27,8 @@ export const topicService = {
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (error) {
       throw new DatabaseError(error.message);
@@ -215,7 +217,8 @@ export const topicService = {
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", true)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
     if (error) throw new DatabaseError(error.message);
     return this.enrichWithCounts((data || []) as TopicWithCounts[]);
   },
@@ -226,7 +229,8 @@ export const topicService = {
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
       .eq("inactive", false)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (error) {
       throw new DatabaseError(error.message);
@@ -242,7 +246,8 @@ export const topicService = {
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
       .eq("inactive", true)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (error) {
       throw new DatabaseError(error.message);
@@ -258,7 +263,8 @@ export const topicService = {
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
       .eq("favorite", true)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (error) {
       throw new DatabaseError(error.message);
@@ -282,7 +288,8 @@ export const topicService = {
       .from("topics")
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (tError) {
       throw new DatabaseError(tError.message);
@@ -346,24 +353,55 @@ export const topicService = {
   },
 
   async enrichWithCounts(topics: TopicWithCounts[]): Promise<TopicWithCounts[]> {
-    const results: TopicWithCounts[] = [];
+    if (topics.length === 0) return [];
 
-    for (const topic of topics) {
-      const [noteCount, resourceCount, linkedAreaIds] = await Promise.all([
-        createClient().from("notes").select("id", { count: "exact", head: true }).eq("topic_id", topic.id).eq("is_archived", false),
-        createClient().from("resources").select("id", { count: "exact", head: true }).eq("topic_id", topic.id).eq("is_archived", false),
-        this.getLinkedAreaIds(topic.id),
-      ]);
+    const perfLabel =
+      process.env.NODE_ENV !== "production"
+        ? `[perf] topic.enrichWithCounts (${topics.length} topics)`
+        : null;
+    if (perfLabel) console.time(perfLabel);
 
-      results.push({
-        ...topic,
-        notesCount: noteCount.count ?? 0,
-        resourcesCount: resourceCount.count ?? 0,
-        linkedAreaIds,
-      });
+    // Batch all enrichment into 3 queries total (was 3×N — one Promise.all per
+    // topic). Note/resource counts are tallied client-side from a single
+    // topic_id-only fetch per table; linked areas from one topic_areas fetch.
+    const topicIds = topics.map((t) => t.id);
+    const client = createClient();
+
+    const [notesRes, resourcesRes, areaLinksRes] = await Promise.all([
+      client.from("notes").select("topic_id").in("topic_id", topicIds).eq("is_archived", false),
+      client.from("resources").select("topic_id").in("topic_id", topicIds).eq("is_archived", false),
+      client.from("topic_areas").select("topic_id, area_id").in("topic_id", topicIds),
+    ]);
+
+    const noteCounts = new Map<string, number>();
+    for (const row of notesRes.data ?? []) {
+      const id = row.topic_id as string;
+      noteCounts.set(id, (noteCounts.get(id) ?? 0) + 1);
     }
 
-    return results;
+    const resourceCounts = new Map<string, number>();
+    for (const row of resourcesRes.data ?? []) {
+      const id = row.topic_id as string;
+      resourceCounts.set(id, (resourceCounts.get(id) ?? 0) + 1);
+    }
+
+    const areaIdsByTopic = new Map<string, string[]>();
+    for (const row of areaLinksRes.data ?? []) {
+      const id = row.topic_id as string;
+      const current = areaIdsByTopic.get(id) ?? [];
+      current.push(row.area_id as string);
+      areaIdsByTopic.set(id, current);
+    }
+
+    const enriched = topics.map((topic) => ({
+      ...topic,
+      notesCount: noteCounts.get(topic.id) ?? 0,
+      resourcesCount: resourceCounts.get(topic.id) ?? 0,
+      linkedAreaIds: areaIdsByTopic.get(topic.id) ?? [],
+    }));
+
+    if (perfLabel) console.timeEnd(perfLabel);
+    return enriched;
   },
 
   groupByArea(topics: TopicWithCounts[]): GroupedTopics[] {

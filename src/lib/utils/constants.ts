@@ -35,6 +35,17 @@ export const GOAL_TERM = {
 
 export type GoalTerm = typeof GOAL_TERM[keyof typeof GOAL_TERM];
 
+/**
+ * Backstop cap applied to every "list all" query. The app derives most views
+ * (tabs, grouping, counts) client-side over a full in-memory result, so true
+ * pagination is not viable without moving that logic server-side. This cap
+ * only guards against pathological payload growth — normal workloads never
+ * approach it. If a real user hits it, that's the signal to invest in proper
+ * server-side pagination for that entity.
+ */
+export const LIST_SAFETY_CAP = 2000;
+
+
 export const AREA_TYPE = {
   PERSONAL: 'personal',
   PROFESSIONAL: 'professional',

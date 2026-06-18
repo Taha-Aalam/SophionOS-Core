@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { memo } from "react";
 import { Calendar, Map, Pencil, Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -55,7 +55,7 @@ function formatDueDate(dateStr: string | null): { label: string; overdue: boolea
   return { label, overdue };
 }
 
-export function TaskListItem({
+export function TaskListItemComponent({
   task,
   areaName,
   linkedAreaNames,
@@ -237,3 +237,9 @@ export function TaskListItem({
     </div>
   );
 }
+
+// React.memo so re-renders of the parent (filter change, dialog open, etc.)
+// don't cascade to every row. Parent passes stable callback refs via
+// useCallback; default shallow equality is sufficient — a task prop reference
+// change means the row's data actually changed.
+export const TaskListItem = memo(TaskListItemComponent);

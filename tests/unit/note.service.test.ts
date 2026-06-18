@@ -107,7 +107,8 @@ describe("noteService", () => {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [baseNote], error: null }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [baseNote], error: null }),
     };
     vi.mocked(createClient)
       .mockReturnValue(makeHydrationClient() as never)
@@ -124,7 +125,8 @@ describe("noteService", () => {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
     vi.mocked(createClient)
       .mockReturnValue(makeHydrationClient() as never)
@@ -141,7 +143,8 @@ describe("noteService", () => {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [archivedNote], error: null }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [archivedNote], error: null }),
     };
     vi.mocked(createClient)
       .mockReturnValue(makeHydrationClient() as never)
@@ -219,7 +222,8 @@ describe("noteService", () => {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [noteN2, noteN3], error: null }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [noteN2, noteN3], error: null }),
     };
     vi.mocked(createClient)
       .mockReturnValue(makeHydrationClient() as never)

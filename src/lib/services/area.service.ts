@@ -4,6 +4,7 @@ import { createAreaSchema, updateAreaSchema } from "../validators/area.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
 import { normalizeAreaType } from "../utils/areas";
+import { LIST_SAFETY_CAP } from "../utils/constants";
 
 const AREA_SELECT =
   "id, user_id, name, description, icon, color, type, metadata, inactive, archive, slug, created_at, updated_at";
@@ -52,7 +53,7 @@ export const areaService = {
       query = query.eq("archive", archive);
     }
 
-    const { data, error } = await query;
+    const { data, error } = await query.limit(LIST_SAFETY_CAP);
     if (error) {
       throw new DatabaseError(error.message);
     }
