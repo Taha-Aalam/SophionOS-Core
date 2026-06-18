@@ -42,14 +42,18 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
   const updateStatus = useUpdateProjectStatus();
   const [optimisticProjects, setOptimisticProjects] = React.useState<Project[]>(projects);
 
-  // Keep optimistic state in sync with the latest server-provided list whenever
-  // a stale snapshot is rendered; the actual reorder happens via setOptimistic
-  // inside handleDragEnd, and the subsequent refetch will resolve the source
-  // of truth through React Query invalidation.
-  React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setOptimisticProjects(projects);
-  }, [projects]);
+  // Sync optimistic state with incoming `projects` while NO mutation is in
+  // flight. React's "adjusting state on prop change" pattern — no effect,
+  // no eslint suppression. Skip the sync when `updateStatus.isPending` so a
+  // slow server doesn't snap the dragged card back to its old column before
+  // the mutation resolves.
+  const prevProjectsRef = React.useRef(projects);
+  if (prevProjectsRef.current !== projects) {
+    prevProjectsRef.current = projects;
+    if (!updateStatus.isPending) {
+      setOptimisticProjects(projects);
+    }
+  }
 
   const areaMap = React.useMemo(() => new Map(areas.map((area) => [area.id, area])), [areas]);
   const projectsByStatus = React.useMemo(() => groupProjectsByStatus(optimisticProjects), [optimisticProjects]);
