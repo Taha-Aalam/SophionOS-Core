@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { cn, safeHttpUrl } from "@/lib/utils";
 import type { Resource } from "@/lib/types/domain.types";
 import { STATUS_COLORS, RESOURCE_TYPE_COLORS } from "@/lib/constants/entity-colors";
 
@@ -57,8 +57,9 @@ export function ResourceRow({
   };
 
   const handleRowClick = () => {
-    if (resource.url) {
-      window.open(resource.url, "_blank", "noopener,noreferrer");
+    const safeUrl = safeHttpUrl(resource.url);
+    if (safeUrl) {
+      window.open(safeUrl, "_blank", "noopener,noreferrer");
     }
   };
 

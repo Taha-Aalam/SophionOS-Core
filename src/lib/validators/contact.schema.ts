@@ -7,6 +7,25 @@ const nullableEmailSchema = z.preprocess(
   z.string().email("Invalid email").nullable().optional(),
 );
 
+// Only http(s) URLs may be stored, since these values are rendered straight
+// into an anchor `href`. React does not block `javascript:`/`data:` in href,
+// so an unvalidated URL here is a stored-XSS click vector.
+const nullableHttpUrlSchema = z.preprocess(
+  (value) => (value === "" ? null : value),
+  z
+    .string()
+    .url("Must be a valid URL")
+    .refine((value) => {
+      try {
+        return /^https?:$/.test(new URL(value).protocol);
+      } catch {
+        return false;
+      }
+    }, "Must be an http(s) URL")
+    .nullable()
+    .optional(),
+);
+
 const metadataSchema = z.record(z.string(), z.unknown()).default({});
 
 export const createContactSchema = z
@@ -17,8 +36,8 @@ export const createContactSchema = z
     group: nullableStringSchema,
     phone: nullableStringSchema,
     email: nullableEmailSchema,
-    linkedin: nullableStringSchema,
-    website: nullableStringSchema,
+    linkedin: nullableHttpUrlSchema,
+    website: nullableHttpUrlSchema,
     image_url: nullableStringSchema,
     last_interaction_at: z.string().datetime().nullable().optional(),
     follow_up_interval_days: z.number().int().min(0).max(365).nullable().optional(),

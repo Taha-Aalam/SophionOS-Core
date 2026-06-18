@@ -61,6 +61,7 @@ import { useEscapeBack } from "@/lib/hooks/use-escape-back";
 import type { Task } from "@/lib/types/domain.types";
 import { contactService } from "@/lib/services/contact.service";
 import { useUIStore } from "@/lib/stores/ui.store";
+import { safeHttpUrl } from "@/lib/utils";
 import { mergeProjectQueryResults } from "@/lib/utils/projects";
 import { resolveLinkedProjectsAcrossStatuses } from "@/lib/utils/contact-detail-relations";
 import { buildReturnToChain, popReturnToHref } from "@/lib/utils/return-to";
@@ -367,8 +368,8 @@ export function ContactDetailContent() {
           <div className="flex items-start gap-4 p-6">
             {/* Avatar */}
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center shrink-0 ring-2 ring-border overflow-hidden relative">
-              {contact.image_url ? (
-                <Image src={contact.image_url} alt={contact.name} fill className="object-cover" unoptimized />
+              {contact.image_display_url ? (
+                <Image src={contact.image_display_url} alt={contact.name} fill className="object-cover" unoptimized />
               ) : (
                 <span className="text-2xl font-semibold text-muted-foreground">
                   {contact.name.charAt(0).toUpperCase()}
@@ -523,18 +524,18 @@ export function ContactDetailContent() {
                       <p className="font-medium mt-0.5">{contact.follow_up_interval_days} days</p>
                     </div>
                   )}
-                  {contact.linkedin && (
+                  {contact.linkedin && safeHttpUrl(contact.linkedin) && (
                     <div>
                       <p className="text-muted-foreground">LinkedIn</p>
-                      <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" className="font-medium mt-0.5 hover:underline break-all">
+                      <a href={safeHttpUrl(contact.linkedin)} target="_blank" rel="noopener noreferrer" className="font-medium mt-0.5 hover:underline break-all">
                         {contact.linkedin}
                       </a>
                     </div>
                   )}
-                  {contact.website && (
+                  {contact.website && safeHttpUrl(contact.website) && (
                     <div>
                       <p className="text-muted-foreground">Website</p>
-                      <a href={contact.website} target="_blank" rel="noopener noreferrer" className="font-medium mt-0.5 hover:underline break-all">
+                      <a href={safeHttpUrl(contact.website)} target="_blank" rel="noopener noreferrer" className="font-medium mt-0.5 hover:underline break-all">
                         {contact.website}
                       </a>
                     </div>

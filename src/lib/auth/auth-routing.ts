@@ -5,19 +5,27 @@ const AUTH_PAGE_PATHS = [
   "/reset-password",
 ] as const;
 
-const PROTECTED_APP_PATHS = [
-  "/dashboard",
-  "/areas",
-  "/goals",
-  "/projects",
-  "/tasks",
-  "/settings",
+// Paths reachable without a session. Everything else under the app is
+// treated as protected (deny-by-default) so newly added dashboard routes
+// are gated automatically instead of needing to be listed here.
+const PUBLIC_APP_PATHS = [
+  "/",
+  ...AUTH_PAGE_PATHS,
+  "/auth/callback",
 ] as const;
 
 const DEFAULT_POST_LOGIN_PATH = "/dashboard";
 
 function matchesRoutePrefix(pathname: string, prefixes: readonly string[]): boolean {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function isPublicPath(pathname: string): boolean {
+  if (pathname === "/") return true;
+  return matchesRoutePrefix(
+    pathname,
+    PUBLIC_APP_PATHS.filter((p) => p !== "/"),
+  );
 }
 
 function isSafeRedirectPath(pathname: string | null | undefined): pathname is string {
@@ -47,7 +55,7 @@ function shouldRedirectAuthenticatedUser(pathname: string): boolean {
 }
 
 function isProtectedAppPath(pathname: string): boolean {
-  return matchesRoutePrefix(pathname, PROTECTED_APP_PATHS);
+  return !isPublicPath(pathname);
 }
 
 function isActiveNavigationPath(pathname: string, href: string): boolean {
@@ -57,11 +65,12 @@ function isActiveNavigationPath(pathname: string, href: string): boolean {
 export {
   AUTH_PAGE_PATHS,
   DEFAULT_POST_LOGIN_PATH,
-  PROTECTED_APP_PATHS,
+  PUBLIC_APP_PATHS,
   getLoginRedirectPath,
   getPostLoginRedirectPath,
   isActiveNavigationPath,
   isAuthPath,
   isProtectedAppPath,
+  isPublicPath,
   shouldRedirectAuthenticatedUser,
 };
