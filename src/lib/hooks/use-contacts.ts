@@ -91,31 +91,31 @@ export function useContactBySlug(slug: string) {
   });
 }
 
-export function useContactsByProject() {
+export function useContactsByProject(options?: { enabled?: boolean }) {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: [CONTACTS_QUERY_KEY, "by-project"],
     queryFn: () => contactService.getContactsGroupedByProject(user!.id),
-    enabled: !!user,
+    enabled: !!user && (options?.enabled ?? true),
   });
 }
 
-export function useContactsByArea() {
+export function useContactsByArea(options?: { enabled?: boolean }) {
   const { user } = useAuth();
   return useQuery({
     queryKey: [CONTACTS_QUERY_KEY, "by-area"],
     queryFn: () => contactService.getContactsGroupedByArea(user!.id),
-    enabled: !!user,
+    enabled: !!user && (options?.enabled ?? true),
   });
 }
 
-export function useContactsByGoal() {
+export function useContactsByGoal(options?: { enabled?: boolean }) {
   const { user } = useAuth();
   return useQuery({
     queryKey: [CONTACTS_QUERY_KEY, "by-goal"],
     queryFn: () => contactService.getContactsGroupedByGoal(user!.id),
-    enabled: !!user,
+    enabled: !!user && (options?.enabled ?? true),
   });
 }
 

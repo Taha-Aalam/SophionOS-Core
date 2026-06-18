@@ -34,6 +34,10 @@ class MockSupabaseQuery {
     return this;
   }
 
+  limit(_n: number) {
+    return this;
+  }
+
   async maybeSingle() {
     return { data: this.applyFilters()[0] ?? null };
   }

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
 import { createClient } from "../supabase/client";
 import type { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
-import { TASK_STATUS, type TaskStatus } from "../utils/constants";
+import { LIST_SAFETY_CAP, TASK_STATUS, type TaskStatus } from "../utils/constants";
 import {
   buildCompletePatch,
   buildUncompletePatch,
@@ -301,7 +301,8 @@ export const taskService = {
       .select(TASK_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(LIST_SAFETY_CAP);
 
     if (error) {
       throw new DatabaseError(error.message);
@@ -316,7 +317,8 @@ export const taskService = {
       .select(TASK_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", true)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(LIST_SAFETY_CAP);
 
     if (error) {
       throw new DatabaseError(error.message);

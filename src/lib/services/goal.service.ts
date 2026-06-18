@@ -10,6 +10,7 @@ import {
 import { createGoalSchema, updateGoalSchema } from "../validators/goal.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
+import { LIST_SAFETY_CAP } from "../utils/constants";
 
 const GOAL_SELECT =
   "id, user_id, area_id, name, description, term, priority, target_date, progress, is_completed, is_archived, is_inactive, slug, created_at, updated_at";
@@ -550,7 +551,7 @@ export const goalService = {
       query = query.eq("is_archived", true);
     }
 
-    const { data, error } = await query.order("created_at", { ascending: false });
+    const { data, error } = await query.order("created_at", { ascending: false }).limit(LIST_SAFETY_CAP);
     if (error) {
       throw new DatabaseError(error.message);
     }

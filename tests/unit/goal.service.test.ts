@@ -22,7 +22,8 @@ describe("goalService", () => {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
 
     vi.mocked(createClient).mockImplementation(() => mockClient as never);
@@ -43,7 +44,8 @@ describe("goalService", () => {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
 
     vi.mocked(createClient).mockImplementation(() => mockClient as never);
@@ -59,7 +61,8 @@ describe("goalService", () => {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
 
     vi.mocked(createClient).mockImplementation(() => mockClient as never);
@@ -231,7 +234,8 @@ describe("goalService", () => {
     const goalsTable = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [goal], error: null }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [goal], error: null }),
     };
     const goalProjectsTable = {
       select: vi.fn().mockReturnThis(),
@@ -306,7 +310,8 @@ describe("goalService", () => {
     const goalsTable = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [goal], error: null }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [goal], error: null }),
     };
     const goalAreasTable = {
       select: vi.fn().mockReturnThis(),

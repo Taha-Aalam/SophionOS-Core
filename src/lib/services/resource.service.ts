@@ -4,7 +4,7 @@ import { createClient } from "../supabase/client";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "../types/domain.types";
 import { createResourceSchema, updateResourceSchema } from "../validators/resource.schema";
 import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
-import { RESOURCE_STATUS, type ResourceStatus } from "../utils/constants";
+import { LIST_SAFETY_CAP, RESOURCE_STATUS, type ResourceStatus } from "../utils/constants";
 import { deriveResourceStatus } from "../utils/status-routing";
 
 const RESOURCE_SELECT =
@@ -318,7 +318,8 @@ export const resourceService = {
       .select(RESOURCE_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .order("updated_at", { ascending: false });
+      .order("updated_at", { ascending: false })
+      .limit(LIST_SAFETY_CAP);
 
     if (filters?.status && filters.status !== "all") {
       query = query.eq("status", filters.status);
