@@ -13,6 +13,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -124,22 +125,24 @@ export function Topbar() {
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-64">
-          <div className="flex items-center gap-3 px-1.5 py-1.5">
-            <Avatar size="default">
-              {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-            <div className="flex min-w-0 flex-col">
-              <span className="truncate text-sm font-medium text-foreground">
-                {displayName}
-              </span>
-              {email ? (
-                <span className="truncate text-xs font-normal text-muted-foreground">
-                  {email}
+          <DropdownMenuLabel>
+            <div className="flex items-center gap-3 px-1.5 py-1.5">
+              <Avatar size="default">
+                {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate text-sm font-medium text-foreground">
+                  {displayName}
                 </span>
-              ) : null}
+                {email ? (
+                  <span className="truncate text-xs font-normal text-muted-foreground">
+                    {email}
+                  </span>
+                ) : null}
+              </div>
             </div>
-          </div>
+          </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem onClick={() => router.push("/settings")}>

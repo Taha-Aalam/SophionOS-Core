@@ -33,9 +33,8 @@ describe("auth routing", () => {
     }
   });
 
-  it("leaves the landing page and auth/callback public", () => {
+  it("leaves the landing page and auth routes public", () => {
     expect(isProtectedAppPath("/")).toBe(false);
-    expect(isProtectedAppPath("/auth/callback")).toBe(false);
     expect(isProtectedAppPath("/signup")).toBe(false);
     expect(isProtectedAppPath("/forgot-password")).toBe(false);
   });

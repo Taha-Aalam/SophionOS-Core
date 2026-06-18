@@ -18,10 +18,10 @@ vi.mock("next-themes", () => ({
 vi.mock("@/components/providers/auth-provider", () => ({
   useAuth: () => ({
     user: {
+      id: "user_123",
       email: "user@example.com",
-      user_metadata: {
-        name: "Test User",
-      },
+      name: "Test User",
+      imageUrl: null,
     },
     signOut: vi.fn(),
   }),
@@ -78,13 +78,13 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
 import { Topbar } from "@/components/layout/topbar";
 
 describe("Topbar profile dropdown", () => {
-  it("wraps the profile label in a dropdown menu group", () => {
+  it("renders the profile label and an action group in the dropdown", () => {
     const html = renderToStaticMarkup(<Topbar />);
 
     expect(html).toContain('data-slot="dropdown-menu-group"');
     expect(html).toContain('data-slot="dropdown-menu-label"');
-    expect(html).toMatch(
-      /data-slot="dropdown-menu-group".*data-slot="dropdown-menu-label">user@example.com/s,
-    );
+    expect(html).toContain('data-slot="dropdown-menu-label">');
+    expect(html).toContain("Test User");
+    expect(html).toContain("user@example.com");
   });
 });
