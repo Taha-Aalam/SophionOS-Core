@@ -40,20 +40,16 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick }: KanbanBoardProps) {
   const updateStatus = useUpdateProjectStatus();
-  const [optimisticProjects, setOptimisticProjects] = React.useState<Project[]>(projects);
 
   // Sync optimistic state with incoming `projects` while NO mutation is in
-  // flight. React's "adjusting state on prop change" pattern — no effect,
-  // no eslint suppression. Skip the sync when `updateStatus.isPending` so a
-  // slow server doesn't snap the dragged card back to its old column before
-  // the mutation resolves.
-  const prevProjectsRef = React.useRef(projects);
-  if (prevProjectsRef.current !== projects) {
-    prevProjectsRef.current = projects;
-    if (!updateStatus.isPending) {
-      setOptimisticProjects(projects);
-    }
-  }
+  // flight. Skipping the sync when `updateStatus.isPending` lets a slow
+  // server finish before the dragged card snaps back to its old column.
+  // React bails out on identical state, so a redundant setState is cheap.
+  const [optimisticProjects, setOptimisticProjects] = React.useState<Project[]>(projects);
+  React.useEffect(() => {
+    if (updateStatus.isPending) return;
+    setOptimisticProjects(projects);
+  }, [projects, updateStatus.isPending]);
 
   const areaMap = React.useMemo(() => new Map(areas.map((area) => [area.id, area])), [areas]);
   const projectsByStatus = React.useMemo(() => groupProjectsByStatus(optimisticProjects), [optimisticProjects]);

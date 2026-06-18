@@ -22,6 +22,10 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     ".agents/**",
+    // Stale worktrees on disk (separate checkouts that hold duplicate
+    // node_modules with mismatched React versions and pre-existing source
+    // files unrelated to the current branch).
+    ".claude/worktrees/**",
   ]),
 ]);
 
