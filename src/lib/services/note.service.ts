@@ -9,7 +9,7 @@ import type {
 } from "../types/domain.types";
 import { createNoteSchema, updateNoteSchema } from "../validators/note.schema";
 import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
-import { NOTE_STATUS, type NoteStatus } from "../utils/constants";
+import { LIST_SAFETY_CAP, NOTE_STATUS, type NoteStatus } from "../utils/constants";
 import { deriveNoteStatus } from "../utils/status-routing";
 import {
   buildSlug,
@@ -261,7 +261,7 @@ export const noteService = {
       query = query.eq("project_id", filters.projectId);
     }
 
-    const { data, error } = await query.order("updated_at", { ascending: false });
+    const { data, error } = await query.order("updated_at", { ascending: false }).limit(LIST_SAFETY_CAP);
     if (error) {
       throw new DatabaseError(error.message);
     }
@@ -924,7 +924,8 @@ export const noteService = {
       .eq("user_id", userId)
       .eq("is_archived", false)
       .eq("note_notebooks.notebook", notebook)
-      .order("updated_at", { ascending: false });
+      .order("updated_at", { ascending: false })
+      .limit(LIST_SAFETY_CAP);
     if (error) {
       if (error.code === "42P01") return [];
       throw new DatabaseError(error.message);

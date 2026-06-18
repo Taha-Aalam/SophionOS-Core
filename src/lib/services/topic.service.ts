@@ -3,6 +3,7 @@ import type { CreateTopicInput, Topic, UpdateTopicInput } from "../types/domain.
 import { createTopicSchema, updateTopicSchema } from "../validators/topic.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
+import { LIST_SAFETY_CAP } from "../utils/constants";
 
 const TOPIC_SELECT =
   "id, user_id, area_id, name, slug, favorite, inactive, is_archived, metadata, created_at, updated_at";
@@ -26,7 +27,8 @@ export const topicService = {
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (error) {
       throw new DatabaseError(error.message);
@@ -215,7 +217,8 @@ export const topicService = {
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", true)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
     if (error) throw new DatabaseError(error.message);
     return this.enrichWithCounts((data || []) as TopicWithCounts[]);
   },
@@ -226,7 +229,8 @@ export const topicService = {
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
       .eq("inactive", false)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (error) {
       throw new DatabaseError(error.message);
@@ -242,7 +246,8 @@ export const topicService = {
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
       .eq("inactive", true)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (error) {
       throw new DatabaseError(error.message);
@@ -258,7 +263,8 @@ export const topicService = {
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
       .eq("favorite", true)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (error) {
       throw new DatabaseError(error.message);
@@ -282,7 +288,8 @@ export const topicService = {
       .from("topics")
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (tError) {
       throw new DatabaseError(tError.message);

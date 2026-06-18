@@ -3,7 +3,7 @@ import type { CreateProjectInput, Project, UpdateProjectInput } from "../types/d
 import { createProjectSchema, updateProjectSchema } from "../validators/project.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
-import { PROJECT_STATUS, type ProjectStatus } from "../utils/constants";
+import { LIST_SAFETY_CAP, PROJECT_STATUS, type ProjectStatus } from "../utils/constants";
 import { deriveProjectStatus } from "../utils/status-routing";
 
 type ProjectRecord = Omit<Project, "slug"> & { slug?: string | null };
@@ -660,7 +660,7 @@ export const projectService = {
         query = query.ilike("name", `%${filters.term}%`);
       }
 
-      return query;
+      return query.limit(LIST_SAFETY_CAP);
     });
 
     return hydrateProjectRelations(projects);

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { TASK_SELECT } from "@/lib/services/task.service";
 import type { Task } from "@/lib/types/domain.types";
+import { LIST_SAFETY_CAP } from "@/lib/utils/constants";
 
 function dedupeAreaIds(areaIds: Array<string | null | undefined>): string[] {
   return Array.from(new Set(areaIds.filter((id): id is string => Boolean(id))));
@@ -43,7 +44,8 @@ export async function serverFetchTasks(
     .select(TASK_SELECT)
     .eq("user_id", userId)
     .eq("is_archived", false)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(LIST_SAFETY_CAP);
 
   const tasks = data ?? [];
   if (tasks.length === 0) return tasks;
