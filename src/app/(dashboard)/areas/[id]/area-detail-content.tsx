@@ -94,6 +94,7 @@ import { type Contact, type CreateResourceInput, type Resource, type Task } from
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";
+import { AREA_TYPE_COLORS, AREA_TYPE_FALLBACK } from "@/lib/constants/entity-colors";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { buildReturnTo, buildReturnToChain, encodeReturnTo, getRawReturnToChain, popReturnToHref } from "@/lib/utils/return-to";
 import {
@@ -108,12 +109,6 @@ import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
 import { getResourceLinkedProjectIds } from "@/lib/utils/resources";
-
-const AREA_TYPE_COLORS: Record<string, string> = {
-  Business: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  Personal: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  Studies: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-};
 
 const STATUS_LABELS: Record<AreaStatus, string> = {
   active: "Active",
@@ -962,7 +957,7 @@ export function AreaDetailContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button
@@ -1009,7 +1004,7 @@ export function AreaDetailContent() {
 
               {/* Badges row */}
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary" className={cn("text-xs", AREA_TYPE_COLORS[areaType])}>
+                <Badge variant="secondary" className={cn("text-xs", AREA_TYPE_COLORS[areaType.toLowerCase()] ?? AREA_TYPE_FALLBACK)}>
                   {areaType}
                 </Badge>
                 {area.inactive && (

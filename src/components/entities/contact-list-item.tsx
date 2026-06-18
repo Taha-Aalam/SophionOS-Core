@@ -7,17 +7,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/types/domain.types";
 import { contactService } from "@/lib/services/contact.service";
+import { CONTACT_GROUP_COLORS } from "@/lib/constants/entity-colors";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
-
-const GROUP_COLORS: Record<string, string> = {
-  Client: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-  "Team Member": "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  Vendor: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  Mentor: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  Collaborator: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300",
-  Partner: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
-};
 
 interface ContactListItemProps {
   contact: Contact;
@@ -39,7 +31,7 @@ export function ContactListItem({
     contact.follow_up_interval_days,
   );
   const daysSince = contactService.computeDaysSinceInteraction(contact.last_interaction_at);
-  const groupColor = contact.group ? GROUP_COLORS[contact.group] : "";
+  const groupColor = contact.group ? CONTACT_GROUP_COLORS[contact.group] : "";
 
   return (
     <div className="flex items-start justify-between gap-3 rounded-lg border p-4 transition-colors hover:bg-muted/30">

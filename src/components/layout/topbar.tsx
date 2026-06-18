@@ -2,18 +2,17 @@
 
 import React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu as MenuIcon, Settings, SunMoon } from "lucide-react";
+import { ChevronDown, LogOut, Menu as MenuIcon, Settings, SunMoon } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { breadcrumbLabels } from "@/components/layout/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -87,6 +86,9 @@ export function Topbar() {
   const { user, signOut } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const displayName = user?.user_metadata?.name || user?.email || "User";
+  const email = user?.email ?? "";
+  const avatarUrl =
+    user?.user_metadata?.avatar_url || user?.user_metadata?.picture || undefined;
   const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
@@ -108,28 +110,47 @@ export function Topbar() {
           render={
             <button
               type="button"
-              className="flex h-8 items-center gap-2 rounded-md px-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="group flex h-auto items-center gap-2 rounded-full p-0.5 pr-1 transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-accent"
               aria-label="User menu"
             />
           }
         >
           <Avatar size="sm">
+            {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
-          <span className="hidden max-w-[160px] truncate sm:block">{displayName}</span>
+          <ChevronDown
+            className="size-4 shrink-0 text-muted-foreground transition-transform group-data-popup-open:rotate-180"
+            aria-hidden
+          />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-56">
+        <DropdownMenuContent align="end" className="min-w-64">
+          <div className="flex items-center gap-3 px-1.5 py-1.5">
+            <Avatar size="default">
+              {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-sm font-medium text-foreground">
+                {displayName}
+              </span>
+              {email ? (
+                <span className="truncate text-xs font-normal text-muted-foreground">
+                  {email}
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuLabel>{user?.email || "Signed in"}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => router.push("/settings")}>
-              <Settings className="mr-2 size-4" />
+              <Settings className="mr-2 size-4 opacity-60" />
               Settings
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
             >
-              <SunMoon className="mr-2 size-4" />
+              <SunMoon className="mr-2 size-4 opacity-60" />
               {resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             </DropdownMenuItem>
           </DropdownMenuGroup>

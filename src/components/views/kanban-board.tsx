@@ -27,7 +27,7 @@ interface KanbanColumn {
 const COLUMNS: KanbanColumn[] = [
   { id: PROJECT_STATUS.PLANNING, color: "border-purple-500" },
   { id: PROJECT_STATUS.ACTIVE, color: "border-green-500" },
-  { id: PROJECT_STATUS.COMPLETED, color: "border-gray-400" },
+  { id: PROJECT_STATUS.COMPLETED, color: "border-border" },
   { id: PROJECT_STATUS.ON_HOLD, color: "border-yellow-500" },
 ];
 
@@ -123,10 +123,10 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
                             {...draggableProvided.dragHandleProps}
                             onClick={() => onProjectClick?.(project)}
                             className={cn(
-                              "cursor-pointer rounded-lg border bg-card p-3 transition-all",
+                              "cursor-pointer rounded-xl bg-card p-3 ring-1 ring-foreground/10 transition-all duration-300 ease-[var(--ease-out-quint)]",
                               draggableSnapshot.isDragging
-                                ? "shadow-lg ring-2 ring-primary"
-                                : "hover:border-primary/30 hover:shadow-md",
+                                ? "shadow-soft-lg ring-2 ring-primary"
+                                : "shadow-soft hover:-translate-y-0.5 hover:shadow-soft-lg hover:ring-primary/30",
                             )}
                           >
                             <div className="space-y-2">
@@ -155,7 +155,7 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
                                     project.priority === "medium" &&
                                       "border-blue-300 text-blue-600",
                                     project.priority === "low" &&
-                                      "border-gray-300 text-gray-600",
+                                      "border-border text-muted-foreground",
                                   )}
                                 >
                                   {project.priority}
@@ -179,7 +179,7 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
                                 </div>
                                 <div className="h-1 overflow-hidden rounded-full bg-muted">
                                   <div
-                                    className="h-full bg-primary transition-all"
+                                    className="h-full rounded-full bg-primary transition-[width] duration-500 ease-[var(--ease-out-quint)]"
                                     style={{ width: `${project.progress || 0}%` }}
                                   />
                                 </div>

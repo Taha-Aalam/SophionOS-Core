@@ -11,17 +11,9 @@ import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/types/domain.types";
 import { contactService } from "@/lib/services/contact.service";
 import { encodeReturnTo } from "@/lib/utils/return-to";
+import { CONTACT_GROUP_COLORS } from "@/lib/constants/entity-colors";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
-
-const GROUP_COLORS: Record<string, string> = {
-  Client: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-  "Team Member": "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  Vendor: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  Mentor: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  Collaborator: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300",
-  Partner: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
-};
 
 interface ContactCardProps {
   contact: Contact;
@@ -43,11 +35,11 @@ export function ContactCard({
   returnToChain,
 }: ContactCardProps) {
   const router = useRouter();
-  const groupColor = contact.group ? GROUP_COLORS[contact.group] ?? "" : "";
+  const groupColor = contact.group ? CONTACT_GROUP_COLORS[contact.group] ?? "" : "";
 
   return (
     <Card
-      className="cursor-pointer transition-all hover:ring-2 hover:ring-primary/20 h-full flex flex-col"
+      className="group flex h-full cursor-pointer flex-col transition-all duration-500 ease-[var(--ease-out-quint)] will-change-transform hover:-translate-y-1 hover:shadow-soft-lg hover:ring-2 hover:ring-primary/20 active:translate-y-0 active:duration-150"
       onClick={() => {
         const base = `/contacts/${contact.slug ?? contact.id}`;
         router.push(
@@ -64,8 +56,8 @@ export function ContactCard({
           <div className="flex items-center gap-3 min-w-0">
             {/* Avatar circle */}
             <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-muted relative">
-              {contact.image_url ? (
-                <Image src={contact.image_url} alt={contact.name} fill className="object-cover" unoptimized />
+              {contact.image_display_url ? (
+                <Image src={contact.image_display_url} alt={contact.name} fill className="object-cover" unoptimized />
               ) : (
                 <User2 className="size-5 text-muted-foreground" />
               )}

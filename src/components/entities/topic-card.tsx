@@ -42,7 +42,7 @@ const TopicCardComponent = ({
   return (
     <Card
       className={cn(
-        "group cursor-pointer transition-all hover:ring-2 hover:ring-primary/20",
+        "group cursor-pointer transition-all duration-500 ease-[var(--ease-out-quint)] will-change-transform hover:-translate-y-1 hover:shadow-soft-lg hover:ring-2 hover:ring-primary/20 active:translate-y-0 active:duration-150",
         topic.inactive && "opacity-60"
       )}
       onClick={() => {

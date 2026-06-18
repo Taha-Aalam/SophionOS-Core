@@ -73,7 +73,7 @@ export function GreetingBar({ userName, stats }: GreetingBarProps) {
 
 function StatChip({ label, value, accent }: { label: string; value: number; accent?: string }) {
   return (
-    <div className="flex items-baseline gap-1.5 rounded-full bg-muted px-3 py-1">
+    <div className="flex items-baseline gap-1.5 rounded-full bg-card px-3 py-1 shadow-soft ring-1 ring-foreground/10 transition-all duration-300 ease-[var(--ease-out-quint)] hover:-translate-y-0.5 hover:shadow-soft-lg">
       <span className={`text-lg font-semibold tabular-nums ${accent ?? ""}`}>{value}</span>
       <span className="text-xs text-muted-foreground">{label}</span>
     </div>

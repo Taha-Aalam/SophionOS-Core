@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Area } from "@/lib/types/domain.types";
 import { normalizeAreaType } from "@/lib/utils/areas";
+import { AREA_TYPE_COLORS, AREA_TYPE_FALLBACK } from "@/lib/constants/entity-colors";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
 
@@ -32,12 +33,6 @@ interface AreaCardProps {
   /** When provided, appended as ?chain= to preserve the return-to chain. */
   returnToChain?: string | null;
 }
-
-const AREA_TYPE_COLORS: Record<string, string> = {
-  business: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  personal: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  studies: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-};
 
 const AreaCardComponent = ({
   area,
@@ -74,7 +69,7 @@ const AreaCardComponent = ({
   return (
     <Card
       className={cn(
-        "cursor-pointer transition-all hover:ring-2 hover:ring-primary/20",
+        "group cursor-pointer transition-all duration-500 ease-[var(--ease-out-quint)] will-change-transform hover:-translate-y-1 hover:shadow-soft-lg hover:ring-2 hover:ring-primary/20 active:translate-y-0 active:duration-150",
         isArchived && "opacity-60 grayscale"
       )}
       onClick={() => !isArchived && router.push(areaHref)}
@@ -109,7 +104,7 @@ const AreaCardComponent = ({
               <div className="flex items-center gap-1 mt-1">
                 <Badge
                   variant="secondary"
-                  className={cn("text-xs", AREA_TYPE_COLORS[areaType.toLowerCase()])}
+                  className={cn("text-xs", AREA_TYPE_COLORS[areaType.toLowerCase()] ?? AREA_TYPE_FALLBACK)}
                 >
                   {areaType}
                 </Badge>

@@ -59,7 +59,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="rounded-2xl border bg-card p-6 text-card-foreground shadow-sm">
+    <div className="rounded-3xl bg-card p-6 text-card-foreground shadow-soft-lg ring-1 ring-foreground/10">
       <div className="space-y-2 text-center">
         <h2 className="text-xl font-semibold">Choose a new password</h2>
         <p className="text-sm text-muted-foreground">

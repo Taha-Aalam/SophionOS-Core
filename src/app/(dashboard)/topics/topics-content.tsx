@@ -297,15 +297,8 @@ export function TopicsContent() {
     );
   };
 
-  const countLabel = (count: number) =>
-    count > 0 ? (
-      <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-        {count}
-      </Badge>
-    ) : null;
-
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">🏷️</span>
@@ -327,17 +320,14 @@ export function TopicsContent() {
           <TabsTrigger value="active" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <CircleDot className="mr-1 size-3" />
             Active
-            {countLabel(activeTopics.length)}
           </TabsTrigger>
           <TabsTrigger value="favorite" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Heart className="mr-1 size-3" />
             Favorite
-            {countLabel(favoriteTopics.length)}
           </TabsTrigger>
           <TabsTrigger value="inactive" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <CircleOff className="mr-1 size-3" />
             Inactive
-            {countLabel(inactiveTopics.length)}
           </TabsTrigger>
           <TabsTrigger value="by_area" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <MapIcon className="mr-1 size-3" />
@@ -346,12 +336,10 @@ export function TopicsContent() {
           <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <LayoutGrid className="mr-1 size-3" />
             All
-            {countLabel(topics.length)}
           </TabsTrigger>
           <TabsTrigger value="archived" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Archive className="mr-1 size-3" />
             Archived
-            {countLabel(archivedTopics.length)}
           </TabsTrigger>
         </TabsList>
 
