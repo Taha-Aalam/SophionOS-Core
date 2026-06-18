@@ -367,29 +367,8 @@ export function ResourcesContent() {
     setDialogOpen(true);
   };
 
-  const countForTab = (tabValue: ResourceView) => {
-    switch (tabValue) {
-      case RESOURCE_VIEW.INBOX:
-        return allResources.filter((r) => r.status === RESOURCE_STATUS.INBOX).length;
-      case RESOURCE_VIEW.TO_REVIEW:
-        return allResources.filter((r) => r.status === RESOURCE_STATUS.TO_REVIEW).length;
-      case RESOURCE_VIEW.ACTIVE:
-        return allResources.filter((r) => r.status === RESOURCE_STATUS.ACTIVE).length;
-      case RESOURCE_VIEW.COMPLETED:
-        return allResources.filter((r) => r.status === RESOURCE_STATUS.COMPLETED).length;
-      case RESOURCE_VIEW.FAVORITE:
-        return allResources.filter((r) => r.favorite).length;
-      case RESOURCE_VIEW.ARCHIVED:
-        return archivedResources.length;
-      case RESOURCE_VIEW.ALL:
-        return allResources.length;
-      default:
-        return 0;
-    }
-  };
-
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">🔗</span>
@@ -410,47 +389,22 @@ export function ResourcesContent() {
         <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value={RESOURCE_VIEW.ALL} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             All
-            {countForTab(RESOURCE_VIEW.ALL) > 0 && (
-              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab(RESOURCE_VIEW.ALL)}
-              </Badge>
-            )}
           </TabsTrigger>
           <TabsTrigger value={RESOURCE_VIEW.INBOX} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <InboxIcon className="mr-1.5 size-3.5" />
             Inbox
-            {countForTab(RESOURCE_VIEW.INBOX) > 0 && (
-              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab(RESOURCE_VIEW.INBOX)}
-              </Badge>
-            )}
           </TabsTrigger>
           <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Eye className="mr-1.5 size-3.5" />
             To Review
-            {countForTab(RESOURCE_VIEW.TO_REVIEW) > 0 && (
-              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab(RESOURCE_VIEW.TO_REVIEW)}
-              </Badge>
-            )}
           </TabsTrigger>
           <TabsTrigger value={RESOURCE_VIEW.ACTIVE} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Zap className="mr-1.5 size-3.5" />
             Active
-            {countForTab(RESOURCE_VIEW.ACTIVE) > 0 && (
-              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab(RESOURCE_VIEW.ACTIVE)}
-              </Badge>
-            )}
           </TabsTrigger>
           <TabsTrigger value={RESOURCE_VIEW.FAVORITE} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Heart className="mr-1.5 size-3.5" />
             Favorite
-            {countForTab(RESOURCE_VIEW.FAVORITE) > 0 && (
-              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab(RESOURCE_VIEW.FAVORITE)}
-              </Badge>
-            )}
           </TabsTrigger>
           <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Tag className="mr-1.5 size-3.5" />
@@ -471,20 +425,10 @@ export function ResourcesContent() {
           <TabsTrigger value={RESOURCE_VIEW.COMPLETED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Bookmark className="mr-1.5 size-3.5" />
             Completed
-            {countForTab(RESOURCE_VIEW.COMPLETED) > 0 && (
-              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab(RESOURCE_VIEW.COMPLETED)}
-              </Badge>
-            )}
           </TabsTrigger>
           <TabsTrigger value={RESOURCE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
             <Archive className="mr-1.5 size-3.5" />
             Archived
-            {countForTab(RESOURCE_VIEW.ARCHIVED) > 0 && (
-              <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px]">
-                {countForTab(RESOURCE_VIEW.ARCHIVED)}
-              </Badge>
-            )}
           </TabsTrigger>
         </TabsList>
 

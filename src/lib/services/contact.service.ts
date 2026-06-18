@@ -113,10 +113,65 @@ function getContactImagePath(imageUrl: string | null | undefined): string | null
 
   const marker = "/storage/v1/object/public/contact-avatars/";
   const index = imageUrl.indexOf(marker);
-  if (index === -1) return null;
+  if (index !== -1) {
+    const rawPath = imageUrl.slice(index + marker.length);
+    return rawPath ? decodeURIComponent(rawPath) : null;
+  }
 
-  const rawPath = imageUrl.slice(index + marker.length);
-  return rawPath ? decodeURIComponent(rawPath) : null;
+  // Already a bare object path (e.g. "<user_id>/<contact_id>.png"). Reject
+  // anything carrying a URI scheme (http://, javascript:, data:, …) — a
+  // storage path never contains a scheme colon.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(imageUrl)) return null;
+  return imageUrl;
+}
+
+const SIGNED_URL_TTL_SECONDS = 3600;
+
+/** Resolve a short-lived signed URL for a single stored image path/URL. */
+async function signContactImage(
+  imageUrl: string | null | undefined,
+): Promise<string | null> {
+  const path = getContactImagePath(imageUrl);
+  if (!path) return null;
+
+  const { data } = await createClient()
+    .storage
+    .from("contact-avatars")
+    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+
+  return data?.signedUrl ?? null;
+}
+
+/** Attach `image_display_url` (signed) to a batch of contacts in one call. */
+async function attachSignedImageUrls(contacts: Contact[]): Promise<Contact[]> {
+  const pathByContact = new Map<string, string>();
+  for (const contact of contacts) {
+    const path = getContactImagePath(contact.image_url);
+    if (path) pathByContact.set(contact.id, path);
+  }
+
+  const paths = Array.from(new Set(pathByContact.values()));
+  if (paths.length === 0) {
+    return contacts.map((contact) => ({ ...contact, image_display_url: null }));
+  }
+
+  const { data } = await createClient()
+    .storage
+    .from("contact-avatars")
+    .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
+
+  const signedByPath = new Map<string, string>();
+  for (const item of data ?? []) {
+    if (item.path && item.signedUrl) signedByPath.set(item.path, item.signedUrl);
+  }
+
+  return contacts.map((contact) => {
+    const path = pathByContact.get(contact.id);
+    return {
+      ...contact,
+      image_display_url: path ? signedByPath.get(path) ?? null : null,
+    };
+  });
 }
 
 export const contactService = {
@@ -124,6 +179,7 @@ export const contactService = {
   computeDaysSinceInteraction,
   computeDaysUntilFollowUp,
   getContactImagePath,
+  signContactImage,
 
   async deleteContactImage(imageUrl: string | null | undefined): Promise<void> {
     const path = getContactImagePath(imageUrl);
@@ -137,6 +193,11 @@ export const contactService = {
     if (error) throw new DatabaseError(error.message);
   },
 
+  /**
+   * Upload an avatar and return the stored object PATH (not a URL). The bucket
+   * is private; callers resolve a signed URL for display via
+   * `signContactImage` / `image_display_url`.
+   */
   async uploadContactImage(userId: string, contactId: string, file: File): Promise<string> {
     const client = createClient();
     const ext = file.name.split(".").pop() ?? "jpg";
@@ -148,8 +209,7 @@ export const contactService = {
 
     if (error) throw new DatabaseError(error.message);
 
-    const { data } = client.storage.from("contact-avatars").getPublicUrl(path);
-    return data.publicUrl;
+    return path;
   },
 
   async list(userId: string, filters?: { group?: string; archive?: boolean }): Promise<Contact[]> {
@@ -212,13 +272,15 @@ export const contactService = {
       taskIdsByContact.set(row.contact_id, current);
     }
 
-    return data.map((contact) => ({
-      ...contact,
-      linkedAreaIds: areaIdsByContact.get(contact.id) ?? [],
-      linkedGoalIds: goalIdsByContact.get(contact.id) ?? [],
-      linkedProjectIds: projectIdsByContact.get(contact.id) ?? [],
-      linkedTaskIds: taskIdsByContact.get(contact.id) ?? [],
-    }));
+    return attachSignedImageUrls(
+      data.map((contact) => ({
+        ...contact,
+        linkedAreaIds: areaIdsByContact.get(contact.id) ?? [],
+        linkedGoalIds: goalIdsByContact.get(contact.id) ?? [],
+        linkedProjectIds: projectIdsByContact.get(contact.id) ?? [],
+        linkedTaskIds: taskIdsByContact.get(contact.id) ?? [],
+      })),
+    );
   },
 
   async getById(userId: string, id: string): Promise<Contact> {
@@ -233,7 +295,7 @@ export const contactService = {
       if (error.code === "PGRST116") throw new NotFoundError("Contact", id);
       throw new DatabaseError(error.message);
     }
-    return data;
+    return { ...data, image_display_url: await signContactImage(data.image_url) };
   },
 
   async create(userId: string, input: CreateContactInput): Promise<Contact> {
@@ -263,6 +325,7 @@ export const contactService = {
 
     return {
       ...data,
+      image_display_url: await signContactImage(data.image_url),
       linkedAreaIds: input.area_ids ?? [],
       linkedGoalIds: input.goal_ids ?? [],
       linkedProjectIds: input.project_ids ?? [],
@@ -306,7 +369,7 @@ export const contactService = {
       ...(task_ids !== undefined && { task_ids }),
     });
 
-    return contact;
+    return { ...contact, image_display_url: await signContactImage(contact.image_url) };
   },
 
   async delete(userId: string, id: string): Promise<void> {

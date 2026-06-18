@@ -39,16 +39,27 @@ function NavLink({
         }
       }}
       className={cn(
-        "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
+        "group/nav relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-all duration-300 ease-[var(--ease-out-quint)]",
         isActive && !comingSoon
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_1px_0_oklch(1_0_0/0.04)]"
           : comingSoon
             ? "cursor-not-allowed text-muted-foreground opacity-60"
-            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            : "text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
       )}
       title={showLabel ? undefined : label}
     >
-      <Icon className="size-4 shrink-0" />
+      {isActive && !comingSoon ? (
+        <span
+          aria-hidden
+          className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary"
+        />
+      ) : null}
+      <Icon
+        className={cn(
+          "size-4 shrink-0 transition-transform duration-300 ease-[var(--ease-out-back)]",
+          !isActive && !comingSoon && "group-hover/nav:scale-110",
+        )}
+      />
       {showLabel ? <span>{label}</span> : null}
     </Link>
   );
@@ -76,11 +87,11 @@ export function Sidebar() {
       )}
     >
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-sidebar-border px-3">
-        <Link href="/dashboard" className="flex items-center gap-2 text-sm font-semibold">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+        <Link href="/dashboard" className="group flex items-center gap-2 text-sm font-semibold">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground shadow-[0_2px_8px_oklch(0.3_0.15_260/0.35)] transition-transform duration-300 ease-[var(--ease-out-back)] group-hover:scale-105">
             L
           </div>
-          {isDesktopSidebarOpen ? <span>LifeOS</span> : null}
+          {isDesktopSidebarOpen ? <span className="tracking-tight">LifeOS</span> : null}
         </Link>
         <Button
           variant="ghost"

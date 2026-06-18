@@ -111,17 +111,12 @@ import {
 } from "@/lib/utils/area-detail";
 import { buildReturnTo, buildReturnToChain, encodeReturnTo, getRawReturnToChain, popReturnToHref, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
+import { PRIORITY_COLORS, BADGE_COLOR } from "@/lib/constants/entity-colors";
 
 const TERM_LABELS: Record<string, string> = {
   short: "Short Term",
   mid: "Mid Term",
   long: "Long Term",
-};
-
-const PRIORITY_COLORS: Record<string, string> = {
-  high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  medium: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  low: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
 };
 
 const TERM_COLORS: Record<string, string> = {
@@ -1157,7 +1152,7 @@ export function GoalDetailContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button
@@ -1219,7 +1214,7 @@ export function GoalDetailContent() {
                     <Badge
                       key={areaId}
                       variant="outline"
-                      className="h-5 text-xs px-1.5 py-0 items-center bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      className={cn("h-5 text-xs px-1.5 py-0 items-center", BADGE_COLOR.slate)}
                     >
                       {area.icon ? `${area.icon} ` : ""}{area.name}
                     </Badge>

@@ -289,7 +289,7 @@ export function DashboardContent() {
           <section key={i} className="space-y-3">
             <Skeleton className="h-6 w-48" />
             <div className="rounded-lg border border-border">
-              <div className="h-16 animate-pulse bg-muted" />
+              <Skeleton className="h-16 rounded-lg" />
             </div>
           </section>
         ))}
@@ -298,7 +298,7 @@ export function DashboardContent() {
   }
 
   return (
-    <div className="flex flex-col gap-8 p-6 max-w-7xl mx-auto w-full">
+    <div className="reveal-stagger flex flex-col gap-8 p-6 max-w-7xl mx-auto w-full">
       <GreetingBar userName={user?.user_metadata?.full_name} stats={stats} />
 
       {/* Active Areas */}

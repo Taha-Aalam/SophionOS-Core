@@ -11,27 +11,12 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn, safeHttpUrl } from "@/lib/utils";
 import type { Resource } from "@/lib/types/domain.types";
+import { STATUS_COLORS, RESOURCE_TYPE_COLORS } from "@/lib/constants/entity-colors";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
-
-const STATUS_COLORS: Record<string, string> = {
-  inbox: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  to_review: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  active: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  completed: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300",
-};
-
-const TYPE_COLORS: Record<string, string> = {
-  website: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  article: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-  video: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-  document: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-  podcast: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  social_media: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
-  tool: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300",
-};
 
 interface AreaInfo {
   name: string;
@@ -72,8 +57,9 @@ export function ResourceRow({
   };
 
   const handleRowClick = () => {
-    if (resource.url) {
-      window.open(resource.url, "_blank", "noopener,noreferrer");
+    const safeUrl = safeHttpUrl(resource.url);
+    if (safeUrl) {
+      window.open(safeUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -103,7 +89,7 @@ export function ResourceRow({
         </Badge>
         <Badge
           variant="secondary"
-          className={cn("text-[10px] leading-none", TYPE_COLORS[resource.type])}
+          className={cn("text-[10px] leading-none", RESOURCE_TYPE_COLORS[resource.type])}
         >
           {resource.type.replace("_", " ")}
         </Badge>
@@ -244,12 +230,12 @@ export function ResourceRow({
 export function ResourceRowSkeleton() {
   return (
     <div className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5">
-      <div className="h-5 flex-1 animate-pulse rounded bg-muted" />
-      <div className="h-5 w-48 animate-pulse rounded bg-muted hidden md:inline-flex" />
-      <div className="size-8 animate-pulse rounded bg-muted" />
-      <div className="size-8 animate-pulse rounded bg-muted" />
-      <div className="size-8 animate-pulse rounded bg-muted" />
-      <div className="size-8 animate-pulse rounded bg-muted" />
+      <Skeleton className="h-5 flex-1" />
+      <Skeleton className="h-5 w-48 hidden md:inline-flex" />
+      <Skeleton className="size-8" />
+      <Skeleton className="size-8" />
+      <Skeleton className="size-8" />
+      <Skeleton className="size-8" />
     </div>
   );
 }

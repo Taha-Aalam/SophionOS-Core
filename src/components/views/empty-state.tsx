@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LucideIcon } from "lucide-react";
+import { ArrowRight, LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface EmptyStateProps {
@@ -22,15 +22,24 @@ export function EmptyState({
   isLoading = false,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-        <Icon className="size-8 text-muted-foreground" />
+    <div className="reveal-once flex flex-col items-center justify-center px-4 py-16 text-center">
+      <div className="mb-5 rounded-3xl bg-muted/40 p-2 ring-1 ring-foreground/5">
+        <div className="flex size-16 items-center justify-center rounded-[calc(1.5rem-0.5rem)] bg-card shadow-soft ring-1 ring-foreground/10">
+          <Icon className="size-7 text-muted-foreground" strokeWidth={1.5} />
+        </div>
       </div>
-      <h3 className="text-lg font-medium mb-1">{title}</h3>
-      <p className="text-sm text-muted-foreground max-w-sm mb-4">{description}</p>
+      <h3 className="mb-1.5 text-lg font-medium tracking-tight">{title}</h3>
+      <p className="mb-5 max-w-sm text-sm text-muted-foreground">{description}</p>
       {actionLabel && onAction && (
-        <Button onClick={onAction} disabled={isLoading}>
+        <Button
+          onClick={onAction}
+          disabled={isLoading}
+          className="group/cta h-9 gap-2 rounded-full pl-4 pr-1.5 transition-all duration-300 ease-[var(--ease-out-quint)] active:scale-[0.98]"
+        >
           {actionLabel}
+          <span className="flex size-6 items-center justify-center rounded-full bg-primary-foreground/15 transition-transform duration-300 ease-[var(--ease-out-back)] group-hover/cta:translate-x-0.5">
+            <ArrowRight className="size-3.5" />
+          </span>
         </Button>
       )}
     </div>

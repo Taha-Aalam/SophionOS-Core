@@ -107,9 +107,6 @@ function renderSection(
     allProjects: [],
     allResources: [],
     allTasks: [],
-    onUnlinkArea: noop,
-    onUnlinkGoal: noop,
-    onUnlinkProject: noop,
     onUnlinkTask: noop,
     onTaskCompletionToggle: noop,
     onTaskFocusToggle: noop,
@@ -215,14 +212,5 @@ describe("ContactDetailRelationshipSections", () => {
     // Tab buttons should show count badges
     expect(html).toContain("Inbox");
     expect(html).toContain("All");
-  });
-
-  it("renders unlink buttons on area cards", () => {
-    const html = renderSection({
-      linkedAreas: [makeArea({ id: "a1", name: "Health" })],
-      allAreas: [makeArea({ id: "a1", name: "Health" })],
-    });
-    // The unlink button should be rendered (as a small ghost button with Unlink icon)
-    expect(html).toContain("</svg>"); // lucide icon renders an svg
   });
 });

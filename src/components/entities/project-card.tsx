@@ -15,6 +15,7 @@ import {
 } from "@/lib/utils/projects";
 import ProgressRing from "@/components/charts/progress-ring";
 import { buildProjectDetailHref } from "@/lib/utils/project-urls";
+import { PRIORITY_COLORS, STATUS_COLORS } from "@/lib/constants/entity-colors";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
 
@@ -52,19 +53,6 @@ interface ProjectCardProps {
    */
   rollups?: ProjectCardRollups;
 }
-
-const PRIORITY_COLORS: Record<string, string> = {
-  high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  medium: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  low: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  planning: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  on_hold: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  completed: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-};
 
 const STATUS_EMOJIS: Record<string, string> = {
   planning: "📝",
@@ -119,7 +107,7 @@ export function ProjectCard({
   return (
     <Card
       className={cn(
-        "group relative overflow-hidden transition-all cursor-pointer hover:ring-2 hover:ring-primary/20",
+        "group relative cursor-pointer overflow-hidden transition-all duration-500 ease-[var(--ease-out-quint)] will-change-transform hover:-translate-y-1 hover:shadow-soft-lg hover:ring-2 hover:ring-primary/20 active:translate-y-0 active:duration-150",
         project.is_archived && "opacity-60 grayscale",
       )}
       onClick={() => {

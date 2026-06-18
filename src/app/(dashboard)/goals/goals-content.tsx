@@ -8,6 +8,7 @@ import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { EmptyState } from "@/components/views/empty-state";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals, useRestoreGoal, useArchiveGoal } from "@/lib/hooks/use-goals";
@@ -100,7 +101,7 @@ export function GoalsContent() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">🎯</span>
@@ -158,7 +159,7 @@ export function GoalsContent() {
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="h-32 rounded-xl bg-muted animate-pulse" />
+            <Skeleton key={index} className="h-32 rounded-xl" />
           ))}
         </div>
       ) : filteredGoals && filteredGoals.length > 0 ? (

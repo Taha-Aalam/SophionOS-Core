@@ -111,19 +111,7 @@ import { getResourceLinkedAreaIds, getResourceLinkedProjectIds } from "@/lib/uti
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { buildAreaContactGoalSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections, buildContactByAreaSections } from "@/lib/utils/area-detail";
 import { buildReturnTo, buildReturnToChain, popReturnToHref, encodeReturnTo, getRawReturnToChain } from "@/lib/utils/return-to";
-
-const PRIORITY_COLORS: Record<string, string> = {
-  high: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  medium: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  low: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  planning: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  active: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  on_hold: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  completed: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-};
+import { PRIORITY_COLORS, STATUS_COLORS, BADGE_COLOR } from "@/lib/constants/entity-colors";
 
 export function ProjectDetailContent() {
   const params = useParams();
@@ -1136,7 +1124,7 @@ export function ProjectDetailContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button
           variant="ghost"
@@ -1191,7 +1179,7 @@ export function ProjectDetailContent() {
                       <Badge
                         key={linkedArea.id}
                         variant="outline"
-                        className="h-5 text-xs px-1.5 py-0 items-center bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                        className={cn("h-5 text-xs px-1.5 py-0 items-center", BADGE_COLOR.slate)}
                       >
                         {linkedArea.icon ? `${linkedArea.icon} ` : ""}
                         {linkedArea.name}

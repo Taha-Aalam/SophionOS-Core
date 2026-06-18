@@ -18,6 +18,28 @@ describe("auth routing", () => {
     expect(isProtectedAppPath("/login")).toBe(false);
   });
 
+  it("protects dashboard routes by default (deny-by-default)", () => {
+    for (const path of [
+      "/contacts",
+      "/notes",
+      "/notes/abc",
+      "/resources",
+      "/topics",
+      "/inbox",
+      "/knowledge",
+      "/my-day",
+    ]) {
+      expect(isProtectedAppPath(path)).toBe(true);
+    }
+  });
+
+  it("leaves the landing page and auth/callback public", () => {
+    expect(isProtectedAppPath("/")).toBe(false);
+    expect(isProtectedAppPath("/auth/callback")).toBe(false);
+    expect(isProtectedAppPath("/signup")).toBe(false);
+    expect(isProtectedAppPath("/forgot-password")).toBe(false);
+  });
+
   it("treats reset-password as an auth route", () => {
     expect(AUTH_PAGE_PATHS).toContain("/reset-password");
     expect(isAuthPath("/reset-password")).toBe(true);

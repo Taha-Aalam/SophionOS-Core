@@ -36,7 +36,18 @@ const urlSchema = z.preprocess(
       return value;
     }
   },
-  z.string().url("Must be a valid URL").nullable().optional(),
+  z
+    .string()
+    .url("Must be a valid URL")
+    .refine((value) => {
+      try {
+        return /^https?:$/.test(new URL(value).protocol);
+      } catch {
+        return false;
+      }
+    }, "Must be an http(s) URL")
+    .nullable()
+    .optional(),
 );
 
 const resourceBaseSchema = z

@@ -326,7 +326,7 @@ export function TasksContent() {
   const filterOptionLabelClassName = "min-w-0 flex-1 whitespace-normal break-words text-sm";
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <div className="reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between border-b border-border/50">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">☑️</span>

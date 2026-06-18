@@ -424,7 +424,6 @@ describe("taskService.complete – recurring completion", () => {
     expect(rpcClient.rpc).toHaveBeenCalledWith(
       "complete_recurring_task",
       expect.objectContaining({
-        p_user_id: userId,
         p_task_id: taskId,
         p_next_status: TASK_STATUS.TODO,
       }),
@@ -774,7 +773,6 @@ describe("taskService.undoComplete – restores source and removes spawned row",
     const result = await taskService.undoComplete(userId, taskId, spawnedId);
 
     expect(rpcClient.rpc).toHaveBeenCalledWith("undo_complete_recurring_task", {
-      p_user_id: userId,
       p_completed_task_id: taskId,
       p_spawned_task_id: spawnedId,
     });
@@ -955,7 +953,6 @@ describe("taskService.uncomplete – recurring-aware child cleanup", () => {
     const result = await taskService.uncomplete(userId, taskId);
 
     expect(rpcClient.rpc).toHaveBeenCalledWith("undo_complete_recurring_task", {
-      p_user_id: userId,
       p_completed_task_id: taskId,
       p_spawned_task_id: childId,
     });
@@ -1174,7 +1171,6 @@ describe("taskService.update – recurring completion transition delegation", ()
     expect(rpcClient.rpc).toHaveBeenCalledWith(
       "complete_recurring_task",
       expect.objectContaining({
-        p_user_id: userId,
         p_task_id: taskId,
       }),
     );
@@ -1241,7 +1237,6 @@ describe("taskService.update – recurring completion transition delegation", ()
     } as never);
 
     expect(rpcClient.rpc).toHaveBeenCalledWith("undo_complete_recurring_task", {
-      p_user_id: userId,
       p_completed_task_id: taskId,
       p_spawned_task_id: childId,
     });

@@ -11,8 +11,15 @@ describe("contact image storage helpers", () => {
     ).toBe("user-1/contact-1.png");
   });
 
-  it("returns null for empty or non-contact-avatar urls", () => {
+  it("passes through a bare object path unchanged", () => {
+    expect(contactService.getContactImagePath("user-1/contact-1.png")).toBe(
+      "user-1/contact-1.png",
+    );
+  });
+
+  it("returns null for empty or external (non-storage) urls", () => {
     expect(contactService.getContactImagePath(null)).toBeNull();
     expect(contactService.getContactImagePath("https://example.com/not-storage")).toBeNull();
+    expect(contactService.getContactImagePath("javascript:alert(1)")).toBeNull();
   });
 });

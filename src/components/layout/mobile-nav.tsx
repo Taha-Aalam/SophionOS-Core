@@ -43,7 +43,7 @@ function MobileNavLink({
         onClick?.();
       }}
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+        "group/mnav relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-300 ease-[var(--ease-out-quint)]",
         isActive && !comingSoon
           ? "bg-accent text-accent-foreground"
           : comingSoon
@@ -51,6 +51,12 @@ function MobileNavLink({
             : "text-foreground hover:bg-accent hover:text-accent-foreground",
       )}
     >
+      {isActive && !comingSoon ? (
+        <span
+          aria-hidden
+          className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary"
+        />
+      ) : null}
       <Icon className="size-4 shrink-0" />
       <span>{label}</span>
     </Link>
@@ -76,7 +82,7 @@ export function MobileNav() {
       <SheetContent side="left" className="flex w-72 flex-col p-0">
         <SheetHeader className="flex h-12 shrink-0 flex-row items-center justify-between border-b border-border px-4">
           <SheetTitle className="flex items-center gap-2 text-sm font-semibold">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground shadow-[0_2px_8px_oklch(0.3_0.15_260/0.35)]">
               L
             </div>
             LifeOS

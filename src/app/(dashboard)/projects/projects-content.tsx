@@ -190,7 +190,7 @@ export function ProjectsContent() {
       return (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="h-48 rounded-xl bg-muted animate-pulse" />
+            <Skeleton key={index} className="h-48 rounded-xl" />
           ))}
         </div>
       );
@@ -220,7 +220,7 @@ export function ProjectsContent() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <div className="reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">📁</span>

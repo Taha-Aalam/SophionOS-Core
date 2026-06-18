@@ -652,7 +652,6 @@ export const taskService = {
 
     const { data: rpcResult, error: rpcError } = await createClient()
       .rpc("complete_recurring_task", {
-        p_user_id: userId,
         p_task_id: id,
         p_next_due_date: nextDueDate,
         p_next_status: preCompletionStatus,
@@ -684,7 +683,6 @@ export const taskService = {
   ): Promise<Task> {
     if (spawnedTaskId) {
       const { error } = await createClient().rpc("undo_complete_recurring_task", {
-        p_user_id: userId,
         p_completed_task_id: completedTaskId,
         p_spawned_task_id: spawnedTaskId,
       });
@@ -769,7 +767,6 @@ export const taskService = {
 
       if (child?.id) {
         const { error } = await createClient().rpc("undo_complete_recurring_task", {
-          p_user_id: userId,
           p_completed_task_id: id,
           p_spawned_task_id: child.id,
         });
