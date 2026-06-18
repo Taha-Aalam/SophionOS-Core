@@ -1,18 +1,22 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Session, User } from "@supabase/supabase-js";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
 import { AREAS_QUERY_KEY } from "@/lib/hooks/use-areas";
 import { seedDefaultAreas } from "@/lib/services/onboarding.service";
-import { createClient } from "@/lib/supabase/client";
+
+interface AuthUser {
+  id: string;
+  email: string | null;
+  name: string | null;
+  imageUrl: string | null;
+}
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
 }
@@ -20,97 +24,51 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isLoaded, user: clerkUser } = useUser();
+  const { signOut: clerkSignOut } = useClerk();
   const router = useRouter();
-  const supabase = createClient();
   const queryClient = useQueryClient();
   const seededUserIdsRef = useRef(new Set<string>());
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function ensureDefaultAreas(userId: string) {
-      if (seededUserIdsRef.current.has(userId)) {
-        return;
+  const user: AuthUser | null = clerkUser
+    ? {
+        id: clerkUser.id,
+        email: clerkUser.primaryEmailAddress?.emailAddress ?? null,
+        name:
+          clerkUser.fullName ||
+          clerkUser.firstName ||
+          clerkUser.username ||
+          null,
+        imageUrl: clerkUser.imageUrl || null,
       }
+    : null;
 
-      seededUserIdsRef.current.add(userId);
+  useEffect(() => {
+    if (!user) return;
+    if (seededUserIdsRef.current.has(user.id)) return;
+    seededUserIdsRef.current.add(user.id);
 
+    void (async () => {
       try {
-        await seedDefaultAreas(userId);
+        await seedDefaultAreas(user.id);
         await queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] });
       } catch (error) {
-        seededUserIdsRef.current.delete(userId);
+        seededUserIdsRef.current.delete(user.id);
         if (process.env.NODE_ENV !== "production") {
           console.error("Failed to seed default areas", error);
         }
       }
-    }
-
-    async function syncSession(nextSession: Session | null) {
-      if (!isMounted) {
-        return;
-      }
-
-      setSession(nextSession);
-      setUser(nextSession?.user ?? null);
-      setIsLoading(false);
-
-      if (nextSession?.user) {
-        await ensureDefaultAreas(nextSession.user.id);
-      }
-    }
-
-    async function loadSession() {
-      try {
-        const {
-          data: { session: currentSession },
-        } = await supabase.auth.getSession();
-
-        await syncSession(currentSession);
-      } catch {
-        if (isMounted) {
-          toast.error("Authentication error");
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      void syncSession(nextSession);
-
-      if (event === "SIGNED_OUT") {
-        router.replace("/login");
-        router.refresh();
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, [queryClient, router, supabase]);
+    })();
+  }, [user, queryClient]);
 
   async function signOut() {
-    try {
-      await supabase.auth.signOut();
-      setSession(null);
-      setUser(null);
-      router.replace("/login");
-      router.refresh();
-    } catch {
-      toast.error("Error signing out");
-    }
+    await clerkSignOut();
+    router.replace("/login");
+    router.refresh();
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading: !isLoaded, signOut }}>
       {children}
     </AuthContext.Provider>
   );

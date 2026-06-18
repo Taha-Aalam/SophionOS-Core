@@ -73,7 +73,7 @@ export function MobileNav() {
     startTransition(() => setMounted(true));
   }, []);
 
-  const displayName = user?.user_metadata?.name || user?.email || "User";
+  const displayName = user?.name || user?.email || "User";
   const initials = displayName.slice(0, 2).toUpperCase();
   const themeLabel = mounted ? (resolvedTheme === "dark" ? "Light mode" : "Dark mode") : "Theme";
 

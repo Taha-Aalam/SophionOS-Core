@@ -85,10 +85,9 @@ export function Topbar() {
   const { openMobileNav } = useUIStore();
   const { user, signOut } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
-  const displayName = user?.user_metadata?.name || user?.email || "User";
+  const displayName = user?.name || user?.email || "User";
   const email = user?.email ?? "";
-  const avatarUrl =
-    user?.user_metadata?.avatar_url || user?.user_metadata?.picture || undefined;
+  const avatarUrl = user?.imageUrl || undefined;
   const initials = displayName.slice(0, 2).toUpperCase();
 
   return (

@@ -299,7 +299,7 @@ export function DashboardContent() {
 
   return (
     <div className="reveal-stagger flex flex-col gap-8 p-6 max-w-7xl mx-auto w-full">
-      <GreetingBar userName={user?.user_metadata?.full_name} stats={stats} />
+      <GreetingBar userName={user?.name ?? undefined} stats={stats} />
 
       {/* Active Areas */}
       <section>
