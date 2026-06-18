@@ -8,11 +8,7 @@ const AUTH_PAGE_PATHS = [
 // Paths reachable without a session. Everything else under the app is
 // treated as protected (deny-by-default) so newly added dashboard routes
 // are gated automatically instead of needing to be listed here.
-const PUBLIC_APP_PATHS = [
-  "/",
-  ...AUTH_PAGE_PATHS,
-  "/auth/callback",
-] as const;
+const PUBLIC_APP_PATHS = ["/", ...AUTH_PAGE_PATHS] as const;
 
 const DEFAULT_POST_LOGIN_PATH = "/dashboard";
 
