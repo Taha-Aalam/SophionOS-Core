@@ -1,5 +1,6 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { makeQueryClient } from "@/lib/queries/server-query-client";
@@ -10,19 +11,19 @@ import { serverFetchGoals } from "@/lib/queries/goals.queries";
 import { ResourcesContent } from "./resources-content";
 
 export default async function ResourcesPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { userId } = await auth();
+  if (!userId) redirect("/login");
 
+  const supabase = await createClient();
   const queryClient = makeQueryClient();
   await Promise.all([
     queryClient.prefetchQuery({
-      queryKey: [RESOURCES_QUERY_KEY, "list", user.id, { status: "all" }],
-      queryFn: () => serverFetchResources(supabase, user.id),
+      queryKey: [RESOURCES_QUERY_KEY, "list", userId, { status: "all" }],
+      queryFn: () => serverFetchResources(supabase, userId),
     }),
     queryClient.prefetchQuery({
       queryKey: [GOALS_QUERY_KEY, {}],
-      queryFn: () => serverFetchGoals(supabase, user.id, {}),
+      queryFn: () => serverFetchGoals(supabase, userId, {}),
     }),
   ]);
 

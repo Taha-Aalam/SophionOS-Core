@@ -1,45 +1,46 @@
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
-import { redirect } from "next/navigation"
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 
-import { createClient } from "@/lib/supabase/server"
-import { makeQueryClient } from "@/lib/queries/server-query-client"
-import { TOPICS_QUERY_KEY } from "@/lib/hooks/use-topics"
+import { createClient } from "@/lib/supabase/server";
+import { makeQueryClient } from "@/lib/queries/server-query-client";
+import { TOPICS_QUERY_KEY } from "@/lib/hooks/use-topics";
 import {
   serverFetchTopicByIdentifier,
   serverFetchNotesForTopic,
   serverFetchResourcesForTopic,
-} from "@/lib/queries/topic-detail.queries"
-import { TopicDetailContent } from "./topic-detail-content"
+} from "@/lib/queries/topic-detail.queries";
+import { TopicDetailContent } from "./topic-detail-content";
 
 export default async function TopicDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+  const { id } = await params;
+  const { userId } = await auth();
+  if (!userId) redirect("/login");
 
-  const queryClient = makeQueryClient()
-  const topic = await serverFetchTopicByIdentifier(supabase, user.id, id)
+  const supabase = await createClient();
+  const queryClient = makeQueryClient();
+  const topic = await serverFetchTopicByIdentifier(supabase, userId, id);
   await queryClient.prefetchQuery({
-    queryKey: [TOPICS_QUERY_KEY, "detail", user.id, id],
+    queryKey: [TOPICS_QUERY_KEY, "detail", userId, id],
     queryFn: () => Promise.resolve(topic),
-  })
+  });
 
   if (topic) {
     await Promise.all([
       queryClient.prefetchQuery({
-        queryKey: [TOPICS_QUERY_KEY, "notes", user.id, topic.id],
-        queryFn: () => serverFetchNotesForTopic(supabase, user.id, topic.id),
+        queryKey: [TOPICS_QUERY_KEY, "notes", userId, topic.id],
+        queryFn: () => serverFetchNotesForTopic(supabase, userId, topic.id),
       }),
       queryClient.prefetchQuery({
-        queryKey: [TOPICS_QUERY_KEY, "resources", user.id, topic.id],
-        queryFn: () => serverFetchResourcesForTopic(supabase, user.id, topic.id),
+        queryKey: [TOPICS_QUERY_KEY, "resources", userId, topic.id],
+        queryFn: () => serverFetchResourcesForTopic(supabase, userId, topic.id),
       }),
-    ])
+    ]);
   }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <TopicDetailContent />
     </HydrationBoundary>
-  )
+  );
 }
