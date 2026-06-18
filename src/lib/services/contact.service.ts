@@ -11,6 +11,7 @@ import type {
 } from "../types/domain.types";
 import { createContactSchema, updateContactSchema } from "../validators/contact.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
+import { LIST_SAFETY_CAP } from "../utils/constants";
 
 const CONTACT_SELECT =
   "id, user_id, name, slug, role, organization, group, phone, email, linkedin, website, last_interaction_at, follow_up_interval_days, favorite, notes, archive, image_url, metadata, created_at, updated_at";
@@ -228,7 +229,7 @@ export const contactService = {
       query = query.eq("group", filters.group);
     }
 
-    query = query.order("name", { ascending: true });
+    query = query.order("name", { ascending: true }).limit(LIST_SAFETY_CAP);
 
     const { data, error } = await query;
     if (error) throw new DatabaseError(error.message);

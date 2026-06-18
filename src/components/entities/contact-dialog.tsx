@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import { ImageUpIcon, Loader2, X, XIcon } from "lucide-react";
+import Image from "next/image";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
@@ -699,12 +700,13 @@ export function ContactDialog({
                   >
                     {displayImage ? (
                       <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                        <Image
                           src={displayImage}
                           alt="Profile preview"
+                          fill
+                          sizes="(max-width: 768px) 100vw, 320px"
                           className="absolute inset-0 size-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                         />
                         {isUploading && (
                           <div className="absolute inset-0 flex items-center justify-center bg-background/60">

@@ -118,6 +118,30 @@ export function TasksContent() {
     [permanentDelete],
   );
 
+  const handleCompletionToggle = useCallback(
+    (id: string, isCompleted: boolean) => {
+      if (isCompleted) {
+        completeTask.mutate(id);
+        return;
+      }
+      updateTask.mutate({
+        id,
+        input: { completed_at: null, is_completed: false },
+      });
+    },
+    [completeTask, updateTask],
+  );
+
+  const handleFocusToggle = useCallback(
+    (id: string, focused: boolean) => focusTask.mutate({ id, is_focused: focused }),
+    [focusTask],
+  );
+
+  const handleNameSave = useCallback(
+    (id: string, name: string) => updateTask.mutate({ id, input: { name } }),
+    [updateTask],
+  );
+
   const areaMap = useMemo(
     () => new Map(allAreas?.map((area) => [area.id, area]) ?? []),
     [allAreas],
@@ -286,6 +310,60 @@ export function TasksContent() {
       getTaskLinkedAreaIds(task).map((id) => areaMap.get(id)?.icon ?? null),
     [areaMap],
   );
+
+  const getAreaName = useCallback(
+    (task: Task) => {
+      const id = getTaskLinkedAreaIds(task)[0];
+      return id ? areaMap.get(id)?.name ?? null : null;
+    },
+    [areaMap],
+  );
+
+  const getProjectName = useCallback(
+    (task: Task) => {
+      const id = getTaskLinkedProjectIds(task)[0];
+      return id ? projectMap.get(id)?.name ?? null : null;
+    },
+    [projectMap],
+  );
+
+  const getLinkedAreaNamesForList = useCallback(
+    (task: Task) => getTaskLinkedAreaNames(task, areaNamesMap),
+    [areaNamesMap],
+  );
+
+  const getLinkedAreaIconsForList = useCallback(
+    (task: Task) => getTaskLinkedAreaIcons(task, areaIconsMap),
+    [areaIconsMap],
+  );
+
+  const getLinkedGoalNamesForList = useCallback(
+    (task: Task) => getTaskLinkedGoalNames(task, goalNamesMap),
+    [goalNamesMap],
+  );
+
+  const getLinkedProjectNamesForList = useCallback(
+    (task: Task) => getTaskLinkedProjectNames(task, projectNamesMap),
+    [projectNamesMap],
+  );
+
+  const handleNewTaskByArea = useCallback((areaId: string) => {
+    setEditingTask(null);
+    setNewTaskAreaId(areaId);
+    setIsDialogOpen(true);
+  }, []);
+
+  const handleNewTaskByGoal = useCallback((goalId: string) => {
+    setEditingTask(null);
+    setNewTaskGoalId(goalId);
+    setIsDialogOpen(true);
+  }, []);
+
+  const handleNewTaskByProject = useCallback((projectId: string) => {
+    setEditingTask(null);
+    setNewTaskProjectId(projectId);
+    setIsDialogOpen(true);
+  }, []);
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
@@ -720,25 +798,16 @@ export function TasksContent() {
               <TaskList
                 tasks={visibleTasks}
                 variant="simple"
-                getAreaName={(task) => { const id = getTaskLinkedAreaIds(task)[0]; return id ? areaMap.get(id)?.name ?? null : null; }}
-                getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesMap)}
-                getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsMap)}
-                getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, goalNamesMap)}
-                getProjectName={(task) => { const id = getTaskLinkedProjectIds(task)[0]; return id ? projectMap.get(id)?.name ?? null : null; }}
-                getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectNamesMap)}
+                getAreaName={getAreaName}
+                getLinkedAreaNames={getLinkedAreaNamesForList}
+                getLinkedAreaIcons={getLinkedAreaIconsForList}
+                getLinkedGoalNames={getLinkedGoalNamesForList}
+                getProjectName={getProjectName}
+                getLinkedProjectNames={getLinkedProjectNamesForList}
                 showSmartPriority={tab === TASK_VIEW.SMART_PRIORITY}
-                onCompletionToggle={(id, isCompleted) => {
-                  if (isCompleted) {
-                    completeTask.mutate(id);
-                    return;
-                  }
-                  updateTask.mutate({
-                    id,
-                    input: { completed_at: null, is_completed: false },
-                  });
-                }}
-                onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
-                onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+                onCompletionToggle={handleCompletionToggle}
+                onFocusToggle={handleFocusToggle}
+                onNameSave={handleNameSave}
                 onEdit={handleEdit}
                 onArchiveToggle={handleArchiveToggle}
                 onPermanentDelete={handlePermanentDelete}
@@ -753,20 +822,13 @@ export function TasksContent() {
             areaMap={areaMap}
             goalMap={goalMap}
             projectMap={projectMap}
-            onCompletionToggle={(id, isCompleted) => {
-              if (isCompleted) { completeTask.mutate(id); return; }
-              updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
-            }}
-            onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
-            onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+            onCompletionToggle={handleCompletionToggle}
+            onFocusToggle={handleFocusToggle}
+            onNameSave={handleNameSave}
             onEdit={handleEdit}
             onArchiveToggle={handleArchiveToggle}
             onPermanentDelete={handlePermanentDelete}
-            onNewTask={(areaId) => {
-              setEditingTask(null);
-              setNewTaskAreaId(areaId);
-              setIsDialogOpen(true);
-            }}
+            onNewTask={handleNewTaskByArea}
             getLinkedAreaNames={getLinkedAreaNames}
             getLinkedAreaIcons={getLinkedAreaIcons}
             getLinkedGoalNames={getLinkedGoalNames}
@@ -781,20 +843,13 @@ export function TasksContent() {
             areaMap={areaMap}
             goalMap={goalMap}
             projectMap={projectMap}
-            onCompletionToggle={(id, isCompleted) => {
-              if (isCompleted) { completeTask.mutate(id); return; }
-              updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
-            }}
-            onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
-            onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+            onCompletionToggle={handleCompletionToggle}
+            onFocusToggle={handleFocusToggle}
+            onNameSave={handleNameSave}
             onEdit={handleEdit}
             onArchiveToggle={handleArchiveToggle}
             onPermanentDelete={handlePermanentDelete}
-            onNewTask={(goalId) => {
-              setEditingTask(null);
-              setNewTaskGoalId(goalId);
-              setIsDialogOpen(true);
-            }}
+            onNewTask={handleNewTaskByGoal}
             getLinkedAreaNames={getLinkedAreaNames}
             getLinkedAreaIcons={getLinkedAreaIcons}
             getLinkedGoalNames={getLinkedGoalNames}
@@ -809,20 +864,13 @@ export function TasksContent() {
             areaMap={areaMap}
             goalMap={goalMap}
             projectMap={projectMap}
-            onCompletionToggle={(id, isCompleted) => {
-              if (isCompleted) { completeTask.mutate(id); return; }
-              updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
-            }}
-            onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
-            onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+            onCompletionToggle={handleCompletionToggle}
+            onFocusToggle={handleFocusToggle}
+            onNameSave={handleNameSave}
             onEdit={handleEdit}
             onArchiveToggle={handleArchiveToggle}
             onPermanentDelete={handlePermanentDelete}
-            onNewTask={(projectId) => {
-              setEditingTask(null);
-              setNewTaskProjectId(projectId);
-              setIsDialogOpen(true);
-            }}
+            onNewTask={handleNewTaskByProject}
             getLinkedAreaNames={getLinkedAreaNames}
             getLinkedAreaIcons={getLinkedAreaIcons}
             getLinkedGoalNames={getLinkedGoalNames}
@@ -846,18 +894,15 @@ export function TasksContent() {
             <TaskList
               tasks={archivedTasks}
               variant="simple"
-              getAreaName={(task) => { const id = getTaskLinkedAreaIds(task)[0]; return id ? areaMap.get(id)?.name ?? null : null; }}
-              getLinkedAreaNames={(task) => getTaskLinkedAreaNames(task, areaNamesMap)}
-              getLinkedAreaIcons={(task) => getTaskLinkedAreaIcons(task, areaIconsMap)}
-              getLinkedGoalNames={(task) => getTaskLinkedGoalNames(task, goalNamesMap)}
-              getProjectName={(task) => { const id = getTaskLinkedProjectIds(task)[0]; return id ? projectMap.get(id)?.name ?? null : null; }}
-              getLinkedProjectNames={(task) => getTaskLinkedProjectNames(task, projectNamesMap)}
-              onCompletionToggle={(id, isCompleted) => {
-                if (isCompleted) { completeTask.mutate(id); return; }
-                updateTask.mutate({ id, input: { completed_at: null, is_completed: false } });
-              }}
-              onFocusToggle={(id, focused) => focusTask.mutate({ id, is_focused: focused })}
-              onNameSave={(id, name) => updateTask.mutate({ id, input: { name } })}
+              getAreaName={getAreaName}
+              getLinkedAreaNames={getLinkedAreaNamesForList}
+              getLinkedAreaIcons={getLinkedAreaIconsForList}
+              getLinkedGoalNames={getLinkedGoalNamesForList}
+              getProjectName={getProjectName}
+              getLinkedProjectNames={getLinkedProjectNamesForList}
+              onCompletionToggle={handleCompletionToggle}
+              onFocusToggle={handleFocusToggle}
+              onNameSave={handleNameSave}
               onEdit={handleEdit}
               onArchiveToggle={handleArchiveToggle}
               onPermanentDelete={handlePermanentDelete}
