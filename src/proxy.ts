@@ -1,13 +1,23 @@
-import { type NextRequest } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-import { updateSession } from "@/lib/supabase/session-proxy";
+// Public routes that never require a session. Everything else is protected
+// (deny-by-default), mirroring the prior auth-routing behavior.
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/login(.*)",
+  "/signup(.*)",
+]);
 
-export async function proxy(request: NextRequest) {
-  return await updateSession(request);
-}
+export const proxy = clerkMiddleware(async (auth, request) => {
+  if (!isPublicRoute(request)) {
+    await auth.protect();
+  }
+});
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/__clerk/:path*",
+    "/(api|trpc)(.*)",
   ],
 };
