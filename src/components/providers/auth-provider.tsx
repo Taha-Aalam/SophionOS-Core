@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useRef } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
@@ -30,18 +30,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const seededUserIdsRef = useRef(new Set<string>());
 
-  const user: AuthUser | null = clerkUser
-    ? {
-        id: clerkUser.id,
-        email: clerkUser.primaryEmailAddress?.emailAddress ?? null,
-        name:
-          clerkUser.fullName ||
-          clerkUser.firstName ||
-          clerkUser.username ||
-          null,
-        imageUrl: clerkUser.imageUrl || null,
-      }
-    : null;
+  const user: AuthUser | null = useMemo(
+    () =>
+      clerkUser
+        ? {
+            id: clerkUser.id,
+            email: clerkUser.primaryEmailAddress?.emailAddress ?? null,
+            name:
+              clerkUser.fullName ||
+              clerkUser.firstName ||
+              clerkUser.username ||
+              null,
+            imageUrl: clerkUser.imageUrl || null,
+          }
+        : null,
+    [clerkUser],
+  );
 
   useEffect(() => {
     if (!user) return;
