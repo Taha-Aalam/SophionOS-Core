@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -14,7 +15,6 @@ import {
 } from "lucide-react";
 
 import { NoteArchiveToggle } from "@/components/entities/note-archive-toggle";
-import { NoteEditor } from "@/components/entities/note-editor";
 import { NoteMetadataPanel } from "@/components/entities/note-metadata-panel";
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +70,16 @@ import { useUIStore } from "@/lib/stores/ui.store";
 import { buildReturnToChain, encodeReturnTo, popReturnToHref } from "@/lib/utils/return-to";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
 import { STATUS_COLORS } from "@/lib/constants/entity-colors";
+
+// TipTap (StarterKit + ProseMirror) is heavy (~150KB+ gz). Defer it out of the
+// note-detail route bundle; it mounts client-side once the note renders.
+const NoteEditor = dynamic(
+  () => import("@/components/entities/note-editor").then((m) => m.NoteEditor),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="min-h-[400px] w-full flex-1" />,
+  },
+);
 
 const AUTOSAVE_DELAY_MS = 1000;
 
