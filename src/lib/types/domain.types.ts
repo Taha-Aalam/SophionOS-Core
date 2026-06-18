@@ -239,6 +239,8 @@ export interface Contact extends DatabaseTable<"contacts"> {
   linkedGoalIds?: string[];
   linkedProjectIds?: string[];
   linkedTaskIds?: string[];
+  /** Signed, short-lived URL for the private avatar. Computed on read. */
+  image_display_url?: string | null;
 }
 
 export type ContactProject = DatabaseTable<"contact_projects">;

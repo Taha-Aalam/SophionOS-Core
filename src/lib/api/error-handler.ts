@@ -4,6 +4,17 @@ export class AppError extends Error {
     this.name = this.constructor.name;
     Error.captureStackTrace(this, this.constructor);
   }
+
+  /**
+   * Message safe to expose across a trust boundary (e.g. an API route
+   * response). Client (4xx) errors carry actionable, non-sensitive text;
+   * server (5xx) errors are genericized so raw DB/driver internals never
+   * leak. Use this — never `error.message` — when serializing to an HTTP
+   * response or any untrusted sink.
+   */
+  get publicMessage(): string {
+    return this.statusCode >= 500 ? "An unexpected error occurred" : this.message;
+  }
 }
 
 export class ValidationError extends AppError {

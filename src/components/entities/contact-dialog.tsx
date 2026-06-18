@@ -171,11 +171,13 @@ export function ContactDialog({
   const [isRemovingImage, setIsRemovingImage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Local override for the displayed image. null = follow `contact?.image_url`.
+  // Local override for the displayed image. null = follow the contact's
+  // signed display URL. The stored value (form `image_url`) is the object
+  // path; `displayImage` is always a renderable (signed/blob) URL.
   // Deriving via ref + display value avoids the cascading-render anti-pattern
   // of mirroring a prop into state via useEffect.
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
-  const displayImage = uploadPreview ?? contact?.image_url ?? null;
+  const displayImage = uploadPreview ?? contact?.image_display_url ?? null;
 
   const uploadFile = async (file: File) => {
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
@@ -190,9 +192,11 @@ export function ContactDialog({
     try {
       setIsUploading(true);
       const tempId = contact?.id ?? crypto.randomUUID();
-      const url = await contactService.uploadContactImage(user!.id, tempId, file);
-      form.setValue("image_url", url);
-      setUploadPreview(url);
+      // Returns the stored object path; persist it as image_url.
+      const path = await contactService.uploadContactImage(user!.id, tempId, file);
+      form.setValue("image_url", path);
+      // Preview the just-selected file locally (no signing round-trip needed).
+      setUploadPreview(URL.createObjectURL(file));
     } catch {
       toast.error("Failed to upload image");
     } finally {
@@ -220,7 +224,9 @@ export function ContactDialog({
 
     try {
       setIsRemovingImage(true);
-      await contactService.deleteContactImage(displayImage);
+      // Delete by the stored object path, not the signed display URL.
+      const storedPath = form.getValues("image_url") || contact?.image_url || null;
+      await contactService.deleteContactImage(storedPath);
       form.setValue("image_url", "");
       setUploadPreview(null);
       toast.success("Profile image removed");
