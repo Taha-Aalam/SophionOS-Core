@@ -671,7 +671,32 @@ Gate a feature                         PostHog feature flag
 Style something                        Tailwind utility classes
 Animate something                      Tailwind transition/animate utilities
                                        (framer-motion only if Tailwind can't do it)
+Build an MCP tool                      packages/mcp-server/src/tools/
+Test MCP tool                          Connect to Claude Desktop, invoke tool
+Publish MCP server                     npm publish from packages/mcp-server/
 ```
+
+---
+
+## Appendix B: MCP Server Rules
+
+The MCP server (`packages/mcp-server/`) is a separate TypeScript package within the monorepo. It wraps the LifeOS Core REST API as MCP tools. These rules apply when writing MCP server code.
+
+### MCP Tool Rules
+- **One file per entity category** in `src/tools/`. Tasks tools in `tasks.ts`, goals in `goals.ts`, etc.
+- **Tool names are snake_case.** `create_task`, `list_goals`, `get_dashboard`. Not camelCase, not kebab-case.
+- **Tool descriptions are written for AI models, not humans.** Be specific about what the tool does, when to use it, and what the parameters mean. The AI model reads this to decide which tool to call.
+- **Every tool calls the typed API client** (`src/client.ts`). Never call the REST API directly with raw fetch. The client handles auth headers, error parsing, and response typing.
+- **Never hardcode the API URL or API key.** Read from environment variables: `LIFEOS_API_KEY`, `LIFEOS_API_URL`.
+- **Return structured data, not formatted text.** The AI model handles presentation. Return the raw API response data. Let the model decide how to display it to the user.
+- **Handle errors gracefully.** A failed API call should return a clear error message ("Task not found" or "You don't have permission to access this project"), never a raw HTTP status code or stack trace.
+- **No business logic in the MCP server.** The server is a thin translation layer: MCP tool call → REST API call → return result. All business logic lives in the Core API services.
+- **Keep the client.ts in sync with the REST API.** If a new endpoint is added to the API, add the corresponding method to the client and the corresponding tool to the tools directory.
+
+### MCP Testing Rules
+- **Every tool gets a unit test** that mocks the API client and verifies correct parameter mapping.
+- **Integration testing happens via Claude Desktop.** Connect, invoke each tool, verify the result matches the LifeOS dashboard.
+- **Never ship a tool without testing it in a real MCP client.** Unit tests alone are insufficient — the tool description and schema must work with actual AI model reasoning.
 
 ---
 

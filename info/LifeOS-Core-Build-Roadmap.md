@@ -563,9 +563,10 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 
 ---
 
-## Phase 3: System Modules and Notes
 
-> Goal: The daily workflow modules (Dashboard, Inbox, My Day, Quick Capture) and the Notes module. After this phase, a user has a complete daily productivity workflow.
+## Phase 3: Knowledge Layer, Contacts, and System Modules
+
+> Goal: The knowledge management layer (Notes, Resources, Topics), professional Contacts, daily workflow modules (Dashboard, Inbox, My Day, Quick Capture), and the Goal detail command center. After this phase, the complete PARA system is live with knowledge management, a professional network tracker, and a full daily productivity workflow.
 
 ---
 
@@ -599,54 +600,21 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 
 ---
 
-### Step 15: Notes module
+### Step 15: Quick Capture (Cmd+K command palette)
 
-**What:** Full Notes CRUD with Tiptap rich text editor and bidirectional linking.
-
-**Actions:**
-- Install Tiptap: `pnpm add @tiptap/react @tiptap/starter-kit @tiptap/extension-placeholder @tiptap/extension-link`
-- Create `src/components/entities/note-editor.tsx` — Tiptap editor wrapper with toolbar (bold, italic, headings, lists, links, code blocks)
-- Create `src/lib/hooks/use-notes.ts` — full CRUD hooks
-- Create `src/lib/validators/note.schema.ts` — Zod schemas
-- Create `src/lib/services/note.service.ts` — full CRUD
-- Add `notes` table migration: `supabase/migrations/00013_create_notes.sql` (if not already created in Step 4, add it now)
-- Add `note_status` enum if not already present
-- Create `src/app/(dashboard)/notes/page.tsx` — list view with status filter tabs (Inbox, To Review, Active, Archive) + favorites filter + notebook filter
-- Create `src/app/(dashboard)/notes/[id]/page.tsx` — full-page editor with metadata sidebar (area, project, goals, topics, notebook, status)
-- Wire notes to areas and projects (select fields in metadata sidebar)
-- Add note count to area and project rollups
-
-**Dependencies:** Step 9 (areas) + Step 11 (projects) for linking. Step 8 (layout) for sidebar nav update.
-
-**Testing:**
-- Create a note with rich text (bold, headings, lists) — content persists on refresh
-- Link a note to an area and project — appears in their detail pages
-- Filter by status — correct results
-- Favorite a note — appears in favorites filter
-- Area rollup now shows note count
-- Editor handles long content without lag (test with 2000+ word note)
-- `pnpm vitest run` passes
-
-**Deliverable:** Notes module live with rich text. Linked into the PARA system.
-
----
-
-### Step 16: Quick Capture (Cmd+K command palette)
-
-**What:** Build the command palette for universal quick entry.
+**What:** Build the command palette for universal quick entry. Starts with core entity search and gets extended as more modules are added in subsequent steps.
 
 **Actions:**
 - Create `src/components/layout/command-palette.tsx` — shadcn `Command` component triggered by Cmd+K / Ctrl+K
 - Create `src/lib/hooks/use-keyboard.ts` — global keyboard shortcut listener
 - Command palette modes:
-  - Default: search across all entities (tasks, goals, projects, notes) by name
+  - Default: search across existing entities (tasks, goals, projects, areas) by name
   - "Create task: [name]" → creates task inline
-  - "Create note: [name]" → creates note and opens editor
   - Navigation: type page name to navigate (e.g., "Goals" → navigate to /goals)
 - Wire into dashboard layout (always available on any page)
 - Add to `src/lib/stores/ui.store.ts` — `commandPaletteOpen` state
 
-**Dependencies:** Step 15 (notes must exist for "create note" command). Step 12 (tasks for "create task").
+**Dependencies:** Step 14 (dashboard layout). Step 12 (tasks for "create task").
 
 **Testing:**
 - Cmd+K opens palette on macOS, Ctrl+K on Windows
@@ -657,239 +625,825 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 - Works on every page in the app
 - Palette closes after action is taken
 
-**Deliverable:** Command palette operational. Fastest way to capture and navigate.
+**Deliverable:** Command palette operational. Will be extended in Steps 16–19 as more entity types are added.
 
 ---
 
-### Step 17: Inbox and My Day
+### Step 16: Notes module (full view set)
 
-**What:** Build the GTD-style inbox processing view and the daily planning view.
+**What:** Full Notes CRUD with Tiptap rich text editor, bidirectional linking, and 9 view tabs: Inbox, To review, Pinned, Edited, Favorite, By Topic, By Project, Archived, All.
 
 **Actions:**
-- Create `src/app/(dashboard)/inbox/page.tsx` — aggregated view of all items with status "inbox" across tasks and notes. Each item shows type badge, name, created date, and action buttons (Assign Area, Set Priority, Move to Status)
-- Inbox processing flow: click an item → inline form to assign area/project/priority/status → item leaves inbox
-- Create `src/app/(dashboard)/my-day/page.tsx` — shows: tasks due today, tasks marked as focus, a "Plan my day" section where users can drag tasks from a sidebar list into today's focus
-- Focus toggle: click star icon on any task to add/remove from My Day
-- My Day resets concept: items are filtered by `due_date = today OR focus = true`, not stored separately
+- Install Tiptap: `pnpm add @tiptap/react @tiptap/starter-kit @tiptap/extension-placeholder @tiptap/extension-link`
+- Create `src/components/entities/note-editor.tsx` — Tiptap editor wrapper with toolbar (bold, italic, headings, lists, links, code blocks)
+- Create `src/lib/hooks/use-notes.ts` — full CRUD hooks + `useNotesByProject()`, `useNotesByTopic()`, `usePinnedNotes()`, `useFavoriteNotes()`
+- Create `src/lib/validators/note.schema.ts` — Zod schemas including `type` field (Note, Learning, Research, Business Plan, Journal — user-extensible text field, not a rigid enum)
+- Create `src/lib/services/note.service.ts` — full CRUD with grouped queries
+- Add `notes` table migration if not already created in Step 4
+- Create `src/app/(dashboard)/notes/page.tsx` — table/list view with 9 tabs:
+  - **Inbox** — notes with status "inbox"
+  - **To review** — notes with status "to_review"
+  - **Pinned** — notes with `pin = true`
+  - **Edited** — notes sorted by `updated_at` descending (recently modified first)
+  - **Favorite** — notes with `favorite = true`
+  - **By Topic** — notes grouped under collapsible topic headers
+  - **By Project** — notes grouped under collapsible project headers, each section showing a table with columns: Pin icon, Status badge, Name, Type badge (colored: Learning=pink, Research=red, Business Plan=rose), Areas, Topics, Star (favorite), Archive checkbox
+  - **Archived** — notes with `archive = true`
+  - **All** — all notes in a flat table view
+- Table columns for list views: Pin (checkbox), Status (colored badge), Name, Type (colored badge), Areas (linked), Topics (linked), Star (favorite toggle), Archive (checkbox)
+- "New Note" button opens creation dialog or navigates to editor
+- Create `src/app/(dashboard)/notes/[id]/page.tsx` — full-page editor with metadata sidebar (area, project, goals, topics, notebook, type, status, pin, favorite)
+- Wire notes to areas, projects, and topics (select fields in metadata sidebar)
+- Add note count to area and project rollups
+- Extend command palette to include notes in search results and support "Create note: [name]" command
 
-**Dependencies:** Step 14 (dashboard provides the data queries). Step 12 (tasks with focus flag).
+**Dependencies:** Step 9 (areas) + Step 11 (projects) for linking. Step 15 (command palette to extend).
 
 **Testing:**
-- Create a task with status "inbox" — appears in Inbox view
-- Process the task (assign area + priority + change status to "todo") — disappears from inbox
-- Create a note with status "inbox" — appears in Inbox view
-- My Day shows tasks due today
-- Toggle focus on a task from tasks page — appears in My Day
-- Remove focus — disappears from My Day
-- Empty states render when inbox is clear / my day is empty
+- Create a note with rich text (bold, headings, lists) — content persists on refresh
+- Link a note to an area and project — appears in their detail pages
+- All 9 tabs filter correctly
+- "By Project" view groups notes under correct project headers with collapsible sections
+- Type badges render with correct colors (Learning=pink, Research=red, etc.)
+- Pin, favorite, archive all work correctly across tabs
+- "Edited" tab sorts by last modified time
+- Area and project rollup counts update when notes are added/removed
+- Command palette finds notes by name and supports "Create note: [name]"
+- Editor handles long content without lag (test with 2000+ word note)
+- `pnpm vitest run` passes
 
-**Deliverable:** Daily workflow complete. Users can process inbox and plan their day.
-
----
-
-## Phase 4: REST API
-
-> Goal: Every feature available via REST API, ready for the LifeOS Agent (Project 2) to consume. This phase exists because the PRD mandates API parity — if you can do it in the dashboard, you can do it via API.
+**Deliverable:** Notes module live with full view set, rich text editing, and deep cross-linking.
 
 ---
 
-### Step 18: API infrastructure (auth, rate limiting, error handling)
+### Step 17: Resources module
+
+**What:** Full Resources CRUD for managing external references (web clips, articles, videos, social media posts, documents). Table view with status pipeline, topic linking, and direct URL access. 6 view tabs: Inbox, To review, Favorites, By Topics, Archive, All.
+
+**Actions:**
+- Create `src/lib/services/resource.service.ts` — full CRUD + `getByTopic(userId, topicId)`, `getFavorites(userId)`
+- Create `src/lib/hooks/use-resources.ts` — full CRUD hooks + `useResourcesByTopic()`
+- Create `src/lib/validators/resource.schema.ts` — Zod schemas with `type` field accepting: Website, Article, Video, Document, Podcast, Social Media, Tool (user-extensible text)
+- Create `src/components/entities/resource-row.tsx` — table row with: Status badge, Name, Type badge (colored), Topics (linked badges), Areas (linked), Projects (linked), "Open Link" button (opens URL in new tab), Star (favorite toggle), Archive checkbox
+- Create `src/app/(dashboard)/resources/page.tsx` — table view with 6 tabs:
+  - **Inbox** — resources with status "inbox"
+  - **To review** — resources with status "to_review"
+  - **Favorites** — resources with `favorite = true`
+  - **By Topics** — resources grouped under collapsible topic headers
+  - **Archive** — resources with `archive = true`
+  - **All** — all resources in flat table view
+- Table columns: Status, Name, Type, Topics, Areas, Projects, Open (link button), Star, Archive
+- "New Resource" button with fields: name, URL, type (combobox), topics (multi-select), area, project, status
+- "Open Link" disabled if URL is empty
+- Extend command palette to include resources in search results and support "Create resource: [url]"
+
+**Dependencies:** Step 16 (notes establishes table view pattern and topic linking).
+
+**Testing:**
+- Create a resource with URL — "Open Link" opens in new tab
+- All 6 tabs filter correctly
+- "By Topics" view groups under correct headers
+- Status transitions: Inbox → To review → Saved
+- Favorite, archive work correctly
+- Command palette finds resources by name
+- `pnpm vitest run` passes
+
+**Deliverable:** Resources module live. External references captured, categorized, and linked into the PARA system.
+
+---
+
+### Step 18: Topics module
+
+**What:** Full Topics CRUD — the tagging/categorization system connecting Notes and Resources. Gallery view with cards showing linked area badges, rollup counts. 6 view tabs: Active, Favorite, Inactive, By area, All, All (table).
+
+**Actions:**
+- Create `src/lib/services/topic.service.ts` — full CRUD + `getGroupedByArea(userId)`, `getActive(userId)`, `getInactive(userId)`
+- Create `src/lib/hooks/use-topics.ts` — full CRUD hooks + `useTopicsByArea()`, `useActiveTopics()`, `useInactiveTopics()`
+- Create `src/lib/validators/topic.schema.ts` — Zod schemas
+- Create `src/components/entities/topic-card.tsx` — card showing: icon, topic name, linked area badges, rollup counts (X Notes, Y Resources), favorite star
+- Create `src/app/(dashboard)/topics/page.tsx` — gallery view with 6 tabs:
+  - **Active** (default) — topics with 1+ linked notes or resources (auto-computed, same pattern as Step 9c)
+  - **Favorite** — topics with `favorite = true`
+  - **Inactive** — topics with 0 linked items
+  - **By area** — grouped under linked area headers
+  - **All** — gallery view
+  - **All (table)** — flat table with columns: Name, Areas, Notes count, Resources count, Favorite
+- "New Topic" button with fields: name, linked areas (multi-select), favorite
+- Topic detail page showing all linked notes and resources
+- Database trigger `recalc_topic_inactive()` — same auto-active/inactive pattern as areas
+
+**Dependencies:** Step 16 (notes) + Step 17 (resources) — topics link to both.
+
+**Testing:**
+- Create topic → appears in Inactive tab. Link a note → moves to Active tab automatically
+- "By area" groups topics under correct headers
+- Topic linked to 2 areas appears under both
+- Rollup counts correct. Favorite works.
+- `pnpm vitest run` passes
+
+**Deliverable:** Topics module live. Knowledge layer complete — Notes, Resources, and Topics fully interconnected.
+
+---
+
+### Step 19: Contacts module (Professional Network & Stakeholder Tracker)
+
+**What:** Professional contacts module — the people you work with, collaborate with, or deliver work to. Each contact links to projects and tasks with a role (team member, client, stakeholder, etc.).
+
+**Actions:**
+- **Schema:** `contacts` table: name, role, organization, group (Client/Team Member/Vendor/Mentor/Collaborator/Partner — user-extensible), phone, email, linkedin, website, last_interaction_at, follow_up_interval_days, favorite, notes, archive, metadata JSONB
+- `contact_projects` junction: contact_id, project_id, role_in_project TEXT
+- `contact_tasks` junction: contact_id, task_id, role_in_task TEXT
+- Computed: days_since_interaction, follow_up_status (ON TRACK / FOLLOW UP)
+- Service: full CRUD + getByGroup, getByProject, getByTask, getNeedFollowUp, logInteraction, linkToProject, linkToTask
+- Contact card: name, role/org subtitle, group badge (colored), phone/email (clickable tel:/mailto:), linked projects with role badges, follow-up status badge
+- Page with 5 tabs: All (table), Fav., By group, By project, Follow-up tracker
+- "Log Interaction" one-click button on each card
+- **Project integration:** "People" section on project detail page (Step 11) with role badges
+- **Task integration:** optional "Assigned to" / "Requested by" on task dialog (Step 12)
+- Contact detail view with all linked projects/tasks and interaction timeline
+- Extend command palette to include contacts
+
+**Dependencies:** Step 11 (projects) + Step 12 (tasks) for linking.
+
+**Testing:**
+- Create contact with role, org, group — renders correctly
+- Link to project as "Client" — appears in project detail "People" section
+- Link to task as "Requester" — task shows contact
+- Follow-up logic works (ON TRACK / FOLLOW UP based on interval)
+- "Log Interaction" resets follow-up status
+- All 5 tabs filter correctly
+- Command palette finds contacts
+- `pnpm vitest run` passes
+
+**Deliverable:** Professional Contacts live with project/task linking, role tracking, and follow-up reminders.
+
+---
+
+### Step 20: Goal detail page (goal command center)
+
+**What:** Dedicated detail page for each goal — a command center displaying goal properties at the top and embedded, filtered sections for all linked entity types (Projects, Tasks, Notes, Resources) below. Each section has its own tab bar.
+
+**Actions:**
+- Create `src/app/(dashboard)/goals/[id]/page.tsx` with properties header + scrollable entity sections
+- **Properties header:** goal title (inline editable), area badge, priority badge, completion % with progress ring, due date tracker (red if overdue), collapsible properties panel (Goal Activity rollups, By term badge, Due Date picker, Add Tasks button, Archive checkbox, Completed checkbox), breadcrumb navigation
+- **Projects section:** filtered to this goal. Tabs: All, Inbox, In Progress, By status, Timeline, Archive. Reuses `project-card.tsx`. Inline project creation pre-linked to this goal.
+- **Tasks section:** filtered to this goal. Tabs: All, Inbox, Upcoming, Overdue, By Projects, Completed. Reuses `task-list-item.tsx`. Inline task completion updates header completion % in real time.
+- **Notes section:** filtered to this goal. Dynamic type tabs (standard: All, Inbox, To review, Favorite, Archived + auto-generated tabs from linked notes' `type` values). Filter chip "Goals: [Goal Name]" always applied.
+- **Resources section:** filtered to this goal. Dynamic type tabs (standard + auto-generated from `type` values). Filter chip "Goals: [Goal Name]" always applied.
+- Create `src/lib/hooks/use-goal-detail.ts` — parallel fetches for goal + all linked entities
+- Create `src/components/entities/goal-detail-section.tsx` — reusable section wrapper (accent bar + tabs + filtered list), parameterized by entity type
+
+**Dependencies:** Step 10 (goals), Step 11 (projects), Step 12 (tasks), Step 16 (notes), Step 17 (resources). All entity modules must be built before this step.
+
+**Testing:**
+- Header: correct title, area, priority, completion %, due date
+- Goal Activity rollup counts correct and clickable (scrolls to section)
+- Projects section shows only this goal's projects with full tab navigation
+- Tasks: completing a task updates header completion % immediately
+- Notes: dynamic type tabs appear based on linked notes' types
+- Resources: dynamic type tabs, filter chip present
+- Create entities from within goal page → auto-linked to this goal
+- Performance: goal with 5 projects + 20 tasks + 10 notes + 8 resources loads in < 2s
+- `pnpm vitest run` passes
+
+**Deliverable:** Goal command center live. Users manage an entire goal's scope without navigating away from the page.
+
+---
+
+### Step 21: Inbox and My Day
+
+**What:** GTD-style inbox processing and daily planning views.
+
+**Actions:**
+- Create `src/app/(dashboard)/inbox/page.tsx` — aggregated inbox across tasks, notes, and resources. Each item: type badge, name, created date, action buttons (Assign Area, Set Priority, Move to Status)
+- Inbox processing: click item → inline form → item leaves inbox
+- Create `src/app/(dashboard)/my-day/page.tsx` — tasks due today + focus items + "Plan my day" drag section
+- Focus toggle: star icon on any task
+
+**Dependencies:** Step 14 (dashboard). Step 12 (tasks). Step 17 (resources).
+
+**Testing:**
+- Inbox shows items from tasks, notes, resources with status "inbox"
+- Processing removes item from inbox
+- My Day shows today's tasks + focus tasks
+- Focus toggle works
+- Empty states render
+
+**Deliverable:** Daily workflow complete. Inbox processing and day planning operational.
+
+---
+
+### Step 21b: Notes module — refinements and missing properties
+
+**What:** After building the full system (Steps 14–21), revisit the Notes module to add refinements that only make sense once all other modules are live. Step 16 built the core Notes CRUD and 9 view tabs. This step adds the missing properties, inline behaviors, and cross-module integrations that the initial build deferred.
+
+**Missing properties to add:**
+
+- **Notebook field:** The notes schema includes `notebook` (TEXT) for grouping notes into virtual notebooks (e.g., "Recipes", "Stock Investing", "Meeting Notes"), but Step 16 didn't build the UI for it. Add:
+  - A "Notebook" column to the table view (between Projects and Star columns)
+  - A notebook filter dropdown in the filter bar (filter notes by notebook)
+  - A notebook selector in the note creation dialog and the note editor metadata sidebar (combobox: select existing notebook or create new)
+  - A new tab: **By Notebook** — notes grouped under collapsible notebook headers (same pattern as "By Project" and "By Topic")
+  - This brings the total tab count to **10**: Inbox, To review, Pinned, Edited, Favorite, By Topic, By Project, By Notebook, Archived, All
+
+- **Goals linking in table view:** The note detail page (editor sidebar) supports linking to goals, but the main table view doesn't show it. Add:
+  - A "Goals" column to the table view (after Projects column)
+  - Clicking a goal badge in the table navigates to the goal detail page
+  - This is important because the Goal command center (Step 20) shows notes filtered by goal — the table view should reflect this relationship bidirectionally
+
+- **Related Notes (bidirectional linking):** The architecture doc specifies a `note_related_notes` self-referential junction table, but Step 16 didn't build the UI. Add:
+  - A "Related Notes" section at the bottom of the note editor page
+  - "Link Related Note" button opens a note search combobox
+  - Linked notes show as clickable cards (title + type badge + status)
+  - Linking is bidirectional: if Note A links to Note B, Note B automatically shows Note A in its Related Notes section
+  - A "Related" indicator badge on the table view for notes that have 1+ related notes
+
+- **Note type as a column filter:** The Type column exists but the tab bar doesn't have per-type filter tabs. Add dynamic type tabs to the main Notes page (same pattern as the Goal command center from Step 20):
+  - Standard tabs always visible: Inbox, To review, Pinned, Edited, Favorite, By Topic, By Project, By Notebook, Archived, All
+  - Dynamic tabs auto-generated from distinct `type` values in the user's notes: if a user has notes with type "Learning", "Research", and "Meeting", three additional tabs appear
+  - This mirrors how the Goal command center (Step 20) handles Notes section tabs
+
+**Missing inline behaviors:**
+
+- **Inline "+ New page" at table bottom:** Add a clickable "+ New page" row at the bottom of every table view (matching the screenshot). Clicking it creates a new note inline with the current tab's default status (e.g., clicking it in the Inbox tab creates a note with status "inbox")
+
+- **Settings gear next to "New Note" button:** Add a settings popover for configuring note defaults:
+  - Default status for new notes (Inbox / To review / Active)
+  - Default type for new notes
+  - Default notebook
+  - These preferences are stored in `user_settings` and pre-fill the creation dialog
+
+- **Pin column behavior:** The pin icon in the first column should be a clickable toggle (not a checkbox). Click to pin → note jumps to top of current view with a pin icon. Click again to unpin. Pinned notes always appear above non-pinned notes within any tab view.
+
+- **Multi-select actions:** Add checkbox column (first column, before pin) for selecting multiple notes. When 1+ notes are selected, show a bulk action bar at the top: "Archive selected", "Change status", "Move to notebook", "Delete". This is visible in the screenshot as checkboxes on the left side of each row.
+
+- **Star (favorite) and Archive as inline toggles:** Both should be clickable directly in the table row without opening the note. Click star → optimistic toggle → toast with undo. Click archive checkbox → note moves to Archived tab with undo toast.
+
+**Actions:**
+
+- Update `src/app/(dashboard)/notes/page.tsx`:
+  - Add Notebook column to table
+  - Add Goals column to table
+  - Add dynamic type tabs alongside the 10 standard tabs
+  - Add inline "+ New page" row at bottom
+  - Add settings gear popover next to "New Note"
+  - Add multi-select checkboxes with bulk action bar
+  - Ensure pin icon is a clickable toggle, not a checkbox
+
+- Update `src/app/(dashboard)/notes/[id]/page.tsx` (editor):
+  - Add "Related Notes" section at bottom with search-and-link combobox
+  - Add notebook selector to metadata sidebar
+
+- Update `src/lib/hooks/use-notes.ts`:
+  - Add `useNotesByNotebook()` hook
+  - Add `useRelatedNotes(noteId)` hook
+  - Add `useLinkRelatedNote()` mutation
+  - Add `useBulkUpdateNotes()` mutation for multi-select actions
+
+- Update `src/lib/services/note.service.ts`:
+  - Add `getByNotebook(userId, notebook)` method
+  - Add `getRelated(userId, noteId)` method
+  - Add `linkRelated(userId, noteAId, noteBId)` method
+  - Add `bulkArchive(userId, noteIds[])`, `bulkUpdateStatus(userId, noteIds[], status)` methods
+
+- Update `src/lib/validators/note.schema.ts`:
+  - Add notebook validation
+  - Add bulk action schemas
+
+- Create/verify `supabase/migrations/000XX_note_related_notes.sql`:
+  - `note_related_notes` table with `CHECK (note_a_id < note_b_id)` to prevent duplicate bidirectional entries
+  - RLS policies: user can only link their own notes
+  - Index on both columns
+
+**Dependencies:** Step 16 (base Notes module), Step 18 (Topics — for "By Topic" tab to work fully), Step 20 (Goal command center — establishes the dynamic type tab pattern that gets adopted here).
+
+**Testing:**
+
+*Notebook tests:*
+- Create a note with notebook "Meeting Notes" — notebook badge appears in table
+- Filter by notebook — only notes in that notebook shown
+- "By Notebook" tab groups notes under notebook headers
+- Create second notebook "Recipes" — notes correctly grouped under both
+
+*Goals column tests:*
+- Link a note to a goal — goal badge appears in the Goals column
+- Click goal badge — navigates to goal detail page
+- Note appears in the Goal command center's Notes section
+
+*Related Notes tests:*
+- Link Note A to Note B — Note B appears in Note A's "Related Notes" section AND Note A appears in Note B's
+- Unlink — removed from both sides
+- "Related" indicator badge appears on notes with 1+ related notes in table view
+
+*Dynamic type tabs:*
+- Create notes with types "Learning", "Research", "Meeting" — three new tabs appear automatically
+- Click "Learning" tab — only Learning notes shown
+- Delete all Learning notes — "Learning" tab disappears
+
+*Inline behavior tests:*
+- Click "+ New page" in Inbox tab → new note created with status "inbox"
+- Click pin icon → note moves to top of list with pin indicator
+- Click star → favorite toggles with toast + undo
+- Click archive checkbox → note moves to Archived tab with undo toast
+- Select 3 notes via checkboxes → bulk action bar appears
+- "Archive selected" → all 3 move to Archived tab
+
+*Settings gear tests:*
+- Set default status to "To review" → new notes pre-fill with "To review" status
+- Set default notebook to "Work Notes" → new notes pre-fill with that notebook
+
+- `tsc --noEmit` passes
+- `pnpm vitest run` passes
+
+**Deliverable:** Notes module fully polished with all properties, inline behaviors, and cross-module integrations. The module now has 10+ tabs (standard + dynamic), notebook grouping, bidirectional related notes, goals column, multi-select bulk actions, inline toggles, and configurable defaults. This is the most feature-rich module in the system.
+
+---
+
+### Step 22: Knowledge Hub
+
+**What:** Build the Knowledge Hub — a unified discovery interface that brings together Topics, Notes, and Resources on a single page. This is the user's go-to place for storing and easily retrieving all their knowledge, organized by type or topic. It is not a separate database — it is a composite page that queries and displays data from the three existing knowledge modules in embedded sections with a global search bar across all of them.
+
+**Actions:**
+
+- Create `src/app/(dashboard)/knowledge/page.tsx` — the Knowledge Hub page with:
+
+  - **Page header:**
+    - Search icon + "Knowledge Hub" title
+    - Description: "This hub is your go-to place for storing and easily retrieving all your knowledge. Access and search your resources and notes, neatly organized by type or topic."
+    - Global search bar at the top — searches across Notes + Resources + Topics simultaneously. Results appear inline below grouped by type (Topics, Notes, Resources) with match counts per category.
+
+  - **Topics section** (first section):
+    - Section header: "Topics" with light blue accent bar
+    - Description: "Explore your library of Topics."
+    - Embeds the full Topics gallery from Step 18 — same tab bar (Active, Favorite, Inactive, By area, All), same topic cards (icon, name, area badges, rollup counts), same "+ New page" card
+    - Clicking a topic card navigates to the Topics detail page
+    - "New" button creates a new topic
+
+  - **Notes section** (second section):
+    - Section header: "Notes" with accent bar
+    - Description: "Access and search your latest Notes."
+    - Embeds a filtered Notes table from Step 16 — tab bar: All, Inbox, To review, Pinned, Favorite, By Topic, By Project, Archived
+    - Table columns: Pin, Status, Name, Type badge, Topics, Areas, Projects, Star, Archive
+    - "New" button creates a new note
+
+  - **Resources section** (third section):
+    - Section header: "Resources" with accent bar
+    - Description: "Access and search your latest Resources."
+    - Embeds a filtered Resources table from Step 17 — tab bar: All, Inbox, To review, Favorites, By Topics, Archive
+    - Table columns: Status, Name, Type, Topics, Areas, Projects, Open Link, Star, Archive
+    - "New" button creates a new resource
+
+- Create `src/lib/hooks/use-knowledge-hub.ts`:
+  - `useKnowledgeSearch(query)` — full-text search across notes (name + content), resources (name + url), and topics (name) simultaneously using PostgreSQL `to_tsvector`. Returns `{ topics: [...], notes: [...], resources: [...] }` with match count per category.
+  - Reuses existing `useTopics()`, `useNotes()`, `useResources()` hooks for section data — no data duplication.
+
+- Create `src/lib/services/knowledge.service.ts`:
+  - `search(userId, query)` — runs parallel searches across all three tables, returns grouped results with relevance ranking
+
+- Update sidebar navigation: add "Knowledge Hub" link in the System section (between Dashboard and Inbox)
+
+- The Knowledge Hub renders the same components (topic cards, note rows, resource rows) from Steps 16, 17, and 18. It is a composition page — like the Goal command center (Step 20) — not a new database.
+
+**Dependencies:** Step 16 (Notes), Step 17 (Resources), Step 18 (Topics). All three knowledge modules must be built.
+
+**Testing:**
+- Knowledge Hub page loads with all 3 sections: Topics, Notes, Resources
+- Topics section renders the same gallery as the standalone Topics page
+- Notes section renders the same table as the standalone Notes page
+- Resources section renders the same table as the standalone Resources page
+- Global search: type "productivity" → results grouped: matching Topics, matching Notes, matching Resources
+- Search with no results → "No results found" message
+- Empty knowledge hub (new user) → empty states in all 3 sections with action buttons
+- Click a topic card → navigates to topic detail page
+- Click a note row → navigates to note editor
+- Click a resource "Open Link" → opens URL in new tab
+- Each section's tab bar works independently (switching tabs in Topics doesn't affect Notes)
+- "New" buttons in each section create the correct entity type
+- Performance: hub with 20 topics + 50 notes + 30 resources loads in < 2 seconds
+- `pnpm vitest run` passes
+
+**Deliverable:** Knowledge Hub live. Users have a single page to discover, search, and navigate all their knowledge — topics, notes, and resources unified. This completes the knowledge management layer of LifeOS.
+
+---
+
+## Phase 4: REST API (Full Coverage)
+
+> Goal: Every feature from Phases 1–3 available via REST API, ready for the LifeOS Agent (Project 2) to consume. Full API parity — if you can do it in the dashboard, you can do it via API. This covers: Areas (with type grouping and auto-active/inactive), Goals (with detail command center data), Projects (with contact linking), Tasks (with smart priority and contact linking), Notes (9+ views), Resources (6 views), Topics (with auto-active/inactive), Knowledge Hub (unified search), Contacts (with project/task role linking and follow-up tracking), Dashboard, Search, and Inbox.
+
+---
+
+### Step 23: API infrastructure (auth, rate limiting, error handling)
 
 **What:** Build the API middleware layer that all route handlers share.
 
 **Actions:**
-- Create `src/lib/api/auth-guard.ts` — function that extracts user from: (a) Supabase session JWT, or (b) API key from `Authorization: Bearer sk_live_xxx` header. Returns `{ user, error }`.
-- Create `src/lib/api/rate-limiter.ts` — in-memory token bucket per user. Free: 100 req/min, Pro: 500, Premium: 1000. Returns 429 with `Retry-After` header.
-- Create `src/lib/api/error-handler.ts` — `handleApiError(error)` maps Zod/Auth/NotFound/DB errors to standardized JSON responses
-- Create `src/lib/api/pagination.ts` — cursor-based pagination helper: takes `cursor` + `limit` params, returns `{ data, meta: { cursor, has_more } }`
-- Create `src/lib/api/response.ts` — helper functions: `successResponse(data)`, `listResponse(data, meta)`, `errorResponse(code, message)`
-- Add `api_keys` table migration if not already present
-- Add `user_settings` table migration (for timezone, tier info)
-- Add `subscriptions` table migration (for tier enforcement)
+- Create `src/lib/api/auth-guard.ts` — extracts user from JWT or API key (`Authorization: Bearer sk_live_xxx`). Returns `{ user, error }`.
+- Create `src/lib/api/rate-limiter.ts` — token bucket per user. Free: 100 req/min, Pro: 500, Premium: 1000.
+- Create `src/lib/api/error-handler.ts` — maps Zod/Auth/NotFound/DB errors to standardized JSON responses
+- Create `src/lib/api/pagination.ts` — cursor-based pagination helper
+- Create `src/lib/api/response.ts` — `successResponse(data)`, `listResponse(data, meta)`, `errorResponse(code, message)`
+- Add `api_keys`, `user_settings`, `subscriptions` table migrations if not present
 
 **Dependencies:** Step 6 (service layer) + Step 7 (auth).
 
 **Testing:**
-- Write `tests/integration/auth-guard.test.ts`:
-  - Valid JWT → returns user
-  - Invalid JWT → returns 401
-  - Valid API key → returns user
-  - Invalid API key → returns 401
-  - No auth header → returns 401
-- Write `tests/integration/rate-limiter.test.ts`:
-  - Under limit → passes
-  - Over limit → returns 429 with Retry-After
+- Valid JWT → user. Invalid → 401. Valid API key → user. No auth → 401.
+- Over rate limit → 429 with Retry-After
 - `pnpm vitest run` passes
 
-**Deliverable:** API middleware layer complete. Every route handler gets auth + rate limiting + error handling for free.
+**Deliverable:** API middleware complete.
 
 ---
 
-### Step 19: Core CRUD API routes
+### Step 24: Core PARA API routes (Areas, Goals, Projects, Tasks)
 
-**What:** REST endpoints for areas, goals, projects, and tasks.
+**What:** REST endpoints for the four core entities with all the features built in Phase 2.
 
 **Actions:**
-- Create route handlers following the pattern:
+- Create route handlers:
   ```
-  /app/api/v1/areas/route.ts          → GET (list), POST (create)
-  /app/api/v1/areas/[id]/route.ts     → GET, PUT, DELETE
-  /app/api/v1/goals/route.ts          → GET, POST
-  /app/api/v1/goals/[id]/route.ts     → GET, PUT, DELETE
-  /app/api/v1/projects/route.ts       → GET, POST
-  /app/api/v1/projects/[id]/route.ts  → GET, PUT, DELETE
-  /app/api/v1/tasks/route.ts          → GET, POST
-  /app/api/v1/tasks/[id]/route.ts     → GET, PUT, DELETE
-  /app/api/v1/tasks/[id]/complete/route.ts → POST
-  /app/api/v1/tasks/bulk/route.ts     → POST (bulk create)
+  /api/v1/areas                       → GET (list, supports ?type= filter, ?status=active|inactive|archived), POST
+  /api/v1/areas/[id]                  → GET (with rollup counts), PUT, DELETE
+  /api/v1/areas/grouped-by-type       → GET (returns areas grouped by type for "By type" view)
+
+  /api/v1/goals                       → GET (supports ?term=, ?area_id=, ?status=active|inactive|completed), POST
+  /api/v1/goals/[id]                  → GET, PUT, DELETE
+  /api/v1/goals/[id]/detail           → GET (full command center: goal + linked projects, tasks, notes, resources)
+
+  /api/v1/projects                    → GET (supports ?status=, ?area_id=, ?goal_id=), POST
+  /api/v1/projects/[id]               → GET (with task count, progress, linked contacts), PUT, DELETE
+
+  /api/v1/tasks                       → GET (supports ?status=, ?priority=, ?area_id=, ?project_id=, ?focus=, ?overdue=, ?sort_by=smart_priority), POST
+  /api/v1/tasks/[id]                  → GET, PUT, DELETE
+  /api/v1/tasks/[id]/complete         → POST
+  /api/v1/tasks/bulk                  → POST (bulk create — critical for Agent)
   ```
 - Every handler: auth guard → Zod validation → service call → standardized response
-- GET list endpoints support: `cursor`, `limit`, `status`, `area_id`, `priority`, `sort_by`, `sort_order` query params
-- POST/PUT return the created/updated entity
-- DELETE returns `{ success: true }`
+- GET list endpoints support: cursor, limit, sort_by, sort_order query params
 
-**Dependencies:** Step 18 (API infrastructure).
+**Dependencies:** Step 23 (API infrastructure).
 
 **Testing:**
-- Write `tests/integration/tasks.api.test.ts`:
-  - POST /api/v1/tasks → 201 with valid input
-  - POST /api/v1/tasks → 400 with invalid input (empty name)
-  - POST /api/v1/tasks → 401 without auth
-  - GET /api/v1/tasks → 200 with list of user's tasks
-  - GET /api/v1/tasks?status=inbox → filtered results
-  - PUT /api/v1/tasks/:id → 200 with updated task
-  - POST /api/v1/tasks/:id/complete → 200 with completed task
-  - DELETE /api/v1/tasks/:id → 200
-  - POST /api/v1/tasks/bulk → 201 with array of tasks
-- Same test pattern for areas, goals, projects (lighter coverage — same handler pattern)
+- Full CRUD test suite for tasks (create, read, list with filters, update, complete, delete, bulk create)
+- GET /api/v1/areas/grouped-by-type → returns correct grouped structure
+- GET /api/v1/goals/:id/detail → returns goal + all 4 linked entity arrays
+- GET /api/v1/tasks?sort_by=smart_priority → sorted by smart priority descending
+- GET /api/v1/tasks?overdue=true → only overdue tasks
+- Same pattern for areas, goals, projects
 - `pnpm vitest run` passes
 
-**Deliverable:** Full REST API for core PARA modules. Agent (Project 2) can now read/write all core data.
+**Deliverable:** Full API for core PARA with all Phase 2 features accessible.
 
 ---
 
-### Step 20: Dashboard and search API routes
+### Step 25: Knowledge layer API routes (Notes, Resources, Topics)
 
-**What:** API endpoints for dashboard aggregation and full-text search.
+**What:** REST endpoints for the knowledge management modules with all their views and grouping capabilities.
 
 **Actions:**
-- Create `/app/api/v1/dashboard/today/route.ts` — returns: today's tasks, focus tasks, overdue count, active goals (top 5), stats
-- Create `/app/api/v1/dashboard/summary/route.ts` — returns: total tasks, completed this week, active goals, active projects, streak data
-- Create `/app/api/v1/search/route.ts` — accepts `q` (query string), `types[]` (filter by entity type), `limit`. Uses PostgreSQL `to_tsvector` full-text search across tasks, notes, resources
-- Create `/app/api/v1/notes/route.ts` — GET/POST for notes
-- Create `/app/api/v1/notes/[id]/route.ts` — GET/PUT/DELETE for notes
+- Create route handlers:
+  ```
+  /api/v1/notes                       → GET (supports ?status=, ?topic_id=, ?project_id=, ?type=, ?pin=, ?favorite=, ?group_by=project|topic), POST
+  /api/v1/notes/[id]                  → GET (with full content), PUT, DELETE
 
-**Dependencies:** Step 19 (core API routes).
+  /api/v1/resources                   → GET (supports ?status=, ?topic_id=, ?area_id=, ?type=, ?favorite=, ?group_by=topic), POST
+  /api/v1/resources/[id]              → GET, PUT, DELETE
+
+  /api/v1/topics                      → GET (supports ?status=active|inactive, ?area_id=, ?include_counts=true, ?group_by=area), POST
+  /api/v1/topics/[id]                 → GET (with linked notes/resources), PUT, DELETE
+  ```
+- Notes group_by returns sections: `{ sections: [{ header: "Project Name", items: [...notes] }] }`
+- Topics include_counts returns: `{ ...topic, note_count: 5, resource_count: 3 }`
+
+**Dependencies:** Step 24 (core API routes). Steps 16–18 (modules must exist).
 
 **Testing:**
-- GET /api/v1/dashboard/today → returns correct structure
-- GET /api/v1/search?q=dentist → returns tasks/notes matching "dentist"
-- GET /api/v1/search?q=dentist&types=tasks → returns only matching tasks
-- Search with no results → returns empty array (not error)
+- POST /api/v1/notes → 201 with content field
+- GET /api/v1/notes?group_by=project → grouped results
+- GET /api/v1/notes?type=Learning → filtered by type
+- GET /api/v1/resources?group_by=topic → grouped results
+- GET /api/v1/topics?include_counts=true → counts included
+- GET /api/v1/topics?status=inactive → only inactive topics
 - `pnpm vitest run` passes
 
-**Deliverable:** API is feature-complete for MVP. Agent can query dashboard data and search.
+**Deliverable:** Knowledge layer fully API-accessible. Agent can create notes from voice, save URLs as resources, and auto-tag with topics.
+
+---
+
+### Step 26: Contacts, Dashboard, Search, and Inbox API routes
+
+**What:** REST endpoints for Contacts (with project/task role linking), Dashboard aggregations, full-text search across ALL entity types, and Inbox.
+
+**Actions:**
+- Create route handlers:
+  ```
+  /api/v1/contacts                              → GET (supports ?group=, ?project_id=, ?follow_up_needed=true), POST
+  /api/v1/contacts/[id]                         → GET (with linked projects/tasks and roles), PUT, DELETE
+  /api/v1/contacts/[id]/log-interaction          → POST (updates last_interaction_at)
+  /api/v1/contacts/[id]/link-project             → POST ({ project_id, role_in_project })
+  /api/v1/contacts/[id]/link-task                → POST ({ task_id, role_in_task })
+  /api/v1/contacts/[id]/unlink-project/[pid]     → DELETE
+  /api/v1/contacts/[id]/unlink-task/[tid]        → DELETE
+
+  /api/v1/dashboard/today                        → GET (today's tasks, focus, overdue, active goals, stats)
+  /api/v1/dashboard/summary                      → GET (weekly stats, streaks, entity counts)
+
+  /api/v1/search                                 → GET (?q=...&types[]=tasks&types[]=notes&types[]=contacts&types[]=resources&types[]=topics — full-text search across ALL entities)
+
+  /api/v1/inbox                                  → GET (aggregated inbox items across tasks, notes, resources)
+
+  /api/v1/export                                 → GET (export all user data as JSON)
+  /api/v1/import/notion                          → POST (import from CSV)
+  ```
+- Search queries ALL entity types: tasks, projects, goals, areas, notes, resources, topics, contacts
+- Contacts GET with `?follow_up_needed=true` returns only overdue contacts
+- Dashboard/today returns same aggregation as the dashboard service
+
+**Dependencies:** Step 25 (knowledge API). Step 19 (contacts module).
+
+**Testing:**
+- POST /api/v1/contacts → 201 with role, organization, group
+- POST /api/v1/contacts/:id/link-project → links with role
+- POST /api/v1/contacts/:id/log-interaction → updates timestamp
+- GET /api/v1/contacts?follow_up_needed=true → only overdue contacts
+- GET /api/v1/search?q=marketing&types[]=tasks&types[]=notes → matching results
+- GET /api/v1/search?q=john&types[]=contacts → matching contacts
+- GET /api/v1/dashboard/today → correct aggregation
+- GET /api/v1/inbox → all inbox items across entity types
+- `pnpm vitest run` passes
+
+**Deliverable:** API coverage for Contacts, Dashboard, Search, and Inbox complete.
+
+---
+
+### Step 27: Notes refinements API routes (closing Step 21b gaps)
+
+**What:** API endpoints for all features added in Step 21b — notebooks, related notes (bidirectional linking), bulk actions, and dynamic type tab data. Without this step, the Agent cannot manage notebooks, link related notes, or perform bulk operations on notes.
+
+**Actions:**
+- Create/extend route handlers:
+  ```
+  /api/v1/notes?notebook=              → GET filter: notes in a specific notebook
+  /api/v1/notes?pin=true               → GET filter: pinned notes only
+  /api/v1/notes?group_by=notebook      → GET: notes grouped by notebook (extends existing group_by to support 3 values: project, topic, notebook)
+  /api/v1/notes/notebooks              → GET: list of distinct notebook names for the user (used by Agent to know which notebooks exist)
+  /api/v1/notes/types                  → GET: list of distinct type values for the user's notes (used to generate dynamic type tabs)
+  /api/v1/notes/bulk                   → POST: bulk operations on multiple notes. Body: { note_ids: [], action: "archive" | "change_status" | "move_to_notebook", params: { status?: string, notebook?: string } }
+  /api/v1/notes/[id]/related           → GET: list of related notes (bidirectional) for a specific note
+  /api/v1/notes/[id]/link-related      → POST: link two notes as related. Body: { related_note_id: string }. Creates bidirectional link.
+  /api/v1/notes/[id]/unlink-related/[rid] → DELETE: remove a related note link (bidirectional)
+  ```
+
+**Dependencies:** Step 25 (base Notes API). Step 21b (UI features these endpoints serve).
+
+**Testing:**
+- GET /api/v1/notes?notebook=Meeting%20Notes → only notes in that notebook
+- GET /api/v1/notes?pin=true → only pinned notes
+- GET /api/v1/notes?group_by=notebook → notes grouped by notebook headers
+- GET /api/v1/notes/notebooks → returns ["Meeting Notes", "Recipes", "Work Notes"]
+- GET /api/v1/notes/types → returns ["Note", "Learning", "Research", "Meeting"]
+- POST /api/v1/notes/bulk with { note_ids: [a, b, c], action: "archive" } → all 3 archived
+- POST /api/v1/notes/bulk with { note_ids: [a], action: "change_status", params: { status: "to_review" } } → status updated
+- GET /api/v1/notes/:id/related → returns related notes
+- POST /api/v1/notes/:id/link-related → creates bidirectional link (verify both directions)
+- DELETE /api/v1/notes/:id/unlink-related/:rid → removes link from both sides
+- Linking a note to itself → returns 400
+- Linking notes owned by different users → returns 403
+- `pnpm vitest run` passes
+
+**Deliverable:** Notes API has full parity with the Step 21b dashboard features. Agent can manage notebooks, link related notes, and perform bulk operations.
+
+---
+
+### Step 28: Missing entity action and system API routes
+
+**What:** Close all remaining API gaps identified in the audit — area archive/restore actions, project contacts listing, task calendar and focus endpoints, My Day endpoint, and user settings endpoint (critical for Agent).
+
+**Actions:**
+- Create route handlers:
+  ```
+  AREAS (archive/restore actions):
+  /api/v1/areas/[id]/archive           → POST: sets archive=true (user action, not auto-inactive)
+  /api/v1/areas/[id]/restore           → POST: sets archive=false, returns area to active or inactive based on linked entity count
+
+  PROJECTS (contacts listing):
+  /api/v1/projects/[id]/contacts       → GET: list all contacts linked to this project with their role_in_project. Returns [{ contact: {...}, role: "Client" }, ...]
+
+  TASKS (calendar + focus):
+  /api/v1/tasks/calendar               → GET (?month=&year=): returns tasks grouped by date for the calendar view. Response: { dates: { "2026-05-03": [task, task], "2026-05-04": [task] } }
+  /api/v1/tasks/[id]/focus             → POST: toggle focus flag on a task. Body: { focus: boolean }
+
+  MY DAY:
+  /api/v1/my-day                       → GET: returns combined view of tasks due today + tasks with focus=true. Same data as the My Day page. Response: { today_tasks: [...], focus_tasks: [...], overdue: [...] }
+
+  USER SETTINGS (critical for Agent):
+  /api/v1/user/settings                → GET: returns user preferences (timezone, morning_briefing_time, evening_review_time, weekly_digest_day, theme, language, onboarding_complete)
+  /api/v1/user/settings                → PUT: update user preferences. Body: any subset of settings fields.
+  /api/v1/user/integrations            → GET: list user's linked integrations (whatsapp, telegram — type, external_id, status)
+  /api/v1/user/integrations            → POST: link a new integration. Body: { type: "whatsapp" | "telegram", external_id: string }. Used by Agent during onboarding.
+  /api/v1/user/integrations/[id]       → DELETE: unlink an integration
+
+  KNOWLEDGE HUB (unified search):
+  /api/v1/knowledge/search             → GET (?q=...): searches across notes, resources, and topics simultaneously. Returns { topics: [...], notes: [...], resources: [...], counts: { topics: N, notes: N, resources: N } }
+  ```
+
+**Dependencies:** Step 25 (all prior API routes). Step 9c (area archive/restore logic). Step 21 (My Day logic). Step 7 (user settings table).
+
+**Testing:**
+
+*Areas:*
+- POST /api/v1/areas/:id/archive → area.archive = true
+- POST /api/v1/areas/:id/restore → area.archive = false, area.inactive recalculated based on linked entities
+- Archive an area, then restore it — verify correct active/inactive state post-restore
+- Archive an already-archived area → idempotent (no error)
+
+*Projects:*
+- GET /api/v1/projects/:id/contacts → returns linked contacts with roles
+- Project with 0 contacts → returns empty array (not 404)
+- Project with 3 contacts (2 as Client, 1 as Reviewer) → correct role values
+
+*Tasks:*
+- GET /api/v1/tasks/calendar?month=5&year=2026 → returns tasks grouped by date strings
+- Calendar response includes tasks from all statuses except "done" by default
+- POST /api/v1/tasks/:id/focus with { focus: true } → task.focus = true
+- POST /api/v1/tasks/:id/focus with { focus: false } → task.focus = false
+
+*My Day:*
+- GET /api/v1/my-day → returns today_tasks (due today) + focus_tasks (focus=true) + overdue
+- A task due today AND marked as focus appears in both arrays (no deduplication — let the client decide display)
+- Empty day → all arrays empty (not error)
+
+*User Settings:*
+- GET /api/v1/user/settings → returns all settings for authenticated user
+- PUT /api/v1/user/settings with { timezone: "Asia/Kolkata" } → timezone updated, other fields unchanged
+- PUT with unknown field → rejected (Zod strict mode)
+- GET /api/v1/user/integrations → returns [] for new user
+- POST /api/v1/user/integrations with { type: "whatsapp", external_id: "+91..." } → integration created
+- Duplicate integration (same type + external_id) → returns 409 Conflict
+- DELETE /api/v1/user/integrations/:id → integration removed
+
+*Knowledge Hub:*
+- GET /api/v1/knowledge/search?q=productivity → returns matching topics, notes, and resources with counts
+- GET /api/v1/knowledge/search?q=nonexistent → returns empty arrays with zero counts (not error)
+
+- `pnpm vitest run` passes
+
+**Deliverable:** All API gaps from the audit are closed. Phase 4 now has complete parity with every feature built in Phases 1–3. No dashboard feature is unreachable via API.
+
+---
+
+## Phase 4b: MCP Server
+
+> Goal: Build an MCP (Model Context Protocol) server that wraps the LifeOS Core REST API, allowing users to connect LifeOS to any MCP-compatible AI client — Claude Desktop, Claude Code, Cursor, Codex, or any future MCP host. This is the launch differentiator: "LifeOS works inside the AI you already use." No new AI infrastructure needed. The user's existing AI model handles natural language; the MCP server handles structured data operations.
+
+---
+
+### Step 29: MCP server — scaffold and authentication
+
+**What:** Initialize the MCP server project, set up transport layers (stdio + HTTP/SSE), and implement user authentication via LifeOS Core API keys.
+
+**Actions:**
+- Create `packages/mcp-server/` in the monorepo with TypeScript + Node.js
+- Directory structure: `src/` with `index.ts`, `server.ts`, `auth.ts`, `client.ts`, `tools/` (one file per entity category), `types.ts`, `utils.ts`
+- Install MCP SDK: `pnpm add @modelcontextprotocol/sdk`
+- Implement stdio transport (for Claude Desktop / Claude Code) and HTTP/SSE transport (for remote hosting)
+- Implement auth: user provides API key during config → server validates against `GET /api/v1/user/settings` on startup → all tool calls use this key
+- Create typed LifeOS API client in `src/client.ts` mirroring every REST endpoint
+
+**Dependencies:** Step 28 (REST API must be complete).
+
+**Testing:**
+- Server starts on stdio and HTTP/SSE transports
+- Valid API key → tools listed. Invalid → clear error, server refuses to start
+- `tsc --noEmit` passes
+
+**Deliverable:** MCP server scaffold with auth. No tools yet.
+
+---
+
+### Step 30: MCP server — core PARA tools
+
+**What:** MCP tools for Areas, Goals, Projects, Tasks — the highest-frequency operations.
+
+**Actions:**
+- **Task tools:** `create_task`, `list_tasks` (with all filters), `complete_task`, `update_task`, `get_today`, `get_smart_priority`
+- **Goal tools:** `create_goal`, `list_goals`, `get_goal_detail` (command center data), `update_goal`
+- **Project tools:** `create_project`, `list_projects`, `get_project` (with tasks + contacts), `update_project`
+- **Area tools:** `list_areas`, `create_area`, `archive_area`, `restore_area`
+- Every tool has: descriptive name, AI-optimized description (written for model consumption, not human), JSON Schema input definition, async handler calling the API client
+
+**Dependencies:** Step 29 (scaffold + auth).
+
+**Testing:**
+- Connect to Claude Desktop → all tools appear
+- "Create a task called Review pitch deck, high priority, due Friday" → task appears in LifeOS dashboard
+- "What are my tasks for today?" → returns formatted today view
+- "Complete the pitch deck task" → task done, project progress updates
+- "Show me the Fundraising goal details" → returns command center data
+- All error cases return friendly messages
+
+**Deliverable:** Core PARA tools live via MCP.
+
+---
+
+### Step 31: MCP server — knowledge, contacts, and system tools
+
+**What:** MCP tools for Notes, Resources, Topics, Knowledge Hub search, Contacts, Dashboard, Inbox, and My Day.
+
+**Actions:**
+- **Note tools:** `create_note`, `list_notes`, `get_note`, `update_note`
+- **Resource tools:** `save_resource`, `list_resources`
+- **Topic tools:** `list_topics`, `create_topic`
+- **Contact tools:** `create_contact`, `list_contacts`, `log_interaction`, `link_contact_to_project`
+- **Search tools:** `search` (all entities), `knowledge_search` (notes + resources + topics)
+- **System tools:** `get_dashboard`, `get_my_day`, `get_inbox`
+
+**Dependencies:** Step 30 (core tools establish the pattern).
+
+**Testing:**
+- "Save this article about React patterns" → resource created
+- "Create a note about the meeting, link it to Product Launch" → note with project link
+- "Search my knowledge hub for marketing" → grouped results
+- "Who's on the Website Redesign project?" → contacts with roles
+- "What's in my inbox?" → inbox items across entity types
+- Full tool suite: ~30 tools covering every LifeOS module
+
+**Deliverable:** Complete MCP tool suite. Every LifeOS feature accessible from any MCP-compatible AI client.
+
+---
+
+### Step 32: MCP server — publishing and documentation
+
+**What:** Package for npm distribution, setup docs, and a dashboard settings page for easy user onboarding.
+
+**Actions:**
+- Publish to npm as `@lifeos/mcp-server`
+- README with setup for Claude Desktop (JSON config), Claude Code (`claude mcp add`), and Cursor
+- Create `/settings/mcp` page in web dashboard:
+  - Pre-filled setup instructions with user's API key
+  - "Copy Claude Desktop config" and "Copy Claude Code command" buttons
+  - Connection status indicator
+- Submit to Anthropic MCP server registry for public listing
+- Landing page section: "Connect LifeOS to your AI assistant"
+
+**Dependencies:** Step 31 (all tools). Step 34 (API key management — users need keys).
+
+**Testing:**
+- `npx @lifeos/mcp-server` starts cleanly
+- Copy-paste Claude Desktop config → tools appear
+- End-to-end: create API key → configure MCP → say "create a task" → task in dashboard
+- npm package installs with zero dependency issues
+
+**Deliverable:** MCP server published and installable. Users connect LifeOS to their AI in under 2 minutes.
 
 ---
 
 ## Phase 5: Personal Trackers (MVP Set)
 
-> Goal: Three personal tracker modules to validate the tracker concept. If users adopt these, we build the remaining six.
+> Goal: Three personal tracker modules to validate the tracker concept. If users adopt these, we build the remaining six. Each tracker includes both dashboard UI and API routes.
 
 ---
 
-### Step 21: Database schema — tracker tables
+### Step 33: Database schema — tracker tables
 
-**What:** Create migrations for the 3 MVP trackers (Bookmarks, Grocery List, Book Tracker) plus their supporting tables.
+**What:** Migrations for Bookmarks, Grocery List, and Book Tracker.
 
 **Actions:**
-- Create `supabase/migrations/00014_create_bookmarks.sql` — `bookmarks`, `bookmark_collections`, `bookmark_tags` tables
-- Create `supabase/migrations/00015_create_groceries.sql` — `grocery_items`, `grocery_categories` tables
-- Create `supabase/migrations/00016_create_books.sql` — `books`, `book_notes` tables
-- Add RLS policies, indexes, and `updated_at` triggers for all new tables
-- Run `npx supabase db reset` and regenerate types
+- Create migrations for: `bookmarks`, `bookmark_collections`, `bookmark_tags`, `grocery_items`, `grocery_categories`, `books`, `book_notes`
+- Add RLS policies, indexes, `updated_at` triggers
+- Regenerate types
 
-**Dependencies:** Step 4 (core schema must exist).
+**Dependencies:** Step 4 (core schema).
 
-**Testing:**
-- All tables created successfully
-- RLS prevents cross-user access
-- Types regenerated and `tsc --noEmit` passes
+**Testing:** Tables created, RLS works, `tsc --noEmit` passes.
 
 **Deliverable:** Tracker database layer ready.
 
 ---
 
-### Step 22: Bookmarks tracker
+### Step 34: Bookmarks tracker
 
-**What:** Full bookmarks module with collections, tags, and favorites.
+**What:** Bookmarks with collections, tags, favorites. Tabs: All, Bookmarks, Reading List, Favorites.
 
-**Actions:**
-- Create service, hooks, validators, and Zod schemas for bookmarks
-- Create `src/app/(dashboard)/trackers/bookmarks/page.tsx` — list view with columns: name, short URL, kind badge, collections, favorite star, status. Filter tabs: All, Bookmarks, Reading List, Favorites
-- Create bookmark creation dialog — fields: name, URL, kind (Website/Article/Tool), collection (select/create), tags
-- Create collection management (sidebar or dialog)
-- Add API routes: `/api/v1/trackers/bookmarks/route.ts`
-
-**Dependencies:** Step 21 (tracker tables) + Step 8 (sidebar nav — add Trackers section).
-
-**Testing:**
-- Create a bookmark — appears in list
-- Favorite a bookmark — appears in Favorites filter
-- Filter by collection — correct results
-- API: POST /api/v1/trackers/bookmarks → 201
-- API: GET /api/v1/trackers/bookmarks → list with pagination
-
-**Deliverable:** First personal tracker live.
+**Dependencies:** Step 28. **Includes API routes:** `/api/v1/trackers/bookmarks`.
 
 ---
 
-### Step 23: Grocery List tracker
+### Step 35: Grocery List tracker
 
-**What:** Categorized grocery list with quantity and in-stock toggling.
+**What:** Categorized items with quantity and in-stock toggling. Grouped by category.
 
-**Actions:**
-- Create service, hooks, validators for grocery items and categories
-- Create `src/app/(dashboard)/trackers/groceries/page.tsx` — list grouped by category, each item shows: name, quantity, in-stock checkbox. "Add item" inline input at top.
-- In-stock toggle: tap checkbox → item is checked off (stays in list but grayed out)
-- Category management: create/edit categories
-- "Clear checked" button to remove all in-stock items
-- Add API routes
-
-**Dependencies:** Step 21 (tracker tables).
-
-**Testing:**
-- Add item with category — appears under correct category header
-- Toggle in-stock — item grays out
-- Clear checked — checked items removed
-- API endpoints work correctly
-
-**Deliverable:** Second tracker live. Validates the "personal life management" positioning.
+**Dependencies:** Step 28. **Includes API routes:** `/api/v1/trackers/groceries`.
 
 ---
 
-### Step 24: Book Tracker
+### Step 36: Book Tracker
 
-**What:** Reading list with status, ratings, and reading notes.
+**What:** Reading list with status, ratings, reading notes. Gallery view. Tabs: All, To Read, Reading, Completed.
 
-**Actions:**
-- Create service, hooks, validators for books and book notes
-- Create `src/app/(dashboard)/trackers/books/page.tsx` — gallery view of book cards with: title, author, status badge (To Read / Reading / Completed), star rating, cover placeholder
-- Create book detail page (or dialog) with reading notes section
-- Filter tabs: All, To Read, Reading, Completed
-- Star rating component (1–5 stars, clickable)
-- Add API routes
+**Dependencies:** Step 28. **Includes API routes:** `/api/v1/trackers/books`.
 
-**Dependencies:** Step 21 (tracker tables).
-
-**Testing:**
-- Create a book — appears in gallery
-- Change status to "Reading" — moves to Reading tab
-- Add reading notes — persists
-- Set rating — displays correctly
-- API endpoints work
-
-**Deliverable:** Third tracker live. MVP tracker set complete.
+**Deliverable (Steps 34–36):** Three personal trackers live with both dashboard UI and API routes. MVP tracker set complete.
 
 ---
 
@@ -899,189 +1453,77 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 
 ---
 
-### Step 25: Onboarding flow
+### Step 37: Onboarding flow
 
-**What:** Guided post-signup experience that creates the user's initial data.
+**What:** Multi-step post-signup wizard: areas setup → first goal → first tasks → preferences.
 
-**Actions:**
-- Create `src/app/onboarding/page.tsx` — multi-step wizard:
-  - Step 1: Welcome screen ("Let's set up your LifeOS in 2 minutes")
-  - Step 2: Areas — show default 8, let user toggle on/off or add custom
-  - Step 3: First goal — "What's one goal you're working on?" (name + area + term)
-  - Step 4: First tasks — "What are 2-3 things you need to do for this goal?"
-  - Step 5: Preferences — timezone picker, briefing time, theme confirmation
-  - Step 6: Done — "Your LifeOS is ready!" with button to dashboard
-- Create `src/lib/services/onboarding.service.ts` — orchestrates area seeding, goal creation, task creation, user settings
-- Add `onboarding_complete` flag to `user_settings` — redirect to onboarding if false
-- Update middleware to redirect new users to `/onboarding`
-
-**Dependencies:** Step 9 (areas), Step 10 (goals), Step 12 (tasks), Step 7 (auth).
-
-**Testing:**
-- New signup → redirected to onboarding (not dashboard)
-- Complete all steps → user has areas, a goal, tasks, and user settings
-- Returning user → goes directly to dashboard (not onboarding again)
-- Skip individual steps — partial data saved correctly
-- Mobile responsive (test at 375px)
-
-**Deliverable:** First-run experience is smooth. No empty dashboard for new users.
+**Dependencies:** Steps 9, 10, 12, 7.
 
 ---
 
-### Step 26: API key management
+### Step 38: API key management
 
-**What:** Settings page where users create and manage API keys (required for Agent integration).
+**What:** Settings page for creating/managing API keys (required for Agent integration).
 
-**Actions:**
-- Create `src/app/(dashboard)/settings/api-keys/page.tsx` — list of API keys with: name, created date, last used, scopes, delete button
-- "Create API Key" dialog — name input + scope checkboxes (read:all, write:tasks, write:notes, etc.)
-- On creation: generate `sk_live_<random>`, hash it, store hash in `api_keys` table, show raw key ONCE in a copy-to-clipboard dialog with warning "This key won't be shown again"
-- Delete key functionality with confirmation dialog
-- Update the auth guard to look up API keys from this table
-
-**Dependencies:** Step 18 (auth guard must support API keys).
-
-**Testing:**
-- Create an API key — raw key shown, copyable
-- Use the key to call `/api/v1/tasks` — returns user's tasks
-- Delete the key — subsequent API calls with that key return 401
-- Scoped key (read-only) rejects POST requests
-
-**Deliverable:** Agent (Project 2) can now authenticate against the API. Critical integration point.
+**Dependencies:** Step 23 (auth guard).
 
 ---
 
-### Step 27: Settings page and user preferences
+### Step 39: Settings page and user preferences
 
-**What:** General settings page with timezone, theme, notification preferences, and account management.
+**What:** General settings: profile, timezone, theme, notifications, account management, integrations placeholder.
 
-**Actions:**
-- Create `src/app/(dashboard)/settings/page.tsx` — sections:
-  - Profile: name, email (read-only), avatar
-  - Preferences: timezone (select from common list), default theme, language
-  - Notifications: morning briefing time, evening review time (these are read by the Agent)
-  - Account: change password, delete account (with confirmation dialog)
-- Create `src/app/(dashboard)/settings/integrations/page.tsx` — placeholder page showing "Connect WhatsApp" and "Connect Telegram" buttons (these will deep-link to the Agent onboarding when Project 2 is built)
-- Wire settings to `user_settings` table
-
-**Dependencies:** Step 25 (onboarding creates initial settings).
-
-**Testing:**
-- Change timezone — persists on refresh
-- Change theme preference — applies immediately
-- Change password works
-- Delete account: confirmation required, then all user data removed
-
-**Deliverable:** Settings complete. User preferences accessible via API for Agent consumption.
+**Dependencies:** Step 32 (onboarding creates initial settings).
 
 ---
 
-### Step 28: Responsive polish and PWA
+### Step 40: Responsive polish and PWA
 
-**What:** Final responsive testing and PWA setup for mobile install.
+**What:** Audit all pages at 375px–1440px. PWA manifest, icons, service worker, "Add to Home Screen" testing.
 
-**Actions:**
-- Audit every page at breakpoints: 375px (iPhone SE), 390px (iPhone 14), 768px (iPad), 1024px (laptop), 1440px (desktop)
-- Fix any overflow, cramped layouts, or touch target issues
-- Create `public/manifest.json` — PWA manifest with app name, icons, theme color, display: standalone
-- Create `public/icons/` — app icons at required sizes (192x192, 512x512)
-- Add `<link rel="manifest">` to root layout
-- Create `src/app/service-worker.ts` (basic offline page)
-- Add `next.config.ts` PWA configuration
-- Test "Add to Home Screen" on iOS Safari and Android Chrome
+**Dependencies:** All previous steps.
 
-**Dependencies:** All previous steps (this is a polish pass).
-
-**Testing:**
-- Every page passes the 375px width test (no horizontal scroll)
-- Touch targets are at least 44x44px on mobile
-- PWA installs successfully on iOS and Android
-- Installed PWA opens in standalone mode (no browser chrome)
-- Lighthouse performance score > 90
-
-**Deliverable:** Mobile experience is production-ready. PWA installable.
+**Deliverable (Steps 37–40):** Onboarding, settings, API keys, responsive polish, PWA all complete.
 
 ---
 
 ## Phase 7: Deployment and Launch Prep
 
-> Goal: The app is running in production, CI/CD is configured, and the first beta users can sign up.
+> Goal: Running in production with CI/CD, monitoring, and E2E tests.
 
 ---
 
-### Step 29: CI/CD pipeline
+### Step 41: CI/CD pipeline
 
-**What:** GitHub Actions for automated linting, testing, type-checking, and deployment.
+**What:** GitHub Actions: lint → type-check → test → deploy to Vercel + Supabase production.
 
-**Actions:**
-- Create `.github/workflows/ci.yml`:
-  - Trigger: on PR to `main`
-  - Steps: install deps → `biome check` → `tsc --noEmit` → `vitest run` → report results
-- Create `.github/workflows/deploy.yml`:
-  - Trigger: on push to `main`
-  - Steps: run CI checks → deploy to Vercel via CLI → run Supabase migrations against production
-- Configure Vercel project (connect GitHub repo, set env vars)
-- Configure Supabase production project (separate from local dev)
-- Set all production env vars in Vercel dashboard
-
-**Dependencies:** All previous steps (the app must be buildable).
-
-**Testing:**
-- Push to a PR branch — CI runs, all checks pass
-- Merge to main — deploys to Vercel automatically
-- Visit production URL — app loads, auth works, data persists
-- Supabase production database has all migrations applied
-
-**Deliverable:** Automated deployment pipeline. Merge to main = live in production.
+**Dependencies:** All previous steps.
 
 ---
 
-### Step 30: Production hardening
+### Step 42: Production hardening
 
-**What:** Final security, performance, and monitoring setup before beta.
+**What:** Sentry, PostHog, CSP headers, rate limiting verification, RLS audit, load testing, Playwright E2E tests against production.
 
-**Actions:**
-- Configure Sentry: install `@sentry/nextjs`, set up error tracking + performance monitoring
-- Configure PostHog: install `posthog-js`, set up event tracking for key actions (signup, task_created, goal_completed)
-- Add Content Security Policy headers in `next.config.ts`
-- Add rate limiting headers to API responses
-- Run Lighthouse audit — fix any scores below 90
-- Verify all RLS policies in production (attempt cross-user access via API — must fail)
-- Verify API rate limiting works in production
-- Load test: create 100 tasks, 20 projects, 10 goals — dashboard still loads in < 1.5s
-- Write `tests/e2e/onboarding.spec.ts` (Playwright) — full onboarding flow
-- Write `tests/e2e/task-crud.spec.ts` (Playwright) — create, complete, delete task
-- Run E2E tests against production URL
+**Dependencies:** Step 41 (must be deployed).
 
-**Dependencies:** Step 29 (must be deployed).
-
-**Testing:**
-- Sentry captures a test error
-- PostHog captures signup and task creation events
-- Lighthouse: Performance > 90, Accessibility > 90, Best Practices > 90
-- E2E tests pass against production
-- No console errors in production
-
-**Deliverable:** Production-ready. Invite beta users.
+**Deliverable (Steps 41–42):** Production-ready. Invite beta users.
 
 ---
 
 ## Phase 8: Post-MVP (Out of Scope for This Roadmap)
 
-These are documented for planning purposes but are NOT built until MVP metrics are validated.
-
 ```
-Step 31+: Resources + Topics + Knowledge Hub
-Step 33+: Time Tracker + Pomodoro
-Step 35+: Contacts module
-Step 36+: Archive cross-entity view
-Step 37+: Remaining 6 personal trackers (Movies, Supplements, Wishlist, Orders, Warranties, Passwords)
-Step 40+: Stripe billing integration
-Step 42+: Outbound webhooks system
-Step 43+: Notion CSV import
-Step 44+: Data export (GDPR)
-Step 45+: Semantic search with pgvector
-Step 46+: Supabase Realtime subscriptions (live updates from Agent)
+Step 43+: LifeOS Agent (Project 2) — WhatsApp/Telegram AI assistant
+Step 44+: Time Tracker + Pomodoro
+Step 45+: Archive cross-entity view
+Step 46+: Remaining 6 personal trackers (Movies, Supplements, Wishlist, Orders, Warranties, Passwords)
+Step 49+: Stripe billing integration
+Step 51+: Outbound webhooks system
+Step 52+: CSV import
+Step 53+: Data export (GDPR)
+Step 54+: Semantic search with pgvector
+Step 55+: Supabase Realtime subscriptions (live updates from Agent)
 ```
 
 ---
@@ -1099,26 +1541,36 @@ PHASE    STEPS      WHAT YOU HAVE WHEN DONE
          9b, 9c)    active/inactive detection, archive system,
                     smart priority, and calendar view
 
-3        14–17      Dashboard, Notes, Command Palette, Inbox,
-                    My Day — complete daily workflow
+3        14–22      Dashboard, Quick Capture, Notes (9+ views),
+         (inc.      Resources (6 views), Topics (6 views),
+         21b)       Contacts (professional CRM with role linking),
+                    Goal command center, Inbox, My Day,
+                    Notes polish, Knowledge Hub (unified search)
 
-4        18–20      Full REST API — Agent (Project 2) can now
-                    consume every feature programmatically
+4        23–28      Full REST API covering ALL Phase 1–3 modules
+                    with zero gaps. 60+ endpoints.
 
-5        21–24      3 personal trackers validating the concept
+4b       29–32      MCP Server: ~30 tools wrapping the REST API.
+                    Published to npm as @lifeos/mcp-server.
+                    Users connect LifeOS to Claude Desktop,
+                    Claude Code, Cursor, or any MCP client.
+                    "LifeOS works inside the AI you already use."
 
-6        25–28      Onboarding, settings, API keys, PWA,
+5        33–36      3 personal trackers (Bookmarks, Groceries,
+                    Books) with UI + API routes
+
+6        37–40      Onboarding, settings, API keys, PWA,
                     responsive polish
 
-7        29–30      CI/CD, production deployment, monitoring,
+7        41–42      CI/CD, production deployment, monitoring,
                     E2E tests, beta launch
 
-POST-MVP 31–46      Everything else (billing, remaining trackers,
-                    Knowledge Hub, webhooks, imports)
+POST-MVP 43+        Agent (Project 2), remaining trackers,
+                    billing, Time Tracker, webhooks, imports
 ```
 
-**Total MVP steps: 32** (30 + Step 9b + Step 9c)
-**Estimated timeline: 8–10 weeks for a solo developer, 5–6 weeks for a team of 2–3**
+**Total MVP steps: 42** (Steps 1–42, including 9b, 9c, 21b)
+**Estimated timeline: 13–16 weeks for a solo developer, 8–10 weeks for a team of 2–3**
 
 ---
 

@@ -1,5 +1,6 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
 import { redirect } from "next/navigation"
+import { auth } from "@clerk/nextjs/server"
 
 import { createClient } from "@/lib/supabase/server"
 import { makeQueryClient } from "@/lib/queries/server-query-client"
@@ -9,14 +10,14 @@ import { GoalDetailContent } from "./goal-detail-content"
 
 export default async function GoalDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+  const { userId } = await auth()
+  if (!userId) redirect("/login")
 
+  const supabase = await createClient()
   const queryClient = makeQueryClient()
   await queryClient.prefetchQuery({
     queryKey: [GOAL_DETAIL_QUERY_KEY, "v2", id, undefined],
-    queryFn: () => serverFetchGoalDetail(supabase, user.id, id),
+    queryFn: () => serverFetchGoalDetail(supabase, userId, id),
   })
 
   return (

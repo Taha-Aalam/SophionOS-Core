@@ -10,7 +10,7 @@
 
 ### Why Web App (Not Native Mobile)
 
-The PRD is clear: the primary interface for most users is the AI Agent on WhatsApp/Telegram (Project 2). The web dashboard is secondary — used for deep planning, visualization, and power-user operations. Building native iOS + Android apps for a secondary interface is a bad use of startup resources. A responsive Next.js web app with PWA gives us:
+The product has three interfaces at launch: the web dashboard for visual management, the REST API for programmatic access, and an MCP server for AI-assisted input via Claude Desktop, Claude Code, Cursor, or any MCP-compatible client. The web dashboard is the visual layer — used for deep planning, visualization, and power-user operations. Building native iOS + Android apps on top of this is premature. A responsive Next.js web app with PWA gives us:
 
 - One codebase for desktop, tablet, and mobile
 - Instant deploys (no app store review cycles)
@@ -90,6 +90,11 @@ If mobile engagement data after launch proves a native app is needed, React Nati
 │                     │                              │                                 │
 │ CI/CD               │ GitHub Actions               │ Lint, test, deploy on push.     │
 │                     │                              │ Supabase migrations in CI.      │
+│                     │                              │                                 │
+│ MCP Server          │ @modelcontextprotocol/sdk    │ Wraps REST API as MCP tools.    │
+│                     │ + TypeScript + Node.js       │ Users connect LifeOS to Claude  │
+│                     │                              │ Desktop, Claude Code, Cursor.   │
+│                     │                              │ Published to npm. Stdio + SSE.  │
 └─────────────────────┴──────────────────────────────┴─────────────────────────────────┘
 ```
 
@@ -105,6 +110,30 @@ lifeos-core/
 │   └── workflows/
 │       ├── ci.yml                    # Lint + test + type-check on PR
 │       └── deploy.yml                # Deploy to Vercel on main push
+│
+├── packages/
+│   └── mcp-server/                   # MCP server (published to npm)
+│       ├── src/
+│       │   ├── index.ts              # Entry point
+│       │   ├── server.ts             # MCP server config + tool registration
+│       │   ├── auth.ts               # API key validation
+│       │   ├── client.ts             # Typed LifeOS REST API client
+│       │   ├── tools/                # One file per entity category
+│       │   │   ├── tasks.ts          # create_task, list_tasks, complete_task, etc.
+│       │   │   ├── goals.ts          # create_goal, list_goals, get_goal_detail
+│       │   │   ├── projects.ts       # create_project, list_projects, get_project
+│       │   │   ├── areas.ts          # list_areas, create_area, archive_area
+│       │   │   ├── notes.ts          # create_note, list_notes, get_note
+│       │   │   ├── resources.ts      # save_resource, list_resources
+│       │   │   ├── topics.ts         # list_topics, create_topic
+│       │   │   ├── contacts.ts       # create_contact, log_interaction, link_to_project
+│       │   │   ├── search.ts         # search, knowledge_search
+│       │   │   └── dashboard.ts      # get_dashboard, get_my_day, get_inbox
+│       │   ├── types.ts
+│       │   └── utils.ts
+│       ├── package.json
+│       ├── tsconfig.json
+│       └── README.md                 # User setup instructions
 │
 ├── supabase/
 │   ├── migrations/                   # Sequential SQL migrations
@@ -399,7 +428,7 @@ type NoteType = "note" | "research" | "journal";
 type NoteStatus = "inbox" | "to_review" | "active" | "archive";
 type ResourceType = "website" | "article" | "video" | "tool";
 type ResourceStatus = "inbox" | "to_review" | "saved" | "favorites" | "archive";
-type AreaType = "business" | "personal";
+type AreaType = "business" | "personal" | string; // Flexible — users can create custom types (e.g., "studies")
 
 // ─── Base ───
 interface BaseEntity {

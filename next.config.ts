@@ -22,13 +22,57 @@ const supabaseWsOrigin = supabaseOrigin.replace(/^http/, "ws");
 // strict nonce-based CSP would force every page to dynamic rendering (see
 // node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md).
 // 'unsafe-eval' is dev-only (React refresh / Turbopack).
+// Clerk FAPI host — derived from NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.
+// pk_test_<base64(frontendApiURL)$> → <frontendApiURL>.
+const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+const clerkFapiHost = (() => {
+  try {
+    const raw = clerkPublishableKey.replace(/^pk_(test|live)_/, "");
+    const decoded = Buffer.from(raw, "base64").toString("utf8").replace(/\$$/, "");
+    return decoded ? new URL(`https://${decoded}`).origin : "";
+  } catch {
+    return "";
+  }
+})();
+
+// Allowlist Clerk hosts for CSP. `clerk.accounts.dev` is the dev FAPI suffix;
+// `clerk-telemetry.com` is the analytics beacon; `img.clerk.com` hosts avatars.
+// Turnstile hosts — Clerk's bot protection embeds Cloudflare Turnstile.
+// `challenges.cloudflare.com` hosts the widget iframe; `*.turnstile.cloudflare.com`
+// and `*.cloudflare.com` cover its scripts, beacons, and analytics.
+const clerkCspHosts = [
+  "https://clerk.accounts.dev",
+  "https://*.clerk.accounts.dev",
+  "https://clerk-telemetry.com",
+  "https://img.clerk.com",
+  clerkFapiHost,
+].filter(Boolean);
+
+const turnstileHosts = [
+  "https://challenges.cloudflare.com",
+  "https://*.turnstile.cloudflare.com",
+  "https://*.cloudflare.com",
+];
+
+const cspHostList = [...clerkCspHosts, ...turnstileHosts]
+  .filter(Boolean)
+  .join(" ");
+
 const cspDirectives = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline'${
+    isProd ? "" : " 'unsafe-eval'"
+  } ${cspHostList}`.trim(),
+  // Clerk uses `new Worker(URL.createObjectURL(...))` for its session-polling
+  // shim. Without an explicit `worker-src` the browser falls back to
+  // `script-src`, which does not include `blob:` and silently blocks the
+  // worker — breaking Clerk's session refresh in CSP-strict modes.
+  "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data: https:",
+  `img-src 'self' blob: data: https: ${cspHostList}`.trim(),
   "font-src 'self'",
-  `connect-src 'self' ${supabaseOrigin} ${supabaseWsOrigin}`.trim(),
+  `connect-src 'self' ${supabaseOrigin} ${supabaseWsOrigin} ${cspHostList}`.trim(),
+  `frame-src 'self' ${cspHostList}`.trim(),
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

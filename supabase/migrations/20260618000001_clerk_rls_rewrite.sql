@@ -407,42 +407,8 @@ create policy "note_projects_delete_own" on note_projects
   ));
 
 -- ── note_related_notes (via notes both sides, 3 policies) ───────────────────
-drop policy if exists "note_related_notes_select_own" on note_related_notes;
-drop policy if exists "note_related_notes_insert_own" on note_related_notes;
-drop policy if exists "note_related_notes_delete_own" on note_related_notes;
-create policy "note_related_notes_select_own" on note_related_notes
-  for select to authenticated
-  using (
-    exists (select 1 from notes
-            where notes.id = note_related_notes.note_a_id
-              and notes.user_id = (select auth.jwt()->>'sub'))
-    and
-    exists (select 1 from notes
-            where notes.id = note_related_notes.note_b_id
-              and notes.user_id = (select auth.jwt()->>'sub'))
-  );
-create policy "note_related_notes_insert_own" on note_related_notes
-  for insert to authenticated
-  with check (
-    exists (select 1 from notes
-            where notes.id = note_related_notes.note_a_id
-              and notes.user_id = (select auth.jwt()->>'sub'))
-    and
-    exists (select 1 from notes
-            where notes.id = note_related_notes.note_b_id
-              and notes.user_id = (select auth.jwt()->>'sub'))
-  );
-create policy "note_related_notes_delete_own" on note_related_notes
-  for delete to authenticated
-  using (
-    exists (select 1 from notes
-            where notes.id = note_related_notes.note_a_id
-              and notes.user_id = (select auth.jwt()->>'sub'))
-    and
-    exists (select 1 from notes
-            where notes.id = note_related_notes.note_b_id
-              and notes.user_id = (select auth.jwt()->>'sub'))
-  );
+-- Table was dropped in 20260525000002_drop_note_related_notes.sql; policies
+-- do not need to be re-created.
 
 -- ── note_notebooks (via notes, 3 policies) ──────────────────────────────────
 drop policy if exists "note_notebooks_select_own" on note_notebooks;
