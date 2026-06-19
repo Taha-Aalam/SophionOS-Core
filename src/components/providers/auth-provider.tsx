@@ -1,9 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useMemo, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useClerk, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth as useClerkAuth, useClerk, useUser } from "@clerk/nextjs";
 
 import { AREAS_QUERY_KEY } from "@/lib/hooks/use-areas";
 import { seedDefaultAreas } from "@/lib/services/onboarding.service";
@@ -18,34 +18,60 @@ interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
+  isSigningOut: boolean;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { isLoaded, user: clerkUser } = useUser();
+export function AuthProvider({
+  children,
+  initialUser = null,
+}: {
+  children: React.ReactNode;
+  initialUser?: AuthUser | null;
+}) {
+  const { isLoaded, userId } = useClerkAuth();
+  const { user: clerkUser } = useUser();
   const { signOut: clerkSignOut } = useClerk();
   const router = useRouter();
   const queryClient = useQueryClient();
   const seededUserIdsRef = useRef(new Set<string>());
+  const [isSigningOut, setIsSigningOut] = React.useState(false);
 
-  const user: AuthUser | null = useMemo(
+  // Until Clerk's client SDK loads, ALL its hooks (useUser AND useAuth().userId)
+  // report null. Trust the server-resolved id — passed from the (dashboard)
+  // layout's `auth()` — so query keys (`user.id`) and `enabled: !!user` gating
+  // are correct on the FIRST client paint and data fetches start immediately,
+  // instead of stalling until hydration flips user null -> real (the "empty
+  // dashboard then reload" flash). Once loaded, switch to the live client id so
+  // sign-out's session revoke is reflected. The id is identical across the
+  // switch, so the query key never changes — no refetch flash.
+  const effectiveUserId = isLoaded ? userId : initialUser?.id ?? null;
+
+  const resolvedUser: AuthUser | null = useMemo(
     () =>
-      clerkUser
+      effectiveUserId
         ? {
-            id: clerkUser.id,
-            email: clerkUser.primaryEmailAddress?.emailAddress ?? null,
+            id: effectiveUserId,
+            email: clerkUser?.primaryEmailAddress?.emailAddress ?? null,
             name:
-              clerkUser.fullName ||
-              clerkUser.firstName ||
-              clerkUser.username ||
+              clerkUser?.fullName ||
+              clerkUser?.firstName ||
+              clerkUser?.username ||
               null,
-            imageUrl: clerkUser.imageUrl || null,
+            imageUrl: clerkUser?.imageUrl || null,
           }
         : null,
-    [clerkUser],
+    [effectiveUserId, clerkUser],
   );
+
+  // During sign-out, freeze the last known user so dashboard hooks don't drop
+  // their data (enabled:!!user -> false) while the tree is still mounted mid
+  // client-side navigation to /login. Captured in state (not a ref) at signout
+  // time so render never reads a ref — see react-hooks/refs.
+  const [frozenUser, setFrozenUser] = React.useState<AuthUser | null>(null);
+  const user = isSigningOut ? frozenUser : resolvedUser;
 
   useEffect(() => {
     if (!user) return;
@@ -55,7 +81,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void (async () => {
       try {
         await seedDefaultAreas(user.id);
-        await queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] });
+        // Surgical invalidation: only the "list" entry for this user. Avoids
+        // clobbering other keys (and the in-flight client fetches on login)
+        // that `invalidateQueries({ queryKey: [AREAS_QUERY_KEY] })` would
+        // wipe via prefix match.
+        await queryClient.invalidateQueries({
+          queryKey: [AREAS_QUERY_KEY, "list", user.id],
+        });
       } catch (error) {
         seededUserIdsRef.current.delete(user.id);
         if (process.env.NODE_ENV !== "production") {
@@ -66,13 +98,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, queryClient]);
 
   async function signOut() {
-    await clerkSignOut();
+    // Navigate FIRST (soft client-side nav). The dashboard unmounts cleanly,
+    // the (auth)/login group mounts, and Clerk's session-revoke fires in the
+    // background. This prevents the dashboard's hooks from ever seeing
+    // `user: null` while still mounted — which is what was producing the
+    // visible "data drops then logs out" flash.
     router.replace("/login");
-    router.refresh();
+    setFrozenUser(resolvedUser);
+    setIsSigningOut(true);
+    try {
+      await clerkSignOut({ redirectUrl: "/login" });
+    } catch (err) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[auth-provider] signOut failed", err);
+      }
+    } finally {
+      setIsSigningOut(false);
+    }
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading: !isLoaded, signOut }}>
+    <AuthContext.Provider
+      value={{ user, isLoading: !isLoaded, isSigningOut, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );
