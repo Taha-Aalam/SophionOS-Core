@@ -2,7 +2,7 @@
 
 **Project 1 of 2** · Version 1.0 · April 2026 · Status: Draft
 
-> LifeOS Core is the data platform, API layer, and web dashboard that powers the LifeOS AI life management product. It is the system of record — every piece of user data lives here. The companion project (LifeOS Agent) is the AI assistant that talks to users on WhatsApp/Telegram and writes data into this platform via API.
+> LifeOS Core is the data platform, API layer, MCP server, and web dashboard that powers the LifeOS life management product. It is the system of record — every piece of user data lives here. It ships with an MCP server that lets users connect LifeOS to any AI client they already use (Claude Desktop, Claude Code, Cursor, Codex). The companion project (LifeOS Agent) is a future WhatsApp/Telegram AI assistant built on top of this platform.
 
 ---
 
@@ -10,11 +10,11 @@
 
 LifeOS Core is a cloud-based SaaS platform that gives users a single, structured system to manage every domain of their life — work, health, finances, goals, knowledge, and personal tracking.
 
-**What it is:** A relational data platform with a clean web dashboard, built on the PARA methodology (Projects, Areas, Resources, Archive). It exposes a public REST API so that the LifeOS AI Agent (and future clients) can read and write user data programmatically.
+**What it is:** A relational data platform with a clean web dashboard, built on the PARA methodology (Projects, Areas, Resources, Archive). It exposes a public REST API and an MCP server so that any AI client can read and write user data programmatically — no custom integration needed.
 
-**What makes it different from Notion/Todoist/Obsidian:** LifeOS Core is purpose-built, not general-purpose. The data model is pre-designed with relationships baked in (Areas → Goals → Projects → Tasks). Users don't build databases — they just use them. Every entity is interconnected out of the box.
+**What makes it different from Notion/Todoist/Obsidian:** LifeOS Core is purpose-built, not general-purpose. The data model is pre-designed with relationships baked in (Areas → Goals → Projects → Tasks). Users don't build databases — they just use them. Every entity is interconnected out of the box. And unlike any competitor, LifeOS ships with native AI integration via MCP — users can manage their life system from inside the AI tools they already use.
 
-**The bigger picture:** LifeOS Core is the backend brain. Most users will interact with it primarily through the AI assistant on WhatsApp/Telegram (Project 2). The web dashboard is for visualization, planning sessions, and power-user operations. Think of Core as the engine; the Agent is the steering wheel.
+**The three interfaces:** LifeOS Core has three access layers from day one. The web dashboard for visual management and deep planning. The REST API for programmatic access and third-party integrations. The MCP server for frictionless AI-assisted input — users talk to Claude, Cursor, or Codex and their data flows into LifeOS automatically. A future fourth interface (the LifeOS Agent on WhatsApp/Telegram) will extend this to non-technical users.
 
 ---
 
@@ -153,6 +153,15 @@ These are MVP features. Nothing else ships until these work flawlessly.
 - Stripe integration: checkout, customer portal, usage tracking
 - Three tiers: Free, Pro ($14/mo), Premium ($29/mo)
 - Tier enforcement at API layer
+
+### 4.14 MCP Server
+- Published npm package (`@lifeos/mcp-server`) that wraps the REST API as MCP tools
+- ~30 tools covering every entity: create/list/update tasks, goals, projects, notes, resources, contacts; search; dashboard; inbox
+- Supports stdio transport (Claude Desktop, Claude Code, Cursor) and HTTP/SSE transport (remote hosting)
+- Users configure with their API key — one-time setup, under 2 minutes
+- Tool descriptions optimized for AI model consumption (not human-readable docs)
+- Dashboard settings page with pre-filled setup instructions and copy-paste config buttons
+- Launch differentiator: "LifeOS works inside the AI you already use"
 
 ---
 

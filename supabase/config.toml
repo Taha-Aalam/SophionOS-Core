@@ -353,9 +353,11 @@ enabled = false
 
 # Use Clerk as a third-party provider alongside Supabase Auth.
 [auth.third_party.clerk]
-enabled = false
-# Obtain from https://clerk.com/setup/supabase
-# domain = "example.clerk.accounts.dev"
+enabled = true
+# Domain = the Clerk FAPI host. Derive from NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+# by base64-decoding the segment after `pk_(test|live)_` and stripping the
+# trailing `$`. The dev key in this repo decodes to "composed-moccasin-34".
+domain = "composed-moccasin-34.clerk.accounts.dev"
 
 # OAuth server configuration
 [auth.oauth_server]

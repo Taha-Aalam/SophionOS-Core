@@ -1,5 +1,6 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
 import { redirect } from "next/navigation"
+import { auth } from "@clerk/nextjs/server"
 
 import { createClient } from "@/lib/supabase/server"
 import { makeQueryClient } from "@/lib/queries/server-query-client"
@@ -16,12 +17,12 @@ import { ContactDetailContent } from "./contact-detail-content"
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+  const { userId } = await auth()
+  if (!userId) redirect("/login")
 
+  const supabase = await createClient()
   const queryClient = makeQueryClient()
-  const contact = await serverFetchContactBySlug(supabase, user.id, id)
+  const contact = await serverFetchContactBySlug(supabase, userId, id)
   await queryClient.prefetchQuery({
     queryKey: [CONTACTS_QUERY_KEY, "slug", id],
     queryFn: () => Promise.resolve(contact),
@@ -47,7 +48,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
       }),
       queryClient.prefetchQuery({
         queryKey: [CONTACTS_QUERY_KEY, contact.id, "logs"],
-        queryFn: () => serverFetchContactLogs(supabase, user.id, contact.id),
+        queryFn: () => serverFetchContactLogs(supabase, userId, contact.id),
       }),
     ])
   }

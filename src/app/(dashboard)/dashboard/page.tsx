@@ -1,5 +1,6 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
 import { redirect } from "next/navigation"
+import { auth } from "@clerk/nextjs/server"
 
 import { createClient } from "@/lib/supabase/server"
 import { makeQueryClient } from "@/lib/queries/server-query-client"
@@ -8,14 +9,14 @@ import { serverFetchDashboardToday } from "@/lib/queries/dashboard.queries"
 import { DashboardContent } from "./dashboard-content"
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/login")
+  const { userId } = await auth()
+  if (!userId) redirect("/login")
 
+  const supabase = await createClient()
   const queryClient = makeQueryClient()
   await queryClient.prefetchQuery({
-    queryKey: [DASHBOARD_QUERY_KEY, user.id, "today"],
-    queryFn: () => serverFetchDashboardToday(supabase, user.id),
+    queryKey: [DASHBOARD_QUERY_KEY, userId, "today"],
+    queryFn: () => serverFetchDashboardToday(supabase, userId),
   })
 
   return (

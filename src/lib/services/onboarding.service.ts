@@ -6,16 +6,6 @@ import { generateSlug } from "@/lib/utils";
 export async function seedDefaultAreas(userId: string): Promise<void> {
   const supabase = createClient();
 
-  const { data: existingAreas } = await supabase
-    .from("areas")
-    .select("id")
-    .eq("user_id", userId)
-    .limit(1);
-
-  if (existingAreas && existingAreas.length > 0) {
-    return;
-  }
-
   const areasToInsert: AreaInsert[] = DEFAULT_AREAS.map((area) => ({
     user_id: userId,
     name: area.name,
@@ -27,7 +17,15 @@ export async function seedDefaultAreas(userId: string): Promise<void> {
     archive: false,
   }));
 
-  const { error } = await supabase.from("areas").insert(areasToInsert);
+  // Idempotent: upsert on (user_id, slug). If a row already exists for that
+  // pair, skip insert (ignoreDuplicates). Avoids the select-then-insert race
+  // and React StrictMode double-effect invocations.
+  const { error } = await supabase
+    .from("areas")
+    .upsert(areasToInsert, {
+      onConflict: "user_id,slug",
+      ignoreDuplicates: true,
+    });
 
   if (error) {
     throw new Error(`Failed to seed default areas: ${error.message}`);
