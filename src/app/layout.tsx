@@ -3,8 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { AuthProvider } from "@/components/providers/auth-provider";
-import { InboxBackfillProvider } from "@/components/providers/inbox-backfill-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UIProvider } from "@/lib/stores/ui.store";
@@ -36,15 +34,11 @@ export default function RootLayout({
           <QueryProvider>
             <div suppressHydrationWarning>
               <ThemeProvider>
-                <AuthProvider>
-                  <InboxBackfillProvider>
-                    <TooltipProvider>
-                      <UIProvider>
-                        {children}
-                      </UIProvider>
-                    </TooltipProvider>
-                  </InboxBackfillProvider>
-                </AuthProvider>
+                <TooltipProvider>
+                  <UIProvider>
+                    {children}
+                  </UIProvider>
+                </TooltipProvider>
               </ThemeProvider>
             </div>
           </QueryProvider>
