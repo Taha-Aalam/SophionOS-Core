@@ -12,6 +12,7 @@ import { createAreaSchema } from "@/lib/validators/area.schema";
 import { Area, CreateAreaInput } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
 import { normalizeAreaType } from "@/lib/utils/areas";
+import { EmojiPickerPopover } from "@/components/ui/emoji-picker-popover";
 
 interface AreaDialogProps {
   open: boolean;
@@ -23,7 +24,6 @@ interface AreaDialogProps {
   isLoading?: boolean;
 }
 
-const AREA_ICONS = ["📚", "💼", "🏥", "💰", "🎯", "⚙️", "🏠", "✈️", "🎨", "💪", "🧘", "📱"];
 const AREA_COLORS = [
   "#EF4444", "#F97316", "#F59E0B", "#84CC16", "#22C55E",
   "#14B8A6", "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899",
@@ -132,15 +132,13 @@ export function AreaDialog({
 
           <div className="space-y-2">
             <Label>Icon</Label>
-            <div className="flex flex-wrap gap-2">
-              {AREA_ICONS.map((icon) => (
-                <button key={icon} type="button" onClick={() => setValue("icon", icon)}
-                  className={cn("w-10 h-10 rounded-lg flex items-center justify-center text-lg transition-all",
-                    selectedIcon === icon ? "ring-2 ring-primary bg-primary/10" : "bg-muted hover:bg-muted/80")}>
-                  {icon}
-                </button>
-              ))}
-            </div>
+            <EmojiPickerPopover
+              value={selectedIcon ?? null}
+              onChange={(emoji) =>
+                setValue("icon", emoji, { shouldDirty: true })
+              }
+              disabled={isLoading}
+            />
           </div>
 
           <div className="space-y-2">
