@@ -140,9 +140,30 @@ export function ResourceDialog({
    * (and overrides any prior pick) when the inputs that drive status change.
    */
   const statusOverriddenRef = useRef(false);
+  /**
+   * Tracks the last reset key (resource.id or "create") so the reset effect
+   * only fires when the dialog opens or the entity being edited changes.
+   * Without this guard, unstable parent props (e.g. inline `[goal.id]`
+   * array literals for `initialGoalIds`) would re-trigger the effect on
+   * every render and wipe the user's in-progress selections.
+   */
+  const lastResetKeyRef = useRef<string>("");
 
   useEffect(() => {
-    if (open && resource) {
+    if (!open) {
+      lastResetKeyRef.current = "";
+      // Closed: reset the override so a future open starts fresh.
+      statusOverriddenRef.current = false;
+      return;
+    }
+
+    const resetKey = resource?.id ?? "create";
+    if (lastResetKeyRef.current === resetKey) {
+      return;
+    }
+    lastResetKeyRef.current = resetKey;
+
+    if (resource) {
       startTransition(() => {
         statusOverriddenRef.current = true;
         setName(resource.name);
@@ -155,7 +176,7 @@ export function ResourceDialog({
         setGoalIds(resource.linkedGoalIds ?? []);
         setTaskIds(resource.linkedTaskIds ?? []);
       });
-    } else if (open) {
+    } else {
       startTransition(() => {
         setName("");
         setUrl("");
@@ -174,11 +195,8 @@ export function ResourceDialog({
         setGoalIds(initialGoalIds ?? []);
         setTaskIds([]);
       });
-    } else {
-      // Closed: reset the override so a future open starts fresh.
-      statusOverriddenRef.current = false;
     }
-  }, [open, resource, initialGoalIds, initialAreaIds, initialProjectId, initialTopicId]);
+  }, [open, resource?.id, initialGoalIds, initialAreaIds, initialProjectId, initialTopicId]);
 
   // Live re-derive status from current context. Default behavior: keep the
   // user's pick. If the user hasn't manually overridden status, derive from

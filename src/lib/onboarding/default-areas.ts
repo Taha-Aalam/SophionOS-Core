@@ -38,7 +38,7 @@ const DEFAULT_AREAS: DefaultArea[] = [
   {
     name: "Family & Friends",
     description: "Relationships, connection, and the people who matter most.",
-    icon: "👥",
+    icon: "👪",
     color: "#EC4899",
     type: "Personal",
   },
@@ -59,7 +59,7 @@ const DEFAULT_AREAS: DefaultArea[] = [
   {
     name: "Career",
     description: "Career development, opportunities, networking, and advancement.",
-    icon: "🎯",
+    icon: "🚀",
     color: "#8B5CF6",
     type: "Studies",
   },

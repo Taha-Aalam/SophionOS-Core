@@ -42,15 +42,16 @@ export function EmojiPickerPopover({
   className,
 }: EmojiPickerPopoverProps) {
   const [open, setOpen] = React.useState(false);
-  const [accent, setAccent] = React.useState("#6366F1");
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    const cssAccent = getComputedStyle(document.documentElement)
-      .getPropertyValue("--primary")
-      .trim();
-    if (cssAccent) setAccent(cssAccent);
-  }, []);
+  // Read the accent color from the CSS variable on first render so the
+  // picker matches the active theme without a post-mount setState cycle.
+  const [accent] = React.useState(() => {
+    if (typeof window === "undefined") return "#6366F1";
+    return (
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--primary")
+        .trim() || "#6366F1"
+    );
+  });
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

@@ -78,7 +78,7 @@ export function computeVisibleGoals<T extends FilterableGoal>(
   const projectGoalSet = new Set(projectGoalIds);
   const projectConstraintActive = hasProject && projectGoalIds.length > 0;
 
-  return goals.filter((goal) => {
+  const candidates = goals.filter((goal) => {
     if (projectConstraintActive && !projectGoalSet.has(goal.id)) return false;
 
     if (hasAreas) {
@@ -91,6 +91,10 @@ export function computeVisibleGoals<T extends FilterableGoal>(
 
     return true;
   });
+  // Fallback: when the intersection collapses to empty, surface the full
+  // goal list so the user can still link a goal.
+  if (candidates.length === 0) return goals;
+  return candidates;
 }
 
 interface FilterableArea {
