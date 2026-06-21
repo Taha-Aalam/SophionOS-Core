@@ -1,0 +1,93 @@
+"use client";
+
+import * as React from "react";
+import dynamic from "next/dynamic";
+import { ChevronDown } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+// @emoji-mart/react ships default-only export with `any` prop types.
+const EmojiPicker = dynamic(
+  () => import("@emoji-mart/react").then((m) => m.default),
+  { ssr: false, loading: () => null },
+) as unknown as React.ComponentType<{
+  data: () => Promise<unknown>;
+  theme?: "light" | "dark" | "auto";
+  previewPosition?: "top" | "bottom" | "none";
+  skinTonePosition?: "top" | "bottom" | "none" | "preview";
+  accentColor?: string;
+  onEmojiSelect?: (emoji: { native: string }) => void;
+}>;
+
+interface EmojiPickerPopoverProps {
+  value: string | null;
+  onChange: (emoji: string) => void;
+  align?: "start" | "center" | "end";
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+}
+
+export function EmojiPickerPopover({
+  value,
+  onChange,
+  align = "start",
+  placeholder = "Pick an icon",
+  disabled = false,
+  className,
+}: EmojiPickerPopoverProps) {
+  const [open, setOpen] = React.useState(false);
+  const [accent, setAccent] = React.useState("#6366F1");
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const cssAccent = getComputedStyle(document.documentElement)
+      .getPropertyValue("--primary")
+      .trim();
+    if (cssAccent) setAccent(cssAccent);
+  }, []);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        disabled={disabled}
+        className={cn(
+          "inline-flex h-10 min-w-[10rem] items-center justify-between gap-2 rounded-lg border border-input bg-background px-3 text-sm transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
+          className,
+        )}
+      >
+        <span className="flex items-center gap-2 truncate">
+          {value ? (
+            <span className="text-lg leading-none">{value}</span>
+          ) : (
+            <span className="text-muted-foreground">{placeholder}</span>
+          )}
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
+      </PopoverTrigger>
+      <PopoverContent align={align} sideOffset={8} className="w-[352px] p-0">
+        <div role="dialog" aria-label="Pick an emoji">
+          <EmojiPicker
+            data={async () => (await import("@emoji-mart/data")).default}
+            theme="auto"
+            previewPosition="none"
+            skinTonePosition="none"
+            accentColor={accent}
+            onEmojiSelect={(emoji: { native: string }) => {
+              onChange(emoji.native);
+              setOpen(false);
+            }}
+          />
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
