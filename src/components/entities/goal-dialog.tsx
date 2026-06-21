@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { X } from "lucide-react";
 import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { z } from "zod";
@@ -124,10 +124,26 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
     },
   });
 
+  /**
+   * Tracks the last reset key (goal.id or "create") so the reset effect
+   * only fires when the dialog opens or the entity being edited changes.
+   * Without this guard, an unstable parent prop (e.g. `defaultAreaIds`
+   * passed as an inline `[area.id]` array literal) would re-trigger the
+   * effect on every render and wipe the user's in-progress selections.
+   */
+  const lastResetKeyRef = useRef<string>("");
+
   useEffect(() => {
     if (!open) {
+      lastResetKeyRef.current = "";
       return;
     }
+
+    const resetKey = goal?.id ?? "create";
+    if (lastResetKeyRef.current === resetKey) {
+      return;
+    }
+    lastResetKeyRef.current = resetKey;
 
     form.reset({
       name: goal?.name || "",
@@ -140,7 +156,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
       target_date: goal?.target_date ?? undefined,
       progress: goal?.progress || 0,
     });
-  }, [form, goal, open, defaultAreaIds]);
+  }, [form, goal?.id, open, defaultAreaIds]);
 
   const progressValue = useWatch({ control: form.control, name: "progress" }) ?? 0;
   const selectedAreaIds = useWatch({ control: form.control, name: "area_ids" }) ?? [];

@@ -179,7 +179,7 @@ export function filterAreas(
       : taskAreas;
   }
 
-  if (allowed && allowed.size === 0) return [];
+  if (allowed && allowed.size === 0) return activeAreas;
   return allowed ? activeAreas.filter((a) => allowed!.has(a.id)) : activeAreas;
 }
 
@@ -218,7 +218,7 @@ export function filterProjects(
     ? new Set(inputs.selectedGoalIds.flatMap((gId) => goalToProjectIds.get(gId) ?? []))
     : null;
 
-  return activeProjects.filter((p) => {
+  const candidates = activeProjects.filter((p) => {
     if (hasAreas) {
       const projectAreas = getEntityAreaIds(p);
       if (!projectAreas.some((aId) => areaSet.has(aId))) return false;
@@ -227,6 +227,10 @@ export function filterProjects(
     if (hasTasks && taskProjectIds && !taskProjectIds.has(p.id)) return false;
     return true;
   });
+  // Fallback: when the intersection collapses to empty, surface the full
+  // project list so the user can still link a project.
+  if (candidates.length === 0) return activeProjects;
+  return candidates;
 }
 
 /**
@@ -278,7 +282,7 @@ export function filterGoals(
     }
   }
 
-  return activeGoals.filter((g) => {
+  const candidates = activeGoals.filter((g) => {
     if (projectConstraintActive && !projectGoalIds!.has(g.id)) return false;
     if (hasTasks && taskGoalIds!.size > 0 && !taskGoalIds!.has(g.id)) return false;
     if (hasAreas) {
@@ -287,6 +291,10 @@ export function filterGoals(
     }
     return true;
   });
+  // Fallback: when the intersection collapses to empty, surface the full
+  // goal list so the user can still link a goal.
+  if (candidates.length === 0) return activeGoals;
+  return candidates;
 }
 
 /**
@@ -321,7 +329,7 @@ export function filterTasks(
     : null;
   const goalConstraintActive = hasGoals && goalTaskIdSet!.size > 0;
 
-  return allTasks.filter((t) => {
+  const candidates = allTasks.filter((t) => {
     if (hasAreas) {
       const taskAreas = getEntityAreaIds(t);
       if (!taskAreas.some((aId) => areaSet!.has(aId))) return false;
@@ -330,6 +338,10 @@ export function filterTasks(
     if (goalConstraintActive && !goalTaskIdSet!.has(t.id)) return false;
     return true;
   });
+  // Fallback: when the intersection collapses to empty, surface the full
+  // task list so the user can still link a task.
+  if (candidates.length === 0) return allTasks;
+  return candidates;
 }
 
 // ---------------------------------------------------------------------------
