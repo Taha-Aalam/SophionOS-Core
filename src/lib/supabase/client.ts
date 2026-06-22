@@ -12,41 +12,46 @@ declare global {
   }
 }
 
-// On a hard refresh the Clerk browser SDK is not yet loaded when the first data
-// queries fire — AuthProvider seeds `user` from the server-resolved id so
-// `enabled: !!user` is true on the first client paint. If accessToken() returned
-// null in that window the request went out unauthenticated, RLS returned zero
-// rows, and the empty result was cached (the query key never changes once Clerk
-// loads, so nothing refetches). That surfaced as goals/projects/tasks randomly
-// missing on refresh until a later unrelated invalidation. Block here until
-// Clerk is loaded, with a timeout so a stalled load can never hang every request.
-const CLERK_READY_TIMEOUT_MS = 5000;
+// On a hard refresh the Clerk browser SDK is not yet ready when the first data
+// queries (and the default-area seed) fire — AuthProvider seeds `user` from the
+// server-resolved id so `enabled: !!user` is true on the first client paint. If
+// accessToken() returns null in that window, supabase-js falls back to the
+// publishable key as the bearer, the request hits PostgREST as `anon`, and every
+// RLS `to authenticated` policy denies it (401 / 42501) or returns zero rows.
+// That surfaced as goals/projects/tasks randomly missing and a failing area seed
+// on refresh, recovering only after Clerk finished loading.
+//
+// `Clerk.loaded` flips true a beat before `session.getToken()` actually yields a
+// token, so waiting on `loaded` is not enough. Wait for the real artifact: poll
+// getToken() until it returns a non-null token. Once Clerk is ready getToken()
+// resolves from cache instantly, so the wait only costs anything during the cold
+// load. A timeout backstops a genuinely signed-out session so requests never hang.
+const CLERK_TOKEN_TIMEOUT_MS = 10000;
 const CLERK_POLL_INTERVAL_MS = 50;
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function waitForClerkLoaded(): Promise<void> {
-  const deadline = Date.now() + CLERK_READY_TIMEOUT_MS;
+async function resolveClerkToken(): Promise<string | null> {
+  const deadline = Date.now() + CLERK_TOKEN_TIMEOUT_MS;
 
-  // The global itself may not be attached yet on a cold load.
-  while (!window.Clerk && Date.now() < deadline) {
-    await delay(CLERK_POLL_INTERVAL_MS);
-  }
-
-  const clerk = window.Clerk;
-  if (!clerk || clerk.loaded) return;
-
-  if (typeof clerk.load === "function") {
+  // Kick the SDK if the global is attached but not yet loaded.
+  if (window.Clerk && !window.Clerk.loaded && typeof window.Clerk.load === "function") {
     try {
-      await clerk.load();
+      await window.Clerk.load();
     } catch {
-      // Fall through to polling — load() failing doesn't mean Clerk won't ready.
+      // Ignore — polling below still waits for the session to come up.
     }
   }
 
-  while (!window.Clerk?.loaded && Date.now() < deadline) {
+  while (Date.now() < deadline) {
+    const token = await window.Clerk?.session?.getToken();
+    if (token) return token;
     await delay(CLERK_POLL_INTERVAL_MS);
   }
+
+  // Timed out (e.g. genuinely signed-out session). Return whatever we have so
+  // the request proceeds rather than hanging forever.
+  return (await window.Clerk?.session?.getToken()) ?? null;
 }
 
 export const createClient = () =>
@@ -55,8 +60,7 @@ export const createClient = () =>
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       async accessToken() {
-        await waitForClerkLoaded();
-        return (await window.Clerk?.session?.getToken()) ?? null;
+        return resolveClerkToken();
       },
     },
   );
