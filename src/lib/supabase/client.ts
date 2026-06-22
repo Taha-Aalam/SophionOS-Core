@@ -54,7 +54,17 @@ async function resolveClerkToken(): Promise<string | null> {
   return (await window.Clerk?.session?.getToken()) ?? null;
 }
 
-export const createClient = () =>
+// Single browser client reused across every service call. supabase-js invokes
+// the `accessToken` callback on each request, so a singleton still sends a fresh
+// Clerk token per query — but we no longer rebuild a client object (and its
+// internal fetch/auth machinery) on every `goalService.list()` etc. Before this,
+// the dashboard's 8 concurrent list queries each constructed their own client.
+//
+// `makeBrowserClient` is a concrete factory (no generics) so its inferred return
+// type is the fully-instantiated client. Annotating the singleton with
+// `ReturnType<typeof createSupabaseClient>` instead would evaluate the generic
+// uninstantiated and collapse every row type to `never`.
+const makeBrowserClient = () =>
   createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -64,3 +74,10 @@ export const createClient = () =>
       },
     },
   );
+
+let browserClient: ReturnType<typeof makeBrowserClient> | null = null;
+
+export const createClient = () => {
+  browserClient ??= makeBrowserClient();
+  return browserClient;
+};
