@@ -133,7 +133,7 @@ export function computeFilteredProjects<T extends FilterableProject>(
       )
     : null;
 
-  return projects.filter((project) => {
+  const candidates = projects.filter((project) => {
     // Preselected projects (e.g. the resource's existing junction links
     // when editing) must always remain visible in the dropdown so the user
     // can keep or remove them, even if the cross-filter would otherwise
@@ -161,6 +161,11 @@ export function computeFilteredProjects<T extends FilterableProject>(
 
     return true;
   });
+
+  // Fallback: when the intersection collapses to empty, surface the full
+  // project list so the user can still link a project.
+  if (candidates.length === 0) return projects;
+  return candidates;
 }
 
 /**
@@ -212,7 +217,7 @@ export function computeFilteredGoals<T extends FilterableGoal>(
     }
   }
 
-  return goals.filter((goal) => {
+  const candidates = goals.filter((goal) => {
     if (preselectedGoalIds?.includes(goal.id)) return true;
     const goalAreaIds = getEntityAreaIds(goal);
     // Unassigned goals stay visible when an area filter is active.
@@ -229,6 +234,12 @@ export function computeFilteredGoals<T extends FilterableGoal>(
 
     return true;
   });
+
+  // Fallback: when the intersection collapses to empty (e.g. the selected
+  // project has no linked goals yet), surface the full goal list so the
+  // user can still link a goal instead of seeing "No goals found".
+  if (candidates.length === 0) return goals;
+  return candidates;
 }
 
 /**
@@ -263,7 +274,7 @@ export function computeFilteredTasks<T extends FilterableTask>(
     : null;
   const goalConstraintActive = hasGoals && goalTaskIdSet!.size > 0;
 
-  return tasks.filter((t) => {
+  const candidates = tasks.filter((t) => {
     if (preselectedTaskIds?.includes(t.id)) return true;
     if (hasAreas) {
       const taskAreas = getEntityAreaIds(t);
@@ -279,4 +290,9 @@ export function computeFilteredTasks<T extends FilterableTask>(
 
     return true;
   });
+
+  // Fallback: when the intersection collapses to empty, surface the full
+  // task list so the user can still link a task.
+  if (candidates.length === 0) return tasks;
+  return candidates;
 }

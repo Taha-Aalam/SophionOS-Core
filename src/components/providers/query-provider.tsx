@@ -13,7 +13,12 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
             gcTime: 10 * 60 * 1000,
             refetchOnWindowFocus: false,
             refetchOnReconnect: false,
-            refetchOnMount: false,
+            // Refetch on mount so list pages (dashboard, goals, tasks, ...)
+            // pick up the latest server state when the user navigates back
+            // from an edit flow. With this set to false, mutations
+            // correctly invalidate the cache but the cached-but-stale data
+            // stays in place until a manual reload.
+            refetchOnMount: true,
             retry: 1,
           },
         },

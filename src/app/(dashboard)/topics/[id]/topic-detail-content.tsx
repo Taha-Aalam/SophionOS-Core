@@ -51,7 +51,7 @@ import { useAreas } from "@/lib/hooks/use-areas";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { useEscapeBack } from "@/lib/hooks/use-escape-back";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds } from "@/lib/utils/notes";
-import { getResourceLinkedProjectIds } from "@/lib/utils/resources";
+import { getResourceLinkedAreaIds, getResourceLinkedProjectIds } from "@/lib/utils/resources";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { buildReturnToChain, popReturnToHref } from "@/lib/utils/return-to";
 import { cn } from "@/lib/utils";
@@ -183,14 +183,27 @@ export function TopicDetailContent() {
     const linkedNoteIds = new Set(notes.map((n) => n.id));
     const unlinked = allNotes.filter((n) => !linkedNoteIds.has(n.id));
     if (!topic?.linkedAreaIds?.length) return unlinked;
-    return unlinked.filter((n) => topic.linkedAreaIds!.includes(n.area_id ?? ""));
+    const topicAreaIds = new Set(topic.linkedAreaIds);
+    // Notes/resources without any area stay linkable so the user can still
+    // bring them under this topic. Notes with a primary area_id or any
+    // linkedAreaIds overlap the topic's areas are also linkable.
+    return unlinked.filter((n) => {
+      const noteAreaIds = getNoteLinkedAreaIds(n);
+      if (noteAreaIds.length === 0) return true;
+      return noteAreaIds.some((id) => topicAreaIds.has(id));
+    });
   }, [allNotes, notes, topic]);
 
   const linkableResources = useMemo(() => {
     const linkedResourceIds = new Set(resources.map((r) => r.id));
     const unlinked = allResources.filter((r) => !linkedResourceIds.has(r.id));
     if (!topic?.linkedAreaIds?.length) return unlinked;
-    return unlinked.filter((r) => topic.linkedAreaIds!.includes(r.area_id ?? ""));
+    const topicAreaIds = new Set(topic.linkedAreaIds);
+    return unlinked.filter((r) => {
+      const resourceAreaIds = getResourceLinkedAreaIds(r);
+      if (resourceAreaIds.length === 0) return true;
+      return resourceAreaIds.some((id) => topicAreaIds.has(id));
+    });
   }, [allResources, resources, topic]);
 
   const noteTabs = useMemo(() => [

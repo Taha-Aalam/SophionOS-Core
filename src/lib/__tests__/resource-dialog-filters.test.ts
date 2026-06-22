@@ -249,8 +249,7 @@ describe("computeFilteredProjects", () => {
   });
 
   it("intersects goals + tasks", () => {
-    // goal-1 → P1; T2 (proj-2) → P2; intersection = empty
-    // No area constraint active → P4 is not exempt here (unassigned bypass only fires when hasAreas)
+    // goal-1 → P1; T2 (proj-2) → P2; intersection = empty → fallback to all projects
     expect(
       computeFilteredProjects(
         ALL_PROJECTS,
@@ -259,7 +258,7 @@ describe("computeFilteredProjects", () => {
         goalProjectIdsMap,
         [T2],
       ),
-    ).toEqual([]);
+    ).toEqual(ALL_PROJECTS);
   });
 
   it("intersects all three", () => {
@@ -353,8 +352,7 @@ describe("computeFilteredGoals", () => {
   });
 
   it("intersects project + tasks", () => {
-    // proj-1 → G1; T2 → G2; intersection = empty
-    // No area constraint → G4 not exempt
+    // proj-1 → G1; T2 → G2; intersection = empty → fallback to all goals
     expect(
       computeFilteredGoals(
         ALL_GOALS,
@@ -364,7 +362,7 @@ describe("computeFilteredGoals", () => {
         taskGoalIdsMap,
         [T2],
       ),
-    ).toEqual([]);
+    ).toEqual(ALL_GOALS);
   });
 
   it("intersects all three", () => {
@@ -432,8 +430,7 @@ describe("computeFilteredTasks", () => {
   });
 
   it("intersects project + goals", () => {
-    // proj-1 → T1; goal-2 → T2; intersection = empty
-    // No area constraint → T5 not exempt
+    // proj-1 → T1; goal-2 → T2; intersection = empty → fallback to all tasks
     expect(
       computeFilteredTasks(
         ALL_TASKS,
@@ -442,7 +439,7 @@ describe("computeFilteredTasks", () => {
         ["goal-2"],
         goalTaskIdsMap,
       ),
-    ).toEqual([]);
+    ).toEqual(ALL_TASKS);
   });
 
   it("intersects all three", () => {

@@ -292,10 +292,29 @@ export function ContactDialog({
     form.setValue(field, next);
   };
 
+  /**
+   * Tracks the last reset key (contact.id or "create") so the reset effect
+   * only fires when the dialog opens or the entity being edited changes.
+   * Without this guard, an unstable parent prop (e.g. `defaults` passed
+   * as an inline `{ area_ids: [area.id] }` object literal) would re-trigger
+   * the effect on every render and wipe the user's in-progress selections.
+   */
+  const lastResetKeyRef = useRef<string>("");
+
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      lastResetKeyRef.current = "";
+      return;
+    }
+
+    const resetKey = contact?.id ?? "create";
+    if (lastResetKeyRef.current === resetKey) {
+      return;
+    }
+    lastResetKeyRef.current = resetKey;
+
     form.reset(contact ? buildContactFormValues(contact) : mergeContactFormDefaults(defaults));
-  }, [open, contact, defaults, form]);
+  }, [open, contact?.id, defaults, form]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     form.clearErrors();

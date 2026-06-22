@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 
 import { X } from "lucide-react";
@@ -178,15 +178,31 @@ export function ProjectDialog({
     defaultValues: EMPTY_FORM_VALUES,
   });
 
+  /**
+   * Tracks the last reset key (project.id or "create") so the reset effect
+   * only fires when the dialog opens or the entity being edited changes.
+   * Without this guard, an unstable parent prop (e.g. `defaultAreaIds`
+   * passed as an inline `[area.id]` array literal) would re-trigger the
+   * effect on every render and wipe the user's in-progress selections.
+   */
+  const lastResetKeyRef = useRef<string>("");
+
   useEffect(() => {
     if (!open) {
+      lastResetKeyRef.current = "";
       return;
     }
+
+    const resetKey = project?.id ?? "create";
+    if (lastResetKeyRef.current === resetKey) {
+      return;
+    }
+    lastResetKeyRef.current = resetKey;
 
     form.reset(
       buildProjectFormValues(project, linkedGoalIds, goalId, goalScoped, defaultAreaIds),
     );
-  }, [form, linkedGoalIds, open, project, goalId, goalScoped, defaultAreaIds]);
+  }, [form, linkedGoalIds, open, project?.id, goalId, goalScoped, defaultAreaIds]);
 
   const watchedAreaIds = useWatch({ control: form.control, name: "area_ids" });
   const selectedAreaIds = useMemo(() => watchedAreaIds ?? [], [watchedAreaIds]);

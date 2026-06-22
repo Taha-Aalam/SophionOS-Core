@@ -1,10 +1,24 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch, type Resolver, type SubmitHandler } from "react-hook-form";
+import { Check, ChevronDownIcon, Plus } from "lucide-react";
 import { z } from "zod/v4";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -82,17 +96,35 @@ export function AreaDialog({
 
   const { register, handleSubmit, setValue, reset, control, formState: { errors } } = form;
 
+  /**
+   * Tracks the last reset key (area.id or "create") so the reset effect
+   * only fires when the dialog opens or the entity being edited changes.
+   * Without this guard, an unstable parent prop (e.g. `defaultAreaIds`
+   * passed as an inline `[area.id]` array literal) would re-trigger the
+   * effect on every render and wipe the user's in-progress selections.
+   */
+  const lastResetKeyRef = useRef<string>("");
+
   useEffect(() => {
-    if (open) {
-      reset({
-        name: area?.name || "",
-        description: area?.description || "",
-        icon: area?.icon || undefined,
-        color: area?.color || undefined,
-        type: normalizedDefaultType,
-      });
+    if (!open) {
+      lastResetKeyRef.current = "";
+      return;
     }
-  }, [area, normalizedDefaultType, open, reset]);
+
+    const resetKey = area?.id ?? "create";
+    if (lastResetKeyRef.current === resetKey) {
+      return;
+    }
+    lastResetKeyRef.current = resetKey;
+
+    reset({
+      name: area?.name || "",
+      description: area?.description || "",
+      icon: area?.icon || undefined,
+      color: area?.color || undefined,
+      type: normalizedDefaultType,
+    });
+  }, [area?.id, normalizedDefaultType, open, reset]);
 
   const selectedIcon = useWatch({ control, name: "icon" });
   const selectedColor = useWatch({ control, name: "color" });
@@ -158,45 +190,14 @@ export function AreaDialog({
             <Controller
               control={control}
               name="type"
-              render={({ field }) => {
-                const normalizedValue = normalizeAreaType(field.value);
-                const matchingSuggestions = suggestedTypes.filter(
-                  (type) =>
-                    type.toLowerCase().includes((field.value || "").trim().toLowerCase()) &&
-                    type !== normalizedValue,
-                );
-                return (
-                  <>
-                    <Input
-                      id="type"
-                      list="area-types"
-                      placeholder="Type or select a type"
-                      value={field.value || ""}
-                      onChange={(e) => field.onChange(e.target.value)}
-                      onBlur={field.onBlur}
-                      name={field.name}
-                    />
-                    <datalist id="area-types">
-                      {suggestedTypes.map((type) => (
-                        <option key={type} value={type} />
-                      ))}
-                    </datalist>
-                    {matchingSuggestions.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {matchingSuggestions.slice(0, 3).map((type) => (
-                          <button
-                            key={type}
-                            type="button"
-                            onClick={() => field.onChange(type)}
-                            className="text-xs px-2 py-1 rounded bg-muted hover:bg-muted/80 transition-colors">
-                            {type}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                );
-              }}
+              render={({ field }) => (
+                <AreaTypeSelector
+                  value={field.value || ""}
+                  options={suggestedTypes}
+                  onChange={(next) => field.onChange(next)}
+                  disabled={isLoading}
+                />
+              )}
             />
             {errors.type && <p className="text-xs text-destructive">{String(errors.type.message)}</p>}
           </div>
@@ -208,5 +209,94 @@ export function AreaDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function AreaTypeSelector({
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  options: string[];
+  onChange: (next: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const normalizedValue = normalizeAreaType(value);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((option) => option.toLowerCase().includes(q));
+  }, [options, query]);
+
+  const trimmed = query.trim();
+  const canCreate =
+    trimmed.length > 0 &&
+    !options.some((option) => option.toLowerCase() === trimmed.toLowerCase());
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        role="combobox"
+        disabled={disabled}
+        className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
+      >
+        <span className="truncate">
+          {normalizedValue || "Select or create type..."}
+        </span>
+        <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Search or create..."
+            value={query}
+            onValueChange={setQuery}
+          />
+          <CommandList className="max-h-56 overflow-y-auto">
+            {canCreate && (
+              <CommandGroup>
+                <CommandItem
+                  value={`__create__${trimmed}`}
+                  onSelect={() => {
+                    onChange(normalizeAreaType(trimmed));
+                    setQuery("");
+                    setOpen(false);
+                  }}
+                >
+                  <Plus className="mr-2 size-3.5" />
+                  Create &ldquo;{trimmed}&rdquo;
+                </CommandItem>
+              </CommandGroup>
+            )}
+            <CommandEmpty>No types found.</CommandEmpty>
+            <CommandGroup>
+              {filtered.map((option) => (
+                <CommandItem
+                  key={option}
+                  value={option}
+                  onSelect={() => {
+                    onChange(normalizeAreaType(option));
+                    setQuery("");
+                    setOpen(false);
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <span className="flex-1 truncate text-sm">{option}</span>
+                  {option === normalizedValue && (
+                    <Check className="ml-auto size-3.5" />
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
