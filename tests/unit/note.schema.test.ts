@@ -54,9 +54,17 @@ describe("createNoteSchema", () => {
     expect(() => createNoteSchema.parse({ name: "" })).toThrow();
   });
 
-  it("rejects invalid note type", () => {
+  it("accepts a lowercase single-word custom type", () => {
+    // `notes.type` is free TEXT backed by the per-user note_types catalog, so
+    // user-created types like "personal" are valid — regression for the
+    // "Invalid note type" reject that the old /[A-Z ]/ heuristic caused.
+    const result = createNoteSchema.parse({ name: "Note", type: "personal" });
+    expect(result.type).toBe("personal");
+  });
+
+  it("rejects an empty note type", () => {
     expect(() =>
-      createNoteSchema.parse({ name: "Note", type: "invalid" }),
+      createNoteSchema.parse({ name: "Note", type: "" }),
     ).toThrow();
   });
 
