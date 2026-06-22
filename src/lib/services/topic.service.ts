@@ -125,16 +125,19 @@ export const topicService = {
   async update(userId: string, id: string, input: UpdateTopicInput): Promise<TopicWithCounts> {
     const validated = updateTopicSchema.parse(input);
 
-    const { data: topic, error } = await createClient()
-      .from("topics")
-      .update({
-        ...(validated.name !== undefined && { name: validated.name, slug: generateSlug(validated.name) }),
-        ...(validated.favorite !== undefined && { favorite: validated.favorite }),
-      })
-      .eq("user_id", userId)
-      .eq("id", id)
-      .select(TOPIC_SELECT)
-      .single();
+    const topicPatch = {
+      ...(validated.name !== undefined && { name: validated.name, slug: generateSlug(validated.name) }),
+      ...(validated.favorite !== undefined && { favorite: validated.favorite }),
+    };
+
+    // Only PATCH the topic row when a topic column actually changes. An empty
+    // PATCH body matches 0 rows, so .single() returns 406/PGRST116 even though
+    // the topic exists — link-only updates (note_ids/area_ids) hit this.
+    const query = createClient().from("topics");
+    const { data: topic, error } =
+      Object.keys(topicPatch).length > 0
+        ? await query.update(topicPatch).eq("user_id", userId).eq("id", id).select(TOPIC_SELECT).single()
+        : await query.select(TOPIC_SELECT).eq("user_id", userId).eq("id", id).single();
 
     if (error) {
       if (error.code === "PGRST116") {
