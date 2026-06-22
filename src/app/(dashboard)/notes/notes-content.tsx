@@ -320,29 +320,48 @@ export function NotesContent() {
       search.trim(),
   );
 
-  const activeAreas = allAreas.filter((a) => !a.archive);
-  const activeGoals = allGoals.filter((g) => !g.is_archived);
-  const activeProjects = allProjects.filter((p) => !p.is_archived);
+  const activeAreas = useMemo(() => allAreas.filter((a) => !a.archive), [allAreas]);
+  const activeGoals = useMemo(() => allGoals.filter((g) => !g.is_archived), [allGoals]);
+  const activeProjects = useMemo(
+    () => allProjects.filter((p) => !p.is_archived),
+    [allProjects],
+  );
 
-  const selectedAreaLabels = filterAreaIds
-    .map((id) => activeAreas.find((a) => a.id === id))
-    .filter(Boolean)
-    .map((a) => `${a!.icon ? `${a!.icon} ` : ""}${a!.name}`);
+  const selectedAreaLabels = useMemo(
+    () =>
+      filterAreaIds
+        .map((id) => activeAreas.find((a) => a.id === id))
+        .filter(Boolean)
+        .map((a) => `${a!.icon ? `${a!.icon} ` : ""}${a!.name}`),
+    [filterAreaIds, activeAreas],
+  );
 
-  const selectedGoalLabels = filterGoalIds
-    .map((id) => activeGoals.find((g) => g.id === id))
-    .filter(Boolean)
-    .map((g) => g!.name);
+  const selectedGoalLabels = useMemo(
+    () =>
+      filterGoalIds
+        .map((id) => activeGoals.find((g) => g.id === id))
+        .filter(Boolean)
+        .map((g) => g!.name),
+    [filterGoalIds, activeGoals],
+  );
 
-  const selectedProjectLabels = filterProjectIds
-    .map((id) => activeProjects.find((p) => p.id === id))
-    .filter(Boolean)
-    .map((p) => p!.name);
+  const selectedProjectLabels = useMemo(
+    () =>
+      filterProjectIds
+        .map((id) => activeProjects.find((p) => p.id === id))
+        .filter(Boolean)
+        .map((p) => p!.name),
+    [filterProjectIds, activeProjects],
+  );
 
-  const selectedTaskLabels = filterTaskIds
-    .map((id) => allTasks.find((t) => t.id === id))
-    .filter(Boolean)
-    .map((t) => t!.name);
+  const selectedTaskLabels = useMemo(
+    () =>
+      filterTaskIds
+        .map((id) => allTasks.find((t) => t.id === id))
+        .filter(Boolean)
+        .map((t) => t!.name),
+    [filterTaskIds, allTasks],
+  );
 
   const filterPopoverContentClassName = "w-80 max-w-[calc(100vw-2rem)] overflow-x-hidden p-2";
   const filterOptionClassName =
