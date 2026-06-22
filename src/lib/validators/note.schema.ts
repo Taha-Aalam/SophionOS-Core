@@ -17,14 +17,10 @@ const nullableUuidSchema = z.preprocess(
 
 const emptyToNull = z.preprocess((v) => (v === "" ? null : v), z.string().nullable().optional());
 
-const noteTypeValues = Object.values(NOTE_TYPE) as string[];
-const noteTypeSchema = z
-  .string()
-  .min(1)
-  .refine(
-    (val) => noteTypeValues.includes(val) || /[A-Z ]/.test(val),
-    { message: "Invalid note type" },
-  );
+// `notes.type` is free TEXT (the original enum was dropped) backed by the
+// per-user `note_types` catalog, so any non-empty name is valid — including
+// lowercase single-word custom types. Validate shape/length, not membership.
+const noteTypeSchema = z.string().trim().min(1).max(100);
 
 const noteBaseSchema = z
   .object({
