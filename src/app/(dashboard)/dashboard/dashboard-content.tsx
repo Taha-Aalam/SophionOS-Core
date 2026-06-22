@@ -50,7 +50,7 @@ import { useTopics } from "@/lib/hooks/use-topics";
 import { cn } from "@/lib/utils";
 
 import { classifyAreaStatus, getAreaRollups, sortAreasForDisplay } from "@/lib/utils/areas";
-import { NOTE_STATUS, RESOURCE_STATUS, TASK_STATUS } from "@/lib/utils/constants";
+import { NOTE_STATUS, PROJECT_STATUS, RESOURCE_STATUS, TASK_STATUS } from "@/lib/utils/constants";
 import { getLocalDateStart, getWeekStart } from "@/lib/utils/dates";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
@@ -123,8 +123,15 @@ export function DashboardContent() {
   >(undefined);
 
   const { data: areas = [], isLoading: areasLoading } = useAreas();
-  const { data: goalsAll = [] } = useGoals({ status: "all" });
-  const { data: goalsActive = [], isLoading: goalsLoading } = useGoals({ status: "active" });
+  const { data: goalsAll = [], isLoading: goalsLoading } = useGoals({ status: "all" });
+  // Derived from the single status:"all" fetch above — the service's active
+  // filter is exactly the DB predicate `!is_completed && !is_archived`, so
+  // deriving here avoids a second goals query plus its area-link/progress/rollup
+  // hydration fan-out.
+  const goalsActive = useMemo(
+    () => goalsAll.filter((g) => !g.is_completed && !g.is_archived),
+    [goalsAll],
+  );
   const { data: projectsAll = [], isLoading: projectsLoading } = useProjects({ status: "all" });
   const { data: allTasks = [], isLoading: tasksLoading } = useTasks();
   const { data: allNotes = [], isLoading: notesLoading } = useNotes({ includeArchived: true });
@@ -172,7 +179,10 @@ export function DashboardContent() {
   const sortedAreas = useMemo(() => sortAreasForDisplay(areas), [areas]);
 
   const activeProjects = useMemo(
-    () => projectsAll.filter((p) => !p.is_archived && p.status === "active"),
+    () =>
+      projectsAll.filter(
+        (p) => !p.is_archived && p.status !== PROJECT_STATUS.COMPLETED,
+      ),
     [projectsAll],
   );
 
