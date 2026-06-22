@@ -195,6 +195,10 @@ export function NoteMetadataPanel({
     const intersected = new Set(
       filterByIntersection(activeGoals, [fromAreas, fromProjects, fromTasks]).map((g) => g.id),
     );
+    // Fallback: when the intersection collapses to empty (e.g. the selected
+    // project has no linked goals yet), surface the full active-goal list so
+    // the user can still link a goal instead of seeing "No goals found".
+    if (intersected.size === 0) return activeGoals;
     if (areaIds.length === 0) return activeGoals.filter((g) => intersected.has(g.id));
     // When area constraint is active, unassigned goals (no linkedAreaIds) stay visible
     // even when project/task constraints would otherwise exclude them.
@@ -231,6 +235,9 @@ export function NoteMetadataPanel({
     const intersected = new Set(
       filterByIntersection(activeProjects, [fromAreas, fromGoals, fromTasks]).map((p) => p.id),
     );
+    // Fallback: when the intersection collapses to empty, surface the full
+    // active-project list so the user can still link a project.
+    if (intersected.size === 0) return activeProjects;
     if (areaIds.length === 0) return activeProjects.filter((p) => intersected.has(p.id));
     // When area constraint is active, unassigned projects (no linkedAreaIds) stay visible
     // even when goal/task constraints would otherwise exclude them.
@@ -378,7 +385,7 @@ export function NoteMetadataPanel({
           <div className="flex flex-wrap gap-1.5 pt-1">
             {notebooks.map((nb) => (
               <Badge key={nb} variant="secondary" className="flex items-center gap-1">
-                <BookOpen className="size-3" />
+                <span aria-hidden="true">📓</span>
                 <span className="max-w-[120px] truncate">{nb}</span>
                 <button
                   type="button"

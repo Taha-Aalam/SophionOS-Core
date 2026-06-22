@@ -376,7 +376,10 @@ export function TaskDialog({
    * clear-invalid cascades treat these as "preselected" and exempt them
    * from the cross-filter, so opening edit never strips an existing
    * relation even if the goal/project cross-filter would otherwise
-   * hide it.
+   * hide it. For create flows the caller-supplied `defaultProjectId`,
+   * `defaultGoalId`, and `defaultAreaId` are also added so the user can
+   * submit a project link without the cross-filter stripping it back
+   * out before they hit Save.
    */
   const preselectedIdsRef = useRef<{
     areaIds: string[];
@@ -387,7 +390,11 @@ export function TaskDialog({
   useEffect(() => {
     if (!open || !task) {
       hasHydratedRelationsRef.current = false;
-      preselectedIdsRef.current = { areaIds: [], projectIds: [], goalIds: [] };
+      preselectedIdsRef.current = {
+        areaIds: defaultAreaId ? [defaultAreaId] : [],
+        projectIds: defaultProjectId ? [defaultProjectId] : [],
+        goalIds: defaultGoalId || goalId ? [defaultGoalId ?? goalId!] : [],
+      };
       return;
     }
     if (!taskRelations || hasHydratedRelationsRef.current) return;
@@ -558,6 +565,10 @@ export function TaskDialog({
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
     if (selectedProjectIds.length === 0) return;
+    // Wait until reference data is loaded before stripping — empty
+    // `filteredProjects` would wipe a just-picked project link before the
+    // user has a chance to submit.
+    if (isLoadingGoals || isLoadingAreas || isLoadingProjects) return;
     const preselectedProjects = new Set(preselectedIdsRef.current.projectIds);
     const allowedIds = new Set(filteredProjects.map((p) => p.id));
     const filtered = selectedProjectIds.filter(
@@ -570,7 +581,7 @@ export function TaskDialog({
         shouldValidate: true,
       });
     }
-  }, [filteredProjects, selectedProjectIds, form, isGoalScoped, isProjectScoped]);
+  }, [filteredProjects, selectedProjectIds, form, isGoalScoped, isProjectScoped, isLoadingGoals, isLoadingAreas, isLoadingProjects]);
 
   /** Areas visible in the area selector — AND-intersection of goal and project areas. */
   const visibleAreas = useMemo(
@@ -587,6 +598,10 @@ export function TaskDialog({
 
   useEffect(() => {
     if (isGoalScoped || isProjectScoped) return;
+    // Wait until reference data is loaded before stripping areas —
+    // an empty `allGoals`/`allAreas` snapshot would wipe a just-picked
+    // area link before the user submits.
+    if (isLoadingGoals || isLoadingAreas || isLoadingProjects) return;
 
     const preselectedAreas = new Set(preselectedIdsRef.current.areaIds);
     const invalidAreaIds = selectedAreaIds.filter((areaId) => {

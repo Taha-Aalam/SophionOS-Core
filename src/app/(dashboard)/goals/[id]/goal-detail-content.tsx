@@ -266,6 +266,12 @@ export function GoalDetailContent() {
 
   // Derived
   const goal = goalData?.goal;
+  // Inline `[newProjectAreaId]` literals are intentional: the dialogs
+  // gate their reset effect on a stable reset key (lastResetKeyRef), so
+  // a new array reference on each render no longer wipes the user's
+  // in-progress form values.
+  const newProjectDefaultAreaIds = newProjectAreaId ? [newProjectAreaId] : undefined;
+
   const areaNames = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
   const areaIcons = useMemo(() => new Map(areas.map((a) => [a.id, a.icon ?? null])), [areas]);
   const goalNamesMap = useMemo(() => {
@@ -1888,7 +1894,7 @@ export function GoalDetailContent() {
           if (!open) setNewProjectAreaId(null);
         }}
         goalId={goal.id}
-        defaultAreaIds={newProjectAreaId ? [newProjectAreaId] : undefined}
+        defaultAreaIds={newProjectDefaultAreaIds}
         onSuccess={() => {
           setIsNewProjectOpen(false);
           setNewProjectAreaId(null);

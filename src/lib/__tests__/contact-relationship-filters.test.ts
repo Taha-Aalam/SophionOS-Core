@@ -96,20 +96,20 @@ describe("filterAreas", () => {
   });
 
   it("intersects projects + goals", () => {
-    // P1 → area-1; G2 → area-2; intersection = empty
-    expect(filterAreas({ ...base, selectedProjectIds: ["proj-1"], selectedGoalIds: ["goal-2"], selectedTasks: [], selectedGoals: [G2], selectedProjects: [P1] })).toEqual([]);
+    // P1 → area-1; G2 → area-2; intersection = empty → fallback to all areas
+    expect(filterAreas({ ...base, selectedProjectIds: ["proj-1"], selectedGoalIds: ["goal-2"], selectedTasks: [], selectedGoals: [G2], selectedProjects: [P1] })).toEqual(ALL_AREAS);
     // P1 → area-1; G1 → area-1; intersection = area-1
     expect(filterAreas({ ...base, selectedProjectIds: ["proj-1"], selectedGoalIds: ["goal-1"], selectedTasks: [], selectedGoals: [G1], selectedProjects: [P1] })).toEqual([A1]);
   });
 
   it("intersects projects + tasks", () => {
-    // P1 → area-1; T2 → area-2; intersection = empty
-    expect(filterAreas({ ...base, selectedProjectIds: ["proj-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], selectedGoals: [], selectedProjects: [P1] })).toEqual([]);
+    // P1 → area-1; T2 → area-2; intersection = empty → fallback to all areas
+    expect(filterAreas({ ...base, selectedProjectIds: ["proj-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], selectedGoals: [], selectedProjects: [P1] })).toEqual(ALL_AREAS);
   });
 
   it("intersects goals + tasks", () => {
-    // G1 → area-1; T2 → area-2; intersection = empty
-    expect(filterAreas({ ...base, selectedGoalIds: ["goal-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], selectedGoals: [G1], selectedProjects: [] })).toEqual([]);
+    // G1 → area-1; T2 → area-2; intersection = empty → fallback to all areas
+    expect(filterAreas({ ...base, selectedGoalIds: ["goal-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], selectedGoals: [G1], selectedProjects: [] })).toEqual(ALL_AREAS);
   });
 
   it("intersects all three", () => {
@@ -140,18 +140,18 @@ describe("filterProjects", () => {
   });
 
   it("intersects areas + goals", () => {
-    // area-1 → P1, P3; goal-2 → P2; intersection = empty
-    expect(filterProjects({ ...base, selectedAreaIds: ["area-1"], selectedGoalIds: ["goal-2"], selectedTasks: [], goalToProjectIds })).toEqual([]);
+    // area-1 → P1, P3; goal-2 → P2; intersection = empty → fallback to all projects
+    expect(filterProjects({ ...base, selectedAreaIds: ["area-1"], selectedGoalIds: ["goal-2"], selectedTasks: [], goalToProjectIds })).toEqual(ALL_PROJECTS);
   });
 
   it("intersects areas + tasks", () => {
-    // area-1 → P1, P3; T2 (proj-2) → P2; intersection = empty
-    expect(filterProjects({ ...base, selectedAreaIds: ["area-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], goalToProjectIds })).toEqual([]);
+    // area-1 → P1, P3; T2 (proj-2) → P2; intersection = empty → fallback to all projects
+    expect(filterProjects({ ...base, selectedAreaIds: ["area-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], goalToProjectIds })).toEqual(ALL_PROJECTS);
   });
 
   it("intersects goals + tasks", () => {
-    // goal-1 → P1; T2 (proj-2) → P2; intersection = empty
-    expect(filterProjects({ ...base, selectedGoalIds: ["goal-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], goalToProjectIds })).toEqual([]);
+    // goal-1 → P1; T2 (proj-2) → P2; intersection = empty → fallback to all projects
+    expect(filterProjects({ ...base, selectedGoalIds: ["goal-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], goalToProjectIds })).toEqual(ALL_PROJECTS);
   });
 
   it("intersects all three", () => {
@@ -187,18 +187,18 @@ describe("filterGoals", () => {
   });
 
   it("intersects areas + projects", () => {
-    // area-1 → G1, G3; proj-2 → G2; intersection = empty
-    expect(filterGoals({ ...base, selectedAreaIds: ["area-1"], selectedProjectIds: ["proj-2"], selectedTasks: [], taskToGoalIds, projectToGoalIds })).toEqual([]);
+    // area-1 → G1, G3; proj-2 → G2; intersection = empty → fallback to all goals
+    expect(filterGoals({ ...base, selectedAreaIds: ["area-1"], selectedProjectIds: ["proj-2"], selectedTasks: [], taskToGoalIds, projectToGoalIds })).toEqual(ALL_GOALS);
   });
 
   it("intersects areas + tasks", () => {
-    // area-1 → G1, G3; T2 → G2; intersection = empty
-    expect(filterGoals({ ...base, selectedAreaIds: ["area-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], taskToGoalIds, projectToGoalIds })).toEqual([]);
+    // area-1 → G1, G3; T2 → G2; intersection = empty → fallback to all goals
+    expect(filterGoals({ ...base, selectedAreaIds: ["area-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], taskToGoalIds, projectToGoalIds })).toEqual(ALL_GOALS);
   });
 
   it("intersects projects + tasks", () => {
-    // proj-1 → G1; T2 → G2; intersection = empty
-    expect(filterGoals({ ...base, selectedProjectIds: ["proj-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], taskToGoalIds, projectToGoalIds })).toEqual([]);
+    // proj-1 → G1; T2 → G2; intersection = empty → fallback to all goals
+    expect(filterGoals({ ...base, selectedProjectIds: ["proj-1"], selectedTaskIds: ["task-2"], selectedTasks: [T2], taskToGoalIds, projectToGoalIds })).toEqual(ALL_GOALS);
   });
 
   it("intersects all three", () => {
@@ -230,18 +230,18 @@ describe("filterTasks", () => {
   });
 
   it("intersects areas + projects", () => {
-    // area-1 → T1, T3, T4; proj-2 → T2; intersection = empty
-    expect(filterTasks({ ...base, selectedAreaIds: ["area-1"], selectedProjectIds: ["proj-2"], goalToTaskIds })).toEqual([]);
+    // area-1 → T1, T3, T4; proj-2 → T2; intersection = empty → fallback to all tasks
+    expect(filterTasks({ ...base, selectedAreaIds: ["area-1"], selectedProjectIds: ["proj-2"], goalToTaskIds })).toEqual(ALL_TASKS);
   });
 
   it("intersects areas + goals", () => {
-    // area-1 → T1, T3, T4; goal-2 → T2; intersection = empty
-    expect(filterTasks({ ...base, selectedAreaIds: ["area-1"], selectedGoalIds: ["goal-2"], goalToTaskIds })).toEqual([]);
+    // area-1 → T1, T3, T4; goal-2 → T2; intersection = empty → fallback to all tasks
+    expect(filterTasks({ ...base, selectedAreaIds: ["area-1"], selectedGoalIds: ["goal-2"], goalToTaskIds })).toEqual(ALL_TASKS);
   });
 
   it("intersects projects + goals", () => {
-    // proj-1 → T1, T4; goal-2 → T2; intersection = empty
-    expect(filterTasks({ ...base, selectedProjectIds: ["proj-1"], selectedGoalIds: ["goal-2"], goalToTaskIds })).toEqual([]);
+    // proj-1 → T1, T4; goal-2 → T2; intersection = empty → fallback to all tasks
+    expect(filterTasks({ ...base, selectedProjectIds: ["proj-1"], selectedGoalIds: ["goal-2"], goalToTaskIds })).toEqual(ALL_TASKS);
   });
 
   it("intersects all three", () => {
