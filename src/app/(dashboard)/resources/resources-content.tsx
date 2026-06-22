@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { Archive, Bookmark, ChevronDownIcon, Eye, FilePlus, Filter, Folder, Globe, Heart, Inbox as InboxIcon, Map as LucideMap, Tag, Target, Zap } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
@@ -99,30 +99,42 @@ export function ResourcesContent() {
   const taskNames = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks]);
   const topicNames = useMemo(() => new Map(topics.map((t) => [t.id, t.name])), [topics]);
 
-  const getAreasForResource = (resource: Resource) =>
-    getResourceLinkedAreaIds(resource)
-      .map((id) => areaMap.get(id))
-      .filter((area): area is { name: string; icon: string | null } => Boolean(area));
+  const getAreasForResource = useCallback(
+    (resource: Resource) =>
+      getResourceLinkedAreaIds(resource)
+        .map((id) => areaMap.get(id))
+        .filter((area): area is { name: string; icon: string | null } => Boolean(area)),
+    [areaMap],
+  );
 
-  const getGoalNamesForResource = (resource: Resource) =>
-    getResourceLinkedGoalIds(resource)
-      .map((id) => goalNames.get(id))
-      .filter((name): name is string => Boolean(name));
+  const getGoalNamesForResource = useCallback(
+    (resource: Resource) =>
+      getResourceLinkedGoalIds(resource)
+        .map((id) => goalNames.get(id))
+        .filter((name): name is string => Boolean(name)),
+    [goalNames],
+  );
 
-  const getProjectNamesForResource = (resource: Resource) =>
-    getResourceLinkedProjectIds(resource)
-      .map((id) => projectNames.get(id))
-      .filter((name): name is string => Boolean(name));
+  const getProjectNamesForResource = useCallback(
+    (resource: Resource) =>
+      getResourceLinkedProjectIds(resource)
+        .map((id) => projectNames.get(id))
+        .filter((name): name is string => Boolean(name)),
+    [projectNames],
+  );
 
-  const getTaskNamesForResource = (resource: Resource) =>
-    getResourceLinkedTaskIds(resource)
-      .map((id) => taskNames.get(id))
-      .filter((name): name is string => Boolean(name));
+  const getTaskNamesForResource = useCallback(
+    (resource: Resource) =>
+      getResourceLinkedTaskIds(resource)
+        .map((id) => taskNames.get(id))
+        .filter((name): name is string => Boolean(name)),
+    [taskNames],
+  );
 
-  const activeAreas = areas.filter((area) => !area.archive);
-  const activeGoals = goals.filter((goal) => !goal.is_archived);
-  const activeTasks = tasks.filter((task) => !task.is_archived);
-  const activeTopics = topics.filter((topic) => !topic.inactive);
+  const activeAreas = useMemo(() => areas.filter((area) => !area.archive), [areas]);
+  const activeGoals = useMemo(() => goals.filter((goal) => !goal.is_archived), [goals]);
+  const activeTasks = useMemo(() => tasks.filter((task) => !task.is_archived), [tasks]);
+  const activeTopics = useMemo(() => topics.filter((topic) => !topic.inactive), [topics]);
 
   const filtered = useMemo(() => {
     let result = allResources;
@@ -210,28 +222,44 @@ export function ResourcesContent() {
       filterTopicIds.length > 0,
   );
 
-  const selectedAreaLabels = filterAreaIds
-    .map((id) => activeAreas.find((a) => a.id === id))
-    .filter(Boolean)
-    .map(
-      (a) =>
-        `${(a as { icon?: string }).icon ? `${(a as { icon?: string }).icon} ` : ""}${(a as { name: string }).name}`,
-    );
+  const selectedAreaLabels = useMemo(
+    () =>
+      filterAreaIds
+        .map((id) => activeAreas.find((a) => a.id === id))
+        .filter(Boolean)
+        .map(
+          (a) =>
+            `${(a as { icon?: string }).icon ? `${(a as { icon?: string }).icon} ` : ""}${(a as { name: string }).name}`,
+        ),
+    [filterAreaIds, activeAreas],
+  );
 
-  const selectedGoalLabels = filterGoalIds
-    .map((id) => activeGoals.find((g) => g.id === id))
-    .filter(Boolean)
-    .map((g) => (g as { name: string }).name);
+  const selectedGoalLabels = useMemo(
+    () =>
+      filterGoalIds
+        .map((id) => activeGoals.find((g) => g.id === id))
+        .filter(Boolean)
+        .map((g) => (g as { name: string }).name),
+    [filterGoalIds, activeGoals],
+  );
 
-  const selectedTaskLabels = filterTaskIds
-    .map((id) => activeTasks.find((t) => t.id === id))
-    .filter(Boolean)
-    .map((t) => (t as { name: string }).name);
+  const selectedTaskLabels = useMemo(
+    () =>
+      filterTaskIds
+        .map((id) => activeTasks.find((t) => t.id === id))
+        .filter(Boolean)
+        .map((t) => (t as { name: string }).name),
+    [filterTaskIds, activeTasks],
+  );
 
-  const selectedTopicLabels = filterTopicIds
-    .map((id) => activeTopics.find((t) => t.id === id))
-    .filter(Boolean)
-    .map((t) => (t as { name: string }).name);
+  const selectedTopicLabels = useMemo(
+    () =>
+      filterTopicIds
+        .map((id) => activeTopics.find((t) => t.id === id))
+        .filter(Boolean)
+        .map((t) => (t as { name: string }).name),
+    [filterTopicIds, activeTopics],
+  );
 
   const filterPopoverContentClassName = "w-80 max-w-[calc(100vw-2rem)] overflow-x-hidden p-2";
   const filterOptionClassName =
