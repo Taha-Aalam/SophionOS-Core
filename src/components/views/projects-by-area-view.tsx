@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProjectCard } from "@/components/entities/project-card";
-import { GalleryGrid } from "@/components/views/gallery-grid";
 import type { Project } from "@/lib/types/domain.types";
 
 export interface ProjectsByAreaGroup {
@@ -43,7 +42,9 @@ function CollapsibleAreaSection({
   returnTo?: string | null;
   returnToChain?: string | null;
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  // The unassigned ("Unassigned") group is collapsed by default; real areas
+  // open by default.
+  const [isOpen, setIsOpen] = useState(group.areaId !== "unassigned");
 
   return (
     <div className="mb-6">
@@ -90,7 +91,7 @@ function CollapsibleAreaSection({
       </div>
 
       {isOpen && (
-        <GalleryGrid>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {group.projects.map((project) => (
             <ProjectCard
               key={project.id}
@@ -117,7 +118,7 @@ function CollapsibleAreaSection({
               <span className="text-sm font-medium">New Project in {group.areaName}</span>
             </button>
           )}
-        </GalleryGrid>
+        </div>
       )}
     </div>
   );
