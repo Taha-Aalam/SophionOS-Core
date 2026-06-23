@@ -67,7 +67,9 @@ function CollapsibleTaskGroup({
   getLinkedGoalNames: (task: Task) => string[];
   getLinkedProjectNames?: (task: Task) => string[];
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  // The unassigned ("No Area/Goal/Project") group is collapsed by default;
+  // real groups open by default.
+  const [isOpen, setIsOpen] = useState(group.groupId !== "unassigned");
 
   return (
     <div className="mb-6">

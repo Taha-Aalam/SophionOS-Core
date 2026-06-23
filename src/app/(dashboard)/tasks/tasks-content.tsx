@@ -228,11 +228,18 @@ export function TasksContent() {
         }
       }
     }
-    return Array.from(grouped.entries()).map(([areaId, groupTasks]) => ({
-      groupId: areaId,
-      groupName: areaId === "unassigned" ? "No Area" : (areaMap.get(areaId)?.name ?? areaId),
-      tasks: groupTasks,
-    }));
+    return Array.from(grouped.entries())
+      .map(([areaId, groupTasks]) => ({
+        groupId: areaId,
+        groupName: areaId === "unassigned" ? "No Area" : (areaMap.get(areaId)?.name ?? areaId),
+        tasks: groupTasks,
+      }))
+      // Keep the "No Area" group last.
+      .sort((a, b) => {
+        if (a.groupId === "unassigned") return 1;
+        if (b.groupId === "unassigned") return -1;
+        return 0;
+      });
   }, [activeTasks, areaMap]);
 
   const taskGroupsByGoal = useMemo((): TaskGroup[] => {
@@ -251,11 +258,18 @@ export function TasksContent() {
         }
       }
     }
-    return Array.from(grouped.entries()).map(([goalId, groupTasks]) => ({
-      groupId: goalId,
-      groupName: goalId === "unassigned" ? "No Goal" : (goalMap.get(goalId)?.name ?? goalId),
-      tasks: groupTasks,
-    }));
+    return Array.from(grouped.entries())
+      .map(([goalId, groupTasks]) => ({
+        groupId: goalId,
+        groupName: goalId === "unassigned" ? "No Goal" : (goalMap.get(goalId)?.name ?? goalId),
+        tasks: groupTasks,
+      }))
+      // Keep the "No Goal" group last.
+      .sort((a, b) => {
+        if (a.groupId === "unassigned") return 1;
+        if (b.groupId === "unassigned") return -1;
+        return 0;
+      });
   }, [activeTasks, goalMap]);
 
   const taskGroupsByProject = useMemo((): TaskGroup[] => {
@@ -274,11 +288,18 @@ export function TasksContent() {
         }
       }
     }
-    return Array.from(grouped.entries()).map(([projectId, groupTasks]) => ({
-      groupId: projectId,
-      groupName: projectId === "unassigned" ? "No Project" : (projectMap.get(projectId)?.name ?? projectId),
-      tasks: groupTasks,
-    }));
+    return Array.from(grouped.entries())
+      .map(([projectId, groupTasks]) => ({
+        groupId: projectId,
+        groupName: projectId === "unassigned" ? "No Project" : (projectMap.get(projectId)?.name ?? projectId),
+        tasks: groupTasks,
+      }))
+      // Keep the "No Project" group last.
+      .sort((a, b) => {
+        if (a.groupId === "unassigned") return 1;
+        if (b.groupId === "unassigned") return -1;
+        return 0;
+      });
   }, [activeTasks, projectMap]);
 
   const getLinkedAreaNames = useCallback(

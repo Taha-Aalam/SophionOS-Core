@@ -120,11 +120,18 @@ export function ProjectsContent() {
         }
       }
     }
-    return Object.entries(byAreaId).map(([areaId, projects]) => ({
-      areaId,
-      areaName: areaId === "unassigned" ? "Unassigned" : (areaNames.get(areaId) ?? areaId),
-      projects,
-    }));
+    return Object.entries(byAreaId)
+      .map(([areaId, projects]) => ({
+        areaId,
+        areaName: areaId === "unassigned" ? "Unassigned" : (areaNames.get(areaId) ?? areaId),
+        projects,
+      }))
+      // Keep the "Unassigned" group last.
+      .sort((a, b) => {
+        if (a.areaId === "unassigned") return 1;
+        if (b.areaId === "unassigned") return -1;
+        return 0;
+      });
   }, [activeProjects, areaNames]);
 
   const goalMap = useMemo(
@@ -134,11 +141,18 @@ export function ProjectsContent() {
 
   const groupedByGoalGroups = useMemo((): ProjectsByGoalGroup[] => {
     const byGoalId = groupProjectsByGoal(activeProjects);
-    return Object.entries(byGoalId).map(([goalId, projects]) => ({
-      goalId,
-      goalName: goalId === "unassigned" ? "No Goal" : (goalMap.get(goalId)?.name ?? goalId),
-      projects,
-    }));
+    return Object.entries(byGoalId)
+      .map(([goalId, projects]) => ({
+        goalId,
+        goalName: goalId === "unassigned" ? "No Goal" : (goalMap.get(goalId)?.name ?? goalId),
+        projects,
+      }))
+      // Keep the "No Goal" group last.
+      .sort((a, b) => {
+        if (a.goalId === "unassigned") return 1;
+        if (b.goalId === "unassigned") return -1;
+        return 0;
+      });
   }, [activeProjects, goalMap]);
 
   const duplicateIndices = useMemo(() => {

@@ -14,7 +14,12 @@ import {
 // @emoji-mart/react ships default-only export with `any` prop types.
 const EmojiPicker = dynamic(
   () => import("@emoji-mart/react").then((m) => m.default),
-  { ssr: false, loading: () => null },
+  {
+    ssr: false,
+    // Reserve the picker's footprint so the popover doesn't resize/jump when
+    // the lazy chunk resolves.
+    loading: () => <div className="h-[435px] w-[352px]" aria-hidden="true" />,
+  },
 ) as unknown as React.ComponentType<{
   data: () => Promise<unknown>;
   theme?: "light" | "dark" | "auto";
@@ -23,6 +28,13 @@ const EmojiPicker = dynamic(
   accentColor?: string;
   onEmojiSelect?: (emoji: { native: string }) => void;
 }>;
+
+// Module-scoped so the `data` prop keeps a STABLE reference across renders.
+// emoji-mart re-initializes its whole index whenever `data` changes identity;
+// an inline `async () => ...` made it re-init on every parent re-render
+// (e.g. each keystroke in the area form), which is what made the dropdown
+// feel buggy.
+const loadEmojiData = async () => (await import("@emoji-mart/data")).default;
 
 interface EmojiPickerPopoverProps {
   value: string | null;
@@ -53,6 +65,14 @@ export function EmojiPickerPopover({
     );
   });
 
+  const handleSelect = React.useCallback(
+    (emoji: { native: string }) => {
+      onChange(emoji.native);
+      setOpen(false);
+    },
+    [onChange],
+  );
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
@@ -77,15 +97,12 @@ export function EmojiPickerPopover({
       <PopoverContent align={align} sideOffset={8} className="w-[352px] p-0">
         <div role="dialog" aria-label="Pick an emoji">
           <EmojiPicker
-            data={async () => (await import("@emoji-mart/data")).default}
+            data={loadEmojiData}
             theme="auto"
             previewPosition="none"
             skinTonePosition="none"
             accentColor={accent}
-            onEmojiSelect={(emoji: { native: string }) => {
-              onChange(emoji.native);
-              setOpen(false);
-            }}
+            onEmojiSelect={handleSelect}
           />
         </div>
       </PopoverContent>
