@@ -377,9 +377,12 @@ export function ProjectsContent() {
           <ProjectsByAreaView
             groups={groupedByAreaGroups}
             areaNames={areaNames}
+            areaIcons={areaIconsMap}
             duplicateIndices={duplicateIndices}
             isLoading={isLoadingProjects}
             onEdit={handleEdit}
+            onArchive={(p) => archiveProject.mutate(p.id)}
+            onRestore={(p) => restoreProject.mutate(p.id)}
             onCreateProject={(areaId) => {
               setDefaultAreaIds([areaId]);
               setIsDialogOpen(true);
@@ -400,9 +403,12 @@ export function ProjectsContent() {
           <ProjectsByGoalView
             groups={groupedByGoalGroups}
             areaNames={areaNames}
+            areaIcons={areaIconsMap}
             duplicateIndices={duplicateIndices}
             isLoading={isLoadingProjects}
             onEdit={handleEdit}
+            onArchive={(p) => archiveProject.mutate(p.id)}
+            onRestore={(p) => restoreProject.mutate(p.id)}
             onCreateProject={(goalId) => {
               setDefaultGoalId(goalId);
               setIsDialogOpen(true);
