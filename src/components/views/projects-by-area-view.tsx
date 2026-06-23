@@ -17,9 +17,12 @@ export interface ProjectsByAreaGroup {
 interface ProjectsByAreaViewProps {
   groups: ProjectsByAreaGroup[];
   areaNames: Map<string, string>;
+  areaIcons: Map<string, string | null>;
   duplicateIndices: Map<string, number>;
   isLoading?: boolean;
   onEdit: (project: Project) => void;
+  onArchive?: (project: Project) => void;
+  onRestore?: (project: Project) => void;
   onCreateProject: (areaId: string) => void;
   returnTo?: string | null;
   returnToChain?: string | null;
@@ -28,16 +31,22 @@ interface ProjectsByAreaViewProps {
 function CollapsibleAreaSection({
   group,
   areaNames,
+  areaIcons,
   duplicateIndices,
   onEdit,
+  onArchive,
+  onRestore,
   onCreateProject,
   returnTo,
   returnToChain,
 }: {
   group: ProjectsByAreaGroup;
   areaNames: Map<string, string>;
+  areaIcons: Map<string, string | null>;
   duplicateIndices: Map<string, number>;
   onEdit: (project: Project) => void;
+  onArchive?: (project: Project) => void;
+  onRestore?: (project: Project) => void;
   onCreateProject: (areaId: string) => void;
   returnTo?: string | null;
   returnToChain?: string | null;
@@ -91,24 +100,34 @@ function CollapsibleAreaSection({
       </div>
 
       {isOpen && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {group.projects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              areaName={project.area_id ? areaNames.get(project.area_id) : undefined}
-              areaNames={
-                (project.linkedAreaIds ?? [])
-                  .concat(project.area_id ? [project.area_id] : [])
+        // `items-start` (not the default `stretch`) so each card keeps its
+        // natural height. The "New Project" placeholder below is a fixed
+        // h-48; under the default stretch behavior it would pull every card
+        // in the row up to 192px, making grouped cards visibly taller than
+        // the All tab's natural-height cards.
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {group.projects.map((project) => {
+            const linkedIds = (project.linkedAreaIds ?? []).concat(
+              project.area_id ? [project.area_id] : [],
+            );
+            return (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                areaName={project.area_id ? areaNames.get(project.area_id) : undefined}
+                areaNames={linkedIds
                   .map((id) => areaNames.get(id))
-                  .filter((n): n is string => Boolean(n))
-              }
-              duplicateIndex={duplicateIndices.get(project.id)}
-              onEdit={onEdit}
-              returnTo={returnTo}
-              returnToChain={returnToChain}
-            />
-          ))}
+                  .filter((n): n is string => Boolean(n))}
+                areaIcons={linkedIds.map((id) => areaIcons.get(id) ?? null)}
+                duplicateIndex={duplicateIndices.get(project.id)}
+                onEdit={onEdit}
+                onArchive={onArchive}
+                onRestore={onRestore}
+                returnTo={returnTo}
+                returnToChain={returnToChain}
+              />
+            );
+          })}
           {group.areaId !== "unassigned" && (
             <button
               onClick={() => onCreateProject(group.areaId)}
@@ -127,9 +146,12 @@ function CollapsibleAreaSection({
 export function ProjectsByAreaView({
   groups,
   areaNames,
+  areaIcons,
   duplicateIndices,
   isLoading,
   onEdit,
+  onArchive,
+  onRestore,
   onCreateProject,
   returnTo,
   returnToChain,
@@ -166,8 +188,11 @@ export function ProjectsByAreaView({
           key={group.areaId}
           group={group}
           areaNames={areaNames}
+          areaIcons={areaIcons}
           duplicateIndices={duplicateIndices}
           onEdit={onEdit}
+          onArchive={onArchive}
+          onRestore={onRestore}
           onCreateProject={onCreateProject}
           returnTo={returnTo}
           returnToChain={returnToChain}

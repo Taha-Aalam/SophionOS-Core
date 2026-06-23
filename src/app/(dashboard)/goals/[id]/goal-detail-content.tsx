@@ -1480,6 +1480,7 @@ export function GoalDetailContent() {
             <ProjectsByAreaView
               groups={projectGroupsByArea}
               areaNames={areaNames}
+              areaIcons={areaIcons}
               duplicateIndices={new Map()}
               isLoading={isLoading}
               onEdit={(project) => router.push(`/projects/${project.slug ?? project.id}?returnTo=${encodeReturnTo(currentPagePathWithSlug)}&chain=${returnToChain}`)}

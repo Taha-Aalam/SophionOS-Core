@@ -65,6 +65,26 @@ export function EmojiPickerPopover({
     );
   });
 
+  // Warm both lazy chunks (@emoji-mart/react + @emoji-mart/data) as soon as
+  // the trigger is hovered or focused, so the chunks resolve BEFORE the user
+  // opens the popover. Previously the dynamic import only began when the
+  // popover mounted its content, so the first open always showed the loading
+  // placeholder and then flashed in the real picker — the core "buggy
+  // dropdown" symptom. `idleCallback` keeps the warm-up off the critical
+  // render path on first paint.
+  const warmChunks = React.useCallback(() => {
+    void loadEmojiData();
+    void import("@emoji-mart/react");
+  }, []);
+  const warmOnIdle = React.useCallback(() => {
+    if (typeof window === "undefined") return;
+    if ("requestIdleCallback" in window) {
+      (window as Window).requestIdleCallback(() => warmChunks());
+    } else {
+      warmChunks();
+    }
+  }, [warmChunks]);
+
   const handleSelect = React.useCallback(
     (emoji: { native: string }) => {
       onChange(emoji.native);
@@ -80,6 +100,9 @@ export function EmojiPickerPopover({
         aria-haspopup="dialog"
         aria-expanded={open}
         disabled={disabled}
+        onFocus={warmOnIdle}
+        onMouseEnter={warmOnIdle}
+        onTouchStart={warmOnIdle}
         className={cn(
           "inline-flex h-10 min-w-[10rem] items-center justify-between gap-2 rounded-lg border border-input bg-background px-3 text-sm transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50",
           className,
@@ -92,7 +115,12 @@ export function EmojiPickerPopover({
             <span className="text-muted-foreground">{placeholder}</span>
           )}
         </span>
-        <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 opacity-60 transition-transform duration-200 ease-[var(--ease-out-quint)]",
+            open && "rotate-180",
+          )}
+        />
       </PopoverTrigger>
       <PopoverContent align={align} sideOffset={8} className="w-[352px] p-0">
         <div role="dialog" aria-label="Pick an emoji">
