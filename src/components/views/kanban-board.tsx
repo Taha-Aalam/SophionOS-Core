@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { createPortal } from "react-dom";
 import {
   DragDropContext,
   Draggable,
@@ -120,82 +121,97 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
 
                     return (
                       <Draggable key={project.id} draggableId={project.id} index={index}>
-                        {(draggableProvided, draggableSnapshot) => (
-                          <div
-                            ref={draggableProvided.innerRef}
-                            {...draggableProvided.draggableProps}
-                            {...draggableProvided.dragHandleProps}
-                            onClick={() => onProjectClick?.(project)}
-                            className={cn(
-                              "cursor-pointer rounded-xl bg-card p-3 ring-1 ring-foreground/10 ease-[var(--ease-out-quint)]",
-                              // Only transition while idle. @hello-pangea/dnd
-                              // writes an inline `transform` every frame to
-                              // track the pointer; animating that transform
-                              // (transition-all) makes the card lag behind the
-                              // cursor, so disable transitions during drag.
-                              draggableSnapshot.isDragging
-                                ? "shadow-soft-lg ring-2 ring-primary"
-                                : "transition-all duration-300 shadow-soft hover:-translate-y-0.5 hover:shadow-soft-lg hover:ring-primary/30",
-                            )}
-                          >
-                            <div className="space-y-2">
-                              <div className="flex items-start justify-between gap-2">
-                                <h4 className="line-clamp-2 text-sm font-medium leading-tight">
-                                  {project.name}
-                                  {duplicateIndices?.get(project.id) != null && duplicateIndices.get(project.id)! > 1 && (
-                                    <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                      copy {duplicateIndices.get(project.id)}
-                                    </span>
-                                  )}
-                                </h4>
-                              </div>
-
-                              <p className="truncate text-xs text-muted-foreground">
-                                {area?.name ?? "Unassigned"}
-                              </p>
-
-                              <div className="flex items-center gap-2">
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "text-xs",
-                                    project.priority === "high" &&
-                                      "border-orange-300 text-orange-600",
-                                    project.priority === "medium" &&
-                                      "border-blue-300 text-blue-600",
-                                    project.priority === "low" &&
-                                      "border-border text-muted-foreground",
-                                  )}
-                                >
-                                  {project.priority}
-                                </Badge>
-                                <span
-                                  className={cn(
-                                    "text-xs",
-                                    dueState.tone === "warning"
-                                      ? "text-red-600 dark:text-red-400"
-                                      : "text-muted-foreground",
-                                  )}
-                                >
-                                  {dueState.label}
-                                </span>
-                              </div>
-
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-xs text-muted-foreground">
-                                  <span>Progress</span>
-                                  <span>{project.progress || 0}%</span>
+                        {(draggableProvided, draggableSnapshot) => {
+                          // The board sits inside `overflow-x-auto` and is a
+                          // descendant of transform-animated containers.
+                          // @hello-pangea/dnd positions the dragged node with an
+                          // inline `transform` derived from the node's
+                          // `getBoundingClientRect()`; any ancestor transform or
+                          // scroll offset shifts that rect, so the card renders
+                          // offset from the cursor. Portaling the dragging node
+                          // to `document.body` removes every ancestor from the
+                          // positioning math so the card tracks the pointer 1:1.
+                          const card = (
+                            <div
+                              ref={draggableProvided.innerRef}
+                              {...draggableProvided.draggableProps}
+                              {...draggableProvided.dragHandleProps}
+                              onClick={() => onProjectClick?.(project)}
+                              className={cn(
+                                "cursor-pointer rounded-xl bg-card p-3 ring-1 ring-foreground/10 ease-[var(--ease-out-quint)]",
+                                // Only transition while idle. @hello-pangea/dnd
+                                // writes an inline `transform` every frame to
+                                // track the pointer; animating that transform
+                                // (transition-all) makes the card lag behind the
+                                // cursor, so disable transitions during drag.
+                                draggableSnapshot.isDragging
+                                  ? "shadow-soft-lg ring-2 ring-primary"
+                                  : "transition-all duration-300 shadow-soft hover:-translate-y-0.5 hover:shadow-soft-lg hover:ring-primary/30",
+                              )}
+                            >
+                              <div className="space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <h4 className="line-clamp-2 text-sm font-medium leading-tight">
+                                    {project.name}
+                                    {duplicateIndices?.get(project.id) != null && duplicateIndices.get(project.id)! > 1 && (
+                                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                        copy {duplicateIndices.get(project.id)}
+                                      </span>
+                                    )}
+                                  </h4>
                                 </div>
-                                <div className="h-1 overflow-hidden rounded-full bg-muted">
-                                  <div
-                                    className="h-full rounded-full bg-primary transition-[width] duration-500 ease-[var(--ease-out-quint)]"
-                                    style={{ width: `${project.progress || 0}%` }}
-                                  />
+
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {area?.name ?? "Unassigned"}
+                                </p>
+
+                                <div className="flex items-center gap-2">
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "text-xs",
+                                      project.priority === "high" &&
+                                        "border-orange-300 text-orange-600",
+                                      project.priority === "medium" &&
+                                        "border-blue-300 text-blue-600",
+                                      project.priority === "low" &&
+                                        "border-border text-muted-foreground",
+                                    )}
+                                  >
+                                    {project.priority}
+                                  </Badge>
+                                  <span
+                                    className={cn(
+                                      "text-xs",
+                                      dueState.tone === "warning"
+                                        ? "text-red-600 dark:text-red-400"
+                                        : "text-muted-foreground",
+                                    )}
+                                  >
+                                    {dueState.label}
+                                  </span>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>Progress</span>
+                                    <span>{project.progress || 0}%</span>
+                                  </div>
+                                  <div className="h-1 overflow-hidden rounded-full bg-muted">
+                                    <div
+                                      className="h-full rounded-full bg-primary transition-[width] duration-500 ease-[var(--ease-out-quint)]"
+                                      style={{ width: `${project.progress || 0}%` }}
+                                    />
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        )}
+                          );
+
+                          return draggableSnapshot.isDragging
+                            ? createPortal(card, document.body)
+                            : card;
+                        }}
                       </Draggable>
                     );
                   })}
