@@ -127,10 +127,15 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
                             {...draggableProvided.dragHandleProps}
                             onClick={() => onProjectClick?.(project)}
                             className={cn(
-                              "cursor-pointer rounded-xl bg-card p-3 ring-1 ring-foreground/10 transition-all duration-300 ease-[var(--ease-out-quint)]",
+                              "cursor-pointer rounded-xl bg-card p-3 ring-1 ring-foreground/10 ease-[var(--ease-out-quint)]",
+                              // Only transition while idle. @hello-pangea/dnd
+                              // writes an inline `transform` every frame to
+                              // track the pointer; animating that transform
+                              // (transition-all) makes the card lag behind the
+                              // cursor, so disable transitions during drag.
                               draggableSnapshot.isDragging
                                 ? "shadow-soft-lg ring-2 ring-primary"
-                                : "shadow-soft hover:-translate-y-0.5 hover:shadow-soft-lg hover:ring-primary/30",
+                                : "transition-all duration-300 shadow-soft hover:-translate-y-0.5 hover:shadow-soft-lg hover:ring-primary/30",
                             )}
                           >
                             <div className="space-y-2">

@@ -139,18 +139,79 @@ export function useDeleteProject() {
   });
 }
 
+// Find a project by id across every cached projects list.
+function findProjectInCaches(
+  caches: [readonly unknown[], Project[] | undefined][],
+  id: string,
+): Project | undefined {
+  for (const [, data] of caches) {
+    if (Array.isArray(data)) {
+      const found = data.find((project) => project.id === id);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return undefined;
+}
+
+// Upsert a project into a specific status-scoped list cache so an archived /
+// restored project appears in its destination tab immediately, before the
+// settle-time refetch arrives.
+function upsertIntoStatusCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  status: "all" | "archived",
+  project: Project,
+): void {
+  queryClient.setQueryData<Project[]>([PROJECTS_QUERY_KEY, { status }], (current) => {
+    if (!Array.isArray(current)) {
+      return [project];
+    }
+    if (current.some((p) => p.id === project.id)) {
+      return current.map((p) => (p.id === project.id ? project : p));
+    }
+    return [project, ...current];
+  });
+}
+
 export function useArchiveProject() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
     mutationFn: (id: string) => projectService.archive(user!.id, id),
-    onSuccess: async () => {
-      await invalidateProjectGraph(queryClient);
+    // Optimistic move: flip is_archived in every list cache (so the All tab's
+    // `!is_archived` filter drops it) and seed the archived-status cache so the
+    // Archive tab shows it without waiting for the refetch.
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: [PROJECTS_QUERY_KEY] });
+      const previous = queryClient.getQueriesData<Project[]>({ queryKey: [PROJECTS_QUERY_KEY] });
+      const target = findProjectInCaches(previous, id);
+
+      queryClient.setQueriesData<Project[]>({ queryKey: [PROJECTS_QUERY_KEY] }, (current) => {
+        if (!Array.isArray(current)) {
+          return current;
+        }
+        return current.map((p) => (p.id === id ? { ...p, is_archived: true } : p));
+      });
+
+      if (target) {
+        upsertIntoStatusCache(queryClient, "archived", { ...target, is_archived: true });
+      }
+
+      return { previous };
+    },
+    onError: (error: Error, _id, context) => {
+      context?.previous.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      toast.error(error.message || "Failed to archive project");
+    },
+    onSuccess: () => {
       toast.success("Project archived");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to archive project");
+    onSettled: async () => {
+      await invalidateProjectGraph(queryClient);
     },
   });
 }
@@ -161,12 +222,38 @@ export function useRestoreProject() {
 
   return useMutation({
     mutationFn: (id: string) => projectService.restore(user!.id, id),
-    onSuccess: async () => {
-      await invalidateProjectGraph(queryClient);
+    // Mirror of useArchiveProject: clear is_archived everywhere (so the Archive
+    // tab's `is_archived` filter drops it) and seed the active-status cache so
+    // the All tab shows it immediately.
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: [PROJECTS_QUERY_KEY] });
+      const previous = queryClient.getQueriesData<Project[]>({ queryKey: [PROJECTS_QUERY_KEY] });
+      const target = findProjectInCaches(previous, id);
+
+      queryClient.setQueriesData<Project[]>({ queryKey: [PROJECTS_QUERY_KEY] }, (current) => {
+        if (!Array.isArray(current)) {
+          return current;
+        }
+        return current.map((p) => (p.id === id ? { ...p, is_archived: false } : p));
+      });
+
+      if (target) {
+        upsertIntoStatusCache(queryClient, "all", { ...target, is_archived: false });
+      }
+
+      return { previous };
+    },
+    onError: (error: Error, _id, context) => {
+      context?.previous.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      toast.error(error.message || "Failed to restore project");
+    },
+    onSuccess: () => {
       toast.success("Project restored");
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to restore project");
+    onSettled: async () => {
+      await invalidateProjectGraph(queryClient);
     },
   });
 }

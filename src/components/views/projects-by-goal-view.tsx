@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProjectCard } from "@/components/entities/project-card";
-import { GalleryGrid } from "@/components/views/gallery-grid";
 import type { Project } from "@/lib/types/domain.types";
 
 export interface ProjectsByGoalGroup {
@@ -43,7 +42,9 @@ function CollapsibleGoalSection({
   returnTo?: string | null;
   returnToChain?: string | null;
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  // The unassigned ("No Goal") group is collapsed by default; real goals open
+  // by default.
+  const [isOpen, setIsOpen] = useState(group.goalId !== "unassigned");
 
   return (
     <div className="mb-6">
@@ -90,7 +91,7 @@ function CollapsibleGoalSection({
       </div>
 
       {isOpen && (
-        <GalleryGrid>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {group.projects.map((project) => (
             <ProjectCard
               key={project.id}
@@ -117,7 +118,7 @@ function CollapsibleGoalSection({
               <span className="text-sm font-medium">New Project under {group.goalName}</span>
             </button>
           )}
-        </GalleryGrid>
+        </div>
       )}
     </div>
   );
