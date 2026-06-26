@@ -1131,10 +1131,37 @@ export function GoalDetailContent() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-52 w-full" />
+      <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+        {/* Breadcrumb skeleton */}
+        <div className="flex items-center gap-2">
+          <Skeleton className="size-6 rounded" />
+          <Skeleton className="h-4 w-12" />
+          <Skeleton className="h-4 w-12" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        {/* Header card skeleton */}
+        <div className="rounded-xl border bg-card">
+          <div className="flex items-start justify-between gap-4 p-6">
+            <div className="flex items-start gap-4">
+              <Skeleton className="w-20 h-20 rounded-full" />
+              <div className="space-y-3">
+                <Skeleton className="h-8 w-48" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-20 rounded-md" />
+                </div>
+                <Skeleton className="h-4 w-64" />
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Tab bar skeleton */}
+        <div className="flex gap-2">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-8 w-24 rounded-md" />
+          ))}
+        </div>
+        {/* Content area skeleton */}
+        <Skeleton className="h-52 w-full rounded-lg" />
       </div>
     );
   }

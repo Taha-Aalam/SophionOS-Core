@@ -285,21 +285,52 @@ export function DashboardContent() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-4 w-48" />
-          <div className="flex flex-wrap gap-4">
-            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <Skeleton key={i} className="h-7 w-28 rounded-full" />
-            ))}
+      <div className="reveal-stagger flex flex-col gap-8 p-6 max-w-7xl mx-auto w-full">
+        {/* GreetingBar skeleton */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48" />
           </div>
         </div>
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <section key={i} className="space-y-3">
-            <Skeleton className="h-6 w-48" />
-            <div className="rounded-lg border border-border">
-              <Skeleton className="h-16 rounded-lg" />
+        {/* Stat chips */}
+        <div className="flex flex-wrap gap-4">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <Skeleton key={i} className="h-7 w-28 rounded-full" />
+          ))}
+        </div>
+        {/* 6 sections matching actual render */}
+        {["Active Areas", "Active Goals", "Active Projects", "Active Tasks", "Active Notes", "Active Resources"].map((title, i) => (
+          <section key={i}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-1.5 h-full min-h-[2.5rem] w-1 shrink-0 rounded-full bg-muted-foreground/20" />
+                <div>
+                  <Skeleton className="h-6 w-36" />
+                  <Skeleton className="mt-1 h-4 w-56" />
+                </div>
+              </div>
+            </div>
+            <div className="mt-4">
+              {title === "Active Goals" ? (
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                  {[0, 1].map((j) => (
+                    <Skeleton key={j} className="h-40 rounded-xl" />
+                  ))}
+                </div>
+              ) : title === "Active Areas" || title === "Active Projects" ? (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {[0, 1, 2].map((j) => (
+                    <Skeleton key={j} className="h-48 rounded-xl" />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-border">
+                  {[0, 1, 2].map((j) => (
+                    <Skeleton key={j} className="h-14 rounded-lg" />
+                  ))}
+                </div>
+              )}
             </div>
           </section>
         ))}
