@@ -219,11 +219,48 @@ export function MyDayContent() {
 
       <div className="flex flex-col gap-8">
         {isLoading ? (
-          <div className="flex flex-col gap-1">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <TaskRowSkeleton key={i} />
-            ))}
-          </div>
+          <>
+            {/* Due Today section skeleton */}
+            <section>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1.5 h-full min-h-[2.5rem] w-1 shrink-0 rounded-full bg-amber-500" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-6 w-28" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                    <Skeleton className="mt-1 h-4 w-40" />
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-col gap-1">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <TaskRowSkeleton key={i} />
+                ))}
+              </div>
+            </section>
+            {/* Focus section skeleton */}
+            <section>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-1.5 h-full min-h-[2.5rem] w-1 shrink-0 rounded-full bg-yellow-500" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-6 w-20" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                    <Skeleton className="mt-1 h-4 w-44" />
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-col gap-1">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <TaskRowSkeleton key={i} />
+                ))}
+              </div>
+            </section>
+          </>
         ) : totalMyDay === 0 && !planOpen ? (
           <EmptyState
             icon={Sun}
