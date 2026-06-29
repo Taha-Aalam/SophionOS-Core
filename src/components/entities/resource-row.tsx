@@ -176,7 +176,7 @@ export function ResourceRow({
         )}
         title={resource.favorite ? "Unfavorite" : "Favorite"}
       >
-        <Star className={cn("size-4", resource.favorite && "fill-current")} />
+        <Star className={cn("size-3.5", resource.favorite && "fill-current")} />
       </button>
 
       {/* Action buttons — Edit, Archive, Delete (hover-only) */}

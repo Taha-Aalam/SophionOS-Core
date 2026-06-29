@@ -69,7 +69,7 @@ describe("create should override stale status when context empty", () => {
     expect((ins!.args[0] as any).status).toBe(PROJECT_STATUS.INBOX);
   });
 
-  it("task: todo + no context → insert must carry INBOX", async () => {
+  it("task: todo + no context → preserves caller's manual todo (create manual-status)", async () => {
     const c = makeClient();
     vi.mocked(createClient).mockReturnValue(c as never);
     await taskService.create("u", {
@@ -88,7 +88,7 @@ describe("create should override stale status when context empty", () => {
       description: null,
     } as any);
     const ins = c._calls.find((x: any) => x.method === "insert");
-    expect((ins!.args[0] as any).status).toBe(TASK_STATUS.INBOX);
+    expect((ins!.args[0] as any).status).toBe(TASK_STATUS.TODO);
   });
 
   it("note: to_review + no context → insert must carry INBOX", async () => {
@@ -114,6 +114,52 @@ describe("create should override stale status when context empty", () => {
     expect((ins!.args[0] as any).status).toBe(NOTE_STATUS.INBOX);
   });
 
+  it("note: active + no context → preserves caller's manual active (create manual-status)", async () => {
+    const c = makeClient();
+    vi.mocked(createClient).mockReturnValue(c as never);
+    await noteService.create("u", {
+      name: "n",
+      area_ids: [],
+      goal_ids: [],
+      project_ids: [],
+      task_ids: [],
+      topic_id: null,
+      status: NOTE_STATUS.ACTIVE,
+      type: "note",
+      content: null,
+      favorite: false,
+      pin: false,
+      is_archived: false,
+      notebooks: [],
+    } as any);
+    const ins = c._calls.find((x: any) => x.method === "insert");
+    expect(ins).toBeDefined();
+    expect((ins!.args[0] as any).status).toBe(NOTE_STATUS.ACTIVE);
+  });
+
+  it("note: completed + no context → preserves caller's manual completed (create manual-status)", async () => {
+    const c = makeClient();
+    vi.mocked(createClient).mockReturnValue(c as never);
+    await noteService.create("u", {
+      name: "n",
+      area_ids: [],
+      goal_ids: [],
+      project_ids: [],
+      task_ids: [],
+      topic_id: null,
+      status: NOTE_STATUS.COMPLETED,
+      type: "note",
+      content: null,
+      favorite: false,
+      pin: false,
+      is_archived: false,
+      notebooks: [],
+    } as any);
+    const ins = c._calls.find((x: any) => x.method === "insert");
+    expect(ins).toBeDefined();
+    expect((ins!.args[0] as any).status).toBe(NOTE_STATUS.COMPLETED);
+  });
+
   it("resource: to_review + no context → insert must carry INBOX", async () => {
     const c = makeClient();
     vi.mocked(createClient).mockReturnValue(c as never);
@@ -134,9 +180,51 @@ describe("create should override stale status when context empty", () => {
     expect((ins!.args[0] as any).status).toBe(RESOURCE_STATUS.INBOX);
   });
 
+  it("resource: active + no context → preserves caller's manual active (create manual-status)", async () => {
+    const c = makeClient();
+    vi.mocked(createClient).mockReturnValue(c as never);
+    await resourceService.create("u", {
+      name: "r",
+      url: null,
+      type: "website",
+      area_ids: [],
+      goal_ids: [],
+      task_ids: [],
+      project_id: null,
+      topic_id: null,
+      status: RESOURCE_STATUS.ACTIVE,
+      favorite: false,
+      is_archived: false,
+    } as any);
+    const ins = c._calls.find((x: any) => x.method === "insert");
+    expect(ins).toBeDefined();
+    expect((ins!.args[0] as any).status).toBe(RESOURCE_STATUS.ACTIVE);
+  });
+
+  it("resource: completed + no context → preserves caller's manual completed (create manual-status)", async () => {
+    const c = makeClient();
+    vi.mocked(createClient).mockReturnValue(c as never);
+    await resourceService.create("u", {
+      name: "r",
+      url: null,
+      type: "website",
+      area_ids: [],
+      goal_ids: [],
+      task_ids: [],
+      project_id: null,
+      topic_id: null,
+      status: RESOURCE_STATUS.COMPLETED,
+      favorite: false,
+      is_archived: false,
+    } as any);
+    const ins = c._calls.find((x: any) => x.method === "insert");
+    expect(ins).toBeDefined();
+    expect((ins!.args[0] as any).status).toBe(RESOURCE_STATUS.COMPLETED);
+  });
+
   // ─── TASK INBOX RULE: todo requires BOTH context AND due_date ──────────
 
-  it("task: due_date only (no context) → insert must carry INBOX", async () => {
+  it("task: due_date only (no context) → preserves caller's manual todo (create manual-status)", async () => {
     const c = makeClient();
     vi.mocked(createClient).mockReturnValue(c as never);
     await taskService.create("u", {
@@ -156,10 +244,10 @@ describe("create should override stale status when context empty", () => {
     } as any);
     const ins = c._calls.find((x: any) => x.method === "insert");
     expect(ins).toBeDefined();
-    expect((ins!.args[0] as any).status).toBe(TASK_STATUS.INBOX);
+    expect((ins!.args[0] as any).status).toBe(TASK_STATUS.TODO);
   });
 
-  it("task: project only (no due_date) → insert must carry INBOX", async () => {
+  it("task: project only (no due_date) → preserves caller's manual todo (create manual-status)", async () => {
     const c = makeClient();
     vi.mocked(createClient).mockReturnValue(c as never);
     await taskService.create("u", {
@@ -179,7 +267,7 @@ describe("create should override stale status when context empty", () => {
     } as any);
     const ins = c._calls.find((x: any) => x.method === "insert");
     expect(ins).toBeDefined();
-    expect((ins!.args[0] as any).status).toBe(TASK_STATUS.INBOX);
+    expect((ins!.args[0] as any).status).toBe(TASK_STATUS.TODO);
   });
 
   it("task: project + due_date → insert must carry TODO", async () => {

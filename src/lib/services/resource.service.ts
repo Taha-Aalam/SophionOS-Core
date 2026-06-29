@@ -394,16 +394,20 @@ export const resourceService = {
       const { taskIds, resourceInput: taskCleanedInput } = extractTaskIds(goalCleanedInput);
       const { projectIds, resourceInput } = extractProjectIds(taskCleanedInput);
 
-      // Status is always derived from context on create so a contextless
-      // resource (no area/project/goal/task/topic) is persisted as "inbox"
-      // instead of the caller's pre-filled default.
-      const status = deriveResourceStatus({
+      // Derive status from context, but preserve manual user picks for
+      // non-inbox states (active, completed).
+      // This matches the edit-flow behaviour (resource.service.ts update).
+      const preservesManual =
+        validated.status === RESOURCE_STATUS.ACTIVE ||
+        validated.status === RESOURCE_STATUS.COMPLETED;
+      const derived = deriveResourceStatus({
         area_ids: areaIds,
         project_ids: projectIds,
         goal_ids: goalIds,
         task_ids: taskIds,
         topic_id: validated.topic_id,
       });
+      const status = preservesManual ? validated.status ?? derived : derived;
 
       const { data, error } = await createClient()
         .from("resources")

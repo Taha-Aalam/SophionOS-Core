@@ -116,8 +116,83 @@ describe("projectService.create status routing (bug #1, #2)", () => {
   });
 });
 
-describe("taskService.create status routing (bug #3, #4)", () => {
-  it("persists inbox when caller passes status=todo with no area/goal/project (bug #3)", async () => {
+describe("taskService.create status routing (bug #3, #4, create manual-status)", () => {
+  it("preserves caller's manual todo status even with no area/goal/project (create manual-status)", async () => {
+    const created = {
+      id: taskId, user_id: userId, area_id: null, project_id: null,
+      name: "Tidy desk", status: TASK_STATUS.TODO, priority: "medium",
+      is_completed: false, is_archived: false, is_focused: false, is_important: false, is_urgent: false,
+      completed_at: null, previous_status: null, smart_priority: 0,
+    };
+
+    const insertClient = makeDefaultClient();
+    insertClient.single.mockResolvedValue({ data: created, error: null });
+
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => insertClient)
+      .mockImplementation(() => makeDefaultClient());
+
+    await taskService.create(userId, {
+      name: "Tidy desk",
+      status: TASK_STATUS.TODO,
+    } as any);
+
+    expect(insertClient.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ status: TASK_STATUS.TODO }),
+    );
+  });
+
+  it("preserves caller's manual in_progress status even with no area/goal/project (create manual-status)", async () => {
+    const created = {
+      id: taskId, user_id: userId, area_id: null, project_id: null,
+      name: "Start report", status: TASK_STATUS.IN_PROGRESS, priority: "medium",
+      is_completed: false, is_archived: false, is_focused: false, is_important: false, is_urgent: false,
+      completed_at: null, previous_status: null, smart_priority: 0,
+    };
+
+    const insertClient = makeDefaultClient();
+    insertClient.single.mockResolvedValue({ data: created, error: null });
+
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => insertClient)
+      .mockImplementation(() => makeDefaultClient());
+
+    await taskService.create(userId, {
+      name: "Start report",
+      status: TASK_STATUS.IN_PROGRESS,
+    } as any);
+
+    expect(insertClient.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ status: TASK_STATUS.IN_PROGRESS }),
+    );
+  });
+
+  it("preserves caller's manual completed status even with no area/goal/project (create manual-status)", async () => {
+    const created = {
+      id: taskId, user_id: userId, area_id: null, project_id: null,
+      name: "Done thing", status: TASK_STATUS.COMPLETED, priority: "medium",
+      is_completed: true, is_archived: false, is_focused: false, is_important: false, is_urgent: false,
+      completed_at: "2026-06-26", previous_status: null, smart_priority: 0,
+    };
+
+    const insertClient = makeDefaultClient();
+    insertClient.single.mockResolvedValue({ data: created, error: null });
+
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => insertClient)
+      .mockImplementation(() => makeDefaultClient());
+
+    await taskService.create(userId, {
+      name: "Done thing",
+      status: TASK_STATUS.COMPLETED,
+    } as any);
+
+    expect(insertClient.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ status: TASK_STATUS.COMPLETED }),
+    );
+  });
+
+  it("still derives inbox when caller passes status=inbox with no area/goal/project (bug #3)", async () => {
     const created = {
       id: taskId, user_id: userId, area_id: null, project_id: null,
       name: "Tidy desk", status: TASK_STATUS.INBOX, priority: "medium",
@@ -134,7 +209,7 @@ describe("taskService.create status routing (bug #3, #4)", () => {
 
     await taskService.create(userId, {
       name: "Tidy desk",
-      status: TASK_STATUS.TODO,
+      status: TASK_STATUS.INBOX,
     } as any);
 
     expect(insertClient.insert).toHaveBeenCalledWith(
