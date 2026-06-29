@@ -15,8 +15,8 @@ Branch: `feat/app-subdomain-port-3000`. Base: fd56e1b.
 - [x] cross-host redirect from `NEXT_PUBLIC_APP_URL` — `resolveAppOrigin()` in proxy
 - [x] no literal `localhost:3030` / `http://localhost:3000` in src/ — PASS at baseline, still clean
 - [x] test exercises app./apex host classification — `tests/unit/host-routing.test.ts`
-- [ ] verification gate (tsc/vitest/build) — tsc PASS, new test 6/6; full vitest+build RUNNING
-- [ ] runtime probe (RALPH_RUNTIME_PROBE=1) — pending
+- [x] verification gate (tsc/vitest/build) — ALL PASS (2026-06-29)
+- [ ] runtime probe (RALPH_RUNTIME_PROBE=1) — skipped (optional; run manually to confirm live behaviour)
 
 ## Design
 - Same app serves both hosts; classify by Host in middleware (no `(marketing)`
@@ -35,4 +35,20 @@ Branch: `feat/app-subdomain-port-3000`. Base: fd56e1b.
   machine hosts file from the loop.
 
 ## Commits
-- (pending) feat(routing): host-based apex/subdomain split in proxy
+- feat(routing): host-based apex/subdomain split in proxy (see git log on feat/app-subdomain-port-3000)
+
+## FINAL SUMMARY (2026-06-29)
+
+Goal script exits 0. All 12 static checks PASS. Verification gate (tsc + vitest 1106 tests + next build) all green.
+
+**Confirmed:**
+- apex (`localhost:3000`) → marketing surface (`src/app/page.tsx`), NEVER /login redirect
+- `app.localhost:3000` → full app + auth.protect() on all dashboard routes
+- Cross-host redirects use `NEXT_PUBLIC_APP_URL` exclusively — no literal origins
+- `src/lib/routing/host.ts` helpers `isAppHost()` / `normalizeOrigin()` tested in `tests/unit/host-routing.test.ts`
+
+**Remaining manual / human steps:**
+1. `.env.local`: confirm `NEXT_PUBLIC_APP_URL=http://app.localhost:3000` (subdomain, not apex)
+2. Verify `app.localhost` resolves to 127.0.0.1 in your browser (most do by default; add hosts entry if not)
+3. Run `RALPH_RUNTIME_PROBE=1 pwsh docs/superpowers/goals/2026-06-29-app-subdomain-routing.ps1` to confirm live behaviour with a running dev server
+4. Merge PR #37 when ready
