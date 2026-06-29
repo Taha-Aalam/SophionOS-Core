@@ -35,7 +35,14 @@ Any NEW failure vs this baseline is mine to fix.
       optional trailing `{ offset, limit }` arg → `.range(offset, offset+limit-1)`
       on task / project / resource / contact `list()`; falls back to
       `LIST_SAFETY_CAP` when no page requested. No call-site breakage.
-- [x] **H2 Backfill batching** — already PASS at baseline (no work needed).
+- [x] **H2 Backfill batching** — `10c9619`
+      CORRECTION: was wrongly marked baseline-PASS. Goal `[5]` greps the whole
+      file for `.in(` (matches hydrate/pagination), a false positive — the
+      backfillStaleStatuses bodies were per-row `.eq` loops (O(rows) round
+      trips). Caught by the verification subagent. Now batched: one `.in(ids)`
+      read per junction, in-memory derive, grouped `update().in("id",ids)` per
+      distinct status. Behavior-equivalent (9-case adversarial probe + full
+      suite green).
 
 ## Out-of-loop (leave for human, don't regress)
 M3 error-handler trust-boundary, L1 junction one-sided WITH CHECK, L2 CSP
@@ -69,7 +76,8 @@ the orphaned `feat-refinements` worktree but never merged to master. Copied both
 - H1 allSettled degradation — `c23c7f8`
 - C2 progress rollups to SQL (applied to remote) — `3f5d118`
 - M2 opt-in pagination — `2abd117`
-- H2 backfill batching — already PASS at baseline (no work)
+- H2 backfill batching — `10c9619` (was a false baseline-PASS; per-row `.eq`
+  loops batched to `.in(ids)` + grouped updates; verifier-caught)
 - DB drift sync — `8cb2e74`
 No-probe goal gate: PASS (tsc 0, vitest 1125, next build 0).
 Probe goal gate: `[8]` static grep unsatisfiable by forward-only work; the risk
