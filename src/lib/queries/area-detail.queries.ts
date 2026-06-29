@@ -306,17 +306,20 @@ export async function serverFetchAreaDetail(
   // the "linked" subset for this area AND attach the full global lists
   // (allGoals/allTasks/allNotes/allResources/archivedTasks) needed by the
   // detail content for project rollups, goal lookups, etc.
+  // These nine sources are independent (global user lists + this area's linked
+  // id sets), so degrade with allSettled — a single rejected query renders that
+  // slice empty instead of throwing and blanking the entire area detail page.
   const [
     allProjectsResult,
     allTasksActiveResult,
     allTasksArchivedResult,
     allNotesResult,
     allResourcesResult,
-    allGoals,
-    extraGoalIds,
-    extraProjectIds,
-    extraTaskIds,
-  ] = await Promise.all([
+    allGoalsResult,
+    extraGoalIdsResult,
+    extraProjectIdsResult,
+    extraTaskIdsResult,
+  ] = await Promise.allSettled([
     supabase.from("projects").select(PROJECT_SELECT).eq("user_id", userId),
     supabase.from("tasks").select(TASK_SELECT).eq("user_id", userId).eq("is_archived", false),
     supabase.from("tasks").select(TASK_SELECT).eq("user_id", userId).eq("is_archived", true),
@@ -328,11 +331,23 @@ export async function serverFetchAreaDetail(
     fetchLinkedIds(supabase, "task_areas", "task_id", areaId),
   ])
 
-  const rawAllProjects = allProjectsResult.data ?? []
-  const rawAllActiveTasks = allTasksActiveResult.data ?? []
-  const rawAllArchivedTasks = allTasksArchivedResult.data ?? []
-  const rawAllNotes = allNotesResult.data ?? []
-  const rawAllResources = allResourcesResult.data ?? []
+  const rawAllProjects =
+    allProjectsResult.status === "fulfilled" ? (allProjectsResult.value.data ?? []) : []
+  const rawAllActiveTasks =
+    allTasksActiveResult.status === "fulfilled" ? (allTasksActiveResult.value.data ?? []) : []
+  const rawAllArchivedTasks =
+    allTasksArchivedResult.status === "fulfilled" ? (allTasksArchivedResult.value.data ?? []) : []
+  const rawAllNotes =
+    allNotesResult.status === "fulfilled" ? (allNotesResult.value.data ?? []) : []
+  const rawAllResources =
+    allResourcesResult.status === "fulfilled" ? (allResourcesResult.value.data ?? []) : []
+  const allGoals = allGoalsResult.status === "fulfilled" ? allGoalsResult.value : []
+  const extraGoalIds =
+    extraGoalIdsResult.status === "fulfilled" ? extraGoalIdsResult.value : []
+  const extraProjectIds =
+    extraProjectIdsResult.status === "fulfilled" ? extraProjectIdsResult.value : []
+  const extraTaskIds =
+    extraTaskIdsResult.status === "fulfilled" ? extraTaskIdsResult.value : []
 
   // Hydrate the global goal/project/task/note/resource collections with relation
   // IDs and (for goals) rollup counts + progress so cards on the area detail

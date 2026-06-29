@@ -6,7 +6,7 @@ async function serverFetchRecentActivity(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<ActivityItem[]> {
-  const [tasksResult, goalsResult, projectsResult, areasResult] = await Promise.all([
+  const [tasksResult, goalsResult, projectsResult, areasResult] = await Promise.allSettled([
     supabase
       .from("tasks")
       .select("id, title, description, created_at, updated_at")
@@ -33,8 +33,15 @@ async function serverFetchRecentActivity(
       .limit(5),
   ])
 
+  // Degrade gracefully: a rejected source contributes nothing rather than
+  // blanking the whole activity feed (fail-fast Promise.all would throw).
+  const taskRows = tasksResult.status === "fulfilled" ? (tasksResult.value.data ?? []) : []
+  const goalRows = goalsResult.status === "fulfilled" ? (goalsResult.value.data ?? []) : []
+  const projectRows = projectsResult.status === "fulfilled" ? (projectsResult.value.data ?? []) : []
+  const areaRows = areasResult.status === "fulfilled" ? (areasResult.value.data ?? []) : []
+
   const activity: ActivityItem[] = [
-    ...(tasksResult.data ?? []).map((t) => ({
+    ...taskRows.map((t) => ({
       id: t.id,
       entityType: "task" as ActivityEntityType,
       entityId: t.id,
@@ -43,7 +50,7 @@ async function serverFetchRecentActivity(
       createdAt: t.created_at,
       updatedAt: t.updated_at,
     })),
-    ...(goalsResult.data ?? []).map((g) => ({
+    ...goalRows.map((g) => ({
       id: g.id,
       entityType: "goal" as ActivityEntityType,
       entityId: g.id,
@@ -52,7 +59,7 @@ async function serverFetchRecentActivity(
       createdAt: g.created_at,
       updatedAt: g.updated_at,
     })),
-    ...(projectsResult.data ?? []).map((p) => ({
+    ...projectRows.map((p) => ({
       id: p.id,
       entityType: "project" as ActivityEntityType,
       entityId: p.id,
@@ -61,7 +68,7 @@ async function serverFetchRecentActivity(
       createdAt: p.created_at,
       updatedAt: p.updated_at,
     })),
-    ...(areasResult.data ?? []).map((a) => ({
+    ...areaRows.map((a) => ({
       id: a.id,
       entityType: "area" as ActivityEntityType,
       entityId: a.id,
@@ -87,8 +94,15 @@ export async function serverFetchDashboardToday(
 
   const taskSelect = "id, title, description, due_date, priority, status, project_id, area_id, projects(name), goals(title), areas(name)"
 
-  const [dueTodayResult, focusResult, goalsResult, completedWeekResult, activeGoalsCountResult, overdueCountResult, recentActivity] =
-    await Promise.all([
+  const [
+    dueTodayResult,
+    focusResult,
+    goalsResult,
+    completedWeekResult,
+    activeGoalsCountResult,
+    overdueCountResult,
+    recentActivityResult,
+  ] = await Promise.allSettled([
       supabase
         .from("tasks")
         .select(taskSelect)
@@ -130,10 +144,30 @@ export async function serverFetchDashboardToday(
       serverFetchRecentActivity(supabase, userId),
     ])
 
-  type TodayTaskRow = NonNullable<typeof dueTodayResult.data>[number]
+  // Degrade gracefully: each card on the dashboard is an independent data
+  // source, so a single rejected query renders empty/zero instead of throwing
+  // and blanking the entire page (the fail-fast Promise.all behaviour).
+  const dueTodayRows =
+    dueTodayResult.status === "fulfilled" ? (dueTodayResult.value.data ?? []) : []
+  const focusRows =
+    focusResult.status === "fulfilled" ? (focusResult.value.data ?? []) : []
+  const goalRows =
+    goalsResult.status === "fulfilled" ? (goalsResult.value.data ?? []) : []
+  const completedThisWeek =
+    completedWeekResult.status === "fulfilled" ? (completedWeekResult.value.count ?? 0) : 0
+  const activeGoalsCount =
+    activeGoalsCountResult.status === "fulfilled"
+      ? (activeGoalsCountResult.value.count ?? 0)
+      : 0
+  const overdueCount =
+    overdueCountResult.status === "fulfilled" ? (overdueCountResult.value.count ?? 0) : 0
+  const recentActivity =
+    recentActivityResult.status === "fulfilled" ? recentActivityResult.value : []
+
+  type TodayTaskRow = (typeof dueTodayRows)[number]
   const taskMap = new Map<string, TodayTaskRow>()
-  for (const t of dueTodayResult.data ?? []) taskMap.set(t.id, t)
-  for (const t of focusResult.data ?? []) {
+  for (const t of dueTodayRows) taskMap.set(t.id, t)
+  for (const t of focusRows) {
     if (!taskMap.has(t.id)) taskMap.set(t.id, t)
   }
 
@@ -156,7 +190,7 @@ export async function serverFetchDashboardToday(
     }
   })
 
-  const activeGoals = (goalsResult.data ?? []).map((g) => ({
+  const activeGoals = goalRows.map((g) => ({
     id: g.id,
     title: g.title,
     description: g.description,
@@ -175,9 +209,9 @@ export async function serverFetchDashboardToday(
     todayTasks: todayTasksFormatted,
     activeGoals,
     stats: {
-      completedThisWeek: completedWeekResult.count ?? 0,
-      activeGoalsCount: activeGoalsCountResult.count ?? 0,
-      overdueCount: overdueCountResult.count ?? 0,
+      completedThisWeek,
+      activeGoalsCount,
+      overdueCount,
     },
     recentActivity,
   }

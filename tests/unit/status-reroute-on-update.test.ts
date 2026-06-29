@@ -86,6 +86,10 @@ function makeClient() {
       calls.push({ method: "maybeSingle", args: [] });
       return Promise.resolve({ data: null, error: null });
     }),
+    rpc: vi.fn(() => {
+      calls.push({ method: "rpc", args: [] });
+      return Promise.resolve({ data: [], error: null });
+    }),
   };
   (builder as any)._calls = calls;
   (builder as any)._setTerminal = (

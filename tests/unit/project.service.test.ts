@@ -24,6 +24,7 @@ function makeChainableClient(overrides: Record<string, unknown> = {}) {
     limit: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data: null, error: null }),
     maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
     ...overrides,
   };
   return client;
