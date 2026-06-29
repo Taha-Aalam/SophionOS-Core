@@ -213,7 +213,11 @@ export const contactService = {
     return path;
   },
 
-  async list(userId: string, filters?: { group?: string; archive?: boolean }): Promise<Contact[]> {
+  async list(
+    userId: string,
+    filters?: { group?: string; archive?: boolean },
+    options?: { offset?: number; limit?: number },
+  ): Promise<Contact[]> {
     let query = createClient()
       .from("contacts")
       .select(CONTACT_SELECT)
@@ -229,7 +233,16 @@ export const contactService = {
       query = query.eq("group", filters.group);
     }
 
-    query = query.order("name", { ascending: true }).limit(LIST_SAFETY_CAP);
+    query = query.order("name", { ascending: true });
+
+    // Opt-in pagination: a requested page fetches exactly that window;
+    // otherwise fall back to the safety cap (unbounded lists scale poorly).
+    if (options?.limit !== undefined) {
+      const offset = options.offset ?? 0;
+      query = query.range(offset, offset + options.limit - 1);
+    } else {
+      query = query.limit(LIST_SAFETY_CAP);
+    }
 
     const { data, error } = await query;
     if (error) throw new DatabaseError(error.message);
@@ -700,7 +713,8 @@ export const contactService = {
       .select(`${CONTACT_SELECT}, contact_areas(area_id, areas(id, name))`)
       .eq("user_id", userId)
       .eq("archive", false)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (!contacts) return [];
 
@@ -730,7 +744,8 @@ export const contactService = {
       .select(`${CONTACT_SELECT}, contact_goals(goal_id, goals(id, name))`)
       .eq("user_id", userId)
       .eq("archive", false)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (!contacts) return [];
 

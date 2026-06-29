@@ -445,63 +445,48 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
   });
 }
 
+export interface GoalProgressSummaryRow {
+  goal_id: string;
+  active_project_count: number;
+  active_task_count: number;
+  active_resource_count: number;
+  active_note_count: number;
+}
+
+// Map the goal_progress_summary RPC result onto each goal's rollup count fields.
+// Pure so it can be unit-tested without a database; a goal absent from the rows
+// (no links) degrades to zero counts.
+export function mapGoalProgressSummary(
+  goals: Goal[],
+  rows: GoalProgressSummaryRow[] | null,
+): Goal[] {
+  const byGoalId = new Map<string, GoalProgressSummaryRow>();
+  for (const row of rows ?? []) byGoalId.set(row.goal_id, row);
+  return goals.map((goal) => {
+    const row = byGoalId.get(goal.id);
+    return {
+      ...goal,
+      projectCount: row?.active_project_count ?? 0,
+      taskCount: row?.active_task_count ?? 0,
+      noteCount: row?.active_note_count ?? 0,
+      resourceCount: row?.active_resource_count ?? 0,
+    };
+  });
+}
+
 async function hydrateGoalRollupCounts(goals: Goal[]): Promise<Goal[]> {
   if (goals.length === 0) return goals;
   const goalIds = goals.map((g) => g.id);
 
-  const [
-    { data: projectLinks, error: projectError },
-    { data: taskLinks, error: taskError },
-    { data: noteLinks, error: noteError },
-    { data: resourceLinks, error: resourceError },
-  ] = await Promise.all([
-    createClient()
-      .from("goal_projects")
-      .select("goal_id, project:projects(status, is_archived)")
-      .in("goal_id", goalIds),
-    createClient()
-      .from("goal_tasks")
-      .select("goal_id, task:tasks(is_completed, is_archived)")
-      .in("goal_id", goalIds),
-    createClient()
-      .from("goal_notes")
-      .select("goal_id, note:notes(status, is_archived)")
-      .in("goal_id", goalIds),
-    createClient()
-      .from("goal_resources")
-      .select("goal_id, resource:resources(status, is_archived)")
-      .in("goal_id", goalIds),
-  ]);
-
-  if (projectError) throw new DatabaseError(projectError.message);
-  if (taskError) throw new DatabaseError(taskError.message);
-  if (noteError) throw new DatabaseError(noteError.message);
-  if (resourceError) throw new DatabaseError(resourceError.message);
-
-  const countFor = (
-    links: Array<{ goal_id: string } & Record<string, unknown>> | null,
-    goalId: string,
-    entityKey: string,
-    isActive: (entity: Record<string, unknown>) => boolean,
-  ): number =>
-    (links ?? []).filter((link) => {
-      if (link.goal_id !== goalId) return false;
-      const entity = Array.isArray(link[entityKey])
-        ? (link[entityKey] as Record<string, unknown>[])[0]
-        : (link[entityKey] as Record<string, unknown> | undefined);
-      return entity != null && isActive(entity);
-    }).length;
-
-  return goals.map((goal) => {
-    const id = goal.id;
-    return {
-      ...goal,
-      projectCount: countFor(projectLinks, id, "project", (e) => !e.is_archived && e.status !== "completed"),
-      taskCount: countFor(taskLinks, id, "task", (e) => !e.is_archived && !e.is_completed),
-      noteCount: countFor(noteLinks, id, "note", (e) => !e.is_archived && e.status !== "archive" && e.status !== "completed"),
-      resourceCount: countFor(resourceLinks, id, "resource", (e) => !e.is_archived && e.status !== "completed"),
-    };
+  // Aggregate active child counts in SQL (RLS-scoped goal_progress_summary RPC)
+  // instead of pulling every linked row into the browser and re-filtering per
+  // goal (the previous O(goals x links) countFor).
+  const { data, error } = await createClient().rpc("goal_progress_summary", {
+    p_goal_ids: goalIds,
   });
+  if (error) throw new DatabaseError(error.message);
+
+  return mapGoalProgressSummary(goals, data as GoalProgressSummaryRow[] | null);
 }
 
 async function hydrateSingleGoalProgress(goal: Goal): Promise<Goal> {
@@ -664,24 +649,31 @@ export const goalService = {
   },
 
   async generateUniqueSlug(userId: string, baseSlug: string): Promise<string> {
-    let slug = baseSlug;
+    // Fetch all slugs sharing this prefix in ONE query, then resolve the next
+    // free suffix in memory. The previous while(true) issued one COUNT
+    // round-trip per collision (baseSlug, baseSlug-1, baseSlug-2, …) — fine in
+    // dev where collisions are rare, but a slug like "tasks" on a busy account
+    // turns a create into N serial DB calls. Mirrors projectService.
+    const { data, error } = await createClient()
+      .from("goals")
+      .select("slug")
+      .eq("user_id", userId)
+      .ilike("slug", `${baseSlug}%`);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    const existingSlugs = new Set((data ?? []).map((r) => r.slug));
+    if (!existingSlugs.has(baseSlug)) {
+      return baseSlug;
+    }
+
     let counter = 1;
-
-    while (true) {
-      const exists = await createClient()
-        .from("goals")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("slug", slug)
-        .maybeSingle();
-
-      if (!exists || exists.count === 0) {
-        return slug;
-      }
-
-      slug = `${baseSlug}-${counter}`;
+    while (existingSlugs.has(`${baseSlug}-${counter}`)) {
       counter++;
     }
+    return `${baseSlug}-${counter}`;
   },
 
   async update(userId: string, id: string, input: UpdateGoalInput): Promise<Goal> {

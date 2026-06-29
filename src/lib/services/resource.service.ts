@@ -312,14 +312,23 @@ export const resourceService = {
       projectId?: string;
       topicId?: string;
     },
+    options?: { offset?: number; limit?: number },
   ): Promise<Resource[]> {
     let query = createClient()
       .from("resources")
       .select(RESOURCE_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .order("updated_at", { ascending: false })
-      .limit(LIST_SAFETY_CAP);
+      .order("updated_at", { ascending: false });
+
+    // Opt-in pagination: a requested page fetches exactly that window;
+    // otherwise fall back to the safety cap (unbounded lists are a scaling risk).
+    if (options?.limit !== undefined) {
+      const offset = options.offset ?? 0;
+      query = query.range(offset, offset + options.limit - 1);
+    } else {
+      query = query.limit(LIST_SAFETY_CAP);
+    }
 
     if (filters?.status && filters.status !== "all") {
       query = query.eq("status", filters.status);
@@ -973,28 +982,77 @@ export const resourceService = {
     }
 
     const resources = data ?? [];
-    let fixed = 0;
+    if (resources.length === 0) return 0;
+    const resourceIds = resources.map((r) => r.id);
+
+    // Batch every junction read with a single .in(ids) query instead of four
+    // per-row lookups (the old loop was O(rows) round trips). Derive in memory.
+    const supabase = createClient();
+    const [goalLinks, taskLinks, areaLinks, projectLinks] = await Promise.all([
+      supabase.from("goal_resources").select("resource_id, goal_id").in("resource_id", resourceIds),
+      supabase.from("task_resources").select("resource_id, task_id").in("resource_id", resourceIds),
+      supabase.from("resource_areas").select("resource_id, area_id").in("resource_id", resourceIds),
+      supabase.from("resource_projects").select("resource_id, project_id").in("resource_id", resourceIds),
+    ]);
+
+    if (goalLinks.error) {
+      throw new DatabaseError(goalLinks.error.message);
+    }
+    if (taskLinks.error && !isMissingTaskResourcesTableError(taskLinks.error)) {
+      throw new DatabaseError(taskLinks.error.message);
+    }
+    if (areaLinks.error && !isMissingResourceAreasTableError(areaLinks.error)) {
+      throw new DatabaseError(areaLinks.error.message);
+    }
+    if (projectLinks.error && !isMissingResourceProjectsTableError(projectLinks.error)) {
+      throw new DatabaseError(projectLinks.error.message);
+    }
+
+    const goalsByResource = new Map<string, string[]>();
+    for (const row of goalLinks.data ?? []) {
+      goalsByResource.set(row.resource_id, [...(goalsByResource.get(row.resource_id) ?? []), row.goal_id]);
+    }
+    const tasksByResource = new Map<string, string[]>();
+    for (const row of taskLinks.data ?? []) {
+      tasksByResource.set(row.resource_id, [...(tasksByResource.get(row.resource_id) ?? []), row.task_id]);
+    }
+    const areasByResource = new Map<string, string[]>();
+    for (const row of areaLinks.data ?? []) {
+      areasByResource.set(row.resource_id, [...(areasByResource.get(row.resource_id) ?? []), row.area_id]);
+    }
+    const projectsByResource = new Map<string, string[]>();
+    for (const row of projectLinks.data ?? []) {
+      projectsByResource.set(row.resource_id, [...(projectsByResource.get(row.resource_id) ?? []), row.project_id]);
+    }
+
+    // Bucket rows by the status they should become so we can issue ONE update
+    // per distinct status instead of one update per row.
+    const idsByDerivedStatus = new Map<ResourceStatus, string[]>();
     for (const resource of resources) {
-      const relations = await this.getWithRelations(resource.id);
       const derived = deriveResourceStatus({
         area_id: resource.area_id,
-        area_ids: relations.area_ids,
-        project_ids: relations.project_ids,
-        goal_ids: relations.goal_ids,
-        task_ids: relations.task_ids,
+        area_ids: areasByResource.get(resource.id) ?? [],
+        project_ids: projectsByResource.get(resource.id) ?? [],
+        goal_ids: goalsByResource.get(resource.id) ?? [],
+        task_ids: tasksByResource.get(resource.id) ?? [],
         topic_id: resource.topic_id,
       });
       if (derived !== resource.status) {
-        const { error: updateError } = await createClient()
-          .from("resources")
-          .update({ status: derived })
-          .eq("id", resource.id)
-          .eq("user_id", userId);
-        if (updateError) {
-          throw new DatabaseError(updateError.message);
-        }
-        fixed += 1;
+        idsByDerivedStatus.set(derived, [...(idsByDerivedStatus.get(derived) ?? []), resource.id]);
       }
+    }
+
+    let fixed = 0;
+    for (const [status, ids] of idsByDerivedStatus) {
+      const { error: updateError } = await createClient()
+        .from("resources")
+        .update({ status })
+        .in("id", ids)
+        .eq("user_id", userId);
+      if (updateError) {
+        throw new DatabaseError(updateError.message);
+      }
+      fixed += ids.length;
     }
 
     return fixed;

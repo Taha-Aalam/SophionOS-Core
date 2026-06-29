@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isAppHost, normalizeOrigin } from "@/lib/routing/host";
+import { isAppHost, isConfiguredAppHost, normalizeOrigin } from "@/lib/routing/host";
 
 describe("host classification (apex vs app subdomain)", () => {
   it("treats the app. subdomain as the application host", () => {
@@ -48,5 +48,32 @@ describe("normalizeOrigin", () => {
     expect(normalizeOrigin(undefined)).toBeNull();
     expect(normalizeOrigin("")).toBeNull();
     expect(normalizeOrigin("not a url")).toBeNull();
+  });
+});
+
+describe("isConfiguredAppHost", () => {
+  it("matches when host equals the NEXT_PUBLIC_APP_URL hostname", () => {
+    expect(isConfiguredAppHost("life-os-core.vercel.app", "https://life-os-core.vercel.app")).toBe(true);
+    expect(isConfiguredAppHost("life-os-core.vercel.app", "https://life-os-core.vercel.app/dashboard")).toBe(true);
+  });
+
+  it("ignores port on the incoming host when comparing", () => {
+    expect(isConfiguredAppHost("example.com:443", "https://example.com")).toBe(true);
+  });
+
+  it("is case-insensitive", () => {
+    expect(isConfiguredAppHost("LIFE-OS-CORE.VERCEL.APP", "https://life-os-core.vercel.app")).toBe(true);
+  });
+
+  it("returns false when host does not match configured URL", () => {
+    expect(isConfiguredAppHost("other.vercel.app", "https://life-os-core.vercel.app")).toBe(false);
+    expect(isConfiguredAppHost("app.life-os-core.vercel.app", "https://life-os-core.vercel.app")).toBe(false);
+  });
+
+  it("returns false for missing inputs", () => {
+    expect(isConfiguredAppHost(null, "https://life-os-core.vercel.app")).toBe(false);
+    expect(isConfiguredAppHost("life-os-core.vercel.app", null)).toBe(false);
+    expect(isConfiguredAppHost(null, null)).toBe(false);
+    expect(isConfiguredAppHost("life-os-core.vercel.app", "not a url")).toBe(false);
   });
 });
