@@ -331,16 +331,21 @@ export const noteService = {
       const { projectIds, noteInput: projectCleanedInput } = extractProjectIds(goalCleanedInput);
       const { taskIds, noteInput: taskCleanedInput } = extractTaskIds(projectCleanedInput);
 
-      // Status is always derived from context on create so a contextless
-      // note (no area/project/goal/task/topic) is persisted as "inbox"
-      // instead of the caller's pre-filled default.
-      const status = deriveNoteStatus({
+      // Derive status from context, but preserve manual user picks for
+      // non-inbox states (active, completed, archive).
+      // This matches the edit-flow behaviour (note.service.ts update).
+      const preservesManual =
+        validated.status === NOTE_STATUS.ACTIVE ||
+        validated.status === NOTE_STATUS.COMPLETED ||
+        validated.status === NOTE_STATUS.ARCHIVE;
+      const derived = deriveNoteStatus({
         area_ids: areaIds,
         project_ids: projectIds,
         goal_ids: goalIds,
         task_ids: taskIds,
         topic_id: validated.topic_id,
       });
+      const status = preservesManual ? validated.status ?? derived : derived;
 
       if (validated.type) {
         await upsertNoteType(userId, validated.type);

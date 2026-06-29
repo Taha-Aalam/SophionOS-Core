@@ -354,21 +354,33 @@ export const taskService = {
       const { projectIds, taskInput: projectCleanedInput } =
         extractTaskProjectIds(areaCleanedInput);
       const { goalIds, taskInput } = extractGoalIds(projectCleanedInput);
-      // Status is always derived from context on create so a contextless
-      // task (no area/goal/project + no due_date) is persisted as "inbox"
-      // instead of the caller's pre-filled default (the dialog form
-      // defaults to "todo"). A due_date alone is enough to skip inbox —
-      // a calendar-driven task leaves the inbox on creation.
-      const status = deriveTaskStatus({
+      // Derive status from context, but preserve manual user picks for
+      // non-inbox states (todo, in_progress, completed, archived).
+      // This matches the edit-flow behaviour (task.service.ts update).
+      const preservesManual =
+        validated.status === TASK_STATUS.TODO ||
+        validated.status === TASK_STATUS.IN_PROGRESS ||
+        validated.status === TASK_STATUS.COMPLETED ||
+        validated.status === TASK_STATUS.ARCHIVED;
+      const derived = deriveTaskStatus({
         area_ids: areaIds,
         goal_ids: goalIds,
         project_ids: projectIds,
         due_date: validated.due_date as string | null | undefined,
       });
+      const status = preservesManual ? validated.status ?? derived : derived;
+      const isCompleted = status === TASK_STATUS.COMPLETED;
+      const completedAt = isCompleted ? new Date().toISOString() : null;
 
       const { data, error } = await createClient()
         .from("tasks")
-        .insert({ ...taskInput, status, user_id: userId })
+        .insert({
+          ...taskInput,
+          status,
+          is_completed: isCompleted,
+          completed_at: completedAt,
+          user_id: userId,
+        })
         .select(TASK_SELECT)
         .single();
 

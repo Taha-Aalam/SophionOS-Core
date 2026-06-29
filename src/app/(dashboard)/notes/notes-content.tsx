@@ -368,7 +368,7 @@ export function NotesContent() {
     "flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
   const filterOptionLabelClassName = "min-w-0 flex-1 whitespace-normal break-words text-sm";
   const compactTabTriggerClassName =
-    "rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
+    "rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
 
   const handleArchiveSelected = async () => {
     if (selectedIds.size === 0) return;
@@ -440,12 +440,12 @@ export function NotesContent() {
 
   return (
     <div className={NOTES_PAGE_SHELL_CLASS_NAME}>
-      <div className="flex items-center justify-between border-b border-border/50 px-6 py-5">
+      <div className="flex items-center justify-between border-b border-border/50">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">📝</span>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Notes</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground" suppressHydrationWarning>
               {formatNotesSummary(counts.all, counts.archived)}
             </p>
           </div>
@@ -470,51 +470,51 @@ export function NotesContent() {
               All
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.INBOX} className={compactTabTriggerClassName}>
-              <InboxIcon className="mr-1 size-3" />
+              <InboxIcon className="mr-1.5 size-3.5" />
               Inbox
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.TO_REVIEW} className={compactTabTriggerClassName}>
-              <Clock className="mr-1 size-3" />
+              <Clock className="mr-1.5 size-3.5" />
               To Review
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.ACTIVE} className={compactTabTriggerClassName}>
-              <Zap className="mr-1 size-3" />
+              <Zap className="mr-1.5 size-3.5" />
               Active
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.PINNED} className={compactTabTriggerClassName}>
-              <Pin className="mr-1 size-3" />
+              <Pin className="mr-1.5 size-3.5" />
               Pinned
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.FAVORITE} className={compactTabTriggerClassName}>
-              <Star className="mr-1 size-3" />
+              <Star className="mr-1.5 size-3.5" />
               Favorite
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.BY_AREA} className={compactTabTriggerClassName}>
-              <LucideMap className="mr-1 size-3" />
+              <LucideMap className="mr-1.5 size-3.5" />
               By Area
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.BY_GOAL} className={compactTabTriggerClassName}>
-              <Target className="mr-1 size-3" />
+              <Target className="mr-1.5 size-3.5" />
               By Goal
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.BY_PROJECT} className={compactTabTriggerClassName}>
-              <FolderOpen className="mr-1 size-3" />
+              <FolderOpen className="mr-1.5 size-3.5" />
               By Project
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.BY_TOPIC} className={compactTabTriggerClassName}>
-              <Tag className="mr-1 size-3" />
+              <Tag className="mr-1.5 size-3.5" />
               By Topic
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.BY_NOTEBOOK} className={compactTabTriggerClassName}>
-              <BookOpen className="mr-1 size-3" />
+              <BookOpen className="mr-1.5 size-3.5" />
               By Notebook
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.COMPLETED} className={compactTabTriggerClassName}>
-              <Bookmark className="mr-1 size-3" />
+              <Bookmark className="mr-1.5 size-3.5" />
               Completed
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.ARCHIVED} className={compactTabTriggerClassName}>
-              <Archive className="mr-1 size-3" />
+              <Archive className="mr-1.5 size-3.5" />
               Archive
             </TabsTrigger>
           </TabsList>
@@ -843,9 +843,7 @@ export function NotesContent() {
                 onAction={() => router.push("/notes/new")}
               />
             ) : (
-              <div className="rounded-lg border border-border">
-                {visibleNotes.map((note) => renderNoteRow(note))}
-              </div>
+              visibleNotes.map((note) => renderNoteRow(note))
             )}
           </TabsContent>
         ))}

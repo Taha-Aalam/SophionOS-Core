@@ -107,13 +107,12 @@ export function NoteRow({
         </Badge>
       </div>
 
-      {/* Name */}
-      <div className="min-w-0 flex-1">
+      {/* Name + metadata */}
+      <div className="min-w-0 flex-1 flex flex-col gap-0.5">
         <span className="block truncate text-sm font-medium">{note.name}</span>
-      </div>
 
-      {/* Metadata cluster — max 2 per category, +N overflow per category, smaller */}
-      <div className="hidden shrink-0 flex-wrap items-center gap-1 md:flex">
+        {/* Metadata cluster — max 2 per category, +N overflow per category, smaller */}
+        <div className="hidden flex-wrap items-center gap-1 md:flex">
         {(note.notebooks ?? []).map((nb) => (
           <Badge key={nb} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
             <span className="text-[10px] leading-none">📓</span>
@@ -174,6 +173,7 @@ export function NoteRow({
             day: "numeric",
           })}
         </span>
+        </div>
       </div>
 
       {/* Favorite */}
@@ -191,7 +191,7 @@ export function NoteRow({
         )}
         title={note.favorite ? "Unfavorite" : "Favorite"}
       >
-        <Star className={cn("size-4", note.favorite && "fill-current")} />
+        <Star className={cn("size-3.5", note.favorite && "fill-current")} />
       </button>
 
       {/* Archive / Restore + Delete */}
