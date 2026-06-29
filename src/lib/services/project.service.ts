@@ -1196,27 +1196,60 @@ export const projectService = {
     }
 
     const projects = (data ?? []) as unknown as Project[];
-    let fixed = 0;
+    if (projects.length === 0) return 0;
+    const projectIds = projects.map((p) => p.id);
+
+    // Batch both junction reads with a single .in(ids) query instead of a
+    // getWithRelations call per row (the old loop was O(rows) round trips).
+    const supabase = createClient();
+    const [goalLinks, areaLinks] = await Promise.all([
+      supabase.from("goal_projects").select("project_id, goal_id").in("project_id", projectIds),
+      supabase.from("project_areas").select("project_id, area_id").in("project_id", projectIds),
+    ]);
+
+    if (goalLinks.error && !isMissingGoalProjectsTableError(goalLinks.error)) {
+      throw new DatabaseError(goalLinks.error.message);
+    }
+    if (areaLinks.error && !isMissingProjectAreasTableError(areaLinks.error)) {
+      throw new DatabaseError(areaLinks.error.message);
+    }
+
+    const goalsByProject = new Map<string, string[]>();
+    for (const row of goalLinks.data ?? []) {
+      goalsByProject.set(row.project_id, [...(goalsByProject.get(row.project_id) ?? []), row.goal_id]);
+    }
+    const areasByProject = new Map<string, string[]>();
+    for (const row of areaLinks.data ?? []) {
+      areasByProject.set(row.project_id, [...(areasByProject.get(row.project_id) ?? []), row.area_id]);
+    }
+
+    // Bucket rows by the status they should become so we can issue ONE update
+    // per distinct status instead of one update per row.
+    const idsByDerivedStatus = new Map<ProjectStatus, string[]>();
     for (const project of projects) {
-      const relations = await this.getWithRelations(userId, project.id);
       const derived = deriveProjectStatus({
         area_id: project.area_id,
-        area_ids: relations.area_ids,
-        goal_ids: relations.goal_ids,
+        area_ids: areasByProject.get(project.id) ?? [],
+        goal_ids: goalsByProject.get(project.id) ?? [],
         start_date: project.start_date,
         due_date: project.due_date,
       });
       if (derived !== project.status) {
-        const { error: updateError } = await createClient()
-          .from("projects")
-          .update({ status: derived })
-          .eq("id", project.id)
-          .eq("user_id", userId);
-        if (updateError) {
-          throw new DatabaseError(updateError.message);
-        }
-        fixed += 1;
+        idsByDerivedStatus.set(derived, [...(idsByDerivedStatus.get(derived) ?? []), project.id]);
       }
+    }
+
+    let fixed = 0;
+    for (const [status, ids] of idsByDerivedStatus) {
+      const { error: updateError } = await createClient()
+        .from("projects")
+        .update({ status })
+        .in("id", ids)
+        .eq("user_id", userId);
+      if (updateError) {
+        throw new DatabaseError(updateError.message);
+      }
+      fixed += ids.length;
     }
 
     return fixed;
