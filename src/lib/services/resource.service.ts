@@ -312,14 +312,23 @@ export const resourceService = {
       projectId?: string;
       topicId?: string;
     },
+    options?: { offset?: number; limit?: number },
   ): Promise<Resource[]> {
     let query = createClient()
       .from("resources")
       .select(RESOURCE_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .order("updated_at", { ascending: false })
-      .limit(LIST_SAFETY_CAP);
+      .order("updated_at", { ascending: false });
+
+    // Opt-in pagination: a requested page fetches exactly that window;
+    // otherwise fall back to the safety cap (unbounded lists are a scaling risk).
+    if (options?.limit !== undefined) {
+      const offset = options.offset ?? 0;
+      query = query.range(offset, offset + options.limit - 1);
+    } else {
+      query = query.limit(LIST_SAFETY_CAP);
+    }
 
     if (filters?.status && filters.status !== "all") {
       query = query.eq("status", filters.status);
