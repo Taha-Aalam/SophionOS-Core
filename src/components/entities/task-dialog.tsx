@@ -462,6 +462,10 @@ export function TaskDialog({
       return "";
     }
   }, [isRecurring, selectedDueDate, repeatEvery, repeatCycle]);
+  // Live re-derive status from context, but preserve the user's manual pick
+  // across area/goal/project/due_date changes within the same dialog session.
+  // Override resets only when the dialog opens/closes or the task being
+  // edited changes (new session starts).
   useDerivedStatus<TaskFormValues>(
     form,
     () =>
@@ -471,8 +475,24 @@ export function TaskDialog({
         project_ids: selectedProjectIds,
         due_date: selectedDueDate as string | null | undefined,
       }),
-    [open, task, selectedAreaIds, selectedGoalIds, selectedProjectIds, selectedDueDate],
+    [selectedAreaIds, selectedGoalIds, selectedProjectIds, selectedDueDate],
+    [open, task],
   );
+
+  // Sync is_completed with the status picker so the UI reflects the
+  // completed state immediately (e.g. strikethrough in list views).
+  const selectedStatus = useWatch({ control: form.control, name: "status" });
+  useEffect(() => {
+    const nextIsCompleted = selectedStatus === TASK_STATUS.COMPLETED;
+    const current = form.getValues("is_completed");
+    if (nextIsCompleted !== current) {
+      form.setValue("is_completed", nextIsCompleted, {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: false,
+      });
+    }
+  }, [selectedStatus, form]);
 
   // Keep the legacy single `project_id` form field in sync with the
   // first item in `project_ids`. The service layer also sets the row's

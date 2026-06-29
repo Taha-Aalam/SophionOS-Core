@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Activity, Archive, LayoutGrid, Map as MapIcon, PauseCircle, Plus, Tags } from "lucide-react";
 
 import { useAuth } from "@/components/providers/auth-provider";
@@ -43,7 +43,12 @@ export function AreasContent() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingArea, setEditingArea] = useState<Area | undefined>();
   const [defaultType, setDefaultType] = useState<string | undefined>();
+  const [mounted, setMounted] = useState(false);
   const { data: areas = [], isLoading } = useAreas();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const { data: goals = [] } = useGoals({ status: "all" });
   const { data: projects = [] } = useProjects({ status: "all" });
   const { data: tasks = [] } = useTasks();
@@ -198,7 +203,7 @@ export function AreasContent() {
         </TabsList>
 
         <TabsContent value="active">
-          {isLoading ? (
+          {isLoading || !mounted ? (
             <GalleryGrid>
               {Array.from({ length: 8 }).map((_, i) => (
                 <Skeleton key={i} className="h-48 rounded-xl" />
@@ -239,7 +244,7 @@ export function AreasContent() {
         </TabsContent>
 
         <TabsContent value="inactive">
-          {isLoading ? (
+          {isLoading || !mounted ? (
             <GalleryGrid>
               {Array.from({ length: 8 }).map((_, i) => (
                 <Skeleton key={i} className="h-48 rounded-xl" />
@@ -279,7 +284,7 @@ export function AreasContent() {
             groupedAreas={groupedAreas}
             rollupsByAreaId={rollupsByAreaId}
             duplicateIndices={duplicateIndices}
-            isLoading={isLoading}
+            isLoading={isLoading || !mounted}
             onEdit={handleOpenEdit}
             onArchive={handleArchive}
             isArchiving={archiveArea.isPending}
@@ -288,7 +293,7 @@ export function AreasContent() {
         </TabsContent>
 
         <TabsContent value="all">
-          {isLoading ? (
+          {isLoading || !mounted ? (
             <GalleryGrid>
               {Array.from({ length: 8 }).map((_, i) => (
                 <Skeleton key={i} className="h-48 rounded-xl" />
@@ -320,7 +325,7 @@ export function AreasContent() {
         </TabsContent>
 
         <TabsContent value="archived">
-          {isLoading ? (
+          {isLoading || !mounted ? (
             <GalleryGrid>
               {Array.from({ length: 8 }).map((_, i) => (
                 <Skeleton key={i} className="h-48 rounded-xl" />

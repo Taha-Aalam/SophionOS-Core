@@ -223,6 +223,9 @@ export function ProjectDialog({
 
   // Live re-derive status from current area/goal context (only in create mode —
   // edit mode should keep the existing entity's stored status untouched).
+  // Preserve the user's manual pick across area/goal/date changes within the
+  // same dialog session; override resets only when dialog open state or the
+  // edited project changes (new session starts).
   useDerivedStatus<ProjectFormValues>(
     form,
     () =>
@@ -232,14 +235,8 @@ export function ProjectDialog({
         start_date: selectedStartDate,
         due_date: selectedDueDate,
       }),
-    [
-      open,
-      project,
-      selectedAreaIds,
-      selectedGoalIds,
-      selectedStartDate,
-      selectedDueDate,
-    ],
+    [selectedAreaIds, selectedGoalIds, selectedStartDate, selectedDueDate],
+    [open, project],
   );
   // Both create and edit flows enforce a today-or-future minimum for the due
   // date picker. When editing a project whose stored value is in the past,

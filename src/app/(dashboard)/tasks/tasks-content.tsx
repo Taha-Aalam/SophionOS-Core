@@ -431,7 +431,7 @@ export function TasksContent() {
           <span className="text-2xl leading-none" aria-hidden="true">☑️</span>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground" suppressHydrationWarning>
               {counts.all} task{counts.all !== 1 ? "s" : ""} ·{" "}
               {counts.overdue > 0 ? `${counts.overdue} overdue` : "all on track"}
             </p>
