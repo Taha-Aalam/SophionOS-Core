@@ -102,6 +102,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Pin the file-tracing root to this project so Next does not warn about an
+  // inferred workspace root (the build is always invoked from the repo root).
+  outputFileTracingRoot: process.cwd(),
   transpilePackages: ["@base-ui/react", "@base-ui/utils"],
   poweredByHeader: false,
   compress: true,
