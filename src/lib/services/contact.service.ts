@@ -713,7 +713,8 @@ export const contactService = {
       .select(`${CONTACT_SELECT}, contact_areas(area_id, areas(id, name))`)
       .eq("user_id", userId)
       .eq("archive", false)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (!contacts) return [];
 
@@ -743,7 +744,8 @@ export const contactService = {
       .select(`${CONTACT_SELECT}, contact_goals(goal_id, goals(id, name))`)
       .eq("user_id", userId)
       .eq("archive", false)
-      .order("name");
+      .order("name")
+      .limit(LIST_SAFETY_CAP);
 
     if (!contacts) return [];
 

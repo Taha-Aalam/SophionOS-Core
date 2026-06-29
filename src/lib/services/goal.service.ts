@@ -649,24 +649,31 @@ export const goalService = {
   },
 
   async generateUniqueSlug(userId: string, baseSlug: string): Promise<string> {
-    let slug = baseSlug;
+    // Fetch all slugs sharing this prefix in ONE query, then resolve the next
+    // free suffix in memory. The previous while(true) issued one COUNT
+    // round-trip per collision (baseSlug, baseSlug-1, baseSlug-2, …) — fine in
+    // dev where collisions are rare, but a slug like "tasks" on a busy account
+    // turns a create into N serial DB calls. Mirrors projectService.
+    const { data, error } = await createClient()
+      .from("goals")
+      .select("slug")
+      .eq("user_id", userId)
+      .ilike("slug", `${baseSlug}%`);
+
+    if (error) {
+      throw new DatabaseError(error.message);
+    }
+
+    const existingSlugs = new Set((data ?? []).map((r) => r.slug));
+    if (!existingSlugs.has(baseSlug)) {
+      return baseSlug;
+    }
+
     let counter = 1;
-
-    while (true) {
-      const exists = await createClient()
-        .from("goals")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("slug", slug)
-        .maybeSingle();
-
-      if (!exists || exists.count === 0) {
-        return slug;
-      }
-
-      slug = `${baseSlug}-${counter}`;
+    while (existingSlugs.has(`${baseSlug}-${counter}`)) {
       counter++;
     }
+    return `${baseSlug}-${counter}`;
   },
 
   async update(userId: string, id: string, input: UpdateGoalInput): Promise<Goal> {
