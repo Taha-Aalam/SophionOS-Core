@@ -41,6 +41,7 @@ function makeClient() {
       error: null,
     })),
     maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
+    rpc: vi.fn(() => Promise.resolve({ data: [], error: null })),
   };
   (builder as any)._calls = calls;
   return builder;

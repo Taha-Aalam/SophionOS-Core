@@ -109,6 +109,7 @@ describe("goalService", () => {
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
     const mockClient = {
+      rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
       from: vi.fn((table: string) => {
         if (table === "goals") return goalsTable;
         if (table === "goal_projects") return goalProjectsTable;
@@ -190,6 +191,7 @@ describe("goalService", () => {
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
     const mockClient = {
+      rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
       from: vi.fn((table: string) => {
         if (table === "goals") return goalsTable;
         if (table === "goal_projects") return goalProjectsTable;
@@ -266,6 +268,7 @@ describe("goalService", () => {
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
     const mockClient = {
+      rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
       from: vi.fn((table: string) => {
         if (table === "goals") return goalsTable;
         if (table === "goal_projects") return goalProjectsTable;
@@ -336,6 +339,7 @@ describe("goalService", () => {
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
     const mockClient = {
+      rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
       from: vi.fn((table: string) => {
         if (table === "goals") return goalsTable;
         if (table === "goal_areas") return goalAreasTable;
@@ -414,6 +418,7 @@ describe("goalService", () => {
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
     const mockClient = {
+      rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
       from: vi.fn((table: string) => {
         if (table === "goals") return goalsTable;
         if (table === "goal_projects") return goalProjectsTable;
@@ -506,6 +511,18 @@ describe("goalService", () => {
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
     };
     const mockClient = {
+      rpc: vi.fn().mockResolvedValue({
+        data: [
+          {
+            goal_id: goalRow.id,
+            active_project_count: 1,
+            active_task_count: 2,
+            active_note_count: 1,
+            active_resource_count: 1,
+          },
+        ],
+        error: null,
+      }),
       from: vi.fn((table: string) => {
         if (table === "goals") return goalsTable;
         if (table === "goal_projects") return goalProjectsTable;

@@ -337,6 +337,36 @@ async function hydrateProjectProgress(projects: Project[]): Promise<Project[]> {
   });
 }
 
+export interface ProjectProgressSummaryRow {
+  project_id: string;
+  active_task_count: number;
+  active_note_count: number;
+  active_resource_count: number;
+}
+
+// Map the project_progress_summary RPC result onto each project's task/note/
+// resource rollup fields, preserving the separately-computed goalCount. Pure so
+// it can be unit-tested without a database; a project absent from the rows
+// degrades to zero counts.
+export function mapProjectProgressSummary(
+  projects: Project[],
+  rows: ProjectProgressSummaryRow[] | null,
+  goalCountByProject: Map<string, number>,
+): Project[] {
+  const byProjectId = new Map<string, ProjectProgressSummaryRow>();
+  for (const row of rows ?? []) byProjectId.set(row.project_id, row);
+  return projects.map((project) => {
+    const row = byProjectId.get(project.id);
+    return {
+      ...project,
+      goalCount: goalCountByProject.get(project.id) ?? 0,
+      taskCount: row?.active_task_count ?? 0,
+      noteCount: row?.active_note_count ?? 0,
+      resourceCount: row?.active_resource_count ?? 0,
+    };
+  });
+}
+
 async function hydrateProjectRollupCounts(projects: Project[]): Promise<Project[]> {
   if (projects.length === 0) return projects;
 
@@ -354,45 +384,22 @@ async function hydrateProjectRollupCounts(projects: Project[]): Promise<Project[
     new Set(Array.from(linkedGoalIdsByProject.values()).flat()),
   );
 
-  const [
-    activeGoalsResult,
-    { data: taskRows },
-    taskJunctionResult,
-    { data: noteRows },
-    { data: noteJunctionRows },
-    { data: resourceRows },
-  ] = await Promise.all([
+  // goalCount is a count of ACTIVE linked goals already hydrated onto each
+  // project; aggregate the task/note/resource counts in SQL (RLS-scoped
+  // project_progress_summary RPC) instead of pulling every child row into the
+  // browser and de-duplicating FK vs junction rows by hand.
+  const [activeGoalsResult, summaryResult] = await Promise.all([
     allGoalIds.length > 0
       ? supabase
           .from("goals")
           .select("id, is_completed, is_archived")
           .in("id", allGoalIds)
       : Promise.resolve({ data: [] as Array<{ id: string; is_completed: boolean; is_archived: boolean }> }),
-    supabase
-      .from("tasks")
-      .select("id, project_id, is_completed, is_archived")
-      .in("project_id", projectIds),
-    // Tasks can also be linked to projects via the `task_projects` junction
-    // table (multi-project tasks). Without this fan-out the rollup count
-    // misses every task whose primary project_id is NULL or points at a
-    // different project than the one being rolled up.
-    supabase
-      .from("task_projects")
-      .select("project_id, task:tasks(id, is_completed, is_archived)")
-      .in("project_id", projectIds),
-    supabase
-      .from("notes")
-      .select("id, project_id, status, is_archived")
-      .in("project_id", projectIds),
-    supabase
-      .from("note_projects")
-      .select("project_id, note:notes(id, status, is_archived)")
-      .in("project_id", projectIds),
-    supabase
-      .from("resource_projects")
-      .select("project_id, resource:resources(status, is_archived)")
-      .in("project_id", projectIds),
+    supabase.rpc("project_progress_summary", { p_project_ids: projectIds }),
   ]);
+
+  const summaryError = (summaryResult as { error?: { message: string } | null }).error;
+  if (summaryError) throw new DatabaseError(summaryError.message);
 
   const activeGoalIdSet = new Set(
     ((activeGoalsResult as { data?: Array<{ id: string; is_completed: boolean; is_archived: boolean }> }).data ?? [])
@@ -400,108 +407,21 @@ async function hydrateProjectRollupCounts(projects: Project[]): Promise<Project[
       .map((g) => g.id),
   );
 
-  const taskCountByProject = new Map<string, number>();
-  const seenTasksByProject = new Map<string, Set<string>>();
-  const recordTask = (
-    projectId: string,
-    taskId: string,
-    isCompleted: boolean,
-    isArchived: boolean,
-  ) => {
-    if (isArchived || isCompleted) return;
-    const seen = seenTasksByProject.get(projectId) ?? new Set<string>();
-    if (seen.has(taskId)) return;
-    seen.add(taskId);
-    seenTasksByProject.set(projectId, seen);
-    taskCountByProject.set(projectId, (taskCountByProject.get(projectId) ?? 0) + 1);
-  };
-  for (const t of (taskRows ?? []) as Array<{
-    id: string;
-    project_id: string | null;
-    is_completed: boolean;
-    is_archived: boolean;
-  }>) {
-    if (!t.project_id) continue;
-    recordTask(t.project_id, t.id, t.is_completed, t.is_archived);
-  }
-  const taskJunctionRows =
-    (taskJunctionResult as {
-      data?: Array<{
-        project_id: string;
-        task:
-          | { id: string; is_completed: boolean; is_archived: boolean }
-          | { id: string; is_completed: boolean; is_archived: boolean }[]
-          | null;
-      }>;
-    }).data ?? [];
-  for (const link of taskJunctionRows) {
-    const task = Array.isArray(link.task) ? link.task[0] : link.task;
-    if (!task) continue;
-    recordTask(link.project_id, task.id, task.is_completed, task.is_archived);
-  }
-
-  const noteCountByProject = new Map<string, number>();
-  const seenNotesByProject = new Map<string, Set<string>>();
-  for (const n of (noteRows ?? []) as Array<{
-    id: string;
-    project_id: string | null;
-    status: string;
-    is_archived: boolean;
-  }>) {
-    if (!n.project_id || n.is_archived || n.status === "archive" || n.status === "completed") continue;
-    const seen = seenNotesByProject.get(n.project_id) ?? new Set<string>();
-    if (seen.has(n.id)) continue;
-    seen.add(n.id);
-    seenNotesByProject.set(n.project_id, seen);
-    noteCountByProject.set(n.project_id, (noteCountByProject.get(n.project_id) ?? 0) + 1);
-  }
-  for (const link of (noteJunctionRows ?? []) as Array<{
-    project_id: string;
-    note:
-      | { id: string; status: string; is_archived: boolean }
-      | { id: string; status: string; is_archived: boolean }[]
-      | null;
-  }>) {
-    const note = Array.isArray(link.note) ? link.note[0] : link.note;
-    if (!note || note.is_archived || note.status === "archive" || note.status === "completed") continue;
-    const seen = seenNotesByProject.get(link.project_id) ?? new Set<string>();
-    if (seen.has(note.id)) continue;
-    seen.add(note.id);
-    seenNotesByProject.set(link.project_id, seen);
-    noteCountByProject.set(
-      link.project_id,
-      (noteCountByProject.get(link.project_id) ?? 0) + 1,
+  const goalCountByProject = new Map<string, number>();
+  for (const project of projects) {
+    goalCountByProject.set(
+      project.id,
+      (linkedGoalIdsByProject.get(project.id) ?? []).filter((id) =>
+        activeGoalIdSet.has(id),
+      ).length,
     );
   }
 
-  const resourceCountByProject = new Map<string, number>();
-  for (const link of (resourceRows ?? []) as Array<{
-    project_id: string;
-    resource:
-      | { status: string; is_archived: boolean }
-      | { status: string; is_archived: boolean }[]
-      | null;
-  }>) {
-    const resource = Array.isArray(link.resource) ? link.resource[0] : link.resource;
-    if (!resource || resource.is_archived || resource.status === "completed") continue;
-    resourceCountByProject.set(
-      link.project_id,
-      (resourceCountByProject.get(link.project_id) ?? 0) + 1,
-    );
-  }
-
-  return projects.map((project) => {
-    const goalCount = (linkedGoalIdsByProject.get(project.id) ?? []).filter((id) =>
-      activeGoalIdSet.has(id),
-    ).length;
-    return {
-      ...project,
-      goalCount,
-      taskCount: taskCountByProject.get(project.id) ?? 0,
-      noteCount: noteCountByProject.get(project.id) ?? 0,
-      resourceCount: resourceCountByProject.get(project.id) ?? 0,
-    };
-  });
+  return mapProjectProgressSummary(
+    projects,
+    (summaryResult as { data?: ProjectProgressSummaryRow[] | null }).data ?? null,
+    goalCountByProject,
+  );
 }
 
 async function hydrateProjectRelations(projects: Project[]): Promise<Project[]> {
