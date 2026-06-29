@@ -294,15 +294,30 @@ export interface CompleteTaskResult {
   spawnedTaskId?: string;
 }
 
+export interface ListPageOptions {
+  offset?: number;
+  limit?: number;
+}
+
 export const taskService = {
-  async list(userId: string): Promise<Task[]> {
-    const { data, error } = await createClient()
+  async list(userId: string, options?: ListPageOptions): Promise<Task[]> {
+    let query = createClient()
       .from("tasks")
       .select(TASK_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .order("created_at", { ascending: false })
-      .limit(LIST_SAFETY_CAP);
+      .order("created_at", { ascending: false });
+
+    // Opt-in pagination: when a page is requested, fetch exactly that window;
+    // otherwise fall back to the safety cap (unbounded lists are a scaling risk).
+    if (options?.limit !== undefined) {
+      const offset = options.offset ?? 0;
+      query = query.range(offset, offset + options.limit - 1);
+    } else {
+      query = query.limit(LIST_SAFETY_CAP);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw new DatabaseError(error.message);

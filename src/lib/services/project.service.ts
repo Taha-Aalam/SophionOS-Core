@@ -554,6 +554,7 @@ export const projectService = {
       areaId?: string;
       status?: ProjectStatus | "all";
     },
+    options?: { offset?: number; limit?: number },
   ): Promise<Project[]> {
     const projects = await runProjectListQuery((selectClause) => {
       let query = createClient()
@@ -580,6 +581,12 @@ export const projectService = {
         query = query.ilike("name", `%${filters.term}%`);
       }
 
+      // Opt-in pagination: a requested page fetches exactly that window;
+      // otherwise fall back to the safety cap (unbounded lists scale poorly).
+      if (options?.limit !== undefined) {
+        const offset = options.offset ?? 0;
+        return query.range(offset, offset + options.limit - 1);
+      }
       return query.limit(LIST_SAFETY_CAP);
     });
 
