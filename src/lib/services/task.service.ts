@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
 import { createClient } from "../supabase/client";
 import type { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
@@ -11,6 +12,8 @@ import {
 import { deriveTaskStatus } from "../utils/status-routing";
 import { computeNextTaskDueDate } from "../utils/task-recurrence";
 import { createTaskSchema, updateTaskSchema } from "../validators/task.schema";
+
+type ServiceOptions = { supabase?: SupabaseClient };
 
 export const TASK_SELECT =
   "id, user_id, area_id, project_id, name, description, status, priority, due_date, is_completed, is_focused, is_important, is_urgent, completed_at, previous_status, smart_priority, is_archived, is_recurring, repeat_every, repeat_cycle, recurrence_source_task_id, created_at, updated_at";
@@ -90,13 +93,13 @@ function withPrimaryAreaLinks(tasks: Task[]): Task[] {
   }));
 }
 
-async function hydrateTaskAreaLinks(tasks: Task[]): Promise<Task[]> {
+async function hydrateTaskAreaLinks(tasks: Task[], options?: ServiceOptions): Promise<Task[]> {
   if (tasks.length === 0) return tasks;
 
   const taskIds = tasks.map((t) => t.id);
 
   try {
-    const result = await createClient()
+    const result = await (options?.supabase ?? createClient())
       .from("task_areas")
       .select("task_id, area_id")
       .in("task_id", taskIds);
@@ -127,17 +130,17 @@ async function hydrateTaskAreaLinks(tasks: Task[]): Promise<Task[]> {
   }
 }
 
-async function hydrateSingleTaskAreaLinks(task: Task): Promise<Task> {
-  const [hydrated] = await hydrateTaskAreaLinks([task]);
+async function hydrateSingleTaskAreaLinks(task: Task, options?: ServiceOptions): Promise<Task> {
+  const [hydrated] = await hydrateTaskAreaLinks([task], options);
   return hydrated;
 }
 
-async function hydrateTaskGoalLinks(tasks: Task[]): Promise<Task[]> {
+async function hydrateTaskGoalLinks(tasks: Task[], options?: ServiceOptions): Promise<Task[]> {
   if (tasks.length === 0) return tasks;
 
   const taskIds = tasks.map((t) => t.id);
 
-  const result = await createClient()
+  const result = await (options?.supabase ?? createClient())
     .from("goal_tasks")
     .select("task_id, goal_id")
     .in("task_id", taskIds);
@@ -159,8 +162,8 @@ async function hydrateTaskGoalLinks(tasks: Task[]): Promise<Task[]> {
   }));
 }
 
-async function hydrateSingleTaskGoalLinks(task: Task): Promise<Task> {
-  const [hydrated] = await hydrateTaskGoalLinks([task]);
+async function hydrateSingleTaskGoalLinks(task: Task, options?: ServiceOptions): Promise<Task> {
+  const [hydrated] = await hydrateTaskGoalLinks([task], options);
   return hydrated;
 }
 
@@ -175,12 +178,12 @@ function withPrimaryProjectLinks(tasks: Task[]): Task[] {
   }));
 }
 
-async function hydrateTaskProjectLinks(tasks: Task[]): Promise<Task[]> {
+async function hydrateTaskProjectLinks(tasks: Task[], options?: ServiceOptions): Promise<Task[]> {
   if (tasks.length === 0) return tasks;
   const taskIds = tasks.map((task) => task.id);
 
   try {
-    const result = await createClient()
+    const result = await (options?.supabase ?? createClient())
       .from("task_projects")
       .select("task_id, project_id")
       .in("task_id", taskIds);
@@ -214,17 +217,17 @@ async function hydrateTaskProjectLinks(tasks: Task[]): Promise<Task[]> {
   }
 }
 
-async function hydrateSingleTaskProjectLinks(task: Task): Promise<Task> {
-  const [hydrated] = await hydrateTaskProjectLinks([task]);
+async function hydrateSingleTaskProjectLinks(task: Task, options?: ServiceOptions): Promise<Task> {
+  const [hydrated] = await hydrateTaskProjectLinks([task], options);
   return hydrated;
 }
 
-async function parallelHydrateTasks(tasks: Task[]): Promise<Task[]> {
+async function parallelHydrateTasks(tasks: Task[], options?: ServiceOptions): Promise<Task[]> {
   if (tasks.length === 0) return tasks;
   const [withAreas, withGoals, withProjects] = await Promise.all([
-    hydrateTaskAreaLinks(tasks),
-    hydrateTaskGoalLinks(tasks),
-    hydrateTaskProjectLinks(tasks),
+    hydrateTaskAreaLinks(tasks, options),
+    hydrateTaskGoalLinks(tasks, options),
+    hydrateTaskProjectLinks(tasks, options),
   ]);
   return withAreas.map((task, i) => ({
     ...task,
@@ -295,8 +298,8 @@ export interface CompleteTaskResult {
 }
 
 export const taskService = {
-  async list(userId: string): Promise<Task[]> {
-    const { data, error } = await createClient()
+  async list(userId: string, options?: ServiceOptions): Promise<Task[]> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("tasks")
       .select(TASK_SELECT)
       .eq("user_id", userId)
@@ -308,11 +311,11 @@ export const taskService = {
       throw new DatabaseError(error.message);
     }
 
-    return parallelHydrateTasks(data || []);
+    return parallelHydrateTasks(data || [], options);
   },
 
-  async listArchived(userId: string): Promise<Task[]> {
-    const { data, error } = await createClient()
+  async listArchived(userId: string, options?: ServiceOptions): Promise<Task[]> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("tasks")
       .select(TASK_SELECT)
       .eq("user_id", userId)
@@ -324,11 +327,11 @@ export const taskService = {
       throw new DatabaseError(error.message);
     }
 
-    return parallelHydrateTasks(data || []);
+    return parallelHydrateTasks(data || [], options);
   },
 
-  async getById(userId: string, id: string): Promise<Task> {
-    const { data, error } = await createClient()
+  async getById(userId: string, id: string, options?: ServiceOptions): Promise<Task> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("tasks")
       .select(TASK_SELECT)
       .eq("user_id", userId)
@@ -342,12 +345,12 @@ export const taskService = {
       throw new DatabaseError(error.message);
     }
 
-    const taskWithAreas = await hydrateSingleTaskAreaLinks(data);
-    const taskWithGoals = await hydrateSingleTaskGoalLinks(taskWithAreas);
-    return hydrateSingleTaskProjectLinks(taskWithGoals);
+    const taskWithAreas = await hydrateSingleTaskAreaLinks(data, options);
+    const taskWithGoals = await hydrateSingleTaskGoalLinks(taskWithAreas, options);
+    return hydrateSingleTaskProjectLinks(taskWithGoals, options);
   },
 
-  async create(userId: string, input: CreateTaskInput): Promise<Task> {
+  async create(userId: string, input: CreateTaskInput, options?: ServiceOptions): Promise<Task> {
     try {
       const validated = createTaskSchema.parse(input);
       const { areaIds, taskInput: areaCleanedInput } = extractTaskAreaIds(validated);
@@ -372,7 +375,7 @@ export const taskService = {
       const isCompleted = status === TASK_STATUS.COMPLETED;
       const completedAt = isCompleted ? new Date().toISOString() : null;
 
-      const { data, error } = await createClient()
+      const { data, error } = await (options?.supabase ?? createClient())
         .from("tasks")
         .insert({
           ...taskInput,
@@ -391,19 +394,19 @@ export const taskService = {
       const needsTouch = (areaIds?.length ?? 0) > 0 || (goalIds?.length ?? 0) > 0 || (projectIds?.length ?? 0) > 0;
 
       if (areaIds?.length) {
-        await this.replaceAreaLinks(userId, data.id, areaIds);
+        await this.replaceAreaLinks(userId, data.id, areaIds, options);
       }
 
       if (goalIds?.length) {
-        await this.replaceGoalLinks(userId, data.id, goalIds);
+        await this.replaceGoalLinks(userId, data.id, goalIds, options);
       }
 
       if (projectIds?.length) {
-        await this.replaceProjectLinks(userId, data.id, projectIds);
+        await this.replaceProjectLinks(userId, data.id, projectIds, options);
       }
 
       if (needsTouch) {
-        return this.touch(userId, data.id);
+        return this.touch(userId, data.id, options);
       }
 
       return data;
@@ -419,6 +422,7 @@ export const taskService = {
     userId: string,
     id: string,
     input: UpdateTaskInput,
+    options?: ServiceOptions,
   ): Promise<Task | CompleteTaskResult> {
     try {
       const validated = updateTaskSchema.parse(input);
@@ -449,7 +453,7 @@ export const taskService = {
         taskInputWide.status !== undefined || taskInputWide.is_completed !== undefined;
       let currentForTransition: Awaited<ReturnType<typeof this.getById>> | null = null;
       if (touchesCompletion) {
-        const current = await this.getById(userId, id);
+        const current = await this.getById(userId, id, options);
         currentForTransition = current;
         const fallback = deriveTaskStatus({
           area_ids: current.linkedAreaIds,
@@ -485,10 +489,10 @@ export const taskService = {
           row.is_completed && taskInputWide.is_completed === false;
 
         if (nowRecurring && transitionedToCompleted) {
-          return this.complete(userId, id);
+          return this.complete(userId, id, options);
         }
         if (nowRecurring && transitionedFromCompleted) {
-          return this.uncomplete(userId, id);
+          return this.uncomplete(userId, id, options);
         }
       }
 
@@ -528,7 +532,7 @@ export const taskService = {
 
       const data = hasTaskUpdates
         ? await (async () => {
-            const { data: updatedTask, error } = await createClient()
+            const { data: updatedTask, error } = await (options?.supabase ?? createClient())
               .from("tasks")
               .update(taskInput)
               .eq("user_id", userId)
@@ -543,22 +547,22 @@ export const taskService = {
 
             return updatedTask;
           })()
-        : await this.getById(userId, id);
+        : await this.getById(userId, id, options);
 
       if (areaIds !== undefined) {
-        await this.replaceAreaLinks(userId, id, areaIds);
+        await this.replaceAreaLinks(userId, id, areaIds, options);
       }
 
       if (goalIds !== undefined) {
-        await this.replaceGoalLinks(userId, id, goalIds);
+        await this.replaceGoalLinks(userId, id, goalIds, options);
       }
 
       if (projectIds !== undefined) {
-        await this.replaceProjectLinks(userId, id, projectIds);
+        await this.replaceProjectLinks(userId, id, projectIds, options);
       }
 
       if (areaIds !== undefined || goalIds !== undefined || projectIds !== undefined) {
-        return this.touch(userId, id);
+        return this.touch(userId, id, options);
       }
 
       return data;
@@ -570,8 +574,8 @@ export const taskService = {
     }
   },
 
-  async complete(userId: string, id: string): Promise<CompleteTaskResult> {
-    const current = await this.getById(userId, id);
+  async complete(userId: string, id: string, options?: ServiceOptions): Promise<CompleteTaskResult> {
+    const current = await this.getById(userId, id, options);
 
     // Non-recurring tasks use the existing direct update path. This keeps
     // the legacy contract (returning just the task) for callers that don't
@@ -579,7 +583,7 @@ export const taskService = {
     if (!current.is_recurring || !current.repeat_every || !current.repeat_cycle) {
       const patch = buildCompletePatch(current.status, new Date().toISOString());
 
-      const { data, error } = await createClient()
+      const { data, error } = await (options?.supabase ?? createClient())
         .from("tasks")
         .update(patch)
         .eq("user_id", userId)
@@ -603,7 +607,7 @@ export const taskService = {
     // of the chain tip. Polarity is opposite to the `uncomplete()` child
     // lookup: there we look for a *live* child to delete safely; here we look
     // for *any* descendant to prove the chain forked.
-    const { data: existingChild, error: childLookupError } = await createClient()
+    const { data: existingChild, error: childLookupError } = await (options?.supabase ?? createClient())
       .from("tasks")
       .select("id")
       .eq("user_id", userId)
@@ -618,7 +622,7 @@ export const taskService = {
     if (existingChild) {
       const patch = buildCompletePatch(current.status, new Date().toISOString());
 
-      const { data, error } = await createClient()
+      const { data, error } = await (options?.supabase ?? createClient())
         .from("tasks")
         .update(patch)
         .eq("user_id", userId)
@@ -664,7 +668,7 @@ export const taskService = {
         due_date: nextDueDate,
       });
 
-    const { data: rpcResult, error: rpcError } = await createClient()
+    const { data: rpcResult, error: rpcError } = await (options?.supabase ?? createClient())
       .rpc("complete_recurring_task", {
         p_task_id: id,
         p_next_due_date: nextDueDate,
@@ -676,7 +680,7 @@ export const taskService = {
       throw new DatabaseError(rpcError.message);
     }
 
-    const completedTask = await this.getById(userId, id);
+    const completedTask = await this.getById(userId, id, options);
     const spawnedTaskId =
       rpcResult && typeof rpcResult === "object" && "spawned_task_id" in rpcResult
         ? (rpcResult.spawned_task_id as string | null) ?? undefined
@@ -694,9 +698,10 @@ export const taskService = {
     userId: string,
     completedTaskId: string,
     spawnedTaskId?: string,
+    options?: ServiceOptions,
   ): Promise<Task> {
     if (spawnedTaskId) {
-      const { error } = await createClient().rpc("undo_complete_recurring_task", {
+      const { error } = await (options?.supabase ?? createClient()).rpc("undo_complete_recurring_task", {
         p_completed_task_id: completedTaskId,
         p_spawned_task_id: spawnedTaskId,
       });
@@ -706,11 +711,11 @@ export const taskService = {
       }
     }
 
-    return this.uncomplete(userId, completedTaskId);
+    return this.uncomplete(userId, completedTaskId, options);
   },
 
-  async getByStatus(userId: string, status: TaskStatus): Promise<Task[]> {
-    let query = createClient()
+  async getByStatus(userId: string, status: TaskStatus, options?: ServiceOptions): Promise<Task[]> {
+    let query = (options?.supabase ?? createClient())
       .from("tasks")
       .select(TASK_SELECT)
       .eq("user_id", userId)
@@ -727,12 +732,12 @@ export const taskService = {
     const { data, error } = await query;
     if (error) throw new DatabaseError(error.message);
 
-    return parallelHydrateTasks(data || []);
+    return parallelHydrateTasks(data || [], options);
   },
 
-  async getOverdue(userId: string): Promise<Task[]> {
+  async getOverdue(userId: string, options?: ServiceOptions): Promise<Task[]> {
     const today = new Date().toISOString().split("T")[0];
-    const { data, error } = await createClient()
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("tasks")
       .select(TASK_SELECT)
       .eq("user_id", userId)
@@ -743,11 +748,11 @@ export const taskService = {
 
     if (error) throw new DatabaseError(error.message);
 
-    return parallelHydrateTasks(data || []);
+    return parallelHydrateTasks(data || [], options);
   },
 
-  async getFocused(userId: string): Promise<Task[]> {
-    const { data, error } = await createClient()
+  async getFocused(userId: string, options?: ServiceOptions): Promise<Task[]> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("tasks")
       .select(TASK_SELECT)
       .eq("user_id", userId)
@@ -758,18 +763,18 @@ export const taskService = {
 
     if (error) throw new DatabaseError(error.message);
 
-    return parallelHydrateTasks(data || []);
+    return parallelHydrateTasks(data || [], options);
   },
 
-  async uncomplete(userId: string, id: string): Promise<Task> {
-    const current = await this.getById(userId, id);
+  async uncomplete(userId: string, id: string, options?: ServiceOptions): Promise<Task> {
+    const current = await this.getById(userId, id, options);
 
     // Recurring-aware cleanup: if this row has a live spawned child, the
     // cleanup RPC deletes the child and its join rows atomically before we
     // uncomplete the parent. The RPC's own guard (matching the
     // `recurrence_source_task_id` pointer) protects against a wrong id.
     if (current.is_recurring && current.repeat_every && current.repeat_cycle) {
-      const { data: child } = await createClient()
+      const { data: child } = await (options?.supabase ?? createClient())
         .from("tasks")
         .select("id")
         .eq("user_id", userId)
@@ -780,7 +785,7 @@ export const taskService = {
         .maybeSingle();
 
       if (child?.id) {
-        const { error } = await createClient().rpc("undo_complete_recurring_task", {
+        const { error } = await (options?.supabase ?? createClient()).rpc("undo_complete_recurring_task", {
           p_completed_task_id: id,
           p_spawned_task_id: child.id,
         });
@@ -799,7 +804,7 @@ export const taskService = {
     });
     const patch = buildUncompletePatch(current.previous_status ?? null, fallback);
 
-    const { data, error } = await createClient()
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("tasks")
       .update(patch)
       .eq("user_id", userId)
@@ -815,8 +820,8 @@ export const taskService = {
     return data;
   },
 
-  async archive(userId: string, id: string): Promise<Task> {
-    const { data, error } = await createClient()
+  async archive(userId: string, id: string, options?: ServiceOptions): Promise<Task> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("tasks")
       .update({ is_archived: true })
       .eq("user_id", userId)
@@ -832,11 +837,11 @@ export const taskService = {
     return data;
   },
 
-  async permanentDelete(userId: string, id: string): Promise<void> {
+  async permanentDelete(userId: string, id: string, options?: ServiceOptions): Promise<void> {
     // Clean up join table rows first to avoid FK violations
-    const areaIds = await this.getAreaLinks(id);
+    const areaIds = await this.getAreaLinks(id, options);
     if (areaIds.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("task_areas")
         .delete()
         .eq("task_id", id);
@@ -845,7 +850,7 @@ export const taskService = {
       }
     }
 
-    const { error: goalError } = await createClient()
+    const { error: goalError } = await (options?.supabase ?? createClient())
       .from("goal_tasks")
       .delete()
       .eq("task_id", id);
@@ -853,7 +858,7 @@ export const taskService = {
       throw new DatabaseError(goalError.message);
     }
 
-    const { error: projectError } = await createClient()
+    const { error: projectError } = await (options?.supabase ?? createClient())
       .from("task_projects")
       .delete()
       .eq("task_id", id);
@@ -861,7 +866,7 @@ export const taskService = {
       throw new DatabaseError(projectError.message);
     }
 
-    const { error } = await createClient()
+    const { error } = await (options?.supabase ?? createClient())
       .from("tasks")
       .delete()
       .eq("user_id", userId)
@@ -872,8 +877,8 @@ export const taskService = {
     }
   },
 
-  async restore(userId: string, id: string): Promise<Task> {
-    const { data, error } = await createClient()
+  async restore(userId: string, id: string, options?: ServiceOptions): Promise<Task> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("tasks")
       .update({ is_archived: false })
       .eq("user_id", userId)
@@ -892,11 +897,12 @@ export const taskService = {
   async getWithRelations(
     _userId: string,
     id: string,
+    options?: ServiceOptions,
   ): Promise<{ goal_ids: string[]; area_ids: string[]; project_ids: string[] }> {
     const [goalResult, areaResult, projectResult] = await Promise.all([
-      createClient().from("goal_tasks").select("goal_id").eq("task_id", id),
-      createClient().from("task_areas").select("area_id").eq("task_id", id),
-      createClient().from("task_projects").select("project_id").eq("task_id", id),
+      (options?.supabase ?? createClient()).from("goal_tasks").select("goal_id").eq("task_id", id),
+      (options?.supabase ?? createClient()).from("task_areas").select("area_id").eq("task_id", id),
+      (options?.supabase ?? createClient()).from("task_projects").select("project_id").eq("task_id", id),
     ]);
 
     if (goalResult.error) {
@@ -922,15 +928,15 @@ export const taskService = {
     };
   },
 
-  async replaceAreaLinks(_userId: string, taskId: string, areaIds: string[]): Promise<void> {
-    const existingAreaIdsList = await this.getAreaLinks(taskId);
+  async replaceAreaLinks(_userId: string, taskId: string, areaIds: string[], options?: ServiceOptions): Promise<void> {
+    const existingAreaIdsList = await this.getAreaLinks(taskId, options);
     const existingAreaIds = new Set(existingAreaIdsList);
     const nextAreaIds = new Set(areaIds);
     const areaIdsToAdd = areaIds.filter((areaId) => !existingAreaIds.has(areaId));
     const areaIdsToRemove = existingAreaIdsList.filter((areaId) => !nextAreaIds.has(areaId));
 
     if (areaIdsToAdd.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("task_areas")
         .insert(areaIdsToAdd.map((area_id) => ({ area_id, task_id: taskId })));
 
@@ -940,7 +946,7 @@ export const taskService = {
     }
 
     if (areaIdsToRemove.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("task_areas")
         .delete()
         .eq("task_id", taskId)
@@ -951,18 +957,18 @@ export const taskService = {
       }
     }
 
-    await this.syncTaskStatusFromContext(taskId);
+    await this.syncTaskStatusFromContext(taskId, options);
   },
 
-  async replaceGoalLinks(_userId: string, taskId: string, goalIds: string[]): Promise<void> {
-    const existingGoalIdsList = await this.getGoalLinks(taskId);
+  async replaceGoalLinks(_userId: string, taskId: string, goalIds: string[], options?: ServiceOptions): Promise<void> {
+    const existingGoalIdsList = await this.getGoalLinks(taskId, options);
     const existingGoalIds = new Set(existingGoalIdsList);
     const nextGoalIds = new Set(goalIds);
     const goalIdsToAdd = goalIds.filter((goalId) => !existingGoalIds.has(goalId));
     const goalIdsToRemove = existingGoalIdsList.filter((goalId) => !nextGoalIds.has(goalId));
 
     if (goalIdsToAdd.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("goal_tasks")
         .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, task_id: taskId })));
 
@@ -970,7 +976,7 @@ export const taskService = {
     }
 
     if (goalIdsToRemove.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("goal_tasks")
         .delete()
         .eq("task_id", taskId)
@@ -979,15 +985,16 @@ export const taskService = {
       if (error) throw new DatabaseError(error.message);
     }
 
-    await this.syncTaskStatusFromContext(taskId);
+    await this.syncTaskStatusFromContext(taskId, options);
   },
 
   async replaceProjectLinks(
     _userId: string,
     taskId: string,
     projectIds: string[],
+    options?: ServiceOptions,
   ): Promise<void> {
-    const existingProjectIdsList = await this.getProjectLinks(taskId);
+    const existingProjectIdsList = await this.getProjectLinks(taskId, options);
     const existingProjectIds = new Set(existingProjectIdsList);
     const nextProjectIds = new Set(projectIds);
     const projectIdsToAdd = projectIds.filter(
@@ -998,7 +1005,7 @@ export const taskService = {
     );
 
     if (projectIdsToAdd.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("task_projects")
         .insert(projectIdsToAdd.map((project_id) => ({ project_id, task_id: taskId })));
 
@@ -1008,7 +1015,7 @@ export const taskService = {
     }
 
     if (projectIdsToRemove.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("task_projects")
         .delete()
         .eq("task_id", taskId)
@@ -1019,12 +1026,12 @@ export const taskService = {
       }
     }
 
-    await this.syncTaskStatusFromContext(taskId);
+    await this.syncTaskStatusFromContext(taskId, options);
   },
 
   /** Re-derive a task's status from its current area + goal + project + due_date context. */
-  async syncTaskStatusFromContext(taskId: string): Promise<void> {
-    const { data: task, error: fetchError } = await createClient()
+  async syncTaskStatusFromContext(taskId: string, options?: ServiceOptions): Promise<void> {
+    const { data: task, error: fetchError } = await (options?.supabase ?? createClient())
       .from("tasks")
       .select("status, area_id, project_id, due_date")
       .eq("id", taskId)
@@ -1047,9 +1054,9 @@ export const taskService = {
     }
 
     const [areaIds, goalIds, projectIds] = await Promise.all([
-      this.getAreaLinks(taskId),
-      this.getGoalLinks(taskId),
-      this.getProjectLinks(taskId),
+      this.getAreaLinks(taskId, options),
+      this.getGoalLinks(taskId, options),
+      this.getProjectLinks(taskId, options),
     ]);
 
     const derivedStatus = deriveTaskStatus({
@@ -1062,7 +1069,7 @@ export const taskService = {
     });
 
     if (derivedStatus !== task.status) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("tasks")
         .update({ status: derivedStatus })
         .eq("id", taskId);
@@ -1073,8 +1080,8 @@ export const taskService = {
     }
   },
 
-  async listByGoal(userId: string, goalId: string): Promise<Task[]> {
-    const { data, error } = await createClient()
+  async listByGoal(userId: string, goalId: string, options?: ServiceOptions): Promise<Task[]> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("goal_tasks")
       .select("task:tasks(*)")
       .eq("goal_id", goalId);
@@ -1082,11 +1089,11 @@ export const taskService = {
     if (error) throw new DatabaseError(error.message);
 
     const tasks = (data ?? []).map((r) => r.task as unknown as Task).filter(Boolean);
-    return parallelHydrateTasks(tasks);
+    return parallelHydrateTasks(tasks, options);
   },
 
-  async touch(userId: string, id: string): Promise<Task> {
-    const { data, error } = await createClient()
+  async touch(userId: string, id: string, options?: ServiceOptions): Promise<Task> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("tasks")
       .update({ updated_at: new Date().toISOString() })
       .eq("user_id", userId)
@@ -1114,8 +1121,8 @@ export const taskService = {
    * date should be `todo`, a task with no context should be `inbox`,
    * a task with both a project and a due date is still `todo`, etc.
    */
-  async backfillStaleStatuses(userId: string): Promise<number> {
-    const { data, error } = await createClient()
+  async backfillStaleStatuses(userId: string, options?: ServiceOptions): Promise<number> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("tasks")
       .select(TASK_SELECT)
       .eq("user_id", userId)
@@ -1130,9 +1137,9 @@ export const taskService = {
     let fixed = 0;
     for (const task of tasks) {
       const [areaIds, goalIds, projectIds] = await Promise.all([
-        this.getAreaLinks(task.id),
-        this.getGoalLinks(task.id),
-        this.getProjectLinks(task.id),
+        this.getAreaLinks(task.id, options),
+        this.getGoalLinks(task.id, options),
+        this.getProjectLinks(task.id, options),
       ]);
       const derived = deriveTaskStatus({
         area_id: task.area_id,
@@ -1143,7 +1150,7 @@ export const taskService = {
         due_date: task.due_date as string | null | undefined,
       });
       if (derived !== task.status) {
-        const { error: updateError } = await createClient()
+        const { error: updateError } = await (options?.supabase ?? createClient())
           .from("tasks")
           .update({ status: derived })
           .eq("id", task.id)
@@ -1158,8 +1165,8 @@ export const taskService = {
     return fixed;
   },
 
-  async getGoalLinks(taskId: string): Promise<string[]> {
-    const { data, error } = await createClient()
+  async getGoalLinks(taskId: string, options?: ServiceOptions): Promise<string[]> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("goal_tasks")
       .select("goal_id")
       .eq("task_id", taskId);
@@ -1167,8 +1174,8 @@ export const taskService = {
     return data?.map((r) => r.goal_id) ?? [];
   },
 
-  async getAreaLinks(taskId: string): Promise<string[]> {
-    const result = await createClient().from("task_areas").select("area_id").eq("task_id", taskId);
+  async getAreaLinks(taskId: string, options?: ServiceOptions): Promise<string[]> {
+    const result = await (options?.supabase ?? createClient()).from("task_areas").select("area_id").eq("task_id", taskId);
     if (result.error) {
       if (isMissingTaskAreasTableError(result.error)) return [];
       throw new DatabaseError(result.error.message);
@@ -1176,8 +1183,8 @@ export const taskService = {
     return result.data?.map((r) => r.area_id) ?? [];
   },
 
-  async getProjectLinks(taskId: string): Promise<string[]> {
-    const result = await createClient()
+  async getProjectLinks(taskId: string, options?: ServiceOptions): Promise<string[]> {
+    const result = await (options?.supabase ?? createClient())
       .from("task_projects")
       .select("project_id")
       .eq("task_id", taskId);

@@ -1,5 +1,8 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "../supabase/client";
 import { getLocalDateEnd, getLocalDateStart, getWeekStart } from "../utils/dates";
+
+type ServiceOptions = { supabase?: SupabaseClient };
 
 // ─── Activity feed item ────────────────────────────────────────────────────
 
@@ -53,8 +56,11 @@ export interface TodayData {
 
 // ─── Recent activity aggregation ───────────────────────────────────────────
 
-async function getRecentActivity(userId: string): Promise<ActivityItem[]> {
-  const supabase = createClient();
+async function getRecentActivity(
+  userId: string,
+  sb: SupabaseClient,
+): Promise<ActivityItem[]> {
+  const supabase = sb;
 
   // Fire all four "recent" fetches in parallel — they are independent.
   const [
@@ -145,8 +151,8 @@ export const dashboardService = {
   /**
    * Returns all dashboard data for a user's home view.
    */
-  async getToday(userId: string): Promise<TodayData> {
-    const supabase = createClient();
+  async getToday(userId: string, options?: ServiceOptions): Promise<TodayData> {
+    const supabase = options?.supabase ?? createClient();
     const todayStart = getLocalDateStart();
     const todayEnd = getLocalDateEnd();
     const weekStart = getWeekStart();
@@ -203,7 +209,7 @@ export const dashboardService = {
         .eq("user_id", userId)
         .eq("status", "pending")
         .lt("due_date", todayStart),
-      getRecentActivity(userId),
+      getRecentActivity(userId, supabase),
     ]);
 
     // Deduplicate: merge focus + due-today, prefer the focus version for duplicates

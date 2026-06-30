@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { createClient } from "../supabase/client";
@@ -6,6 +7,8 @@ import { createResourceSchema, updateResourceSchema } from "../validators/resour
 import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
 import { LIST_SAFETY_CAP, RESOURCE_STATUS, type ResourceStatus } from "../utils/constants";
 import { deriveResourceStatus } from "../utils/status-routing";
+
+type ServiceOptions = { supabase?: SupabaseClient };
 
 const RESOURCE_SELECT =
   "id, user_id, area_id, topic_id, name, url, type, status, favorite, is_archived, metadata, created_at, updated_at";
@@ -74,13 +77,16 @@ function withPrimaryAreaLinks(resources: Resource[]): Resource[] {
   }));
 }
 
-async function hydrateResourceAreaLinks(resources: Resource[]): Promise<Resource[]> {
+async function hydrateResourceAreaLinks(
+  resources: Resource[],
+  sb: SupabaseClient,
+): Promise<Resource[]> {
   if (resources.length === 0) return resources;
 
   const resourceIds = resources.map((r) => r.id);
 
   try {
-    const result = await createClient()
+    const result = await sb
       .from("resource_areas")
       .select("resource_id, area_id")
       .in("resource_id", resourceIds);
@@ -185,13 +191,16 @@ function isMissingTaskResourcesTableError(error: unknown): boolean {
 
 // ─── Hydration helpers ──────────────────────────────────────────────────────────
 
-async function hydrateResourceGoalLinks(resources: Resource[]): Promise<Resource[]> {
+async function hydrateResourceGoalLinks(
+  resources: Resource[],
+  sb: SupabaseClient,
+): Promise<Resource[]> {
   if (resources.length === 0) return resources;
 
   const resourceIds = resources.map((r) => r.id);
 
   try {
-    const result = await createClient()
+    const result = await sb
       .from("goal_resources")
       .select("resource_id, goal_id")
       .in("resource_id", resourceIds);
@@ -216,13 +225,16 @@ async function hydrateResourceGoalLinks(resources: Resource[]): Promise<Resource
   }
 }
 
-async function hydrateResourceTaskLinks(resources: Resource[]): Promise<Resource[]> {
+async function hydrateResourceTaskLinks(
+  resources: Resource[],
+  sb: SupabaseClient,
+): Promise<Resource[]> {
   if (resources.length === 0) return resources;
 
   const resourceIds = resources.map((r) => r.id);
 
   try {
-    const result = await createClient()
+    const result = await sb
       .from("task_resources")
       .select("resource_id, task_id")
       .in("resource_id", resourceIds);
@@ -253,13 +265,16 @@ async function hydrateResourceTaskLinks(resources: Resource[]): Promise<Resource
   }
 }
 
-async function hydrateResourceProjectLinks(resources: Resource[]): Promise<Resource[]> {
+async function hydrateResourceProjectLinks(
+  resources: Resource[],
+  sb: SupabaseClient,
+): Promise<Resource[]> {
   if (resources.length === 0) return resources;
 
   const resourceIds = resources.map((r) => r.id);
 
   try {
-    const result = await createClient()
+    const result = await sb
       .from("resource_projects")
       .select("resource_id, project_id")
       .in("resource_id", resourceIds);
@@ -290,15 +305,21 @@ async function hydrateResourceProjectLinks(resources: Resource[]): Promise<Resou
   }
 }
 
-async function hydrateResourceRelations(resources: Resource[]): Promise<Resource[]> {
-  const withAreas = await hydrateResourceAreaLinks(resources);
-  const withGoals = await hydrateResourceGoalLinks(withAreas);
-  const withProjects = await hydrateResourceProjectLinks(withGoals);
-  return await hydrateResourceTaskLinks(withProjects);
+async function hydrateResourceRelations(
+  resources: Resource[],
+  sb: SupabaseClient,
+): Promise<Resource[]> {
+  const withAreas = await hydrateResourceAreaLinks(resources, sb);
+  const withGoals = await hydrateResourceGoalLinks(withAreas, sb);
+  const withProjects = await hydrateResourceProjectLinks(withGoals, sb);
+  return await hydrateResourceTaskLinks(withProjects, sb);
 }
 
-async function hydrateSingleResourceRelations(resource: Resource): Promise<Resource> {
-  const [hydrated] = await hydrateResourceRelations([resource]);
+async function hydrateSingleResourceRelations(
+  resource: Resource,
+  sb: SupabaseClient,
+): Promise<Resource> {
+  const [hydrated] = await hydrateResourceRelations([resource], sb);
   return hydrated;
 }
 
@@ -312,8 +333,10 @@ export const resourceService = {
       projectId?: string;
       topicId?: string;
     },
+    options?: ServiceOptions,
   ): Promise<Resource[]> {
-    let query = createClient()
+    const sb = options?.supabase ?? createClient();
+    let query = sb
       .from("resources")
       .select(RESOURCE_SELECT)
       .eq("user_id", userId)
@@ -339,7 +362,7 @@ export const resourceService = {
 
     if (filters?.projectId) {
       // Use junction table to filter by project
-      const linkResult = await createClient()
+      const linkResult = await sb
         .from("resource_projects")
         .select("resource_id")
         .eq("project_id", filters.projectId);
@@ -350,7 +373,7 @@ export const resourceService = {
       }
       const resourceIds = (linkResult.data ?? []).map((r) => r.resource_id);
       if (resourceIds.length === 0) {
-        return hydrateResourceRelations([]);
+        return hydrateResourceRelations([], sb);
       }
       const result = await query.in("id", resourceIds);
       data = (result.data as Resource[] | null) ?? null;
@@ -365,11 +388,12 @@ export const resourceService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateResourceRelations(data || []);
+    return hydrateResourceRelations(data || [], sb);
   },
 
-  async getById(userId: string, id: string): Promise<Resource> {
-    const { data, error } = await createClient()
+  async getById(userId: string, id: string, options?: ServiceOptions): Promise<Resource> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("resources")
       .select(RESOURCE_SELECT)
       .eq("user_id", userId)
@@ -383,10 +407,15 @@ export const resourceService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateSingleResourceRelations(data);
+    return hydrateSingleResourceRelations(data, sb);
   },
 
-  async create(userId: string, input: CreateResourceInput): Promise<Resource> {
+  async create(
+    userId: string,
+    input: CreateResourceInput,
+    options?: ServiceOptions,
+  ): Promise<Resource> {
+    const sb = options?.supabase ?? createClient();
     try {
       const validated = createResourceSchema.parse(input);
       const { areaIds, resourceInput: areaCleanedInput } = extractResourceAreaIds(validated);
@@ -409,7 +438,7 @@ export const resourceService = {
       });
       const status = preservesManual ? validated.status ?? derived : derived;
 
-      const { data, error } = await createClient()
+      const { data, error } = await sb
         .from("resources")
         .insert({ ...resourceInput, status, user_id: userId })
         .select(RESOURCE_SELECT)
@@ -420,22 +449,22 @@ export const resourceService = {
       }
 
       if (areaIds?.length) {
-        await this.replaceAreaLinks(data.id, areaIds);
+        await this.replaceAreaLinks(data.id, areaIds, options);
       }
 
       if (goalIds?.length) {
-        await this.replaceGoalLinks(data.id, goalIds);
+        await this.replaceGoalLinks(data.id, goalIds, options);
       }
 
       if (taskIds?.length) {
-        await this.replaceTaskLinks(data.id, taskIds);
+        await this.replaceTaskLinks(data.id, taskIds, options);
       }
 
       if (projectIds?.length) {
-        await this.replaceProjectLinks(data.id, projectIds);
+        await this.replaceProjectLinks(data.id, projectIds, options);
       }
 
-      return hydrateSingleResourceRelations(data);
+      return hydrateSingleResourceRelations(data, sb);
     } catch (e) {
       if (e instanceof ValidationError) throw e;
       if (e instanceof DatabaseError) throw e;
@@ -444,7 +473,13 @@ export const resourceService = {
     }
   },
 
-  async update(userId: string, id: string, input: UpdateResourceInput): Promise<Resource> {
+  async update(
+    userId: string,
+    id: string,
+    input: UpdateResourceInput,
+    options?: ServiceOptions,
+  ): Promise<Resource> {
+    const sb = options?.supabase ?? createClient();
     try {
       const { goal_ids, task_ids, project_ids, ...rest } = input;
       const goalIds = goal_ids ? Array.from(new Set(goal_ids)) : undefined;
@@ -495,7 +530,7 @@ export const resourceService = {
 
       const resource = hasResourceUpdates
         ? await (async () => {
-            const { data, error } = await createClient()
+            const { data, error } = await sb
               .from("resources")
               .update(validated)
               .eq("user_id", userId)
@@ -513,7 +548,7 @@ export const resourceService = {
             return data;
           })()
         : await (async () => {
-            const { data, error } = await createClient()
+            const { data, error } = await sb
               .from("resources")
               .select(RESOURCE_SELECT)
               .eq("user_id", userId)
@@ -531,22 +566,22 @@ export const resourceService = {
           })();
 
       if (areaIds !== undefined) {
-        await this.replaceAreaLinks(id, areaIds);
+        await this.replaceAreaLinks(id, areaIds, options);
       }
 
       if (goalIds !== undefined) {
-        await this.replaceGoalLinks(id, goalIds);
+        await this.replaceGoalLinks(id, goalIds, options);
       }
 
       if (taskIds !== undefined) {
-        await this.replaceTaskLinks(id, taskIds);
+        await this.replaceTaskLinks(id, taskIds, options);
       }
 
       if (projectIds !== undefined) {
-        await this.replaceProjectLinks(id, projectIds);
+        await this.replaceProjectLinks(id, projectIds, options);
       }
 
-      return hydrateSingleResourceRelations(resource);
+      return hydrateSingleResourceRelations(resource, sb);
     } catch (e) {
       if (e instanceof ValidationError) throw e;
       if (e instanceof DatabaseError) throw e;
@@ -555,8 +590,9 @@ export const resourceService = {
     }
   },
 
-  async archive(userId: string, id: string): Promise<Resource> {
-    const { data, error } = await createClient()
+  async archive(userId: string, id: string, options?: ServiceOptions): Promise<Resource> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("resources")
       .update({ is_archived: true })
       .eq("user_id", userId)
@@ -571,11 +607,12 @@ export const resourceService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateSingleResourceRelations(data);
+    return hydrateSingleResourceRelations(data, sb);
   },
 
-  async unarchive(userId: string, id: string): Promise<Resource> {
-    const { data, error } = await createClient()
+  async unarchive(userId: string, id: string, options?: ServiceOptions): Promise<Resource> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("resources")
       .update({ is_archived: false })
       .eq("user_id", userId)
@@ -590,11 +627,12 @@ export const resourceService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateSingleResourceRelations(data);
+    return hydrateSingleResourceRelations(data, sb);
   },
 
-  async delete(userId: string, id: string): Promise<void> {
-    const { error } = await createClient()
+  async delete(userId: string, id: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const { error } = await sb
       .from("resources")
       .delete()
       .eq("user_id", userId)
@@ -605,29 +643,34 @@ export const resourceService = {
     }
   },
 
-  async listByArea(userId: string, areaId: string): Promise<Resource[]> {
-    return this.list(userId, { areaId });
+  async listByArea(userId: string, areaId: string, options?: ServiceOptions): Promise<Resource[]> {
+    return this.list(userId, { areaId }, options);
   },
 
-  async listByProject(userId: string, projectId: string): Promise<Resource[]> {
-    const linkResult = await createClient()
+  async listByProject(
+    userId: string,
+    projectId: string,
+    options?: ServiceOptions,
+  ): Promise<Resource[]> {
+    const sb = options?.supabase ?? createClient();
+    const linkResult = await sb
       .from("resource_projects")
       .select("resource_id")
       .eq("project_id", projectId);
 
     if (linkResult.error) {
       if (isMissingResourceProjectsTableError(linkResult.error)) {
-        return hydrateResourceRelations([]);
+        return hydrateResourceRelations([], sb);
       }
       throw new DatabaseError(linkResult.error.message);
     }
 
     const resourceIds = (linkResult.data ?? []).map((r) => r.resource_id);
     if (resourceIds.length === 0) {
-      return hydrateResourceRelations([]);
+      return hydrateResourceRelations([], sb);
     }
 
-    const { data, error } = await createClient()
+    const { data, error } = await sb
       .from("resources")
       .select(RESOURCE_SELECT)
       .eq("user_id", userId)
@@ -638,11 +681,12 @@ export const resourceService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateResourceRelations(data || []);
+    return hydrateResourceRelations(data || [], sb);
   },
 
-  async listByTopic(userId: string, topicId: string): Promise<Resource[]> {
-    const { data, error } = await createClient()
+  async listByTopic(userId: string, topicId: string, options?: ServiceOptions): Promise<Resource[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("resources")
       .select(RESOURCE_SELECT)
       .eq("user_id", userId)
@@ -653,15 +697,16 @@ export const resourceService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateResourceRelations(data || []);
+    return hydrateResourceRelations(data || [], sb);
   },
 
-  async listFavorites(userId: string): Promise<Resource[]> {
-    return this.list(userId, { favorite: true });
+  async listFavorites(userId: string, options?: ServiceOptions): Promise<Resource[]> {
+    return this.list(userId, { favorite: true }, options);
   },
 
-  async listArchived(userId: string): Promise<Resource[]> {
-    const { data, error } = await createClient()
+  async listArchived(userId: string, options?: ServiceOptions): Promise<Resource[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("resources")
       .select(RESOURCE_SELECT)
       .eq("user_id", userId)
@@ -672,11 +717,12 @@ export const resourceService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateResourceRelations(data || []);
+    return hydrateResourceRelations(data || [], sb);
   },
 
-  async listByGoal(userId: string, goalId: string): Promise<Resource[]> {
-    const { data, error } = await createClient()
+  async listByGoal(userId: string, goalId: string, options?: ServiceOptions): Promise<Resource[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("goal_resources")
       .select("resource:resources(*)")
       .eq("goal_id", goalId);
@@ -686,11 +732,12 @@ export const resourceService = {
     }
 
     const resources = (data ?? []).map((r) => r.resource as unknown as Resource).filter(Boolean);
-    return hydrateResourceRelations(resources);
+    return hydrateResourceRelations(resources, sb);
   },
 
-  async linkToGoal(goalId: string, resourceId: string): Promise<void> {
-    const { error } = await createClient()
+  async linkToGoal(goalId: string, resourceId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const { error } = await sb
       .from("goal_resources")
       .upsert({ goal_id: goalId, resource_id: resourceId });
 
@@ -698,11 +745,16 @@ export const resourceService = {
       throw new DatabaseError(error.message);
     }
 
-    await this.syncResourceStatusFromContext(resourceId);
+    await this.syncResourceStatusFromContext(resourceId, options);
   },
 
-  async unlinkFromGoal(goalId: string, resourceId: string): Promise<void> {
-    const { error } = await createClient()
+  async unlinkFromGoal(
+    goalId: string,
+    resourceId: string,
+    options?: ServiceOptions,
+  ): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const { error } = await sb
       .from("goal_resources")
       .delete()
       .eq("goal_id", goalId)
@@ -712,11 +764,12 @@ export const resourceService = {
       throw new DatabaseError(error.message);
     }
 
-    await this.syncResourceStatusFromContext(resourceId);
+    await this.syncResourceStatusFromContext(resourceId, options);
   },
 
-  async linkToTask(taskId: string, resourceId: string): Promise<void> {
-    const { error } = await createClient()
+  async linkToTask(taskId: string, resourceId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const { error } = await sb
       .from("task_resources")
       .upsert({ task_id: taskId, resource_id: resourceId });
 
@@ -724,11 +777,16 @@ export const resourceService = {
       throw new DatabaseError(error.message);
     }
 
-    await this.syncResourceStatusFromContext(resourceId);
+    await this.syncResourceStatusFromContext(resourceId, options);
   },
 
-  async unlinkFromTask(taskId: string, resourceId: string): Promise<void> {
-    const { error } = await createClient()
+  async unlinkFromTask(
+    taskId: string,
+    resourceId: string,
+    options?: ServiceOptions,
+  ): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const { error } = await sb
       .from("task_resources")
       .delete()
       .eq("task_id", taskId)
@@ -738,13 +796,17 @@ export const resourceService = {
       throw new DatabaseError(error.message);
     }
 
-    await this.syncResourceStatusFromContext(resourceId);
+    await this.syncResourceStatusFromContext(resourceId, options);
   },
 
   /** Re-derive a resource's status from its current area/project/goal/task/topic context. */
-  async syncResourceStatusFromContext(resourceId: string): Promise<void> {
-    const relations = await this.getWithRelations(resourceId);
-    const { data: resource, error: fetchError } = await createClient()
+  async syncResourceStatusFromContext(
+    resourceId: string,
+    options?: ServiceOptions,
+  ): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const relations = await this.getWithRelations(resourceId, options);
+    const { data: resource, error: fetchError } = await sb
       .from("resources")
       .select("status, area_id, topic_id")
       .eq("id", resourceId)
@@ -776,7 +838,7 @@ export const resourceService = {
     });
 
     if (derivedStatus !== resource.status) {
-      const { error } = await createClient()
+      const { error } = await sb
         .from("resources")
         .update({ status: derivedStatus })
         .eq("id", resourceId);
@@ -789,12 +851,14 @@ export const resourceService = {
 
   async getWithRelations(
     resourceId: string,
+    options?: ServiceOptions,
   ): Promise<{ goal_ids: string[]; task_ids: string[]; area_ids: string[]; project_ids: string[] }> {
+    const sb = options?.supabase ?? createClient();
     const [goalResult, taskResult, areaResult, projectResult] = await Promise.all([
-      createClient().from("goal_resources").select("goal_id").eq("resource_id", resourceId),
-      createClient().from("task_resources").select("task_id").eq("resource_id", resourceId),
-      createClient().from("resource_areas").select("area_id").eq("resource_id", resourceId),
-      createClient().from("resource_projects").select("project_id").eq("resource_id", resourceId),
+      sb.from("goal_resources").select("goal_id").eq("resource_id", resourceId),
+      sb.from("task_resources").select("task_id").eq("resource_id", resourceId),
+      sb.from("resource_areas").select("area_id").eq("resource_id", resourceId),
+      sb.from("resource_projects").select("project_id").eq("resource_id", resourceId),
     ]);
 
     if (goalResult.error) {
@@ -821,15 +885,20 @@ export const resourceService = {
     };
   },
 
-  async replaceGoalLinks(resourceId: string, goalIds: string[]): Promise<void> {
-    const existingRelations = await this.getWithRelations(resourceId);
+  async replaceGoalLinks(
+    resourceId: string,
+    goalIds: string[],
+    options?: ServiceOptions,
+  ): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const existingRelations = await this.getWithRelations(resourceId, options);
     const existingGoalIds = new Set(existingRelations.goal_ids);
     const nextGoalIds = new Set(goalIds);
     const goalIdsToAdd = goalIds.filter((goalId) => !existingGoalIds.has(goalId));
     const goalIdsToRemove = existingRelations.goal_ids.filter((goalId) => !nextGoalIds.has(goalId));
 
     if (goalIdsToAdd.length > 0) {
-      const { error } = await createClient()
+      const { error } = await sb
         .from("goal_resources")
         .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, resource_id: resourceId })));
 
@@ -839,7 +908,7 @@ export const resourceService = {
     }
 
     if (goalIdsToRemove.length > 0) {
-      const { error } = await createClient()
+      const { error } = await sb
         .from("goal_resources")
         .delete()
         .eq("resource_id", resourceId)
@@ -850,18 +919,23 @@ export const resourceService = {
       }
     }
 
-    await this.syncResourceStatusFromContext(resourceId);
+    await this.syncResourceStatusFromContext(resourceId, options);
   },
 
-  async replaceAreaLinks(resourceId: string, areaIds: string[]): Promise<void> {
-    const existingRelations = await this.getWithRelations(resourceId);
+  async replaceAreaLinks(
+    resourceId: string,
+    areaIds: string[],
+    options?: ServiceOptions,
+  ): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const existingRelations = await this.getWithRelations(resourceId, options);
     const existingAreaIds = new Set(existingRelations.area_ids);
     const nextAreaIds = new Set(areaIds);
     const areaIdsToAdd = areaIds.filter((areaId) => !existingAreaIds.has(areaId));
     const areaIdsToRemove = existingRelations.area_ids.filter((areaId) => !nextAreaIds.has(areaId));
 
     if (areaIdsToAdd.length > 0) {
-      const { error } = await createClient()
+      const { error } = await sb
         .from("resource_areas")
         .insert(areaIdsToAdd.map((area_id) => ({ area_id, resource_id: resourceId })));
 
@@ -871,7 +945,7 @@ export const resourceService = {
     }
 
     if (areaIdsToRemove.length > 0) {
-      const { error } = await createClient()
+      const { error } = await sb
         .from("resource_areas")
         .delete()
         .eq("resource_id", resourceId)
@@ -882,18 +956,23 @@ export const resourceService = {
       }
     }
 
-    await this.syncResourceStatusFromContext(resourceId);
+    await this.syncResourceStatusFromContext(resourceId, options);
   },
 
-  async replaceTaskLinks(resourceId: string, taskIds: string[]): Promise<void> {
-    const existingRelations = await this.getWithRelations(resourceId);
+  async replaceTaskLinks(
+    resourceId: string,
+    taskIds: string[],
+    options?: ServiceOptions,
+  ): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const existingRelations = await this.getWithRelations(resourceId, options);
     const existingTaskIds = new Set(existingRelations.task_ids);
     const nextTaskIds = new Set(taskIds);
     const taskIdsToAdd = taskIds.filter((taskId) => !existingTaskIds.has(taskId));
     const taskIdsToRemove = existingRelations.task_ids.filter((taskId) => !nextTaskIds.has(taskId));
 
     if (taskIdsToAdd.length > 0) {
-      const { error } = await createClient()
+      const { error } = await sb
         .from("task_resources")
         .insert(taskIdsToAdd.map((task_id) => ({ task_id, resource_id: resourceId })));
 
@@ -905,7 +984,7 @@ export const resourceService = {
     }
 
     if (taskIdsToRemove.length > 0) {
-      const { error } = await createClient()
+      const { error } = await sb
         .from("task_resources")
         .delete()
         .eq("resource_id", resourceId)
@@ -918,11 +997,16 @@ export const resourceService = {
       }
     }
 
-    await this.syncResourceStatusFromContext(resourceId);
+    await this.syncResourceStatusFromContext(resourceId, options);
   },
 
-  async replaceProjectLinks(resourceId: string, projectIds: string[]): Promise<void> {
-    const existingRelations = await this.getWithRelations(resourceId);
+  async replaceProjectLinks(
+    resourceId: string,
+    projectIds: string[],
+    options?: ServiceOptions,
+  ): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const existingRelations = await this.getWithRelations(resourceId, options);
     const existingProjectIds = new Set(existingRelations.project_ids);
     const nextProjectIds = new Set(projectIds);
     const projectIdsToAdd = projectIds.filter((projectId) => !existingProjectIds.has(projectId));
@@ -931,7 +1015,7 @@ export const resourceService = {
     );
 
     if (projectIdsToAdd.length > 0) {
-      const { error } = await createClient()
+      const { error } = await sb
         .from("resource_projects")
         .insert(projectIdsToAdd.map((project_id) => ({ project_id, resource_id: resourceId })));
 
@@ -941,7 +1025,7 @@ export const resourceService = {
     }
 
     if (projectIdsToRemove.length > 0) {
-      const { error } = await createClient()
+      const { error } = await sb
         .from("resource_projects")
         .delete()
         .eq("resource_id", resourceId)
@@ -952,7 +1036,7 @@ export const resourceService = {
       }
     }
 
-    await this.syncResourceStatusFromContext(resourceId);
+    await this.syncResourceStatusFromContext(resourceId, options);
   },
 
   /**
@@ -960,8 +1044,9 @@ export const resourceService = {
    * whose stored status does not match the value derived from its
    * current context. Terminal state (completed) is preserved.
    */
-  async backfillStaleStatuses(userId: string): Promise<number> {
-    const { data, error } = await createClient()
+  async backfillStaleStatuses(userId: string, options?: ServiceOptions): Promise<number> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("resources")
       .select(RESOURCE_SELECT)
       .eq("user_id", userId)
@@ -975,7 +1060,7 @@ export const resourceService = {
     const resources = data ?? [];
     let fixed = 0;
     for (const resource of resources) {
-      const relations = await this.getWithRelations(resource.id);
+      const relations = await this.getWithRelations(resource.id, options);
       const derived = deriveResourceStatus({
         area_id: resource.area_id,
         area_ids: relations.area_ids,
@@ -985,7 +1070,7 @@ export const resourceService = {
         topic_id: resource.topic_id,
       });
       if (derived !== resource.status) {
-        const { error: updateError } = await createClient()
+        const { error: updateError } = await sb
           .from("resources")
           .update({ status: derived })
           .eq("id", resource.id)

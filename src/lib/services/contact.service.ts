@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "../supabase/client";
 import type {
   Contact,
@@ -12,6 +13,8 @@ import type {
 import { createContactSchema, updateContactSchema } from "../validators/contact.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { LIST_SAFETY_CAP } from "../utils/constants";
+
+type ServiceOptions = { supabase?: SupabaseClient };
 
 const CONTACT_SELECT =
   "id, user_id, name, slug, role, organization, group, phone, email, linkedin, website, last_interaction_at, follow_up_interval_days, favorite, notes, archive, image_url, metadata, created_at, updated_at";
@@ -57,8 +60,9 @@ async function syncContactLinks(
     project_ids?: string[];
     task_ids?: string[];
   },
+  sb: SupabaseClient,
 ): Promise<void> {
-  const client = createClient();
+  const client = sb;
 
   if (links.area_ids !== undefined) {
     await client.from("contact_areas").delete().eq("contact_id", contactId);
@@ -131,11 +135,13 @@ const SIGNED_URL_TTL_SECONDS = 3600;
 /** Resolve a short-lived signed URL for a single stored image path/URL. */
 async function signContactImage(
   imageUrl: string | null | undefined,
+  options?: ServiceOptions,
 ): Promise<string | null> {
+  const sb = options?.supabase ?? createClient();
   const path = getContactImagePath(imageUrl);
   if (!path) return null;
 
-  const { data } = await createClient()
+  const { data } = await sb
     .storage
     .from("contact-avatars")
     .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
@@ -144,7 +150,7 @@ async function signContactImage(
 }
 
 /** Attach `image_display_url` (signed) to a batch of contacts in one call. */
-async function attachSignedImageUrls(contacts: Contact[]): Promise<Contact[]> {
+async function attachSignedImageUrls(contacts: Contact[], sb: SupabaseClient): Promise<Contact[]> {
   const pathByContact = new Map<string, string>();
   for (const contact of contacts) {
     const path = getContactImagePath(contact.image_url);
@@ -156,7 +162,7 @@ async function attachSignedImageUrls(contacts: Contact[]): Promise<Contact[]> {
     return contacts.map((contact) => ({ ...contact, image_display_url: null }));
   }
 
-  const { data } = await createClient()
+  const { data } = await sb
     .storage
     .from("contact-avatars")
     .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
@@ -182,11 +188,12 @@ export const contactService = {
   getContactImagePath,
   signContactImage,
 
-  async deleteContactImage(imageUrl: string | null | undefined): Promise<void> {
+  async deleteContactImage(imageUrl: string | null | undefined, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
     const path = getContactImagePath(imageUrl);
     if (!path) return;
 
-    const { error } = await createClient()
+    const { error } = await sb
       .storage
       .from("contact-avatars")
       .remove([path]);
@@ -199,8 +206,8 @@ export const contactService = {
    * is private; callers resolve a signed URL for display via
    * `signContactImage` / `image_display_url`.
    */
-  async uploadContactImage(userId: string, contactId: string, file: File): Promise<string> {
-    const client = createClient();
+  async uploadContactImage(userId: string, contactId: string, file: File, options?: ServiceOptions): Promise<string> {
+    const client = options?.supabase ?? createClient();
     const ext = file.name.split(".").pop() ?? "jpg";
     const path = `${userId}/${contactId}.${ext}`;
 
@@ -213,8 +220,9 @@ export const contactService = {
     return path;
   },
 
-  async list(userId: string, filters?: { group?: string; archive?: boolean }): Promise<Contact[]> {
-    let query = createClient()
+  async list(userId: string, filters?: { group?: string; archive?: boolean }, options?: ServiceOptions): Promise<Contact[]> {
+    const sb = options?.supabase ?? createClient();
+    let query = sb
       .from("contacts")
       .select(CONTACT_SELECT)
       .eq("user_id", userId);
@@ -236,7 +244,7 @@ export const contactService = {
     if (!data || data.length === 0) return [];
 
     const contactIds = data.map((c) => c.id);
-    const client = createClient();
+    const client = sb;
 
     const [areasRes, goalsRes, projectsRes, tasksRes] = await Promise.all([
       client.from("contact_areas").select("contact_id, area_id").in("contact_id", contactIds),
@@ -281,11 +289,13 @@ export const contactService = {
         linkedProjectIds: projectIdsByContact.get(contact.id) ?? [],
         linkedTaskIds: taskIdsByContact.get(contact.id) ?? [],
       })),
+      sb,
     );
   },
 
-  async getById(userId: string, id: string): Promise<Contact> {
-    const { data, error } = await createClient()
+  async getById(userId: string, id: string, options?: ServiceOptions): Promise<Contact> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("contacts")
       .select(CONTACT_SELECT)
       .eq("user_id", userId)
@@ -296,10 +306,11 @@ export const contactService = {
       if (error.code === "PGRST116") throw new NotFoundError("Contact", id);
       throw new DatabaseError(error.message);
     }
-    return { ...data, image_display_url: await signContactImage(data.image_url) };
+    return { ...data, image_display_url: await signContactImage(data.image_url, options) };
   },
 
-  async create(userId: string, input: CreateContactInput): Promise<Contact> {
+  async create(userId: string, input: CreateContactInput, options?: ServiceOptions): Promise<Contact> {
+    const sb = options?.supabase ?? createClient();
     const validated = createContactSchema.parse(input);
     // Strip link arrays from DB payload
     const { area_ids, goal_ids, project_ids, task_ids, ...dbPayload } = validated as typeof validated & {
@@ -309,7 +320,7 @@ export const contactService = {
       task_ids?: string[];
     };
 
-    const { data, error } = await createClient()
+    const { data, error } = await sb
       .from("contacts")
       .insert({ ...dbPayload, user_id: userId })
       .select(CONTACT_SELECT)
@@ -322,11 +333,11 @@ export const contactService = {
       goal_ids: goal_ids ?? input.goal_ids ?? [],
       project_ids: project_ids ?? input.project_ids ?? [],
       task_ids: task_ids ?? input.task_ids ?? [],
-    });
+    }, sb);
 
     return {
       ...data,
-      image_display_url: await signContactImage(data.image_url),
+      image_display_url: await signContactImage(data.image_url, options),
       linkedAreaIds: input.area_ids ?? [],
       linkedGoalIds: input.goal_ids ?? [],
       linkedProjectIds: input.project_ids ?? [],
@@ -334,7 +345,8 @@ export const contactService = {
     };
   },
 
-  async update(userId: string, id: string, input: UpdateContactInput): Promise<Contact> {
+  async update(userId: string, id: string, input: UpdateContactInput, options?: ServiceOptions): Promise<Contact> {
+    const sb = options?.supabase ?? createClient();
     const validated = updateContactSchema.parse(input);
     const { area_ids, goal_ids, project_ids, task_ids, ...dbPayload } = validated as typeof validated & {
       area_ids?: string[];
@@ -347,7 +359,7 @@ export const contactService = {
 
     const contact = hasUpdates
       ? await (async () => {
-          const { data, error } = await createClient()
+          const { data, error } = await sb
             .from("contacts")
             .update(dbPayload)
             .eq("user_id", userId)
@@ -361,20 +373,21 @@ export const contactService = {
           }
           return data;
         })()
-      : await this.getById(userId, id);
+      : await this.getById(userId, id, options);
 
     await syncContactLinks(id, {
       ...(area_ids !== undefined && { area_ids }),
       ...(goal_ids !== undefined && { goal_ids }),
       ...(project_ids !== undefined && { project_ids }),
       ...(task_ids !== undefined && { task_ids }),
-    });
+    }, sb);
 
-    return { ...contact, image_display_url: await signContactImage(contact.image_url) };
+    return { ...contact, image_display_url: await signContactImage(contact.image_url, options) };
   },
 
-  async delete(userId: string, id: string): Promise<void> {
-    const { error } = await createClient()
+  async delete(userId: string, id: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const { error } = await sb
       .from("contacts")
       .delete()
       .eq("user_id", userId)
@@ -383,9 +396,10 @@ export const contactService = {
     if (error) throw new DatabaseError(error.message);
   },
 
-  async toggleFavorite(userId: string, id: string): Promise<Contact> {
-    const contact = await this.getById(userId, id);
-    const { data, error } = await createClient()
+  async toggleFavorite(userId: string, id: string, options?: ServiceOptions): Promise<Contact> {
+    const sb = options?.supabase ?? createClient();
+    const contact = await this.getById(userId, id, options);
+    const { data, error } = await sb
       .from("contacts")
       .update({ favorite: !contact.favorite })
       .eq("user_id", userId)
@@ -400,8 +414,9 @@ export const contactService = {
     return data;
   },
 
-  async logInteraction(userId: string, id: string): Promise<Contact> {
-    const { data, error } = await createClient()
+  async logInteraction(userId: string, id: string, options?: ServiceOptions): Promise<Contact> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("contacts")
       .update({ last_interaction_at: new Date().toISOString() })
       .eq("user_id", userId)
@@ -416,8 +431,8 @@ export const contactService = {
     return data;
   },
 
-  async getByGroup(userId: string): Promise<Record<string, Contact[]>> {
-    const contacts = await this.list(userId);
+  async getByGroup(userId: string, options?: ServiceOptions): Promise<Record<string, Contact[]>> {
+    const contacts = await this.list(userId, undefined, options);
     const grouped: Record<string, Contact[]> = {};
     for (const contact of contacts) {
       const key = contact.group ?? "Ungrouped";
@@ -427,8 +442,8 @@ export const contactService = {
     return grouped;
   },
 
-  async getNeedFollowUp(userId: string): Promise<Contact[]> {
-    const contacts = await this.list(userId);
+  async getNeedFollowUp(userId: string, options?: ServiceOptions): Promise<Contact[]> {
+    const contacts = await this.list(userId, undefined, options);
     return contacts.filter(
       (c) => computeFollowUpStatus(c.last_interaction_at, c.follow_up_interval_days) === "FOLLOW UP",
     );
@@ -439,9 +454,11 @@ export const contactService = {
     contactId: string,
     projectId: string,
     roleInProject?: string,
+    options?: ServiceOptions,
   ): Promise<void> {
-    await this.getById(userId, contactId);
-    const { error } = await createClient()
+    const sb = options?.supabase ?? createClient();
+    await this.getById(userId, contactId, options);
+    const { error } = await sb
       .from("contact_projects")
       .upsert(
         { contact_id: contactId, project_id: projectId, role_in_project: roleInProject ?? null },
@@ -451,9 +468,10 @@ export const contactService = {
     if (error) throw new DatabaseError(error.message);
   },
 
-  async unlinkFromProject(userId: string, contactId: string, projectId: string): Promise<void> {
-    await this.getById(userId, contactId);
-    const { error } = await createClient()
+  async unlinkFromProject(userId: string, contactId: string, projectId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await this.getById(userId, contactId, options);
+    const { error } = await sb
       .from("contact_projects")
       .delete()
       .eq("contact_id", contactId)
@@ -462,9 +480,10 @@ export const contactService = {
     if (error) throw new DatabaseError(error.message);
   },
 
-  async getProjectLinks(userId: string, contactId: string): Promise<ContactProject[]> {
-    await this.getById(userId, contactId);
-    const { data, error } = await createClient()
+  async getProjectLinks(userId: string, contactId: string, options?: ServiceOptions): Promise<ContactProject[]> {
+    const sb = options?.supabase ?? createClient();
+    await this.getById(userId, contactId, options);
+    const { data, error } = await sb
       .from("contact_projects")
       .select("contact_id, project_id, role_in_project")
       .eq("contact_id", contactId);
@@ -478,9 +497,11 @@ export const contactService = {
     contactId: string,
     taskId: string,
     roleInTask?: string,
+    options?: ServiceOptions,
   ): Promise<void> {
-    await this.getById(userId, contactId);
-    const { error } = await createClient()
+    const sb = options?.supabase ?? createClient();
+    await this.getById(userId, contactId, options);
+    const { error } = await sb
       .from("contact_tasks")
       .upsert(
         { contact_id: contactId, task_id: taskId, role_in_task: roleInTask ?? null },
@@ -490,9 +511,10 @@ export const contactService = {
     if (error) throw new DatabaseError(error.message);
   },
 
-  async unlinkFromTask(userId: string, contactId: string, taskId: string): Promise<void> {
-    await this.getById(userId, contactId);
-    const { error } = await createClient()
+  async unlinkFromTask(userId: string, contactId: string, taskId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await this.getById(userId, contactId, options);
+    const { error } = await sb
       .from("contact_tasks")
       .delete()
       .eq("contact_id", contactId)
@@ -501,9 +523,10 @@ export const contactService = {
     if (error) throw new DatabaseError(error.message);
   },
 
-  async getTaskLinks(userId: string, contactId: string): Promise<ContactTask[]> {
-    await this.getById(userId, contactId);
-    const { data, error } = await createClient()
+  async getTaskLinks(userId: string, contactId: string, options?: ServiceOptions): Promise<ContactTask[]> {
+    const sb = options?.supabase ?? createClient();
+    await this.getById(userId, contactId, options);
+    const { data, error } = await sb
       .from("contact_tasks")
       .select("contact_id, task_id, role_in_task")
       .eq("contact_id", contactId);
@@ -512,9 +535,10 @@ export const contactService = {
     return data || [];
   },
 
-  async getAreaLinks(userId: string, contactId: string): Promise<{ contact_id: string; area_id: string }[]> {
-    await this.getById(userId, contactId);
-    const { data, error } = await createClient()
+  async getAreaLinks(userId: string, contactId: string, options?: ServiceOptions): Promise<{ contact_id: string; area_id: string }[]> {
+    const sb = options?.supabase ?? createClient();
+    await this.getById(userId, contactId, options);
+    const { data, error } = await sb
       .from("contact_areas")
       .select("contact_id, area_id")
       .eq("contact_id", contactId);
@@ -523,9 +547,10 @@ export const contactService = {
     return data || [];
   },
 
-  async getGoalLinks(userId: string, contactId: string): Promise<{ contact_id: string; goal_id: string }[]> {
-    await this.getById(userId, contactId);
-    const { data, error } = await createClient()
+  async getGoalLinks(userId: string, contactId: string, options?: ServiceOptions): Promise<{ contact_id: string; goal_id: string }[]> {
+    const sb = options?.supabase ?? createClient();
+    await this.getById(userId, contactId, options);
+    const { data, error } = await sb
       .from("contact_goals")
       .select("contact_id, goal_id")
       .eq("contact_id", contactId);
@@ -534,9 +559,10 @@ export const contactService = {
     return data || [];
   },
 
-  async linkToArea(userId: string, contactId: string, areaId: string): Promise<void> {
-    await this.getById(userId, contactId);
-    const { error } = await createClient()
+  async linkToArea(userId: string, contactId: string, areaId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await this.getById(userId, contactId, options);
+    const { error } = await sb
       .from("contact_areas")
       .upsert(
         { contact_id: contactId, area_id: areaId },
@@ -545,9 +571,10 @@ export const contactService = {
     if (error) throw new DatabaseError(error.message);
   },
 
-  async unlinkFromArea(userId: string, contactId: string, areaId: string): Promise<void> {
-    await this.getById(userId, contactId);
-    const { error } = await createClient()
+  async unlinkFromArea(userId: string, contactId: string, areaId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await this.getById(userId, contactId, options);
+    const { error } = await sb
       .from("contact_areas")
       .delete()
       .eq("contact_id", contactId)
@@ -555,9 +582,10 @@ export const contactService = {
     if (error) throw new DatabaseError(error.message);
   },
 
-  async linkToGoal(userId: string, contactId: string, goalId: string): Promise<void> {
-    await this.getById(userId, contactId);
-    const { error } = await createClient()
+  async linkToGoal(userId: string, contactId: string, goalId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await this.getById(userId, contactId, options);
+    const { error } = await sb
       .from("contact_goals")
       .upsert(
         { contact_id: contactId, goal_id: goalId },
@@ -566,9 +594,10 @@ export const contactService = {
     if (error) throw new DatabaseError(error.message);
   },
 
-  async unlinkFromGoal(userId: string, contactId: string, goalId: string): Promise<void> {
-    await this.getById(userId, contactId);
-    const { error } = await createClient()
+  async unlinkFromGoal(userId: string, contactId: string, goalId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await this.getById(userId, contactId, options);
+    const { error } = await sb
       .from("contact_goals")
       .delete()
       .eq("contact_id", contactId)
@@ -576,8 +605,9 @@ export const contactService = {
     if (error) throw new DatabaseError(error.message);
   },
 
-  async getBySlug(userId: string, slug: string): Promise<Contact> {
-    const { data, error } = await createClient()
+  async getBySlug(userId: string, slug: string, options?: ServiceOptions): Promise<Contact> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("contacts")
       .select(CONTACT_SELECT)
       .eq("user_id", userId)
@@ -591,8 +621,9 @@ export const contactService = {
     return data;
   },
 
-  async getByGoal(userId: string, goalId: string): Promise<{ contact_id: string; goal_id: string }[]> {
-    const { data, error } = await createClient()
+  async getByGoal(userId: string, goalId: string, options?: ServiceOptions): Promise<{ contact_id: string; goal_id: string }[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("contact_goals")
       .select("contact_id, goal_id")
       .eq("goal_id", goalId);
@@ -600,8 +631,9 @@ export const contactService = {
     return data || [];
   },
 
-  async getByArea(userId: string, areaId: string): Promise<{ contact_id: string; area_id: string }[]> {
-    const { data, error } = await createClient()
+  async getByArea(userId: string, areaId: string, options?: ServiceOptions): Promise<{ contact_id: string; area_id: string }[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("contact_areas")
       .select("contact_id, area_id")
       .eq("area_id", areaId);
@@ -609,8 +641,9 @@ export const contactService = {
     return data || [];
   },
 
-  async getByProject(userId: string, projectId: string): Promise<ContactProject[]> {
-    const { data, error } = await createClient()
+  async getByProject(userId: string, projectId: string, options?: ServiceOptions): Promise<ContactProject[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("contact_projects")
       .select("contact_id, project_id, role_in_project")
       .eq("project_id", projectId);
@@ -619,8 +652,9 @@ export const contactService = {
     return data || [];
   },
 
-  async getContactsGroupedByProject(userId: string): Promise<Array<{ projectId: string; projectName: string; contacts: Contact[] }>> {
-    const { data: links, error } = await createClient()
+  async getContactsGroupedByProject(userId: string, options?: ServiceOptions): Promise<Array<{ projectId: string; projectName: string; contacts: Contact[] }>> {
+    const sb = options?.supabase ?? createClient();
+    const { data: links, error } = await sb
       .from("contact_projects")
       .select("contact_id, project_id, role_in_project");
 
@@ -629,7 +663,7 @@ export const contactService = {
 
     const projectIds = [...new Set(links.map((l) => l.project_id))];
 
-    const { data: projects, error: projectError } = await createClient()
+    const { data: projects, error: projectError } = await sb
       .from("projects")
       .select("id, name")
       .eq("user_id", userId)
@@ -643,7 +677,7 @@ export const contactService = {
     }
 
     const contactIds = [...new Set(links.map((l) => l.contact_id))];
-    const { data: contacts, error: contactError } = await createClient()
+    const { data: contacts, error: contactError } = await sb
       .from("contacts")
       .select(CONTACT_SELECT)
       .eq("user_id", userId)
@@ -673,8 +707,9 @@ export const contactService = {
       .sort((a, b) => a.projectName.localeCompare(b.projectName));
   },
 
-  async getByTask(userId: string, taskId: string): Promise<ContactTask[]> {
-    const { data, error } = await createClient()
+  async getByTask(userId: string, taskId: string, options?: ServiceOptions): Promise<ContactTask[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("contact_tasks")
       .select("contact_id, task_id, role_in_task")
       .eq("task_id", taskId);
@@ -693,8 +728,8 @@ export const contactService = {
     return grouped;
   },
 
-  async getContactsGroupedByArea(userId: string): Promise<Array<{ areaId: string; areaName: string; contacts: Contact[] }>> {
-    const client = createClient();
+  async getContactsGroupedByArea(userId: string, options?: ServiceOptions): Promise<Array<{ areaId: string; areaName: string; contacts: Contact[] }>> {
+    const client = options?.supabase ?? createClient();
     const { data: contacts } = await client
       .from("contacts")
       .select(`${CONTACT_SELECT}, contact_areas(area_id, areas(id, name))`)
@@ -723,8 +758,8 @@ export const contactService = {
     return Array.from(areaMap.values()).sort((a, b) => a.areaName.localeCompare(b.areaName));
   },
 
-  async getContactsGroupedByGoal(userId: string): Promise<Array<{ goalId: string; goalName: string; contacts: Contact[] }>> {
-    const client = createClient();
+  async getContactsGroupedByGoal(userId: string, options?: ServiceOptions): Promise<Array<{ goalId: string; goalName: string; contacts: Contact[] }>> {
+    const client = options?.supabase ?? createClient();
     const { data: contacts } = await client
       .from("contacts")
       .select(`${CONTACT_SELECT}, contact_goals(goal_id, goals(id, name))`)
@@ -753,8 +788,8 @@ export const contactService = {
     return Array.from(goalMap.values()).sort((a, b) => a.goalName.localeCompare(b.goalName));
   },
 
-  async listLogs(userId: string, contactId: string): Promise<ContactLog[]> {
-    const client = createClient();
+  async listLogs(userId: string, contactId: string, options?: ServiceOptions): Promise<ContactLog[]> {
+    const client = options?.supabase ?? createClient();
     const { data, error } = await client
       .from("contact_logs")
       .select("*")
@@ -765,8 +800,8 @@ export const contactService = {
     return (data ?? []) as ContactLog[];
   },
 
-  async createLog(userId: string, contactId: string, input: CreateContactLogInput): Promise<ContactLog> {
-    const client = createClient();
+  async createLog(userId: string, contactId: string, input: CreateContactLogInput, options?: ServiceOptions): Promise<ContactLog> {
+    const client = options?.supabase ?? createClient();
     const { data, error } = await client
       .from("contact_logs")
       .insert({ user_id: userId, contact_id: contactId, message: input.message })

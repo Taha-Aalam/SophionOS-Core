@@ -1,10 +1,16 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { DEFAULT_AREAS } from "@/lib/onboarding/default-areas";
 import { createClient } from "@/lib/supabase/client";
 import { AreaInsert } from "@/lib/types/domain.types";
 import { generateSlug } from "@/lib/utils";
 
-export async function seedDefaultAreas(userId: string): Promise<void> {
-  const supabase = createClient();
+type ServiceOptions = { supabase?: SupabaseClient };
+
+export async function seedDefaultAreas(
+  userId: string,
+  options?: ServiceOptions,
+): Promise<void> {
+  const supabase = options?.supabase ?? createClient();
 
   const areasToInsert: AreaInsert[] = DEFAULT_AREAS.map((area) => ({
     user_id: userId,
