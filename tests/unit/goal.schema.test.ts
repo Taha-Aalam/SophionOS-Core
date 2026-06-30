@@ -4,6 +4,13 @@ import { createGoalSchema, updateGoalSchema } from "../../src/lib/validators/goa
 import { GOAL_TERM, PRIORITY } from "../../src/lib/utils/constants";
 
 describe("goal schemas", () => {
+  // createGoalSchema refines target_date to reject past dates, so use a date
+  // that is always in the future relative to the run (a hardcoded literal rots
+  // the moment the clock passes it).
+  const futureDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
   it("accepts a valid goal payload with optional nullable fields", () => {
     const result = createGoalSchema.parse({
       area_id: null,
@@ -11,7 +18,7 @@ describe("goal schemas", () => {
       description: "Restore the Goals module",
       term: GOAL_TERM.MID,
       priority: PRIORITY.HIGH,
-      target_date: "2026-06-30",
+      target_date: futureDate,
       progress: 35,
     });
 
@@ -20,7 +27,7 @@ describe("goal schemas", () => {
       name: "Ship Phase 2",
       term: GOAL_TERM.MID,
       priority: PRIORITY.HIGH,
-      target_date: "2026-06-30",
+      target_date: futureDate,
       progress: 35,
       is_completed: false,
       is_archived: false,

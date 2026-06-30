@@ -12,6 +12,21 @@ import { AppError } from "@/lib/api/error-handler";
 // a bare timestamp bump. `message` is optional so both flows share one route.
 const logBodySchema = z.object({ message: z.string().min(1).max(2000).optional() });
 
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { userId } = await requireAuth(request);
+    const rl = await rateLimit(request, userId);
+    if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
+
+    const { id } = await params;
+    const supabase = await createClient();
+    const logs = await contactService.listLogs(userId, id, { supabase });
+    return success(logs);
+  } catch (err) {
+    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+  }
+}
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { userId } = await requireAuth(request);

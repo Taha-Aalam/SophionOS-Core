@@ -332,4 +332,90 @@ export function registerKnowledgeTools(
     async (): Promise<ToolTextResult> =>
       runTool(async () => jsonResult(await client.inbox())),
   );
+
+  // ---- NOTE COLLECTION + BULK ---------------------------------------------
+
+  server.registerTool(
+    "list_notebooks",
+    {
+      title: "List Notebooks",
+      description:
+        "List all distinct notebook names across the user's notes (for choosing where to file a note).",
+      inputSchema: {},
+    },
+    async (): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.notes.allNotebooks())),
+  );
+
+  server.registerTool(
+    "list_note_types",
+    {
+      title: "List Note Types",
+      description:
+        "List the user's available note types (the type catalog used to categorize notes).",
+      inputSchema: {},
+    },
+    async (): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.notes.types())),
+  );
+
+  server.registerTool(
+    "bulk_archive_notes",
+    {
+      title: "Bulk Archive Notes",
+      description: "Archive multiple notes at once by id.",
+      inputSchema: {
+        ids: z.array(z.string()).min(1).describe("Note ids to archive."),
+      },
+      annotations: { idempotentHint: true },
+    },
+    async ({ ids }): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.notes.bulkArchive(ids))),
+  );
+
+  server.registerTool(
+    "bulk_delete_notes",
+    {
+      title: "Bulk Delete Notes",
+      description:
+        "Permanently delete multiple notes at once by id. Irreversible — prefer bulk_archive_notes to merely hide them.",
+      inputSchema: {
+        ids: z.array(z.string()).min(1).describe("Note ids to delete."),
+      },
+      annotations: { destructiveHint: true, idempotentHint: true },
+    },
+    async ({ ids }): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.notes.bulkDelete(ids))),
+  );
+
+  server.registerTool(
+    "bulk_update_note_status",
+    {
+      title: "Bulk Update Note Status",
+      description:
+        "Set the status of multiple notes at once (e.g. inbox, to_review, active, completed, archive).",
+      inputSchema: {
+        ids: z.array(z.string()).min(1),
+        status: z.string().describe("Target status for all the notes."),
+      },
+    },
+    async ({ ids, status }): Promise<ToolTextResult> =>
+      runTool(async () =>
+        jsonResult(await client.notes.bulkUpdateStatus(ids, status)),
+      ),
+  );
+
+  // ---- CONTACT LOG HISTORY ------------------------------------------------
+
+  server.registerTool(
+    "get_contact_log_history",
+    {
+      title: "Get Contact Log History",
+      description:
+        "Get the interaction log history for a contact (most recent first).",
+      inputSchema: { contact_id: z.string() },
+    },
+    async ({ contact_id }): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.contacts.logHistory(contact_id))),
+  );
 }

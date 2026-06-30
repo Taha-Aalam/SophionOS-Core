@@ -34,6 +34,7 @@ export function registerLinkTools(
     project: client.projects,
     note: client.notes,
     resource: client.resources,
+    contact: client.contacts,
   };
 
   // Entities with archive/restore actions (areas have their own dedicated
@@ -48,7 +49,14 @@ export function registerLinkTools(
     contact: client.contacts,
   };
 
-  const areaEntity = z.enum(["task", "goal", "project", "note", "resource"]);
+  const areaEntity = z.enum([
+    "task",
+    "goal",
+    "project",
+    "note",
+    "resource",
+    "contact",
+  ]);
   const archiveEntity = z.enum([
     "goal",
     "project",
@@ -130,7 +138,7 @@ export function registerLinkTools(
     {
       title: "Link Entity to Area",
       description:
-        "Link an existing task, goal, project, note, or resource to an area. Entities can belong to multiple areas. Use this to add an area link after creation.",
+        "Link an existing task, goal, project, note, resource, or contact to an area. Entities can belong to multiple areas. Use this to add an area link after creation.",
       inputSchema: {
         entity: areaEntity.describe("The kind of entity being linked."),
         id: z.string().describe("The entity's id."),
@@ -148,7 +156,7 @@ export function registerLinkTools(
     {
       title: "Unlink Entity from Area",
       description:
-        "Remove the link between an existing task, goal, project, note, or resource and an area.",
+        "Remove the link between an existing task, goal, project, note, resource, or contact and an area.",
       inputSchema: {
         entity: areaEntity.describe("The kind of entity being unlinked."),
         id: z.string().describe("The entity's id."),
@@ -158,35 +166,6 @@ export function registerLinkTools(
     async ({ entity, id, area_id }): Promise<ToolTextResult> =>
       runTool(async () =>
         jsonResult(await areaLinkers[entity].unlinkArea(id, area_id)),
-      ),
-  );
-
-  // ---- TASK ↔ PROJECT JUNCTION --------------------------------------------
-
-  server.registerTool(
-    "link_task_to_project",
-    {
-      title: "Link Task to Project",
-      description:
-        "Link an existing task to a project. A task can belong to multiple projects.",
-      inputSchema: { task_id: z.string(), project_id: z.string() },
-    },
-    async ({ task_id, project_id }): Promise<ToolTextResult> =>
-      runTool(async () =>
-        jsonResult(await client.tasks.linkProject(task_id, project_id)),
-      ),
-  );
-
-  server.registerTool(
-    "unlink_task_from_project",
-    {
-      title: "Unlink Task from Project",
-      description: "Remove the link between a task and a project.",
-      inputSchema: { task_id: z.string(), project_id: z.string() },
-    },
-    async ({ task_id, project_id }): Promise<ToolTextResult> =>
-      runTool(async () =>
-        jsonResult(await client.tasks.unlinkProject(task_id, project_id)),
       ),
   );
 
