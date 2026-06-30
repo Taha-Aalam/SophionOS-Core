@@ -11,6 +11,32 @@ Reference documents:
 
 ---
 
+## As-Built Deviations (Phases 1–3 — reconciled 2026-06-30)
+
+> Phases 1–3 are complete, but the implementation diverged from the original plan in several foundational ways. The original step text below is kept for history; the deviations recorded here are the **source of truth for what actually shipped**. Steps that changed carry an inline `> **AS BUILT:**` callout. Phase 4 and 4b have been fully rewritten to match this reality.
+
+**1. Authentication is Clerk, not Supabase Auth (affects Steps 3, 7).**
+The app uses `@clerk/nextjs`. There is no Supabase Auth, no `/auth/callback` route, and no Supabase-session `AuthProvider`. Supabase access is authorized by a **Clerk-issued JWT**: both the browser client (`src/lib/supabase/client.ts`) and the server client (`src/lib/supabase/server.ts`) pass the Clerk token through supabase-js's `accessToken` callback. RLS policies and RPCs are keyed to the Clerk user id (migrations `20260618000001_clerk_rls_rewrite`, `20260617500000_drop_legacy_auth_user_fks`, `20260618000002_clerk_user_backfill`, `20260623000000_fix_recurring_rpc_clerk_auth`).
+
+**2. There is no server layer — client-side supabase-js + RLS is the security perimeter (affects Step 6, and was the premise of the old Phase 4).**
+Every `src/lib/services/*.service.ts` runs in the browser, takes `userId` as an explicit argument, and queries PostgREST directly. There are **no API route handlers and no server actions**. RLS + the Clerk JWT is the only access control. `error-handler.ts` `publicMessage` is currently dead code. A server-side Supabase client (`src/lib/supabase/server.ts`) and a service-role admin client (`src/lib/supabase/admin.ts`, guarded against browser import) both exist and are the reuse points for the Phase 4 API tier.
+
+**3. Middleware is `src/proxy.ts`, and it does host-based routing (affects Step 7).**
+Next.js 16 renamed `middleware.ts` → `src/proxy.ts`. Beyond auth, it splits traffic by host: the **apex host serves marketing** (no `/login`), and the **`app.` subdomain serves the application**. Routing helpers live in `src/lib/routing/host.ts`; `NEXT_PUBLIC_APP_URL` is the subdomain origin. The single-shell assumption in Step 8 still holds for the app subdomain.
+
+**4. The schema is far richer than the FK-only model in Steps 4–13, and migrations are timestamp-named.**
+Migrations use `YYYYMMDDHHMMSS` names (not `000NN`). Added beyond the plan: slugs on every entity; multi-area junctions (`task_areas`, `goal_areas`, `project_areas`, `resource_areas`, `contact_areas`); additional junctions (`task_projects`, `task_resources`, `resource_projects`, `note_projects`, `goal_resources`, `goal_notes`, `contact_goals`); task recurrence (`repeat_every`/`repeat_cycle`/`recurrence_source_task_id`); goal `priority` and goal auto-inactive; `contact_logs` + interaction trigger; `user_settings`. Status churn: `saved` → `completed`, the `urgent` priority value was dropped, project gained an `inbox` status. Several progress/inactive triggers were patched repeatedly — see the `recalc_project_progress` / `recalc_area_inactive` migrations.
+
+**5. Step 21b (Notes notebooks + related notes) shipped, but with a REDESIGNED storage model.**
+Both features are live — the *implementation* changed, not the feature set. (a) **Notebooks** moved from a single `notes.notebook` TEXT column to a multi-value `note_notebooks` junction table (`20260525000000_create_note_notebooks`, column dropped in `20260525000003` — *"fully replaced by the note_notebooks junction table"*). A note can belong to multiple notebooks. (b) **Related notes** moved from an explicit `note_related_notes` edge table to being **derived from shared notebook membership** (`20260525000002` drops the edge table — *"related notes are now derived from shared notebooks"*). `note.service.ts` confirms both: `listNotebooks`/`getByNotebook`/`replaceNotebooks`/`addNotesToNotebook`/`removeNoteFromNotebook` and the derived `getRelatedByNotebook`/`getNoteRelatedCounts`. **API design consequence:** there is no link-related/unlink-related edge to write — "relating" two notes means putting them in a shared notebook. `group_by=notebook` and a notebooks filter ARE valid; `/notes/:id/related` is a read-only derived query.
+
+**6. None of the Phase-4 supporting infra exists yet.**
+There are no `api_keys`, `subscriptions`, `rate_limit`, or `integrations` tables — only `user_settings`. These are now scheduled in the rewritten Phase 4 (see Step 23).
+
+**Phase 4 direction (decided 2026-06-30):** Build the **full REST API tier** as originally intended (route handlers wrapping the service layer server-side, with API-key auth + rate limiting), and provision the **full supporting infra** (`api_keys`, `subscriptions`, `rate_limit`, `integrations`). The MCP server (Phase 4b) wraps this REST API. The key new work versus the old text is **decoupling the service layer from the browser client** so handlers can run it server-side.
+
+---
+
 ## Phase 1: Project Scaffold
 
 > Goal: A running Next.js app with zero features but 100% of the infrastructure wired correctly. You should be able to open `localhost:3000`, see a styled page, and know that TypeScript, linting, and Supabase are all working.
@@ -93,6 +119,8 @@ Reference documents:
 - `tsc --noEmit` passes
 
 **Deliverable:** Local Supabase running, all three client files working, auth middleware active.
+
+> **AS BUILT:** Auth is **Clerk**, not Supabase Auth. The three Supabase clients exist (`client.ts` browser, `server.ts` server, `admin.ts` service-role) but each forwards a **Clerk JWT** via supabase-js's `accessToken` callback rather than a Supabase session. Middleware is `src/proxy.ts` (Next 16 rename). See the As-Built Deviations section.
 
 ---
 
@@ -186,6 +214,8 @@ Reference documents:
 
 **Deliverable:** Complete service layer for 4 core entities. Business logic tested.
 
+> **AS BUILT:** Services run **client-side**, not server-side. Each imports the browser Supabase client, takes `userId` as an argument, and queries PostgREST directly under RLS. There is no server route layer calling them. `error-handler.ts` exists but its `publicMessage` is dead code. **Phase 4 must decouple these services from the `"use client"` browser client before route handlers can reuse them.**
+
 ---
 
 ### Step 7: Authentication UI
@@ -215,6 +245,8 @@ Reference documents:
 - Forgot password sends reset email
 
 **Deliverable:** Complete auth flow. Protected routes working.
+
+> **AS BUILT:** Implemented with **Clerk** (`@clerk/nextjs`), not Supabase Auth. No `(auth)/login` email/password form wired to Supabase, no `/auth/callback` OAuth route, no Supabase-session `AuthProvider`. Login/signup live under `(auth)/login/[[...rest]]` and `(auth)/signup/[[...rest]]` (Clerk catch-all). Route protection + the apex-marketing / `app.`-subdomain split is enforced in `src/proxy.ts`.
 
 ---
 
@@ -957,6 +989,8 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 
 **Deliverable:** Notes module fully polished with all properties, inline behaviors, and cross-module integrations. The module now has 10+ tabs (standard + dynamic), notebook grouping, bidirectional related notes, goals column, multi-select bulk actions, inline toggles, and configurable defaults. This is the most feature-rich module in the system.
 
+> **AS BUILT:** Shipped, but with a **redesigned storage model** (see As-Built Deviation #5). Notebooks are a multi-value `note_notebooks` **junction** (not the `notes.notebook` column this step describes — that column was dropped). Related-notes are **derived from shared notebook membership**, not an explicit `note_related_notes` edge table (also dropped). So "Link Related Note" is not a write to an edge table — two notes are "related" by sharing a notebook. The dynamic type tabs, goals column, multi-select bulk actions, and inline toggles all landed. Phase 4 (Step 27) builds API around the junction + derived model.
+
 ---
 
 ### Step 22: Knowledge Hub
@@ -1026,32 +1060,164 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 
 ---
 
-## Phase 4: REST API (Full Coverage)
+## Phase 4: REST API (Full Coverage) — ✅ COMPLETE (shipped 2026-06-30, branch `feat/rest-api-phase4`)
 
-> Goal: Every feature from Phases 1–3 available via REST API, ready for the LifeOS Agent (Project 2) to consume. Full API parity — if you can do it in the dashboard, you can do it via API. This covers: Areas (with type grouping and auto-active/inactive), Goals (with detail command center data), Projects (with contact linking), Tasks (with smart priority and contact linking), Notes (9+ views), Resources (6 views), Topics (with auto-active/inactive), Knowledge Hub (unified search), Contacts (with project/task role linking and follow-up tracking), Dashboard, Search, and Inbox.
+> Goal: Every feature from Phases 1–3 available via a **server-side REST API**, ready for the MCP server (Phase 4b) and the LifeOS Agent (Project 2) to consume. Full API parity — if you can do it in the dashboard, you can do it via API.
+>
+> **Architectural context (read first):** The app shipped with **no server layer** — all data access is client-side supabase-js gated by Clerk-JWT + RLS, and the service layer imports the **browser** Supabase client. This phase introduces the first server tier. The single biggest new task versus the original plan is **decoupling the service layer from the browser client** (Step 23) so route handlers can execute services server-side. Auth accepts **either** a Clerk session JWT **or** a LifeOS API key, both resolving to a Clerk user id that RLS already understands. This phase covers: Areas (type grouping, auto-active/inactive, multi-area junctions), Goals (priority, detail command center), Projects (contact linking, `inbox` status), Tasks (smart priority, recurrence, multi-project/multi-area junctions, contact linking), Notes (shipped view set — **no notebooks/related-notes**, those were reverted), Resources, Topics (auto-active/inactive), Knowledge Hub (unified search), Contacts (project/task role linking, interaction logs, follow-up), Dashboard, Search, Inbox, and My Day.
 
 ---
 
-### Step 23: API infrastructure (auth, rate limiting, error handling)
+### AS-BUILT: Phase 4 shipped surface (authoritative — reconciled 2026-06-30)
 
-**What:** Build the API middleware layer that all route handlers share.
+> The per-step text below (Steps 23–28) is kept for history, but it **over-specified** several endpoints that were never built and used path shapes that differ from what shipped. **This block is the source of truth for the REST tier** and is what Phase 4b (MCP) wraps. Verified against the 63 `route.ts` files under `src/app/api/v1/`, plus `src/lib/api/`.
+>
+> **Commits:** `72de385` (service decoupling + infra + api_keys/subscriptions/integrations migrations) · `00a4cd7` (63 route handlers + 14 vitest files) · `8dfebe4` (rate-limiter auth-contract test + goal-gate fix). Final verification: `tsc --noEmit` · vitest **1232/1232** · `next build` · goal-gate PASS — all exit 0 on the clean committed tree.
+
+**Infra (Step 23) — all shipped:**
+- Migrations: `20260624000000_create_api_keys.sql`, `20260624000001_create_subscriptions.sql`, `20260624000002_create_integrations.sql`.
+- `src/lib/api/`: `api-auth.ts`, `rate-limiter.ts`, `api-response.ts`, `api-validator.ts`, `pagination.ts`, `api-key-service.ts`, `error-handler.ts`.
+- **Service decoupling:** 12 services take an injectable client, resolved **inline per call site** as `(options?.supabase ?? createClient())`. Do NOT hoist a single `const sb` per method — test mocks assert one `createClient` resolution PER QUERY.
+
+**Auth contract (`api-auth.ts`):** `requireAuth(request)` is used by every v1 route. It calls `authenticateRequest`, which checks `Authorization: Bearer <token>` first (validated as an **API key** via `validateApiKey`, → `{ userId, type: "api_key" }`); otherwise falls through to the Clerk session (`{ userId, type: "clerk" }`). 401 `AuthError` if neither resolves. API keys use the **`lif_`** prefix (sha256-hashed, admin client).
+
+**Response envelope (`api-response.ts`):** `success(data)` → `{ data }` (200) · `created(data)` → `{ data }` (201) · `paginated(data, total, page, pageSize)` → `{ data, pagination: { total, page, pageSize, totalPages } }` · `error(err)` → `{ error: { code, message } }` (uses `err.statusCode`; adds `Retry-After: 60` on 429). Pagination params: `page` (default 1), `pageSize` (default 50, max 200) — **most list routes fetch the full set and slice in-memory**.
+
+**Per-route pattern:** `requireAuth` → `rateLimit(request, userId)` (429 `RATE_LIMITED`) → for writes a `content-type: application/json` guard (415) → service call → envelope.
+
+**The 63 shipped endpoints (use this list for the MCP client, NOT the Step 24–28 prose):**
+
+```
+AREAS      GET/POST  /areas                         (?grouped=true, ?inactive, ?archive, ?type)
+           GET/PATCH/DELETE  /areas/[id]            (id OR slug)
+           POST      /areas/[id]/archive
+           POST      /areas/[id]/restore
+
+GOALS      GET/POST  /goals                         (?term ?status ?area_id ?priority + ?archive ?completed ?inactive)
+           GET/PATCH/DELETE  /goals/[id]            (GET hydrates progress+rollups — this IS the "detail")
+           POST      /goals/[id]/archive · /restore
+           GET/POST/DELETE  /goals/[id]/areas       (DELETE: ?area_id query param)
+
+PROJECTS   GET/POST  /projects                      (?status ?area_id ?goal_id ?contact_id ?archive ?group_by=area|status)
+           GET/PATCH/DELETE  /projects/[id]
+           POST      /projects/[id]/archive · /restore
+           GET/POST/DELETE  /projects/[id]/areas    (DELETE: ?area_id query)
+           GET/POST/DELETE  /projects/[id]/goals    (DELETE: ?goal_id query)
+
+TASKS      GET/POST  /tasks                          (?status ?priority ?area_id ?project_id ?goal_id ?contact_id ?focused ?overdue ?upcoming ?due_date_from ?due_date_to ?sort=smart-priority)
+           GET/PATCH/DELETE  /tasks/[id]             (PATCH is how you complete/focus: { is_completed } / { is_focused })
+           POST      /tasks/[id]/archive · /restore
+           GET/POST/DELETE  /tasks/[id]/areas        (POST/DELETE body: { area_id })
+           GET/POST/DELETE  /tasks/[id]/goals        (body: { goal_id })
+           GET/POST/DELETE  /tasks/[id]/projects     (body: { project_id })
+           POST      /tasks/bulk/complete · /bulk/archive · /bulk/delete   (body: { ids: uuid[] })
+
+NOTES      GET/POST  /notes                          (?notebook ?goal_id ?topic_id ?project_id ?area_id ?status ?favorite ?pinned ?type ?group_by=notebook|status|type)
+           GET/PATCH/DELETE  /notes/[id]
+           POST      /notes/[id]/archive · /restore
+           GET       /notes/[id]/related             (derived from shared notebooks — READ-ONLY)
+           GET/POST/DELETE  /notes/[id]/areas        (DELETE: ?area_id query)
+           GET/POST/DELETE  /notes/[id]/projects     (DELETE: ?project_id query)
+           GET/POST/DELETE  /notes/[id]/topics       (scalar topic_id; POST {topic_id}, DELETE clears)
+           GET/PUT/POST/DELETE  /notes/[id]/notebooks (PUT {notebooks[]} replace · POST {notebook} add · DELETE ?notebook= remove)
+
+RESOURCES  GET/POST  /resources                      (?status ?favorite ?type ?area_id ?goal_id ?project_id ?topic_id ?group_by=status|type|area_id|topic_id|favorite)
+           GET/PATCH/DELETE  /resources/[id]
+           POST      /resources/[id]/archive · /restore   (restore → resourceService.unarchive)
+           GET/POST/DELETE  /resources/[id]/areas    (DELETE body: { area_id })
+           GET/POST/DELETE  /resources/[id]/projects (DELETE body: { project_id })
+
+TOPICS     GET/POST  /topics                          (?grouped=true ?archive ?favorite ?inactive)
+           GET/PATCH/DELETE  /topics/[id]
+           POST      /topics/[id]/archive · /restore
+
+CONTACTS   GET/POST  /contacts                        (?follow_up=true ?group ?archive ?favorite)
+           GET/PATCH/DELETE  /contacts/[id]
+           POST      /contacts/[id]/archive · /restore  (no dedicated method — update {archive})
+           POST      /contacts/[id]/log               (body { message? }: with msg→createLog, without→logInteraction)
+           GET/POST/DELETE  /contacts/[id]/projects   (POST { project_id, role_in_project? }; DELETE body { project_id })
+           GET/POST/DELETE  /contacts/[id]/tasks      (POST { task_id, role_in_task? }; DELETE body { task_id })
+           GET       /contacts/groups
+
+SYSTEM     GET       /dashboard/today · /dashboard/activity
+           GET       /inbox                           (tasks+notes+resources where status=inbox, with counts)
+           GET       /my-day                          (is_focused tasks)
+           GET       /knowledge/search?q=             → { data: results }
+           GET       /search?q=                       → { data: { query, results } }   (note the extra `query` wrapper)
+
+USER       GET/PATCH /user/settings                   (note_defaults only)
+           GET/POST  /user/api-keys                   (POST { name } → returns raw key ONCE)
+           DELETE    /user/api-keys/[id]
+           GET/POST  /user/integrations               (POST { type, external_id })
+           DELETE    /user/integrations/[id]
+```
+
+**Endpoints the Step 24–28 prose specified that were NOT built (do not reference them in Phase 4b):**
+`/areas/grouped-by-type` (use `?grouped=true`) · `/goals/[id]/detail` (use `GET /goals/[id]`) · `/tasks/[id]/complete` (use PATCH or `bulk/complete`) · `/tasks/calendar` · `/tasks/[id]/focus` (use PATCH `{is_focused}`) · `/tasks/bulk` create · `/notes/bulk` · `/notes/types` · collection `/notes/notebooks` · `/projects/[id]/contacts` (link from contact side) · `/contacts/[id]/link-project` & `/log-interaction` (shipped as `/projects` & `/log`) · `/export` · `/import/notion`.
+
+**Load-bearing inconsistencies for the MCP client to handle:** junction DELETEs are split between query-param style (goals/areas, projects/areas+goals, notes/areas+projects+notebooks) and JSON-body style (tasks/*, resources/*, contacts/*); `/notes/[id]/notebooks` is the only route using **PUT**; the two search endpoints wrap results differently. The `user/settings` endpoint only exposes `note_defaults` (not the full timezone/briefing settings the Agent eventually wants — that is a Phase 4 follow-up, not an MCP blocker).
+
+---
+
+## Phase 4 — AS BUILT (shipped 2026-06-30, branch `feat/rest-api-phase4`)
+
+> **This block is the source of truth for what Phase 4 actually shipped.** The Step 23–28 text below kept its pre-build spec; the real surface deviated from it in several places. Final verification on a clean committed tree: `tsc --noEmit` · `vitest 1232/1232` · `next build` · goal-gate all exit 0. Commits `72de385` (service decoupling + infra + api-key/subscriptions/integrations migrations), `00a4cd7` (63 route handlers + 14 vitest files), `8dfebe4` (rate-limiter test + goal-gate fix).
+>
+> **63 `route.ts` files under `src/app/api/v1/`.** Cross-cutting infra in `src/lib/api/`: `api-auth.ts`, `rate-limiter.ts`, `api-response.ts`, `api-validator.ts`, `pagination.ts`, `api-key-service.ts`, `error-handler.ts`.
+
+**Conventions that differ from the Step 24–28 spec — heed these when building the MCP client (Phase 4b):**
+
+- **Auth** (`api-auth.ts`): `requireAuth(request)` accepts **either** a Clerk session JWT **or** an `Authorization: Bearer <key>` LifeOS API key. API-key prefix is **`lif_`** (not `sk_live_`), sha256-hashed, validated via `validateApiKey`. Both resolve to a Clerk user id. Missing/invalid → 401.
+- **Response envelope** (`api-response.ts`): success → `{ data }`; created → `{ data }` @ 201; list → `{ data, pagination: { total, page, pageSize, totalPages } }`; error → `{ error: { code, message } }` with `Retry-After: 60` on 429. Most list routes fetch the full set and slice in-memory.
+- **Updates use `PATCH`**, not `PUT`. The only `PUT` route is `notes/[id]/notebooks` (full-set replace).
+- **Pagination**: `?page` (default 1) + `?pageSize` (default 50, max 200).
+
+**Surface deviations from the Step 24–28 spec:**
+
+- **Tasks:** No `/tasks/[id]/complete`, no `/tasks/calendar`, no `/tasks/[id]/focus`. Single-task completion = `PATCH /tasks/[id] { is_completed }`; focus = `PATCH /tasks/[id] { is_focused }`. `taskService.complete` is reached only via `POST /tasks/bulk/complete`. **Bulk = complete / archive / delete only** (body `{ ids: uuid[] }`), **no bulk create**.
+- **Goals:** No `/goals/[id]/detail` — the command-center payload IS `GET /goals/[id]` (hydrates progress + rollups + linked entities).
+- **Areas:** No `/areas/grouped-by-type` — use `GET /areas?grouped=true`.
+- **Projects:** No `/projects/[id]/contacts` — project↔contact links are managed from the contact side.
+- **Contacts:** Linking is `POST/DELETE /contacts/[id]/projects` (body `{ project_id, role_in_project? }`) and `/contacts/[id]/tasks` (body `{ task_id, role_in_task? }`) — NOT `/link-project`. Interaction log is `POST /contacts/[id]/log` (optional `{ message }`; with message → persists a log row + bumps `last_interaction_at`, without → timestamp bump only).
+- **Notes:** No `/notes/bulk`, no `/notes/types`, no collection-level `/notes/notebooks`. Only `/notes/[id]/notebooks` (GET/PUT-replace/POST-add/DELETE-remove). `/notes/[id]/related` is GET-only (derived from shared notebooks). A note has at most one topic (`/notes/[id]/topics` is scalar-backed).
+- **No `/export`, no `/import/notion`.**
+- **Archive/restore** is a per-entity POST pair `[id]/archive` + `[id]/restore` for areas, goals, projects, tasks, notes, resources, topics, contacts. (`resources/[id]/restore` calls `resourceService.unarchive`; contacts archive/restore are `update({ archive })` — no dedicated method.)
+- **Junction subroutes** shipped instead of inline array updates: `tasks/[id]/{areas,goals,projects}`, `notes/[id]/{areas,projects,topics,notebooks}`, `goals/[id]/areas`, `projects/[id]/{areas,goals}`, `resources/[id]/{areas,projects}`, `contacts/[id]/{projects,tasks}`. **Inconsistency to handle in the client:** junction `DELETE` is split — query-param style (goals/areas, projects/areas+goals, notes/areas+projects+notebooks) vs JSON-body style (tasks/*, resources/*, contacts/*).
+- **User settings** (`/user/settings`) shipped **narrow**: only `{ note_defaults: { default_status, default_type, default_notebook } }` — NOT the timezone/morning_briefing/evening_review/weekly_digest/theme/language/onboarding fields the Step 28 spec listed. (The MCP startup ping in Step 29 still works against it.)
+- **API keys** managed at `/user/api-keys` (GET list, POST create → returns raw `key` once) + `/user/api-keys/[id]` (DELETE revoke). **Integrations** at `/user/integrations` (GET/POST) + `/user/integrations/[id]` (DELETE) — direct table access, body `{ type, external_id }`.
+- **Search** has two endpoints: `/search?q=` (wraps `{ query, results }`) and `/knowledge/search?q=` (returns `{ results }` only) — both reuse `knowledgeService.search`.
+- **Dashboard**: `/dashboard/today` (full payload) + `/dashboard/activity` (just `recentActivity`). **Inbox**: `/inbox` (tasks+notes+resources where status=inbox + counts). **My Day**: `/my-day` (focused tasks + count).
+
+**Full shipped path list (method → notes):** areas (GET/POST), areas/[id] (GET/PATCH/DELETE), areas/[id]/{archive,restore} (POST); goals (GET/POST), goals/[id] (GET/PATCH/DELETE), goals/[id]/{archive,restore} (POST), goals/[id]/areas (GET/POST/DELETE); projects (GET/POST, `?group_by`), projects/[id] (GET/PATCH/DELETE), projects/[id]/{archive,restore} (POST), projects/[id]/{areas,goals} (GET/POST/DELETE); tasks (GET/POST), tasks/[id] (GET/PATCH/DELETE), tasks/[id]/{archive,restore} (POST), tasks/[id]/{areas,goals,projects} (GET/POST/DELETE), tasks/bulk/{complete,archive,delete} (POST); notes (GET/POST), notes/[id] (GET/PATCH/DELETE), notes/[id]/{archive,restore} (POST), notes/[id]/related (GET), notes/[id]/{areas,projects,topics} (GET/POST/DELETE), notes/[id]/notebooks (GET/PUT/POST/DELETE); resources (GET/POST), resources/[id] (GET/PATCH/DELETE), resources/[id]/{archive,restore} (POST), resources/[id]/{areas,projects} (GET/POST/DELETE); topics (GET/POST), topics/[id] (GET/PATCH/DELETE), topics/[id]/{archive,restore} (POST); contacts (GET/POST), contacts/[id] (GET/PATCH/DELETE), contacts/[id]/{archive,restore} (POST), contacts/[id]/log (POST), contacts/[id]/{projects,tasks} (GET/POST/DELETE), contacts/groups (GET); dashboard/{today,activity} (GET); inbox (GET); my-day (GET); knowledge/search (GET); search (GET); user/settings (GET/PATCH); user/api-keys (GET/POST), user/api-keys/[id] (DELETE); user/integrations (GET/POST), user/integrations/[id] (DELETE).
+
+---
+
+### Step 23: API infrastructure (service decoupling, auth, infra tables, rate limiting, error handling)
+
+**What:** Build the server tier foundation that all route handlers share. This is a larger step than the original plan because the service layer must first be made server-executable.
 
 **Actions:**
-- Create `src/lib/api/auth-guard.ts` — extracts user from JWT or API key (`Authorization: Bearer sk_live_xxx`). Returns `{ user, error }`.
-- Create `src/lib/api/rate-limiter.ts` — token bucket per user. Free: 100 req/min, Pro: 500, Premium: 1000.
-- Create `src/lib/api/error-handler.ts` — maps Zod/Auth/NotFound/DB errors to standardized JSON responses
-- Create `src/lib/api/pagination.ts` — cursor-based pagination helper
-- Create `src/lib/api/response.ts` — `successResponse(data)`, `listResponse(data, meta)`, `errorResponse(code, message)`
-- Add `api_keys`, `user_settings`, `subscriptions` table migrations if not present
+- **Decouple the service layer from the browser client (prerequisite).** Services currently import `src/lib/supabase/client.ts` (`"use client"`). Refactor each `*.service.ts` to receive a Supabase client (or accept an injected client), so the same service can run with the **server** client (`src/lib/supabase/server.ts`, Clerk-JWT backed) inside route handlers and with the browser client in existing dashboard hooks. Keep the `userId` argument — it stays compatible with RLS. Verify dashboard hooks still pass after the refactor.
+- **Provision supporting infra (none of these tables exist yet):**
+  - `api_keys` migration — hashed key (`sk_live_…`), label, `clerk_user_id`, scopes, `last_used_at`, `revoked_at`. RLS so users see only their own keys.
+  - `subscriptions` migration — tier (`free`/`pro`/`premium`), status, period, linked to `clerk_user_id`. Tiers drive rate limits.
+  - `rate_limit` backing store (table or Upstash/Redis-style counter) keyed by user + window.
+  - `integrations` migration — `type` (`whatsapp`/`telegram`), `external_id`, `status`, `clerk_user_id` (used by Step 28's `/user/integrations` and the Agent).
+- Create `src/lib/api/auth-guard.ts` — accepts **either** a Clerk session JWT **or** an `Authorization: Bearer sk_live_xxx` API key. Resolves both to a Clerk user id. Returns `{ userId, error }`. (Note: this replaces the original's "extract user from JWT or API key" — the JWT here is Clerk's, not Supabase's.)
+- Create `src/lib/api/rate-limiter.ts` — token bucket per user, tier from `subscriptions`. Free: 100 req/min, Pro: 500, Premium: 1000.
+- Wire `src/lib/api/error-handler.ts` into the response path — its `publicMessage` field (currently dead code) becomes the API's user-facing error message. Maps Zod/Auth/NotFound/DB errors to standardized JSON.
+- Create `src/lib/api/pagination.ts` — cursor-based pagination helper.
+- Create `src/lib/api/response.ts` — `successResponse(data)`, `listResponse(data, meta)`, `errorResponse(code, message)`.
 
-**Dependencies:** Step 6 (service layer) + Step 7 (auth).
+**Dependencies:** Step 6 (service layer) + Step 7 (Clerk auth).
 
 **Testing:**
-- Valid JWT → user. Invalid → 401. Valid API key → user. No auth → 401.
-- Over rate limit → 429 with Retry-After
-- `pnpm vitest run` passes
+- Service layer runs unchanged from existing dashboard hooks (browser client) AND from a route handler (server client) — no regressions in the dashboard.
+- Valid Clerk JWT → userId. Valid API key → userId. Invalid/absent → 401.
+- Over rate limit → 429 with Retry-After; limit reflects the user's subscription tier.
+- `pnpm vitest run` passes.
 
-**Deliverable:** API middleware complete.
+**Deliverable:** Server API tier foundation complete: service layer is client-agnostic, auth accepts Clerk JWT or API key, and `api_keys`/`subscriptions`/`rate_limit`/`integrations` tables exist.
 
 ---
 
@@ -1094,6 +1260,8 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 
 **Deliverable:** Full API for core PARA with all Phase 2 features accessible.
 
+> **AS BUILT alignment:** Reflect the shipped schema. Tasks support **multi-area** (`task_areas`) and **multi-project** (`task_projects`) junctions and **recurrence** (`repeat_every`/`repeat_cycle`/`recurrence_source_task_id`) — list filters and create/update payloads must accept arrays for areas/projects and the recurrence fields. Goals carry a `priority`. Projects include the `inbox` status. The `urgent` priority value no longer exists. `?status=` enums must match the shipped values (`completed`, not `saved`). All handlers resolve `userId` from the Step 23 auth-guard (Clerk JWT **or** API key).
+
 ---
 
 ### Step 25: Knowledge layer API routes (Notes, Resources, Topics)
@@ -1127,6 +1295,8 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 - `pnpm vitest run` passes
 
 **Deliverable:** Knowledge layer fully API-accessible. Agent can create notes from voice, save URLs as resources, and auto-tag with topics.
+
+> **AS BUILT alignment:** Notes notebooks ship as a multi-value `note_notebooks` **junction** (not a column), so `group_by=notebook` and a notebook filter ARE valid here (alongside `project` and `topic`). Notes support multi-project (`note_projects`) and the `?type=` dynamic values that actually shipped. Resources support multi-area (`resource_areas`) and `resource_projects` junctions. Topics use the auto-active/inactive trigger. All `?status=` enums must match shipped values.
 
 ---
 
@@ -1174,44 +1344,43 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 
 **Deliverable:** API coverage for Contacts, Dashboard, Search, and Inbox complete.
 
+> **AS BUILT alignment:** Contacts shipped with `contact_logs` (interaction log rows + follow-up trigger), and `contact_areas` / `contact_goals` junctions in addition to `contact_projects` / `contact_tasks`. The interaction-log column is `logged_at` and the payload field is `message` (not `note`). Search must cover the shipped entity set. Dashboard/Inbox/My-Day aggregations reuse the decoupled services from Step 23.
+
 ---
 
-### Step 27: Notes refinements API routes (closing Step 21b gaps)
+### Step 27: Notes refinements API routes (junction + derived model)
 
-**What:** API endpoints for all features added in Step 21b — notebooks, related notes (bidirectional linking), bulk actions, and dynamic type tab data. Without this step, the Agent cannot manage notebooks, link related notes, or perform bulk operations on notes.
+**What:** API endpoints for the shipped Notes refinements — notebooks (multi-value junction), related-notes (derived from shared notebooks), bulk actions, pin filtering, and dynamic type-tab data. **Note the redesigned storage model (As-Built Deviation #5):** notebooks live in the `note_notebooks` junction (a note can be in many notebooks), and related-notes are **derived** from shared notebook membership rather than stored in an edge table.
 
 **Actions:**
 - Create/extend route handlers:
   ```
-  /api/v1/notes?notebook=              → GET filter: notes in a specific notebook
+  /api/v1/notes?notebook=<name>        → GET filter: notes in a specific notebook (via note_notebooks junction)
   /api/v1/notes?pin=true               → GET filter: pinned notes only
-  /api/v1/notes?group_by=notebook      → GET: notes grouped by notebook (extends existing group_by to support 3 values: project, topic, notebook)
-  /api/v1/notes/notebooks              → GET: list of distinct notebook names for the user (used by Agent to know which notebooks exist)
-  /api/v1/notes/types                  → GET: list of distinct type values for the user's notes (used to generate dynamic type tabs)
-  /api/v1/notes/bulk                   → POST: bulk operations on multiple notes. Body: { note_ids: [], action: "archive" | "change_status" | "move_to_notebook", params: { status?: string, notebook?: string } }
-  /api/v1/notes/[id]/related           → GET: list of related notes (bidirectional) for a specific note
-  /api/v1/notes/[id]/link-related      → POST: link two notes as related. Body: { related_note_id: string }. Creates bidirectional link.
-  /api/v1/notes/[id]/unlink-related/[rid] → DELETE: remove a related note link (bidirectional)
+  /api/v1/notes?group_by=project|topic|notebook → GET: grouped results (notebook grouping is junction-backed)
+  /api/v1/notes/notebooks              → GET: distinct notebook names for the user (noteService.listNotebooks)
+  /api/v1/notes/types                  → GET: distinct type values for the user's notes (dynamic type tabs)
+  /api/v1/notes/bulk                   → POST: bulk ops. Body: { note_ids: [], action: "archive" | "change_status" | "move_to_notebook", params: { status?, notebook? } }
+  /api/v1/notes/[id]/notebooks         → GET (note's notebooks), PUT (replace via replaceNotebooks), POST (add), DELETE (remove)
+  /api/v1/notes/[id]/related           → GET: notes derived as related (share a notebook with this note; noteService.getRelatedByNotebook). READ-ONLY — there is no related edge to write.
   ```
+- **Design note for the implementer:** Do NOT create a `note_related_notes` edge table or `link-related`/`unlink-related` write endpoints — that edge model was dropped. "Relating" two notes = placing them in a shared notebook (use the `/notes/:id/notebooks` add endpoint or the `move_to_notebook` bulk action). `/notes/:id/related` is purely a derived read.
 
-**Dependencies:** Step 25 (base Notes API). Step 21b (UI features these endpoints serve).
+**Dependencies:** Step 25 (base Notes API). Step 16 + 21b (shipped Notes module — junction + derived model).
 
 **Testing:**
 - GET /api/v1/notes?notebook=Meeting%20Notes → only notes in that notebook
 - GET /api/v1/notes?pin=true → only pinned notes
-- GET /api/v1/notes?group_by=notebook → notes grouped by notebook headers
-- GET /api/v1/notes/notebooks → returns ["Meeting Notes", "Recipes", "Work Notes"]
-- GET /api/v1/notes/types → returns ["Note", "Learning", "Research", "Meeting"]
-- POST /api/v1/notes/bulk with { note_ids: [a, b, c], action: "archive" } → all 3 archived
-- POST /api/v1/notes/bulk with { note_ids: [a], action: "change_status", params: { status: "to_review" } } → status updated
-- GET /api/v1/notes/:id/related → returns related notes
-- POST /api/v1/notes/:id/link-related → creates bidirectional link (verify both directions)
-- DELETE /api/v1/notes/:id/unlink-related/:rid → removes link from both sides
-- Linking a note to itself → returns 400
-- Linking notes owned by different users → returns 403
+- GET /api/v1/notes?group_by=notebook → notes grouped under notebook headers (a note in 2 notebooks appears under both)
+- GET /api/v1/notes/notebooks → returns distinct notebook names
+- GET /api/v1/notes/types → returns distinct shipped type values
+- POST /api/v1/notes/bulk { note_ids:[a,b,c], action:"archive" } → all 3 archived
+- POST /api/v1/notes/bulk { note_ids:[a], action:"move_to_notebook", params:{ notebook:"Recipes" } } → note added to that notebook
+- PUT /api/v1/notes/:id/notebooks { notebooks:["A","B"] } → note's notebook membership replaced
+- GET /api/v1/notes/:id/related → returns notes sharing a notebook (derived); never a 404 for a note with no shared-notebook peers (empty array)
 - `pnpm vitest run` passes
 
-**Deliverable:** Notes API has full parity with the Step 21b dashboard features. Agent can manage notebooks, link related notes, and perform bulk operations.
+**Deliverable:** Notes API has parity with the shipped Notes module — notebook membership (multi-value junction), derived related-notes, bulk operations, pin filtering, and dynamic type enumeration.
 
 ---
 
@@ -1290,11 +1459,22 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 
 **Deliverable:** All API gaps from the audit are closed. Phase 4 now has complete parity with every feature built in Phases 1–3. No dashboard feature is unreachable via API.
 
+> **AS BUILT alignment:** `user_settings` already exists; `integrations` is provisioned in Step 23 (not here). `/user/integrations` writes to that table and is consumed by the Agent. Area archive/restore and the auto-inactive recompute match the shipped `recalc_area_inactive` triggers. Knowledge-hub search reuses the shipped client-side `knowledge.service` logic, run server-side via the Step 23 decoupling.
+
 ---
 
 ## Phase 4b: MCP Server
 
 > Goal: Build an MCP (Model Context Protocol) server that wraps the LifeOS Core REST API, allowing users to connect LifeOS to any MCP-compatible AI client — Claude Desktop, Claude Code, Cursor, Codex, or any future MCP host. This is the launch differentiator: "LifeOS works inside the AI you already use." No new AI infrastructure needed. The user's existing AI model handles natural language; the MCP server handles structured data operations.
+>
+> **AS BUILT alignment (authoritative — read the "AS-BUILT: Phase 4 shipped surface" block above first):** This phase wraps the REST tier exactly as it shipped. Auth uses a **LifeOS API key** (`lif_` prefix, from the `api_keys` table; sent as `Authorization: Bearer lif_…`); `requireAuth` resolves it server-side to a Clerk user id, so the MCP server never touches Clerk directly. **Startup validation hits `GET /api/v1/user/settings`** (returns `{ data: { note_defaults } }`; a 200 = key valid). The MCP client must mirror the **63 real endpoints** listed in the Phase 4 AS-BUILT block — including its load-bearing quirks: junction DELETEs are split query-param vs JSON-body; `/notes/[id]/notebooks` uses PUT; `/search` wraps results in `{ data: { query, results } }` while `/knowledge/search` returns `{ data: results }`. Map MCP "tool verbs" onto these:
+> - `complete_task` → `POST /tasks/bulk/complete { ids:[id] }` (no single-task complete route) or `PATCH /tasks/[id] { is_completed:true }`.
+> - `get_goal_detail` → `GET /goals/[id]` (already hydrates progress + rollups; no `/detail` route).
+> - `archive_area`/`restore_area` → `POST /areas/[id]/archive` / `/restore`.
+> - `link_contact_to_project` → `POST /contacts/[id]/projects { project_id, role_in_project? }`.
+> - `log_interaction` → `POST /contacts/[id]/log { message? }`.
+> - `get_today` → `GET /dashboard/today`; `get_my_day` → `GET /my-day`; `get_inbox` → `GET /inbox`.
+> - Notebook membership and derived related-notes use the junction + derived model (`/notes/[id]/notebooks`, `/notes/[id]/related` read-only) — there is no related-notes edge to write.
 
 ---
 
@@ -1386,7 +1566,7 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 - Submit to Anthropic MCP server registry for public listing
 - Landing page section: "Connect LifeOS to your AI assistant"
 
-**Dependencies:** Step 31 (all tools). Step 34 (API key management — users need keys).
+**Dependencies:** Step 31 (all tools). Step 23 (api_keys table — users need keys; the Step 38 settings UI for managing them is a nicety, not a blocker).
 
 **Testing:**
 - `npx @lifeos/mcp-server` starts cleanly
@@ -1463,9 +1643,9 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 
 ### Step 38: API key management
 
-**What:** Settings page for creating/managing API keys (required for Agent integration).
+**What:** Settings page (UI only) for creating/revoking/listing API keys. The `api_keys` table and auth-guard already exist from Step 23 — this step is just the management surface.
 
-**Dependencies:** Step 23 (auth guard).
+**Dependencies:** Step 23 (api_keys table + auth guard).
 
 ---
 
@@ -1541,14 +1721,22 @@ PHASE    STEPS      WHAT YOU HAVE WHEN DONE
          9b, 9c)    active/inactive detection, archive system,
                     smart priority, and calendar view
 
-3        14–22      Dashboard, Quick Capture, Notes (9+ views),
-         (inc.      Resources (6 views), Topics (6 views),
-         21b)       Contacts (professional CRM with role linking),
-                    Goal command center, Inbox, My Day,
-                    Notes polish, Knowledge Hub (unified search)
+3        14–22      Dashboard, Quick Capture, Notes (shipped
+         (inc.      view set + notebooks), Resources (6 views),
+         21b)       Topics (6 views), Contacts (professional CRM
+                    with role linking + interaction logs), Goal
+                    command center, Inbox, My Day, Knowledge Hub.
+                    21b shipped with a REDESIGNED storage model:
+                    notebooks = note_notebooks junction (multi-
+                    value); related-notes = derived from shared
+                    notebooks (no edge table).
 
-4        23–28      Full REST API covering ALL Phase 1–3 modules
-                    with zero gaps. 60+ endpoints.
+4        23–28      Full server-side REST API over ALL Phase 1–3
+                    modules. Introduces the first server tier:
+                    service layer decoupled from the browser
+                    client; auth accepts Clerk JWT OR API key;
+                    api_keys/subscriptions/rate_limit/integrations
+                    tables provisioned. 60+ endpoints, zero gaps.
 
 4b       29–32      MCP Server: ~30 tools wrapping the REST API.
                     Published to npm as @lifeos/mcp-server.
