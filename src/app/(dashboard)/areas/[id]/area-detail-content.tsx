@@ -16,6 +16,7 @@ import { ContactDialog, type ContactDialogDefaults } from "@/components/entities
 import { ContactsByCategoryView } from "@/components/views/contacts-by-category-view";
 import { ContactsFollowUpView } from "@/components/views/contacts-follow-up-view";
 import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover";
+import { AreaDetailSkeleton } from "@/components/entities/detail-skeletons";
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
@@ -936,40 +937,7 @@ export function AreaDetailContent() {
   };
 
   if (isLoading) {
-    return (
-      <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-        {/* Breadcrumb skeleton */}
-        <div className="flex items-center gap-2">
-          <Skeleton className="size-6 rounded" />
-          <Skeleton className="h-4 w-12" />
-          <Skeleton className="h-4 w-12" />
-          <Skeleton className="h-4 w-24" />
-        </div>
-        {/* Header card skeleton */}
-        <div className="rounded-xl border bg-card">
-          <div className="flex items-start justify-between gap-4 p-6">
-            <div className="flex items-start gap-4">
-              <Skeleton className="w-16 h-16 rounded-xl" />
-              <div className="space-y-3">
-                <Skeleton className="h-8 w-48" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-5 w-20 rounded-md" />
-                </div>
-                <Skeleton className="h-4 w-64" />
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Tab bar skeleton */}
-        <div className="flex gap-2">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-8 w-24 rounded-md" />
-          ))}
-        </div>
-        {/* Content area skeleton */}
-        <Skeleton className="h-52 w-full rounded-lg" />
-      </div>
-    );
+    return <AreaDetailSkeleton />;
   }
 
   if (!area) {
