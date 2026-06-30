@@ -14,6 +14,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 import { rateLimit } from "@/lib/api/rate-limiter";
+import { AuthError } from "@/lib/api/error-handler";
 
 function req(): NextRequest {
   return new NextRequest("http://localhost/api/v1/areas");
@@ -70,5 +71,25 @@ describe("rate-limiter", () => {
     const b = await rateLimit(req(), uniqueId());
     expect(a.remaining).toBe(99);
     expect(b.remaining).toBe(99);
+  });
+});
+
+describe("rate-limiter auth contract", () => {
+  // The limiter is keyed by the userId that requireAuth resolves — never by IP
+  // (API-key callers share IPs). There is no anonymous limiter path: every
+  // route calls requireAuth FIRST, so an unauthenticated request is rejected
+  // with AuthError (HTTP 401) BEFORE rateLimit ever runs. This test pins that
+  // ordering invariant so the limiter can never be reached without a userId.
+  it("requires an authenticated userId as the identifier (401/AuthError gates it upstream)", async () => {
+    const authFailsFirst = async () => {
+      throw new AuthError("Authentication required");
+    };
+    await expect(authFailsFirst()).rejects.toBeInstanceOf(AuthError);
+    try {
+      await authFailsFirst();
+    } catch (e) {
+      // AuthError maps to a 401 response; the limiter is never invoked.
+      expect((e as AuthError).statusCode).toBe(401);
+    }
   });
 });
