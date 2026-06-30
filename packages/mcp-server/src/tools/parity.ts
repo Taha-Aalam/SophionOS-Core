@@ -22,6 +22,10 @@ type ProjectLinkable = {
   linkProject: (id: string, project_id: string) => Promise<unknown>;
   unlinkProject: (id: string, project_id: string) => Promise<unknown>;
 };
+type TaskLinkable = {
+  linkTask: (id: string, task_id: string) => Promise<unknown>;
+  unlinkTask: (id: string, task_id: string) => Promise<unknown>;
+};
 
 export function registerParityTools(
   server: McpServer,
@@ -54,12 +58,20 @@ export function registerParityTools(
     project: client.projects,
     task: client.tasks,
     contact: client.contacts,
+    note: client.notes,
+    resource: client.resources,
   };
 
   // Entities that link to a project (post-hoc; create tools also accept
   // project_ids at creation time).
   const projectLinkers: Record<string, ProjectLinkable> = {
     task: client.tasks,
+    note: client.notes,
+    resource: client.resources,
+  };
+
+  // Entities that link to a task.
+  const taskLinkers: Record<string, TaskLinkable> = {
     note: client.notes,
     resource: client.resources,
   };
@@ -75,8 +87,15 @@ export function registerParityTools(
     "topic",
     "contact",
   ]);
-  const goalLinkEntity = z.enum(["project", "task", "contact"]);
+  const goalLinkEntity = z.enum([
+    "project",
+    "task",
+    "contact",
+    "note",
+    "resource",
+  ]);
   const projectLinkEntity = z.enum(["task", "note", "resource"]);
+  const taskLinkEntity = z.enum(["note", "resource"]);
 
   // ---- GETTERS ------------------------------------------------------------
 
@@ -120,9 +139,11 @@ export function registerParityTools(
     {
       title: "Link Entity to Goal",
       description:
-        "Link an existing project, task, or contact to a goal. Use this to attach a goal after creation.",
+        "Link an existing project, task, contact, note, or resource to a goal. Use this to attach a goal after creation.",
       inputSchema: {
-        entity: goalLinkEntity.describe("project, task, or contact."),
+        entity: goalLinkEntity.describe(
+          "project, task, contact, note, or resource.",
+        ),
         id: z.string().describe("The entity's id."),
         goal_id: z.string(),
       },
@@ -138,9 +159,11 @@ export function registerParityTools(
     {
       title: "Unlink Entity from Goal",
       description:
-        "Remove the link between an existing project, task, or contact and a goal.",
+        "Remove the link between an existing project, task, contact, note, or resource and a goal.",
       inputSchema: {
-        entity: goalLinkEntity.describe("project, task, or contact."),
+        entity: goalLinkEntity.describe(
+          "project, task, contact, note, or resource.",
+        ),
         id: z.string().describe("The entity's id."),
         goal_id: z.string(),
       },
@@ -186,6 +209,44 @@ export function registerParityTools(
     async ({ entity, id, project_id }): Promise<ToolTextResult> =>
       runTool(async () =>
         jsonResult(await projectLinkers[entity].unlinkProject(id, project_id)),
+      ),
+  );
+
+  // ---- TASK CROSS-LINKS ---------------------------------------------------
+
+  server.registerTool(
+    "link_task",
+    {
+      title: "Link Entity to Task",
+      description:
+        "Link an existing note or resource to a task. Use this to attach a task after creation.",
+      inputSchema: {
+        entity: taskLinkEntity.describe("note or resource."),
+        id: z.string().describe("The entity's id."),
+        task_id: z.string(),
+      },
+    },
+    async ({ entity, id, task_id }): Promise<ToolTextResult> =>
+      runTool(async () =>
+        jsonResult(await taskLinkers[entity].linkTask(id, task_id)),
+      ),
+  );
+
+  server.registerTool(
+    "unlink_task",
+    {
+      title: "Unlink Entity from Task",
+      description:
+        "Remove the link between an existing note or resource and a task.",
+      inputSchema: {
+        entity: taskLinkEntity.describe("note or resource."),
+        id: z.string().describe("The entity's id."),
+        task_id: z.string(),
+      },
+    },
+    async ({ entity, id, task_id }): Promise<ToolTextResult> =>
+      runTool(async () =>
+        jsonResult(await taskLinkers[entity].unlinkTask(id, task_id)),
       ),
   );
 

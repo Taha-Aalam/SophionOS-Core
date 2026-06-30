@@ -1,0 +1,73 @@
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { resourceService } from "@/lib/services/resource.service";
+import { requireAuth } from "@/lib/api/api-auth";
+import { success, error } from "@/lib/api/api-response";
+import { validateBody } from "@/lib/api/api-validator";
+import { rateLimit } from "@/lib/api/rate-limiter";
+import { createClient } from "@/lib/supabase/server";
+import { AppError } from "@/lib/api/error-handler";
+
+const linkBodySchema = z.object({ task_id: z.string().uuid() });
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { userId } = await requireAuth(request);
+    const rl = await rateLimit(request, userId);
+    if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
+
+    const { id } = await params;
+    const supabase = await createClient();
+    await resourceService.getById(userId, id, { supabase });
+    const relations = await resourceService.getWithRelations(id, { supabase });
+    return success({ task_ids: relations.task_ids });
+  } catch (err) {
+    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+  }
+}
+
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { userId } = await requireAuth(request);
+    const rl = await rateLimit(request, userId);
+    if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
+
+    if (!request.headers.get("content-type")?.includes("application/json")) {
+      return error(new AppError("Unsupported Media Type", 415, "UNSUPPORTED_MEDIA_TYPE"));
+    }
+
+    const { id } = await params;
+    const { task_id } = await validateBody(request, linkBodySchema);
+    const supabase = await createClient();
+    await resourceService.getById(userId, id, { supabase });
+    const relations = await resourceService.getWithRelations(id, { supabase });
+    const next = Array.from(new Set([...relations.task_ids, task_id]));
+    await resourceService.replaceTaskLinks(id, next, { supabase });
+    return success({ task_ids: next });
+  } catch (err) {
+    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { userId } = await requireAuth(request);
+    const rl = await rateLimit(request, userId);
+    if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
+
+    if (!request.headers.get("content-type")?.includes("application/json")) {
+      return error(new AppError("Unsupported Media Type", 415, "UNSUPPORTED_MEDIA_TYPE"));
+    }
+
+    const { id } = await params;
+    const { task_id } = await validateBody(request, linkBodySchema);
+    const supabase = await createClient();
+    await resourceService.getById(userId, id, { supabase });
+    const relations = await resourceService.getWithRelations(id, { supabase });
+    const next = relations.task_ids.filter((t) => t !== task_id);
+    await resourceService.replaceTaskLinks(id, next, { supabase });
+    return success({ task_ids: next });
+  } catch (err) {
+    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+  }
+}

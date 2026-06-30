@@ -418,4 +418,51 @@ export function registerKnowledgeTools(
     async ({ contact_id }): Promise<ToolTextResult> =>
       runTool(async () => jsonResult(await client.contacts.logHistory(contact_id))),
   );
+
+  // ---- CONTACT GROUPINGS + ACTIVITY ---------------------------------------
+
+  server.registerTool(
+    "get_contact_groups",
+    {
+      title: "Get Contact Groups",
+      description:
+        "List the user's contacts grouped by their group field (e.g. Clients, Team, Vendors).",
+      inputSchema: {},
+    },
+    async (): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.contacts.groups())),
+  );
+
+  server.registerTool(
+    "get_contacts_grouped_by_area",
+    {
+      title: "Get Contacts Grouped by Area",
+      description: "List the user's contacts grouped by their linked areas.",
+      inputSchema: {},
+    },
+    async (): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.contacts.groupedByArea())),
+  );
+
+  server.registerTool(
+    "get_contacts_grouped_by_goal",
+    {
+      title: "Get Contacts Grouped by Goal",
+      description: "List the user's contacts grouped by their linked goals.",
+      inputSchema: {},
+    },
+    async (): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.contacts.groupedByGoal())),
+  );
+
+  server.registerTool(
+    "get_dashboard_activity",
+    {
+      title: "Get Dashboard Activity",
+      description: "Get the recent activity feed for the dashboard.",
+      inputSchema: {},
+    },
+    async (): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.dashboard.activity())),
+  );
 }
