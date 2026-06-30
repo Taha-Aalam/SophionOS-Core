@@ -8,6 +8,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LifeOSClient } from "./client.js";
 import { registerCoreTools } from "./tools/core.js";
 import { registerKnowledgeTools } from "./tools/knowledge.js";
+import { registerLinkTools } from "./tools/links.js";
 
 export const SERVER_NAME = "lifeos";
 export const SERVER_VERSION = "0.1.0";
@@ -20,6 +21,7 @@ export function createServer(client: LifeOSClient): McpServer {
 
   registerCoreTools(server, client);
   registerKnowledgeTools(server, client);
+  registerLinkTools(server, client);
 
   return server;
 }

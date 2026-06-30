@@ -1478,7 +1478,7 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 ---
 
-### Step 29: MCP server — scaffold and authentication
+### Step 29: MCP server — scaffold and authentication — ✅ COMPLETE (verified PASS)
 
 **What:** Initialize the MCP server project, set up transport layers (stdio + HTTP/SSE), and implement user authentication via LifeOS Core API keys.
 
@@ -1501,7 +1501,7 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 ---
 
-### Step 30: MCP server — core PARA tools
+### Step 30: MCP server — core PARA tools — ✅ COMPLETE (verified PASS)
 
 **What:** MCP tools for Areas, Goals, Projects, Tasks — the highest-frequency operations.
 
@@ -1526,7 +1526,7 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 ---
 
-### Step 31: MCP server — knowledge, contacts, and system tools
+### Step 31: MCP server — knowledge, contacts, and system tools — ✅ COMPLETE (verified PASS)
 
 **What:** MCP tools for Notes, Resources, Topics, Knowledge Hub search, Contacts, Dashboard, Inbox, and My Day.
 
@@ -1552,7 +1552,9 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 ---
 
-### Step 32: MCP server — publishing and documentation
+### Step 32: MCP server — publishing and documentation — 🟡 IN PROGRESS (docs + dashboard page shipped; npm publish + registry submission pending — both require maintainer npm auth)
+
+> **AS BUILT:** README (`packages/mcp-server/README.md`) and the `/settings/mcp` dashboard page have shipped. The page lists/creates/revokes API keys via same-origin fetch to `/api/v1/user/api-keys` (Clerk-session auth — `requireAuth` falls through to the Clerk session when no Bearer key is present) and renders copy-able Claude Desktop / Claude Code configs using `@lifeos/mcp-server`. **Not yet done:** `pnpm publish` of the package and Anthropic MCP-registry submission — irreversible public actions, left for the maintainer to run with their npm credentials.
 
 **What:** Package for npm distribution, setup docs, and a dashboard settings page for easy user onboarding.
 
