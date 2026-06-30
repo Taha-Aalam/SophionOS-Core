@@ -1,7 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-import { isAppHost, normalizeOrigin } from "@/lib/routing/host";
+import { isAppHost, isConfiguredAppHost, normalizeOrigin } from "@/lib/routing/host";
 
 // Public routes that never require a session. Everything else is protected
 // (deny-by-default), mirroring the prior auth-routing behavior.
@@ -33,7 +33,7 @@ export const proxy = clerkMiddleware(async (auth, request) => {
   const host = request.headers.get("host");
   const { pathname, search } = request.nextUrl;
 
-  if (isAppHost(host)) {
+  if (isAppHost(host) || isConfiguredAppHost(host, process.env.NEXT_PUBLIC_APP_URL)) {
     // Subdomain: this is the application. Send the bare root to the dashboard
     // and protect everything that is not an explicitly public route.
     if (pathname === "/") {
