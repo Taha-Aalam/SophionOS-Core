@@ -308,6 +308,13 @@ export class LifeOSClient {
       this.post(`/notes/${id}/notebooks`, { notebook }),
     removeNotebook: (id: string, notebook: string) =>
       this.del(`/notes/${id}/notebooks`, { query: { notebook } }), // query-param style
+    // collection-level
+    allNotebooks: () => this.get<string[]>("/notes/notebooks"),
+    types: () => this.get("/notes/types"),
+    bulkArchive: (ids: string[]) => this.post("/notes/bulk/archive", { ids }),
+    bulkDelete: (ids: string[]) => this.post("/notes/bulk/delete", { ids }),
+    bulkUpdateStatus: (ids: string[], status: string) =>
+      this.post("/notes/bulk/update-status", { ids, status }),
   };
 
   // ---- resources ----------------------------------------------------------
@@ -384,7 +391,18 @@ export class LifeOSClient {
     restore: (id: string) => this.post(`/contacts/${id}/restore`),
     log: (id: string, message?: string) =>
       this.post(`/contacts/${id}/log`, message ? { message } : {}),
+    logHistory: (id: string) => this.get(`/contacts/${id}/log`),
     groups: () => this.list("/contacts/groups"),
+    listAreas: (id: string) => this.get(`/contacts/${id}/areas`),
+    linkArea: (id: string, area_id: string) =>
+      this.post(`/contacts/${id}/areas`, { area_id }),
+    unlinkArea: (id: string, area_id: string) =>
+      this.del(`/contacts/${id}/areas`, { query: { area_id } }), // query-param style
+    listGoals: (id: string) => this.get(`/contacts/${id}/goals`),
+    linkGoal: (id: string, goal_id: string) =>
+      this.post(`/contacts/${id}/goals`, { goal_id }),
+    unlinkGoal: (id: string, goal_id: string) =>
+      this.del(`/contacts/${id}/goals`, { query: { goal_id } }), // query-param style
     listProjects: (id: string) => this.get(`/contacts/${id}/projects`),
     linkProject: (id: string, project_id: string, role_in_project?: string) =>
       this.post(`/contacts/${id}/projects`, { project_id, role_in_project }),
