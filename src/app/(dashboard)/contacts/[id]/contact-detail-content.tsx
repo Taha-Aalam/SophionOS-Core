@@ -24,7 +24,7 @@ import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ContactDetailSkeleton } from "@/components/entities/detail-skeletons";
 import { Textarea } from "@/components/ui/textarea";
 import {
   useContactBySlug,
@@ -271,44 +271,7 @@ export function ContactDetailContent() {
   );
 
   if (isLoading) {
-    return (
-      <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-        {/* Breadcrumb skeleton */}
-        <div className="flex items-center gap-2">
-          <Skeleton className="size-6 rounded" />
-          <Skeleton className="h-4 w-12" />
-          <Skeleton className="h-4 w-12" />
-          <Skeleton className="h-4 w-24" />
-        </div>
-        {/* Contact header card skeleton */}
-        <div className="rounded-xl border bg-card">
-          <div className="flex items-start justify-between gap-4 p-6">
-            <div className="flex items-start gap-4">
-              <Skeleton className="size-16 rounded-full" />
-              <div className="space-y-3">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-32" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-5 w-20 rounded-md" />
-                  <Skeleton className="h-5 w-24 rounded-md" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Detail content skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-6">
-          <div className="space-y-4">
-            <Skeleton className="h-40 w-full rounded-xl" />
-            <Skeleton className="h-48 w-full rounded-xl" />
-          </div>
-          <div className="space-y-4">
-            <Skeleton className="h-32 w-full rounded-xl" />
-            <Skeleton className="h-40 w-full rounded-xl" />
-          </div>
-        </div>
-      </div>
-    );
+    return <ContactDetailSkeleton />;
   }
 
   if (error || !contact) {
