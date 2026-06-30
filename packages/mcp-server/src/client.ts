@@ -297,6 +297,16 @@ export class LifeOSClient {
       this.post(`/notes/${id}/projects`, { project_id }),
     unlinkProject: (id: string, project_id: string) =>
       this.del(`/notes/${id}/projects`, { query: { project_id } }), // query-param style
+    listGoals: (id: string) => this.get(`/notes/${id}/goals`),
+    linkGoal: (id: string, goal_id: string) =>
+      this.post(`/notes/${id}/goals`, { goal_id }),
+    unlinkGoal: (id: string, goal_id: string) =>
+      this.del(`/notes/${id}/goals`, { query: { goal_id } }), // query-param style
+    listTasks: (id: string) => this.get(`/notes/${id}/tasks`),
+    linkTask: (id: string, task_id: string) =>
+      this.post(`/notes/${id}/tasks`, { task_id }),
+    unlinkTask: (id: string, task_id: string) =>
+      this.del(`/notes/${id}/tasks`, { query: { task_id } }), // query-param style
     listTopics: (id: string) => this.get(`/notes/${id}/topics`),
     setTopic: (id: string, topic_id: string) =>
       this.post(`/notes/${id}/topics`, { topic_id }),
@@ -349,6 +359,16 @@ export class LifeOSClient {
       this.post(`/resources/${id}/projects`, { project_id }),
     unlinkProject: (id: string, project_id: string) =>
       this.del(`/resources/${id}/projects`, { body: { project_id } }), // body style
+    listGoals: (id: string) => this.get(`/resources/${id}/goals`),
+    linkGoal: (id: string, goal_id: string) =>
+      this.post(`/resources/${id}/goals`, { goal_id }),
+    unlinkGoal: (id: string, goal_id: string) =>
+      this.del(`/resources/${id}/goals`, { body: { goal_id } }), // body style
+    listTasks: (id: string) => this.get(`/resources/${id}/tasks`),
+    linkTask: (id: string, task_id: string) =>
+      this.post(`/resources/${id}/tasks`, { task_id }),
+    unlinkTask: (id: string, task_id: string) =>
+      this.del(`/resources/${id}/tasks`, { body: { task_id } }), // body style
   };
 
   // ---- topics -------------------------------------------------------------
@@ -393,6 +413,8 @@ export class LifeOSClient {
       this.post(`/contacts/${id}/log`, message ? { message } : {}),
     logHistory: (id: string) => this.get(`/contacts/${id}/log`),
     groups: () => this.list("/contacts/groups"),
+    groupedByArea: () => this.list("/contacts/grouped-by-area"),
+    groupedByGoal: () => this.list("/contacts/grouped-by-goal"),
     listAreas: (id: string) => this.get(`/contacts/${id}/areas`),
     linkArea: (id: string, area_id: string) =>
       this.post(`/contacts/${id}/areas`, { area_id }),
