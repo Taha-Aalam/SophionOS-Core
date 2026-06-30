@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "../supabase/client";
 import type { CreateGoalInput, Goal, Note, Project, Resource, Task, UpdateGoalInput } from "../types/domain.types";
 import {
@@ -11,6 +12,8 @@ import { createGoalSchema, updateGoalSchema } from "../validators/goal.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
 import { LIST_SAFETY_CAP } from "../utils/constants";
+
+type ServiceOptions = { supabase?: SupabaseClient };
 
 const GOAL_SELECT =
   "id, user_id, area_id, name, description, term, priority, target_date, progress, is_completed, is_archived, is_inactive, slug, created_at, updated_at";
@@ -88,7 +91,7 @@ function extractGoalAreaIds<TInput extends { area_id?: string | null; area_ids?:
   };
 }
 
-async function hydrateGoalAreaLinks(goals: Goal[]): Promise<Goal[]> {
+async function hydrateGoalAreaLinks(goals: Goal[], sb: SupabaseClient): Promise<Goal[]> {
   if (goals.length === 0) {
     return goals;
   }
@@ -103,7 +106,7 @@ async function hydrateGoalAreaLinks(goals: Goal[]): Promise<Goal[]> {
     | undefined;
 
   try {
-    const result = await createClient()
+    const result = await sb
       .from("goal_areas")
       .select("goal_id, area_id")
       .in("goal_id", goalIds);
@@ -138,7 +141,7 @@ async function hydrateGoalAreaLinks(goals: Goal[]): Promise<Goal[]> {
   }));
 }
 
-async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
+async function hydrateGoalProgress(goals: Goal[], sb: SupabaseClient): Promise<Goal[]> {
   if (goals.length === 0) {
     return goals;
   }
@@ -151,19 +154,19 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
     { data: noteLinks, error: noteError },
     { data: resourceLinks, error: resourceError },
   ] = await Promise.all([
-    createClient()
+    sb
       .from("goal_projects")
       .select("goal_id, project:projects(id, status, is_archived, progress)")
       .in("goal_id", goalIds),
-    createClient()
+    sb
       .from("goal_tasks")
       .select("goal_id, task:tasks(is_completed, is_archived, project_id)")
       .in("goal_id", goalIds),
-    createClient()
+    sb
       .from("goal_notes")
       .select("goal_id, note:notes(id, status, is_archived, project_id)")
       .in("goal_id", goalIds),
-    createClient()
+    sb
       .from("goal_resources")
       .select("goal_id, resource:resources(id, status, is_archived)")
       .in("goal_id", goalIds),
@@ -242,7 +245,7 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
   const allResourceIds = [...resourcesByGoalId.values()].flat().map((r) => r.id);
   const resourceProjectIdsByResourceId = new Map<string, Set<string>>();
   if (allResourceIds.length > 0) {
-    const { data: resourceProjectData, error: resourceProjectError } = await createClient()
+    const { data: resourceProjectData, error: resourceProjectError } = await sb
       .from("resource_projects")
       .select("resource_id, project_id")
       .in("resource_id", allResourceIds);
@@ -268,7 +271,7 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
   const allNoteIds = [...notesByGoalId.values()].flat().map((n) => n.id);
   const noteProjectIdsByNoteId = new Map<string, Set<string>>();
   if (allNoteIds.length > 0) {
-    const { data: noteProjectData, error: noteProjectError } = await createClient()
+    const { data: noteProjectData, error: noteProjectError } = await sb
       .from("note_projects")
       .select("note_id, project_id")
       .in("note_id", allNoteIds);
@@ -305,19 +308,19 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
       { data: allProjNoteJunctions, error: projNoteJunctionError },
       { data: allProjResources, error: projResourceError },
     ] = await Promise.all([
-      createClient()
+      sb
         .from("tasks")
         .select("project_id, is_completed, is_archived")
         .in("project_id", allGoalProjectIds),
-      createClient()
+      sb
         .from("notes")
         .select("id, project_id, status, is_archived")
         .in("project_id", allGoalProjectIds),
-      createClient()
+      sb
         .from("note_projects")
         .select("project_id, note:notes(id, status, is_archived)")
         .in("project_id", allGoalProjectIds),
-      createClient()
+      sb
         .from("resource_projects")
         .select("project_id, resource:resources(status, is_archived)")
         .in("project_id", allGoalProjectIds),
@@ -445,7 +448,7 @@ async function hydrateGoalProgress(goals: Goal[]): Promise<Goal[]> {
   });
 }
 
-async function hydrateGoalRollupCounts(goals: Goal[]): Promise<Goal[]> {
+async function hydrateGoalRollupCounts(goals: Goal[], sb: SupabaseClient): Promise<Goal[]> {
   if (goals.length === 0) return goals;
   const goalIds = goals.map((g) => g.id);
 
@@ -455,19 +458,19 @@ async function hydrateGoalRollupCounts(goals: Goal[]): Promise<Goal[]> {
     { data: noteLinks, error: noteError },
     { data: resourceLinks, error: resourceError },
   ] = await Promise.all([
-    createClient()
+    sb
       .from("goal_projects")
       .select("goal_id, project:projects(status, is_archived)")
       .in("goal_id", goalIds),
-    createClient()
+    sb
       .from("goal_tasks")
       .select("goal_id, task:tasks(is_completed, is_archived)")
       .in("goal_id", goalIds),
-    createClient()
+    sb
       .from("goal_notes")
       .select("goal_id, note:notes(status, is_archived)")
       .in("goal_id", goalIds),
-    createClient()
+    sb
       .from("goal_resources")
       .select("goal_id, resource:resources(status, is_archived)")
       .in("goal_id", goalIds),
@@ -504,18 +507,18 @@ async function hydrateGoalRollupCounts(goals: Goal[]): Promise<Goal[]> {
   });
 }
 
-async function hydrateSingleGoalProgress(goal: Goal): Promise<Goal> {
-  const [hydratedGoal] = await hydrateGoalProgress([goal]);
+async function hydrateSingleGoalProgress(goal: Goal, sb: SupabaseClient): Promise<Goal> {
+  const [hydratedGoal] = await hydrateGoalProgress([goal], sb);
   return hydratedGoal;
 }
 
-async function hydrateSingleGoalAreaLinks(goal: Goal): Promise<Goal> {
-  const [hydratedGoal] = await hydrateGoalAreaLinks([goal]);
+async function hydrateSingleGoalAreaLinks(goal: Goal, sb: SupabaseClient): Promise<Goal> {
+  const [hydratedGoal] = await hydrateGoalAreaLinks([goal], sb);
   return hydratedGoal;
 }
 
-async function hydrateSingleGoalRollupCounts(goal: Goal): Promise<Goal> {
-  const [hydratedGoal] = await hydrateGoalRollupCounts([goal]);
+async function hydrateSingleGoalRollupCounts(goal: Goal, sb: SupabaseClient): Promise<Goal> {
+  const [hydratedGoal] = await hydrateGoalRollupCounts([goal], sb);
   return hydratedGoal;
 }
 
@@ -528,8 +531,10 @@ export const goalService = {
       areaId?: string;
       status?: GoalStatusFilter;
     } = {},
+    options?: ServiceOptions,
   ): Promise<Goal[]> {
-    let query = createClient()
+    const sb = options?.supabase ?? createClient();
+    let query = sb
       .from("goals")
       .select(GOAL_SELECT)
       .eq("user_id", userId);
@@ -558,9 +563,9 @@ export const goalService = {
 
     const rawGoals = data || [];
     const [goalsWithAreas, goalsWithProgress, goalsWithRollups] = await Promise.all([
-      hydrateGoalAreaLinks(rawGoals),
-      hydrateGoalProgress(rawGoals),
-      hydrateGoalRollupCounts(rawGoals),
+      hydrateGoalAreaLinks(rawGoals, sb),
+      hydrateGoalProgress(rawGoals, sb),
+      hydrateGoalRollupCounts(rawGoals, sb),
     ]);
 
     let goals = goalsWithAreas.map((goal, i) => ({
@@ -579,8 +584,9 @@ export const goalService = {
     return goals;
   },
 
-  async getById(userId: string, id: string): Promise<Goal> {
-    const { data, error } = await createClient()
+  async getById(userId: string, id: string, options?: ServiceOptions): Promise<Goal> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("goals")
       .select(GOAL_SELECT)
       .eq("user_id", userId)
@@ -595,13 +601,14 @@ export const goalService = {
       throw new DatabaseError(error.message);
     }
 
-    const areaHydrated = await hydrateSingleGoalAreaLinks(data);
-    const [progressHydrated] = await hydrateGoalProgress([areaHydrated]);
-    return hydrateSingleGoalRollupCounts(progressHydrated);
+    const areaHydrated = await hydrateSingleGoalAreaLinks(data, sb);
+    const [progressHydrated] = await hydrateGoalProgress([areaHydrated], sb);
+    return hydrateSingleGoalRollupCounts(progressHydrated, sb);
   },
 
-  async getBySlug(userId: string, slug: string): Promise<Goal> {
-    const { data, error } = await createClient()
+  async getBySlug(userId: string, slug: string, options?: ServiceOptions): Promise<Goal> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("goals")
       .select(GOAL_SELECT)
       .eq("user_id", userId)
@@ -615,14 +622,14 @@ export const goalService = {
       throw new DatabaseError(error.message);
     }
 
-    const areaHydrated = await hydrateSingleGoalAreaLinks(data);
-    const [progressHydrated] = await hydrateGoalProgress([areaHydrated]);
-    return hydrateSingleGoalRollupCounts(progressHydrated);
+    const areaHydrated = await hydrateSingleGoalAreaLinks(data, sb);
+    const [progressHydrated] = await hydrateGoalProgress([areaHydrated], sb);
+    return hydrateSingleGoalRollupCounts(progressHydrated, sb);
   },
 
-  async getByIdentifier(userId: string, identifier: string): Promise<Goal> {
+  async getByIdentifier(userId: string, identifier: string, options?: ServiceOptions): Promise<Goal> {
     try {
-      return await this.getBySlug(userId, identifier);
+      return await this.getBySlug(userId, identifier, options);
     } catch (error) {
       if (!(error instanceof NotFoundError)) {
         throw error;
@@ -633,17 +640,18 @@ export const goalService = {
       throw new NotFoundError("Goal", identifier);
     }
 
-    return this.getById(userId, identifier);
+    return this.getById(userId, identifier, options);
   },
 
-  async create(userId: string, input: CreateGoalInput): Promise<Goal> {
+  async create(userId: string, input: CreateGoalInput, options?: ServiceOptions): Promise<Goal> {
+    const sb = options?.supabase ?? createClient();
     const validated = createGoalSchema.parse(input);
     const { areaIds, goalInput } = extractGoalAreaIds(validated);
 
     const baseSlug = validated.slug ?? generateSlug(validated.name);
-    const slug = await this.generateUniqueSlug(userId, baseSlug);
+    const slug = await this.generateUniqueSlug(userId, baseSlug, options);
 
-    const { data, error } = await createClient()
+    const { data, error } = await sb
       .from("goals")
       .insert({ ...goalInput, user_id: userId, slug })
       .select(GOAL_SELECT)
@@ -657,18 +665,19 @@ export const goalService = {
     }
 
     if (areaIds?.length) {
-      await this.replaceAreaLinks(userId, data.id, areaIds);
+      await this.replaceAreaLinks(userId, data.id, areaIds, options);
     }
 
-    return hydrateSingleGoalAreaLinks(data);
+    return hydrateSingleGoalAreaLinks(data, sb);
   },
 
-  async generateUniqueSlug(userId: string, baseSlug: string): Promise<string> {
+  async generateUniqueSlug(userId: string, baseSlug: string, options?: ServiceOptions): Promise<string> {
+    const sb = options?.supabase ?? createClient();
     let slug = baseSlug;
     let counter = 1;
 
     while (true) {
-      const exists = await createClient()
+      const exists = await sb
         .from("goals")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
@@ -684,7 +693,8 @@ export const goalService = {
     }
   },
 
-  async update(userId: string, id: string, input: UpdateGoalInput): Promise<Goal> {
+  async update(userId: string, id: string, input: UpdateGoalInput, options?: ServiceOptions): Promise<Goal> {
+    const sb = options?.supabase ?? createClient();
     const validated = updateGoalSchema.parse(input);
     const { areaIds, goalInput } = extractGoalAreaIds(validated);
     let nextInput = goalInput;
@@ -692,12 +702,12 @@ export const goalService = {
     if (goalInput.is_completed === true && goalInput.progress === undefined) {
       nextInput = { ...goalInput, progress: 100 };
     } else if (goalInput.is_completed === false && goalInput.progress === undefined) {
-      const currentGoal = await this.getById(userId, id);
+      const currentGoal = await this.getById(userId, id, options);
       const reopenedGoal = await hydrateSingleGoalProgress({
         ...currentGoal,
         is_completed: false,
         progress: 0,
-      });
+      }, sb);
       nextInput = {
         ...goalInput,
         progress: reopenedGoal.progress,
@@ -706,14 +716,14 @@ export const goalService = {
 
     const hasGoalUpdates = Object.keys(nextInput).length > 0;
     const { data, error } = hasGoalUpdates
-      ? await createClient()
+      ? await sb
           .from("goals")
           .update(nextInput)
           .eq("user_id", userId)
           .eq("id", id)
           .select(GOAL_SELECT)
           .single()
-      : { data: await this.getById(userId, id), error: null };
+      : { data: await this.getById(userId, id, options), error: null };
 
     if (error) {
       if (error.code === "PGRST116") {
@@ -724,24 +734,26 @@ export const goalService = {
     }
 
     if (areaIds !== undefined) {
-      await this.replaceAreaLinks(userId, id, areaIds);
+      await this.replaceAreaLinks(userId, id, areaIds, options);
     }
 
     return hydrateSingleGoalRollupCounts(
-      await hydrateSingleGoalAreaLinks(await hydrateSingleGoalProgress(data)),
+      await hydrateSingleGoalAreaLinks(await hydrateSingleGoalProgress(data, sb), sb),
+      sb,
     );
   },
 
-  async countByArea(userId: string, areaId: string): Promise<number> {
+  async countByArea(userId: string, areaId: string, options?: ServiceOptions): Promise<number> {
+    const sb = options?.supabase ?? createClient();
     const [{ data: primaryGoals, error: primaryError }, { data: linkedGoals, error: linkedError }] =
       await Promise.all([
-        createClient()
+        sb
           .from("goals")
           .select("id")
           .eq("user_id", userId)
           .eq("area_id", areaId)
           .eq("is_archived", false),
-        createClient()
+        sb
           .from("goal_areas")
           .select("goal_id, goal:goals!inner(id, user_id, is_archived)")
           .eq("area_id", areaId),
@@ -770,16 +782,17 @@ export const goalService = {
     return goalIds.size;
   },
 
-  async getLinkedAreaIds(goalId: string): Promise<string[]> {
+  async getLinkedAreaIds(goalId: string, options?: ServiceOptions): Promise<string[]> {
+    const sb = options?.supabase ?? createClient();
     try {
-      const { data, error } = await createClient()
+      const { data, error } = await sb
         .from("goal_areas")
         .select("area_id")
         .eq("goal_id", goalId);
 
       if (error) {
         if (isMissingGoalAreasTableError(error)) {
-          const { data: goalData, error: goalError } = await createClient()
+          const { data: goalData, error: goalError } = await sb
             .from("goals")
             .select("area_id")
             .eq("id", goalId)
@@ -798,7 +811,7 @@ export const goalService = {
       return dedupeAreaIds((data ?? []).map((row) => row.area_id));
     } catch (error) {
       if (isMissingGoalAreasTableError(error)) {
-        const { data: goalData, error: goalError } = await createClient()
+        const { data: goalData, error: goalError } = await sb
           .from("goals")
           .select("area_id")
           .eq("id", goalId)
@@ -815,10 +828,11 @@ export const goalService = {
     }
   },
 
-  async replaceAreaLinks(userId: string, goalId: string, areaIds: string[]): Promise<void> {
+  async replaceAreaLinks(userId: string, goalId: string, areaIds: string[], options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
     const normalizedAreaIds = dedupeAreaIds(areaIds);
 
-    const { error: updateError } = await createClient()
+    const { error: updateError } = await sb
       .from("goals")
       .update({ area_id: normalizedAreaIds[0] ?? null })
       .eq("user_id", userId)
@@ -829,7 +843,7 @@ export const goalService = {
     }
 
     try {
-      const { error: deleteError } = await createClient()
+      const { error: deleteError } = await sb
         .from("goal_areas")
         .delete()
         .eq("goal_id", goalId);
@@ -854,7 +868,7 @@ export const goalService = {
     }
 
     try {
-      const { error: insertError } = await createClient()
+      const { error: insertError } = await sb
         .from("goal_areas")
         .insert(
           normalizedAreaIds.map((area_id) => ({
@@ -879,22 +893,23 @@ export const goalService = {
     }
   },
 
-  async linkToArea(userId: string, goalId: string, areaId: string): Promise<Goal> {
-    const goal = await this.getById(userId, goalId);
+  async linkToArea(userId: string, goalId: string, areaId: string, options?: ServiceOptions): Promise<Goal> {
+    const goal = await this.getById(userId, goalId, options);
     const nextAreaIds = dedupeAreaIds([...getGoalLinkedAreaIds(goal), areaId]);
-    await this.replaceAreaLinks(userId, goalId, nextAreaIds);
-    return this.getById(userId, goalId);
+    await this.replaceAreaLinks(userId, goalId, nextAreaIds, options);
+    return this.getById(userId, goalId, options);
   },
 
-  async unlinkFromArea(userId: string, goalId: string, areaId: string): Promise<Goal> {
-    const goal = await this.getById(userId, goalId);
+  async unlinkFromArea(userId: string, goalId: string, areaId: string, options?: ServiceOptions): Promise<Goal> {
+    const goal = await this.getById(userId, goalId, options);
     const nextAreaIds = getGoalLinkedAreaIds(goal).filter((linkedAreaId) => linkedAreaId !== areaId);
-    await this.replaceAreaLinks(userId, goalId, nextAreaIds);
-    return this.getById(userId, goalId);
+    await this.replaceAreaLinks(userId, goalId, nextAreaIds, options);
+    return this.getById(userId, goalId, options);
   },
 
-  async delete(userId: string, id: string): Promise<void> {
-    const { error } = await createClient()
+  async delete(userId: string, id: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const { error } = await sb
       .from("goals")
       .delete()
       .eq("user_id", userId)
@@ -905,11 +920,11 @@ export const goalService = {
     }
   },
 
-  async archive(userId: string, id: string): Promise<Goal> {
-    return this.update(userId, id, { is_archived: true });
+  async archive(userId: string, id: string, options?: ServiceOptions): Promise<Goal> {
+    return this.update(userId, id, { is_archived: true }, options);
   },
 
-  async restore(userId: string, id: string): Promise<Goal> {
-    return this.update(userId, id, { is_archived: false });
+  async restore(userId: string, id: string, options?: ServiceOptions): Promise<Goal> {
+    return this.update(userId, id, { is_archived: false }, options);
   },
 };

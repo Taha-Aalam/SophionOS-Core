@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "../supabase/client";
 import type { Area, CreateAreaInput, UpdateAreaInput } from "../types/domain.types";
 import { createAreaSchema, updateAreaSchema } from "../validators/area.schema";
@@ -5,6 +6,8 @@ import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
 import { normalizeAreaType } from "../utils/areas";
 import { LIST_SAFETY_CAP } from "../utils/constants";
+
+type ServiceOptions = { supabase?: SupabaseClient };
 
 const AREA_SELECT =
   "id, user_id, name, description, icon, color, type, metadata, inactive, archive, slug, created_at, updated_at";
@@ -36,9 +39,11 @@ export const areaService = {
   async list(
     userId?: string,
     filters?: { inactive?: boolean; archive?: boolean },
+    options?: ServiceOptions,
   ): Promise<AreaSelect[]> {
+    const sb = options?.supabase ?? createClient();
     const { inactive, archive } = filters ?? {};
-    let query = createClient()
+    let query = sb
       .from("areas")
       .select(AREA_SELECT)
       .order("created_at", { ascending: false });
@@ -61,9 +66,13 @@ export const areaService = {
     return (data as AreaSelect[]) || [];
   },
 
-  async getByIdentifier(userId: string, identifier: string): Promise<AreaSelect> {
+  async getByIdentifier(
+    userId: string,
+    identifier: string,
+    options?: ServiceOptions,
+  ): Promise<AreaSelect> {
     try {
-      return await this.getBySlug(userId, identifier);
+      return await this.getBySlug(userId, identifier, options);
     } catch (error) {
       if (!(error instanceof NotFoundError)) {
         throw error;
@@ -74,11 +83,15 @@ export const areaService = {
       }
     }
 
-    return this.getById(userId, identifier);
+    return this.getById(userId, identifier, options);
   },
 
-  async getGroupedByType(userId: string): Promise<{ type: string; areas: AreaSelect[] }[]> {
-    const { data, error } = await createClient()
+  async getGroupedByType(
+    userId: string,
+    options?: ServiceOptions,
+  ): Promise<{ type: string; areas: AreaSelect[] }[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("areas")
       .select(AREA_SELECT)
       .eq("user_id", userId)
@@ -107,8 +120,13 @@ export const areaService = {
       .sort((a, b) => a.type.localeCompare(b.type));
   },
 
-  async getById(userId: string, id: string): Promise<AreaSelect> {
-    const { data, error } = await createClient()
+  async getById(
+    userId: string,
+    id: string,
+    options?: ServiceOptions,
+  ): Promise<AreaSelect> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("areas")
       .select(AREA_SELECT)
       .eq("user_id", userId)
@@ -125,8 +143,13 @@ export const areaService = {
     return data as AreaSelect;
   },
 
-  async getBySlug(userId: string, slug: string): Promise<AreaSelect> {
-    const { data, error } = await createClient()
+  async getBySlug(
+    userId: string,
+    slug: string,
+    options?: ServiceOptions,
+  ): Promise<AreaSelect> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("areas")
       .select(AREA_SELECT)
       .eq("user_id", userId)
@@ -143,7 +166,12 @@ export const areaService = {
     return data as AreaSelect;
   },
 
-  async create(userId: string, input: CreateAreaInput): Promise<AreaSelect> {
+  async create(
+    userId: string,
+    input: CreateAreaInput,
+    options?: ServiceOptions,
+  ): Promise<AreaSelect> {
+    const sb = options?.supabase ?? createClient();
     const validated = createAreaSchema.parse(input);
     const normalizedType = normalizeAreaType(validated.type);
 
@@ -151,7 +179,7 @@ export const areaService = {
       validated.slug = generateSlug(validated.name);
     }
 
-    const { data, error } = await createClient()
+    const { data, error } = await sb
       .from("areas")
       .insert({ ...validated, type: normalizedType, user_id: userId })
       .select(AREA_SELECT)
@@ -164,7 +192,13 @@ export const areaService = {
     return data as AreaSelect;
   },
 
-  async update(userId: string, id: string, input: UpdateAreaInput): Promise<AreaSelect> {
+  async update(
+    userId: string,
+    id: string,
+    input: UpdateAreaInput,
+    options?: ServiceOptions,
+  ): Promise<AreaSelect> {
+    const sb = options?.supabase ?? createClient();
     const validated = updateAreaSchema.parse(input);
     const nextType = validated.type ? normalizeAreaType(validated.type) : undefined;
 
@@ -172,7 +206,7 @@ export const areaService = {
       validated.slug = generateSlug(validated.name);
     }
 
-    const { data, error } = await createClient()
+    const { data, error } = await sb
       .from("areas")
       .update({
         ...validated,
@@ -193,8 +227,13 @@ export const areaService = {
     return data as AreaSelect;
   },
 
-  async restore(userId: string, id: string): Promise<AreaSelect> {
-    const { data, error } = await createClient()
+  async restore(
+    userId: string,
+    id: string,
+    options?: ServiceOptions,
+  ): Promise<AreaSelect> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("areas")
       .update({ archive: false })
       .eq("user_id", userId)
@@ -212,8 +251,13 @@ export const areaService = {
     return data as AreaSelect;
   },
 
-  async archive(userId: string, id: string): Promise<AreaSelect> {
-    const { data, error } = await createClient()
+  async archive(
+    userId: string,
+    id: string,
+    options?: ServiceOptions,
+  ): Promise<AreaSelect> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("areas")
       .update({ archive: true })
       .eq("user_id", userId)
@@ -231,10 +275,15 @@ export const areaService = {
     return data as AreaSelect;
   },
 
-  async listByIds(userId: string, ids: string[]): Promise<AreaSelect[]> {
+  async listByIds(
+    userId: string,
+    ids: string[],
+    options?: ServiceOptions,
+  ): Promise<AreaSelect[]> {
     if (!ids.length) return [];
 
-    const { data, error } = await createClient()
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("areas")
       .select(AREA_SELECT)
       .eq("user_id", userId)
@@ -247,8 +296,9 @@ export const areaService = {
     return (data as AreaSelect[]) || [];
   },
 
-  async delete(userId: string, id: string): Promise<void> {
-    const { error } = await createClient()
+  async delete(userId: string, id: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const { error } = await sb
       .from("areas")
       .delete()
       .eq("user_id", userId)
