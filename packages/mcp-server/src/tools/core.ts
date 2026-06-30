@@ -1,0 +1,353 @@
+/**
+ * Core PARA MCP tools — Areas, Goals, Projects, Tasks.
+ *
+ * Tool descriptions are written for model consumption: they state when to use
+ * the tool and how verbs map onto the shipped REST endpoints (which lack some
+ * of the convenience routes the roadmap originally imagined).
+ */
+
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import * as z from "zod/v4";
+import type { LifeOSClient } from "../client.js";
+import { jsonResult, runTool, type ToolTextResult } from "../utils.js";
+
+export function registerCoreTools(
+  server: McpServer,
+  client: LifeOSClient,
+): void {
+  // ---- AREAS --------------------------------------------------------------
+
+  server.registerTool(
+    "list_areas",
+    {
+      title: "List Areas",
+      description:
+        "List the user's PARA Areas (life/work domains such as Health, Work, Finances). Use ?grouped to group by type, or filter by inactive/archived state. Returns a paginated list.",
+      inputSchema: {
+        grouped: z.boolean().optional().describe("Group areas by their type."),
+        inactive: z
+          .boolean()
+          .optional()
+          .describe("Include only areas with no active linked items."),
+        archive: z
+          .boolean()
+          .optional()
+          .describe("Return archived areas instead of active ones."),
+        type: z.string().optional().describe("Filter by area type name."),
+        page: z.number().int().min(1).optional(),
+        pageSize: z.number().int().min(1).max(200).optional(),
+      },
+    },
+    async (args): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.areas.list(args))),
+  );
+
+  server.registerTool(
+    "create_area",
+    {
+      title: "Create Area",
+      description:
+        "Create a new PARA Area. An area is a broad ongoing life or work domain (not a one-off task). Provide a name and optionally a type, description, icon, or color.",
+      inputSchema: {
+        name: z.string().min(1).max(100).describe("Area name."),
+        type: z
+          .string()
+          .optional()
+          .describe('Area type, e.g. "Personal", "Business". Defaults to Personal.'),
+        description: z.string().optional(),
+        icon: z.string().optional(),
+        color: z.string().optional().describe("Hex color."),
+      },
+    },
+    async (args): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.areas.create(args))),
+  );
+
+  server.registerTool(
+    "archive_area",
+    {
+      title: "Archive Area",
+      description:
+        "Archive an area (user-initiated, moves it to long-term storage). Distinct from auto-inactive, which is computed from linked items.",
+      inputSchema: { id: z.string().describe("Area id or slug.") },
+      annotations: { idempotentHint: true },
+    },
+    async ({ id }): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.areas.archive(id))),
+  );
+
+  server.registerTool(
+    "restore_area",
+    {
+      title: "Restore Area",
+      description:
+        "Restore an archived area. Its active/inactive state is then recomputed from its linked items.",
+      inputSchema: { id: z.string().describe("Area id or slug.") },
+      annotations: { idempotentHint: true },
+    },
+    async ({ id }): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.areas.restore(id))),
+  );
+
+  // ---- GOALS --------------------------------------------------------------
+
+  server.registerTool(
+    "list_goals",
+    {
+      title: "List Goals",
+      description:
+        "List the user's Goals. Filter by term (short/mid/long), status, area, or priority. Returns a paginated list.",
+      inputSchema: {
+        term: z
+          .enum(["short", "mid", "long"])
+          .optional()
+          .describe("Goal time horizon."),
+        status: z.string().optional(),
+        area_id: z.string().optional(),
+        priority: z.string().optional(),
+        completed: z.boolean().optional(),
+        archive: z.boolean().optional(),
+        inactive: z.boolean().optional(),
+        page: z.number().int().min(1).optional(),
+        pageSize: z.number().int().min(1).max(200).optional(),
+      },
+    },
+    async (args): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.goals.list(args))),
+  );
+
+  server.registerTool(
+    "get_goal_detail",
+    {
+      title: "Get Goal Detail",
+      description:
+        "Get a single goal with its hydrated progress and rollup counts (its 'command center' view). Accepts a goal id or slug.",
+      inputSchema: { id: z.string().describe("Goal id or slug.") },
+    },
+    async ({ id }): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.goals.get(id))),
+  );
+
+  server.registerTool(
+    "create_goal",
+    {
+      title: "Create Goal",
+      description:
+        "Create a new Goal. Requires a name and a term (short/mid/long). Optionally link to an area, set priority, or a future target date.",
+      inputSchema: {
+        name: z.string().min(1).max(100),
+        term: z.enum(["short", "mid", "long"]).describe("Time horizon."),
+        area_id: z.string().optional(),
+        area_ids: z.array(z.string()).optional(),
+        description: z.string().optional(),
+        priority: z.string().optional().describe("Defaults to medium."),
+        target_date: z
+          .string()
+          .optional()
+          .describe("ISO date; must be in the future."),
+      },
+    },
+    async (args): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.goals.create(args))),
+  );
+
+  server.registerTool(
+    "update_goal",
+    {
+      title: "Update Goal",
+      description:
+        "Update fields on an existing goal (name, description, priority, term, target_date, progress, completion/archive flags).",
+      inputSchema: {
+        id: z.string(),
+        name: z.string().min(1).max(100).optional(),
+        description: z.string().optional(),
+        priority: z.string().optional(),
+        term: z.enum(["short", "mid", "long"]).optional(),
+        target_date: z.string().optional(),
+        progress: z.number().optional(),
+        is_completed: z.boolean().optional(),
+        is_archived: z.boolean().optional(),
+      },
+    },
+    async ({ id, ...body }): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.goals.update(id, body))),
+  );
+
+  // ---- PROJECTS -----------------------------------------------------------
+
+  server.registerTool(
+    "list_projects",
+    {
+      title: "List Projects",
+      description:
+        "List the user's Projects. Filter by status (including 'inbox'), area, goal, or linked contact. Use group_by to group by area or status. Returns a paginated list.",
+      inputSchema: {
+        status: z.string().optional(),
+        area_id: z.string().optional(),
+        goal_id: z.string().optional(),
+        contact_id: z.string().optional(),
+        archive: z.boolean().optional(),
+        group_by: z.enum(["area", "status"]).optional(),
+        page: z.number().int().min(1).optional(),
+        pageSize: z.number().int().min(1).max(200).optional(),
+      },
+    },
+    async (args): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.projects.list(args))),
+  );
+
+  server.registerTool(
+    "get_project",
+    {
+      title: "Get Project",
+      description:
+        "Get a single project with its relations and progress (task count, linked areas/goals/contacts).",
+      inputSchema: { id: z.string().describe("Project id or slug.") },
+    },
+    async ({ id }): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.projects.get(id))),
+  );
+
+  server.registerTool(
+    "create_project",
+    {
+      title: "Create Project",
+      description:
+        "Create a new Project (a time-bound effort with an outcome). Optionally link to areas and goals, set status, priority, and start/due dates.",
+      inputSchema: {
+        name: z.string().min(1).max(100),
+        area_id: z.string().optional(),
+        area_ids: z.array(z.string()).optional(),
+        goal_ids: z.array(z.string()).optional(),
+        description: z.string().optional(),
+        status: z.string().optional(),
+        priority: z.string().optional(),
+        start_date: z.string().optional(),
+        due_date: z.string().optional().describe("ISO date; not in the past."),
+      },
+    },
+    async (args): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.projects.create(args))),
+  );
+
+  server.registerTool(
+    "update_project",
+    {
+      title: "Update Project",
+      description:
+        "Update fields on an existing project (name, description, status, priority, dates, progress).",
+      inputSchema: {
+        id: z.string(),
+        name: z.string().min(1).max(100).optional(),
+        description: z.string().optional(),
+        status: z.string().optional(),
+        priority: z.string().optional(),
+        start_date: z.string().optional(),
+        due_date: z.string().optional(),
+        progress: z.number().min(0).max(100).optional(),
+      },
+    },
+    async ({ id, ...body }): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.projects.update(id, body))),
+  );
+
+  // ---- TASKS --------------------------------------------------------------
+
+  server.registerTool(
+    "list_tasks",
+    {
+      title: "List Tasks",
+      description:
+        "List the user's Tasks. Rich filtering: status, priority, area/project/goal/contact, focused, overdue, upcoming, due-date range. Pass sort='smart-priority' to order by the smart-priority score (most important first).",
+      inputSchema: {
+        status: z.string().optional(),
+        priority: z.string().optional(),
+        area_id: z.string().optional(),
+        project_id: z.string().optional(),
+        goal_id: z.string().optional(),
+        contact_id: z.string().optional(),
+        focused: z.boolean().optional(),
+        overdue: z.boolean().optional(),
+        upcoming: z.boolean().optional(),
+        due_date_from: z.string().optional(),
+        due_date_to: z.string().optional(),
+        sort: z
+          .string()
+          .optional()
+          .describe("Use 'smart-priority' to sort by importance."),
+        page: z.number().int().min(1).optional(),
+        pageSize: z.number().int().min(1).max(200).optional(),
+      },
+    },
+    async (args): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.tasks.list(args))),
+  );
+
+  server.registerTool(
+    "create_task",
+    {
+      title: "Create Task",
+      description:
+        "Create a new Task. Optionally link to areas/projects/goals, set priority, due date, focus/important flags, or recurrence (recurring tasks require due_date + repeat_every + repeat_cycle).",
+      inputSchema: {
+        name: z.string().min(1).max(255),
+        area_id: z.string().optional(),
+        area_ids: z.array(z.string()).optional(),
+        project_id: z.string().optional(),
+        project_ids: z.array(z.string()).optional(),
+        goal_ids: z.array(z.string()).optional(),
+        description: z.string().optional(),
+        status: z.string().optional(),
+        priority: z.string().optional().describe("Defaults to medium."),
+        due_date: z.string().optional().describe("ISO date; in the future."),
+        is_focused: z.boolean().optional(),
+        is_important: z.boolean().optional(),
+        is_recurring: z.boolean().optional(),
+        repeat_every: z.number().int().optional(),
+        repeat_cycle: z.string().optional().describe("e.g. day/week/month."),
+      },
+    },
+    async (args): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.tasks.create(args))),
+  );
+
+  server.registerTool(
+    "update_task",
+    {
+      title: "Update Task",
+      description:
+        "Update fields on an existing task. Use this to toggle focus ({is_focused}), change status, priority, due date, or rename. To mark a task done, prefer complete_task.",
+      inputSchema: {
+        id: z.string(),
+        name: z.string().min(1).max(255).optional(),
+        description: z.string().optional(),
+        status: z.string().optional(),
+        priority: z.string().optional(),
+        due_date: z.string().optional(),
+        is_focused: z.boolean().optional(),
+        is_important: z.boolean().optional(),
+        is_completed: z.boolean().optional(),
+      },
+    },
+    async ({ id, ...body }): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.tasks.update(id, body))),
+  );
+
+  server.registerTool(
+    "complete_task",
+    {
+      title: "Complete Task",
+      description:
+        "Mark one or more tasks as complete. Completing a task updates its parent project's progress. Pass one id or several.",
+      inputSchema: {
+        ids: z
+          .array(z.string())
+          .min(1)
+          .describe("One or more task ids to complete."),
+      },
+      annotations: { idempotentHint: true },
+    },
+    async ({ ids }): Promise<ToolTextResult> =>
+      runTool(async () => jsonResult(await client.tasks.bulkComplete(ids))),
+  );
+}
