@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TopicDetailSkeleton } from "@/components/entities/detail-skeletons";
 import {
   Dialog,
   DialogContent,
@@ -247,56 +247,7 @@ export function TopicDetailContent() {
   }, [resources, resourceTab]);
 
   if (topicLoading) {
-    return (
-      <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-        {/* Breadcrumb skeleton */}
-        <div className="flex items-center gap-2">
-          <Skeleton className="size-6 rounded" />
-          <Skeleton className="h-4 w-12" />
-          <Skeleton className="h-4 w-12" />
-          <Skeleton className="h-4 w-24" />
-        </div>
-        {/* Header card skeleton */}
-        <div className="rounded-xl border bg-card">
-          <div className="flex items-start justify-between gap-4 p-6">
-            <div className="flex items-start gap-4">
-              <Skeleton className="w-14 h-14 rounded-xl" />
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-48" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-5 w-20 rounded-md" />
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* Rollup counts */}
-          <div className="flex flex-wrap items-center gap-4 px-6 pb-4">
-            <Skeleton className="h-7 w-20 rounded-lg" />
-            <Skeleton className="h-7 w-24 rounded-lg" />
-          </div>
-        </div>
-        {/* Notes section skeleton */}
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-32" />
-          <div className="flex gap-2">
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-7 w-20 rounded-md" />
-            ))}
-          </div>
-          <Skeleton className="h-32 w-full rounded-lg" />
-        </div>
-        {/* Resources section skeleton */}
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-32" />
-          <div className="flex gap-2">
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-7 w-20 rounded-md" />
-            ))}
-          </div>
-          <Skeleton className="h-32 w-full rounded-lg" />
-        </div>
-      </div>
-    );
+    return <TopicDetailSkeleton />;
   }
 
   if (!topic) {
