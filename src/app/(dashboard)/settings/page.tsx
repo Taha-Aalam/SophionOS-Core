@@ -1,6 +1,8 @@
-import { Mail, Palette, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { Mail, Palette, Plug, ShieldCheck } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { McpCardProBadge } from "./mcp-card-pro-badge";
 
 const settingsCards = [
   {
@@ -30,6 +32,27 @@ export default function SettingsPage() {
           for a later batch.
         </p>
       </div>
+
+      <Link href="/settings/mcp" className="block">
+        <Card className="transition-colors hover:border-primary/50">
+          <CardHeader className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Plug className="size-5 text-primary" />
+              <McpCardProBadge />
+            </div>
+            <div className="space-y-1">
+              <CardTitle className="text-base">MCP Server</CardTitle>
+              <CardDescription>
+                Connect LifeOS to Claude Desktop, Claude Code, Cursor, and other
+                AI clients. Manage API keys and copy setup configs.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="text-sm text-primary">
+            Open MCP settings →
+          </CardContent>
+        </Card>
+      </Link>
 
       <div className="grid gap-4 md:grid-cols-3">
         {settingsCards.map((card) => (

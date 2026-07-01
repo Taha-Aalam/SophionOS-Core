@@ -3,6 +3,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { formatValidationMessage } from "@/lib/api/error-handler";
+import { isEntityLimitError, ENTITY_LIMIT_MESSAGE } from "@/lib/entity-limit";
 import { resourceService } from "@/lib/services/resource.service";
 import { TOPICS_QUERY_KEY } from "@/lib/hooks/use-topics";
 import { AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-area-detail";
@@ -197,7 +198,11 @@ export function useCreateResource() {
       toast.success("Resource created");
     },
     onError: (error: Error) => {
-      toast.error(formatValidationMessage(error) || "Failed to create resource");
+      toast.error(
+        isEntityLimitError(error)
+          ? ENTITY_LIMIT_MESSAGE
+          : formatValidationMessage(error) || "Failed to create resource",
+      );
     },
   });
 }
@@ -214,7 +219,11 @@ export function useCreateResourceWithGoal(goalId: string) {
       toast.success("Resource created");
     },
     onError: (error: Error) => {
-      toast.error(formatValidationMessage(error) || "Failed to create resource");
+      toast.error(
+        isEntityLimitError(error)
+          ? ENTITY_LIMIT_MESSAGE
+          : formatValidationMessage(error) || "Failed to create resource",
+      );
     },
   });
 }

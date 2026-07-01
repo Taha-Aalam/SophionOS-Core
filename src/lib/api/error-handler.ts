@@ -65,3 +65,32 @@ export class ForbiddenError extends AppError {
     super(message, 403, 'FORBIDDEN');
   }
 }
+
+/**
+ * Free-tier entity cap (100) was hit. The DB enforces the cap via a BEFORE
+ * INSERT trigger that does `RAISE EXCEPTION 'ENTITY_LIMIT_REACHED'` (ERRCODE
+ * P0001); `mapDatabaseError` below converts that pg error into this class so
+ * the API returns a 403 with an actionable publicMessage instead of a raw 500.
+ */
+export class EntityLimitError extends AppError {
+  constructor(
+    message: string = "You've hit the 100-item Free limit — upgrade to Pro for unlimited items.",
+  ) {
+    super(message, 403, 'ENTITY_LIMIT_REACHED');
+  }
+}
+
+/**
+ * Translate a supabase-js / pg insert error into a typed AppError. Detects the
+ * entity-cap trigger's `ENTITY_LIMIT_REACHED` raise (matched on the message,
+ * since PostgREST surfaces the RAISEd text) and maps it to EntityLimitError;
+ * any other error becomes a generic DatabaseError. Service create() paths call
+ * this so the cap surfaces as a friendly 403, not a 500.
+ */
+export function mapDatabaseError(error: { message?: string; code?: string } | null | undefined): AppError {
+  const message = error?.message ?? '';
+  if (message.includes('ENTITY_LIMIT_REACHED')) {
+    return new EntityLimitError();
+  }
+  return new DatabaseError(message || undefined);
+}

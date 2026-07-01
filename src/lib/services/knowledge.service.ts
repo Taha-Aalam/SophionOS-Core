@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "../supabase/client";
 import type { Note, Resource } from "../types/domain.types";
 import { topicService, type TopicWithCounts } from "./topic.service";
@@ -5,6 +6,8 @@ import { topicService, type TopicWithCounts } from "./topic.service";
 // Deliberately omits `content` (large TipTap JSON/text): search results render
 // name + metadata only via NoteRow, and clicking through re-fetches the full
 // note on its detail page. Pulling content here only bloats the search payload.
+
+type ServiceOptions = { supabase?: SupabaseClient };
 const NOTE_SELECT =
   "id, user_id, area_id, project_id, topic_id, name, slug, type, status, favorite, pin, is_archived, metadata, created_at, updated_at";
 const RESOURCE_SELECT =
@@ -20,7 +23,12 @@ export interface KnowledgeSearchResults {
 }
 
 export const knowledgeService = {
-  async search(userId: string, query: string): Promise<KnowledgeSearchResults> {
+  async search(
+    userId: string,
+    query: string,
+    options?: ServiceOptions,
+  ): Promise<KnowledgeSearchResults> {
+    const sb = options?.supabase ?? createClient();
     const q = query.trim();
     if (!q) {
       return {
@@ -34,7 +42,7 @@ export const knowledgeService = {
     const p = `%${q}%`;
 
     const [nr, rr, tr] = await Promise.all([
-      createClient()
+      sb
         .from("notes")
         .select(NOTE_SELECT)
         .eq("user_id", userId)
@@ -42,7 +50,7 @@ export const knowledgeService = {
         .ilike("name", p)
         .order("updated_at", { ascending: false })
         .limit(20),
-      createClient()
+      sb
         .from("resources")
         .select(RESOURCE_SELECT)
         .eq("user_id", userId)
@@ -50,7 +58,7 @@ export const knowledgeService = {
         .or(`name.ilike.${p},url.ilike.${p}`)
         .order("updated_at", { ascending: false })
         .limit(20),
-      createClient()
+      sb
         .from("topics")
         .select(TOPIC_SELECT)
         .eq("user_id", userId)

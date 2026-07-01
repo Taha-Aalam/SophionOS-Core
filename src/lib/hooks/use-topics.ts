@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { noteService } from "@/lib/services/note.service";
 import { resourceService } from "@/lib/services/resource.service";
 import { topicService, type TopicWithCounts } from "@/lib/services/topic.service";
+import { entityLimitToastMessage } from "@/lib/entity-limit";
 import type { CreateTopicInput, UpdateTopicInput } from "@/lib/types/domain.types";
 
 export const TOPICS_QUERY_KEY = "topics";
@@ -106,7 +107,7 @@ export function useCreateTopic() {
       toast.success("Topic created");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to create topic");
+      toast.error(entityLimitToastMessage(error, "Failed to create topic"));
     },
   });
 }
