@@ -141,59 +141,19 @@
 - Modify: `src/lib/services/onboarding.service.ts`
 - Test: `tests/unit/onboarding-route-guards.test.ts`
 
-- [ ] **Step 1: Write failing guard tests for first-run vs returning-user routing**
+- [x] **Step 1: Write failing guard tests for first-run vs returning-user routing** — tests/unit/onboarding-route-guards.test.ts (6 cases)
 
-```ts
-it("redirects incomplete users from /dashboard to /onboarding", async () => {
-  expect(await resolveDashboardDestination({ completed: false })).toBe("/onboarding");
-});
+- [x] **Step 2: Run the guard tests to verify the redirect logic does not exist** — FAIL (module missing)
 
-it("redirects completed users away from /onboarding to /dashboard", async () => {
-  expect(await resolveOnboardingDestination({ completed: true })).toBe("/dashboard");
-});
-```
+- [x] **Step 3: Add a server-side onboarding gate before the dashboard shell renders** — (dashboard)/layout.tsx fetches state + resolveDashboardDestination + redirect
 
-- [ ] **Step 2: Run the guard tests to verify the redirect logic does not exist**
+- [x] **Step 4: Add the mirrored onboarding-page redirect for completed users** — onboarding/{layout,page,onboarding-content(placeholder)}.tsx; resolveOnboardingDestination
 
-Run: `node node_modules/vitest/vitest.mjs run tests/unit/onboarding-route-guards.test.ts`
-Expected: FAIL
+- [x] **Step 5: Keep `AuthProvider` focused on idempotent bootstrap only** — already seed/provision only; added clarifying comment
 
-- [ ] **Step 3: Add a server-side onboarding gate before the dashboard shell renders**
+- [x] **Step 6: Re-run the onboarding guard tests** — 6 passed
 
-```tsx
-const onboarding = await userSettingsService.getOnboardingState(userId, { supabase });
-if (userId && !onboarding?.completed) {
-  redirect("/onboarding");
-}
-```
-
-- [ ] **Step 4: Add the mirrored onboarding-page redirect for completed users**
-
-```tsx
-if (userId && onboarding?.completed) {
-  redirect("/dashboard");
-}
-```
-
-- [ ] **Step 5: Keep `AuthProvider` focused on idempotent bootstrap only**
-
-```tsx
-await seedDefaultAreas(user.id);
-await provisionSubscription();
-// do not auto-complete onboarding here; route/page owns that state
-```
-
-- [ ] **Step 6: Re-run the onboarding guard tests**
-
-Run: `node node_modules/vitest/vitest.mjs run tests/unit/onboarding-route-guards.test.ts`
-Expected: PASS
-
-- [ ] **Step 7: Commit**
-
-```bash
-git add tests/unit/onboarding-route-guards.test.ts src/app/onboarding/layout.tsx src/app/onboarding/page.tsx src/app/(dashboard)/layout.tsx src/components/providers/auth-provider.tsx src/lib/services/onboarding.service.ts
-git commit -m "feat: gate dashboard behind onboarding completion"
-```
+- [x] **Step 7: Commit** — af6619f (next build blocked by pre-existing posthog/lockfile desync, see note)
 
 ### Task 3: Build the multi-step onboarding wizard
 
