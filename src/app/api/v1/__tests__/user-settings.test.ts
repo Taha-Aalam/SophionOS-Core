@@ -7,6 +7,12 @@ vi.mock("@/lib/services/user-settings.service", () => ({
   userSettingsService: {
     getNoteDefaults: vi.fn(),
     setNoteDefaults: vi.fn(),
+    getPreferences: vi.fn(),
+    setPreferences: vi.fn(),
+    getNotifications: vi.fn(),
+    setNotifications: vi.fn(),
+    getOnboardingState: vi.fn(),
+    setOnboardingState: vi.fn(),
   },
 }));
 
@@ -48,6 +54,8 @@ import { DELETE as revokeKey } from "../user/api-keys/[id]/route";
 const mockRequireAuth = vi.mocked(requireAuth);
 const mockGetNoteDefaults = vi.mocked(userSettingsService.getNoteDefaults);
 const mockSetNoteDefaults = vi.mocked(userSettingsService.setNoteDefaults);
+const mockSetPreferences = vi.mocked(userSettingsService.setPreferences);
+const mockGetOnboardingState = vi.mocked(userSettingsService.getOnboardingState);
 const mockListApiKeys = vi.mocked(listApiKeys);
 const mockGenerateApiKey = vi.mocked(generateApiKey);
 const mockRevokeApiKey = vi.mocked(revokeApiKey);
@@ -63,6 +71,7 @@ function jsonRequest(url: string, method: string, body?: unknown): NextRequest {
 beforeEach(() => {
   vi.clearAllMocks();
   mockRequireAuth.mockResolvedValue({ userId: "user_123", type: "clerk" });
+  mockGetOnboardingState.mockResolvedValue({ completed: false, current_step: "areas" } as never);
 });
 
 describe("GET /api/v1/user/settings", () => {
@@ -104,6 +113,24 @@ describe("PATCH /api/v1/user/settings", () => {
     expect(mockSetNoteDefaults).toHaveBeenCalledWith(
       "user_123",
       { default_status: "active" },
+      expect.anything(),
+    );
+  });
+
+  it("persists preferences alongside note defaults (200)", async () => {
+    mockSetPreferences.mockResolvedValue(undefined as never);
+    mockGetNoteDefaults.mockResolvedValue(null as never);
+
+    const res = await patchSettings(
+      jsonRequest("http://localhost/api/v1/user/settings", "PATCH", {
+        preferences: { timezone: "Asia/Calcutta", theme: "dark" },
+      }),
+    );
+    expect(res.status).toBe(200);
+
+    expect(mockSetPreferences).toHaveBeenCalledWith(
+      "user_123",
+      { timezone: "Asia/Calcutta", theme: "dark" },
       expect.anything(),
     );
   });
