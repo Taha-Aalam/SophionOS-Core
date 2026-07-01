@@ -3,8 +3,10 @@
  *
  * The user supplies two values via environment variables (set in their MCP
  * client config): the LifeOS API key and the app base URL. On startup the
- * server validates the key by calling `GET /api/v1/user/settings` — a 200
- * means the key resolves to a Clerk user id server-side.
+ * server validates the key by calling `GET /api/v1/mcp/health` — a 200 means
+ * the key resolves to a Clerk user id server-side AND that user is on a paid
+ * tier (Pro/lifetime/max). A 403 means the key is valid but the tier is Free,
+ * so the server refuses to start with an upgrade message.
  */
 
 import { LifeOSClient } from "./client.js";
@@ -51,12 +53,17 @@ export async function authenticate(config: ResolvedConfig): Promise<LifeOSClient
   });
 
   try {
-    await client.user.getSettings();
+    await client.user.health();
   } catch (err) {
     if (err instanceof LifeOSApiError) {
       if (err.status === 401) {
         throw new Error(
           "LifeOS API key rejected (401). The key may be revoked or invalid. Generate a new one in LifeOS → Settings → MCP.",
+        );
+      }
+      if (err.status === 403) {
+        throw new Error(
+          "LifeOS MCP access requires a Pro subscription. Your key is valid but your account is on the Free tier. Upgrade to Pro in LifeOS → Settings to enable the API and MCP server.",
         );
       }
       throw new Error(

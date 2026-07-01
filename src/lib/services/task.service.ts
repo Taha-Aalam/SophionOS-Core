@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
+import { DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
 import { createClient } from "../supabase/client";
 import type { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
 import { LIST_SAFETY_CAP, TASK_STATUS, type TaskStatus } from "../utils/constants";
@@ -388,7 +388,7 @@ export const taskService = {
         .single();
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapDatabaseError(error);
       }
 
       const needsTouch = (areaIds?.length ?? 0) > 0 || (goalIds?.length ?? 0) > 0 || (projectIds?.length ?? 0) > 0;

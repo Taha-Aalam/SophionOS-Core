@@ -21,9 +21,10 @@ vi.mock("@/lib/services/resource.service", () => ({
   },
 }));
 
-vi.mock("@/lib/api/api-auth", () => ({
-  requireAuth: vi.fn(),
-}));
+vi.mock("@/lib/api/api-auth", () => {
+  const authFn = vi.fn();
+  return { requireAuth: authFn, authorizeApiRequest: authFn };
+});
 
 vi.mock("@/lib/supabase/server", () => ({
   // Chainable stub — the services are mocked, so the passed client is unused.

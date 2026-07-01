@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { areaService } from "@/lib/services/area.service";
+import { entityLimitToastMessage } from "@/lib/entity-limit";
 
 import type { CreateAreaInput, UpdateAreaInput } from "@/lib/types/domain.types";
 
@@ -70,7 +71,7 @@ export function useCreateArea(userId: string | undefined) {
       toast.success("Area created successfully");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to create area");
+      toast.error(entityLimitToastMessage(error, "Failed to create area"));
     },
   });
 }

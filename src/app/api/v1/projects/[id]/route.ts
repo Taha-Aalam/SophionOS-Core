@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { requireAuth } from "@/lib/api/api-auth";
+import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { error, success } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { AppError } from "@/lib/api/error-handler";
@@ -18,7 +18,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
@@ -44,7 +44,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
@@ -78,7 +78,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {

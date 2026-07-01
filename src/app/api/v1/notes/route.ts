@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { noteService } from "@/lib/services/note.service";
-import { requireAuth } from "@/lib/api/api-auth";
+import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { success, paginated, created, error } from "@/lib/api/api-response";
 import { getPaginationParams } from "@/lib/api/pagination";
 import { validateBody } from "@/lib/api/api-validator";
@@ -45,7 +45,7 @@ function buildGroups(notes: Note[], groupBy: string): Array<{ key: string; notes
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 

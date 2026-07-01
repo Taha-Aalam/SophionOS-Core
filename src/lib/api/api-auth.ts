@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { AuthError } from "./error-handler";
 import { validateApiKey } from "./api-key-service";
+import { requirePaidTier } from "./subscription";
 
 export type AuthType = "clerk" | "api_key";
 
@@ -69,5 +70,19 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
   if (!result) {
     throw new AuthError("Authentication required");
   }
+  return result;
+}
+
+/**
+ * Full API/MCP authorization: authenticate, THEN enforce the paid-tier wall.
+ * Throws AuthError (401) for an unauthenticated caller, or a 403 AppError
+ * (code `TIER_REQUIRED`) for an authenticated free-tier caller. One-line swap
+ * for `requireAuth` in every gated `/api/v1` data/aggregate route. Do NOT use
+ * on `/api/v1/user/*` — the dashboard reads those under a Clerk session and a
+ * free user must still manage settings/keys.
+ */
+export async function authorizeApiRequest(request: NextRequest): Promise<AuthResult> {
+  const result = await requireAuth(request);
+  await requirePaidTier(result.userId);
   return result;
 }

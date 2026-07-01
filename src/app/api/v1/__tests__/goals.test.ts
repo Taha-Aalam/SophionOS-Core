@@ -18,9 +18,10 @@ vi.mock("@/lib/services/goal.service", () => ({
   },
 }));
 
-vi.mock("@/lib/api/api-auth", () => ({
-  requireAuth: vi.fn(),
-}));
+vi.mock("@/lib/api/api-auth", () => {
+  const authFn = vi.fn();
+  return { requireAuth: authFn, authorizeApiRequest: authFn };
+});
 
 vi.mock("@/lib/api/rate-limiter", () => ({
   rateLimit: vi.fn(),

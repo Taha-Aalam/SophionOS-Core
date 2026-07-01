@@ -3,6 +3,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { contactService } from "@/lib/services/contact.service";
+import { entityLimitToastMessage } from "@/lib/entity-limit";
 import { AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
 import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
@@ -194,7 +195,7 @@ export function useCreateContact() {
       toast.success("Contact created");
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      toast.error(entityLimitToastMessage(error, "Failed to create contact"));
     },
   });
 }

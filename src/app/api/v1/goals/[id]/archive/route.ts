@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { requireAuth } from "@/lib/api/api-auth";
+import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { error, success } from "@/lib/api/api-response";
 import { AppError } from "@/lib/api/error-handler";
 import { rateLimit } from "@/lib/api/rate-limiter";
@@ -15,7 +15,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {

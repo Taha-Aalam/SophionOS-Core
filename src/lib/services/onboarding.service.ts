@@ -37,3 +37,19 @@ export async function seedDefaultAreas(
     throw new Error(`Failed to seed default areas: ${error.message}`);
   }
 }
+
+// Auto-provision a Pro subscription on first run. The user id is derived
+// server-side from the Clerk JWT inside the SECURITY DEFINER RPC, so this
+// takes no user argument and the caller cannot pick a tier. Idempotent via
+// ON CONFLICT in the RPC.
+export async function provisionSubscription(
+  options?: ServiceOptions,
+): Promise<void> {
+  const supabase = options?.supabase ?? createClient();
+
+  const { error } = await supabase.rpc("provision_subscription");
+
+  if (error) {
+    throw new Error(`Failed to provision subscription: ${error.message}`);
+  }
+}
