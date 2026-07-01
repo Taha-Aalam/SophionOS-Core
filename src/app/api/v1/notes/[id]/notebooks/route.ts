@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { noteService } from "@/lib/services/note.service";
-import { requireAuth } from "@/lib/api/api-auth";
+import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { success, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
@@ -18,7 +18,7 @@ const addSchema = z.object({
 /** GET — the note's current notebook memberships. */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 /** PUT — replace the full notebook membership set. */
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -56,7 +56,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 /** POST — add the note to a single notebook. */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 /** DELETE — remove the note from a notebook (?notebook=<name>). */
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 

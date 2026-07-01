@@ -6,6 +6,7 @@ import { AREAS_QUERY_KEY, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
 import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
 import { projectService } from "@/lib/services/project.service";
+import { entityLimitToastMessage } from "@/lib/entity-limit";
 import {
   type CreateProjectInput,
   type Project,
@@ -101,7 +102,7 @@ export function useCreateProject() {
       toast.success("Project created successfully");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to create project");
+      toast.error(entityLimitToastMessage(error, "Failed to create project"));
     },
   });
 }

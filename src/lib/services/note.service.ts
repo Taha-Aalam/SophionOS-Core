@@ -9,7 +9,7 @@ import type {
   UpdateNoteInput,
 } from "../types/domain.types";
 import { createNoteSchema, updateNoteSchema } from "../validators/note.schema";
-import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
+import { DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
 import { LIST_SAFETY_CAP, NOTE_STATUS, type NoteStatus } from "../utils/constants";
 import { deriveNoteStatus } from "../utils/status-routing";
 import {
@@ -378,7 +378,7 @@ export const noteService = {
           continue;
         }
 
-        throw new DatabaseError(error.message);
+        throw mapDatabaseError(error);
       }
 
       if (areaIds?.length) {

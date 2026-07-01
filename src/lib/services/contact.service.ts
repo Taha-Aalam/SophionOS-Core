@@ -11,7 +11,7 @@ import type {
   UpdateContactInput,
 } from "../types/domain.types";
 import { createContactSchema, updateContactSchema } from "../validators/contact.schema";
-import { DatabaseError, NotFoundError } from "../api/error-handler";
+import { DatabaseError, NotFoundError, mapDatabaseError } from "../api/error-handler";
 import { LIST_SAFETY_CAP } from "../utils/constants";
 
 type ServiceOptions = { supabase?: SupabaseClient };
@@ -326,7 +326,7 @@ export const contactService = {
       .select(CONTACT_SELECT)
       .single();
 
-    if (error) throw new DatabaseError(error.message);
+    if (error) throw mapDatabaseError(error);
 
     await syncContactLinks(data.id, {
       area_ids: area_ids ?? input.area_ids ?? [],

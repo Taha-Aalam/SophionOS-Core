@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { contactService } from "@/lib/services/contact.service";
-import { requireAuth } from "@/lib/api/api-auth";
+import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { success, created, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
@@ -15,7 +15,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
     const { id } = await params;
@@ -32,7 +32,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
     if (!request.headers.get("content-type")?.includes("application/json"))
@@ -53,7 +53,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
     const { id } = await params;

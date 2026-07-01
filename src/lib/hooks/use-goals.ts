@@ -9,6 +9,7 @@ import {
 } from "@/lib/hooks/use-goal-detail";
 
 import { goalService } from "../services/goal.service";
+import { entityLimitToastMessage } from "@/lib/entity-limit";
 import { CreateGoalInput, Goal, UpdateGoalInput } from "../types/domain.types";
 import {
   calculateGoalProgress,
@@ -212,7 +213,7 @@ export function useCreateGoal() {
       toast.success("Goal created successfully");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to create goal");
+      toast.error(entityLimitToastMessage(error, "Failed to create goal"));
     },
   });
 }

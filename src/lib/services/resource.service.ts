@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createClient } from "../supabase/client";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "../types/domain.types";
 import { createResourceSchema, updateResourceSchema } from "../validators/resource.schema";
-import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
+import { DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
 import { LIST_SAFETY_CAP, RESOURCE_STATUS, type ResourceStatus } from "../utils/constants";
 import { deriveResourceStatus } from "../utils/status-routing";
 
@@ -445,7 +445,7 @@ export const resourceService = {
         .single();
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapDatabaseError(error);
       }
 
       if (areaIds?.length) {

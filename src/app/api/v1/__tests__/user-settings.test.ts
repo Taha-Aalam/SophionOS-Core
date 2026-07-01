@@ -16,8 +16,18 @@ vi.mock("@/lib/api/api-key-service", () => ({
   revokeApiKey: vi.fn(),
 }));
 
-vi.mock("@/lib/api/api-auth", () => ({
-  requireAuth: vi.fn(),
+vi.mock("@/lib/api/api-auth", () => {
+  const authFn = vi.fn();
+  return { requireAuth: authFn, authorizeApiRequest: authFn };
+});
+
+// POST /user/api-keys is gated by requirePaidTier (tier wall B4). Default the
+// mock to a paid caller so the existing happy-path assertions hold; the
+// free-tier 403 path is covered by the subscription unit tests.
+vi.mock("@/lib/api/subscription", () => ({
+  requirePaidTier: vi.fn(async () => {}),
+  isPaidTier: vi.fn(async () => true),
+  getTier: vi.fn(async () => "pro"),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({

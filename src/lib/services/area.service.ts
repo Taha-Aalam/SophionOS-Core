@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "../supabase/client";
 import type { Area, CreateAreaInput, UpdateAreaInput } from "../types/domain.types";
 import { createAreaSchema, updateAreaSchema } from "../validators/area.schema";
-import { DatabaseError, NotFoundError } from "../api/error-handler";
+import { DatabaseError, NotFoundError, mapDatabaseError } from "../api/error-handler";
 import { generateSlug } from "../utils";
 import { normalizeAreaType } from "../utils/areas";
 import { LIST_SAFETY_CAP } from "../utils/constants";
@@ -186,7 +186,7 @@ export const areaService = {
       .single();
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapDatabaseError(error);
     }
 
     return data as AreaSelect;

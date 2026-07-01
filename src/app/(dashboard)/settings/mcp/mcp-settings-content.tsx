@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, Copy, KeyRound, Loader2, Plug, Trash2 } from "lucide-react";
+import { Check, Copy, KeyRound, Loader2, Lock, Plug, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,11 @@ interface ApiKeyRecord {
   last_used_at: string | null;
   created_at: string | null;
   revoked_at: string | null;
+}
+
+interface SubscriptionInfo {
+  tier: "free" | "pro" | "lifetime" | "max";
+  isPaid: boolean;
 }
 
 /** Unwrap the standard `{ data }` envelope; throw the API error message otherwise. */
@@ -70,6 +75,8 @@ export function McpSettingsContent() {
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [baseUrl, setBaseUrl] = useState("https://app.lifeos.app");
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [subLoading, setSubLoading] = useState(true);
 
   // Resolve the live origin after mount. Kept in an effect (not a lazy
   // useState initializer) so SSR and the first client render agree on the
@@ -99,6 +106,27 @@ export function McpSettingsContent() {
     void loadKeys();
   }, [loadKeys]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Resolve the caller's subscription tier so the UI can gate key creation +
+  // config behind the Pro wall. Reads GET /api/v1/user/subscription (a /user/*
+  // route, so it is NOT behind the paid-tier gate — a free user can read their
+  // own tier). On any failure, fail-closed to free so the upgrade CTA shows.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await apiFetch<SubscriptionInfo>("/api/v1/user/subscription");
+        if (!cancelled) setSubscription(data);
+      } catch {
+        if (!cancelled) setSubscription({ tier: "free", isPaid: false });
+      } finally {
+        if (!cancelled) setSubLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function createKey() {
     const name = newKeyName.trim();
@@ -154,8 +182,39 @@ export function McpSettingsContent() {
   const activeKeys = keys.filter((k) => !k.revoked_at);
   const connected = activeKeys.some((k) => k.last_used_at);
 
+  // Tier gate: MCP / API access is a Pro capability. While the tier is still
+  // loading, treat as paid to avoid a CTA flash for the common (paid) case;
+  // once resolved, a non-paid tier hides key creation + config and shows an
+  // upgrade CTA instead.
+  const isPaid = subLoading ? true : (subscription?.isPaid ?? false);
+
   return (
     <div className="flex flex-col gap-6">
+      {/* Pro upgrade CTA — shown only for Free tier. MCP + API are Pro features. */}
+      {!isPaid && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardHeader className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Lock className="size-5 text-primary" />
+              <CardTitle className="text-base">
+                MCP & API access is a Pro feature
+              </CardTitle>
+              <Badge>Pro</Badge>
+            </div>
+            <CardDescription>
+              The LifeOS MCP server and API let your AI client read and write
+              your LifeOS data. Upgrade to Pro to create an API key and connect
+              your tools. You can keep using the dashboard for free.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => { window.location.href = "/settings/billing"; }}>
+              Upgrade to Pro
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Connection status */}
       <Card>
         <CardHeader className="space-y-3">
@@ -191,28 +250,30 @@ export function McpSettingsContent() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-            <div className="flex-1 space-y-1.5">
-              <Label htmlFor="new-key-name">New key name</Label>
-              <Input
-                id="new-key-name"
-                placeholder="e.g. Claude Desktop"
-                value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void createKey();
-                }}
-                disabled={creating}
-              />
+          {isPaid && (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="flex-1 space-y-1.5">
+                <Label htmlFor="new-key-name">New key name</Label>
+                <Input
+                  id="new-key-name"
+                  placeholder="e.g. Claude Desktop"
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void createKey();
+                  }}
+                  disabled={creating}
+                />
+              </div>
+              <Button onClick={() => void createKey()} disabled={creating}>
+                {creating ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  "Create key"
+                )}
+              </Button>
             </div>
-            <Button onClick={() => void createKey()} disabled={creating}>
-              {creating ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                "Create key"
-              )}
-            </Button>
-          </div>
+          )}
 
           {revealedKey && (
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
@@ -275,7 +336,8 @@ export function McpSettingsContent() {
         </CardContent>
       </Card>
 
-      {/* Setup snippets */}
+      {/* Setup snippets — Pro only (a free user has no key to put in them). */}
+      {isPaid && (
       <Card>
         <CardHeader className="space-y-1">
           <CardTitle className="text-base">Connect your AI client</CardTitle>
@@ -339,6 +401,7 @@ export function McpSettingsContent() {
           </div>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { requireAuth } from "@/lib/api/api-auth";
+import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { created, error, paginated, success } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { AppError } from "@/lib/api/error-handler";
@@ -25,7 +25,7 @@ function isTruthy(value: string | null): boolean {
  */
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await requireAuth(request);
+    const { userId } = await authorizeApiRequest(request);
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {

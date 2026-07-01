@@ -9,7 +9,7 @@ import {
   type GoalTermFilter,
 } from "../utils/goals";
 import { createGoalSchema, updateGoalSchema } from "../validators/goal.schema";
-import { DatabaseError, NotFoundError } from "../api/error-handler";
+import { DatabaseError, NotFoundError, mapDatabaseError } from "../api/error-handler";
 import { generateSlug } from "../utils";
 import { LIST_SAFETY_CAP } from "../utils/constants";
 
@@ -661,7 +661,7 @@ export const goalService = {
       if (error.code === "23505") {
         throw new DatabaseError("Slug collision — please try a different name");
       }
-      throw new DatabaseError(error.message);
+      throw mapDatabaseError(error);
     }
 
     if (areaIds?.length) {

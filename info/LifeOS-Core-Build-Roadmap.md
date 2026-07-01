@@ -1637,17 +1637,21 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 ### Step 37: Onboarding flow
 
-**What:** Multi-step post-signup wizard: areas setup → first goal → first tasks → preferences.
+**What:** Multi-step post-signup wizard: areas setup → first goal → first project → first tasks → explain about notes → explain about resources → explain about contacts.
 
 **Dependencies:** Steps 9, 10, 12, 7.
 
 ---
 
-### Step 38: API key management
+### Step 38: API key management — 🟡 PARTLY BUILT in Step 32 (generalize, don't rebuild)
 
-**What:** Settings page (UI only) for creating/revoking/listing API keys. The `api_keys` table and auth-guard already exist from Step 23 — this step is just the management surface.
+**What:** The canonical API-key management surface (create / list / revoke, multiple named keys, last-used display, optional expiry).
 
-**Dependencies:** Step 23 (api_keys table + auth guard).
+> **AS BUILT overlap:** Step 32 already shipped key create/list/revoke inside `/settings/mcp` (it calls `/api/v1/user/api-keys` GET/POST + `[id]` DELETE under Clerk session auth, shows the raw `lif_` key once, and renders connection status from `last_used_at`). **Do NOT build a second CRUD here.** This step = generalize that into a standalone management page for the broader "API access" story (keys used by things other than MCP, expiry, more than one key), and reduce `/settings/mcp` to onboarding ("here's a key + your config snippet") that links to it. Division of labor: `/settings/mcp` = "connect your AI" (onboarding); Step 38 page = "manage my keys" (revoke the key from my old laptop). Same `api_keys` table + endpoints from Step 23, one shared backend.
+
+**Auth-flow reminder (how a key is created vs used):** the dashboard creates a key via `POST /api/v1/user/api-keys` authenticated by the **Clerk session** (no key needed yet); the user pastes the returned `lif_` key into their MCP client; the MCP server then authenticates every request with `Authorization: Bearer lif_…`, which `requireAuth` resolves to the same Clerk user id via `validateApiKey`. The MCP server never creates keys — only consumes one.
+
+**Dependencies:** Step 23 (api_keys table + auth guard). Step 32 (key CRUD + `/settings/mcp` already exist).
 
 ---
 
@@ -1656,6 +1660,22 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 **What:** General settings: profile, timezone, theme, notifications, account management, integrations placeholder.
 
 **Dependencies:** Step 32 (onboarding creates initial settings).
+
+---
+
+### Step 39.5: Tier wall (Free / Pro / Lifetime / Max) — 🟡 PHASE A+B BUILT 2026-07-01
+
+**What:** Four-tier subscription model with two enforcement walls. Tiers + pricing: **Free** $0 (100-entity cap, no API/MCP) · **Pro** $15/mo (unlimited + API + MCP) · **Lifetime** $150 one-time (Max-forever access, never expires, first 100 subscribers only) · **Max** TBD recurring (post-launch, entitlement-equivalent to Lifetime).
+
+**Two walls in different layers:**
+- **Wall 1 — entity cap (100, Free only):** a DATABASE trigger, because dashboard writes go straight to Postgres (browser supabase-js + Clerk JWT + RLS) and bypass `/api/v1`. Counted = the 7 core entities + `contact_logs` + `note_notebooks`; junction rows excluded.
+- **Wall 2 — API / MCP access gate:** enforced in the `/api/v1` layer via `requirePaidTier` / `authorizeApiRequest`. Free can use the dashboard but cannot mint API keys or start the MCP server.
+
+**AS BUILT (Phase A + B, 2026-07-01):** `subscriptions.tier` CHECK = free|pro|lifetime|max; `provision_subscription()` SECURITY DEFINER RPC + onboarding wire (every user provisioned `tier=pro` now — walls built but non-disruptive); `src/lib/api/subscription.ts` (`getTier`/`isPaidTier`/`requirePaidTier`, cached, fail-closed); `authorizeApiRequest` swapped into all 72 gated `/api/v1` routes (excl. `/user/*`); `POST /api/v1/user/api-keys` gated; `GET /api/v1/mcp/health` + MCP startup probe; `GET /api/v1/user/subscription` for dashboard UI gating. **Remaining:** Phase C (dashboard upgrade CTAs), Phase D (entity-cap trigger).
+
+**Launch-blocking dependency — billing (Dodo):** the step that flips the default provisioning from `pro` → `free`, wires Dodo (or chosen provider) checkout/webhooks to write the `subscriptions` row on purchase, and enforces the **Lifetime first-100 cap at purchase time** (`SELECT count(*) WHERE tier='lifetime'` < 100). Until billing ships, everyone stays Pro and no wall actually bites. Plan: `docs/superpowers/plans/2026-07-01-tier-wall-free-pro-max.md`.
+
+**Dependencies:** Step 23 (api_keys + subscriptions tables), Step 32 (MCP). Billing sub-step gates public launch.
 
 ---
 

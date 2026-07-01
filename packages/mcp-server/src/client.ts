@@ -455,6 +455,8 @@ export class LifeOSClient {
     this.get<{ query: string; results: unknown }>("/search", { q });
 
   user = {
+    /** Startup tier/auth probe — 200 = valid key on a paid tier; 403 = free. */
+    health: () => this.get<{ ok: boolean; tier_ok: boolean }>("/mcp/health"),
     /** Used by startup validation — a 200 means the key is valid. */
     getSettings: () => this.get("/user/settings"),
     updateSettings: (body: Record<string, unknown>) =>

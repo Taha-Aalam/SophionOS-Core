@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod/v4";
 import { generateApiKey, listApiKeys } from "@/lib/api/api-key-service";
 import { requireAuth } from "@/lib/api/api-auth";
+import { requirePaidTier } from "@/lib/api/subscription";
 import { success, created, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
@@ -28,6 +29,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await requireAuth(request);
+    // Minting an API key is a Pro capability — a free user can authenticate
+    // (manages settings under a Clerk session) but cannot create keys.
+    await requirePaidTier(userId);
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
