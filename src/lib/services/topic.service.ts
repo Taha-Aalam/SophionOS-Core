@@ -1,9 +1,12 @@
 import { createClient } from "../supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CreateTopicInput, Topic, UpdateTopicInput } from "../types/domain.types";
 import { createTopicSchema, updateTopicSchema } from "../validators/topic.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
 import { LIST_SAFETY_CAP } from "../utils/constants";
+
+type ServiceOptions = { supabase?: SupabaseClient };
 
 const TOPIC_SELECT =
   "id, user_id, area_id, name, slug, favorite, inactive, is_archived, metadata, created_at, updated_at";
@@ -21,8 +24,9 @@ export interface GroupedTopics {
 }
 
 export const topicService = {
-  async list(userId: string): Promise<TopicWithCounts[]> {
-    const { data, error } = await createClient()
+  async list(userId: string, options?: ServiceOptions): Promise<TopicWithCounts[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("topics")
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
@@ -35,11 +39,12 @@ export const topicService = {
     }
 
     const topics = (data || []) as TopicWithCounts[];
-    return this.enrichWithCounts(topics);
+    return this.enrichWithCounts(topics, options);
   },
 
-  async getById(userId: string, id: string): Promise<TopicWithCounts> {
-    const { data, error } = await createClient()
+  async getById(userId: string, id: string, options?: ServiceOptions): Promise<TopicWithCounts> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("topics")
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
@@ -54,15 +59,16 @@ export const topicService = {
     }
 
     const topic = data as TopicWithCounts;
-    const enriched = await this.enrichWithCounts([topic]);
+    const enriched = await this.enrichWithCounts([topic], options);
     return enriched[0];
   },
 
-  async getByIdentifier(userId: string, identifier: string): Promise<TopicWithCounts> {
+  async getByIdentifier(userId: string, identifier: string, options?: ServiceOptions): Promise<TopicWithCounts> {
+    const sb = options?.supabase ?? createClient();
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
 
     if (!isUuid) {
-      const { data, error } = await createClient()
+      const { data, error } = await sb
         .from("topics")
         .select(TOPIC_SELECT)
         .eq("user_id", userId)
@@ -70,18 +76,19 @@ export const topicService = {
         .maybeSingle();
 
       if (!error && data) {
-        const enriched = await this.enrichWithCounts([data as TopicWithCounts]);
+        const enriched = await this.enrichWithCounts([data as TopicWithCounts], options);
         return enriched[0];
       }
     }
 
-    return this.getById(userId, identifier);
+    return this.getById(userId, identifier, options);
   },
 
-  async create(userId: string, input: CreateTopicInput): Promise<TopicWithCounts> {
+  async create(userId: string, input: CreateTopicInput, options?: ServiceOptions): Promise<TopicWithCounts> {
+    const sb = options?.supabase ?? createClient();
     const validated = createTopicSchema.parse(input);
 
-    const { data: topic, error } = await createClient()
+    const { data: topic, error } = await sb
       .from("topics")
       .insert({ name: validated.name, slug: generateSlug(validated.name), favorite: validated.favorite, user_id: userId })
       .select(TOPIC_SELECT)
@@ -96,7 +103,7 @@ export const topicService = {
         topic_id: topic.id,
         area_id,
       }));
-      const { error: junctionError } = await createClient()
+      const { error: junctionError } = await sb
         .from("topic_areas")
         .insert(junctionRows);
       if (junctionError) {
@@ -113,16 +120,17 @@ export const topicService = {
     };
 
     if (validated.note_ids?.length) {
-      await this.linkNotes(enriched.id, validated.note_ids);
+      await this.linkNotes(enriched.id, validated.note_ids, options);
     }
     if (validated.resource_ids?.length) {
-      await this.linkResources(enriched.id, validated.resource_ids);
+      await this.linkResources(enriched.id, validated.resource_ids, options);
     }
 
     return enriched;
   },
 
-  async update(userId: string, id: string, input: UpdateTopicInput): Promise<TopicWithCounts> {
+  async update(userId: string, id: string, input: UpdateTopicInput, options?: ServiceOptions): Promise<TopicWithCounts> {
+    const sb = options?.supabase ?? createClient();
     const validated = updateTopicSchema.parse(input);
 
     const topicPatch = {
@@ -133,7 +141,7 @@ export const topicService = {
     // Only PATCH the topic row when a topic column actually changes. An empty
     // PATCH body matches 0 rows, so .single() returns 406/PGRST116 even though
     // the topic exists — link-only updates (note_ids/area_ids) hit this.
-    const query = createClient().from("topics");
+    const query = sb.from("topics");
     const { data: topic, error } =
       Object.keys(topicPatch).length > 0
         ? await query.update(topicPatch).eq("user_id", userId).eq("id", id).select(TOPIC_SELECT).single()
@@ -147,7 +155,7 @@ export const topicService = {
     }
 
     if (validated.area_ids !== undefined) {
-      await createClient()
+      await sb
         .from("topic_areas")
         .delete()
         .eq("topic_id", id);
@@ -157,7 +165,7 @@ export const topicService = {
           topic_id: id,
           area_id,
         }));
-        const { error: junctionError } = await createClient()
+        const { error: junctionError } = await sb
           .from("topic_areas")
           .insert(junctionRows);
         if (junctionError) {
@@ -175,17 +183,18 @@ export const topicService = {
     };
 
     if (validated.note_ids?.length) {
-      await this.linkNotes(id, validated.note_ids);
+      await this.linkNotes(id, validated.note_ids, options);
     }
     if (validated.resource_ids?.length) {
-      await this.linkResources(id, validated.resource_ids);
+      await this.linkResources(id, validated.resource_ids, options);
     }
 
     return enriched;
   },
 
-  async delete(userId: string, id: string): Promise<void> {
-    const { error } = await createClient()
+  async delete(userId: string, id: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const { error } = await sb
       .from("topics")
       .delete()
       .eq("user_id", userId)
@@ -196,8 +205,9 @@ export const topicService = {
     }
   },
 
-  async archive(userId: string, id: string): Promise<void> {
-    const { error } = await createClient()
+  async archive(userId: string, id: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const { error } = await sb
       .from("topics")
       .update({ is_archived: true })
       .eq("user_id", userId)
@@ -205,8 +215,9 @@ export const topicService = {
     if (error) throw new DatabaseError(error.message);
   },
 
-  async restore(userId: string, id: string): Promise<void> {
-    const { error } = await createClient()
+  async restore(userId: string, id: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    const { error } = await sb
       .from("topics")
       .update({ is_archived: false })
       .eq("user_id", userId)
@@ -214,8 +225,9 @@ export const topicService = {
     if (error) throw new DatabaseError(error.message);
   },
 
-  async listArchived(userId: string): Promise<TopicWithCounts[]> {
-    const { data, error } = await createClient()
+  async listArchived(userId: string, options?: ServiceOptions): Promise<TopicWithCounts[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("topics")
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
@@ -223,11 +235,12 @@ export const topicService = {
       .order("name")
       .limit(LIST_SAFETY_CAP);
     if (error) throw new DatabaseError(error.message);
-    return this.enrichWithCounts((data || []) as TopicWithCounts[]);
+    return this.enrichWithCounts((data || []) as TopicWithCounts[], options);
   },
 
-  async getActive(userId: string): Promise<TopicWithCounts[]> {
-    const { data, error } = await createClient()
+  async getActive(userId: string, options?: ServiceOptions): Promise<TopicWithCounts[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("topics")
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
@@ -240,11 +253,12 @@ export const topicService = {
     }
 
     const topics = (data || []) as TopicWithCounts[];
-    return this.enrichWithCounts(topics);
+    return this.enrichWithCounts(topics, options);
   },
 
-  async getInactive(userId: string): Promise<TopicWithCounts[]> {
-    const { data, error } = await createClient()
+  async getInactive(userId: string, options?: ServiceOptions): Promise<TopicWithCounts[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("topics")
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
@@ -257,11 +271,12 @@ export const topicService = {
     }
 
     const topics = (data || []) as TopicWithCounts[];
-    return this.enrichWithCounts(topics);
+    return this.enrichWithCounts(topics, options);
   },
 
-  async getFavorite(userId: string): Promise<TopicWithCounts[]> {
-    const { data, error } = await createClient()
+  async getFavorite(userId: string, options?: ServiceOptions): Promise<TopicWithCounts[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("topics")
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
@@ -274,11 +289,12 @@ export const topicService = {
     }
 
     const topics = (data || []) as TopicWithCounts[];
-    return this.enrichWithCounts(topics);
+    return this.enrichWithCounts(topics, options);
   },
 
-  async getGroupedByArea(userId: string): Promise<GroupedTopics[]> {
-    const { data: topicAreas, error: taError } = await createClient()
+  async getGroupedByArea(userId: string, options?: ServiceOptions): Promise<GroupedTopics[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data: topicAreas, error: taError } = await sb
       .from("topic_areas")
       .select("topic_id, area_id, areas(name)")
       .filter("topics.user_id", "eq", userId);
@@ -287,7 +303,7 @@ export const topicService = {
       throw new DatabaseError(taError.message);
     }
 
-    const { data: topics, error: tError } = await createClient()
+    const { data: topics, error: tError } = await sb
       .from("topics")
       .select(TOPIC_SELECT)
       .eq("user_id", userId)
@@ -324,8 +340,9 @@ export const topicService = {
     }));
   },
 
-  async getLinkedAreaIds(topicId: string): Promise<string[]> {
-    const { data, error } = await createClient()
+  async getLinkedAreaIds(topicId: string, options?: ServiceOptions): Promise<string[]> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
       .from("topic_areas")
       .select("area_id")
       .eq("topic_id", topicId);
@@ -337,25 +354,27 @@ export const topicService = {
     return (data || []).map((row) => row.area_id as string);
   },
 
-  async linkNotes(topicId: string, noteIds: string[]): Promise<void> {
+  async linkNotes(topicId: string, noteIds: string[], options?: ServiceOptions): Promise<void> {
     if (noteIds.length === 0) return;
-    const { error } = await createClient()
+    const sb = options?.supabase ?? createClient();
+    const { error } = await sb
       .from("notes")
       .update({ topic_id: topicId })
       .in("id", noteIds);
     if (error) throw new DatabaseError(error.message);
   },
 
-  async linkResources(topicId: string, resourceIds: string[]): Promise<void> {
+  async linkResources(topicId: string, resourceIds: string[], options?: ServiceOptions): Promise<void> {
     if (resourceIds.length === 0) return;
-    const { error } = await createClient()
+    const sb = options?.supabase ?? createClient();
+    const { error } = await sb
       .from("resources")
       .update({ topic_id: topicId })
       .in("id", resourceIds);
     if (error) throw new DatabaseError(error.message);
   },
 
-  async enrichWithCounts(topics: TopicWithCounts[]): Promise<TopicWithCounts[]> {
+  async enrichWithCounts(topics: TopicWithCounts[], options?: ServiceOptions): Promise<TopicWithCounts[]> {
     if (topics.length === 0) return [];
 
     const perfLabel =
@@ -368,7 +387,7 @@ export const topicService = {
     // topic). Note/resource counts are tallied client-side from a single
     // topic_id-only fetch per table; linked areas from one topic_areas fetch.
     const topicIds = topics.map((t) => t.id);
-    const client = createClient();
+    const client = options?.supabase ?? createClient();
 
     const [notesRes, resourcesRes, areaLinksRes] = await Promise.all([
       client.from("notes").select("topic_id").in("topic_id", topicIds).eq("is_archived", false),

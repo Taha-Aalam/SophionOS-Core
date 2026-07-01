@@ -11,6 +11,7 @@ import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
 import { DASHBOARD_QUERY_KEY } from "@/lib/services/dashboard.service";
 import { taskService } from "../services/task.service";
+import { entityLimitToastMessage } from "@/lib/entity-limit";
 import { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
 
 export const TASKS_QUERY_KEY = "tasks";
@@ -100,7 +101,7 @@ export function useCreateTask() {
       toast.success("Task created");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to create task");
+      toast.error(entityLimitToastMessage(error, "Failed to create task"));
     },
   });
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createClient } from "../supabase/client";
 import type {
@@ -8,7 +9,7 @@ import type {
   UpdateNoteInput,
 } from "../types/domain.types";
 import { createNoteSchema, updateNoteSchema } from "../validators/note.schema";
-import { DatabaseError, NotFoundError, ValidationError } from "../api/error-handler";
+import { DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
 import { LIST_SAFETY_CAP, NOTE_STATUS, type NoteStatus } from "../utils/constants";
 import { deriveNoteStatus } from "../utils/status-routing";
 import {
@@ -24,6 +25,8 @@ import {
   normalizeTypeSlug,
 } from "./note.helpers";
 
+type ServiceOptions = { supabase?: SupabaseClient };
+
 const NOTE_SELECT =
   "id, user_id, area_id, project_id, topic_id, name, slug, content, type, status, favorite, pin, is_archived, metadata, created_at, updated_at";
 
@@ -34,13 +37,13 @@ function withPrimaryAreaLinks(notes: Note[]): Note[] {
   }));
 }
 
-async function hydrateNoteAreaLinks(notes: Note[]): Promise<Note[]> {
+async function hydrateNoteAreaLinks(notes: Note[], options?: ServiceOptions): Promise<Note[]> {
   if (notes.length === 0) return notes;
 
   const noteIds = notes.map((n) => n.id);
 
   try {
-    const result = await createClient()
+    const result = await (options?.supabase ?? createClient())
       .from("note_areas")
       .select("note_id, area_id")
       .in("note_id", noteIds);
@@ -71,12 +74,12 @@ async function hydrateNoteAreaLinks(notes: Note[]): Promise<Note[]> {
   }
 }
 
-async function hydrateNoteGoalLinks(notes: Note[]): Promise<Note[]> {
+async function hydrateNoteGoalLinks(notes: Note[], options?: ServiceOptions): Promise<Note[]> {
   if (notes.length === 0) return notes;
 
   const noteIds = notes.map((n) => n.id);
 
-  const result = await createClient()
+  const result = await (options?.supabase ?? createClient())
     .from("goal_notes")
     .select("note_id, goal_id")
     .in("note_id", noteIds);
@@ -98,13 +101,13 @@ async function hydrateNoteGoalLinks(notes: Note[]): Promise<Note[]> {
   }));
 }
 
-async function hydrateNoteTaskLinks(notes: Note[]): Promise<Note[]> {
+async function hydrateNoteTaskLinks(notes: Note[], options?: ServiceOptions): Promise<Note[]> {
   if (notes.length === 0) return notes;
 
   const noteIds = notes.map((n) => n.id);
 
   try {
-    const result = await createClient()
+    const result = await (options?.supabase ?? createClient())
       .from("task_notes")
       .select("note_id, task_id")
       .in("note_id", noteIds);
@@ -135,13 +138,13 @@ async function hydrateNoteTaskLinks(notes: Note[]): Promise<Note[]> {
   }
 }
 
-async function hydrateNoteProjectLinks(notes: Note[]): Promise<Note[]> {
+async function hydrateNoteProjectLinks(notes: Note[], options?: ServiceOptions): Promise<Note[]> {
   if (notes.length === 0) return notes;
 
   const noteIds = notes.map((n) => n.id);
 
   try {
-    const result = await createClient()
+    const result = await (options?.supabase ?? createClient())
       .from("note_projects")
       .select("note_id, project_id")
       .in("note_id", noteIds);
@@ -179,10 +182,10 @@ async function hydrateNoteProjectLinks(notes: Note[]): Promise<Note[]> {
   }
 }
 
-async function hydrateNoteNotebookLinks(notes: Note[]): Promise<Note[]> {
+async function hydrateNoteNotebookLinks(notes: Note[], options?: ServiceOptions): Promise<Note[]> {
   if (notes.length === 0) return notes;
   const noteIds = notes.map((n) => n.id);
-  const { data, error } = await createClient()
+  const { data, error } = await (options?.supabase ?? createClient())
     .from("note_notebooks")
     .select("note_id, notebook")
     .in("note_id", noteIds);
@@ -199,24 +202,24 @@ async function hydrateNoteNotebookLinks(notes: Note[]): Promise<Note[]> {
   return notes.map((note) => ({ ...note, notebooks: (byNote.get(note.id) ?? []).sort() }));
 }
 
-async function hydrateNoteRelations(notes: Note[]): Promise<Note[]> {
-  const withAreas = await hydrateNoteAreaLinks(notes);
-  const withGoals = await hydrateNoteGoalLinks(withAreas);
-  const withProjects = await hydrateNoteProjectLinks(withGoals);
-  const withTasks = await hydrateNoteTaskLinks(withProjects);
-  return await hydrateNoteNotebookLinks(withTasks);
+async function hydrateNoteRelations(notes: Note[], options?: ServiceOptions): Promise<Note[]> {
+  const withAreas = await hydrateNoteAreaLinks(notes, options);
+  const withGoals = await hydrateNoteGoalLinks(withAreas, options);
+  const withProjects = await hydrateNoteProjectLinks(withGoals, options);
+  const withTasks = await hydrateNoteTaskLinks(withProjects, options);
+  return await hydrateNoteNotebookLinks(withTasks, options);
 }
 
-async function hydrateSingleNoteRelations(note: Note): Promise<Note> {
-  const [hydrated] = await hydrateNoteRelations([note]);
+async function hydrateSingleNoteRelations(note: Note, options?: ServiceOptions): Promise<Note> {
+  const [hydrated] = await hydrateNoteRelations([note], options);
   return hydrated;
 }
 
-async function upsertNoteType(userId: string, typeName: string): Promise<void> {
+async function upsertNoteType(userId: string, typeName: string, options?: ServiceOptions): Promise<void> {
   const slug = normalizeTypeSlug(typeName);
   if (!slug) return;
 
-  const { error } = await createClient()
+  const { error } = await (options?.supabase ?? createClient())
     .from("note_types")
     .upsert({ user_id: userId, name: typeName.trim(), slug }, { onConflict: "user_id,slug" });
 
@@ -237,8 +240,9 @@ export const noteService = {
       projectId?: string;
       includeArchived?: boolean;
     },
+    options?: ServiceOptions,
   ): Promise<Note[]> {
-    let query = createClient()
+    let query = (options?.supabase ?? createClient())
       .from("notes")
       .select(NOTE_SELECT)
       .eq("user_id", userId);
@@ -266,11 +270,11 @@ export const noteService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateNoteRelations(data || []);
+    return hydrateNoteRelations(data || [], options);
   },
 
-  async getById(userId: string, id: string): Promise<Note> {
-    const { data, error } = await createClient()
+  async getById(userId: string, id: string, options?: ServiceOptions): Promise<Note> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("notes")
       .select(NOTE_SELECT)
       .eq("user_id", userId)
@@ -284,11 +288,11 @@ export const noteService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateSingleNoteRelations(data);
+    return hydrateSingleNoteRelations(data, options);
   },
 
-  async getBySlug(userId: string, slug: string): Promise<Note | null> {
-    const { data, error } = await createClient()
+  async getBySlug(userId: string, slug: string, options?: ServiceOptions): Promise<Note | null> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("notes")
       .select(NOTE_SELECT)
       .eq("user_id", userId)
@@ -300,22 +304,22 @@ export const noteService = {
     }
 
     if (!data) return null;
-    return hydrateSingleNoteRelations(data);
+    return hydrateSingleNoteRelations(data, options);
   },
 
   /** Resolves by UUID when identifier looks like a UUID, otherwise tries slug. */
-  async getByIdentifier(userId: string, identifier: string): Promise<Note> {
+  async getByIdentifier(userId: string, identifier: string, options?: ServiceOptions): Promise<Note> {
     if (isValidUUID(identifier)) {
-      return this.getById(userId, identifier);
+      return this.getById(userId, identifier, options);
     }
-    const note = await this.getBySlug(userId, identifier);
+    const note = await this.getBySlug(userId, identifier, options);
     if (!note) {
       throw new NotFoundError("Note", identifier);
     }
     return note;
   },
 
-  async create(userId: string, input: CreateNoteInput): Promise<Note> {
+  async create(userId: string, input: CreateNoteInput, options?: ServiceOptions): Promise<Note> {
     try {
       const { notebooks: notebooksInput, ...inputWithoutNotebooks } = input;
       const notebooks = Array.from(
@@ -348,7 +352,7 @@ export const noteService = {
       const status = preservesManual ? validated.status ?? derived : derived;
 
       if (validated.type) {
-        await upsertNoteType(userId, validated.type);
+        await upsertNoteType(userId, validated.type, options);
       }
 
       const baseSlug = buildSlug(validated.name);
@@ -357,7 +361,7 @@ export const noteService = {
       let data: Note | null = null;
 
       while (!data) {
-        const { data: insertData, error } = await createClient()
+        const { data: insertData, error } = await (options?.supabase ?? createClient())
           .from("notes")
           .insert({ ...taskCleanedInput, status, user_id: userId, slug })
           .select(NOTE_SELECT)
@@ -374,30 +378,30 @@ export const noteService = {
           continue;
         }
 
-        throw new DatabaseError(error.message);
+        throw mapDatabaseError(error);
       }
 
       if (areaIds?.length) {
-        await this.replaceAreaLinks(data.id, areaIds);
+        await this.replaceAreaLinks(data.id, areaIds, options);
       }
 
       if (goalIds?.length) {
-        await this.replaceGoalLinks(data.id, goalIds);
+        await this.replaceGoalLinks(data.id, goalIds, options);
       }
 
       if (projectIds?.length) {
-        await this.replaceProjectLinks(data.id, projectIds);
+        await this.replaceProjectLinks(data.id, projectIds, options);
       }
 
       if (taskIds?.length) {
-        await this.replaceTaskLinks(data.id, taskIds);
+        await this.replaceTaskLinks(data.id, taskIds, options);
       }
 
       if (notebooks.length) {
-        await this.replaceNotebooks(data.id, notebooks);
+        await this.replaceNotebooks(data.id, notebooks, options);
       }
 
-      return hydrateSingleNoteRelations(data);
+      return hydrateSingleNoteRelations(data, options);
     } catch (e) {
       if (e instanceof ValidationError) throw e;
       if (e instanceof DatabaseError) throw e;
@@ -406,7 +410,7 @@ export const noteService = {
     }
   },
 
-  async update(userId: string, id: string, input: UpdateNoteInput): Promise<Note> {
+  async update(userId: string, id: string, input: UpdateNoteInput, options?: ServiceOptions): Promise<Note> {
     try {
       const { goal_ids, task_ids, project_ids, notebooks, ...rest } = input;
       const goalIds = goal_ids ? Array.from(new Set(goal_ids)) : undefined;
@@ -459,12 +463,12 @@ export const noteService = {
       }
 
       if (validated.type) {
-        await upsertNoteType(userId, validated.type);
+        await upsertNoteType(userId, validated.type, options);
       }
 
       const note = hasNoteUpdates
         ? await (async () => {
-            const { data, error } = await createClient()
+            const { data, error } = await (options?.supabase ?? createClient())
               .from("notes")
               .update(validated)
               .eq("user_id", userId)
@@ -482,7 +486,7 @@ export const noteService = {
             return data;
           })()
         : await (async () => {
-            const { data, error } = await createClient()
+            const { data, error } = await (options?.supabase ?? createClient())
               .from("notes")
               .select(NOTE_SELECT)
               .eq("user_id", userId)
@@ -500,26 +504,26 @@ export const noteService = {
           })();
 
       if (areaIds !== undefined) {
-        await this.replaceAreaLinks(id, areaIds);
+        await this.replaceAreaLinks(id, areaIds, options);
       }
 
       if (goalIds !== undefined) {
-        await this.replaceGoalLinks(id, goalIds);
+        await this.replaceGoalLinks(id, goalIds, options);
       }
 
       if (projectIds !== undefined) {
-        await this.replaceProjectLinks(id, projectIds);
+        await this.replaceProjectLinks(id, projectIds, options);
       }
 
       if (taskIds !== undefined) {
-        await this.replaceTaskLinks(id, taskIds);
+        await this.replaceTaskLinks(id, taskIds, options);
       }
 
       if (notebooks !== undefined) {
-        await this.replaceNotebooks(id, notebooks);
+        await this.replaceNotebooks(id, notebooks, options);
       }
 
-      return hydrateSingleNoteRelations(note);
+      return hydrateSingleNoteRelations(note, options);
     } catch (e) {
       if (e instanceof ValidationError) throw e;
       if (e instanceof DatabaseError) throw e;
@@ -528,8 +532,8 @@ export const noteService = {
     }
   },
 
-  async archive(userId: string, id: string): Promise<Note> {
-    const { data, error } = await createClient()
+  async archive(userId: string, id: string, options?: ServiceOptions): Promise<Note> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("notes")
       .update({ is_archived: true })
       .eq("user_id", userId)
@@ -544,11 +548,11 @@ export const noteService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateSingleNoteRelations(data);
+    return hydrateSingleNoteRelations(data, options);
   },
 
-  async delete(userId: string, id: string): Promise<void> {
-    const { error } = await createClient()
+  async delete(userId: string, id: string, options?: ServiceOptions): Promise<void> {
+    const { error } = await (options?.supabase ?? createClient())
       .from("notes")
       .delete()
       .eq("user_id", userId)
@@ -559,12 +563,12 @@ export const noteService = {
     }
   },
 
-  async listByArea(userId: string, areaId: string): Promise<Note[]> {
-    return this.list(userId, { areaId });
+  async listByArea(userId: string, areaId: string, options?: ServiceOptions): Promise<Note[]> {
+    return this.list(userId, { areaId }, options);
   },
 
-  async listByTopic(userId: string, topicId: string): Promise<Note[]> {
-    const { data, error } = await createClient()
+  async listByTopic(userId: string, topicId: string, options?: ServiceOptions): Promise<Note[]> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("notes")
       .select(NOTE_SELECT)
       .eq("user_id", userId)
@@ -572,11 +576,11 @@ export const noteService = {
       .order("updated_at", { ascending: false });
 
     if (error) throw new DatabaseError(error.message);
-    return hydrateNoteRelations(data ?? []);
+    return hydrateNoteRelations(data ?? [], options);
   },
 
-  async listByProject(userId: string, projectId: string): Promise<Note[]> {
-    const { data: links, error: linksError } = await createClient()
+  async listByProject(userId: string, projectId: string, options?: ServiceOptions): Promise<Note[]> {
+    const { data: links, error: linksError } = await (options?.supabase ?? createClient())
       .from("note_projects")
       .select("note_id")
       .eq("project_id", projectId);
@@ -589,7 +593,7 @@ export const noteService = {
     const noteIds = (links ?? []).map((l) => l.note_id);
     if (noteIds.length === 0) return [];
 
-    const { data, error } = await createClient()
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("notes")
       .select(NOTE_SELECT)
       .eq("user_id", userId)
@@ -597,11 +601,11 @@ export const noteService = {
       .order("updated_at", { ascending: false });
 
     if (error) throw new DatabaseError(error.message);
-    return hydrateNoteRelations(data ?? []);
+    return hydrateNoteRelations(data ?? [], options);
   },
 
-  async listNotebooks(userId: string): Promise<string[]> {
-    const { data, error } = await createClient()
+  async listNotebooks(userId: string, options?: ServiceOptions): Promise<string[]> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("note_notebooks")
       .select("notebook, notes!inner(user_id)")
       .eq("notes.user_id", userId);
@@ -614,8 +618,8 @@ export const noteService = {
     return Array.from(set).sort();
   },
 
-  async listByGoal(userId: string, goalId: string): Promise<Note[]> {
-    const { data, error } = await createClient()
+  async listByGoal(userId: string, goalId: string, options?: ServiceOptions): Promise<Note[]> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("goal_notes")
       .select("note:notes(*)")
       .eq("goal_id", goalId);
@@ -625,11 +629,11 @@ export const noteService = {
     }
 
     const notes = (data ?? []).map((r) => r.note as unknown as Note).filter(Boolean);
-    return hydrateNoteRelations(notes);
+    return hydrateNoteRelations(notes, options);
   },
 
-  async linkToGoal(goalId: string, noteId: string): Promise<void> {
-    const { error } = await createClient()
+  async linkToGoal(goalId: string, noteId: string, options?: ServiceOptions): Promise<void> {
+    const { error } = await (options?.supabase ?? createClient())
       .from("goal_notes")
       .upsert({ goal_id: goalId, note_id: noteId });
 
@@ -637,11 +641,11 @@ export const noteService = {
       throw new DatabaseError(error.message);
     }
 
-    await this.syncNoteStatusFromContext(noteId);
+    await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async unlinkFromGoal(goalId: string, noteId: string): Promise<void> {
-    const { error } = await createClient()
+  async unlinkFromGoal(goalId: string, noteId: string, options?: ServiceOptions): Promise<void> {
+    const { error } = await (options?.supabase ?? createClient())
       .from("goal_notes")
       .delete()
       .eq("goal_id", goalId)
@@ -651,11 +655,11 @@ export const noteService = {
       throw new DatabaseError(error.message);
     }
 
-    await this.syncNoteStatusFromContext(noteId);
+    await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async linkToTask(taskId: string, noteId: string): Promise<void> {
-    const { error } = await createClient()
+  async linkToTask(taskId: string, noteId: string, options?: ServiceOptions): Promise<void> {
+    const { error } = await (options?.supabase ?? createClient())
       .from("task_notes")
       .upsert({ task_id: taskId, note_id: noteId });
 
@@ -665,11 +669,11 @@ export const noteService = {
       }
     }
 
-    await this.syncNoteStatusFromContext(noteId);
+    await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async unlinkFromTask(taskId: string, noteId: string): Promise<void> {
-    const { error } = await createClient()
+  async unlinkFromTask(taskId: string, noteId: string, options?: ServiceOptions): Promise<void> {
+    const { error } = await (options?.supabase ?? createClient())
       .from("task_notes")
       .delete()
       .eq("task_id", taskId)
@@ -681,13 +685,13 @@ export const noteService = {
       }
     }
 
-    await this.syncNoteStatusFromContext(noteId);
+    await this.syncNoteStatusFromContext(noteId, options);
   },
 
   /** Re-derive a note's status from its current area/project/goal/task/topic context. */
-  async syncNoteStatusFromContext(noteId: string): Promise<void> {
-    const relations = await this.getWithRelations(noteId);
-    const { data: note, error: fetchError } = await createClient()
+  async syncNoteStatusFromContext(noteId: string, options?: ServiceOptions): Promise<void> {
+    const relations = await this.getWithRelations(noteId, options);
+    const { data: note, error: fetchError } = await (options?.supabase ?? createClient())
       .from("notes")
       .select("status, area_id, project_id, topic_id")
       .eq("id", noteId)
@@ -720,7 +724,7 @@ export const noteService = {
     });
 
     if (derivedStatus !== note.status) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("notes")
         .update({ status: derivedStatus })
         .eq("id", noteId);
@@ -731,12 +735,12 @@ export const noteService = {
     }
   },
 
-  async getWithRelations(noteId: string): Promise<{ goal_ids: string[]; task_ids: string[]; area_ids: string[]; project_ids: string[] }> {
+  async getWithRelations(noteId: string, options?: ServiceOptions): Promise<{ goal_ids: string[]; task_ids: string[]; area_ids: string[]; project_ids: string[] }> {
     const [goalResult, taskResult, areaResult, projectResult] = await Promise.all([
-      createClient().from("goal_notes").select("goal_id").eq("note_id", noteId),
-      createClient().from("task_notes").select("task_id").eq("note_id", noteId),
-      createClient().from("note_areas").select("area_id").eq("note_id", noteId),
-      createClient().from("note_projects").select("project_id").eq("note_id", noteId),
+      (options?.supabase ?? createClient()).from("goal_notes").select("goal_id").eq("note_id", noteId),
+      (options?.supabase ?? createClient()).from("task_notes").select("task_id").eq("note_id", noteId),
+      (options?.supabase ?? createClient()).from("note_areas").select("area_id").eq("note_id", noteId),
+      (options?.supabase ?? createClient()).from("note_projects").select("project_id").eq("note_id", noteId),
     ]);
 
     if (goalResult.error) {
@@ -786,15 +790,15 @@ export const noteService = {
     };
   },
 
-  async replaceGoalLinks(noteId: string, goalIds: string[]): Promise<void> {
-    const existingRelations = await this.getWithRelations(noteId);
+  async replaceGoalLinks(noteId: string, goalIds: string[], options?: ServiceOptions): Promise<void> {
+    const existingRelations = await this.getWithRelations(noteId, options);
     const existingGoalIds = new Set(existingRelations.goal_ids);
     const nextGoalIds = new Set(goalIds);
     const goalIdsToAdd = goalIds.filter((goalId) => !existingGoalIds.has(goalId));
     const goalIdsToRemove = existingRelations.goal_ids.filter((goalId) => !nextGoalIds.has(goalId));
 
     if (goalIdsToAdd.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("goal_notes")
         .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, note_id: noteId })));
 
@@ -804,7 +808,7 @@ export const noteService = {
     }
 
     if (goalIdsToRemove.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("goal_notes")
         .delete()
         .eq("note_id", noteId)
@@ -815,18 +819,18 @@ export const noteService = {
       }
     }
 
-    await this.syncNoteStatusFromContext(noteId);
+    await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async replaceAreaLinks(noteId: string, areaIds: string[]): Promise<void> {
-    const existingRelations = await this.getWithRelations(noteId);
+  async replaceAreaLinks(noteId: string, areaIds: string[], options?: ServiceOptions): Promise<void> {
+    const existingRelations = await this.getWithRelations(noteId, options);
     const existingAreaIds = new Set(existingRelations.area_ids);
     const nextAreaIds = new Set(areaIds);
     const areaIdsToAdd = areaIds.filter((areaId) => !existingAreaIds.has(areaId));
     const areaIdsToRemove = existingRelations.area_ids.filter((areaId) => !nextAreaIds.has(areaId));
 
     if (areaIdsToAdd.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("note_areas")
         .insert(areaIdsToAdd.map((area_id) => ({ area_id, note_id: noteId })));
 
@@ -836,7 +840,7 @@ export const noteService = {
     }
 
     if (areaIdsToRemove.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("note_areas")
         .delete()
         .eq("note_id", noteId)
@@ -847,18 +851,18 @@ export const noteService = {
       }
     }
 
-    await this.syncNoteStatusFromContext(noteId);
+    await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async replaceProjectLinks(noteId: string, projectIds: string[]): Promise<void> {
-    const existingRelations = await this.getWithRelations(noteId);
+  async replaceProjectLinks(noteId: string, projectIds: string[], options?: ServiceOptions): Promise<void> {
+    const existingRelations = await this.getWithRelations(noteId, options);
     const existingProjectIds = new Set(existingRelations.project_ids);
     const nextProjectIds = new Set(projectIds);
     const projectIdsToAdd = projectIds.filter((projectId) => !existingProjectIds.has(projectId));
     const projectIdsToRemove = existingRelations.project_ids.filter((projectId) => !nextProjectIds.has(projectId));
 
     if (projectIdsToAdd.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("note_projects")
         .insert(projectIdsToAdd.map((project_id) => ({ project_id, note_id: noteId })));
 
@@ -870,7 +874,7 @@ export const noteService = {
     }
 
     if (projectIdsToRemove.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("note_projects")
         .delete()
         .eq("note_id", noteId)
@@ -883,18 +887,18 @@ export const noteService = {
       }
     }
 
-    await this.syncNoteStatusFromContext(noteId);
+    await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async replaceTaskLinks(noteId: string, taskIds: string[]): Promise<void> {
-    const existingRelations = await this.getWithRelations(noteId);
+  async replaceTaskLinks(noteId: string, taskIds: string[], options?: ServiceOptions): Promise<void> {
+    const existingRelations = await this.getWithRelations(noteId, options);
     const existingTaskIds = new Set(existingRelations.task_ids);
     const nextTaskIds = new Set(taskIds);
     const taskIdsToAdd = taskIds.filter((taskId) => !existingTaskIds.has(taskId));
     const taskIdsToRemove = existingRelations.task_ids.filter((taskId) => !nextTaskIds.has(taskId));
 
     if (taskIdsToAdd.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("task_notes")
         .insert(taskIdsToAdd.map((task_id) => ({ task_id, note_id: noteId })));
 
@@ -906,7 +910,7 @@ export const noteService = {
     }
 
     if (taskIdsToRemove.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("task_notes")
         .delete()
         .eq("note_id", noteId)
@@ -919,11 +923,11 @@ export const noteService = {
       }
     }
 
-    await this.syncNoteStatusFromContext(noteId);
+    await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async getByNotebook(userId: string, notebook: string): Promise<Note[]> {
-    const { data, error } = await createClient()
+  async getByNotebook(userId: string, notebook: string, options?: ServiceOptions): Promise<Note[]> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("notes")
       .select(`${NOTE_SELECT}, note_notebooks!inner(notebook)`)
       .eq("user_id", userId)
@@ -937,11 +941,11 @@ export const noteService = {
     }
     // Strip the embedded join object before hydration.
     const rows = (data ?? []).map(({ note_notebooks: _omit, ...note }) => note) as Note[];
-    return hydrateNoteRelations(rows);
+    return hydrateNoteRelations(rows, options);
   },
 
-  async replaceNotebooks(noteId: string, notebooks: string[]): Promise<void> {
-    const client = createClient();
+  async replaceNotebooks(noteId: string, notebooks: string[], options?: ServiceOptions): Promise<void> {
+    const client = options?.supabase ?? createClient();
     const { error: delError } = await client.from("note_notebooks").delete().eq("note_id", noteId);
     if (delError) {
       if (delError.code === "42P01") return;
@@ -956,10 +960,10 @@ export const noteService = {
     }
   },
 
-  async addNotesToNotebook(_userId: string, notebook: string, noteIds: string[]): Promise<void> {
+  async addNotesToNotebook(_userId: string, notebook: string, noteIds: string[], options?: ServiceOptions): Promise<void> {
     if (noteIds.length === 0) return;
     const rows = noteIds.map((note_id) => ({ note_id, notebook }));
-    const { error } = await createClient()
+    const { error } = await (options?.supabase ?? createClient())
       .from("note_notebooks")
       .upsert(rows, { onConflict: "note_id,notebook" });
     if (error) {
@@ -968,8 +972,8 @@ export const noteService = {
     }
   },
 
-  async removeNoteFromNotebook(_userId: string, noteId: string, notebook: string): Promise<void> {
-    const { error } = await createClient()
+  async removeNoteFromNotebook(_userId: string, noteId: string, notebook: string, options?: ServiceOptions): Promise<void> {
+    const { error } = await (options?.supabase ?? createClient())
       .from("note_notebooks")
       .delete()
       .eq("note_id", noteId)
@@ -980,8 +984,8 @@ export const noteService = {
     }
   },
 
-  async getRelatedByNotebook(userId: string, noteId: string): Promise<RelatedNotebookGroup[]> {
-    const { data: nbRows, error: nbError } = await createClient()
+  async getRelatedByNotebook(userId: string, noteId: string, options?: ServiceOptions): Promise<RelatedNotebookGroup[]> {
+    const { data: nbRows, error: nbError } = await (options?.supabase ?? createClient())
       .from("note_notebooks")
       .select("notebook")
       .eq("note_id", noteId);
@@ -995,16 +999,16 @@ export const noteService = {
 
     const groups: RelatedNotebookGroup[] = [];
     for (const notebook of notebooks) {
-      const members = await this.getByNotebook(userId, notebook);
+      const members = await this.getByNotebook(userId, notebook, options);
       const others = members.filter((n) => n.id !== noteId);
       if (others.length > 0) groups.push({ notebook, notes: others });
     }
     return groups;
   },
 
-  async bulkArchive(userId: string, noteIds: string[]): Promise<void> {
+  async bulkArchive(userId: string, noteIds: string[], options?: ServiceOptions): Promise<void> {
     if (noteIds.length === 0) return;
-    const { error } = await createClient()
+    const { error } = await (options?.supabase ?? createClient())
       .from("notes")
       .update({ is_archived: true })
       .eq("user_id", userId)
@@ -1015,9 +1019,9 @@ export const noteService = {
     }
   },
 
-  async bulkUpdateStatus(userId: string, noteIds: string[], status: NoteStatus): Promise<void> {
+  async bulkUpdateStatus(userId: string, noteIds: string[], status: NoteStatus, options?: ServiceOptions): Promise<void> {
     if (noteIds.length === 0) return;
-    const { error } = await createClient()
+    const { error } = await (options?.supabase ?? createClient())
       .from("notes")
       .update({ status })
       .eq("user_id", userId)
@@ -1029,9 +1033,9 @@ export const noteService = {
   },
 
 
-  async bulkDelete(userId: string, noteIds: string[]): Promise<void> {
+  async bulkDelete(userId: string, noteIds: string[], options?: ServiceOptions): Promise<void> {
     if (noteIds.length === 0) return;
-    const { error } = await createClient()
+    const { error } = await (options?.supabase ?? createClient())
       .from("notes")
       .delete()
       .eq("user_id", userId)
@@ -1042,8 +1046,8 @@ export const noteService = {
     }
   },
 
-  async restore(userId: string, id: string): Promise<Note> {
-    const { data, error } = await createClient()
+  async restore(userId: string, id: string, options?: ServiceOptions): Promise<Note> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("notes")
       .update({ is_archived: false })
       .eq("user_id", userId)
@@ -1058,7 +1062,7 @@ export const noteService = {
       throw new DatabaseError(error.message);
     }
 
-    return hydrateSingleNoteRelations(data);
+    return hydrateSingleNoteRelations(data, options);
   },
 
   /**
@@ -1066,8 +1070,8 @@ export const noteService = {
    * whose stored status does not match the value derived from its
    * current context. Terminal states (completed, archive) are preserved.
    */
-  async backfillStaleStatuses(userId: string): Promise<number> {
-    const { data, error } = await createClient()
+  async backfillStaleStatuses(userId: string, options?: ServiceOptions): Promise<number> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("notes")
       .select(NOTE_SELECT)
       .eq("user_id", userId)
@@ -1081,7 +1085,7 @@ export const noteService = {
     const notes = data ?? [];
     let fixed = 0;
     for (const note of notes) {
-      const relations = await this.getWithRelations(note.id);
+      const relations = await this.getWithRelations(note.id, options);
       const derived = deriveNoteStatus({
         area_id: note.area_id,
         area_ids: relations.area_ids,
@@ -1092,7 +1096,7 @@ export const noteService = {
         topic_id: note.topic_id,
       });
       if (derived !== note.status) {
-        const { error: updateError } = await createClient()
+        const { error: updateError } = await (options?.supabase ?? createClient())
           .from("notes")
           .update({ status: derived })
           .eq("id", note.id)
@@ -1107,8 +1111,8 @@ export const noteService = {
     return fixed;
   },
 
-  async listTypes(userId: string): Promise<{ id: string; name: string; slug: string }[]> {
-    const { data, error } = await createClient()
+  async listTypes(userId: string, options?: ServiceOptions): Promise<{ id: string; name: string; slug: string }[]> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("note_types")
       .select("id, name, slug")
       .eq("user_id", userId)
@@ -1124,9 +1128,9 @@ export const noteService = {
     return data || [];
   },
 
-  async getNoteGoalIds(userId: string, noteIds: string[]): Promise<Map<string, string[]>> {
+  async getNoteGoalIds(userId: string, noteIds: string[], options?: ServiceOptions): Promise<Map<string, string[]>> {
     if (noteIds.length === 0) return new Map();
-    const { data, error } = await createClient()
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("goal_notes")
       .select("goal_id, note_id")
       .in("note_id", noteIds);
@@ -1144,10 +1148,10 @@ export const noteService = {
     return result;
   },
 
-  async getNoteAreaIds(userId: string, noteIds: string[]): Promise<Map<string, string[]>> {
+  async getNoteAreaIds(userId: string, noteIds: string[], options?: ServiceOptions): Promise<Map<string, string[]>> {
     if (noteIds.length === 0) return new Map();
     try {
-      const { data, error } = await createClient()
+      const { data, error } = await (options?.supabase ?? createClient())
         .from("note_areas")
         .select("area_id, note_id")
         .in("note_id", noteIds);
@@ -1174,10 +1178,10 @@ export const noteService = {
     }
   },
 
-  async getNoteTaskIds(userId: string, noteIds: string[]): Promise<Map<string, string[]>> {
+  async getNoteTaskIds(userId: string, noteIds: string[], options?: ServiceOptions): Promise<Map<string, string[]>> {
     if (noteIds.length === 0) return new Map();
     try {
-      const { data, error } = await createClient()
+      const { data, error } = await (options?.supabase ?? createClient())
         .from("task_notes")
         .select("task_id, note_id")
         .in("note_id", noteIds);
@@ -1204,13 +1208,13 @@ export const noteService = {
     }
   },
 
-  async getNoteRelatedCounts(_userId: string, noteIds: string[]): Promise<Map<string, number>> {
+  async getNoteRelatedCounts(_userId: string, noteIds: string[], options?: ServiceOptions): Promise<Map<string, number>> {
     const result = new Map<string, number>();
     for (const id of noteIds) result.set(id, 0);
     if (noteIds.length === 0) return result;
 
     // Which notebooks do the requested notes belong to?
-    const { data: own, error: ownErr } = await createClient()
+    const { data: own, error: ownErr } = await (options?.supabase ?? createClient())
       .from("note_notebooks")
       .select("note_id, notebook")
       .in("note_id", noteIds);
@@ -1228,7 +1232,7 @@ export const noteService = {
     if (allNotebooks.size === 0) return result;
 
     // All members of those notebooks.
-    const { data: members, error: memErr } = await createClient()
+    const { data: members, error: memErr } = await (options?.supabase ?? createClient())
       .from("note_notebooks")
       .select("note_id, notebook")
       .in("notebook", Array.from(allNotebooks));

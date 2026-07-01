@@ -1,10 +1,13 @@
 import { createClient } from "../supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CreateProjectInput, Project, UpdateProjectInput } from "../types/domain.types";
 import { createProjectSchema, updateProjectSchema } from "../validators/project.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
 import { LIST_SAFETY_CAP, PROJECT_STATUS, type ProjectStatus } from "../utils/constants";
 import { deriveProjectStatus } from "../utils/status-routing";
+
+type ServiceOptions = { supabase?: SupabaseClient };
 
 type ProjectRecord = Omit<Project, "slug"> & { slug?: string | null };
 type ProjectQueryError = { code?: string; message?: string } | null;
@@ -135,7 +138,7 @@ function extractProjectAreaIds<TInput extends { area_id?: string | null; area_id
   };
 }
 
-async function hydrateProjectAreaLinks(projects: Project[]): Promise<Project[]> {
+async function hydrateProjectAreaLinks(projects: Project[], options?: ServiceOptions): Promise<Project[]> {
   if (projects.length === 0) {
     return projects;
   }
@@ -150,7 +153,7 @@ async function hydrateProjectAreaLinks(projects: Project[]): Promise<Project[]> 
     | undefined;
 
   try {
-    const result = await createClient()
+    const result = await (options?.supabase ?? createClient())
       .from("project_areas")
       .select("project_id, area_id")
       .in("project_id", projectIds);
@@ -188,14 +191,14 @@ async function hydrateProjectAreaLinks(projects: Project[]): Promise<Project[]> 
   }));
 }
 
-async function hydrateProjectGoalLinks(projects: Project[]): Promise<Project[]> {
+async function hydrateProjectGoalLinks(projects: Project[], options?: ServiceOptions): Promise<Project[]> {
   if (projects.length === 0) return projects;
 
   const projectIds = projects.map((p) => p.id);
   let data: Array<{ project_id: string; goal_id: string }> | null | undefined;
 
   try {
-    const result = await createClient()
+    const result = await (options?.supabase ?? createClient())
       .from("goal_projects")
       .select("project_id, goal_id")
       .in("project_id", projectIds);
@@ -228,11 +231,11 @@ async function hydrateProjectGoalLinks(projects: Project[]): Promise<Project[]> 
   }));
 }
 
-async function hydrateProjectProgress(projects: Project[]): Promise<Project[]> {
+async function hydrateProjectProgress(projects: Project[], options?: ServiceOptions): Promise<Project[]> {
   if (projects.length === 0) return projects;
 
   const projectIds = projects.map((p) => p.id);
-  const supabase = createClient();
+  const supabase = options?.supabase ?? createClient();
 
   const [
     { data: taskRows },
@@ -367,11 +370,11 @@ export function mapProjectProgressSummary(
   });
 }
 
-async function hydrateProjectRollupCounts(projects: Project[]): Promise<Project[]> {
+async function hydrateProjectRollupCounts(projects: Project[], options?: ServiceOptions): Promise<Project[]> {
   if (projects.length === 0) return projects;
 
   const projectIds = projects.map((p) => p.id);
-  const supabase = createClient();
+  const supabase = options?.supabase ?? createClient();
 
   // Collect goal IDs linked to any of these projects so we can filter them by
   // active status (matches every inline `activeGoalIdSet` predicate:
@@ -424,15 +427,15 @@ async function hydrateProjectRollupCounts(projects: Project[]): Promise<Project[
   );
 }
 
-async function hydrateProjectRelations(projects: Project[]): Promise<Project[]> {
+async function hydrateProjectRelations(projects: Project[], options?: ServiceOptions): Promise<Project[]> {
   if (projects.length === 0) return projects;
-  const withAreas = await hydrateProjectAreaLinks(projects);
-  const withGoals = await hydrateProjectGoalLinks(withAreas);
+  const withAreas = await hydrateProjectAreaLinks(projects, options);
+  const withGoals = await hydrateProjectGoalLinks(withAreas, options);
   // Progress + rollup counts depend only on the project IDs, so they can run
   // in parallel with each other once we have linkedGoalIds for the rollups.
   const [withProgress, withRollups] = await Promise.all([
-    hydrateProjectProgress(withGoals),
-    hydrateProjectRollupCounts(withGoals),
+    hydrateProjectProgress(withGoals, options),
+    hydrateProjectRollupCounts(withGoals, options),
   ]);
   // Merge rollup counts into the progress-hydrated array so we keep both.
   const rollupsById = new Map(withRollups.map((p) => [p.id, p]));
@@ -449,8 +452,8 @@ async function hydrateProjectRelations(projects: Project[]): Promise<Project[]> 
   });
 }
 
-async function hydrateSingleProjectRelations(project: Project): Promise<Project> {
-  const [hydrated] = await hydrateProjectRelations([project]);
+async function hydrateSingleProjectRelations(project: Project, options?: ServiceOptions): Promise<Project> {
+  const [hydrated] = await hydrateProjectRelations([project], options);
   return hydrated;
 }
 
@@ -523,9 +526,9 @@ async function runWriteProjectQuery(
   return runSingleProjectQuery(queryFactory, missingEntity);
 }
 
-async function listProjectsForSlugFallback(userId: string): Promise<Project[]> {
+async function listProjectsForSlugFallback(userId: string, options?: ServiceOptions): Promise<Project[]> {
   return runProjectListQuery((selectClause) =>
-    createClient()
+    (options?.supabase ?? createClient())
       .from("projects")
       .select(selectClause)
       .eq("user_id", userId)
@@ -554,10 +557,10 @@ export const projectService = {
       areaId?: string;
       status?: ProjectStatus | "all";
     },
-    options?: { offset?: number; limit?: number },
+    options?: ServiceOptions & { offset?: number; limit?: number },
   ): Promise<Project[]> {
     const projects = await runProjectListQuery((selectClause) => {
-      let query = createClient()
+      let query = (options?.supabase ?? createClient())
         .from("projects")
         .select(selectClause)
         .eq("user_id", userId)
@@ -590,13 +593,13 @@ export const projectService = {
       return query.limit(LIST_SAFETY_CAP);
     });
 
-    return hydrateProjectRelations(projects);
+    return hydrateProjectRelations(projects, options);
   },
 
-  async getById(userId: string, id: string): Promise<Project> {
+  async getById(userId: string, id: string, options?: ServiceOptions): Promise<Project> {
     const project = await runSingleProjectQuery(
       (selectClause) =>
-        createClient()
+        (options?.supabase ?? createClient())
           .from("projects")
           .select(selectClause)
           .eq("user_id", userId)
@@ -605,11 +608,11 @@ export const projectService = {
       { entity: "Project", identifier: id },
     );
 
-    return hydrateSingleProjectRelations(project);
+    return hydrateSingleProjectRelations(project, options);
   },
 
-  async getBySlug(userId: string, slug: string): Promise<Project> {
-    const result = await createClient()
+  async getBySlug(userId: string, slug: string, options?: ServiceOptions): Promise<Project> {
+    const result = await (options?.supabase ?? createClient())
       .from("projects")
       .select(PROJECT_SELECT)
       .eq("user_id", userId)
@@ -617,23 +620,23 @@ export const projectService = {
       .single();
 
     if (isMissingProjectSlugColumnError(result.error)) {
-      const projects = await listProjectsForSlugFallback(userId);
+      const projects = await listProjectsForSlugFallback(userId, options);
       const project = projects.find((candidate) => candidate.slug === slug);
 
       if (!project) {
         throw new NotFoundError("Project", slug);
       }
 
-      return hydrateSingleProjectRelations(project);
+      return hydrateSingleProjectRelations(project, options);
     }
 
     if (result.error) {
       if (result.error.code === "PGRST116") {
-        const projects = await listProjectsForSlugFallback(userId);
+        const projects = await listProjectsForSlugFallback(userId, options);
         const project = projects.find((candidate) => candidate.slug === slug);
 
         if (project) {
-          return hydrateSingleProjectRelations(project);
+          return hydrateSingleProjectRelations(project, options);
         }
 
         throw new NotFoundError("Project", slug);
@@ -642,18 +645,18 @@ export const projectService = {
       throw new DatabaseError(result.error.message, result.error);
     }
 
-    return hydrateSingleProjectRelations(normalizeProject(result.data as unknown as ProjectRecord));
+    return hydrateSingleProjectRelations(normalizeProject(result.data as unknown as ProjectRecord), options);
   },
 
-  async getByIdentifier(userId: string, identifier: string): Promise<Project> {
+  async getByIdentifier(userId: string, identifier: string, options?: ServiceOptions): Promise<Project> {
     if (isUuid(identifier)) {
-      return this.getById(userId, identifier);
+      return this.getById(userId, identifier, options);
     }
-    return this.getBySlug(userId, identifier);
+    return this.getBySlug(userId, identifier, options);
   },
 
-  async generateUniqueSlug(userId: string, baseSlug: string): Promise<string> {
-    const { data, error } = await createClient()
+  async generateUniqueSlug(userId: string, baseSlug: string, options?: ServiceOptions): Promise<string> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("projects")
       .select("slug")
       .eq("user_id", userId)
@@ -678,7 +681,7 @@ export const projectService = {
     return `${baseSlug}-${suffix}`;
   },
 
-  async create(userId: string, input: CreateProjectInput): Promise<Project> {
+  async create(userId: string, input: CreateProjectInput, options?: ServiceOptions): Promise<Project> {
     const validated = createProjectSchema.parse(input);
     const { areaIds, projectInput: areaCleanedInput } = extractProjectAreaIds(validated);
     const { goalIds, projectInput } = extractGoalIds(areaCleanedInput);
@@ -697,11 +700,11 @@ export const projectService = {
     });
 
     const baseSlug = generateSlug(validated.name);
-    const slug = await this.generateUniqueSlug(userId, baseSlug);
+    const slug = await this.generateUniqueSlug(userId, baseSlug, options);
 
     const project = await runWriteProjectQuery(
       (selectClause) =>
-        createClient()
+        (options?.supabase ?? createClient())
           .from("projects")
           .insert(
             selectClause === PROJECT_SELECT
@@ -714,17 +717,17 @@ export const projectService = {
     );
 
     if (areaIds?.length) {
-      await this.replaceAreaLinks(userId, project.id, areaIds);
+      await this.replaceAreaLinks(userId, project.id, areaIds, options);
     }
 
     if (goalIds?.length) {
-      await this.replaceGoalLinks(userId, project.id, goalIds);
+      await this.replaceGoalLinks(userId, project.id, goalIds, options);
     }
 
-    return hydrateSingleProjectRelations(project);
+    return hydrateSingleProjectRelations(project, options);
   },
 
-  async update(userId: string, id: string, input: UpdateProjectInput): Promise<Project> {
+  async update(userId: string, id: string, input: UpdateProjectInput, options?: ServiceOptions): Promise<Project> {
     const validated = updateProjectSchema.parse(input);
     const { areaIds, projectInput: areaCleanedInput } = extractProjectAreaIds(validated);
     const { goalIds, projectInput } = extractGoalIds(areaCleanedInput);
@@ -770,7 +773,7 @@ export const projectService = {
     const project = hasProjectUpdates
       ? await runWriteProjectQuery(
           (selectClause) =>
-            createClient()
+            (options?.supabase ?? createClient())
               .from("projects")
               .update(projectInput)
               .eq("user_id", userId)
@@ -779,21 +782,21 @@ export const projectService = {
               .single(),
           { entity: "Project", identifier: id },
         )
-      : await this.getById(userId, id);
+      : await this.getById(userId, id, options);
 
     if (areaIds !== undefined) {
-      await this.replaceAreaLinks(userId, id, areaIds);
+      await this.replaceAreaLinks(userId, id, areaIds, options);
     }
 
     if (goalIds !== undefined) {
-      await this.replaceGoalLinks(userId, id, goalIds);
+      await this.replaceGoalLinks(userId, id, goalIds, options);
     }
 
-    return hydrateSingleProjectRelations(project);
+    return hydrateSingleProjectRelations(project, options);
   },
 
-  async delete(userId: string, id: string): Promise<void> {
-    const { error } = await createClient()
+  async delete(userId: string, id: string, options?: ServiceOptions): Promise<void> {
+    const { error } = await (options?.supabase ?? createClient())
       .from("projects")
       .delete()
       .eq("user_id", userId)
@@ -804,10 +807,10 @@ export const projectService = {
     }
   },
 
-  async archive(userId: string, id: string): Promise<Project> {
+  async archive(userId: string, id: string, options?: ServiceOptions): Promise<Project> {
     const project = await runWriteProjectQuery(
       (selectClause) =>
-        createClient()
+        (options?.supabase ?? createClient())
           .from("projects")
           .update({ is_archived: true })
           .eq("user_id", userId)
@@ -817,13 +820,13 @@ export const projectService = {
       { entity: "Project", identifier: id },
     );
 
-    return hydrateSingleProjectRelations(project);
+    return hydrateSingleProjectRelations(project, options);
   },
 
-  async restore(userId: string, id: string): Promise<Project> {
+  async restore(userId: string, id: string, options?: ServiceOptions): Promise<Project> {
     const project = await runWriteProjectQuery(
       (selectClause) =>
-        createClient()
+        (options?.supabase ?? createClient())
           .from("projects")
           .update({ is_archived: false })
           .eq("user_id", userId)
@@ -833,15 +836,16 @@ export const projectService = {
       { entity: "Project", identifier: id },
     );
 
-    return hydrateSingleProjectRelations(project);
+    return hydrateSingleProjectRelations(project, options);
   },
 
   async listByStatus(
     userId: string | undefined,
     status: ProjectStatus | "all",
+    options?: ServiceOptions,
   ): Promise<Project[]> {
     const projects = await runProjectListQuery((selectClause) => {
-      let query = createClient()
+      let query = (options?.supabase ?? createClient())
         .from("projects")
         .select(selectClause)
         .eq("user_id", userId!)
@@ -859,12 +863,12 @@ export const projectService = {
       return query;
     });
 
-    return hydrateProjectRelations(projects);
+    return hydrateProjectRelations(projects, options);
   },
 
-  async listByArea(userId: string | undefined, areaId: string): Promise<Project[]> {
+  async listByArea(userId: string | undefined, areaId: string, options?: ServiceOptions): Promise<Project[]> {
     const projects = await runProjectListQuery((selectClause) =>
-      createClient()
+      (options?.supabase ?? createClient())
         .from("projects")
         .select(selectClause)
         .eq("user_id", userId!)
@@ -873,17 +877,17 @@ export const projectService = {
         .order("created_at", { ascending: false }),
     );
 
-    return hydrateProjectRelations(projects);
+    return hydrateProjectRelations(projects, options);
   },
 
-  async getWithRelations(userId: string, id: string): Promise<{
+  async getWithRelations(userId: string, id: string, options?: ServiceOptions): Promise<{
     goal_ids: string[];
     area_ids: string[];
     goals: { id: string; name: string }[];
   }> {
     const [goalResult, areaResult] = await Promise.all([
-      createClient().from("goal_projects").select("goal_id, goals(id, name)").eq("project_id", id),
-      createClient().from("project_areas").select("area_id").eq("project_id", id),
+      (options?.supabase ?? createClient()).from("goal_projects").select("goal_id, goals(id, name)").eq("project_id", id),
+      (options?.supabase ?? createClient()).from("project_areas").select("area_id").eq("project_id", id),
     ]);
 
     if (goalResult.error) {
@@ -909,15 +913,15 @@ export const projectService = {
     };
   },
 
-  async replaceAreaLinks(userId: string, projectId: string, areaIds: string[]): Promise<void> {
-    const existingRelations = await this.getWithRelations(userId, projectId);
+  async replaceAreaLinks(userId: string, projectId: string, areaIds: string[], options?: ServiceOptions): Promise<void> {
+    const existingRelations = await this.getWithRelations(userId, projectId, options);
     const existingAreaIds = new Set(existingRelations.area_ids);
     const nextAreaIds = new Set(areaIds);
     const areaIdsToAdd = areaIds.filter((areaId) => !existingAreaIds.has(areaId));
     const areaIdsToRemove = existingRelations.area_ids.filter((areaId) => !nextAreaIds.has(areaId));
 
     if (areaIdsToAdd.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("project_areas")
         .insert(areaIdsToAdd.map((area_id) => ({ area_id, project_id: projectId })));
 
@@ -927,7 +931,7 @@ export const projectService = {
     }
 
     if (areaIdsToRemove.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("project_areas")
         .delete()
         .eq("project_id", projectId)
@@ -943,7 +947,7 @@ export const projectService = {
       // Keep `projects.area_id` in sync AND re-derive the project status from
       // the new context so linking/unlinking an area flips an inbox project to
       // planning (and back) without going through the full update() path.
-      const { data: currentProject, error: fetchError } = await createClient()
+      const { data: currentProject, error: fetchError } = await (options?.supabase ?? createClient())
         .from("projects")
         .select("status, start_date, due_date")
         .eq("id", projectId)
@@ -978,7 +982,7 @@ export const projectService = {
         }
       }
 
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("projects")
         .update(updatePayload)
         .eq("id", projectId)
@@ -990,30 +994,30 @@ export const projectService = {
     }
   },
 
-  async linkToArea(userId: string, projectId: string, areaId: string): Promise<void> {
-    const existingRelations = await this.getWithRelations(userId, projectId);
+  async linkToArea(userId: string, projectId: string, areaId: string, options?: ServiceOptions): Promise<void> {
+    const existingRelations = await this.getWithRelations(userId, projectId, options);
     if (existingRelations.area_ids.includes(areaId)) {
       return;
     }
 
-    await this.replaceAreaLinks(userId, projectId, [...existingRelations.area_ids, areaId]);
+    await this.replaceAreaLinks(userId, projectId, [...existingRelations.area_ids, areaId], options);
   },
 
-  async unlinkFromArea(userId: string, projectId: string, areaId: string): Promise<void> {
-    const existingRelations = await this.getWithRelations(userId, projectId);
+  async unlinkFromArea(userId: string, projectId: string, areaId: string, options?: ServiceOptions): Promise<void> {
+    const existingRelations = await this.getWithRelations(userId, projectId, options);
     const nextAreaIds = existingRelations.area_ids.filter((linkedAreaId) => linkedAreaId !== areaId);
-    await this.replaceAreaLinks(userId, projectId, nextAreaIds);
+    await this.replaceAreaLinks(userId, projectId, nextAreaIds, options);
   },
 
-  async replaceGoalLinks(userId: string, projectId: string, goalIds: string[]): Promise<void> {
-    const existingRelations = await this.getWithRelations(userId, projectId);
+  async replaceGoalLinks(userId: string, projectId: string, goalIds: string[], options?: ServiceOptions): Promise<void> {
+    const existingRelations = await this.getWithRelations(userId, projectId, options);
     const existingGoalIds = new Set(existingRelations.goal_ids);
     const nextGoalIds = new Set(goalIds);
     const goalIdsToAdd = goalIds.filter((goalId) => !existingGoalIds.has(goalId));
     const goalIdsToRemove = existingRelations.goal_ids.filter((goalId) => !nextGoalIds.has(goalId));
 
     if (goalIdsToAdd.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("goal_projects")
         .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, project_id: projectId })));
 
@@ -1023,7 +1027,7 @@ export const projectService = {
     }
 
     if (goalIdsToRemove.length > 0) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("goal_projects")
         .delete()
         .eq("project_id", projectId)
@@ -1036,7 +1040,7 @@ export const projectService = {
 
     // Re-derive status from the new goal context (plus any existing area
     // context) so linking/unlinking a goal flips the status appropriately.
-    const { data: currentProject, error: fetchError } = await createClient()
+    const { data: currentProject, error: fetchError } = await (options?.supabase ?? createClient())
       .from("projects")
       .select("status, area_id, start_date, due_date")
       .eq("id", projectId)
@@ -1065,7 +1069,7 @@ export const projectService = {
     });
 
     if (derivedStatus !== currentProject.status) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("projects")
         .update({ status: derivedStatus })
         .eq("id", projectId)
@@ -1077,8 +1081,8 @@ export const projectService = {
     }
   },
 
-  async linkToGoal(userId: string, projectId: string, goalId: string): Promise<void> {
-    const { error } = await createClient()
+  async linkToGoal(userId: string, projectId: string, goalId: string, options?: ServiceOptions): Promise<void> {
+    const { error } = await (options?.supabase ?? createClient())
       .from("goal_projects")
       .insert({ project_id: projectId, goal_id: goalId });
 
@@ -1086,11 +1090,11 @@ export const projectService = {
       throw new DatabaseError(error.message);
     }
 
-    await this.syncProjectStatusFromContext(userId, projectId);
+    await this.syncProjectStatusFromContext(userId, projectId, options);
   },
 
-  async unlinkFromGoal(userId: string, projectId: string, goalId: string): Promise<void> {
-    const { error } = await createClient()
+  async unlinkFromGoal(userId: string, projectId: string, goalId: string, options?: ServiceOptions): Promise<void> {
+    const { error } = await (options?.supabase ?? createClient())
       .from("goal_projects")
       .delete()
       .eq("project_id", projectId)
@@ -1100,7 +1104,7 @@ export const projectService = {
       throw new DatabaseError(error.message);
     }
 
-    await this.syncProjectStatusFromContext(userId, projectId);
+    await this.syncProjectStatusFromContext(userId, projectId, options);
   },
 
   /**
@@ -1113,9 +1117,9 @@ export const projectService = {
    * project that's been moved into a workflow state is not pulled back
    * to inbox/planning by a later link/unlink.
    */
-  async syncProjectStatusFromContext(userId: string, projectId: string): Promise<void> {
-    const relations = await this.getWithRelations(userId, projectId);
-    const { data: currentProject, error: fetchError } = await createClient()
+  async syncProjectStatusFromContext(userId: string, projectId: string, options?: ServiceOptions): Promise<void> {
+    const relations = await this.getWithRelations(userId, projectId, options);
+    const { data: currentProject, error: fetchError } = await (options?.supabase ?? createClient())
       .from("projects")
       .select("status, area_id, start_date, due_date")
       .eq("id", projectId)
@@ -1144,7 +1148,7 @@ export const projectService = {
     });
 
     if (derivedStatus !== currentProject.status) {
-      const { error } = await createClient()
+      const { error } = await (options?.supabase ?? createClient())
         .from("projects")
         .update({ status: derivedStatus })
         .eq("id", projectId)
@@ -1156,8 +1160,8 @@ export const projectService = {
     }
   },
 
-  async listByGoal(userId: string, goalId: string): Promise<Project[]> {
-    const { data, error } = await createClient()
+  async listByGoal(userId: string, goalId: string, options?: ServiceOptions): Promise<Project[]> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("goal_projects")
       .select("project:projects(*)")
       .eq("goal_id", goalId);
@@ -1172,7 +1176,7 @@ export const projectService = {
         .filter((project): project is ProjectRecord => Boolean(project)),
     );
 
-    return hydrateProjectRelations(projects);
+    return hydrateProjectRelations(projects, options);
   },
 
   /**
@@ -1181,8 +1185,8 @@ export const projectService = {
    * current area/goal + dates context. Terminal states (active,
    * completed, on_hold) are preserved.
    */
-  async backfillStaleStatuses(userId: string): Promise<number> {
-    const { data, error } = await createClient()
+  async backfillStaleStatuses(userId: string, options?: ServiceOptions): Promise<number> {
+    const { data, error } = await (options?.supabase ?? createClient())
       .from("projects")
       .select(PROJECT_SELECT)
       .eq("user_id", userId)
@@ -1241,7 +1245,7 @@ export const projectService = {
 
     let fixed = 0;
     for (const [status, ids] of idsByDerivedStatus) {
-      const { error: updateError } = await createClient()
+      const { error: updateError } = await (options?.supabase ?? createClient())
         .from("projects")
         .update({ status })
         .in("id", ids)

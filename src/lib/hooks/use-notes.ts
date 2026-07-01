@@ -9,6 +9,7 @@ import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
 import { TOPICS_QUERY_KEY } from "@/lib/hooks/use-topics";
 import { noteService } from "@/lib/services/note.service";
+import { entityLimitToastMessage } from "@/lib/entity-limit";
 import type { CreateNoteInput, Note, UpdateNoteInput } from "@/lib/types/domain.types";
 import type { NoteStatus } from "@/lib/utils/constants";
 
@@ -224,7 +225,7 @@ export function useCreateNote() {
       toast.success("Note created");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to create note");
+      toast.error(entityLimitToastMessage(error, "Failed to create note"));
     },
   });
 }
@@ -241,7 +242,7 @@ export function useCreateNoteWithGoal(goalId: string) {
       toast.success("Note created");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to create note");
+      toast.error(entityLimitToastMessage(error, "Failed to create note"));
     },
   });
 }

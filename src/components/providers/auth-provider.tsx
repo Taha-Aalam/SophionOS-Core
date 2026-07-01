@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth as useClerkAuth, useClerk, useUser } from "@clerk/nextjs";
 
 import { AREAS_QUERY_KEY } from "@/lib/hooks/use-areas";
-import { seedDefaultAreas } from "@/lib/services/onboarding.service";
+import { provisionSubscription, seedDefaultAreas } from "@/lib/services/onboarding.service";
 
 interface AuthUser {
   id: string;
@@ -81,6 +81,7 @@ export function AuthProvider({
     void (async () => {
       try {
         await seedDefaultAreas(user.id);
+        await provisionSubscription();
         // Surgical invalidation: only the "list" entry for this user. Avoids
         // clobbering other keys (and the in-flight client fetches on login)
         // that `invalidateQueries({ queryKey: [AREAS_QUERY_KEY] })` would
