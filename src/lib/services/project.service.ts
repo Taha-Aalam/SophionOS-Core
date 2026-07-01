@@ -340,6 +340,36 @@ async function hydrateProjectProgress(projects: Project[], options?: ServiceOpti
   });
 }
 
+export interface ProjectProgressSummaryRow {
+  project_id: string;
+  active_task_count: number;
+  active_note_count: number;
+  active_resource_count: number;
+}
+
+// Map the project_progress_summary RPC result onto each project's task/note/
+// resource rollup fields, preserving the separately-computed goalCount. Pure so
+// it can be unit-tested without a database; a project absent from the rows
+// degrades to zero counts.
+export function mapProjectProgressSummary(
+  projects: Project[],
+  rows: ProjectProgressSummaryRow[] | null,
+  goalCountByProject: Map<string, number>,
+): Project[] {
+  const byProjectId = new Map<string, ProjectProgressSummaryRow>();
+  for (const row of rows ?? []) byProjectId.set(row.project_id, row);
+  return projects.map((project) => {
+    const row = byProjectId.get(project.id);
+    return {
+      ...project,
+      goalCount: goalCountByProject.get(project.id) ?? 0,
+      taskCount: row?.active_task_count ?? 0,
+      noteCount: row?.active_note_count ?? 0,
+      resourceCount: row?.active_resource_count ?? 0,
+    };
+  });
+}
+
 async function hydrateProjectRollupCounts(projects: Project[], options?: ServiceOptions): Promise<Project[]> {
   if (projects.length === 0) return projects;
 
@@ -357,45 +387,22 @@ async function hydrateProjectRollupCounts(projects: Project[], options?: Service
     new Set(Array.from(linkedGoalIdsByProject.values()).flat()),
   );
 
-  const [
-    activeGoalsResult,
-    { data: taskRows },
-    taskJunctionResult,
-    { data: noteRows },
-    { data: noteJunctionRows },
-    { data: resourceRows },
-  ] = await Promise.all([
+  // goalCount is a count of ACTIVE linked goals already hydrated onto each
+  // project; aggregate the task/note/resource counts in SQL (RLS-scoped
+  // project_progress_summary RPC) instead of pulling every child row into the
+  // browser and de-duplicating FK vs junction rows by hand.
+  const [activeGoalsResult, summaryResult] = await Promise.all([
     allGoalIds.length > 0
       ? supabase
           .from("goals")
           .select("id, is_completed, is_archived")
           .in("id", allGoalIds)
       : Promise.resolve({ data: [] as Array<{ id: string; is_completed: boolean; is_archived: boolean }> }),
-    supabase
-      .from("tasks")
-      .select("id, project_id, is_completed, is_archived")
-      .in("project_id", projectIds),
-    // Tasks can also be linked to projects via the `task_projects` junction
-    // table (multi-project tasks). Without this fan-out the rollup count
-    // misses every task whose primary project_id is NULL or points at a
-    // different project than the one being rolled up.
-    supabase
-      .from("task_projects")
-      .select("project_id, task:tasks(id, is_completed, is_archived)")
-      .in("project_id", projectIds),
-    supabase
-      .from("notes")
-      .select("id, project_id, status, is_archived")
-      .in("project_id", projectIds),
-    supabase
-      .from("note_projects")
-      .select("project_id, note:notes(id, status, is_archived)")
-      .in("project_id", projectIds),
-    supabase
-      .from("resource_projects")
-      .select("project_id, resource:resources(status, is_archived)")
-      .in("project_id", projectIds),
+    supabase.rpc("project_progress_summary", { p_project_ids: projectIds }),
   ]);
+
+  const summaryError = (summaryResult as { error?: { message: string } | null }).error;
+  if (summaryError) throw new DatabaseError(summaryError.message);
 
   const activeGoalIdSet = new Set(
     ((activeGoalsResult as { data?: Array<{ id: string; is_completed: boolean; is_archived: boolean }> }).data ?? [])
@@ -403,108 +410,21 @@ async function hydrateProjectRollupCounts(projects: Project[], options?: Service
       .map((g) => g.id),
   );
 
-  const taskCountByProject = new Map<string, number>();
-  const seenTasksByProject = new Map<string, Set<string>>();
-  const recordTask = (
-    projectId: string,
-    taskId: string,
-    isCompleted: boolean,
-    isArchived: boolean,
-  ) => {
-    if (isArchived || isCompleted) return;
-    const seen = seenTasksByProject.get(projectId) ?? new Set<string>();
-    if (seen.has(taskId)) return;
-    seen.add(taskId);
-    seenTasksByProject.set(projectId, seen);
-    taskCountByProject.set(projectId, (taskCountByProject.get(projectId) ?? 0) + 1);
-  };
-  for (const t of (taskRows ?? []) as Array<{
-    id: string;
-    project_id: string | null;
-    is_completed: boolean;
-    is_archived: boolean;
-  }>) {
-    if (!t.project_id) continue;
-    recordTask(t.project_id, t.id, t.is_completed, t.is_archived);
-  }
-  const taskJunctionRows =
-    (taskJunctionResult as {
-      data?: Array<{
-        project_id: string;
-        task:
-          | { id: string; is_completed: boolean; is_archived: boolean }
-          | { id: string; is_completed: boolean; is_archived: boolean }[]
-          | null;
-      }>;
-    }).data ?? [];
-  for (const link of taskJunctionRows) {
-    const task = Array.isArray(link.task) ? link.task[0] : link.task;
-    if (!task) continue;
-    recordTask(link.project_id, task.id, task.is_completed, task.is_archived);
-  }
-
-  const noteCountByProject = new Map<string, number>();
-  const seenNotesByProject = new Map<string, Set<string>>();
-  for (const n of (noteRows ?? []) as Array<{
-    id: string;
-    project_id: string | null;
-    status: string;
-    is_archived: boolean;
-  }>) {
-    if (!n.project_id || n.is_archived || n.status === "archive" || n.status === "completed") continue;
-    const seen = seenNotesByProject.get(n.project_id) ?? new Set<string>();
-    if (seen.has(n.id)) continue;
-    seen.add(n.id);
-    seenNotesByProject.set(n.project_id, seen);
-    noteCountByProject.set(n.project_id, (noteCountByProject.get(n.project_id) ?? 0) + 1);
-  }
-  for (const link of (noteJunctionRows ?? []) as Array<{
-    project_id: string;
-    note:
-      | { id: string; status: string; is_archived: boolean }
-      | { id: string; status: string; is_archived: boolean }[]
-      | null;
-  }>) {
-    const note = Array.isArray(link.note) ? link.note[0] : link.note;
-    if (!note || note.is_archived || note.status === "archive" || note.status === "completed") continue;
-    const seen = seenNotesByProject.get(link.project_id) ?? new Set<string>();
-    if (seen.has(note.id)) continue;
-    seen.add(note.id);
-    seenNotesByProject.set(link.project_id, seen);
-    noteCountByProject.set(
-      link.project_id,
-      (noteCountByProject.get(link.project_id) ?? 0) + 1,
+  const goalCountByProject = new Map<string, number>();
+  for (const project of projects) {
+    goalCountByProject.set(
+      project.id,
+      (linkedGoalIdsByProject.get(project.id) ?? []).filter((id) =>
+        activeGoalIdSet.has(id),
+      ).length,
     );
   }
 
-  const resourceCountByProject = new Map<string, number>();
-  for (const link of (resourceRows ?? []) as Array<{
-    project_id: string;
-    resource:
-      | { status: string; is_archived: boolean }
-      | { status: string; is_archived: boolean }[]
-      | null;
-  }>) {
-    const resource = Array.isArray(link.resource) ? link.resource[0] : link.resource;
-    if (!resource || resource.is_archived || resource.status === "completed") continue;
-    resourceCountByProject.set(
-      link.project_id,
-      (resourceCountByProject.get(link.project_id) ?? 0) + 1,
-    );
-  }
-
-  return projects.map((project) => {
-    const goalCount = (linkedGoalIdsByProject.get(project.id) ?? []).filter((id) =>
-      activeGoalIdSet.has(id),
-    ).length;
-    return {
-      ...project,
-      goalCount,
-      taskCount: taskCountByProject.get(project.id) ?? 0,
-      noteCount: noteCountByProject.get(project.id) ?? 0,
-      resourceCount: resourceCountByProject.get(project.id) ?? 0,
-    };
-  });
+  return mapProjectProgressSummary(
+    projects,
+    (summaryResult as { data?: ProjectProgressSummaryRow[] | null }).data ?? null,
+    goalCountByProject,
+  );
 }
 
 async function hydrateProjectRelations(projects: Project[], options?: ServiceOptions): Promise<Project[]> {
@@ -637,7 +557,7 @@ export const projectService = {
       areaId?: string;
       status?: ProjectStatus | "all";
     },
-    options?: ServiceOptions,
+    options?: ServiceOptions & { offset?: number; limit?: number },
   ): Promise<Project[]> {
     const projects = await runProjectListQuery((selectClause) => {
       let query = (options?.supabase ?? createClient())
@@ -664,6 +584,12 @@ export const projectService = {
         query = query.ilike("name", `%${filters.term}%`);
       }
 
+      // Opt-in pagination: a requested page fetches exactly that window;
+      // otherwise fall back to the safety cap (unbounded lists scale poorly).
+      if (options?.limit !== undefined) {
+        const offset = options.offset ?? 0;
+        return query.range(offset, offset + options.limit - 1);
+      }
       return query.limit(LIST_SAFETY_CAP);
     });
 
@@ -1274,27 +1200,60 @@ export const projectService = {
     }
 
     const projects = (data ?? []) as unknown as Project[];
-    let fixed = 0;
+    if (projects.length === 0) return 0;
+    const projectIds = projects.map((p) => p.id);
+
+    // Batch both junction reads with a single .in(ids) query instead of a
+    // getWithRelations call per row (the old loop was O(rows) round trips).
+    const supabase = createClient();
+    const [goalLinks, areaLinks] = await Promise.all([
+      supabase.from("goal_projects").select("project_id, goal_id").in("project_id", projectIds),
+      supabase.from("project_areas").select("project_id, area_id").in("project_id", projectIds),
+    ]);
+
+    if (goalLinks.error && !isMissingGoalProjectsTableError(goalLinks.error)) {
+      throw new DatabaseError(goalLinks.error.message);
+    }
+    if (areaLinks.error && !isMissingProjectAreasTableError(areaLinks.error)) {
+      throw new DatabaseError(areaLinks.error.message);
+    }
+
+    const goalsByProject = new Map<string, string[]>();
+    for (const row of goalLinks.data ?? []) {
+      goalsByProject.set(row.project_id, [...(goalsByProject.get(row.project_id) ?? []), row.goal_id]);
+    }
+    const areasByProject = new Map<string, string[]>();
+    for (const row of areaLinks.data ?? []) {
+      areasByProject.set(row.project_id, [...(areasByProject.get(row.project_id) ?? []), row.area_id]);
+    }
+
+    // Bucket rows by the status they should become so we can issue ONE update
+    // per distinct status instead of one update per row.
+    const idsByDerivedStatus = new Map<ProjectStatus, string[]>();
     for (const project of projects) {
-      const relations = await this.getWithRelations(userId, project.id, options);
       const derived = deriveProjectStatus({
         area_id: project.area_id,
-        area_ids: relations.area_ids,
-        goal_ids: relations.goal_ids,
+        area_ids: areasByProject.get(project.id) ?? [],
+        goal_ids: goalsByProject.get(project.id) ?? [],
         start_date: project.start_date,
         due_date: project.due_date,
       });
       if (derived !== project.status) {
-        const { error: updateError } = await (options?.supabase ?? createClient())
-          .from("projects")
-          .update({ status: derived })
-          .eq("id", project.id)
-          .eq("user_id", userId);
-        if (updateError) {
-          throw new DatabaseError(updateError.message);
-        }
-        fixed += 1;
+        idsByDerivedStatus.set(derived, [...(idsByDerivedStatus.get(derived) ?? []), project.id]);
       }
+    }
+
+    let fixed = 0;
+    for (const [status, ids] of idsByDerivedStatus) {
+      const { error: updateError } = await (options?.supabase ?? createClient())
+        .from("projects")
+        .update({ status })
+        .in("id", ids)
+        .eq("user_id", userId);
+      if (updateError) {
+        throw new DatabaseError(updateError.message);
+      }
+      fixed += ids.length;
     }
 
     return fixed;

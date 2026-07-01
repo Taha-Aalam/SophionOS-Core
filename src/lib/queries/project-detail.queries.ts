@@ -46,14 +46,17 @@ export async function hydrateResourceLinks(supabase: SupabaseClient, resources: 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function hydrateProject(supabase: SupabaseClient, project: any): Promise<any> {
   const projectId: string = project.id
+  // These six sources are independent (all keyed by projectId), so degrade with
+  // allSettled — a rejected rollup query yields an empty slice instead of
+  // throwing and blanking the entire project detail page.
   const [
     areasResult,
     goalsResult,
-    { data: taskRows },
-    { data: noteRows },
-    { data: noteJunctionRows },
-    { data: resourceRows },
-  ] = await Promise.all([
+    taskResult,
+    noteResult,
+    noteJunctionResult,
+    resourceResult,
+  ] = await Promise.allSettled([
     supabase.from("project_areas").select("area_id").eq("project_id", projectId),
     supabase.from("goal_projects").select("goal_id").eq("project_id", projectId),
     supabase
@@ -74,7 +77,24 @@ async function hydrateProject(supabase: SupabaseClient, project: any): Promise<a
       .eq("project_id", projectId),
   ])
 
-  const linkedGoalIds = (goalsResult.data ?? []).map((r: { goal_id: string }) => r.goal_id)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const areaLinkRows: any[] =
+    areasResult.status === "fulfilled" ? (areasResult.value.data ?? []) : []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const goalLinkRows: any[] =
+    goalsResult.status === "fulfilled" ? (goalsResult.value.data ?? []) : []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const taskRows: any[] = taskResult.status === "fulfilled" ? (taskResult.value.data ?? []) : []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const noteRows: any[] = noteResult.status === "fulfilled" ? (noteResult.value.data ?? []) : []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const noteJunctionRows: any[] =
+    noteJunctionResult.status === "fulfilled" ? (noteJunctionResult.value.data ?? []) : []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const resourceRows: any[] =
+    resourceResult.status === "fulfilled" ? (resourceResult.value.data ?? []) : []
+
+  const linkedGoalIds = goalLinkRows.map((r: { goal_id: string }) => r.goal_id)
   // Active goal lookup: same predicate as the inline computations across the
   // app (matches projectService.hydrateProjectRollupCounts).
   let activeGoalIdSet = new Set<string>()
@@ -167,7 +187,7 @@ async function hydrateProject(supabase: SupabaseClient, project: any): Promise<a
   return {
     ...project,
     progress,
-    linkedAreaIds: dedupe([project.area_id, ...(areasResult.data ?? []).map((r: { area_id: string }) => r.area_id)]),
+    linkedAreaIds: dedupe([project.area_id, ...areaLinkRows.map((r: { area_id: string }) => r.area_id)]),
     linkedGoalIds,
     goalCount,
     taskCount: activeTaskCount,

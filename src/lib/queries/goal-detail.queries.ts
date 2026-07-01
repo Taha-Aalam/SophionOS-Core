@@ -132,14 +132,17 @@ export async function serverFetchGoalDetail(
   if (!goal) throw new Error(`Goal not found: ${goalIdentifier}`)
   const goalId: string = goal.id
 
-  // Parallel: goal area links + all linked entities via junction tables
+  // Parallel: goal area links + all linked entities via junction tables.
+  // These five sources are independent (all keyed by goalId), so degrade with
+  // allSettled — a single rejected junction read renders that section empty
+  // instead of throwing and blanking the entire goal detail page.
   const [
     goalAreasResult,
     goalProjectsResult,
     goalTasksResult,
     goalNotesResult,
     goalResourcesResult,
-  ] = await Promise.all([
+  ] = await Promise.allSettled([
     supabase.from("goal_areas").select("area_id").eq("goal_id", goalId),
     supabase.from("goal_projects").select("project:projects(*)").eq("goal_id", goalId),
     supabase.from("goal_tasks").select("task:tasks(*)").eq("goal_id", goalId),
@@ -147,18 +150,34 @@ export async function serverFetchGoalDetail(
     supabase.from("goal_resources").select("resource:resources(*)").eq("goal_id", goalId),
   ])
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const goalAreaRows: any[] =
+    goalAreasResult.status === "fulfilled" ? (goalAreasResult.value.data ?? []) : []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const goalProjectRows: any[] =
+    goalProjectsResult.status === "fulfilled" ? (goalProjectsResult.value.data ?? []) : []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const goalTaskRows: any[] =
+    goalTasksResult.status === "fulfilled" ? (goalTasksResult.value.data ?? []) : []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const goalNoteRows: any[] =
+    goalNotesResult.status === "fulfilled" ? (goalNotesResult.value.data ?? []) : []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const goalResourceRows: any[] =
+    goalResourcesResult.status === "fulfilled" ? (goalResourcesResult.value.data ?? []) : []
+
   // Hydrate goal with linked area IDs
-  const goalAreaIds = (goalAreasResult.data ?? []).map((r: { area_id: string }) => r.area_id)
+  const goalAreaIds = goalAreaRows.map((r: { area_id: string }) => r.area_id)
 
   // Extract raw linked entities
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawProjects: any[] = (goalProjectsResult.data ?? []).map((r: any) => r.project).filter(Boolean)
+  const rawProjects: any[] = goalProjectRows.map((r: any) => r.project).filter(Boolean)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawTasks: any[] = (goalTasksResult.data ?? []).map((r: any) => r.task).filter(Boolean)
+  const rawTasks: any[] = goalTaskRows.map((r: any) => r.task).filter(Boolean)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawNotes: any[] = (goalNotesResult.data ?? []).map((r: any) => r.note).filter(Boolean)
+  const rawNotes: any[] = goalNoteRows.map((r: any) => r.note).filter(Boolean)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawResources: any[] = (goalResourcesResult.data ?? []).map((r: any) => r.resource).filter(Boolean)
+  const rawResources: any[] = goalResourceRows.map((r: any) => r.resource).filter(Boolean)
 
   // Hydrate goal with the same shape as goalService.list/getByIdentifier:
   // linkedAreaIds + recomputed progress + rollup counts. Mirrors

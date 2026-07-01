@@ -297,15 +297,30 @@ export interface CompleteTaskResult {
   spawnedTaskId?: string;
 }
 
+export interface ListPageOptions {
+  offset?: number;
+  limit?: number;
+}
+
 export const taskService = {
-  async list(userId: string, options?: ServiceOptions): Promise<Task[]> {
-    const { data, error } = await (options?.supabase ?? createClient())
+  async list(userId: string, options?: ServiceOptions & ListPageOptions): Promise<Task[]> {
+    let query = (options?.supabase ?? createClient())
       .from("tasks")
       .select(TASK_SELECT)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .order("created_at", { ascending: false })
-      .limit(LIST_SAFETY_CAP);
+      .order("created_at", { ascending: false });
+
+    // Opt-in pagination: when a page is requested, fetch exactly that window;
+    // otherwise fall back to the safety cap (unbounded lists are a scaling risk).
+    if (options?.limit !== undefined) {
+      const offset = options.offset ?? 0;
+      query = query.range(offset, offset + options.limit - 1);
+    } else {
+      query = query.limit(LIST_SAFETY_CAP);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw new DatabaseError(error.message);
@@ -1134,32 +1149,69 @@ export const taskService = {
     }
 
     const tasks = data ?? [];
-    let fixed = 0;
+    if (tasks.length === 0) return 0;
+    const taskIds = tasks.map((t) => t.id);
+
+    // Batch every junction read with a single .in(ids) query instead of three
+    // per-row lookups (the old loop was O(rows) round trips). Derive in memory.
+    const supabase = createClient();
+    const [areaLinks, goalLinks, projectLinks] = await Promise.all([
+      supabase.from("task_areas").select("task_id, area_id").in("task_id", taskIds),
+      supabase.from("goal_tasks").select("task_id, goal_id").in("task_id", taskIds),
+      supabase.from("task_projects").select("task_id, project_id").in("task_id", taskIds),
+    ]);
+
+    if (areaLinks.error && !isMissingTaskAreasTableError(areaLinks.error)) {
+      throw new DatabaseError(areaLinks.error.message);
+    }
+    if (goalLinks.error) {
+      throw new DatabaseError(goalLinks.error.message);
+    }
+    if (projectLinks.error && !isMissingTaskProjectsTableError(projectLinks.error)) {
+      throw new DatabaseError(projectLinks.error.message);
+    }
+
+    const areasByTask = new Map<string, string[]>();
+    for (const row of areaLinks.data ?? []) {
+      areasByTask.set(row.task_id, [...(areasByTask.get(row.task_id) ?? []), row.area_id]);
+    }
+    const goalsByTask = new Map<string, string[]>();
+    for (const row of goalLinks.data ?? []) {
+      goalsByTask.set(row.task_id, [...(goalsByTask.get(row.task_id) ?? []), row.goal_id]);
+    }
+    const projectsByTask = new Map<string, string[]>();
+    for (const row of projectLinks.data ?? []) {
+      projectsByTask.set(row.task_id, [...(projectsByTask.get(row.task_id) ?? []), row.project_id]);
+    }
+
+    // Bucket rows by the status they should become so we can issue ONE update
+    // per distinct status instead of one update per row.
+    const idsByDerivedStatus = new Map<TaskStatus, string[]>();
     for (const task of tasks) {
-      const [areaIds, goalIds, projectIds] = await Promise.all([
-        this.getAreaLinks(task.id, options),
-        this.getGoalLinks(task.id, options),
-        this.getProjectLinks(task.id, options),
-      ]);
       const derived = deriveTaskStatus({
         area_id: task.area_id,
-        area_ids: areaIds,
-        goal_ids: goalIds,
+        area_ids: areasByTask.get(task.id) ?? [],
+        goal_ids: goalsByTask.get(task.id) ?? [],
         project_id: task.project_id,
-        project_ids: projectIds,
+        project_ids: projectsByTask.get(task.id) ?? [],
         due_date: task.due_date as string | null | undefined,
       });
       if (derived !== task.status) {
-        const { error: updateError } = await (options?.supabase ?? createClient())
-          .from("tasks")
-          .update({ status: derived })
-          .eq("id", task.id)
-          .eq("user_id", userId);
-        if (updateError) {
-          throw new DatabaseError(updateError.message);
-        }
-        fixed += 1;
+        idsByDerivedStatus.set(derived, [...(idsByDerivedStatus.get(derived) ?? []), task.id]);
       }
+    }
+
+    let fixed = 0;
+    for (const [status, ids] of idsByDerivedStatus) {
+      const { error: updateError } = await (options?.supabase ?? createClient())
+        .from("tasks")
+        .update({ status })
+        .in("id", ids)
+        .eq("user_id", userId);
+      if (updateError) {
+        throw new DatabaseError(updateError.message);
+      }
+      fixed += ids.length;
     }
 
     return fixed;

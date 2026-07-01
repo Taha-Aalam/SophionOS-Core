@@ -19,6 +19,25 @@ export function isAppHost(host: string | null | undefined): boolean {
 }
 
 /**
+ * True when the host exactly matches the hostname from the configured
+ * NEXT_PUBLIC_APP_URL. Handles deployments where the app is served at the apex
+ * host (e.g. life-os-core.vercel.app) rather than an `app.` subdomain.
+ */
+export function isConfiguredAppHost(
+  host: string | null | undefined,
+  appUrl: string | null | undefined,
+): boolean {
+  if (!host || !appUrl) return false;
+  try {
+    const configuredHostname = new URL(appUrl).hostname.toLowerCase();
+    const hostname = host.split(":")[0]?.toLowerCase() ?? "";
+    return hostname === configuredHostname;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Normalize a configured public origin (NEXT_PUBLIC_APP_URL) to its origin
  * form with no trailing slash. Returns null when unset or unparseable so the
  * caller can fall back to deriving the origin from the incoming request.
