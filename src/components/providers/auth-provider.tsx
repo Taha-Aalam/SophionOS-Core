@@ -82,6 +82,8 @@ export function AuthProvider({
       try {
         await seedDefaultAreas(user.id);
         await provisionSubscription();
+        // Idempotent bootstrap only. Do NOT auto-complete onboarding here —
+        // the /onboarding route/page owns that state (see onboarding-routing).
         // Surgical invalidation: only the "list" entry for this user. Avoids
         // clobbering other keys (and the in-flight client fetches on login)
         // that `invalidateQueries({ queryKey: [AREAS_QUERY_KEY] })` would

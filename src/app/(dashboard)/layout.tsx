@@ -1,4 +1,5 @@
 import React, { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -7,6 +8,9 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { SignOutOverlay } from "@/components/layout/sign-out-overlay";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { InboxBackfillProvider } from "@/components/providers/inbox-backfill-provider";
+import { userSettingsService } from "@/lib/services/user-settings.service";
+import { resolveDashboardDestination } from "@/lib/onboarding/onboarding-routing";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardGroupLayout({
   children,
@@ -19,6 +23,17 @@ export default async function DashboardGroupLayout({
   // is never rendered for /login, so sign-out's navigation away never re-runs
   // this `auth()` mid session-revoke.
   const { userId } = await auth();
+
+  // Gate the shell behind onboarding completion BEFORE rendering. Incomplete
+  // users are redirected server-side, so they never see the dashboard flash
+  // then bounce on the client.
+  if (userId) {
+    const supabase = await createClient();
+    const onboarding = await userSettingsService.getOnboardingState(userId, { supabase });
+    const destination = await resolveDashboardDestination(onboarding);
+    if (destination) redirect(destination);
+  }
+
   const initialUser = userId
     ? { id: userId, email: null, name: null, imageUrl: null }
     : null;
