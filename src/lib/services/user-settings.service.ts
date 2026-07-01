@@ -10,7 +10,48 @@ export interface NoteDefaults {
   default_notebook?: string | null;
 }
 
+export interface PreferencesSettings {
+  timezone?: string;
+  theme?: "light" | "dark" | "system";
+  language?: string;
+}
+
+export interface NotificationSettings {
+  morning_briefing_enabled?: boolean;
+  morning_briefing_time?: string | null;
+  evening_review_enabled?: boolean;
+  evening_review_time?: string | null;
+  weekly_digest_day?: number | null;
+}
+
+export const ONBOARDING_STEPS = [
+  "areas",
+  "goal",
+  "project",
+  "tasks",
+  "notes",
+  "resources",
+  "contacts",
+] as const;
+
+export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
+
+export interface OnboardingState {
+  completed: boolean;
+  current_step: OnboardingStep;
+  draft?: Record<string, unknown>;
+  completed_at?: string | null;
+}
+
+export const DEFAULT_ONBOARDING_STATE: OnboardingState = {
+  completed: false,
+  current_step: "areas",
+};
+
 const NOTE_DEFAULTS_KEY = "note_defaults";
+const PREFERENCES_KEY = "preferences";
+const NOTIFICATIONS_KEY = "notifications";
+const ONBOARDING_KEY = "onboarding";
 
 export const userSettingsService = {
   async get<T>(
@@ -63,5 +104,55 @@ export const userSettingsService = {
     options?: ServiceOptions,
   ): Promise<void> {
     return this.set(userId, NOTE_DEFAULTS_KEY, defaults, options);
+  },
+
+  async getPreferences(
+    userId: string,
+    options?: ServiceOptions,
+  ): Promise<PreferencesSettings | null> {
+    return this.get<PreferencesSettings>(userId, PREFERENCES_KEY, options);
+  },
+
+  async setPreferences(
+    userId: string,
+    preferences: PreferencesSettings,
+    options?: ServiceOptions,
+  ): Promise<void> {
+    return this.set(userId, PREFERENCES_KEY, preferences, options);
+  },
+
+  async getNotifications(
+    userId: string,
+    options?: ServiceOptions,
+  ): Promise<NotificationSettings | null> {
+    return this.get<NotificationSettings>(userId, NOTIFICATIONS_KEY, options);
+  },
+
+  async setNotifications(
+    userId: string,
+    notifications: NotificationSettings,
+    options?: ServiceOptions,
+  ): Promise<void> {
+    return this.set(userId, NOTIFICATIONS_KEY, notifications, options);
+  },
+
+  async getOnboardingState(
+    userId: string,
+    options?: ServiceOptions,
+  ): Promise<OnboardingState> {
+    const stored = await this.get<OnboardingState>(
+      userId,
+      ONBOARDING_KEY,
+      options,
+    );
+    return stored ?? { ...DEFAULT_ONBOARDING_STATE };
+  },
+
+  async setOnboardingState(
+    userId: string,
+    state: OnboardingState,
+    options?: ServiceOptions,
+  ): Promise<void> {
+    return this.set(userId, ONBOARDING_KEY, state, options);
   },
 };
