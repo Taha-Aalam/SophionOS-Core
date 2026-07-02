@@ -250,63 +250,19 @@ Expected: PASS
 - Modify: `src/lib/api/api-key-service.ts`
 - Test: `tests/unit/api-key-route.test.ts`
 
-- [ ] **Step 1: Write failing API-key tests for optional expiry support**
+- [x] **Step 1: Write failing API-key tests for optional expiry support** — tests/unit/api-key-route.test.ts (6 cases including expiry)
 
-```ts
-it("creates a key with an explicit expires_at value", async () => {
-  const res = await POST(makeJsonRequest({ name: "Claude Desktop", expires_at: "2026-10-01T00:00:00.000Z" }));
-  expect(res.status).toBe(201);
-});
-```
+- [x] **Step 2: Run the key-route test to verify expiry input is not wired** — FAIL (schema missing expires_at)
 
-- [ ] **Step 2: Run the key-route test to verify expiry input is not wired**
+- [x] **Step 3: Extend the POST schema and service to accept optional expiry** — createApiKeySchema + generateApiKey + insert expires_at
 
-Run: `node node_modules/vitest/vitest.mjs run tests/unit/api-key-route.test.ts`
-Expected: FAIL
+- [x] **Step 4: Extract a shared key-management UI used by `/settings/api-keys`** — ApiKeyManager component with create/list/revoke + expiry display
 
-- [ ] **Step 3: Extend the POST schema and service to accept optional expiry**
+- [x] **Step 5: Refactor `/settings/mcp` into connect-only onboarding** — removed key CRUD, added "Manage API keys" link to /settings/api-keys, kept config snippets
 
-```ts
-const createApiKeySchema = z.object({
-  name: z.string().min(1).max(120),
-  expires_at: z.string().datetime().nullable().optional(),
-});
+- [x] **Step 6: Re-run the API-key tests** — 6 passed; next build exit 0
 
-await createAdminClient()
-  .from("api_keys")
-  .insert({ user_id: userId, name, key_hash: keyHash, expires_at: expiresAt ?? null });
-```
-
-- [ ] **Step 4: Extract a shared key-management UI used by `/settings/api-keys`**
-
-```tsx
-<ApiKeyManager
-  mode="full"
-  showExpiry
-  showLastUsed
-  showCreateForm
-/>
-```
-
-- [ ] **Step 5: Refactor `/settings/mcp` into connect-only onboarding**
-
-```tsx
-// keep: connection status, config snippets, free-tier CTA
-// move out: key CRUD form/list into /settings/api-keys
-// add: "Manage keys" link to /settings/api-keys
-```
-
-- [ ] **Step 6: Re-run the API-key tests**
-
-Run: `node node_modules/vitest/vitest.mjs run tests/unit/api-key-route.test.ts src/app/api/v1/__tests__/user-settings.test.ts`
-Expected: PASS
-
-- [ ] **Step 7: Commit**
-
-```bash
-git add tests/unit/api-key-route.test.ts src/app/(dashboard)/settings/api-keys/page.tsx src/components/settings/api-key-manager.tsx src/components/settings/api-key-expiry-select.tsx src/app/(dashboard)/settings/mcp/page.tsx src/app/(dashboard)/settings/mcp/mcp-settings-content.tsx src/app/api/v1/user/api-keys/route.ts src/lib/api/api-key-service.ts
-git commit -m "feat: split api key management from mcp onboarding"
-```
+- [x] **Step 7: Commit** — dbe5b58
 
 ### Task 5: Restore the Settings area and finish the Phase 6 tier-wall UX
 
