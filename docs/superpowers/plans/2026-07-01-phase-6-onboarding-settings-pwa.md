@@ -170,7 +170,7 @@
 - Modify: `src/lib/services/onboarding.service.ts`
 - Test: `tests/unit/onboarding-store.test.ts`
 
-- [ ] **Step 1: Write failing tests for wizard step progression and persistence**
+- [x] **Step 1: Write failing tests for wizard step progression and persistence** — tests/unit/onboarding-store.test.ts (7 cases)
 
 ```ts
 it("starts on the areas step and advances in roadmap order", () => {
@@ -181,12 +181,12 @@ it("starts on the areas step and advances in roadmap order", () => {
 });
 ```
 
-- [ ] **Step 2: Run the onboarding store test and confirm it fails**
+- [x] **Step 2: Run the onboarding store test and confirm it fails** — FAIL (module missing)
 
 Run: `node node_modules/vitest/vitest.mjs run tests/unit/onboarding-store.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Define the step model once and reuse it in the UI**
+- [x] **Step 3: Define the step model once and reuse it in the UI** — ONBOARDING_STEPS in user-settings.service; steps.ts metadata; onboarding.store.ts factory
 
 ```ts
 export const ONBOARDING_STEPS = [
@@ -200,7 +200,7 @@ export const ONBOARDING_STEPS = [
 ] as const;
 ```
 
-- [ ] **Step 4: Build the wizard flow around the already-seeded default areas**
+- [x] **Step 4: Build the wizard flow around the already-seeded default areas** — step-shell + areas/goal/project/tasks/explainer steps; orchestrator creates goal→project→tasks via existing hooks
 
 ```tsx
 // areas step: confirm/edit seeded default areas rather than starting blank
@@ -210,7 +210,7 @@ export const ONBOARDING_STEPS = [
 // notes/resources/contacts steps: explain value + CTA, not mandatory CRUD walls
 ```
 
-- [ ] **Step 5: Persist wizard progress to `user_settings` so refresh/back nav is safe**
+- [x] **Step 5: Persist wizard progress to `user_settings` so refresh/back nav is safe** — persist() on every next/back/skip; draft carries created ids for idempotency
 
 ```ts
 await userSettingsService.setOnboardingState(userId, {
@@ -220,7 +220,7 @@ await userSettingsService.setOnboardingState(userId, {
 });
 ```
 
-- [ ] **Step 6: Mark onboarding complete on finish and redirect to `/dashboard`**
+- [x] **Step 6: Mark onboarding complete on finish and redirect to `/dashboard`** — finish sets completed+completed_at then router.replace("/dashboard")
 
 ```ts
 await userSettingsService.setOnboardingState(userId, {
@@ -231,17 +231,12 @@ await userSettingsService.setOnboardingState(userId, {
 router.replace("/dashboard");
 ```
 
-- [ ] **Step 7: Run the onboarding store test plus relevant service tests**
+- [x] **Step 7: Run the onboarding store test plus relevant service tests** — 12 passed; tsc clean; next build exit 0
 
 Run: `node node_modules/vitest/vitest.mjs run tests/unit/onboarding-store.test.ts tests/unit/user-settings.service.test.ts`
 Expected: PASS
 
-- [ ] **Step 8: Commit**
-
-```bash
-git add tests/unit/onboarding-store.test.ts src/app/onboarding/onboarding-content.tsx src/components/onboarding src/lib/onboarding/steps.ts src/lib/stores/onboarding.store.ts src/lib/services/onboarding.service.ts
-git commit -m "feat: add guided onboarding wizard"
-```
+- [x] **Step 8: Commit** — 878180b (onboarding.service.ts untouched — wizard reuses existing seed/provision seam; no changes needed)
 
 ### Task 4: Generalize API key management and reduce `/settings/mcp` to AI onboarding
 
