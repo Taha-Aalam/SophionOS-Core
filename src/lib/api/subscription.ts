@@ -102,3 +102,67 @@ export async function requirePaidTier(
 export function clearTierCache(): void {
   tierCache.clear();
 }
+
+/**
+ * Entity limits per tier. Free is capped at 100 total across all counted entities.
+ * Paid tiers have effectively unlimited (null = no cap).
+ */
+export const ENTITY_LIMITS: Record<Tier, number | null> = {
+  free: 100,
+  pro: null,
+  lifetime: null,
+  max: null,
+};
+
+/**
+ * Counted entity table names. These are the tables that contribute to the
+ * Free-tier 100-entity cap.
+ */
+export const COUNTED_ENTITIES = [
+  "areas",
+  "goals",
+  "projects",
+  "tasks",
+  "notes",
+  "resources",
+  "contacts",
+  "contact_logs",
+] as const;
+
+/**
+ * Fetches the current entity count for a user from the user_entity_counts table.
+ */
+export async function getEntityCount(
+  userId: string,
+  options?: ServiceOptions,
+): Promise<number> {
+  const supabase = options?.supabase ?? createAdminClient();
+  const { data } = await supabase
+    .from("user_entity_counts")
+    .select("entity_count")
+    .eq("clerk_user_id", userId)
+    .maybeSingle();
+  return data?.entity_count ?? 0;
+}
+
+/**
+ * Returns entity counts per type for a user. Only available on paid tiers
+ * or for display purposes (the cap is enforced at the DB level).
+ */
+export async function getEntityCountsPerType(
+  userId: string,
+  options?: ServiceOptions,
+): Promise<Record<string, number>> {
+  const supabase = options?.supabase ?? createAdminClient();
+  const counts: Record<string, number> = {};
+
+  for (const entity of COUNTED_ENTITIES) {
+    const { count } = await supabase
+      .from(entity)
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId);
+    counts[entity] = count ?? 0;
+  }
+
+  return counts;
+}
