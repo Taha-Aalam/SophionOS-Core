@@ -39,13 +39,14 @@ export interface ApiKeyRecord {
 export async function generateApiKey(
   userId: string,
   name: string,
+  expiresAt?: string | null,
 ): Promise<{ key: string; record: ApiKeyRecord }> {
   const rawKey = `${KEY_PREFIX}${randomBase58(RAW_KEY_LENGTH)}`;
   const keyHash = sha256Hex(rawKey);
 
   const { data, error } = await createAdminClient()
     .from("api_keys")
-    .insert({ user_id: userId, name, key_hash: keyHash })
+    .insert({ user_id: userId, name, key_hash: keyHash, expires_at: expiresAt ?? null })
     .select("id, user_id, name, last_used_at, expires_at, created_at, revoked_at")
     .single();
 
