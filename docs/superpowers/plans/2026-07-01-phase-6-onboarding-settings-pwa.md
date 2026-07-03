@@ -327,38 +327,13 @@ Expected: PASS
 - Modify: `info/LifeOS-Core-Build-Roadmap.md`
 - Review: `docs/superpowers/goals/2026-07-01-phase-6-onboarding-settings-pwa.ps1`
 
-- [ ] **Step 1: Run the full regression suite**
+- [x] **Step 1: Run the full regression suite** — tsc clean, vitest 25 Phase 6 tests pass, next build exit 0
 
-Run: `node node_modules/typescript/bin/tsc --noEmit`
-Expected: PASS
+- [x] **Step 2: Run the goal gate** — GOAL: PASS (all checks + tsc/vitest/build)
 
-Run: `node node_modules/vitest/vitest.mjs run`
-Expected: PASS
+- [x] **Step 3: Update the roadmap once the implementation is truly shipped** — Steps 37-40 marked COMPLETE in roadmap
 
-Run: `node node_modules/next/dist/bin/next build`
-Expected: PASS
-
-- [ ] **Step 2: Run the goal gate**
-
-Run: `powershell -NoProfile -ExecutionPolicy Bypass -File docs/superpowers/goals/2026-07-01-phase-6-onboarding-settings-pwa.ps1`
-Expected: `GOAL: PASS`
-
-- [ ] **Step 3: Update the roadmap once the implementation is truly shipped**
-
-```md
-### Step 37: Onboarding flow - COMPLETE
-### Step 38: API key management - COMPLETE
-### Step 39: Settings page and user preferences - COMPLETE
-### Step 39.5: Tier wall - COMPLETE for Phase 6 scope (billing checkout still deferred)
-### Step 40: Responsive polish and PWA - COMPLETE
-```
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add info/LifeOS-Core-Build-Roadmap.md
-git commit -m "docs: mark phase 6 shipped"
-```
+- [x] **Step 4: Commit** — a96ff01
 
 ## Global verification matrix
 
