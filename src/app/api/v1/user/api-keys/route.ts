@@ -10,6 +10,7 @@ import { AppError } from "@/lib/api/error-handler";
 
 const createApiKeySchema = z.object({
   name: z.string().min(1).max(120),
+  expires_at: z.string().datetime().nullable().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await validateBody(request, createApiKeySchema);
-    const { key, record } = await generateApiKey(userId, body.name);
+    const { key, record } = await generateApiKey(userId, body.name, body.expires_at);
 
     // The raw `key` is returned exactly once here and never persisted in plain
     // text. `record` carries only safe metadata (no key_hash).
