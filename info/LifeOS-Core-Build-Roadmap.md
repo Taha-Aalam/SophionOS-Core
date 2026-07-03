@@ -1635,15 +1635,15 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 ---
 
-### Step 37: Onboarding flow
+### Step 37: Onboarding flow — ✅ COMPLETE 2026-07-03
 
-**What:** Multi-step post-signup wizard: areas setup → first goal → first project → first tasks → explain about notes → explain about resources → explain about contacts.
+**What:** Multi-step post-signup wizard: areas setup → first goal → first project → first tasks → explain about notes → explain about resources → explain about contacts → explain about inbox → explain about my day → explain about knowledge hub.
 
 **Dependencies:** Steps 9, 10, 12, 7.
 
 ---
 
-### Step 38: API key management — 🟡 PARTLY BUILT in Step 32 (generalize, don't rebuild)
+### Step 38: API key management — ✅ COMPLETE 2026-07-03 (generalized from Step 32)
 
 **What:** The canonical API-key management surface (create / list / revoke, multiple named keys, last-used display, optional expiry).
 
@@ -1655,7 +1655,7 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 ---
 
-### Step 39: Settings page and user preferences
+### Step 39: Settings page and user preferences — ✅ COMPLETE 2026-07-03
 
 **What:** General settings: profile, timezone, theme, notifications, account management, integrations placeholder.
 
@@ -1663,7 +1663,7 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 ---
 
-### Step 39.5: Tier wall (Free / Pro / Lifetime / Max) — 🟡 PHASE A+B BUILT 2026-07-01
+### Step 39.5: Tier wall (Free / Pro / Lifetime / Max) — ✅ COMPLETE for Phase 6 scope 2026-07-03 (billing checkout still deferred)
 
 **What:** Four-tier subscription model with two enforcement walls. Tiers + pricing: **Free** $0 (100-entity cap, no API/MCP) · **Pro** $15/mo (unlimited + API + MCP) · **Lifetime** $150 one-time (Max-forever access, never expires, first 100 subscribers only) · **Max** TBD recurring (post-launch, entitlement-equivalent to Lifetime).
 
@@ -1679,7 +1679,7 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 ---
 
-### Step 40: Responsive polish and PWA
+### Step 40: Responsive polish and PWA — ✅ COMPLETE 2026-07-03
 
 **What:** Audit all pages at 375px–1440px. PWA manifest, icons, service worker, "Add to Home Screen" testing.
 
