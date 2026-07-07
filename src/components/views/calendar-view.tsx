@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRightIcon } from "lucide-react";
+import { ChevronLeft, ChevronRightIcon, Calendar } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/views/empty-state";
 import { Task } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
 
@@ -227,7 +228,7 @@ export function CalendarView({ tasks, onTaskClick, onTaskReschedule }: CalendarV
       <div
         ref={gridRef}
         onDragOver={handleGridDragOver}
-        className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-border bg-border"
+        className="grid grid-cols-2 gap-px rounded-lg border border-border bg-border sm:grid-cols-4 md:grid-cols-7"
       >
         {DAY_NAMES.map((name) => (
           <div
@@ -304,9 +305,7 @@ export function CalendarView({ tasks, onTaskClick, onTaskReschedule }: CalendarV
       </div>
 
       {visibleMonthTaskCount === 0 && (
-        <p className="py-4 text-center text-sm text-muted-foreground">
-          No tasks with due dates this month.
-        </p>
+        <EmptyState icon={Calendar} title="No scheduled tasks" description="Tasks with due dates will appear here." />
       )}
     </div>
   );

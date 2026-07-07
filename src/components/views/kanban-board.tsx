@@ -9,7 +9,10 @@ import {
   type DropResult,
 } from "@hello-pangea/dnd";
 
+import { FolderOpen } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/views/empty-state";
 import { useUpdateProjectStatus } from "@/lib/hooks/use-projects";
 import { type Area, type Project } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
@@ -58,6 +61,10 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
 
   const areaMap = React.useMemo(() => new Map(areas.map((area) => [area.id, area])), [areas]);
   const projectsByStatus = React.useMemo(() => groupProjectsByStatus(optimisticProjects), [optimisticProjects]);
+
+  if (optimisticProjects.length === 0) {
+    return <EmptyState icon={FolderOpen} title="No projects" description="Create a project to get started." />;
+  }
 
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -197,7 +204,7 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
                                     <span>Progress</span>
                                     <span>{project.progress || 0}%</span>
                                   </div>
-                                  <div className="h-1 overflow-hidden rounded-full bg-muted">
+                                  <div className="h-1 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={project.progress || 0} aria-valuemin={0} aria-valuemax={100} aria-label={`${project.name} progress`}>
                                     <div
                                       className="h-full rounded-full bg-primary transition-[width] duration-500 ease-[var(--ease-out-quint)]"
                                       style={{ width: `${project.progress || 0}%` }}

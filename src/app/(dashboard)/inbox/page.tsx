@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import {
@@ -226,7 +227,7 @@ function ProjectProcessForm({
                     <Badge
                       key={area.id}
                       variant="secondary"
-                      className="flex items-center gap-1 text-[10px]"
+                      className="flex items-center gap-1 text-2xs"
                     >
                       {area.icon ? `${area.icon} ` : ""}
                       {area.name}
@@ -276,7 +277,7 @@ function ProjectProcessForm({
                     <Badge
                       key={goal.id}
                       variant="secondary"
-                      className="flex items-center gap-1 text-[10px]"
+                      className="flex items-center gap-1 text-2xs"
                     >
                       {goal.name}
                       <button
@@ -393,7 +394,7 @@ function InboxProjectRow({
               <X className="size-3.5" />
             </button>
           ) : (
-            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onExpand}>
+            <Button size="sm" variant="outline" className="h-9 text-xs sm:h-7" onClick={onExpand}>
               Process
             </Button>
           )}
@@ -464,7 +465,7 @@ function InboxTaskRow({
               <X className="size-3.5" />
             </button>
           ) : (
-            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onExpand}>
+            <Button size="sm" variant="outline" className="h-9 text-xs sm:h-7" onClick={onExpand}>
               Process
             </Button>
           )}
@@ -528,7 +529,7 @@ function InboxNoteRow({
       <div className="flex items-center gap-3">
         <Badge
           variant="secondary"
-          className="shrink-0 gap-1 bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300"
+          className="shrink-0 gap-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
         >
           <span className="text-xs">{NOTE_ICON}</span> note
         </Badge>
@@ -549,7 +550,7 @@ function InboxNoteRow({
               <X className="size-3.5" />
             </button>
           ) : (
-            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onExpand}>
+            <Button size="sm" variant="outline" className="h-9 text-xs sm:h-7" onClick={onExpand}>
               Process
             </Button>
           )}
@@ -638,7 +639,7 @@ function InboxResourceRow({
               <X className="size-3.5" />
             </button>
           ) : (
-            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onExpand}>
+            <Button size="sm" variant="outline" className="h-9 text-xs sm:h-7" onClick={onExpand}>
               Process
             </Button>
           )}
@@ -677,10 +678,10 @@ function InboxItemSkeleton() {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-  const { data: inboxProjects = [], isLoading: projectsLoading } = useInboxProjects();
-  const { data: inboxTasks, isLoading: tasksLoading } = useInboxTasks();
-  const { data: inboxNotes = [], isLoading: notesLoading } = useInboxNotes();
-  const { data: inboxResources = [], isLoading: resourcesLoading } = useInboxResources();
+  const { data: inboxProjects = [], isLoading: projectsLoading, isError: projectsError, refetch: refetchProjects } = useInboxProjects();
+  const { data: inboxTasks, isLoading: tasksLoading, isError: tasksError, refetch: refetchTasks } = useInboxTasks();
+  const { data: inboxNotes = [], isLoading: notesLoading, isError: notesError, refetch: refetchNotes } = useInboxNotes();
+  const { data: inboxResources = [], isLoading: resourcesLoading, isError: resourcesError, refetch: refetchResources } = useInboxResources();
   const { data: allAreas } = useAreas();
   const { data: allProjects } = useProjects({ status: "all" });
   const { data: allTopics } = useTopics();
@@ -780,8 +781,24 @@ export default function InboxPage() {
   // again (debounced) after every successful mutation. No page-level
   // backfill trigger is needed here.
 
+  if (projectsError || tasksError || notesError || resourcesError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState
+          message="Failed to load inbox."
+          onRetry={() => {
+            if (projectsError) refetchProjects();
+            if (tasksError) refetchTasks();
+            if (notesError) refetchNotes();
+            if (resourcesError) refetchResources();
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">📥</span>

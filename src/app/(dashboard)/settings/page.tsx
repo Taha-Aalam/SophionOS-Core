@@ -57,18 +57,23 @@ const settingsCards = [
 
 export default function SettingsPage() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Configure your LifeOS experience, access, and connections.
-        </p>
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Settings2 className="size-6" aria-hidden="true" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight font-heading">Settings</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Configure your LifeOS experience, access, and connections.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {settingsCards.map((card) => (
-          <Link key={card.href} href={card.href} className="block">
-            <Card className="transition-colors hover:border-primary/50 h-full">
+          <Link key={card.href} href={card.href} className="block focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none rounded-lg">
+            <Card className="hover-lift h-full">
               <CardHeader className="space-y-3">
                 <div className="flex items-center gap-2">
                   <card.icon className="size-5 text-primary" />

@@ -391,6 +391,7 @@ export function NoteMetadataPanel({
                   type="button"
                   onClick={() => onNotebooksChange(notebooks.filter((n) => n !== nb))}
                   className="rounded-full p-0.5 hover:bg-muted"
+                  aria-label={`Remove notebook ${nb}`}
                 >
                   <X className="size-3" />
                 </button>
@@ -421,6 +422,7 @@ export function NoteMetadataPanel({
                   type="button"
                   onClick={() => toggleArea(area.id)}
                   className="rounded-full p-0.5 hover:bg-muted"
+                  aria-label={`Remove area ${area.name}`}
                 >
                   <X className="size-3" />
                 </button>
@@ -450,6 +452,7 @@ export function NoteMetadataPanel({
                   type="button"
                   onClick={() => toggleGoal(goal.id)}
                   className="rounded-full p-0.5 hover:bg-muted"
+                  aria-label={`Remove goal ${goal.name}`}
                 >
                   <X className="size-3" />
                 </button>
@@ -476,6 +479,7 @@ export function NoteMetadataPanel({
                   type="button"
                   onClick={() => toggleProject(project.id)}
                   className="rounded-full p-0.5 hover:bg-muted"
+                  aria-label={`Remove project ${project.name}`}
                 >
                   <X className="size-3" />
                 </button>
@@ -516,6 +520,7 @@ export function NoteMetadataPanel({
                       type="button"
                       onClick={() => onTopicIdChange(null)}
                       className="rounded-full p-0.5 hover:bg-muted"
+                      aria-label={`Remove topic ${selected.name}`}
                     >
                       <X className="size-3" />
                     </button>
@@ -554,6 +559,7 @@ function AreaSelector({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         role="combobox"
+        aria-expanded={open}
         disabled={disabled}
         className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
       >
@@ -615,6 +621,7 @@ function GoalSelector({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         role="combobox"
+        aria-expanded={open}
         disabled={disabled}
         className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
       >
@@ -638,7 +645,7 @@ function GoalSelector({
                 >
                   <Checkbox checked={selectedSet.has(goal.id)} />
                   <span className="flex-1 truncate text-sm">{goal.name}</span>
-                  <Badge variant="outline" className="text-[10px] uppercase">
+                  <Badge variant="outline" className="text-2xs uppercase">
                     {goal.term}
                   </Badge>
                   {selectedSet.has(goal.id) && <Check className="size-3.5" />}
@@ -680,6 +687,7 @@ function TopicSelector({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         role="combobox"
+        aria-expanded={open}
         disabled={disabled}
         className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
       >
@@ -740,6 +748,7 @@ function ProjectSelector({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         role="combobox"
+        aria-expanded={open}
         disabled={disabled}
         className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
       >
@@ -811,6 +820,7 @@ function NotebookSelector({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         role="combobox"
+        aria-expanded={open}
         disabled={disabled}
         className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
       >

@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckSquare, Target, FolderOpen, Map } from "lucide-react";
+
 import { relativeTime } from "@/lib/utils/dates";
 import type { ActivityItem, ActivityEntityType } from "@/lib/services/dashboard.service";
 
@@ -21,18 +23,19 @@ function ActivityIcon({ type }: { type: ActivityEntityType }) {
     project: "bg-amber-100 text-amber-600",
     area: "bg-green-100 text-green-600",
   };
-  const icons: Record<ActivityEntityType, string> = {
-    task: "✦",
-    goal: "◈",
-    project: "◆",
-    area: "▲",
+  const IconComponent: Record<ActivityEntityType, React.ElementType> = {
+    task: CheckSquare,
+    goal: Target,
+    project: FolderOpen,
+    area: Map,
   };
+  const Icon = IconComponent[type];
   return (
     <div
-      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold ${colors[type]}`}
-      title={entityLabels[type]}
+      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${colors[type]}`}
+      aria-label={entityLabels[type]}
     >
-      {icons[type]}
+      <Icon className="size-4" />
     </div>
   );
 }

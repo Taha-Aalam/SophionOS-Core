@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { TopicWithCounts } from "@/lib/services/topic.service";
 import { cn } from "@/lib/utils";
 import { encodeReturnTo } from "@/lib/utils/return-to";
+import { useClickableProps } from "@/components/ui/clickable";
 
 interface TopicCardProps {
   topic: TopicWithCounts;
@@ -42,7 +43,7 @@ const TopicCardComponent = ({
   return (
     <Card
       className={cn(
-        "group cursor-pointer transition-all duration-500 ease-[var(--ease-out-quint)] will-change-transform hover:-translate-y-1 hover:shadow-soft-lg hover:ring-2 hover:ring-primary/20 active:translate-y-0 active:duration-150",
+        "group cursor-pointer hover-lift",
         topic.inactive && "opacity-60"
       )}
       onClick={() => {
@@ -51,6 +52,12 @@ const TopicCardComponent = ({
           : `/topics/${topic.slug ?? topic.id}`;
         router.push(href);
       }}
+      {...useClickableProps(() => {
+        const href = returnTo
+          ? `/topics/${topic.slug ?? topic.id}?returnTo=${encodeReturnTo(returnTo)}`
+          : `/topics/${topic.slug ?? topic.id}`;
+        router.push(href);
+      })}
     >
       <CardContent className={cn("p-4", !compact && "p-5")}>
         <div className="flex items-start justify-between gap-2">
@@ -77,7 +84,7 @@ const TopicCardComponent = ({
                   const icon = areaIcons.get(areaId);
                   return (
                     <Badge key={areaId} variant="secondary" className="text-xs">
-                      {icon ? <span className="mr-0.5 text-[10px] leading-none">{icon}</span> : null}
+                      {icon ? <span className="mr-0.5 text-2xs leading-none">{icon}</span> : null}
                       {areaName}
                     </Badge>
                   );
@@ -156,7 +163,7 @@ const TopicCardComponent = ({
               <span className="text-muted-foreground">Notes</span>
             </div>
             <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm">
-              <span className="font-medium text-violet-600 dark:text-violet-400">{topic.resourcesCount}</span>
+              <span className="font-medium text-purple-600 dark:text-purple-400">{topic.resourcesCount}</span>
               <span className="text-muted-foreground">Resources</span>
             </div>
           </div>
@@ -169,7 +176,7 @@ const TopicCardComponent = ({
               <span className="text-muted-foreground">Notes</span>
             </div>
             <div className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs">
-              <span className="font-medium text-violet-600 dark:text-violet-400">{topic.resourcesCount}</span>
+              <span className="font-medium text-purple-600 dark:text-purple-400">{topic.resourcesCount}</span>
               <span className="text-muted-foreground">Resources</span>
             </div>
           </div>

@@ -56,6 +56,7 @@ function CollapsibleSection({
       <div
         role="button"
         tabIndex={0}
+        aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -156,8 +157,8 @@ export function AreasByTypeView({
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <p className="text-muted-foreground mb-4">No areas found</p>
-        <Button onClick={() => onCreateArea("Personal")}>
-          <Plus className="size-4 mr-2" />
+        <Button onClick={() => onCreateArea("Personal")} className="gap-2">
+          <Plus className="size-4" />
           Create Your First Area
         </Button>
       </div>

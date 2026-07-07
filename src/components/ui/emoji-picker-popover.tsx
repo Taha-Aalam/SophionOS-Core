@@ -18,7 +18,7 @@ const EmojiPicker = dynamic(
     ssr: false,
     // Reserve the picker's footprint so the popover doesn't resize/jump when
     // the lazy chunk resolves.
-    loading: () => <div className="h-[435px] w-[352px]" aria-hidden="true" />,
+    loading: () => <div className="h-[435px] w-full max-w-[352px]" aria-hidden="true" />,
   },
 ) as unknown as React.ComponentType<{
   data: () => Promise<unknown>;
@@ -57,11 +57,11 @@ export function EmojiPickerPopover({
   // Read the accent color from the CSS variable on first render so the
   // picker matches the active theme without a post-mount setState cycle.
   const [accent] = React.useState(() => {
-    if (typeof window === "undefined") return "#6366F1";
+    if (typeof window === "undefined") return "hsl(var(--primary))";
     return (
       getComputedStyle(document.documentElement)
         .getPropertyValue("--primary")
-        .trim() || "#6366F1"
+        .trim() || "hsl(var(--primary))"
     );
   });
 
@@ -122,7 +122,7 @@ export function EmojiPickerPopover({
           )}
         />
       </PopoverTrigger>
-      <PopoverContent align={align} sideOffset={8} className="w-[352px] p-0">
+      <PopoverContent align={align} sideOffset={8} className="w-full max-w-[352px] p-0">
         <div role="dialog" aria-label="Pick an emoji">
           <EmojiPicker
             data={loadEmojiData}

@@ -1,15 +1,13 @@
 import { ApiKeyManager } from "@/components/settings/api-key-manager";
+import { SettingsDetailHeader } from "@/components/settings/settings-detail-header";
 
 export default function ApiKeysPage() {
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">API Keys</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Create and manage API keys to authenticate your MCP server or direct
-          API calls. Each key is shown once at creation — store it somewhere safe.
-        </p>
-      </div>
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <SettingsDetailHeader
+        title="API Keys"
+        description="Create and manage API keys to authenticate your MCP server or direct API calls. Each key is shown once at creation — store it somewhere safe."
+      />
 
       <ApiKeyManager />
     </div>

@@ -24,7 +24,7 @@ export default async function AreasPage() {
 
   const supabase = await createClient();
   const queryClient = makeQueryClient();
-  await Promise.all([
+  await Promise.allSettled([
     queryClient.prefetchQuery({
       queryKey: [AREAS_QUERY_KEY, "list", userId, {}],
       queryFn: () => serverFetchAreas(supabase, userId),

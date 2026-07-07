@@ -13,6 +13,6 @@ describe("note page badge display helpers", () => {
   });
 
   it("keeps overflow counters compact while matching the table style", () => {
-    expect(NOTES_RELATION_BADGE_LIMIT_CLASS_NAME).toContain("text-[10px]");
+    expect(NOTES_RELATION_BADGE_LIMIT_CLASS_NAME).toContain("text-2xs");
   });
 });

@@ -2,8 +2,11 @@
 
 import { Mail, Phone, Star, User2 } from "lucide-react";
 
+import { useRouter } from "next/navigation";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useClickableProps } from "@/components/ui/clickable";
 import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/types/domain.types";
 import { contactService } from "@/lib/services/contact.service";
@@ -26,6 +29,7 @@ export function ContactListItem({
   onLogInteraction,
   onToggleFavorite,
 }: ContactListItemProps) {
+  const router = useRouter();
   const status = contactService.computeFollowUpStatus(
     contact.last_interaction_at,
     contact.follow_up_interval_days,
@@ -33,8 +37,13 @@ export function ContactListItem({
   const daysSince = contactService.computeDaysSinceInteraction(contact.last_interaction_at);
   const groupColor = contact.group ? CONTACT_GROUP_COLORS[contact.group] : "";
 
+  const clickable = useClickableProps(() => router.push(`/contacts/${contact.slug ?? contact.id}`));
+
   return (
-    <div className="flex items-start justify-between gap-3 rounded-lg border p-4 transition-colors hover:bg-muted/30">
+    <div
+      {...clickable}
+      className="flex items-start justify-between gap-3 rounded-lg border p-4 transition-colors hover:bg-muted/30 cursor-pointer"
+    >
       <div className="flex items-start gap-3 min-w-0">
         <div className="mt-0.5 shrink-0">
           <User2 className="size-5 text-muted-foreground" />
@@ -46,7 +55,7 @@ export function ContactListItem({
               <Star className="size-3 shrink-0 fill-yellow-400 text-yellow-400" />
             )}
             {contact.group && (
-              <Badge variant="secondary" className={cn("text-[10px]", groupColor)}>
+              <Badge variant="secondary" className={cn("text-2xs", groupColor)}>
                 {contact.group}
               </Badge>
             )}
@@ -73,7 +82,7 @@ export function ContactListItem({
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <Badge
               variant={status === "ON TRACK" ? "outline" : "destructive"}
-              className="text-[10px]"
+              className="text-2xs"
             >
               {status}
             </Badge>
@@ -85,12 +94,12 @@ export function ContactListItem({
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => onLogInteraction?.(contact.id)}
-          title="Log interaction"
+          aria-label="Log interaction"
           className="text-xs"
         >
           Log
@@ -99,7 +108,7 @@ export function ContactListItem({
           variant="ghost"
           size="sm"
           onClick={() => onToggleFavorite?.(contact.id)}
-          title={contact.favorite ? "Remove from favorites" : "Add to favorites"}
+          aria-label={contact.favorite ? "Remove from favorites" : "Add to favorites"}
         >
           <Star className={cn("size-3.5", contact.favorite && "fill-yellow-400 text-yellow-400")} />
         </Button>
@@ -107,7 +116,7 @@ export function ContactListItem({
           variant="ghost"
           size="sm"
           onClick={() => onEdit?.(contact)}
-          title="Edit contact"
+          aria-label="Edit contact"
         >
           Edit
         </Button>

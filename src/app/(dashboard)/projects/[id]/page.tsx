@@ -44,7 +44,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   // resource relationship badges resolve on first paint instead of popping in
   // as each independent list hook finishes its own client fetch.
   if (project) {
-    await Promise.all([
+    await Promise.allSettled([
       queryClient.prefetchQuery({
         queryKey: [PROJECTS_QUERY_KEY, "relations", project.id],
         queryFn: () => serverFetchProjectWithRelations(supabase, project.id),

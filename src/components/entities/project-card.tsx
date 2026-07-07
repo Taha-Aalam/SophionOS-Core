@@ -18,6 +18,7 @@ import { buildProjectDetailHref } from "@/lib/utils/project-urls";
 import { PRIORITY_COLORS, STATUS_COLORS } from "@/lib/constants/entity-colors";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
+import { useClickableProps } from "@/components/ui/clickable";
 
 export interface ProjectCardRollups {
   goalCount: number;
@@ -61,7 +62,7 @@ const STATUS_EMOJIS: Record<string, string> = {
   completed: "✅",
 };
 
-const BADGE_CLS = "h-5 text-[10px] leading-none px-1.5 py-0 items-center";
+const BADGE_CLS = "h-5 text-2xs leading-none px-1.5 py-0 items-center";
 
 export function ProjectCard({
   project,
@@ -107,12 +108,13 @@ export function ProjectCard({
   return (
     <Card
       className={cn(
-        "group relative cursor-pointer overflow-hidden transition-all duration-500 ease-[var(--ease-out-quint)] will-change-transform hover:-translate-y-1 hover:shadow-soft-lg hover:ring-2 hover:ring-primary/20 active:translate-y-0 active:duration-150",
+        "group relative cursor-pointer overflow-hidden hover-lift",
         project.is_archived && "opacity-60 grayscale",
       )}
       onClick={() => {
         router.push(projectHref);
       }}
+      {...useClickableProps(() => router.push(projectHref))}
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-4">
@@ -123,7 +125,7 @@ export function ProjectCard({
               {duplicateIndex != null && duplicateIndex > 1 && (
                 <Badge
                   variant="outline"
-                  className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
+                  className="text-2xs px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
                 >
                   copy {duplicateIndex}
                 </Badge>
@@ -189,7 +191,7 @@ export function ProjectCard({
           </span>
         </div>
 
-        <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="mt-4 flex items-center justify-between text-2xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Calendar className="size-3" />
             <span className={cn(dueState.isOverdue && "text-destructive font-medium")}>
@@ -215,7 +217,7 @@ export function ProjectCard({
                     variant="ghost"
                     size="icon"
                     className="size-6"
-                    title="Restore project"
+                    aria-label="Restore project"
                     onClick={(e) => {
                       e.stopPropagation();
                       onRestore(project);
@@ -244,7 +246,7 @@ export function ProjectCard({
                     variant="ghost"
                     size="icon"
                     className="size-6"
-                    title="Archive project"
+                    aria-label="Archive project"
                     onClick={(e) => {
                       e.stopPropagation();
                       onArchive(project);

@@ -503,7 +503,7 @@ export function ContactDetailRelationshipSections({
             emptyMessage="Tasks will be grouped by project here."
           />
         ) : filteredTasks.length > 0 ? (
-          <div className="rounded-lg border bg-card">
+          <div className="rounded-xl border bg-card">
             {filteredTasks.map((task) => {
               const areaIds = getTaskLinkedAreaIds(task);
               const linkedAreaNames = getAreaNamesForEntity(

@@ -6,6 +6,7 @@ import { Archive, Clock, FolderKanban, Map as MapIcon, Plus, Star, Target as Goa
 import { ContactCard } from "@/components/entities/contact-card";
 import { ContactDialog, type ContactDialogDefaults } from "@/components/entities/contact-dialog";
 import { ContactsByCategoryView } from "@/components/views/contacts-by-category-view";
+import { ErrorState } from "@/components/views/error-state";
 import { ContactsFollowUpView } from "@/components/views/contacts-follow-up-view";
 import { EmptyState } from "@/components/views/empty-state";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ export function ContactsContent() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [createDefaults, setCreateDefaults] = useState<ContactDialogDefaults | undefined>(undefined);
 
-  const { data: allContacts = [], isLoading } = useContacts();
+  const { data: allContacts = [], isLoading, isError, refetch } = useContacts();
   const { data: archivedContacts = [], isLoading: isLoadingArchived } = useContacts(
     { archive: true },
     { enabled: activeTab === "archive" },
@@ -140,6 +141,14 @@ export function ContactsContent() {
     setIsDialogOpen(true);
   };
 
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState message="Failed to load contacts." onRetry={() => refetch()} />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
@@ -150,7 +159,7 @@ export function ContactsContent() {
   }
 
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-start justify-between border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">👥</span>

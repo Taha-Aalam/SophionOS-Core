@@ -1,12 +1,12 @@
 export const NOTES_TABS_LIST_CLASS_NAME =
-  "flex h-auto flex-nowrap gap-0 overflow-x-auto bg-transparent p-0";
+  "flex h-auto w-full flex-nowrap gap-0 rounded-none overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
-export const NOTES_PAGE_SHELL_CLASS_NAME = "reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6";
+export const NOTES_PAGE_SHELL_CLASS_NAME = "content-fade-in reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6";
 
 export const NOTES_TABLE_WRAPPER_CLASS_NAME = "overflow-x-auto rounded-lg border";
 export const NOTES_RELATION_BADGE_CLASS_NAME =
-  "max-w-full min-h-5 whitespace-normal text-[10px] h-auto";
-export const NOTES_RELATION_BADGE_LIMIT_CLASS_NAME = "text-[10px]";
+  "max-w-full min-h-5 whitespace-normal text-2xs h-auto";
+export const NOTES_RELATION_BADGE_LIMIT_CLASS_NAME = "text-2xs";
 
 export const NOTES_ROW_ACTION_BUTTON_CLASS_NAME =
   "rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 hover:text-foreground";

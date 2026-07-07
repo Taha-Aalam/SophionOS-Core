@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GalleryGrid } from "@/components/views/gallery-grid";
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { AreasByTypeView } from "@/components/views/areas-by-type-view";
 import { useGoals } from "@/lib/hooks/use-goals";
 import {
@@ -44,7 +45,7 @@ export function AreasContent() {
   const [editingArea, setEditingArea] = useState<Area | undefined>();
   const [defaultType, setDefaultType] = useState<string | undefined>();
   const [mounted, setMounted] = useState(false);
-  const { data: areas = [], isLoading } = useAreas();
+  const { data: areas = [], isLoading, isError, refetch } = useAreas();
 
   useEffect(() => {
     setMounted(true);
@@ -160,8 +161,16 @@ export function AreasContent() {
     await deleteArea.mutateAsync(area.id);
   };
 
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState message="Failed to load areas." onRetry={() => refetch()} />
+      </div>
+    );
+  }
+
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">🗺️</span>

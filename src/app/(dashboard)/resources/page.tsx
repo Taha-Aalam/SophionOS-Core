@@ -16,7 +16,7 @@ export default async function ResourcesPage() {
 
   const supabase = await createClient();
   const queryClient = makeQueryClient();
-  await Promise.all([
+  await Promise.allSettled([
     queryClient.prefetchQuery({
       queryKey: [RESOURCES_QUERY_KEY, "list", userId, { status: "all" }],
       queryFn: () => serverFetchResources(supabase, userId),

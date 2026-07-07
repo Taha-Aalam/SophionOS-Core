@@ -16,9 +16,9 @@ export default function TopicsLoading() {
       </div>
 
       {/* Underline tab strip — Active, Favorite, Inactive, By Area, All, Archived */}
-      <div className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-muted/50 p-1 rounded-md">
+      <div className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto border-b border-transparent pb-0">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-8 w-20 rounded-md" />
+          <Skeleton key={i} className="h-8 w-20 rounded-none" />
         ))}
       </div>
 
