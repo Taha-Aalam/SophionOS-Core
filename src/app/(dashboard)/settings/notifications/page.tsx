@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -11,6 +12,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SettingsDetailHeader } from "@/components/settings/settings-detail-header";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 import {
@@ -33,6 +42,7 @@ export default function NotificationsPage() {
   const { user } = useAuth();
   const { data: notifications } = useNotifications();
   const { mutate: updateNotifications, isPending } = useUpdateNotifications();
+  const [digestDaySelect, setDigestDaySelect] = useState<number>();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -61,17 +71,22 @@ export default function NotificationsPage() {
     );
   }
 
-  if (!user) return null;
+  if (!user) return (
+    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full" aria-busy="true" role="status" aria-label="Loading notifications">
+      <div className="space-y-6">
+        <div className="h-8 w-48 rounded bg-muted animate-pulse" />
+        <div className="h-64 w-full rounded-lg border border-border/40 bg-muted/30 animate-pulse" />
+        <div className="h-48 w-full rounded-lg border border-border/40 bg-muted/30 animate-pulse" />
+      </div>
+    </div>
+  );
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Notifications</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Configure when and how you receive briefings, reviews, and digests.
-          More delivery channels coming soon.
-        </p>
-      </div>
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <SettingsDetailHeader
+        title="Notifications"
+        description="Configure when and how you receive briefings, reviews, and digests. More delivery channels coming soon."
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
@@ -150,19 +165,23 @@ export default function NotificationsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="weekly_digest_day">Day of week</Label>
-              <select
-                id="weekly_digest_day"
+              <Select
                 name="weekly_digest_day"
-                className="w-full max-w-48 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                defaultValue={notifications?.weekly_digest_day ?? 0}
+                value={String(digestDaySelect ?? notifications?.weekly_digest_day ?? 0)}
+                onValueChange={(v) => setDigestDaySelect(Number(v))}
                 disabled={isPending}
               >
-                {WEEKDAYS.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full max-w-48">
+                  <SelectValue placeholder="Select day" />
+                </SelectTrigger>
+                <SelectContent>
+                  {WEEKDAYS.map((d) => (
+                    <SelectItem key={d.value} value={String(d.value)}>
+                      {d.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>

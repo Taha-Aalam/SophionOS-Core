@@ -14,6 +14,7 @@ import { StatusBadge } from "./status-badge";
 import { SmartPriorityBadge } from "./smart-priority-badge";
 import { TaskArchiveToggle } from "./task-archive-toggle";
 import { TaskInlineEditor } from "./task-inline-editor";
+import { useClickableProps } from "@/components/ui/clickable";
 
 interface TaskListItemProps {
   task: Task;
@@ -85,6 +86,7 @@ export function TaskListItemComponent({
         task.is_completed && "opacity-60",
       )}
       onClick={() => onEdit?.(task)}
+      {...(onEdit ? useClickableProps(() => onEdit(task)) : {})}
     >
       <span onClick={(e) => e.stopPropagation()}>
         <Checkbox
@@ -128,9 +130,9 @@ export function TaskListItemComponent({
 
       <div className="hidden shrink-0 items-center gap-2 md:flex">
         {displayAreaNames.slice(0, 2).map((name, index) => (
-          <Badge key={`area-${index}`} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
+          <Badge key={`area-${index}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
             {linkedAreaIcons?.[index] ? (
-              <span className="text-[10px] leading-none">{linkedAreaIcons[index]}</span>
+              <span className="text-2xs leading-none">{linkedAreaIcons[index]}</span>
             ) : (
               <Map className="size-2.5" />
             )}
@@ -138,29 +140,29 @@ export function TaskListItemComponent({
           </Badge>
         ))}
         {displayAreaNames.length > 2 && (
-          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
+          <Badge variant="secondary" className="text-2xs leading-none font-normal">
             +{displayAreaNames.length - 2}
           </Badge>
         )}
         {displayGoalNames.slice(0, 2).map((name, index) => (
-          <Badge key={`goal-${index}`} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
-            <span className="text-[10px] leading-none">🎯</span>
+          <Badge key={`goal-${index}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
+            <span className="text-2xs leading-none">🎯</span>
             {name}
           </Badge>
         ))}
         {displayGoalNames.length > 2 && (
-          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
+          <Badge variant="secondary" className="text-2xs leading-none font-normal">
             +{displayGoalNames.length - 2}
           </Badge>
         )}
         {displayProjectNames.slice(0, 2).map((name, index) => (
-          <Badge key={`project-${index}`} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
-            <span className="text-[10px] leading-none">📁</span>
+          <Badge key={`project-${index}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
+            <span className="text-2xs leading-none">📁</span>
             {name}
           </Badge>
         ))}
         {displayProjectNames.length > 2 && (
-          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
+          <Badge variant="secondary" className="text-2xs leading-none font-normal">
             +{displayProjectNames.length - 2}
           </Badge>
         )}
@@ -168,7 +170,7 @@ export function TaskListItemComponent({
           <Badge
             variant="outline"
             className={cn(
-              "gap-1 text-[10px] leading-none font-normal",
+              "gap-1 text-2xs leading-none font-normal",
               dueInfo.overdue ? "text-red-500 dark:text-red-400" : "text-muted-foreground",
             )}
           >

@@ -11,6 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SettingsDetailHeader } from "@/components/settings/settings-detail-header";
+import { ErrorState } from "@/components/views/error-state";
+import { Skeleton } from "@/components/ui/skeleton";
 
 async function apiFetch<T>(input: string, init?: RequestInit): Promise<T> {
   const res = await fetch(input, {
@@ -37,6 +40,8 @@ interface Integration {
 export default function IntegrationsPage() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,13 +50,13 @@ export default function IntegrationsPage() {
         const data = await apiFetch<Integration[]>("/api/v1/user/integrations");
         if (!cancelled) setIntegrations(data ?? []);
       } catch {
-        // No integrations endpoint yet — show placeholder
+        if (!cancelled) setError("Failed to load integrations.");
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [retryKey]);
 
   // Placeholder: no integrations backend exists yet per the prompt.
   // This page consumes the existing /api/v1/user/integrations when ready.
@@ -63,15 +68,20 @@ export default function IntegrationsPage() {
   ];
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Integrations</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Connect third-party services to sync data and automate workflows.
-          More providers coming soon.
-        </p>
-      </div>
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <SettingsDetailHeader
+        title="Integrations"
+        description="Connect third-party services to sync data and automate workflows. More providers coming soon."
+      />
 
+      {error && (
+        <ErrorState
+          message={error}
+          onRetry={() => { setError(null); setLoading(true); setRetryKey((k) => k + 1); }}
+        />
+      )}
+
+      {!error && (
       <Card>
         <CardHeader className="space-y-1">
           <CardTitle className="text-base">Available integrations</CardTitle>
@@ -83,7 +93,17 @@ export default function IntegrationsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 py-3">
+                  <Skeleton className="h-8 w-8 rounded" />
+                  <div className="flex-1 space-y-1">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : integrations.length > 0 ? (
             <ul className="divide-y">
               {integrations.map((int) => (
@@ -126,7 +146,9 @@ export default function IntegrationsPage() {
           )}
         </CardContent>
       </Card>
+      )}
 
+      {!error && (
       <Card className="border-dashed">
         <CardHeader>
           <CardTitle className="text-base">Custom integrations</CardTitle>
@@ -142,6 +164,7 @@ export default function IntegrationsPage() {
           </Button>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

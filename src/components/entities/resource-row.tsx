@@ -11,12 +11,12 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn, safeHttpUrl } from "@/lib/utils";
 import type { Resource } from "@/lib/types/domain.types";
 import { STATUS_COLORS, RESOURCE_TYPE_COLORS } from "@/lib/constants/entity-colors";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
+import { useClickableProps } from "@/components/ui/clickable";
 
 interface AreaInfo {
   name: string;
@@ -67,6 +67,7 @@ export function ResourceRow({
     <div
       className="group flex cursor-pointer items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30"
       onClick={handleRowClick}
+      {...useClickableProps(handleRowClick)}
     >
       {/* Save checkbox */}
       {onSaveStatusChange && (
@@ -83,13 +84,13 @@ export function ResourceRow({
       <div className="hidden md:flex shrink-0 items-center gap-1">
         <Badge
           variant="outline"
-          className={cn("text-[10px] uppercase leading-none", STATUS_COLORS[resource.status])}
+          className={cn("text-2xs uppercase leading-none", STATUS_COLORS[resource.status])}
         >
           {resource.status === "completed" ? "Done" : resource.status.replace("_", " ")}
         </Badge>
         <Badge
           variant="secondary"
-          className={cn("text-[10px] leading-none", RESOURCE_TYPE_COLORS[resource.type])}
+          className={cn("text-2xs leading-none", RESOURCE_TYPE_COLORS[resource.type])}
         >
           {resource.type.replace("_", " ")}
         </Badge>
@@ -106,15 +107,15 @@ export function ResourceRow({
       {/* Metadata cluster — all badges, no +N collapse, smaller */}
       <div className="hidden md:flex shrink-0 items-center gap-1 flex-wrap">
         {topicName && (
-          <Badge variant="outline" className="gap-1 text-[10px] leading-none font-normal">
-            <span className="text-[10px] leading-none">🏷️</span>
+          <Badge variant="outline" className="gap-1 text-2xs leading-none font-normal">
+            <span className="text-2xs leading-none">🏷️</span>
             {topicName}
           </Badge>
         )}
         {areas.slice(0, 2).map((area) => (
-          <Badge key={`${resource.id}-area-${area.name}`} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
+          <Badge key={`${resource.id}-area-${area.name}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
             {area.icon ? (
-              <span className="text-[10px] leading-none">{area.icon}</span>
+              <span className="text-2xs leading-none">{area.icon}</span>
             ) : (
               <LucideMap className="size-2.5" />
             )}
@@ -122,40 +123,40 @@ export function ResourceRow({
           </Badge>
         ))}
         {areas.length > 2 && (
-          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
+          <Badge variant="secondary" className="text-2xs leading-none font-normal">
             +{areas.length - 2}
           </Badge>
         )}
         {goalNames.slice(0, 2).map((name) => (
-          <Badge key={`${resource.id}-goal-${name}`} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
-            <span className="text-[10px] leading-none">🎯</span>
+          <Badge key={`${resource.id}-goal-${name}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
+            <span className="text-2xs leading-none">🎯</span>
             {name}
           </Badge>
         ))}
         {goalNames.length > 2 && (
-          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
+          <Badge variant="secondary" className="text-2xs leading-none font-normal">
             +{goalNames.length - 2}
           </Badge>
         )}
         {projectNames.slice(0, 2).map((name) => (
-          <Badge key={`${resource.id}-project-${name}`} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
-            <span className="text-[10px] leading-none">📁</span>
+          <Badge key={`${resource.id}-project-${name}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
+            <span className="text-2xs leading-none">📁</span>
             {name}
           </Badge>
         ))}
         {projectNames.length > 2 && (
-          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
+          <Badge variant="secondary" className="text-2xs leading-none font-normal">
             +{projectNames.length - 2}
           </Badge>
         )}
         {taskNames.slice(0, 2).map((name) => (
-          <Badge key={`${resource.id}-task-${name}`} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
-            <span className="text-[10px] leading-none">☑️</span>
+          <Badge key={`${resource.id}-task-${name}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
+            <span className="text-2xs leading-none">☑️</span>
             {name}
           </Badge>
         ))}
         {taskNames.length > 2 && (
-          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
+          <Badge variant="secondary" className="text-2xs leading-none font-normal">
             +{taskNames.length - 2}
           </Badge>
         )}
@@ -174,7 +175,7 @@ export function ResourceRow({
             ? "text-amber-500"
             : "text-muted-foreground/20 opacity-0 hover:text-amber-400 group-hover:opacity-100",
         )}
-        title={resource.favorite ? "Unfavorite" : "Favorite"}
+        aria-label={resource.favorite ? "Unfavorite" : "Favorite"}
       >
         <Star className={cn("size-3.5", resource.favorite && "fill-current")} />
       </button>
@@ -189,7 +190,7 @@ export function ResourceRow({
           type="button"
           onClick={handleEdit}
           className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          title="Edit resource"
+          aria-label="Edit resource"
         >
           <Pencil className="size-3.5" />
         </button>
@@ -205,7 +206,7 @@ export function ResourceRow({
             }
           }}
           className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
-          title={resource.is_archived ? "Restore" : "Archive"}
+          aria-label={resource.is_archived ? "Restore" : "Archive"}
         >
           {resource.is_archived ? (
             <ArchiveRestore className="size-3.5" />
@@ -223,19 +224,6 @@ export function ResourceRow({
           onConfirm={() => onDelete(resource.id)}
         />
       </div>
-    </div>
-  );
-}
-
-export function ResourceRowSkeleton() {
-  return (
-    <div className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5">
-      <Skeleton className="h-5 flex-1" />
-      <Skeleton className="h-5 w-48 hidden md:inline-flex" />
-      <Skeleton className="size-8" />
-      <Skeleton className="size-8" />
-      <Skeleton className="size-8" />
-      <Skeleton className="size-8" />
     </div>
   );
 }

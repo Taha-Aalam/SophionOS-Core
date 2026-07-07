@@ -16,6 +16,7 @@ import { TaskList } from "@/components/entities/task-list";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { GalleryGrid } from "@/components/views/gallery-grid";
 import { useArchiveArea, useAreas, useUpdateArea } from "@/lib/hooks/use-areas";
 import { useArchiveGoal, useGoals } from "@/lib/hooks/use-goals";
@@ -47,8 +48,8 @@ import {
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
-import { cn } from "@/lib/utils";
 
+import { SectionHeader } from "@/components/dashboard/section-header";
 import { classifyAreaStatus, getAreaRollups, sortAreasForDisplay } from "@/lib/utils/areas";
 import { NOTE_STATUS, PROJECT_STATUS, RESOURCE_STATUS, TASK_STATUS } from "@/lib/utils/constants";
 import { getLocalDateStart, getWeekStart } from "@/lib/utils/dates";
@@ -74,37 +75,6 @@ import {
   getTaskLinkedProjectIds,
 } from "@/lib/utils/tasks";
 
-function SectionHeader({
-  accentClass,
-  title,
-  description,
-  totalCount,
-}: {
-  accentClass: string;
-  title: string;
-  description: string;
-  totalCount?: number;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex items-start gap-3">
-        <div
-          className={cn("mt-1.5 h-full min-h-[2.5rem] w-1 shrink-0 rounded-full", accentClass)}
-        />
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">{title}</h2>
-            {typeof totalCount === "number" ? (
-              <span className="text-sm text-muted-foreground">{totalCount} total</span>
-            ) : null}
-          </div>
-          <p className="text-sm text-muted-foreground">{description}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function DashboardContent() {
   const router = useRouter();
   const { user } = useAuth();
@@ -122,8 +92,8 @@ export function DashboardContent() {
     import("@/lib/types/domain.types").Area | undefined
   >(undefined);
 
-  const { data: areas = [], isLoading: areasLoading } = useAreas();
-  const { data: goalsAll = [], isLoading: goalsLoading } = useGoals({ status: "all" });
+  const { data: areas = [], isLoading: areasLoading, isError: areasError, refetch: refetchAreas } = useAreas();
+  const { data: goalsAll = [], isLoading: goalsLoading, isError: goalsError, refetch: refetchGoals } = useGoals({ status: "all" });
   // Derived from the single status:"all" fetch above — the service's active
   // filter is exactly the DB predicate `!is_completed && !is_archived`, so
   // deriving here avoids a second goals query plus its area-link/progress/rollup
@@ -132,10 +102,10 @@ export function DashboardContent() {
     () => goalsAll.filter((g) => !g.is_completed && !g.is_archived),
     [goalsAll],
   );
-  const { data: projectsAll = [], isLoading: projectsLoading } = useProjects({ status: "all" });
-  const { data: allTasks = [], isLoading: tasksLoading } = useTasks();
-  const { data: allNotes = [], isLoading: notesLoading } = useNotes({ includeArchived: true });
-  const { data: allResources = [], isLoading: resourcesLoading } = useResources({ status: "all" });
+  const { data: projectsAll = [], isLoading: projectsLoading, isError: projectsError, refetch: refetchProjects } = useProjects({ status: "all" });
+  const { data: allTasks = [], isLoading: tasksLoading, isError: tasksError, refetch: refetchTasks } = useTasks();
+  const { data: allNotes = [], isLoading: notesLoading, isError: notesError, refetch: refetchNotes } = useNotes({ includeArchived: true });
+  const { data: allResources = [], isLoading: resourcesLoading, isError: resourcesError, refetch: refetchResources } = useResources({ status: "all" });
   const { data: allTopics = [] } = useTopics();
 
   const userId = user?.id;
@@ -283,9 +253,29 @@ export function DashboardContent() {
     notesLoading ||
     resourcesLoading;
 
+  const isQueryError = areasError || goalsError || projectsError || tasksError || notesError || resourcesError;
+
+  if (isQueryError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState
+          message="Failed to load dashboard data."
+          onRetry={() => {
+            if (areasError) refetchAreas();
+            if (goalsError) refetchGoals();
+            if (projectsError) refetchProjects();
+            if (tasksError) refetchTasks();
+            if (notesError) refetchNotes();
+            if (resourcesError) refetchResources();
+          }}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
-      <div className="reveal-stagger flex flex-col gap-8 p-6 max-w-7xl mx-auto w-full">
+      <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
         {/* GreetingBar skeleton */}
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-2">
@@ -304,7 +294,7 @@ export function DashboardContent() {
           <section key={i}>
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
-                <div className="mt-1.5 h-full min-h-[2.5rem] w-1 shrink-0 rounded-full bg-muted-foreground/20" />
+                <div className="mt-1.5 h-full min-h-[2.5rem] w-px shrink-0 rounded-full bg-muted-foreground/20" />
                 <div>
                   <Skeleton className="h-6 w-36" />
                   <Skeleton className="mt-1 h-4 w-56" />
@@ -339,7 +329,7 @@ export function DashboardContent() {
   }
 
   return (
-    <div className="reveal-stagger flex flex-col gap-8 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <GreetingBar userName={user?.name ?? undefined} stats={stats} />
 
       {/* Active Areas */}

@@ -740,7 +740,7 @@ export function TaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] sm:max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{task ? "Edit Task" : "Create Task"}</DialogTitle>
           <DialogDescription>
@@ -1319,7 +1319,7 @@ export function TaskDialog({
 
             {isRecurring && (
               <div
-                className="grid gap-4 rounded-lg border border-border bg-muted/30 p-4"
+                className="grid gap-4 rounded-xl border border-border bg-muted/30 p-4"
                 data-testid="task-dialog-recurrence-panel"
               >
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

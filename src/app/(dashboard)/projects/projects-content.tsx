@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Activity, Archive, CheckSquare, Folder, Inbox, Layers, LayoutGrid, Map as MapIcon, PauseCircle, Pencil, Plus, Target } from "lucide-react";
@@ -8,6 +8,7 @@ import { Activity, Archive, CheckSquare, Folder, Inbox, Layers, LayoutGrid, Map 
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { ProjectsByAreaView, type ProjectsByAreaGroup } from "@/components/views/projects-by-area-view";
 import { ProjectsByGoalView, type ProjectsByGoalGroup } from "@/components/views/projects-by-goal-view";
 import { Button } from "@/components/ui/button";
@@ -65,16 +66,29 @@ function getProjectAreaIcons(
 
 export function ProjectsContent() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [activeView, setActiveView] = useState(PROJECT_VIEW.ALL);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [defaultAreaIds, setDefaultAreaIds] = useState<string[]>([]);
   const [defaultGoalId, setDefaultGoalId] = useState<string | undefined>(undefined);
 
-  const { data: activeProjectResults = [], isLoading: isLoadingActiveProjects } = useProjects({
+  const {
+    data: activeProjectResults = [],
+    isLoading: isLoadingActiveProjects,
+    isError: activeError,
+    refetch: refetchActive,
+  } = useProjects({
     status: "all",
   });
-  const { data: archivedProjectResults = [], isLoading: isLoadingArchivedProjects } = useProjects({
+  const {
+    data: archivedProjectResults = [],
+    isLoading: isLoadingArchivedProjects,
+    isError: archivedError,
+    refetch: refetchArchived,
+  } = useProjects({
     status: "archived",
   });
   const { data: areas = [] } = useAreas();
@@ -86,7 +100,8 @@ export function ProjectsContent() {
     () => mergeProjectQueryResults(activeProjectResults, archivedProjectResults),
     [activeProjectResults, archivedProjectResults],
   );
-  const isLoadingProjects = isLoadingActiveProjects || isLoadingArchivedProjects;
+  const isLoadingActive = isLoadingActiveProjects || !mounted;
+  const isLoadingArchived = isLoadingArchivedProjects || !mounted;
   const activeProjects = useMemo(
     () => activeProjectResults.filter((project) => !project.is_archived),
     [activeProjectResults],
@@ -199,8 +214,8 @@ export function ProjectsContent() {
     }
   };
 
-  const renderProjectGrid = (projects: Project[], emptyState: ReactNode) => {
-    if (isLoadingProjects) {
+  const renderProjectGrid = (projects: Project[], emptyState: ReactNode, isLoading: boolean) => {
+    if (isLoading) {
       return (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
@@ -233,8 +248,22 @@ export function ProjectsContent() {
     );
   };
 
+  if (activeError || archivedError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState
+          message="Failed to load projects."
+          onRetry={() => {
+            if (activeError) refetchActive();
+            if (archivedError) refetchArchived();
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <div className="content-fade-in reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">📁</span>
@@ -309,6 +338,7 @@ export function ProjectsContent() {
               actionLabel="Create Project"
               onAction={handleCreate}
             />,
+            isLoadingActive,
           )}
         </TabsContent>
 
@@ -322,6 +352,7 @@ export function ProjectsContent() {
               actionLabel="Create Project"
               onAction={handleCreate}
             />,
+            isLoadingActive,
           )}
         </TabsContent>
 
@@ -335,6 +366,7 @@ export function ProjectsContent() {
               actionLabel="Create Project"
               onAction={handleCreate}
             />,
+            isLoadingActive,
           )}
         </TabsContent>
 
@@ -348,6 +380,7 @@ export function ProjectsContent() {
               actionLabel="Create Project"
               onAction={handleCreate}
             />,
+            isLoadingActive,
           )}
         </TabsContent>
 
@@ -359,6 +392,7 @@ export function ProjectsContent() {
               title="No projects on hold"
               description="Projects on hold will appear here."
             />,
+            isLoadingActive,
           )}
         </TabsContent>
 
@@ -370,6 +404,7 @@ export function ProjectsContent() {
               title="No completed projects"
               description="Projects marked completed will appear here."
             />,
+            isLoadingActive,
           )}
         </TabsContent>
 
@@ -379,7 +414,7 @@ export function ProjectsContent() {
             areaNames={areaNames}
             areaIcons={areaIconsMap}
             duplicateIndices={duplicateIndices}
-            isLoading={isLoadingProjects}
+            isLoading={isLoadingActive}
             onEdit={handleEdit}
             onArchive={(p) => archiveProject.mutate(p.id)}
             onRestore={(p) => restoreProject.mutate(p.id)}
@@ -405,7 +440,7 @@ export function ProjectsContent() {
             areaNames={areaNames}
             areaIcons={areaIconsMap}
             duplicateIndices={duplicateIndices}
-            isLoading={isLoadingProjects}
+            isLoading={isLoadingActive}
             onEdit={handleEdit}
             onArchive={(p) => archiveProject.mutate(p.id)}
             onRestore={(p) => restoreProject.mutate(p.id)}
@@ -424,6 +459,7 @@ export function ProjectsContent() {
               title="No archived projects"
               description="Archived projects will appear here when you archive them."
             />,
+            isLoadingArchived,
           )}
         </TabsContent>
       </Tabs>

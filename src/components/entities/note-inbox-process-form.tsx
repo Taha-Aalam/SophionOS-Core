@@ -243,7 +243,7 @@ export function NoteInboxProcessForm({
                     <Badge
                       key={area.id}
                       variant="secondary"
-                      className="flex items-center gap-1 text-[10px]"
+                      className="flex items-center gap-1 text-2xs"
                     >
                       {area.icon ? `${area.icon} ` : ""}
                       {area.name}
@@ -293,7 +293,7 @@ export function NoteInboxProcessForm({
                     <Badge
                       key={goal.id}
                       variant="secondary"
-                      className="flex items-center gap-1 text-[10px]"
+                      className="flex items-center gap-1 text-2xs"
                     >
                       {goal.name}
                       <button
@@ -337,7 +337,7 @@ export function NoteInboxProcessForm({
                     <Badge
                       key={project.id}
                       variant="secondary"
-                      className="flex items-center gap-1 text-[10px]"
+                      className="flex items-center gap-1 text-2xs"
                     >
                       {project.name}
                       <button
@@ -379,7 +379,7 @@ export function NoteInboxProcessForm({
                     <Badge
                       key={task.id}
                       variant="secondary"
-                      className="flex items-center gap-1 text-[10px]"
+                      className="flex items-center gap-1 text-2xs"
                     >
                       {task.name}
                       <button
@@ -436,7 +436,7 @@ export function NoteInboxProcessForm({
               <Badge
                 key={nb}
                 variant="secondary"
-                className="flex items-center gap-1 text-[10px]"
+                className="flex items-center gap-1 text-2xs"
               >
                 <BookOpen className="size-3" />
                 <span className="max-w-[120px] truncate">{nb}</span>
@@ -456,7 +456,7 @@ export function NoteInboxProcessForm({
       <div className="flex items-center justify-between gap-2 pt-1">
         <Badge
           variant="secondary"
-          className="gap-1 bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300"
+          className="gap-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
         >
           {NOTE_ICON} note
         </Badge>

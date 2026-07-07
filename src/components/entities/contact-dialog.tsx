@@ -355,7 +355,7 @@ export function ContactDialog({
               <FormMessage>{form.formState.errors.name?.message}</FormMessage>
             </FormItem>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormItem>
                 <FormLabel>Role</FormLabel>
                 <FormControl>
@@ -393,7 +393,7 @@ export function ContactDialog({
               />
             </FormItem>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormItem>
                 <FormLabel>
                   Phone <span className="text-destructive">*</span>
@@ -415,7 +415,7 @@ export function ContactDialog({
               </FormItem>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormItem>
                 <FormLabel>LinkedIn</FormLabel>
                 <FormControl>
@@ -457,7 +457,7 @@ export function ContactDialog({
             </FormItem>
 
             {/* Area + Goals row */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Areas */}
               <FormItem>
                 <div className="flex items-center justify-between">
@@ -566,7 +566,7 @@ export function ContactDialog({
             </div>
 
             {/* Projects + Tasks row */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Projects */}
               <FormItem>
                 <div className="flex items-center justify-between">

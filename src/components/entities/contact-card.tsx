@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Archive, ArchiveRestore, Mail, Phone, Star, User2 } from "lucide-react";
+import { Archive, ArchiveRestore, Mail, Pencil, Phone, Star, User2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { encodeReturnTo } from "@/lib/utils/return-to";
 import { CONTACT_GROUP_COLORS } from "@/lib/constants/entity-colors";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
+import { useClickableProps } from "@/components/ui/clickable";
 
 interface ContactCardProps {
   contact: Contact;
@@ -39,7 +40,7 @@ export function ContactCard({
 
   return (
     <Card
-      className="group flex h-full cursor-pointer flex-col transition-all duration-500 ease-[var(--ease-out-quint)] will-change-transform hover:-translate-y-1 hover:shadow-soft-lg hover:ring-2 hover:ring-primary/20 active:translate-y-0 active:duration-150"
+      className="group flex h-full cursor-pointer flex-col hover-lift"
       onClick={() => {
         const base = `/contacts/${contact.slug ?? contact.id}`;
         router.push(
@@ -50,6 +51,16 @@ export function ContactCard({
             : base,
         );
       }}
+      {...useClickableProps(() => {
+        const base = `/contacts/${contact.slug ?? contact.id}`;
+        router.push(
+          returnTo
+            ? `${base}?returnTo=${encodeReturnTo(returnTo)}${
+                returnToChain ? `&chain=${returnToChain}` : ""
+              }`
+            : base,
+        );
+      })}
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
@@ -75,7 +86,7 @@ export function ContactCard({
                 </p>
               )}
               {contact.group && (
-                <Badge variant="secondary" className={cn("mt-1 text-[10px]", groupColor)}>
+                <Badge variant="secondary" className={cn("mt-1 text-2xs", groupColor)}>
                   {contact.group}
                 </Badge>
               )}
@@ -91,7 +102,7 @@ export function ContactCard({
               variant="ghost"
               size="icon-sm"
               onClick={() => onToggleFavorite?.(contact.id)}
-              title={contact.favorite ? "Remove from favorites" : "Add to favorites"}
+              aria-label={contact.favorite ? "Remove from favorites" : "Add to favorites"}
             >
               <Star className={cn("size-3.5", contact.favorite && "fill-yellow-400 text-yellow-400")} />
             </Button>
@@ -99,7 +110,7 @@ export function ContactCard({
               variant="ghost"
               size="icon-sm"
               onClick={() => onArchive?.(contact.id, !contact.archive)}
-              title={contact.archive ? "Restore contact" : "Archive contact"}
+              aria-label={contact.archive ? "Restore contact" : "Archive contact"}
             >
               {contact.archive ? (
                 <ArchiveRestore className="size-3.5" />
@@ -111,9 +122,9 @@ export function ContactCard({
               variant="ghost"
               size="icon-sm"
               onClick={() => onEdit?.(contact)}
-              title="Edit contact"
+              aria-label="Edit contact"
             >
-              Edit
+              <Pencil className="size-3.5" />
             </Button>
             <DeleteEntityPopover
               variant="row"
@@ -151,7 +162,7 @@ export function ContactCard({
         </div>
         <div className="mt-3 flex items-stretch gap-2">
           <div className="flex-1 rounded-md border bg-muted/40 px-3 py-2">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Last log</p>
+            <p className="text-2xs text-muted-foreground uppercase tracking-wide mb-0.5">Last log</p>
             <p className="text-xs font-medium">
               {contact.last_interaction_at
                 ? (() => {
@@ -163,7 +174,7 @@ export function ContactCard({
           </div>
 
           <div className="flex-1 rounded-md border bg-muted/40 px-3 py-2">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Follow-up</p>
+            <p className="text-2xs text-muted-foreground uppercase tracking-wide mb-0.5">Follow-up</p>
             {(() => {
               if (!contact.last_interaction_at && contact.follow_up_interval_days) {
                 return <p className="text-xs font-medium text-destructive">Overdue</p>;
@@ -173,7 +184,7 @@ export function ContactCard({
                 contact.follow_up_interval_days,
               );
               if (daysUntil === null) {
-                return <p className="text-xs font-medium text-muted-foreground">—</p>;
+                return <p className="text-xs font-medium text-muted-foreground">N/A</p>;
               }
               if (daysUntil >= 0) {
                 return <p className="text-xs font-medium">{daysUntil}d left</p>;

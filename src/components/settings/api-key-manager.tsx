@@ -91,7 +91,7 @@ export function ApiKeyManager({
       );
       setRevealedKey(data.key);
       setNewKeyName("");
-      toast.success("API key created. Copy it now — it won't be shown again.");
+      toast.success("API key created. Copy it now, it won't be shown again.");
       await loadKeys();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create key");
@@ -143,7 +143,7 @@ export function ApiKeyManager({
         </div>
         <CardDescription>
           Keys authenticate your MCP server or API calls. Each key is shown once
-          at creation — store it somewhere safe.
+          at creation. Store it somewhere safe.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -175,7 +175,7 @@ export function ApiKeyManager({
         {revealedKey && (
           <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
             <p className="mb-2 text-sm font-medium">
-              Your new key (copy it now — it won&apos;t be shown again):
+              Your new key (copy it now, it won&apos;t be shown again):
             </p>
             <div className="flex items-center gap-2">
               <code className="flex-1 truncate rounded bg-muted px-2 py-1 font-mono text-xs">

@@ -45,6 +45,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NoteRow } from "@/components/entities/note-row";
 import { NotesByGroupView, type NoteGroup } from "@/components/views/notes-by-group-view";
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import {
@@ -104,7 +105,7 @@ export function NotesContent() {
   const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
   const [taskPopoverOpen, setTaskPopoverOpen] = useState(false);
 
-  const { data: allNotes = [], isLoading } = useNotes({ includeArchived: true });
+  const { data: allNotes = [], isLoading, isError, refetch } = useNotes({ includeArchived: true });
   const { data: allAreas = [] } = useAreas();
   const { data: allGoals = [] } = useGoals({ status: "all" });
   const { data: allProjects = [] } = useProjects({ status: "all" });
@@ -438,6 +439,14 @@ export function NotesContent() {
     );
   };
 
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState message="Failed to load notes." onRetry={() => refetch()} />
+      </div>
+    );
+  }
+
   return (
     <div className={NOTES_PAGE_SHELL_CLASS_NAME}>
       <div className="flex items-center justify-between border-b border-border/50">
@@ -529,7 +538,7 @@ export function NotesContent() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={NOTES_SEARCH_PLACEHOLDER}
-                className="h-7 w-44 pl-8 text-xs"
+                className="h-9 sm:h-7 w-44 pl-8 text-xs"
               />
             </div>
 
@@ -539,7 +548,7 @@ export function NotesContent() {
                 setFilterStatus(value === ALL_STATUS_VALUE ? "" : (value || ""))
               }
             >
-              <SelectTrigger className="h-7 w-[120px] text-xs">
+              <SelectTrigger className="h-9 sm:h-7 w-[120px] text-xs">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -556,7 +565,7 @@ export function NotesContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterAreaIds.length === 0 ? (
@@ -565,7 +574,7 @@ export function NotesContent() {
                   <span className="flex items-center gap-1">
                     <span className="max-w-[100px] truncate">{selectedAreaLabels[0]}</span>
                     {selectedAreaLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
                         +{selectedAreaLabels.length - 1}
                       </Badge>
                     )}
@@ -609,7 +618,7 @@ export function NotesContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterGoalIds.length === 0 ? (
@@ -618,7 +627,7 @@ export function NotesContent() {
                   <span className="flex items-center gap-1">
                     <span className="max-w-[100px] truncate">{selectedGoalLabels[0]}</span>
                     {selectedGoalLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
                         +{selectedGoalLabels.length - 1}
                       </Badge>
                     )}
@@ -659,7 +668,7 @@ export function NotesContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterProjectIds.length === 0 ? (
@@ -668,7 +677,7 @@ export function NotesContent() {
                   <span className="flex items-center gap-1">
                     <span className="max-w-[100px] truncate">{selectedProjectLabels[0]}</span>
                     {selectedProjectLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
                         +{selectedProjectLabels.length - 1}
                       </Badge>
                     )}
@@ -709,7 +718,7 @@ export function NotesContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterTaskIds.length === 0 ? (
@@ -718,7 +727,7 @@ export function NotesContent() {
                   <span className="flex items-center gap-1">
                     <span className="max-w-[100px] truncate">{selectedTaskLabels[0]}</span>
                     {selectedTaskLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
                         +{selectedTaskLabels.length - 1}
                       </Badge>
                     )}
@@ -759,7 +768,7 @@ export function NotesContent() {
               value={filterNotebook}
               onValueChange={(value) => setFilterNotebook(value || "")}
             >
-              <SelectTrigger className="h-7 w-[140px] text-xs">
+              <SelectTrigger className="h-9 sm:h-7 w-[140px] text-xs">
                 <SelectValue placeholder="Notebook" />
               </SelectTrigger>
               <SelectContent>
@@ -788,18 +797,18 @@ export function NotesContent() {
           <div className="flex items-center gap-2 border-b border-border/30 px-6 py-2">
             <span className="text-sm font-medium">{selectedIds.size} selected</span>
             <div className="ml-auto flex items-center gap-2">
-              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleArchiveSelected}>
+              <Button variant="outline" size="sm" className="h-9 sm:h-7 text-xs" onClick={handleArchiveSelected}>
                 <Archive className="mr-1.5 size-3.5" />
                 Archive
               </Button>
-              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleRestoreSelected}>
+              <Button variant="outline" size="sm" className="h-9 sm:h-7 text-xs" onClick={handleRestoreSelected}>
                 <Archive className="mr-1.5 size-3.5" />
                 Restore
               </Button>
               <Button
                 variant="destructive"
                 size="sm"
-                className="h-7 text-xs"
+                className="h-9 sm:h-7 text-xs"
                 onClick={handleDeleteSelected}
                 disabled={bulkDelete.isPending}
               >
@@ -809,7 +818,7 @@ export function NotesContent() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs"
+                className="h-9 sm:h-7 text-xs"
                 onClick={() => setSelectedIds(new Set())}
               >
                 Clear

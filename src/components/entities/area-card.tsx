@@ -12,6 +12,7 @@ import { normalizeAreaType } from "@/lib/utils/areas";
 import { AREA_TYPE_COLORS, AREA_TYPE_FALLBACK } from "@/lib/constants/entity-colors";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
+import { useClickableProps } from "@/components/ui/clickable";
 
 interface AreaCardProps {
   area: Area;
@@ -69,10 +70,11 @@ const AreaCardComponent = ({
   return (
     <Card
       className={cn(
-        "group cursor-pointer transition-all duration-500 ease-[var(--ease-out-quint)] will-change-transform hover:-translate-y-1 hover:shadow-soft-lg hover:ring-2 hover:ring-primary/20 active:translate-y-0 active:duration-150",
+        "group cursor-pointer hover-lift",
         isArchived && "opacity-60 grayscale"
       )}
       onClick={() => !isArchived && router.push(areaHref)}
+      {...(!isArchived ? useClickableProps(() => router.push(areaHref)) : {})}
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
@@ -80,14 +82,14 @@ const AreaCardComponent = ({
             {area.icon ? (
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0"
-                style={{ backgroundColor: area.color ? `${area.color}20` : "var(--muted)" }}
+                style={{ backgroundColor: area.color ? `color-mix(in srgb, ${area.color} 20%, transparent)` : "var(--muted)" }}
               >
                 {area.icon}
               </div>
             ) : (
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0 font-bold"
-                style={{ backgroundColor: area.color ? `${area.color}20` : "var(--muted)", color: area.color || "var(--foreground)" }}
+                style={{ backgroundColor: area.color ? `color-mix(in srgb, ${area.color} 20%, transparent)` : "var(--muted)", color: area.color || "var(--foreground)" }}
               >
                 {area.name.charAt(0).toUpperCase()}
               </div>

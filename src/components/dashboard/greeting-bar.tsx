@@ -1,5 +1,8 @@
 "use client";
 
+import { AlertTriangle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
 export interface DashboardStats {
   activeAreasCount: number;
   activeGoalsCount: number;
@@ -24,7 +27,7 @@ export function GreetingBar({ userName, stats }: GreetingBarProps) {
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight font-heading">
           {greeting}, {firstName}
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -34,7 +37,7 @@ export function GreetingBar({ userName, stats }: GreetingBarProps) {
       </div>
 
       <div className="flex flex-wrap gap-4">
-        <StatChip label="Active areas" value={stats.activeAreasCount} accent="text-indigo-600" />
+        <StatChip label="Active areas" value={stats.activeAreasCount} accent="text-purple-600" />
         <StatChip label="Active goals" value={stats.activeGoalsCount} accent="text-blue-600" />
         <StatChip
           label="Active projects"
@@ -60,6 +63,7 @@ export function GreetingBar({ userName, stats }: GreetingBarProps) {
           label="Overdue tasks"
           value={stats.overdueCount}
           accent={stats.overdueCount > 0 ? "text-red-600" : undefined}
+          icon={stats.overdueCount > 0 ? <AlertTriangle className="size-3.5 text-red-600" /> : undefined}
         />
         <StatChip
           label="Completed this week"
@@ -71,10 +75,41 @@ export function GreetingBar({ userName, stats }: GreetingBarProps) {
   );
 }
 
-function StatChip({ label, value, accent }: { label: string; value: number; accent?: string }) {
+function StatChip({ label, value, accent, icon }: { label: string; value: number; accent?: string; icon?: React.ReactNode }) {
+  const [displayed, setDisplayed] = useState(0);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReduced || value === 0) {
+      /* eslint-disable react-hooks/set-state-in-effect -- early-return sync set before any async work */
+      setDisplayed(value);
+      /* eslint-enable react-hooks/set-state-in-effect */
+      return;
+    }
+
+    const duration = 250;
+    const start = performance.now();
+    const from = 0;
+
+    function tick(now: number) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 4);
+      setDisplayed(Math.round(from + (value - from) * eased));
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [value]);
+
   return (
-    <div className="flex items-baseline gap-1.5 rounded-full bg-card px-3 py-1 shadow-soft ring-1 ring-foreground/10 transition-all duration-300 ease-[var(--ease-out-quint)] hover:-translate-y-0.5 hover:shadow-soft-lg">
-      <span className={`text-lg font-semibold tabular-nums ${accent ?? ""}`}>{value}</span>
+    <div className="flex items-baseline gap-1.5 rounded-full bg-card px-3 py-1 shadow-soft ring-1 ring-foreground/10 transition-colors">
+      {icon}
+      <span className={`text-lg font-semibold tabular-nums ${accent ?? ""}`}>{displayed}</span>
       <span className="text-xs text-muted-foreground">{label}</span>
     </div>
   );

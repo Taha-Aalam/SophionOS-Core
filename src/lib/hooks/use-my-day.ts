@@ -21,8 +21,13 @@ export interface MyDayTasks {
   focused: Task[];
 }
 
-export function useMyDayTasks(): { data: MyDayTasks; isLoading: boolean } {
-  const { data: allTasks, isLoading } = useTasks();
+export function useMyDayTasks(): {
+  data: MyDayTasks;
+  isLoading: boolean;
+  isError: boolean;
+  refetch: () => void;
+} {
+  const { data: allTasks, isLoading, isError, refetch } = useTasks();
 
   const data = useMemo<MyDayTasks>(() => {
     const active = (allTasks ?? []).filter((t) => !t.is_archived && !t.is_completed);
@@ -32,11 +37,16 @@ export function useMyDayTasks(): { data: MyDayTasks; isLoading: boolean } {
     return { dueToday, focused };
   }, [allTasks]);
 
-  return { data, isLoading };
+  return { data, isLoading, isError, refetch };
 }
 
-export function useMyDayAvailable(): { data: Task[]; isLoading: boolean } {
-  const { data: allTasks, isLoading } = useTasks();
+export function useMyDayAvailable(): {
+  data: Task[];
+  isLoading: boolean;
+  isError: boolean;
+  refetch: () => void;
+} {
+  const { data: allTasks, isLoading, isError, refetch } = useTasks();
 
   const data = useMemo<Task[]>(() => {
     const today = todayLocalString();
@@ -49,5 +59,5 @@ export function useMyDayAvailable(): { data: Task[]; isLoading: boolean } {
     );
   }, [allTasks]);
 
-  return { data, isLoading };
+  return { data, isLoading, isError, refetch };
 }

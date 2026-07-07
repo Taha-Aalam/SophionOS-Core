@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDownIcon, ChevronRightIcon, Plus } from "lucide-react";
+import { ChevronDownIcon, ChevronRightIcon, Plus, Users } from "lucide-react";
 
 import { ContactCard } from "@/components/entities/contact-card";
+import { EmptyState } from "@/components/views/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Contact } from "@/lib/types/domain.types";
@@ -40,6 +41,7 @@ function CollapsibleContactSection({
       <div
         role="button"
         tabIndex={0}
+        aria-expanded={isOpen}
         className="group mb-3 flex w-full items-center gap-2 cursor-pointer"
         onClick={() => setIsOpen((open) => !open)}
         onKeyDown={(event) => {
@@ -94,6 +96,10 @@ function CollapsibleContactSection({
 }
 
 export function ContactsByCategoryView(props: ContactsByCategoryViewProps) {
+  if (props.sections.length === 0) {
+    return <EmptyState icon={Users} title="No contacts" description="Add contacts to see them organized by category." />;
+  }
+
   return (
     <div>
       {props.sections.map((section) => (

@@ -84,7 +84,7 @@ export function GoalDetailSection({
       {/* Section header */}
       <div className="flex items-center gap-3 mb-4">
         <div className={cn("h-5 w-1 rounded-full", accentColor.replace("bg-", "bg-"))} />
-        <h2 className="text-lg font-semibold capitalize">{heading ?? entityType}</h2>
+        <h2 className="text-lg font-semibold font-heading capitalize">{heading ?? entityType}</h2>
         {tabs.find((t) => t.value === activeTab)?.count !== undefined && (
           <span className="text-sm text-muted-foreground">
             {tabCountMap.get(activeTab) ?? 0} total

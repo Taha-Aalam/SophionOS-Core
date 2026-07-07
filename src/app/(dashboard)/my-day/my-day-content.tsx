@@ -13,6 +13,7 @@ import { TaskList } from "@/components/entities/task-list";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useMyDayAvailable, useMyDayTasks } from "@/lib/hooks/use-my-day";
@@ -26,7 +27,6 @@ import {
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import type { Task } from "@/lib/types/domain.types";
-import { cn } from "@/lib/utils";
 import {
   getTaskLinkedAreaIds,
   getTaskLinkedAreaNames,
@@ -35,6 +35,8 @@ import {
   getTaskLinkedProjectIds,
   getTaskLinkedProjectNames,
 } from "@/lib/utils/tasks";
+
+import { SectionHeader } from "@/components/dashboard/section-header";
 
 function TaskRowSkeleton() {
   return (
@@ -71,6 +73,7 @@ function AvailableTaskRow({ task, areaName, projectName, onAddToDay }: Available
         className="h-7 shrink-0 gap-1 text-xs text-muted-foreground hover:text-yellow-500"
         onClick={onAddToDay}
         title="Add to My Day focus"
+        aria-label="Add to My Day focus"
       >
         <Plus className="size-3" />
         <Star className="size-3" />
@@ -79,38 +82,9 @@ function AvailableTaskRow({ task, areaName, projectName, onAddToDay }: Available
   );
 }
 
-function SectionHeader({
-  accentClass,
-  title,
-  description,
-  totalCount,
-}: {
-  accentClass: string;
-  title: string;
-  description: string;
-  totalCount?: number;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex items-start gap-3">
-        <div className={cn("mt-1.5 h-full min-h-[2.5rem] w-1 shrink-0 rounded-full", accentClass)} />
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">{title}</h2>
-            {typeof totalCount === "number" ? (
-              <span className="text-sm text-muted-foreground">{totalCount} total</span>
-            ) : null}
-          </div>
-          <p className="text-sm text-muted-foreground">{description}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function MyDayContent() {
-  const { data: myDay, isLoading: myDayLoading } = useMyDayTasks();
-  const { data: available, isLoading: availableLoading } = useMyDayAvailable();
+  const { data: myDay, isLoading: myDayLoading, isError: myDayError, refetch: refetchMyDay } = useMyDayTasks();
+  const { data: available, isLoading: availableLoading, isError: availableError, refetch: refetchAvailable } = useMyDayAvailable();
 
   const { data: allAreas } = useAreas();
   const { data: allGoals } = useGoals({});
@@ -183,6 +157,7 @@ export function MyDayContent() {
   }, [available, availableSearch]);
 
   const isLoading = myDayLoading;
+
   const todayCount = myDay.dueToday.length;
   const focusCount = myDay.focused.length;
   const totalMyDay = todayCount + focusCount;
@@ -193,15 +168,29 @@ export function MyDayContent() {
     day: "numeric",
   });
 
+  if (myDayError || availableError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState
+          message="Failed to load My Day."
+          onRetry={() => {
+            if (myDayError) refetchMyDay();
+            if (availableError) refetchAvailable();
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full" aria-busy={isLoading}>
       {/* Header */}
       <div className="border-b border-border/50 py-5">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Sun className="size-6 text-yellow-500" />
+            <Sun className="size-6 text-orange-500" />
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">My Day</h1>
+              <h1 className="text-2xl font-bold tracking-tight font-heading">My Day</h1>
               <p className="text-sm text-muted-foreground">{today}</p>
             </div>
           </div>
@@ -217,14 +206,14 @@ export function MyDayContent() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-4 sm:gap-8">
         {isLoading ? (
           <>
             {/* Due Today section skeleton */}
             <section>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="mt-1.5 h-full min-h-[2.5rem] w-1 shrink-0 rounded-full bg-amber-500" />
+                  <div className="mt-1.5 h-full min-h-[2.5rem] w-px shrink-0 rounded-full bg-amber-500" />
                   <div>
                     <div className="flex items-center gap-2">
                       <Skeleton className="h-6 w-28" />
@@ -244,7 +233,7 @@ export function MyDayContent() {
             <section>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="mt-1.5 h-full min-h-[2.5rem] w-1 shrink-0 rounded-full bg-yellow-500" />
+                  <div className="mt-1.5 h-full min-h-[2.5rem] w-px shrink-0 rounded-full bg-yellow-500" />
                   <div>
                     <div className="flex items-center gap-2">
                       <Skeleton className="h-6 w-20" />
@@ -394,6 +383,7 @@ export function MyDayContent() {
                       value={availableSearch}
                       onChange={(e) => setAvailableSearch(e.target.value)}
                       placeholder="Search tasks…"
+                      aria-label="Search tasks"
                       className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                     />
                   </div>
