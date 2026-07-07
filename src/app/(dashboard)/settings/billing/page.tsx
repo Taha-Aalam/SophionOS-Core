@@ -11,6 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SettingsDetailHeader } from "@/components/settings/settings-detail-header";
+import { ErrorState } from "@/components/views/error-state";
+import { Skeleton } from "@/components/ui/skeleton";
 
 async function apiFetch<T>(input: string, init?: RequestInit): Promise<T> {
   const res = await fetch(input, {
@@ -73,6 +76,8 @@ const TIER_LABELS: Record<string, { name: string; icon: React.ReactNode; color: 
 export default function BillingPage() {
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,21 +86,43 @@ export default function BillingPage() {
         const data = await apiFetch<SubscriptionInfo>("/api/v1/user/subscription");
         if (!cancelled) setSubscription(data);
       } catch {
-        if (!cancelled) setSubscription({ tier: "free", isPaid: false });
+        if (!cancelled) setError("Failed to load billing information.");
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [retryKey]);
 
   if (loading) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">Billing</h1>
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        </div>
+      <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+        <SettingsDetailHeader
+          title="Billing"
+          description="View your current plan and usage."
+        />
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-4 w-48" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+        <SettingsDetailHeader
+          title="Billing"
+          description="View your current plan and usage."
+        />
+        <ErrorState message={error} onRetry={() => { setError(null); setLoading(true); setRetryKey((k) => k + 1); }} />
       </div>
     );
   }
@@ -104,14 +131,11 @@ export default function BillingPage() {
   const info = TIER_LABELS[tier] ?? TIER_LABELS.free;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Billing</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          View your current plan and usage. Checkout is coming soon — for now,
-          you can explore Pro features and upgrade when payment processing goes live.
-        </p>
-      </div>
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <SettingsDetailHeader
+        title="Billing"
+        description="View your current plan and usage. Checkout is coming soon. For now, you can explore Pro features and upgrade when payment processing goes live."
+      />
 
       {/* Current plan */}
       <Card>

@@ -45,7 +45,7 @@ function ToolbarButton({ onClick, isActive, title, children }: ToolbarButtonProp
       onClick={onClick}
       title={title}
       className={cn(
-        "h-7 w-7 rounded",
+        "h-9 w-9 rounded sm:h-7 sm:w-7",
         isActive && "bg-accent text-accent-foreground",
       )}
     >

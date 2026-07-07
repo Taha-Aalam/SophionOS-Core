@@ -110,7 +110,7 @@ export function Sidebar() {
       <nav className="flex-1 space-y-5 overflow-y-auto px-2 py-3">
         <div className="space-y-0.5">
           {isDesktopSidebarOpen ? (
-            <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="mb-1 px-2.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
               Core
             </p>
           ) : null}
@@ -121,7 +121,7 @@ export function Sidebar() {
 
         <div className="space-y-0.5">
           {isDesktopSidebarOpen ? (
-            <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="mb-1 px-2.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
               System
             </p>
           ) : null}

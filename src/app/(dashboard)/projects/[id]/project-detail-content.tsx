@@ -34,6 +34,7 @@ import { NoteRow } from "@/components/entities/note-row";
 import { ResourceRow } from "@/components/entities/resource-row";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -156,7 +157,7 @@ export function ProjectDetailContent() {
   const peopleRef = useRef<HTMLDivElement>(null);
   const resourcesRef = useRef<HTMLDivElement>(null);
 
-  const { data: project, isLoading: isLoadingProject } = useProject(projectIdentifier);
+  const { data: project, isLoading: isLoadingProject, isError: projectError, refetch: refetchProject } = useProject(projectIdentifier);
   const resolvedProjectId = project?.id ?? "";
   const { data: relations } = useProjectWithRelations(resolvedProjectId);
   const { data: areas = [] } = useAreas();
@@ -1095,6 +1096,14 @@ export function ProjectDetailContent() {
     await archiveContact.mutateAsync({ id, archive });
   }, [archiveContact]);
 
+  if (projectError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState message="Failed to load this project." onRetry={() => refetchProject()} />
+      </div>
+    );
+  }
+
   if (isLoadingProject) {
     return <ProjectDetailSkeleton />;
   }
@@ -1102,8 +1111,8 @@ export function ProjectDetailContent() {
   if (!project) {
     return (
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
-        <Button variant="ghost" onClick={() => router.push("/projects")}>
-          <ArrowLeft className="mr-2 size-4" />
+        <Button variant="ghost" onClick={() => router.push("/projects")} className="gap-2">
+          <ArrowLeft className="size-4" />
           Back to Projects
         </Button>
         <EmptyState
@@ -1118,7 +1127,7 @@ export function ProjectDetailContent() {
   }
 
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button
           variant="ghost"
@@ -1165,7 +1174,7 @@ export function ProjectDetailContent() {
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+              <h1 className="text-3xl font-bold tracking-tight font-heading">{project.name}</h1>
 
               <div className="flex flex-wrap items-center gap-2">
                 {linkedAreas.length > 0
@@ -1272,7 +1281,7 @@ export function ProjectDetailContent() {
           <>
             <Separator />
             <div className="space-y-4 p-6">
-              <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
                 <div>
                   <Label className="text-xs text-muted-foreground">Areas</Label>
                   <div className="mt-1 flex flex-wrap gap-1.5">
@@ -1499,7 +1508,7 @@ export function ProjectDetailContent() {
               emptyMessage="Tasks will be grouped by goal here."
             />
           ) : filteredTasks.length > 0 ? (
-            <div className="rounded-lg border bg-card">
+            <div className="rounded-xl border bg-card">
               {filteredTasks.map((task) => (
                 <TaskListItem
                   key={task.id}
@@ -1591,7 +1600,7 @@ export function ProjectDetailContent() {
               emptyMessage={noteTab === "by_area" ? "Notes will be grouped by area here." : "Notes will be grouped by goal here."}
             />
           ) : filteredNotes.length > 0 ? (
-            <div className="rounded-lg border bg-card">
+            <div className="rounded-xl border bg-card">
               {filteredNotes.map((note) => {
                 const noteReturnTo = `/projects/${project?.slug ?? project?.id}`;
                 const noteAreas = getNoteLinkedAreaIds(note)
@@ -1668,7 +1677,7 @@ export function ProjectDetailContent() {
               emptyMessage={resourceTab === "by_area" ? "Resources will be grouped by area here." : "Resources will be grouped by goal here."}
             />
           ) : filteredResources.length > 0 ? (
-            <div className="rounded-lg border border-border">
+            <div className="rounded-xl border border-border">
               {filteredResources.map((resource) => {
                 const resourceAreaIds = (resource.linkedAreaIds && resource.linkedAreaIds.length > 0)
                   ? resource.linkedAreaIds

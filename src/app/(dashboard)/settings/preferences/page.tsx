@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Globe, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { SettingsDetailHeader } from "@/components/settings/settings-detail-header";
 import {
   Select,
   SelectContent,
@@ -58,6 +59,10 @@ export default function PreferencesPage() {
   const { mutate: updatePreferences, isPending } = useUpdatePreferences();
   const { theme, setTheme } = useTheme();
 
+  const [themeSelect, setThemeSelect] = useState<string>();
+  const [languageSelect, setLanguageSelect] = useState<string>();
+  const [timezoneSelect, setTimezoneSelect] = useState<string>();
+
   // Sync next-themes with persisted preference on mount
   useEffect(() => {
     if (preferences?.theme && preferences.theme !== theme) {
@@ -81,17 +86,21 @@ export default function PreferencesPage() {
     );
   }
 
-  if (!user) return null;
+  if (!user) return (
+    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full" aria-busy="true" role="status" aria-label="Loading preferences">
+      <div className="space-y-6">
+        <div className="h-8 w-48 rounded bg-muted animate-pulse" />
+        <div className="h-48 w-full rounded-lg border border-border/40 bg-muted/30 animate-pulse" />
+      </div>
+    </div>
+  );
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Preferences</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Set your timezone, theme, and language. Theme preference is synced
-          with the UI immediately.
-        </p>
-      </div>
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <SettingsDetailHeader
+        title="Preferences"
+        description="Set your timezone, theme, and language. Theme preference is synced with the UI immediately."
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
@@ -106,7 +115,8 @@ export default function PreferencesPage() {
               <Label htmlFor="theme">Theme</Label>
               <Select
                 name="theme"
-                defaultValue={preferences?.theme ?? theme ?? "system"}
+                value={themeSelect ?? preferences?.theme ?? theme ?? "system"}
+                onValueChange={(v) => setThemeSelect(v ?? undefined)}
                 disabled={isPending}
               >
                 <SelectTrigger className="w-full sm:w-48">
@@ -131,7 +141,8 @@ export default function PreferencesPage() {
               <Label htmlFor="language">Language</Label>
               <Select
                 name="language"
-                defaultValue={preferences?.language ?? "en"}
+                value={languageSelect ?? preferences?.language ?? "en"}
+                onValueChange={(v) => setLanguageSelect(v ?? undefined)}
                 disabled={isPending}
               >
                 <SelectTrigger className="w-full sm:w-48">
@@ -161,7 +172,8 @@ export default function PreferencesPage() {
               <Label htmlFor="timezone">Timezone</Label>
               <Select
                 name="timezone"
-                defaultValue={preferences?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
+                value={timezoneSelect ?? preferences?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
+                onValueChange={(v) => setTimezoneSelect(v ?? undefined)}
                 disabled={isPending}
               >
                 <SelectTrigger className="w-full sm:w-64">

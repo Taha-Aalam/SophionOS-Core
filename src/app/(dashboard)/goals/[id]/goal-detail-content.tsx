@@ -39,6 +39,7 @@ import { ResourcesByGroupView, type ResourceGroup } from "@/components/views/res
 import { ProjectsByAreaView, type ProjectsByAreaGroup } from "@/components/views/projects-by-area-view";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -215,7 +216,7 @@ export function GoalDetailContent() {
   const peopleRef = useRef<HTMLDivElement>(null);
 
   // Queries
-  const { data: goalData, isLoading } = useGoalDetail(goalId);
+  const { data: goalData, isLoading, isError: goalError, refetch: refetchGoalDetail } = useGoalDetail(goalId);
   const resolvedGoalId = goalData?.goal.id ?? "";
   const { data: areas = [] } = useAreas();
   const { data: allProjects = [] } = useProjects({ status: "all" });
@@ -1130,6 +1131,14 @@ export function GoalDetailContent() {
     setIsLinkContactOpen(false);
   }, [goal, linkContactToGoal]);
 
+  if (goalError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState message="Failed to load this goal." onRetry={() => refetchGoalDetail()} />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return <GoalDetailSkeleton />;
   }
@@ -1137,8 +1146,8 @@ export function GoalDetailContent() {
   if (!goal) {
     return (
       <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-        <Button variant="ghost" onClick={() => router.push("/goals")}>
-          <ArrowLeft className="mr-2 size-4" />
+        <Button variant="ghost" onClick={() => router.push("/goals")} className="gap-2">
+          <ArrowLeft className="size-4" />
           Back to Goals
         </Button>
         <EmptyState
@@ -1153,7 +1162,7 @@ export function GoalDetailContent() {
   }
 
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button
@@ -1204,7 +1213,7 @@ export function GoalDetailContent() {
 
             <div className="space-y-2">
               {/* Title */}
-              <h1 className="text-3xl font-bold tracking-tight">{goal.name}</h1>
+              <h1 className="text-3xl font-bold tracking-tight font-heading">{goal.name}</h1>
 
               {/* Badges row */}
               <div className="flex flex-wrap items-center gap-2">
@@ -1314,7 +1323,7 @@ export function GoalDetailContent() {
           <>
             <Separator />
             <div className="space-y-4 p-6">
-              <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
                 {/* Areas */}
                 <div>
                   <Label className="text-xs text-muted-foreground">Areas</Label>

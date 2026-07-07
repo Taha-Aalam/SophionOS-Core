@@ -35,6 +35,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarView } from "@/components/views/calendar-view";
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { TasksByGroupView, type TaskGroup } from "@/components/views/tasks-by-group-view";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
@@ -85,8 +86,18 @@ export function TasksContent() {
   const [goalPopoverOpen, setGoalPopoverOpen] = useState(false);
   const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
 
-  const { data: allTasks, isLoading } = useTasks();
-  const { data: allArchivedTasks, isLoading: isArchivedLoading } = useArchivedTasks({
+  const {
+    data: allTasks,
+    isLoading,
+    isError: tasksError,
+    refetch: refetchTasks,
+  } = useTasks();
+  const {
+    data: allArchivedTasks,
+    isLoading: isArchivedLoading,
+    isError: archivedError,
+    refetch: refetchArchived,
+  } = useArchivedTasks({
     enabled: activeTab === TASK_VIEW.ARCHIVE,
   });
   const { data: allAreas } = useAreas();
@@ -424,8 +435,22 @@ export function TasksContent() {
     "flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
   const filterOptionLabelClassName = "min-w-0 flex-1 whitespace-normal break-words text-sm";
 
+  if (tasksError || archivedError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState
+          message="Failed to load tasks."
+          onRetry={() => {
+            if (tasksError) refetchTasks();
+            if (archivedError) refetchArchived();
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <div className="content-fade-in reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between border-b border-border/50">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">☑️</span>
@@ -550,7 +575,7 @@ export function TasksContent() {
                 setFilterPriority(value === ALL_PRIORITY_VALUE ? "" : (value ?? ""))
               }
             >
-              <SelectTrigger className="h-7 w-[120px] text-xs">
+              <SelectTrigger className="h-9 sm:h-7 w-[120px] text-xs">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
@@ -565,7 +590,7 @@ export function TasksContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterAreaIds.length === 0 ? (
@@ -574,7 +599,7 @@ export function TasksContent() {
                   <span className="flex items-center gap-1">
                     <span className="max-w-[100px] truncate">{selectedAreaLabels[0]}</span>
                     {selectedAreaLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
                         +{selectedAreaLabels.length - 1}
                       </Badge>
                     )}
@@ -618,7 +643,7 @@ export function TasksContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterGoalIds.length === 0 ? (
@@ -627,7 +652,7 @@ export function TasksContent() {
                   <span className="flex items-center gap-1">
                     <span className="max-w-[100px] truncate">{selectedGoalLabels[0]}</span>
                     {selectedGoalLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
                         +{selectedGoalLabels.length - 1}
                       </Badge>
                     )}
@@ -668,7 +693,7 @@ export function TasksContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterProjectIds.length === 0 ? (
@@ -677,7 +702,7 @@ export function TasksContent() {
                   <span className="flex items-center gap-1">
                     <span className="max-w-[100px] truncate">{selectedProjectLabels[0]}</span>
                     {selectedProjectLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
                         +{selectedProjectLabels.length - 1}
                       </Badge>
                     )}

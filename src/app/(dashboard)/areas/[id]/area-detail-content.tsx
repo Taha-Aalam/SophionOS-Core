@@ -35,6 +35,7 @@ import { ResourceRow } from "@/components/entities/resource-row";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskList } from "@/components/entities/task-list";
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { TasksByGroupView } from "@/components/views/tasks-by-group-view";
 
 const KanbanBoard = dynamic(
@@ -165,7 +166,7 @@ export function AreaDetailContent() {
   const resourcesRef = useRef<HTMLDivElement>(null);
   const peopleRef = useRef<HTMLDivElement>(null);
 
-  const { data: areaData, isLoading, refetch: refetchAreaDetail } = useAreaDetail(areaIdentifier);
+  const { data: areaData, isLoading, isError: areaError, refetch: refetchAreaDetail } = useAreaDetail(areaIdentifier);
   const { data: allAreasList = [] } = useAreas();
   const { data: allContacts = [] } = useContacts();
   const { data: archivedContactsAll = [] } = useContacts({ archive: true });
@@ -936,6 +937,14 @@ export function AreaDetailContent() {
     );
   };
 
+  if (areaError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState message="Failed to load this area." onRetry={() => refetchAreaDetail()} />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return <AreaDetailSkeleton />;
   }
@@ -943,8 +952,8 @@ export function AreaDetailContent() {
   if (!area) {
     return (
       <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-        <Button variant="ghost" onClick={() => router.push(backHref)}>
-          <ArrowLeft className="mr-2 size-4" />
+        <Button variant="ghost" onClick={() => router.push(backHref)} className="gap-2">
+          <ArrowLeft className="size-4" />
           Back to Areas
         </Button>
         <EmptyState
@@ -959,7 +968,7 @@ export function AreaDetailContent() {
   }
 
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button
@@ -984,7 +993,7 @@ export function AreaDetailContent() {
             {area.icon ? (
               <div
                 className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl shrink-0"
-                style={{ backgroundColor: area.color ? `${area.color}20` : "var(--muted)" }}
+                style={{ backgroundColor: area.color ? `color-mix(in srgb, ${area.color} 20%, transparent)` : "var(--muted)" }}
               >
                 {area.icon}
               </div>
@@ -992,7 +1001,7 @@ export function AreaDetailContent() {
               <div
                 className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl shrink-0 font-bold"
                 style={{
-                  backgroundColor: area.color ? `${area.color}20` : "var(--muted)",
+                  backgroundColor: area.color ? `color-mix(in srgb, ${area.color} 20%, transparent)` : "var(--muted)",
                   color: area.color || "var(--foreground)",
                 }}
               >
@@ -1002,7 +1011,7 @@ export function AreaDetailContent() {
 
             <div className="space-y-2">
               {/* Title */}
-              <h1 className="text-3xl font-bold tracking-tight">{area.name}</h1>
+              <h1 className="text-3xl font-bold tracking-tight font-heading">{area.name}</h1>
 
               {/* Badges row */}
               <div className="flex flex-wrap items-center gap-2">
@@ -1097,7 +1106,7 @@ export function AreaDetailContent() {
           <>
             <Separator />
             <div className="space-y-4 p-6">
-              <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
                 {/* Type */}
                 <div>
                   <Label className="text-xs text-muted-foreground">Type</Label>

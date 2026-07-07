@@ -42,6 +42,27 @@ export const ONBOARDING_STEP_META: Record<OnboardingStep, OnboardingStepMeta> = 
     icon: "✅",
     kind: "action",
   },
+  my_day: {
+    step: "my_day",
+    title: "My Day — your daily focus",
+    subtitle: "A focused view of what matters today. Pin tasks, review priorities, and stay on track.",
+    icon: "☀️",
+    kind: "explainer",
+  },
+  inbox: {
+    step: "inbox",
+    title: "Inbox — capture everything",
+    subtitle: "Dump tasks, notes, and resources here. Process them later when you're ready.",
+    icon: "📥",
+    kind: "explainer",
+  },
+  knowledge: {
+    step: "knowledge",
+    title: "Knowledge — your second brain",
+    subtitle: "Browse all your notes, resources, and contacts in one place, organised by topic.",
+    icon: "🧠",
+    kind: "explainer",
+  },
   notes: {
     step: "notes",
     title: "Notes capture thinking",

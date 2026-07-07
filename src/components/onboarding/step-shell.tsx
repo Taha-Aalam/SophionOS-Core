@@ -42,8 +42,8 @@ export function StepShell({
   const total = ONBOARDING_STEP_LIST.length;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-8 sm:py-12">
-      <div className="mb-8 flex items-center justify-center gap-1.5" aria-hidden>
+    <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col overflow-y-auto px-4 py-8 sm:py-12">
+      <div className="mb-8 flex items-center justify-center gap-1.5" role="progressbar" aria-valuenow={stepIndex + 1} aria-valuemin={1} aria-valuemax={total} aria-label={`Step ${stepIndex + 1} of ${total}`}>
         {ONBOARDING_STEP_LIST.map((s, i) => (
           <span
             key={s.step}
@@ -60,7 +60,7 @@ export function StepShell({
       </div>
 
       <div className="mb-6 text-center">
-        <div className="mb-3 text-4xl">{meta.icon}</div>
+        <div className="mb-3 text-3xl sm:text-4xl">{meta.icon}</div>
         <h1 className="text-2xl font-semibold tracking-tight">{meta.title}</h1>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
           {meta.subtitle}

@@ -15,13 +15,11 @@ export default function ProjectsLoading() {
         <Skeleton className="h-10 w-32 rounded-md" />
       </div>
 
-      {/* Tab pills — All, Inbox, Planning, In Progress, On Hold, Completed, By Status, By Area, By Goal, Archive */}
-      <div className="w-full overflow-x-auto rounded-md bg-muted/50 p-1">
-        <div className="flex gap-1">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <Skeleton key={i} className="h-8 w-24 rounded-md" />
-          ))}
-        </div>
+      {/* Underline tab strip — All, Inbox, Planning, In Progress, On Hold, Completed, By Status, By Area, By Goal, Archive */}
+      <div className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto border-b border-transparent pb-0">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <Skeleton key={i} className="h-8 w-20 rounded-none" />
+        ))}
       </div>
 
       {/* ProjectCard grid */}

@@ -177,10 +177,10 @@ export default function NewNotePage() {
           <Button variant="ghost" size="icon-sm" onClick={() => router.push(noteBackHref)}>
             <ArrowLeft className="size-4" />
           </Button>
-          <h1 className="text-xl font-bold tracking-tight">New Note</h1>
+          <h1 className="text-xl font-bold tracking-tight font-heading">New Note</h1>
         </div>
-        <Button onClick={handleSave} disabled={createNote.isPending}>
-          <Save className="mr-2 size-4" />
+        <Button onClick={handleSave} disabled={createNote.isPending} className="gap-2">
+          <Save className="size-4" />
           Save Note
         </Button>
       </div>

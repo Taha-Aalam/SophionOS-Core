@@ -13,7 +13,7 @@ function TaskRowSkeleton() {
 function SectionHeaderSkeleton() {
   return (
     <div className="flex items-start gap-3">
-      <Skeleton className="mt-1.5 h-10 w-1 shrink-0 rounded-full" />
+      <Skeleton className="mt-1.5 h-10 w-px shrink-0 rounded-full" />
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Skeleton className="h-5 w-24" />
@@ -27,7 +27,7 @@ function SectionHeaderSkeleton() {
 
 export default function MyDayLoading() {
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full" aria-busy="true" role="status" aria-label="Loading my day">
       {/* Header */}
       <div className="border-b border-border/50 py-5">
         <div className="flex items-center justify-between gap-4">
@@ -42,7 +42,7 @@ export default function MyDayLoading() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-4 sm:gap-8">
         {/* Due Today section */}
         <section>
           <SectionHeaderSkeleton />

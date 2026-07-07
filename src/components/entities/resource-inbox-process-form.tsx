@@ -226,7 +226,7 @@ export function ResourceInboxProcessForm({
                     <Badge
                       key={area.id}
                       variant="secondary"
-                      className="flex items-center gap-1 text-[10px]"
+                      className="flex items-center gap-1 text-2xs"
                     >
                       {area.icon ? `${area.icon} ` : ""}
                       {area.name}
@@ -276,7 +276,7 @@ export function ResourceInboxProcessForm({
                     <Badge
                       key={goal.id}
                       variant="secondary"
-                      className="flex items-center gap-1 text-[10px]"
+                      className="flex items-center gap-1 text-2xs"
                     >
                       {goal.name}
                       <button
@@ -321,7 +321,7 @@ export function ResourceInboxProcessForm({
                     <Badge
                       key={p.id}
                       variant="secondary"
-                      className="flex items-center gap-1 text-[10px]"
+                      className="flex items-center gap-1 text-2xs"
                     >
                       {p.name}
                       <button
@@ -363,7 +363,7 @@ export function ResourceInboxProcessForm({
                     <Badge
                       key={task.id}
                       variant="secondary"
-                      className="flex items-center gap-1 text-[10px]"
+                      className="flex items-center gap-1 text-2xs"
                     >
                       {task.name}
                       <button
@@ -401,7 +401,7 @@ export function ResourceInboxProcessForm({
                   <Badge
                     key={t.id}
                     variant="secondary"
-                    className="flex items-center gap-1 text-[10px]"
+                    className="flex items-center gap-1 text-2xs"
                   >
                     {t.name}
                     <button

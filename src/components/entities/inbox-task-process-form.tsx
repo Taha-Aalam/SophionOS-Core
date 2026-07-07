@@ -155,7 +155,7 @@ export function TaskProcessForm({
                     <Badge
                       key={area.id}
                       variant="secondary"
-                      className="flex items-center gap-1 text-[10px]"
+                      className="flex items-center gap-1 text-2xs"
                     >
                       {area.icon ? `${area.icon} ` : ""}
                       {area.name}
@@ -205,7 +205,7 @@ export function TaskProcessForm({
                     <Badge
                       key={goal.id}
                       variant="secondary"
-                      className="flex items-center gap-1 text-[10px]"
+                      className="flex items-center gap-1 text-2xs"
                     >
                       {goal.name}
                       <button
@@ -248,7 +248,7 @@ export function TaskProcessForm({
                   <Badge
                     key={project.id}
                     variant="secondary"
-                    className="flex items-center gap-1 text-[10px]"
+                    className="flex items-center gap-1 text-2xs"
                   >
                     {project.name}
                     <button

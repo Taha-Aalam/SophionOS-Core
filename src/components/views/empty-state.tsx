@@ -23,8 +23,8 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="reveal-once flex flex-col items-center justify-center px-4 py-16 text-center">
-      <div className="mb-5 rounded-3xl bg-muted/40 p-2 ring-1 ring-foreground/5">
-        <div className="flex size-16 items-center justify-center rounded-[calc(1.5rem-0.5rem)] bg-card shadow-soft ring-1 ring-foreground/10">
+      <div className="mb-5 rounded-xl bg-muted/40 p-2 ring-1 ring-foreground/5">
+        <div className="flex size-16 items-center justify-center rounded-lg bg-card shadow-soft ring-1 ring-foreground/10">
           <Icon className="size-7 text-muted-foreground" strokeWidth={1.5} />
         </div>
       </div>

@@ -4,7 +4,7 @@ function SectionHeaderSkeleton() {
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="flex items-start gap-3">
-        <Skeleton className="mt-1.5 h-10 w-1 shrink-0 rounded-full" />
+        <Skeleton className="mt-1.5 h-10 w-px shrink-0 rounded-full" />
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Skeleton className="h-5 w-24" />
@@ -18,16 +18,33 @@ function SectionHeaderSkeleton() {
   );
 }
 
+function UnderlineTabSkeleton({ count }: { count: number }) {
+  return (
+    <div className="border-b border-border/50 px-6 pt-4">
+      <div className="flex h-auto flex-nowrap gap-0 bg-transparent p-0">
+        {Array.from({ length: count }).map((_, i) => (
+          <Skeleton key={i} className="h-8 w-[4.5rem] rounded-none px-4 py-2" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function KnowledgeHubLoading() {
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      {/* Header */}
-      <div className="flex items-center gap-2.5">
-        <Skeleton className="size-8 rounded-md" />
-        <div>
+    <div
+      className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full"
+      aria-busy="true"
+      role="status"
+      aria-label="Loading knowledge hub"
+    >
+      {/* Header — icon + title row, subtitle below */}
+      <div>
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="size-8 rounded-md" />
           <Skeleton className="h-7 w-48" />
-          <Skeleton className="mt-1 h-4 w-96" />
         </div>
+        <Skeleton className="mt-1 h-4 w-96" />
       </div>
 
       {/* Search bar */}
@@ -38,15 +55,9 @@ export default function KnowledgeHubLoading() {
         <section>
           <SectionHeaderSkeleton />
           {/* 6 tabs: Active, Favorite, Inactive, By Area, All, Archived */}
-          <div className="mt-4 overflow-x-auto rounded-md bg-muted/50 p-1">
-            <div className="flex gap-1">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-20 rounded-md" />
-              ))}
-            </div>
-          </div>
+          <UnderlineTabSkeleton count={6} />
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
+            {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-28 w-full rounded-xl" />
             ))}
           </div>
@@ -55,26 +66,17 @@ export default function KnowledgeHubLoading() {
         {/* Notes section */}
         <section>
           <SectionHeaderSkeleton />
-          {/* 13 tabs underline strip */}
-          <div className="mt-4 overflow-x-auto border-b border-border/50">
-            <div className="flex gap-0">
-              {Array.from({ length: 13 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-16 rounded-none" />
-              ))}
-            </div>
-          </div>
-          <div className="mt-4 rounded-lg border border-border">
-            {Array.from({ length: 3 }).map((_, i) => (
+          {/* 13 tabs: All, Inbox, To Review, Active, Pinned, Favorites, By Area, By Goal, By Project, By Topic, By Notebook, Completed, Archived */}
+          <UnderlineTabSkeleton count={13} />
+          <div className="mt-4 flex flex-col">
+            {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 last:border-0"
+                className="flex cursor-pointer items-center gap-3 border-b border-border/40 px-4 py-2.5"
               >
-                <Skeleton className="size-4 rounded" />
-                <Skeleton className="h-4 flex-1" />
-                <Skeleton className="hidden h-4 w-24 md:block" />
-                <Skeleton className="size-8 rounded-md" />
-                <Skeleton className="size-8 rounded-md" />
-                <Skeleton className="size-8 rounded-md" />
+                <Skeleton className="h-5 flex-1" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-16" />
               </div>
             ))}
           </div>
@@ -83,25 +85,17 @@ export default function KnowledgeHubLoading() {
         {/* Resources section */}
         <section>
           <SectionHeaderSkeleton />
-          {/* 11 tabs underline strip */}
-          <div className="mt-4 overflow-x-auto border-b border-border/50">
-            <div className="flex gap-0">
-              {Array.from({ length: 11 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-16 rounded-none" />
-              ))}
-            </div>
-          </div>
-          <div className="mt-4 rounded-lg border border-border">
-            {Array.from({ length: 3 }).map((_, i) => (
+          {/* 10 tabs: All, Inbox, To Review, Active, Favorites, By Topic, By Area, By Goal, By Project, Completed, Archived */}
+          <UnderlineTabSkeleton count={10} />
+          <div className="mt-4 flex flex-col">
+            {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5 last:border-0"
+                className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5"
               >
                 <Skeleton className="h-5 flex-1" />
-                <Skeleton className="hidden h-5 w-48 md:inline-flex" />
-                <Skeleton className="size-8 rounded-md" />
-                <Skeleton className="size-8 rounded-md" />
-                <Skeleton className="size-8 rounded-md" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-16" />
               </div>
             ))}
           </div>

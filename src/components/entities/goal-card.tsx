@@ -11,6 +11,7 @@ import { PRIORITY_COLORS } from '@/lib/constants/entity-colors';
 import ProgressRing from '@/components/charts/progress-ring';
 
 import { DeleteEntityPopover } from './delete-entity-popover';
+import { useClickableProps } from '@/components/ui/clickable';
 
 export interface GoalCardRollups {
   projectCount: number;
@@ -55,7 +56,7 @@ const TERM_EMOJIS: Record<string, string> = {
   long: '🏔️',
 };
 
-const BADGE_CLS = 'h-5 text-[10px] leading-none px-1.5 py-0 items-center';
+const BADGE_CLS = 'h-5 text-2xs leading-none px-1.5 py-0 items-center';
 
 function parseGoalDate(value: string): Date {
   const [year, month, day] = value.split('-').map(Number);
@@ -108,11 +109,12 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
   return (
     <Card
       className={cn(
-        "group relative overflow-hidden transition-all duration-500 ease-[var(--ease-out-quint)] will-change-transform",
-        isInteractive && "cursor-pointer hover:-translate-y-1 hover:shadow-soft-lg hover:ring-2 hover:ring-primary/20 active:translate-y-0 active:duration-150",
+        "group relative overflow-hidden",
+        isInteractive && "cursor-pointer hover-lift",
         goal.is_archived && "opacity-60 grayscale"
       )}
       onClick={() => onEdit?.(goal)}
+      {...(isInteractive ? useClickableProps(() => onEdit?.(goal)) : {})}
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-4">
@@ -121,17 +123,17 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
               <span className="text-base leading-none">🎯</span>
               <h3 className="font-medium truncate text-sm">{goal.name}</h3>
               {showDuplicateBadge && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
+                <Badge variant="outline" className="text-2xs px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
                   copy {duplicateIndex}
                 </Badge>
               )}
               {rollups && rollups.projectCount === 0 && rollups.taskCount === 0 && rollups.noteCount === 0 && rollups.resourceCount === 0 && !goal.is_archived && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                <Badge variant="outline" className="text-2xs px-1.5 py-0">
                   No activity
                 </Badge>
               )}
               {goal.is_inactive && rollups && (rollups.projectCount > 0 || rollups.taskCount > 0 || rollups.noteCount > 0 || rollups.resourceCount > 0) && !goal.is_archived && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                <Badge variant="outline" className="text-2xs px-1.5 py-0">
                   Paused
                 </Badge>
               )}
@@ -202,7 +204,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
           </div>
         )}
 
-        <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="mt-4 flex items-center justify-between text-2xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Calendar className="size-3" />
             <span className={cn(dueState.isOverdue && "text-destructive font-medium")}>
@@ -227,7 +229,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
                     variant="ghost"
                     size="icon"
                     className="size-6"
-                    title="Restore goal"
+                    aria-label="Restore goal"
                     onClick={(e) => {
                       e.stopPropagation();
                       onRestore(goal);
@@ -256,7 +258,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
                     variant="ghost"
                     size="icon"
                     className="size-6"
-                    title="Archive goal"
+                    aria-label="Archive goal"
                     onClick={(e) => {
                       e.stopPropagation();
                       onArchive(goal);

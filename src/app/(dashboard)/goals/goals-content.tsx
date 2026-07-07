@@ -7,6 +7,7 @@ import { Archive, CalendarDays, CheckCircle, Clock, Flag, PauseCircle, Plus, Tar
 import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,7 +30,7 @@ export function GoalsContent() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const { filters, setStatus, setTerm } = useFilterStore();
-  const { data: goals, isLoading } = useGoals(filters);
+  const { data: goals, isLoading, isError, refetch } = useGoals(filters);
   const { data: areas = [] } = useAreas();
   const restoreGoal = useRestoreGoal();
   const archiveGoal = useArchiveGoal();
@@ -100,8 +101,16 @@ export function GoalsContent() {
     archive: "Archived goals will appear here.",
   };
 
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState message="Failed to load goals." onRetry={() => refetch()} />
+      </div>
+    );
+  }
+
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">🎯</span>

@@ -60,6 +60,7 @@ function CollapsibleAreaSection({
       <div
         role="button"
         tabIndex={0}
+        aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -162,7 +163,7 @@ export function ProjectsByAreaView({
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i}>
             <Skeleton className="h-6 w-32 mb-3" />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 3 }).map((_, j) => (
                 <Skeleton key={j} className="h-48 rounded-xl" />
               ))}
