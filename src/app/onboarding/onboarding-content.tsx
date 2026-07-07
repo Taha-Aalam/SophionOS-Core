@@ -17,8 +17,12 @@ import { StepShell } from "@/components/onboarding/step-shell";
 import { AreasStep } from "@/components/onboarding/areas-step";
 import { GoalStep, type GoalStepValue } from "@/components/onboarding/goal-step";
 import { ProjectStep, type ProjectStepValue } from "@/components/onboarding/project-step";
-import { TasksStep } from "@/components/onboarding/tasks-step";
+import { TasksStep, type TaskItemValue } from "@/components/onboarding/tasks-step";
 import { ExplainerStep } from "@/components/onboarding/explainer-step";
+
+function defaultTask(): TaskItemValue {
+  return { id: crypto.randomUUID(), name: "", priority: "", status: "", due_date: null };
+}
 
 export function OnboardingContent({
   initialState,
@@ -44,15 +48,32 @@ export function OnboardingContent({
   const state = useStore(store);
   const meta = ONBOARDING_STEP_META[state.currentStep];
 
-  const [goal, setGoal] = useState<GoalStepValue>({ name: "", description: "" });
-  const [project, setProject] = useState<ProjectStepValue>({ name: "", description: "" });
-  const [tasks, setTasks] = useState<string[]>(["", "", ""]);
+  const [goal, setGoal] = useState<GoalStepValue>({
+    name: "",
+    description: "",
+    area_ids: [],
+    term: "",
+    priority: "",
+    target_date: null,
+  });
+  const [project, setProject] = useState<ProjectStepValue>({
+    name: "",
+    description: "",
+    status: "",
+    priority: "",
+    start_date: null,
+    due_date: null,
+    area_ids: [],
+    goal_ids: [],
+  });
+  const [tasks, setTasks] = useState<TaskItemValue[]>([defaultTask()]);
   const [isBusy, setIsBusy] = useState(false);
 
   // Ids of entities created during the wizard, kept in the store draft so a
   // back/forward round-trip never creates a second goal/project.
   const draft = state.draft as {
     goal_id?: string;
+    goal_area_ids?: string[];
     project_id?: string;
     tasks_created?: boolean;
   };
@@ -76,29 +97,53 @@ export function OnboardingContent({
         const created = await createGoal.mutateAsync({
           name: goal.name.trim(),
           description: goal.description.trim() || null,
-          term: GOAL_TERM.SHORT,
+          term: (goal.term as typeof GOAL_TERM[keyof typeof GOAL_TERM]) || GOAL_TERM.SHORT,
+          priority: goal.priority || undefined,
+          target_date: goal.target_date,
+          area_ids: goal.area_ids.length > 0 ? goal.area_ids : undefined,
         });
-        store.getState().setDraft({ goal_id: created.id });
+        store.getState().setDraft({
+          goal_id: created.id,
+          goal_area_ids: goal.area_ids,
+        });
       }
 
       if (state.currentStep === "project" && project.name.trim() && !draft.project_id) {
+        const projectAreaIds = project.area_ids.length > 0 ? project.area_ids : undefined;
+        const projectGoalIds = project.goal_ids.length > 0
+          ? project.goal_ids
+          : draft.goal_id
+            ? [draft.goal_id]
+            : undefined;
         const created = await createProject.mutateAsync({
           name: project.name.trim(),
           description: project.description.trim() || null,
-          goal_ids: draft.goal_id ? [draft.goal_id] : undefined,
+          status: project.status || undefined,
+          priority: project.priority || undefined,
+          start_date: project.start_date,
+          due_date: project.due_date,
+          area_ids: projectAreaIds,
+          goal_ids: projectGoalIds,
         });
         store.getState().setDraft({ project_id: created.id });
       }
 
       if (state.currentStep === "tasks" && !draft.tasks_created) {
-        const names = tasks.map((t) => t.trim()).filter(Boolean);
-        for (const name of names) {
+        const validTasks = tasks.filter((t) => t.name.trim());
+        for (const task of validTasks) {
           await createTask.mutateAsync({
-            name,
+            name: task.name.trim(),
+            status: task.status || undefined,
+            priority: task.priority || undefined,
+            due_date: task.due_date,
             project_ids: draft.project_id ? [draft.project_id] : undefined,
+            goal_ids: draft.goal_id ? [draft.goal_id] : undefined,
+            area_ids: draft.goal_area_ids && draft.goal_area_ids.length > 0
+              ? draft.goal_area_ids
+              : undefined,
           });
         }
-        if (names.length) store.getState().setDraft({ tasks_created: true });
+        if (validTasks.length) store.getState().setDraft({ tasks_created: true });
       }
 
       if (state.isLastStep) {
@@ -131,7 +176,16 @@ export function OnboardingContent({
   const canAdvance =
     state.currentStep === "goal"
       ? goal.name.trim().length > 0 || Boolean(draft.goal_id)
-      : true;
+      : state.currentStep === "project"
+        ? project.name.trim().length > 0 || Boolean(draft.project_id)
+        : state.currentStep === "tasks"
+          ? tasks.some((t) => t.name.trim().length > 0)
+          : true;
+
+  // Goal data to pass to project step for auto-linking
+  const createdGoal = draft.goal_id
+    ? { id: draft.goal_id, area_ids: draft.goal_area_ids ?? goal.area_ids }
+    : null;
 
   return (
     <StepShell
@@ -149,10 +203,10 @@ export function OnboardingContent({
       {state.currentStep === "areas" && <AreasStep />}
       {state.currentStep === "goal" && <GoalStep value={goal} onChange={setGoal} />}
       {state.currentStep === "project" && (
-        <ProjectStep value={project} onChange={setProject} goalName={goal.name.trim() || undefined} />
+        <ProjectStep value={project} onChange={setProject} createdGoal={createdGoal} />
       )}
       {state.currentStep === "tasks" && (
-        <TasksStep value={tasks} onChange={setTasks} projectName={project.name.trim() || undefined} />
+        <TasksStep value={tasks} onChange={setTasks} />
       )}
       {meta.kind === "explainer" && <ExplainerStep meta={meta} />}
     </StepShell>

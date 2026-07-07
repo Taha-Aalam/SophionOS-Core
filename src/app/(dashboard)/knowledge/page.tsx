@@ -52,7 +52,8 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
-import { ResourceRow, ResourceRowSkeleton } from "@/components/entities/resource-row";
+import { ResourceRow } from "@/components/entities/resource-row";
+import { ResourceRowSkeleton } from "@/components/views/list-page-skeleton";
 import { TopicCard } from "@/components/entities/topic-card";
 import { NoteRow } from "@/components/entities/note-row";
 import { NotesByGroupView, type NoteGroup } from "@/components/views/notes-by-group-view";
@@ -109,6 +110,7 @@ import {
 } from "@/lib/utils/resources";
 import { ResourcesByGroupView, type ResourceGroup } from "@/components/views/resources-by-group-view";
 import { GalleryGrid } from "@/components/views/gallery-grid";
+import { ErrorState } from "@/components/views/error-state";
 import { NOTES_TABS_LIST_CLASS_NAME } from "@/lib/utils/note-page-display";
 import { cn } from "@/lib/utils";
 import {
@@ -277,9 +279,9 @@ export default function KnowledgeHubPage() {
   const { data: sr, isLoading: srLoading } = useKnowledgeSearch(debouncedQuery);
 
   // ── data ──────────────────────────────────────────────────────────────────
-  const { data: topics = [], isLoading: topicsLoading } = useTopics();
-  const { data: notes = [], isLoading: notesLoading } = useNotes({ status: "all", includeArchived: true });
-  const { data: resources = [], isLoading: resourcesLoading } = useResources({ status: "all" });
+  const { data: topics = [], isLoading: topicsLoading, isError: topicsError, refetch: refetchTopics } = useTopics();
+  const { data: notes = [], isLoading: notesLoading, isError: notesError, refetch: refetchNotes } = useNotes({ status: "all", includeArchived: true });
+  const { data: resources = [], isLoading: resourcesLoading, isError: resourcesError, refetch: refetchResources } = useResources({ status: "all" });
   const { data: archivedResources = [] } = useArchivedResources();
   const { data: areas = [] } = useAreas();
   const { data: projects = [] } = useProjects({ status: "all" });
@@ -748,7 +750,7 @@ export default function KnowledgeHubPage() {
 
     if (!hasResults) {
       return (
-        <div className="rounded-xl border border-border bg-card p-12 text-center">
+        <div className="rounded-xl border border-border bg-card p-6 text-center">
           <Search className="mx-auto mb-3 size-10 text-muted-foreground/40" />
           <p className="font-medium">No results for &ldquo;{debouncedQuery}&rdquo;</p>
           <p className="mt-1 text-sm text-muted-foreground">Try different keywords</p>
@@ -808,8 +810,23 @@ export default function KnowledgeHubPage() {
   }
 
   // ── render ────────────────────────────────────────────────────────────────
+  if (topicsError || notesError || resourcesError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState
+          message="Failed to load knowledge hub."
+          onRetry={() => {
+            if (topicsError) refetchTopics();
+            if (notesError) refetchNotes();
+            if (resourcesError) refetchResources();
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2.5">

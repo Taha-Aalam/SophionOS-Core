@@ -11,6 +11,7 @@ import { encodeReturnTo } from "@/lib/utils/return-to";
 import { STATUS_COLORS } from "@/lib/constants/entity-colors";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
+import { useClickableProps } from "@/components/ui/clickable";
 
 export interface NoteRowAreaInfo {
   name: string;
@@ -65,6 +66,7 @@ export function NoteRow({
         isSelected && "bg-muted/50",
       )}
       onClick={() => router.push(href)}
+      {...useClickableProps(() => router.push(href))}
     >
       {/* Save checkbox */}
       {onSaveStatusChange && (
@@ -88,7 +90,7 @@ export function NoteRow({
               ? "text-primary"
               : "text-muted-foreground opacity-0 hover:text-primary group-hover:opacity-100",
           )}
-          title={note.pin ? "Unpin" : "Pin"}
+          aria-label={note.pin ? "Unpin" : "Pin"}
         >
           <Pin className={cn("size-3.5", note.pin && "fill-current")} />
         </button>
@@ -98,7 +100,7 @@ export function NoteRow({
       <div className="hidden shrink-0 items-center gap-1 md:flex">
         <Badge
           variant="outline"
-          className={cn("text-[10px] uppercase", STATUS_COLORS[note.status])}
+          className={cn("text-2xs uppercase", STATUS_COLORS[note.status])}
         >
           {note.status === "completed" ? "Done" : note.status.replace("_", " ")}
         </Badge>
@@ -113,16 +115,21 @@ export function NoteRow({
 
         {/* Metadata cluster — max 2 per category, +N overflow per category, smaller */}
         <div className="hidden flex-wrap items-center gap-1 md:flex">
-        {(note.notebooks ?? []).map((nb) => (
-          <Badge key={nb} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
-            <span className="text-[10px] leading-none">📓</span>
+        {(note.notebooks ?? []).slice(0, 2).map((nb) => (
+          <Badge key={nb} variant="outline" className="gap-1 text-2xs leading-none font-normal">
+            <span className="text-2xs leading-none">📓</span>
             {nb}
           </Badge>
         ))}
+        {(note.notebooks ?? []).length > 2 && (
+          <Badge variant="secondary" className="text-2xs leading-none font-normal">
+            +{(note.notebooks ?? []).length - 2}
+          </Badge>
+        )}
         {areas.slice(0, 2).map((area, i) => (
-          <Badge key={i} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
+          <Badge key={i} variant="outline" className="gap-1 text-2xs leading-none font-normal">
             {area.icon ? (
-              <span className="text-[10px] leading-none">{area.icon}</span>
+              <span className="text-2xs leading-none">{area.icon}</span>
             ) : (
               <LucideMap className="size-2.5" />
             )}
@@ -130,44 +137,44 @@ export function NoteRow({
           </Badge>
         ))}
         {areas.length > 2 && (
-          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
+          <Badge variant="secondary" className="text-2xs leading-none font-normal">
             +{areas.length - 2}
           </Badge>
         )}
         {goalNames.slice(0, 2).map((name) => (
-          <Badge key={name} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
-            <span className="text-[10px] leading-none">🎯</span>
+          <Badge key={name} variant="outline" className="gap-1 text-2xs leading-none font-normal">
+            <span className="text-2xs leading-none">🎯</span>
             {name}
           </Badge>
         ))}
         {goalNames.length > 2 && (
-          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
+          <Badge variant="secondary" className="text-2xs leading-none font-normal">
             +{goalNames.length - 2}
           </Badge>
         )}
         {projectNames.slice(0, 2).map((name) => (
-          <Badge key={name} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
-            <span className="text-[10px] leading-none">📁</span>
+          <Badge key={name} variant="outline" className="gap-1 text-2xs leading-none font-normal">
+            <span className="text-2xs leading-none">📁</span>
             {name}
           </Badge>
         ))}
         {projectNames.length > 2 && (
-          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
+          <Badge variant="secondary" className="text-2xs leading-none font-normal">
             +{projectNames.length - 2}
           </Badge>
         )}
         {taskNames.slice(0, 2).map((name) => (
-          <Badge key={name} variant="outline" className="gap-1 text-[10px] leading-none font-normal">
-            <span className="text-[10px] leading-none">☑️</span>
+          <Badge key={name} variant="outline" className="gap-1 text-2xs leading-none font-normal">
+            <span className="text-2xs leading-none">☑️</span>
             {name}
           </Badge>
         ))}
         {taskNames.length > 2 && (
-          <Badge variant="secondary" className="text-[10px] leading-none font-normal">
+          <Badge variant="secondary" className="text-2xs leading-none font-normal">
             +{taskNames.length - 2}
           </Badge>
         )}
-        <span className="text-[10px] leading-none text-muted-foreground">
+        <span className="text-2xs leading-none text-muted-foreground">
           {new Date(note.updated_at).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
@@ -189,7 +196,7 @@ export function NoteRow({
             ? "text-amber-500"
             : "text-muted-foreground/20 opacity-0 hover:text-amber-400 group-hover:opacity-100",
         )}
-        title={note.favorite ? "Unfavorite" : "Favorite"}
+        aria-label={note.favorite ? "Unfavorite" : "Favorite"}
       >
         <Star className={cn("size-3.5", note.favorite && "fill-current")} />
       </button>
@@ -209,7 +216,7 @@ export function NoteRow({
                 else onArchive?.(note.id);
               }}
               className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500"
-              title={note.is_archived ? "Restore" : "Archive"}
+              aria-label={note.is_archived ? "Restore" : "Archive"}
             >
               {note.is_archived ? (
                 <ArchiveRestore className="size-3.5" />

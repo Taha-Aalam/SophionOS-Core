@@ -4,6 +4,7 @@ import { useCallback, useState, useMemo } from "react";
 import { Archive, Bookmark, ChevronDownIcon, Eye, FilePlus, Filter, Folder, Globe, Heart, Inbox as InboxIcon, Map as LucideMap, Tag, Target, Zap } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { ResourcesByGroupView, type ResourceGroup } from "@/components/views/resources-by-group-view";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -19,7 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
-import { ResourceRow, ResourceRowSkeleton } from "@/components/entities/resource-row";
+import { ResourceRow } from "@/components/entities/resource-row";
+import { ResourceRowSkeleton } from "@/components/views/list-page-skeleton";
 import { useAreas } from "@/lib/hooks/use-areas";
 import {
   useCreateResource,
@@ -70,7 +72,7 @@ export function ResourcesContent() {
   const [taskPopoverOpen, setTaskPopoverOpen] = useState(false);
   const [topicPopoverOpen, setTopicPopoverOpen] = useState(false);
 
-  const { data: allResources = [], isLoading, isFetching } = useResources({ status: "all" });
+  const { data: allResources = [], isLoading, isFetching, isError, refetch } = useResources({ status: "all" });
   // Show skeletons while auth resolves, user is absent, or any fetch is in
   // flight with no cached data. isFetching covers refetch/retry windows that
   // isLoading misses — prevents flashing to empty when data transiently clears.
@@ -395,8 +397,16 @@ export function ResourcesContent() {
     setDialogOpen(true);
   };
 
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState message="Failed to load resources." onRetry={() => refetch()} />
+      </div>
+    );
+  }
+
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between gap-4 border-b border-border/50">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">🔗</span>
@@ -471,7 +481,7 @@ export function ResourcesContent() {
                 setFilterType(value === "__all_type__" ? "" : (value ?? ""))
               }
             >
-              <SelectTrigger className="h-7 w-[120px] text-xs">
+              <SelectTrigger className="h-9 sm:h-7 w-[120px] text-xs">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
@@ -490,7 +500,7 @@ export function ResourcesContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterAreaIds.length === 0 ? (
@@ -499,7 +509,7 @@ export function ResourcesContent() {
                   <span className="flex items-center gap-1">
                     <span className="max-w-[100px] truncate">{selectedAreaLabels[0]}</span>
                     {selectedAreaLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
                         +{selectedAreaLabels.length - 1}
                       </Badge>
                     )}
@@ -543,7 +553,7 @@ export function ResourcesContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterGoalIds.length === 0 ? (
@@ -552,7 +562,7 @@ export function ResourcesContent() {
                   <span className="flex items-center gap-1">
                     <span className="max-w-[100px] truncate">{selectedGoalLabels[0]}</span>
                     {selectedGoalLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
                         +{selectedGoalLabels.length - 1}
                       </Badge>
                     )}
@@ -593,7 +603,7 @@ export function ResourcesContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterTaskIds.length === 0 ? (
@@ -602,7 +612,7 @@ export function ResourcesContent() {
                   <span className="flex items-center gap-1">
                     <span className="max-w-[100px] truncate">{selectedTaskLabels[0]}</span>
                     {selectedTaskLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
                         +{selectedTaskLabels.length - 1}
                       </Badge>
                     )}
@@ -643,7 +653,7 @@ export function ResourcesContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterTopicIds.length === 0 ? (
@@ -652,7 +662,7 @@ export function ResourcesContent() {
                   <span className="flex items-center gap-1">
                     <span className="max-w-[100px] truncate">{selectedTopicLabels[0]}</span>
                     {selectedTopicLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
                         +{selectedTopicLabels.length - 1}
                       </Badge>
                     )}

@@ -339,7 +339,7 @@ export function ContactDetailContent() {
   };
 
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Button
@@ -374,7 +374,7 @@ export function ContactDetailContent() {
             {/* Name and role */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold tracking-tight truncate">{contact.name}</h1>
+                <h1 className="text-2xl font-bold tracking-tight font-heading truncate">{contact.name}</h1>
                 {contact.group && (
                   <Badge variant="secondary">{contact.group}</Badge>
                 )}
@@ -432,7 +432,7 @@ export function ContactDetailContent() {
           {/* Stats row */}
           <div className="flex gap-3 border-t px-6 py-3">
             <div className="flex-1 rounded-md border bg-muted/40 px-3 py-2">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Last log</p>
+              <p className="text-2xs text-muted-foreground uppercase tracking-wide mb-0.5">Last log</p>
               <p className="text-xs font-medium">
                 {contact.last_interaction_at
                   ? (() => {
@@ -443,7 +443,7 @@ export function ContactDetailContent() {
               </p>
             </div>
             <div className="flex-1 rounded-md border bg-muted/40 px-3 py-2">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Follow-up</p>
+              <p className="text-2xs text-muted-foreground uppercase tracking-wide mb-0.5">Follow-up</p>
               {(() => {
                 const daysUntil = contactService.computeDaysUntilFollowUp(
                   contact.last_interaction_at,

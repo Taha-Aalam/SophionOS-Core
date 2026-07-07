@@ -9,7 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-heading);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -47,6 +47,10 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
+  /* Typography: micro-text below text-xs (12px). */
+  --text-2xs: 10px;
+  --text-2xs--line-height: 1.2;
+
   /* Motion: physical, weighted curves. No linear/ease-in-out anywhere.
      spring = overshoot-free settle, expo/quint = decisive entrances. */
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
@@ -78,6 +82,35 @@
          drag-and-drop clones (e.g. the projects kanban) from the pointer. */
       transform: none;
     }
+  }
+
+  /* Skeleton shimmer — brand-tinted gradient sweep. */
+  --animate-shimmer: shimmer 1.8s ease-in-out infinite;
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Fade-out for skeleton-to-content transitions. */
+  --animate-fade-out: fade-out 200ms var(--ease-out-quint) both;
+  @keyframes fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+
+  /* Fade-in for content appearing after skeleton. */
+  --animate-fade-in: fade-in 200ms var(--ease-out-quint) both;
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(0.25rem); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* Status badge flash — brief highlight on state change. */
+  --animate-badge-flash: badge-flash 400ms var(--ease-out-quint) both;
+  @keyframes badge-flash {
+    0% { box-shadow: 0 0 0 0 oklch(0.55 0.13 260 / 0.4); }
+    50% { box-shadow: 0 0 0 4px oklch(0.55 0.13 260 / 0.15); }
+    100% { box-shadow: 0 0 0 0 oklch(0.55 0.13 260 / 0); }
   }
 }
 
@@ -204,5 +237,82 @@
   /* Single-element entrance for page headers and standalone hero blocks. */
   .reveal-once {
     animation: var(--animate-reveal);
+  }
+
+  /* Skeleton shimmer: replace animate-pulse with a brand-tinted sweep.
+     Apply to the Skeleton component's base class. */
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      oklch(0.968 0.005 260 / 1) 25%,
+      oklch(0.935 0.012 260 / 1) 37%,
+      oklch(0.968 0.005 260 / 1) 63%
+    );
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+  .dark .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      oklch(0.269 0.014 260 / 1) 25%,
+      oklch(0.295 0.02 260 / 1) 37%,
+      oklch(0.269 0.014 260 / 1) 63%
+    );
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+
+  /* Content fade-in: for content appearing after skeleton removal. */
+  .content-fade-in {
+    animation: var(--animate-fade-in);
+  }
+
+  /* Skeleton fade-out: for skeleton disappearing when content loads. */
+  .skeleton-fade-out {
+    animation: var(--animate-fade-out);
+    pointer-events: none;
+  }
+
+  /* Badge flash: transient highlight on status change. */
+  .badge-flash {
+    animation: var(--animate-badge-flash);
+  }
+
+  /* Tab panel transition: crossfade between tab content. */
+  .tab-panel-transition {
+    transition: opacity 150ms var(--ease-out-quint), transform 150ms var(--ease-out-quint);
+  }
+  /* Base UI's TabsPanel emits `data-starting-style` (entering),
+     `data-ending-style` (exiting) and `data-hidden` — NOT `data-active`.
+     Keep the panel visible by default; only animate opacity from these real
+     attributes so the active panel is never stuck at opacity:0. */
+  .tab-panel-enter[data-starting-style] {
+    opacity: 0;
+    transform: translateY(0.125rem);
+  }
+  .tab-panel-enter[data-ending-style],
+  .tab-panel-enter[data-hidden] {
+    opacity: 0;
+  }
+}
+
+/* Hover-lift must live OUTSIDE @layer utilities so it overrides Tailwind's
+   generated transition-* utilities (which are also @layer utilities and
+   win by source-order when both are in the same layer). */
+.hover-lift {
+  overflow: visible;
+  transition-property: transform, box-shadow;
+  transition-duration: 500ms;
+  transition-timing-function: var(--ease-out-quint);
+  will-change: transform;
+
+  &:hover {
+    transform: translateY(-0.25rem);
+    box-shadow: var(--shadow-soft-lg), 0 0 0 2px oklch(0.3 0.15 260 / 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
+    transition-duration: 150ms;
   }
 }

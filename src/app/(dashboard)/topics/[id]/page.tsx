@@ -26,7 +26,7 @@ export default async function TopicDetailPage({ params }: { params: Promise<{ id
   });
 
   if (topic) {
-    await Promise.all([
+    await Promise.allSettled([
       queryClient.prefetchQuery({
         queryKey: [TOPICS_QUERY_KEY, "notes", userId, topic.id],
         queryFn: () => serverFetchNotesForTopic(supabase, userId, topic.id),

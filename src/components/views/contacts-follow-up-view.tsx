@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronRightIcon, Bell } from "lucide-react";
 
 import { ContactCard } from "@/components/entities/contact-card";
+import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/types/domain.types";
@@ -46,6 +47,7 @@ function CollapsibleFollowUpSection({
       <div
         role="button"
         tabIndex={0}
+        aria-expanded={isOpen}
         className="mb-3 flex w-full cursor-pointer items-center gap-2"
         onClick={() => setIsOpen((o) => !o)}
         onKeyDown={(e) => {
@@ -94,6 +96,10 @@ export function ContactsFollowUpView({
   onToggleFavorite,
   onArchive,
 }: ContactsFollowUpViewProps) {
+  if (sections.length === 0 || sections.every((s) => s.contacts.length === 0)) {
+    return <EmptyState icon={Bell} title="No follow-ups" description="No contacts need follow-up right now." />;
+  }
+
   return (
     <div>
       {sections.map((section) => (

@@ -29,7 +29,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
   })
 
   if (contact) {
-    await Promise.all([
+    await Promise.allSettled([
       queryClient.prefetchQuery({
         queryKey: [CONTACTS_QUERY_KEY, contact.id, "projects"],
         queryFn: () => serverFetchContactProjectLinks(supabase, contact.id),

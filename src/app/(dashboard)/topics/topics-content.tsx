@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Tag, FilePlus, Heart, Globe, Map as MapIcon, LayoutGrid, Archive, CircleDot, CircleOff, ChevronDownIcon, ChevronRightIcon, Plus } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -148,7 +149,7 @@ export function TopicsContent() {
   const [editTopic, setEditTopic] = useState<TopicWithCounts | null>(null);
   const [defaultAreaIdFromCreate, setDefaultAreaIdFromCreate] = useState<string | undefined>();
 
-  const { data: topics = [], isLoading } = useTopics();
+  const { data: topics = [], isLoading, isError, refetch } = useTopics();
   const { data: areas = [] } = useAreas();
 
   const toggleFavorite = useToggleFavoriteTopic();
@@ -259,6 +260,14 @@ export function TopicsContent() {
     emptyDesc: string,
     emptyAction?: () => void
   ) => {
+    if (isError) {
+      return (
+        <div className="flex flex-col items-center justify-center px-4 py-16">
+          <ErrorState message="Failed to load topics." onRetry={() => refetch()} />
+        </div>
+      );
+    }
+
     if (isLoading) {
       return (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -298,7 +307,7 @@ export function TopicsContent() {
   };
 
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">🏷️</span>

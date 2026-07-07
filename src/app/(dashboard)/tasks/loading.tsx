@@ -4,7 +4,7 @@ export default function TasksLoading() {
   return (
     <div className="reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border/50">
+      <div className="flex items-center justify-between border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
           <Skeleton className="size-8 rounded-md" />
           <div className="space-y-2">

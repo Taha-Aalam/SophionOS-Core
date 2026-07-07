@@ -17,6 +17,7 @@ import {
 import { NoteArchiveToggle } from "@/components/entities/note-archive-toggle";
 import { NoteMetadataPanel } from "@/components/entities/note-metadata-panel";
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -110,7 +111,7 @@ export function NoteDetailContent() {
   const pendingContent = useRef<string | null>(null);
   const syncedNoteIdRef = useRef<string | null>(null);
 
-  const { data: note, isLoading } = useNoteByIdentifier(noteId);
+  const { data: note, isLoading, isError: noteError, refetch: refetchNote } = useNoteByIdentifier(noteId);
   const { data: areas = [] } = useAreas();
   const { data: goals = [] } = useGoals({ status: "all" });
   const { data: projects = [] } = useProjects({ status: "all" });
@@ -249,6 +250,14 @@ export function NoteDetailContent() {
     };
   }, []);
 
+  if (noteError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState message="Failed to load this note." onRetry={() => refetchNote()} />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
@@ -274,10 +283,10 @@ export function NoteDetailContent() {
   }
 
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon-sm" onClick={() => router.push(noteBackHref)}>
+          <Button variant="ghost" size="icon-sm" onClick={() => router.push(noteBackHref)} aria-label="Back to notes">
             <ArrowLeft className="size-4" />
           </Button>
           <span className="text-sm text-muted-foreground">/ Notes / {note.name}</span>
@@ -291,8 +300,8 @@ export function NoteDetailContent() {
           )}
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          {saveState === "saving" && <span className="text-xs">Saving…</span>}
-          {saveState === "saved" && <span className="text-xs text-green-600 dark:text-green-400">Saved</span>}
+          {saveState === "saving" && <span className="text-xs" role="status" aria-live="polite">Saving…</span>}
+          {saveState === "saved" && <span className="text-xs text-green-600 dark:text-green-400" role="status" aria-live="polite">Saved</span>}
           <Button
             variant="ghost"
             size="icon-sm"
@@ -325,14 +334,14 @@ export function NoteDetailContent() {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-x-auto">
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-6">
           <input
             value={localTitle}
             onChange={(e) => setLocalTitle(e.target.value)}
             onBlur={handleTitleBlur}
             placeholder="Note title"
-            className="mb-4 w-full bg-transparent text-2xl font-bold tracking-tight outline-none placeholder:text-muted-foreground/50"
+            className="mb-4 w-full bg-transparent text-2xl font-bold tracking-tight font-heading outline-none placeholder:text-muted-foreground/50"
           />
           <NoteEditor
             content={note.content}
@@ -357,7 +366,7 @@ export function NoteDetailContent() {
                     <BookOpen className="size-3.5" />
                     {group.notebook}
                   </div>
-                  <div className="grid gap-2 sm:grid-cols-2 max-h-[108px] overflow-y-auto">
+                  <div className="grid gap-2 max-h-[200px] overflow-y-auto sm:grid-cols-2 md:max-h-[108px]">
                     {group.notes.map((rn) => (
                       <div
                         key={rn.id}
@@ -374,7 +383,7 @@ export function NoteDetailContent() {
                         <div className="flex items-center gap-2 min-w-0">
                           <NotebookPen className="size-3.5 shrink-0 text-muted-foreground" />
                           <span className="truncate text-sm font-medium">{rn.name}</span>
-                          <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">{rn.type}</Badge>
+                          <Badge variant="secondary" className="text-2xs h-4 px-1 shrink-0">{rn.type}</Badge>
                         </div>
                         <button
                           type="button"
@@ -384,6 +393,7 @@ export function NoteDetailContent() {
                             removeFromNotebook.mutate({ noteId: rn.id, notebook: group.notebook });
                           }}
                           title={`Remove from ${group.notebook}`}
+                          aria-label={`Remove from ${group.notebook}`}
                         >
                           <X className="size-3.5" />
                         </button>
@@ -398,8 +408,8 @@ export function NoteDetailContent() {
 
         <aside
           className={cn(
-            "shrink-0 overflow-hidden border-l border-border transition-[width] duration-200",
-            isMetadataOpen ? "w-72" : "w-0",
+            "hidden md:block md:shrink-0 md:overflow-hidden md:border-l md:border-border md:transition-[width] md:duration-200",
+            isMetadataOpen ? "md:w-72" : "md:w-0",
           )}
           aria-hidden={!isMetadataOpen}
         >

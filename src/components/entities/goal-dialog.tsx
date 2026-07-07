@@ -242,7 +242,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
           </div>
 
           {/* Row 1: Term | Priority */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="goal-term">Term</Label>
               <Select
@@ -289,7 +289,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
           </div>
 
           {/* Row 2: Area | Target Date */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="goal-area">Areas</Label>

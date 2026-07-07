@@ -89,7 +89,7 @@ export default function EditAreaPage() {
         <Button variant="ghost" size="icon-sm" onClick={() => router.push(`/areas/${area.slug}`)}>
           <ArrowLeft className="size-4" />
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight">Edit Area</h1>
+        <h1 className="text-2xl font-bold tracking-tight font-heading">Edit Area</h1>
       </div>
       <AreaDialog
         open={true}

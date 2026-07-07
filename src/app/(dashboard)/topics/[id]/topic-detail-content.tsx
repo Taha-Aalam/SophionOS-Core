@@ -16,6 +16,7 @@ import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover
 import { GoalDetailSection } from "@/components/entities/goal-detail-section";
 import { ResourceRow } from "@/components/entities/resource-row";
 import { EmptyState } from "@/components/views/empty-state";
+import { ErrorState } from "@/components/views/error-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -72,10 +73,10 @@ export function TopicDetailContent() {
   const [isResourceDialogOpen, setIsResourceDialogOpen] = useState(false);
   const [editResource, setEditResource] = useState<Resource | null>(null);
 
-  const { data: topic, isLoading: topicLoading } = useTopic(topicId);
+  const { data: topic, isLoading: topicLoading, isError: topicError, refetch: refetchTopic } = useTopic(topicId);
   const resolvedTopicId = topic?.id ?? "";
-  const { data: notes = [], isLoading: notesLoading } = useNotesForTopic(resolvedTopicId);
-  const { data: resources = [], isLoading: resourcesLoading } = useResourcesForTopic(resolvedTopicId);
+  const { data: notes = [], isLoading: notesLoading, isError: notesError, refetch: refetchNotes } = useNotesForTopic(resolvedTopicId);
+  const { data: resources = [], isLoading: resourcesLoading, isError: resourcesError, refetch: refetchResources } = useResourcesForTopic(resolvedTopicId);
   const { data: areas = [] } = useAreas();
   const { data: allGoals = [] } = useGoals({ status: "all" });
   const { data: allProjects = [] } = useProjects({ status: "all" });
@@ -246,6 +247,21 @@ export function TopicDetailContent() {
     }
   }, [resources, resourceTab]);
 
+  if (topicError || notesError || resourcesError) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-16">
+        <ErrorState
+          message="Failed to load this topic."
+          onRetry={() => {
+            if (topicError) refetchTopic();
+            if (notesError) refetchNotes();
+            if (resourcesError) refetchResources();
+          }}
+        />
+      </div>
+    );
+  }
+
   if (topicLoading) {
     return <TopicDetailSkeleton />;
   }
@@ -265,7 +281,7 @@ export function TopicDetailContent() {
   }
 
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button
@@ -291,7 +307,7 @@ export function TopicDetailContent() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-3xl font-bold tracking-tight">{topic.name}</h1>
+                <h1 className="text-3xl font-bold tracking-tight font-heading">{topic.name}</h1>
                 {topic.inactive && (
                   <Badge variant="outline" className="text-xs text-muted-foreground">Inactive</Badge>
                 )}
@@ -303,7 +319,7 @@ export function TopicDetailContent() {
                 <div className="flex flex-wrap items-center gap-1.5">
                   {linkedAreas.map((area) => (
                     <Badge key={area.id} variant="secondary" className="text-xs">
-                      {area.icon ? <span className="mr-0.5 text-[10px] leading-none">{area.icon}</span> : null}
+                      {area.icon ? <span className="mr-0.5 text-2xs leading-none">{area.icon}</span> : null}
                       {area.name}
                     </Badge>
                   ))}
@@ -344,14 +360,14 @@ export function TopicDetailContent() {
           <>
             <Separator />
             <div className="space-y-4 p-6">
-              <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
                 <div>
                   <Label className="text-xs text-muted-foreground">Areas</Label>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {linkedAreas.length > 0 ? (
                       linkedAreas.map((area) => (
                         <Badge key={area.id} variant="secondary">
-                          {area.icon ? <span className="mr-0.5 text-[10px] leading-none">{area.icon}</span> : null}
+                          {area.icon ? <span className="mr-0.5 text-2xs leading-none">{area.icon}</span> : null}
                           {area.name}
                         </Badge>
                       ))
@@ -370,28 +386,28 @@ export function TopicDetailContent() {
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 pt-2">
-                <Button variant="outline" size="sm" onClick={handleToggleFavorite}>
-                  <Heart className={cn("size-4 mr-2", topic.favorite && "fill-rose-500 text-rose-500")} />
+                <Button variant="outline" size="sm" onClick={handleToggleFavorite} className="gap-2">
+                  <Heart className={cn("size-4", topic.favorite && "fill-rose-500 text-rose-500")} />
                   {topic.favorite ? "Unfavorite" : "Favorite"}
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleNewNote}>
-                  <Plus className="size-4 mr-2" />
+                <Button variant="outline" size="sm" onClick={handleNewNote} className="gap-2">
+                  <Plus className="size-4" />
                   New Note
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setSelectedNoteIds([]); setIsLinkNoteOpen(true); }}>
-                  <Plus className="size-4 mr-2" />
+                <Button variant="outline" size="sm" onClick={() => { setSelectedNoteIds([]); setIsLinkNoteOpen(true); }} className="gap-2">
+                  <Plus className="size-4" />
                   Link Note
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setEditResource(null); setIsResourceDialogOpen(true); }}>
-                  <Plus className="size-4 mr-2" />
+                <Button variant="outline" size="sm" onClick={() => { setEditResource(null); setIsResourceDialogOpen(true); }} className="gap-2">
+                  <Plus className="size-4" />
                   New Resource
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setSelectedResourceIds([]); setIsLinkResourceOpen(true); }}>
-                  <Plus className="size-4 mr-2" />
+                <Button variant="outline" size="sm" onClick={() => { setSelectedResourceIds([]); setIsLinkResourceOpen(true); }} className="gap-2">
+                  <Plus className="size-4" />
                   Link Resource
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleArchive} disabled={archiveTopic.isPending}>
-                  <Archive className="size-4 mr-2" />
+                <Button variant="outline" size="sm" onClick={handleArchive} disabled={archiveTopic.isPending} className="gap-2">
+                  <Archive className="size-4" />
                   Archive
                 </Button>
                 <DeleteEntityPopover
@@ -426,7 +442,7 @@ export function TopicDetailContent() {
         linkLabel="Link Note"
       >
         {filteredNotes.length > 0 ? (
-          <div className="rounded-lg border bg-card">
+          <div className="rounded-xl border bg-card">
             {filteredNotes.map((note) => {
               const noteReturnTo = `/topics/${topicId}`;
               const noteAreas = getNoteLinkedAreaIds(note)
@@ -479,7 +495,7 @@ export function TopicDetailContent() {
         linkLabel="Link Resource"
       >
         {filteredResources.length > 0 ? (
-          <div className="rounded-lg border border-border">
+          <div className="rounded-xl border border-border">
             {filteredResources.map((resource) => {
               const resourceAreaIds = (resource.linkedAreaIds && resource.linkedAreaIds.length > 0)
                 ? resource.linkedAreaIds

@@ -4,7 +4,7 @@ export default function ResourcesLoading() {
   return (
     <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 border-b border-border/50">
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
           <Skeleton className="size-8 rounded-md" />
           <div className="space-y-2">

@@ -1,5 +1,7 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface ProgressRingProps {
   percentage: number;
@@ -14,15 +16,23 @@ export default function ProgressRing({
   size = 64,
   strokeWidth = 8,
   className,
-  color = 'text-primary',
+  color = "text-primary",
 }: ProgressRingProps) {
   const clampedPercentage = Math.min(Math.max(percentage, 0), 100);
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (clampedPercentage / 100) * circumference;
+  const targetOffset = circumference - (clampedPercentage / 100) * circumference;
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const offset = mounted ? targetOffset : circumference;
 
   return (
-    <div className={cn('relative flex items-center justify-center', className)}>
+    <div className={cn("relative flex items-center justify-center", className)}>
       <svg
         width={size}
         height={size}

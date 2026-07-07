@@ -84,9 +84,9 @@ function SectionSkeleton() {
 
 export function AreaDetailSkeleton() {
   return (
-    <div className={PAGE_WRAPPER}>
+    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label="Loading area details">
       <BreadcrumbSkeleton />
-      <HeaderCardSkeleton iconClassName="w-16 h-16 rounded-xl" rollupCount={5} />
+      <HeaderCardSkeleton iconClassName="w-16 h-16 rounded-lg" rollupCount={5} />
       {/* Goals, Projects, Tasks, Notes, Resources, People */}
       {Array.from({ length: 6 }).map((_, i) => (
         <SectionSkeleton key={i} />
@@ -97,7 +97,7 @@ export function AreaDetailSkeleton() {
 
 export function GoalDetailSkeleton() {
   return (
-    <div className={PAGE_WRAPPER}>
+    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label="Loading goal details">
       <BreadcrumbSkeleton />
       <HeaderCardSkeleton
         iconClassName="w-20 h-20 rounded-full"
@@ -113,7 +113,7 @@ export function GoalDetailSkeleton() {
 
 export function ProjectDetailSkeleton() {
   return (
-    <div className={PAGE_WRAPPER}>
+    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label="Loading project details">
       <BreadcrumbSkeleton />
       <HeaderCardSkeleton
         iconClassName="w-20 h-20 rounded-full"
@@ -129,9 +129,9 @@ export function ProjectDetailSkeleton() {
 
 export function TopicDetailSkeleton() {
   return (
-    <div className={PAGE_WRAPPER}>
+    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label="Loading topic details">
       <BreadcrumbSkeleton />
-      <HeaderCardSkeleton iconClassName="w-14 h-14 rounded-xl" rollupCount={2} />
+      <HeaderCardSkeleton iconClassName="w-14 h-14 rounded-lg" rollupCount={2} />
       {/* Notes, Resources */}
       {Array.from({ length: 2 }).map((_, i) => (
         <SectionSkeleton key={i} />
@@ -142,7 +142,7 @@ export function TopicDetailSkeleton() {
 
 export function ContactDetailSkeleton() {
   return (
-    <div className={PAGE_WRAPPER}>
+    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label="Loading contact details">
       <BreadcrumbSkeleton />
       {/* Main card: avatar header + stats row + tabs strip */}
       <div className="rounded-xl border bg-card">
@@ -179,7 +179,7 @@ export function ContactDetailSkeleton() {
           <Skeleton className="h-5 w-24" />
         </div>
         <div className="border-t px-6 py-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="space-y-1">
                 <Skeleton className="h-3 w-16" />

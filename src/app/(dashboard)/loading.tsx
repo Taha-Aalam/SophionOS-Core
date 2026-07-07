@@ -4,7 +4,7 @@ function SectionHeaderSkeleton() {
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="flex items-start gap-3">
-        <div className="mt-1.5 h-full min-h-[2.5rem] w-1 shrink-0 rounded-full bg-muted-foreground/20" />
+        <div className="mt-1.5 h-full min-h-[2.5rem] w-px shrink-0 rounded-full bg-muted-foreground/20" />
         <div>
           <div className="flex items-center gap-2">
             <Skeleton className="h-6 w-36" />
@@ -45,7 +45,7 @@ function RowListSkeleton({ count = 3 }: { count?: number }) {
 
 export default function DashboardLoading() {
   return (
-    <div className="reveal-stagger flex flex-col gap-8 p-6 max-w-7xl mx-auto w-full">
+    <div className="reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-4 p-4 sm:gap-8 sm:p-6">
       {/* GreetingBar skeleton */}
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-2">
