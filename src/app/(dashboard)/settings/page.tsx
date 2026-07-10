@@ -38,7 +38,7 @@ const settingsCards = [
   {
     href: "/settings/mcp",
     title: "MCP Server",
-    description: "Connect LifeOS to your AI client. Requires Pro.",
+    description: "Connect SophionOS to your AI client. Requires Pro.",
     icon: Plug,
   },
   {
@@ -64,7 +64,7 @@ export default function SettingsPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight font-heading">Settings</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Configure your LifeOS experience, access, and connections.
+              Configure your SophionOS experience, access, and connections.
             </p>
           </div>
         </div>

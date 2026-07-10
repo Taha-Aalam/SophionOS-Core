@@ -39,10 +39,10 @@ function buildClaudeDesktopConfig(apiKey: string, baseUrl: string): string {
   return JSON.stringify(
     {
       mcpServers: {
-        lifeos: {
+        sophionos: {
           command: "npx",
-          args: ["-y", "@lifeos/mcp-server"],
-          env: { LIFEOS_API_KEY: apiKey, LIFEOS_API_URL: baseUrl },
+          args: ["-y", "@sophionos/mcp-server"],
+          env: { SOPHIONOS_API_KEY: apiKey, SOPHIONOS_API_URL: baseUrl },
         },
       },
     },
@@ -52,12 +52,12 @@ function buildClaudeDesktopConfig(apiKey: string, baseUrl: string): string {
 }
 
 function buildClaudeCodeCommand(apiKey: string, baseUrl: string): string {
-  return `claude mcp add lifeos --env LIFEOS_API_KEY=${apiKey} --env LIFEOS_API_URL=${baseUrl} -- npx -y @lifeos/mcp-server`;
+  return `claude mcp add sophionos --env SOPHIONOS_API_KEY=${apiKey} --env SOPHIONOS_API_URL=${baseUrl} -- npx -y @sophionos/mcp-server`;
 }
 
 export function McpSettingsContent() {
   const [copied, setCopied] = useState<string | null>(null);
-  const [baseUrl, setBaseUrl] = useState("https://app.lifeos.app");
+  const [baseUrl, setBaseUrl] = useState("https://app.sophionos.com");
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [subLoading, setSubLoading] = useState(true);
 
@@ -112,8 +112,8 @@ export function McpSettingsContent() {
               <Badge>Pro</Badge>
             </div>
             <CardDescription>
-              The LifeOS MCP server and API let your AI client read and write
-              your LifeOS data. Upgrade to Pro to create an API key and connect
+              The SophionOS MCP server and API let your AI client read and write
+              your SophionOS data. Upgrade to Pro to create an API key and connect
               your tools.
             </CardDescription>
           </CardHeader>
@@ -179,7 +179,7 @@ export function McpSettingsContent() {
                   onClick={() =>
                     void copy(
                       "desktop",
-                      buildClaudeDesktopConfig("lif_your_key_here", baseUrl),
+                      buildClaudeDesktopConfig("sop_your_key_here", baseUrl),
                     )
                   }
                 >
@@ -192,7 +192,7 @@ export function McpSettingsContent() {
                 </Button>
               </div>
               <pre className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs">
-                {buildClaudeDesktopConfig("lif_your_key_here", baseUrl)}
+                {buildClaudeDesktopConfig("sop_your_key_here", baseUrl)}
               </pre>
             </div>
 
@@ -205,7 +205,7 @@ export function McpSettingsContent() {
                   onClick={() =>
                     void copy(
                       "code",
-                      buildClaudeCodeCommand("lif_your_key_here", baseUrl),
+                      buildClaudeCodeCommand("sop_your_key_here", baseUrl),
                     )
                   }
                 >
@@ -218,7 +218,7 @@ export function McpSettingsContent() {
                 </Button>
               </div>
               <pre className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs">
-                {buildClaudeCodeCommand("lif_your_key_here", baseUrl)}
+                {buildClaudeCodeCommand("sop_your_key_here", baseUrl)}
               </pre>
             </div>
           </CardContent>

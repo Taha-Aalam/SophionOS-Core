@@ -9,7 +9,7 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
-import type { LifeOSClient } from "../client.js";
+import type { SophionOSClient } from "../client.js";
 import { jsonResult, runTool, type ToolTextResult } from "../utils.js";
 
 type Gettable = { get: (id: string) => Promise<unknown> };
@@ -29,7 +29,7 @@ type TaskLinkable = {
 
 export function registerParityTools(
   server: McpServer,
-  client: LifeOSClient,
+  client: SophionOSClient,
 ): void {
   // Getters for the entities that lack a dedicated get tool. (goal, project,
   // and note already have get_goal_detail / get_project / get_note.)

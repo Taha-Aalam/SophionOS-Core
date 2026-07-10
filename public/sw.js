@@ -1,10 +1,10 @@
 /**
- * LifeOS Core Service Worker
+ * SophionOS Core Service Worker
  * Conservative PWA: caches only static assets (no authenticated data).
  * Provides offline shell and install prompt support.
  */
 
-const CACHE_NAME = "lifeos-v1";
+const CACHE_NAME = "sophionos-v1";
 const ASSETS_TO_CACHE = [
   "/",
   "/favicon.ico",

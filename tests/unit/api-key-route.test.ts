@@ -65,7 +65,7 @@ beforeEach(() => {
 describe("POST /api/v1/user/api-keys", () => {
   it("creates a key without expiry (201)", async () => {
     mockGenerateApiKey.mockResolvedValue({
-      key: "lif_rawsecretkey",
+      key: "sop_rawsecretkey",
       record: {
         id: "k1",
         user_id: "user_123",
@@ -81,13 +81,13 @@ describe("POST /api/v1/user/api-keys", () => {
     expect(res.status).toBe(201);
 
     const json = await res.json();
-    expect(json.data.key).toBe("lif_rawsecretkey");
+    expect(json.data.key).toBe("sop_rawsecretkey");
     expect(json.data.record.expires_at).toBeNull();
   });
 
   it("creates a key with an explicit expires_at value (201)", async () => {
     mockGenerateApiKey.mockResolvedValue({
-      key: "lif_expirykey",
+      key: "sop_expirykey",
       record: {
         id: "k2",
         user_id: "user_123",
@@ -113,7 +113,7 @@ describe("POST /api/v1/user/api-keys", () => {
 
   it("creates a key with expires_at: null (no expiry) explicitly", async () => {
     mockGenerateApiKey.mockResolvedValue({
-      key: "lif_nullkey",
+      key: "sop_nullkey",
       record: {
         id: "k3",
         user_id: "user_123",

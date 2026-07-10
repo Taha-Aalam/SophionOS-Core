@@ -1,5 +1,5 @@
 /**
- * Shared types for the LifeOS MCP server.
+ * Shared types for the SophionOS MCP server.
  */
 
 /** Standard success envelope: `{ data }`. */
@@ -26,14 +26,14 @@ export interface ErrorEnvelope {
   };
 }
 
-/** Raised when the LifeOS API returns a non-2xx response. */
-export class LifeOSApiError extends Error {
+/** Raised when the SophionOS API returns a non-2xx response. */
+export class SophionOSApiError extends Error {
   readonly status: number;
   readonly code: string;
 
   constructor(status: number, code: string, message: string) {
     super(message);
-    this.name = "LifeOSApiError";
+    this.name = "SophionOSApiError";
     this.status = status;
     this.code = code;
   }

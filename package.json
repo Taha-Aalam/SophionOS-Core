@@ -1,6 +1,6 @@
 {
-  "name": "lifeos-core",
-  "description": "LifeOS Core - SaaS Life Management Platform",
+  "name": "sophionos-core",
+  "description": "SophionOS Core - SaaS Life Management Platform",
   "version": "0.1.0",
   "private": true,
   "scripts": {
