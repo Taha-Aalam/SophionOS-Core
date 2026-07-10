@@ -11,7 +11,7 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
-import type { LifeOSClient } from "../client.js";
+import type { SophionOSClient } from "../client.js";
 import { jsonResult, runTool, type ToolTextResult } from "../utils.js";
 
 type AreaLinkable = {
@@ -25,7 +25,7 @@ type ArchiveRestorable = {
 
 export function registerLinkTools(
   server: McpServer,
-  client: LifeOSClient,
+  client: SophionOSClient,
 ): void {
   // Entities that support area junctions.
   const areaLinkers: Record<string, AreaLinkable> = {

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * LifeOS MCP server entry point (stdio transport).
+ * SophionOS MCP server entry point (stdio transport).
  *
- * Reads config from the environment (LIFEOS_API_KEY, LIFEOS_API_URL),
+ * Reads config from the environment (SOPHIONOS_API_KEY, SOPHIONOS_API_URL),
  * validates the key against the live API, then serves over stdio for clients
  * like Claude Desktop / Claude Code. Diagnostics go to stderr — stdout is
  * reserved for the JSON-RPC protocol stream.
