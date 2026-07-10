@@ -1,17 +1,17 @@
 /**
- * Typed HTTP client for the LifeOS Core REST API (`/api/v1`).
+ * Typed HTTP client for the SophionOS Core REST API (`/api/v1`).
  *
- * Auth: every request carries `Authorization: Bearer <lif_…>`. The LifeOS API
+ * Auth: every request carries `Authorization: Bearer <sop_…>`. The SophionOS API
  * resolves the key to a Clerk user id server-side and applies RLS.
  *
  * Envelope handling (see api-response.ts in the web app):
  *   - success/created → `{ data }`            → returns `data`
  *   - paginated       → `{ data, pagination }` → returns `{ data, pagination }`
- *   - error           → `{ error: { code, message } }` → throws LifeOSApiError
+ *   - error           → `{ error: { code, message } }` → throws SophionOSApiError
  */
 
 import {
-  LifeOSApiError,
+  SophionOSApiError,
   type PaginatedEnvelope,
   type SuccessEnvelope,
 } from "./types.js";
@@ -19,21 +19,21 @@ import {
 type QueryValue = string | number | boolean | undefined | null;
 type Query = Record<string, QueryValue>;
 
-export interface LifeOSClientOptions {
-  /** Base origin of the LifeOS app, e.g. `https://app.lifeos.example`. No trailing slash. */
+export interface SophionOSClientOptions {
+  /** Base origin of the SophionOS app, e.g. `https://app.sophionos.example`. No trailing slash. */
   baseUrl: string;
-  /** LifeOS API key (`lif_…`). */
+  /** SophionOS API key (`sop_…`). */
   apiKey: string;
   /** Optional fetch override (tests). Defaults to global fetch. */
   fetchImpl?: typeof fetch;
 }
 
-export class LifeOSClient {
+export class SophionOSClient {
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly fetchImpl: typeof fetch;
 
-  constructor(options: LifeOSClientOptions) {
+  constructor(options: SophionOSClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
     this.apiKey = options.apiKey;
     this.fetchImpl = options.fetchImpl ?? fetch;
@@ -83,7 +83,7 @@ export class LifeOSClient {
     if (!res.ok) {
       const err = (json as { error?: { code?: string; message?: string } })
         ?.error;
-      throw new LifeOSApiError(
+      throw new SophionOSApiError(
         res.status,
         err?.code ?? "HTTP_ERROR",
         err?.message ?? `Request failed with status ${res.status}`,

@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "crypto";
 import { createAdminClient } from "../supabase/admin";
 import { DatabaseError, NotFoundError } from "./error-handler";
 
-const KEY_PREFIX = "lif_";
+const KEY_PREFIX = "sop_";
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const RAW_KEY_LENGTH = 48;
 

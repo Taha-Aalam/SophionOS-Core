@@ -154,7 +154,7 @@ describe("GET /api/v1/user/api-keys", () => {
 describe("POST /api/v1/user/api-keys", () => {
   it("creates a key and returns the raw key once, never the hash (201)", async () => {
     mockGenerateApiKey.mockResolvedValue({
-      key: "lif_rawsecretkey",
+      key: "sop_rawsecretkey",
       record: {
         id: "k2",
         user_id: "user_123",
@@ -172,7 +172,7 @@ describe("POST /api/v1/user/api-keys", () => {
     expect(res.status).toBe(201);
 
     const json = await res.json();
-    expect(json.data.key).toBe("lif_rawsecretkey");
+    expect(json.data.key).toBe("sop_rawsecretkey");
     expect(json.data.record).not.toHaveProperty("key_hash");
     expect(JSON.stringify(json)).not.toContain("key_hash");
   });

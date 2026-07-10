@@ -1,10 +1,10 @@
 {
-  "name": "@lifeos/mcp-server",
+  "name": "@sophionos/mcp-server",
   "version": "0.1.0",
-  "description": "MCP server that wraps the LifeOS Core REST API — connect LifeOS to any MCP-compatible AI client.",
+  "description": "MCP server that wraps the SophionOS Core REST API — connect SophionOS to any MCP-compatible AI client.",
   "type": "module",
   "bin": {
-    "lifeos-mcp": "./dist/index.js"
+    "sophionos-mcp": "./dist/index.js"
   },
   "files": [
     "dist"

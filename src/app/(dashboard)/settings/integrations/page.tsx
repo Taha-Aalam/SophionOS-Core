@@ -153,12 +153,12 @@ export default function IntegrationsPage() {
         <CardHeader>
           <CardTitle className="text-base">Custom integrations</CardTitle>
           <CardDescription>
-            Build your own integration using the LifeOS API. Requires Pro tier
+            Build your own integration using the SophionOS API. Requires Pro tier
             for API key access.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" onClick={() => window.open("https://docs.lifeos.app/api", "_blank", "noopener,noreferrer")}>
+          <Button variant="outline" onClick={() => window.open("https://docs.sophionos.com/api", "_blank", "noopener,noreferrer")}>
             <Link2 className="mr-1.5 size-4" />
             API Documentation
           </Button>

@@ -2,7 +2,7 @@
  * Shared helpers for MCP tool handlers.
  */
 
-import type { LifeOSApiError } from "./types.js";
+import type { SophionOSApiError } from "./types.js";
 
 export interface ToolTextResult {
   [key: string]: unknown;
@@ -24,10 +24,10 @@ export function textResult(message: string): ToolTextResult {
 
 /** Wrap an error as a failed tool result with a friendly message. */
 export function errorResult(err: unknown): ToolTextResult {
-  const apiErr = err as Partial<LifeOSApiError>;
+  const apiErr = err as Partial<SophionOSApiError>;
   const message =
     apiErr && typeof apiErr.status === "number"
-      ? `LifeOS API error (${apiErr.status} ${apiErr.code}): ${apiErr.message}`
+      ? `SophionOS API error (${apiErr.status} ${apiErr.code}): ${apiErr.message}`
       : `Unexpected error: ${(err as Error)?.message ?? String(err)}`;
   return { content: [{ type: "text", text: message }], isError: true };
 }

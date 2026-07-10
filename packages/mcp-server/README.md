@@ -1,13 +1,13 @@
-# @lifeos/mcp-server
+# @sophionos/mcp-server
 
-Connect [LifeOS Core](https://lifeos.app) to any MCP-compatible AI client — Claude Desktop, Claude Code, Cursor, Codex, or any future MCP host. Your AI assistant gets structured tools for your tasks, goals, projects, notes, resources, contacts, and more.
+Connect [SophionOS Core](https://sophionos.com) to any MCP-compatible AI client — Claude Desktop, Claude Code, Cursor, Codex, or any future MCP host. Your AI assistant gets structured tools for your tasks, goals, projects, notes, resources, contacts, and more.
 
-The server wraps the LifeOS Core REST API. Your existing AI model handles the natural language; this server handles the structured data operations against your LifeOS account.
+The server wraps the SophionOS Core REST API. Your existing AI model handles the natural language; this server handles the structured data operations against your SophionOS account.
 
 ## Prerequisites
 
-1. A LifeOS Core account.
-2. A LifeOS **API key** — create one in **LifeOS → Settings → MCP** (or **Settings → API Keys**). Keys start with `lif_`. Copy it when shown; it is only displayed once.
+1. A SophionOS Core account.
+2. A SophionOS **API key** — create one in **SophionOS → Settings → MCP** (or **Settings → API Keys**). Keys start with `sop_`. Copy it when shown; it is only displayed once.
 
 ## Configuration
 
@@ -15,8 +15,8 @@ The server reads two environment variables:
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `LIFEOS_API_KEY` | yes | — | Your LifeOS API key (`lif_…`). |
-| `LIFEOS_API_URL` | no | `https://app.lifeos.app` | Base origin of your LifeOS instance (no trailing slash). |
+| `SOPHIONOS_API_KEY` | yes | — | Your SophionOS API key (`sop_…`). |
+| `SOPHIONOS_API_URL` | no | `https://app.sophionos.com` | Base origin of your SophionOS instance (no trailing slash). |
 
 On startup the server validates the key against `GET /api/v1/user/settings`. An invalid or revoked key makes the server refuse to start with a clear error.
 
@@ -31,23 +31,23 @@ Windows: `%APPDATA%\Claude\claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
-    "lifeos": {
+    "sophionos": {
       "command": "npx",
-      "args": ["-y", "@lifeos/mcp-server"],
+      "args": ["-y", "@sophionos/mcp-server"],
       "env": {
-        "LIFEOS_API_KEY": "lif_your_key_here"
+        "SOPHIONOS_API_KEY": "sop_your_key_here"
       }
     }
   }
 }
 ```
 
-Restart Claude Desktop. The LifeOS tools appear in the tools menu.
+Restart Claude Desktop. The SophionOS tools appear in the tools menu.
 
 ### Claude Code
 
 ```bash
-claude mcp add lifeos --env LIFEOS_API_KEY=lif_your_key_here -- npx -y @lifeos/mcp-server
+claude mcp add sophionos --env SOPHIONOS_API_KEY=sop_your_key_here -- npx -y @sophionos/mcp-server
 ```
 
 ### Cursor
@@ -57,30 +57,30 @@ Add to `~/.cursor/mcp.json` (or the project `.cursor/mcp.json`):
 ```json
 {
   "mcpServers": {
-    "lifeos": {
+    "sophionos": {
       "command": "npx",
-      "args": ["-y", "@lifeos/mcp-server"],
+      "args": ["-y", "@sophionos/mcp-server"],
       "env": {
-        "LIFEOS_API_KEY": "lif_your_key_here"
+        "SOPHIONOS_API_KEY": "sop_your_key_here"
       }
     }
   }
 }
 ```
 
-### Self-hosted LifeOS
+### Self-hosted SophionOS
 
-Set `LIFEOS_API_URL` to your instance origin:
+Set `SOPHIONOS_API_URL` to your instance origin:
 
 ```json
 {
   "mcpServers": {
-    "lifeos": {
+    "sophionos": {
       "command": "npx",
-      "args": ["-y", "@lifeos/mcp-server"],
+      "args": ["-y", "@sophionos/mcp-server"],
       "env": {
-        "LIFEOS_API_KEY": "lif_your_key_here",
-        "LIFEOS_API_URL": "https://lifeos.yourcompany.com"
+        "SOPHIONOS_API_KEY": "sop_your_key_here",
+        "SOPHIONOS_API_URL": "https://sophionos.yourcompany.com"
       }
     }
   }
@@ -89,7 +89,7 @@ Set `LIFEOS_API_URL` to your instance origin:
 
 ## Tools
 
-33 tools across every LifeOS module.
+33 tools across every SophionOS module.
 
 **Core PARA**
 - Areas — `list_areas`, `create_area`, `archive_area`, `restore_area`
@@ -122,7 +122,7 @@ Set `LIFEOS_API_URL` to your instance origin:
 ## How it works
 
 - **Transport:** stdio (works with all local MCP clients).
-- **Auth:** your API key travels as `Authorization: Bearer lif_…`. LifeOS resolves it to your account server-side and applies row-level security — the server never sees your password or session.
+- **Auth:** your API key travels as `Authorization: Bearer sop_…`. SophionOS resolves it to your account server-side and applies row-level security — the server never sees your password or session.
 - **Scope:** every tool acts only on your own data.
 
 ## Development
@@ -145,7 +145,7 @@ src/
   tools/core.ts   Areas / Goals / Projects / Tasks tools
   tools/knowledge.ts  Notes / Resources / Topics / Contacts / Search / system tools
   utils.ts        tool-result + error helpers
-  types.ts        envelope types + LifeOSApiError
+  types.ts        envelope types + SophionOSApiError
 ```
 
 ## License

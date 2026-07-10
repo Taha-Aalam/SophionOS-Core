@@ -107,7 +107,7 @@ export default function PreferencesPage() {
           <CardHeader>
             <CardTitle className="text-base">Display</CardTitle>
             <CardDescription>
-              Choose how LifeOS looks and feels.
+              Choose how SophionOS looks and feels.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

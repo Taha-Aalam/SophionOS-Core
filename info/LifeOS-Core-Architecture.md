@@ -1,8 +1,8 @@
-# LifeOS Core — Software Architecture Document
+# SophionOS Core — Software Architecture Document
 
-**Project 1 of 2** · Based on LifeOS Core PRD v1.0 · April 2026
+**Project 1 of 2** · Based on SophionOS Core PRD v1.0 · April 2026
 
-> This document is the engineering blueprint for building LifeOS Core. It turns the PRD into code structure, database tables, API contracts, and deployment decisions. Every section answers "how do we build this so it works at 100 users and still works at 100,000?"
+> This document is the engineering blueprint for building SophionOS Core. It turns the PRD into code structure, database tables, API contracts, and deployment decisions. Every section answers "how do we build this so it works at 100 users and still works at 100,000?"
 
 ---
 
@@ -92,7 +92,7 @@ If mobile engagement data after launch proves a native app is needed, React Nati
 │                     │                              │ Supabase migrations in CI.      │
 │                     │                              │                                 │
 │ MCP Server          │ @modelcontextprotocol/sdk    │ Wraps REST API as MCP tools.    │
-│                     │ + TypeScript + Node.js       │ Users connect LifeOS to Claude  │
+│                     │ + TypeScript + Node.js       │ Users connect SophionOS to Claude  │
 │                     │                              │ Desktop, Claude Code, Cursor.   │
 │                     │                              │ Published to npm. Stdio + SSE.  │
 └─────────────────────┴──────────────────────────────┴─────────────────────────────────┘
@@ -105,7 +105,7 @@ If mobile engagement data after launch proves a native app is needed, React Nati
 This is a monorepo structure using Next.js App Router conventions. Every folder has a single responsibility. A new engineer should be able to find any file in under 10 seconds.
 
 ```
-lifeos-core/
+sophionos-core/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml                    # Lint + test + type-check on PR
@@ -117,7 +117,7 @@ lifeos-core/
 │       │   ├── index.ts              # Entry point
 │       │   ├── server.ts             # MCP server config + tool registration
 │       │   ├── auth.ts               # API key validation
-│       │   ├── client.ts             # Typed LifeOS REST API client
+│       │   ├── client.ts             # Typed SophionOS REST API client
 │       │   ├── tools/                # One file per entity category
 │       │   │   ├── tasks.ts          # create_task, list_tasks, complete_task, etc.
 │       │   │   ├── goals.ts          # create_goal, list_goals, get_goal_detail
@@ -659,7 +659,7 @@ export const useUIStore = create<UIStore>((set) => ({
 ## 6. API / Backend Structure
 
 ### API design principles:
-- **REST, not GraphQL.** The LifeOS Agent needs a simple, predictable API. REST with consistent patterns is easier to consume than GraphQL for an AI client.
+- **REST, not GraphQL.** The SophionOS Agent needs a simple, predictable API. REST with consistent patterns is easier to consume than GraphQL for an AI client.
 - **Next.js Route Handlers serve the API.** No separate backend. `/app/api/v1/*` routes handle everything.
 - **Supabase JS client does the DB work.** Route handlers validate, authorize, call Supabase, and return JSON.
 
@@ -806,14 +806,14 @@ User → /login → clicks "Continue with Google"
   → If returning → redirect /dashboard
 ```
 
-### Flow 3: API Key Auth (for LifeOS Agent)
+### Flow 3: API Key Auth (for SophionOS Agent)
 
 ```
 User → /settings/api-keys → clicks "Create API Key"
   → Generates sk_live_<random> key
   → Hashes key (SHA-256) and stores hash in api_keys table
   → Shows raw key ONCE to user (never stored raw)
-  → User configures LifeOS Agent with this key
+  → User configures SophionOS Agent with this key
 
 Agent → /api/v1/tasks → Authorization: Bearer sk_live_xxx
   → Auth guard hashes incoming key
@@ -1412,4 +1412,4 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 ---
 
-*This architecture document covers LifeOS Core (Project 1 of 2). It provides everything a development team needs to start building from Week 1.*
+*This architecture document covers SophionOS Core (Project 1 of 2). It provides everything a development team needs to start building from Week 1.*
