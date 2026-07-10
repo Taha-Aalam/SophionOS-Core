@@ -29,13 +29,13 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "LifeOS Core",
+  title: "SophionOS Core",
   description: "SaaS Life Management Platform",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "LifeOS Core",
+    title: "SophionOS Core",
   },
 };
 

@@ -1,13 +1,13 @@
-# LifeOS Core — Build Roadmap
+# SophionOS Core — Build Roadmap
 
-**Sequential build plan for the LifeOS Core SaaS application.**
+**Sequential build plan for the SophionOS Core SaaS application.**
 
 Every step is completable in a single coding session (2–4 hours). Steps are ordered by dependency — you cannot start step N until step N-1 is done and tested. No skipping. No parallelization until explicitly noted.
 
 Reference documents:
-- `LifeOS-Core-PRD-Lean.md` — what to build
-- `LifeOS-Core-Architecture.md` — how to build it
-- `LifeOS-Core-AI-Rules.md` — coding standards
+- `SophionOS-Core-PRD-Lean.md` — what to build
+- `SophionOS-Core-Architecture.md` — how to build it
+- `SophionOS-Core-AI-Rules.md` — coding standards
 
 ---
 
@@ -48,12 +48,12 @@ There are no `api_keys`, `subscriptions`, `rate_limit`, or `integrations` tables
 **What:** Create the Git repo, Next.js 14 project, and configure all tooling.
 
 **Actions:**
-- `npx create-next-app@latest lifeos-core --typescript --tailwind --app --src-dir --use-pnpm`
+- `npx create-next-app@latest sophionos-core --typescript --tailwind --app --src-dir --use-pnpm`
 - Enable `"strict": true` in `tsconfig.json`
 - Install Biome (linter/formatter): `pnpm add -D @biomejs/biome` and create `biome.json` with project rules (semicolons, double quotes, 2-space indent, sorted imports)
 - Create `.env.example` with all required env var names (no values)
 - Create `.gitignore` with `.env.local`, `node_modules`, `.next`, `.vercel`
-- Place `LifeOS-Core-AI-Rules.md` at repo root as `.cursorrules` (or `CLAUDE.md`)
+- Place `SophionOS-Core-AI-Rules.md` at repo root as `.cursorrules` (or `CLAUDE.md`)
 - Create initial folder structure from architecture doc (empty directories with `.gitkeep` files): `src/lib/services/`, `src/lib/hooks/`, `src/lib/stores/`, `src/lib/validators/`, `src/lib/utils/`, `src/lib/types/`, `src/components/ui/`, `src/components/entities/`, `src/components/views/`, `src/components/layout/`, `src/components/providers/`, `src/components/charts/`
 
 **Dependencies:** None (this is step 1).
@@ -223,7 +223,7 @@ There are no `api_keys`, `subscriptions`, `rate_limit`, or `integrations` tables
 **What:** Build the login, signup, forgot password pages and the auth flow.
 
 **Actions:**
-- Create `src/app/(auth)/layout.tsx` — minimal centered layout (no sidebar), dark background, LifeOS logo
+- Create `src/app/(auth)/layout.tsx` — minimal centered layout (no sidebar), dark background, SophionOS logo
 - Create `src/app/(auth)/login/page.tsx` — email/password form + Google OAuth button + link to signup
 - Create `src/app/(auth)/signup/page.tsx` — email/password form + Google OAuth button + link to login
 - Create `src/app/(auth)/forgot-password/page.tsx` — email input + send reset link
@@ -270,7 +270,7 @@ There are no `api_keys`, `subscriptions`, `rate_limit`, or `integrations` tables
 - Create `src/components/layout/topbar.tsx` — breadcrumb nav + user dropdown menu (settings, sign out)
 - Create `src/components/layout/mobile-nav.tsx` — Sheet-based drawer for mobile sidebar
 - Create `src/lib/stores/ui.store.ts` — Zustand store for `sidebarOpen`, `toggleSidebar`
-- Create `src/app/(dashboard)/page.tsx` — placeholder dashboard page ("Welcome to LifeOS" with empty state)
+- Create `src/app/(dashboard)/page.tsx` — placeholder dashboard page ("Welcome to SophionOS" with empty state)
 - Ensure layout is responsive: sidebar hidden on mobile (hamburger menu), visible on `lg:` and above
 
 **Dependencies:** Step 7 (auth must work so user data appears in topbar).
@@ -1056,15 +1056,15 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 - Performance: hub with 20 topics + 50 notes + 30 resources loads in < 2 seconds
 - `pnpm vitest run` passes
 
-**Deliverable:** Knowledge Hub live. Users have a single page to discover, search, and navigate all their knowledge — topics, notes, and resources unified. This completes the knowledge management layer of LifeOS.
+**Deliverable:** Knowledge Hub live. Users have a single page to discover, search, and navigate all their knowledge — topics, notes, and resources unified. This completes the knowledge management layer of SophionOS.
 
 ---
 
 ## Phase 4: REST API (Full Coverage) — ✅ COMPLETE (shipped 2026-06-30, branch `feat/rest-api-phase4`)
 
-> Goal: Every feature from Phases 1–3 available via a **server-side REST API**, ready for the MCP server (Phase 4b) and the LifeOS Agent (Project 2) to consume. Full API parity — if you can do it in the dashboard, you can do it via API.
+> Goal: Every feature from Phases 1–3 available via a **server-side REST API**, ready for the MCP server (Phase 4b) and the SophionOS Agent (Project 2) to consume. Full API parity — if you can do it in the dashboard, you can do it via API.
 >
-> **Architectural context (read first):** The app shipped with **no server layer** — all data access is client-side supabase-js gated by Clerk-JWT + RLS, and the service layer imports the **browser** Supabase client. This phase introduces the first server tier. The single biggest new task versus the original plan is **decoupling the service layer from the browser client** (Step 23) so route handlers can execute services server-side. Auth accepts **either** a Clerk session JWT **or** a LifeOS API key, both resolving to a Clerk user id that RLS already understands. This phase covers: Areas (type grouping, auto-active/inactive, multi-area junctions), Goals (priority, detail command center), Projects (contact linking, `inbox` status), Tasks (smart priority, recurrence, multi-project/multi-area junctions, contact linking), Notes (shipped view set — **no notebooks/related-notes**, those were reverted), Resources, Topics (auto-active/inactive), Knowledge Hub (unified search), Contacts (project/task role linking, interaction logs, follow-up), Dashboard, Search, Inbox, and My Day.
+> **Architectural context (read first):** The app shipped with **no server layer** — all data access is client-side supabase-js gated by Clerk-JWT + RLS, and the service layer imports the **browser** Supabase client. This phase introduces the first server tier. The single biggest new task versus the original plan is **decoupling the service layer from the browser client** (Step 23) so route handlers can execute services server-side. Auth accepts **either** a Clerk session JWT **or** a SophionOS API key, both resolving to a Clerk user id that RLS already understands. This phase covers: Areas (type grouping, auto-active/inactive, multi-area junctions), Goals (priority, detail command center), Projects (contact linking, `inbox` status), Tasks (smart priority, recurrence, multi-project/multi-area junctions, contact linking), Notes (shipped view set — **no notebooks/related-notes**, those were reverted), Resources, Topics (auto-active/inactive), Knowledge Hub (unified search), Contacts (project/task role linking, interaction logs, follow-up), Dashboard, Search, Inbox, and My Day.
 
 ---
 
@@ -1079,7 +1079,7 @@ This means `inactive` is a **system-computed status** (driven by data), while `a
 - `src/lib/api/`: `api-auth.ts`, `rate-limiter.ts`, `api-response.ts`, `api-validator.ts`, `pagination.ts`, `api-key-service.ts`, `error-handler.ts`.
 - **Service decoupling:** 12 services take an injectable client, resolved **inline per call site** as `(options?.supabase ?? createClient())`. Do NOT hoist a single `const sb` per method — test mocks assert one `createClient` resolution PER QUERY.
 
-**Auth contract (`api-auth.ts`):** `requireAuth(request)` is used by every v1 route. It calls `authenticateRequest`, which checks `Authorization: Bearer <token>` first (validated as an **API key** via `validateApiKey`, → `{ userId, type: "api_key" }`); otherwise falls through to the Clerk session (`{ userId, type: "clerk" }`). 401 `AuthError` if neither resolves. API keys use the **`lif_`** prefix (sha256-hashed, admin client).
+**Auth contract (`api-auth.ts`):** `requireAuth(request)` is used by every v1 route. It calls `authenticateRequest`, which checks `Authorization: Bearer <token>` first (validated as an **API key** via `validateApiKey`, → `{ userId, type: "api_key" }`); otherwise falls through to the Clerk session (`{ userId, type: "clerk" }`). 401 `AuthError` if neither resolves. API keys use the **`sop_`** prefix (sha256-hashed, admin client).
 
 **Response envelope (`api-response.ts`):** `success(data)` → `{ data }` (200) · `created(data)` → `{ data }` (201) · `paginated(data, total, page, pageSize)` → `{ data, pagination: { total, page, pageSize, totalPages } }` · `error(err)` → `{ error: { code, message } }` (uses `err.statusCode`; adds `Retry-After: 60` on 429). Pagination params: `page` (default 1), `pageSize` (default 50, max 200) — **most list routes fetch the full set and slice in-memory**.
 
@@ -1167,7 +1167,7 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 **Conventions that differ from the Step 24–28 spec — heed these when building the MCP client (Phase 4b):**
 
-- **Auth** (`api-auth.ts`): `requireAuth(request)` accepts **either** a Clerk session JWT **or** an `Authorization: Bearer <key>` LifeOS API key. API-key prefix is **`lif_`** (not `sk_live_`), sha256-hashed, validated via `validateApiKey`. Both resolve to a Clerk user id. Missing/invalid → 401.
+- **Auth** (`api-auth.ts`): `requireAuth(request)` accepts **either** a Clerk session JWT **or** an `Authorization: Bearer <key>` SophionOS API key. API-key prefix is **`sop_`** (not `sk_live_`), sha256-hashed, validated via `validateApiKey`. Both resolve to a Clerk user id. Missing/invalid → 401.
 - **Response envelope** (`api-response.ts`): success → `{ data }`; created → `{ data }` @ 201; list → `{ data, pagination: { total, page, pageSize, totalPages } }`; error → `{ error: { code, message } }` with `Retry-After: 60` on 429. Most list routes fetch the full set and slice in-memory.
 - **Updates use `PATCH`**, not `PUT`. The only `PUT` route is `notes/[id]/notebooks` (full-set replace).
 - **Pagination**: `?page` (default 1) + `?pageSize` (default 50, max 200).
@@ -1465,9 +1465,9 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 ## Phase 4b: MCP Server
 
-> Goal: Build an MCP (Model Context Protocol) server that wraps the LifeOS Core REST API, allowing users to connect LifeOS to any MCP-compatible AI client — Claude Desktop, Claude Code, Cursor, Codex, or any future MCP host. This is the launch differentiator: "LifeOS works inside the AI you already use." No new AI infrastructure needed. The user's existing AI model handles natural language; the MCP server handles structured data operations.
+> Goal: Build an MCP (Model Context Protocol) server that wraps the SophionOS Core REST API, allowing users to connect SophionOS to any MCP-compatible AI client — Claude Desktop, Claude Code, Cursor, Codex, or any future MCP host. This is the launch differentiator: "SophionOS works inside the AI you already use." No new AI infrastructure needed. The user's existing AI model handles natural language; the MCP server handles structured data operations.
 >
-> **AS BUILT alignment (authoritative — read the "AS-BUILT: Phase 4 shipped surface" block above first):** This phase wraps the REST tier exactly as it shipped. Auth uses a **LifeOS API key** (`lif_` prefix, from the `api_keys` table; sent as `Authorization: Bearer lif_…`); `requireAuth` resolves it server-side to a Clerk user id, so the MCP server never touches Clerk directly. **Startup validation hits `GET /api/v1/user/settings`** (returns `{ data: { note_defaults } }`; a 200 = key valid). The MCP client must mirror the **63 real endpoints** listed in the Phase 4 AS-BUILT block — including its load-bearing quirks: junction DELETEs are split query-param vs JSON-body; `/notes/[id]/notebooks` uses PUT; `/search` wraps results in `{ data: { query, results } }` while `/knowledge/search` returns `{ data: results }`. Map MCP "tool verbs" onto these:
+> **AS BUILT alignment (authoritative — read the "AS-BUILT: Phase 4 shipped surface" block above first):** This phase wraps the REST tier exactly as it shipped. Auth uses a **SophionOS API key** (`sop_` prefix, from the `api_keys` table; sent as `Authorization: Bearer sop_…`); `requireAuth` resolves it server-side to a Clerk user id, so the MCP server never touches Clerk directly. **Startup validation hits `GET /api/v1/user/settings`** (returns `{ data: { note_defaults } }`; a 200 = key valid). The MCP client must mirror the **63 real endpoints** listed in the Phase 4 AS-BUILT block — including its load-bearing quirks: junction DELETEs are split query-param vs JSON-body; `/notes/[id]/notebooks` uses PUT; `/search` wraps results in `{ data: { query, results } }` while `/knowledge/search` returns `{ data: results }`. Map MCP "tool verbs" onto these:
 > - `complete_task` → `POST /tasks/bulk/complete { ids:[id] }` (no single-task complete route) or `PATCH /tasks/[id] { is_completed:true }`.
 > - `get_goal_detail` → `GET /goals/[id]` (already hydrates progress + rollups; no `/detail` route).
 > - `archive_area`/`restore_area` → `POST /areas/[id]/archive` / `/restore`.
@@ -1480,7 +1480,7 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 ### Step 29: MCP server — scaffold and authentication — ✅ COMPLETE (verified PASS)
 
-**What:** Initialize the MCP server project, set up transport layers (stdio + HTTP/SSE), and implement user authentication via LifeOS Core API keys.
+**What:** Initialize the MCP server project, set up transport layers (stdio + HTTP/SSE), and implement user authentication via SophionOS Core API keys.
 
 **Actions:**
 - Create `packages/mcp-server/` in the monorepo with TypeScript + Node.js
@@ -1488,7 +1488,7 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 - Install MCP SDK: `pnpm add @modelcontextprotocol/sdk`
 - Implement stdio transport (for Claude Desktop / Claude Code) and HTTP/SSE transport (for remote hosting)
 - Implement auth: user provides API key during config → server validates against `GET /api/v1/user/settings` on startup → all tool calls use this key
-- Create typed LifeOS API client in `src/client.ts` mirroring every REST endpoint
+- Create typed SophionOS API client in `src/client.ts` mirroring every REST endpoint
 
 **Dependencies:** Step 28 (REST API must be complete).
 
@@ -1516,7 +1516,7 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 **Testing:**
 - Connect to Claude Desktop → all tools appear
-- "Create a task called Review pitch deck, high priority, due Friday" → task appears in LifeOS dashboard
+- "Create a task called Review pitch deck, high priority, due Friday" → task appears in SophionOS dashboard
 - "What are my tasks for today?" → returns formatted today view
 - "Complete the pitch deck task" → task done, project progress updates
 - "Show me the Fundraising goal details" → returns command center data
@@ -1546,37 +1546,37 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 - "Search my knowledge hub for marketing" → grouped results
 - "Who's on the Website Redesign project?" → contacts with roles
 - "What's in my inbox?" → inbox items across entity types
-- Full tool suite: ~30 tools covering every LifeOS module
+- Full tool suite: ~30 tools covering every SophionOS module
 
-**Deliverable:** Complete MCP tool suite. Every LifeOS feature accessible from any MCP-compatible AI client.
+**Deliverable:** Complete MCP tool suite. Every SophionOS feature accessible from any MCP-compatible AI client.
 
 ---
 
 ### Step 32: MCP server — publishing and documentation — 🟡 IN PROGRESS (docs + dashboard page shipped; npm publish + registry submission pending — both require maintainer npm auth)
 
-> **AS BUILT:** README (`packages/mcp-server/README.md`) and the `/settings/mcp` dashboard page have shipped. The page lists/creates/revokes API keys via same-origin fetch to `/api/v1/user/api-keys` (Clerk-session auth — `requireAuth` falls through to the Clerk session when no Bearer key is present) and renders copy-able Claude Desktop / Claude Code configs using `@lifeos/mcp-server`. **Not yet done:** `pnpm publish` of the package and Anthropic MCP-registry submission — irreversible public actions, left for the maintainer to run with their npm credentials.
+> **AS BUILT:** README (`packages/mcp-server/README.md`) and the `/settings/mcp` dashboard page have shipped. The page lists/creates/revokes API keys via same-origin fetch to `/api/v1/user/api-keys` (Clerk-session auth — `requireAuth` falls through to the Clerk session when no Bearer key is present) and renders copy-able Claude Desktop / Claude Code configs using `@sophionos/mcp-server`. **Not yet done:** `pnpm publish` of the package and Anthropic MCP-registry submission — irreversible public actions, left for the maintainer to run with their npm credentials.
 
 **What:** Package for npm distribution, setup docs, and a dashboard settings page for easy user onboarding.
 
 **Actions:**
-- Publish to npm as `@lifeos/mcp-server`
+- Publish to npm as `@sophionos/mcp-server`
 - README with setup for Claude Desktop (JSON config), Claude Code (`claude mcp add`), and Cursor
 - Create `/settings/mcp` page in web dashboard:
   - Pre-filled setup instructions with user's API key
   - "Copy Claude Desktop config" and "Copy Claude Code command" buttons
   - Connection status indicator
 - Submit to Anthropic MCP server registry for public listing
-- Landing page section: "Connect LifeOS to your AI assistant"
+- Landing page section: "Connect SophionOS to your AI assistant"
 
 **Dependencies:** Step 31 (all tools). Step 23 (api_keys table — users need keys; the Step 38 settings UI for managing them is a nicety, not a blocker).
 
 **Testing:**
-- `npx @lifeos/mcp-server` starts cleanly
+- `npx @sophionos/mcp-server` starts cleanly
 - Copy-paste Claude Desktop config → tools appear
 - End-to-end: create API key → configure MCP → say "create a task" → task in dashboard
 - npm package installs with zero dependency issues
 
-**Deliverable:** MCP server published and installable. Users connect LifeOS to their AI in under 2 minutes.
+**Deliverable:** MCP server published and installable. Users connect SophionOS to their AI in under 2 minutes.
 
 ---
 
@@ -1647,9 +1647,9 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 
 **What:** The canonical API-key management surface (create / list / revoke, multiple named keys, last-used display, optional expiry).
 
-> **AS BUILT overlap:** Step 32 already shipped key create/list/revoke inside `/settings/mcp` (it calls `/api/v1/user/api-keys` GET/POST + `[id]` DELETE under Clerk session auth, shows the raw `lif_` key once, and renders connection status from `last_used_at`). **Do NOT build a second CRUD here.** This step = generalize that into a standalone management page for the broader "API access" story (keys used by things other than MCP, expiry, more than one key), and reduce `/settings/mcp` to onboarding ("here's a key + your config snippet") that links to it. Division of labor: `/settings/mcp` = "connect your AI" (onboarding); Step 38 page = "manage my keys" (revoke the key from my old laptop). Same `api_keys` table + endpoints from Step 23, one shared backend.
+> **AS BUILT overlap:** Step 32 already shipped key create/list/revoke inside `/settings/mcp` (it calls `/api/v1/user/api-keys` GET/POST + `[id]` DELETE under Clerk session auth, shows the raw `sop_` key once, and renders connection status from `last_used_at`). **Do NOT build a second CRUD here.** This step = generalize that into a standalone management page for the broader "API access" story (keys used by things other than MCP, expiry, more than one key), and reduce `/settings/mcp` to onboarding ("here's a key + your config snippet") that links to it. Division of labor: `/settings/mcp` = "connect your AI" (onboarding); Step 38 page = "manage my keys" (revoke the key from my old laptop). Same `api_keys` table + endpoints from Step 23, one shared backend.
 
-**Auth-flow reminder (how a key is created vs used):** the dashboard creates a key via `POST /api/v1/user/api-keys` authenticated by the **Clerk session** (no key needed yet); the user pastes the returned `lif_` key into their MCP client; the MCP server then authenticates every request with `Authorization: Bearer lif_…`, which `requireAuth` resolves to the same Clerk user id via `validateApiKey`. The MCP server never creates keys — only consumes one.
+**Auth-flow reminder (how a key is created vs used):** the dashboard creates a key via `POST /api/v1/user/api-keys` authenticated by the **Clerk session** (no key needed yet); the user pastes the returned `sop_` key into their MCP client; the MCP server then authenticates every request with `Authorization: Bearer sop_…`, which `requireAuth` resolves to the same Clerk user id via `validateApiKey`. The MCP server never creates keys — only consumes one.
 
 **Dependencies:** Step 23 (api_keys table + auth guard). Step 32 (key CRUD + `/settings/mcp` already exist).
 
@@ -1716,7 +1716,7 @@ USER       GET/PATCH /user/settings                   (note_defaults only)
 ## Phase 8: Post-MVP (Out of Scope for This Roadmap)
 
 ```
-Step 43+: LifeOS Agent (Project 2) — WhatsApp/Telegram AI assistant
+Step 43+: SophionOS Agent (Project 2) — WhatsApp/Telegram AI assistant
 Step 44+: Time Tracker + Pomodoro
 Step 45+: Archive cross-entity view
 Step 46+: Remaining 6 personal trackers (Movies, Supplements, Wishlist, Orders, Warranties, Passwords)
@@ -1761,10 +1761,10 @@ PHASE    STEPS      WHAT YOU HAVE WHEN DONE
                     tables provisioned. 60+ endpoints, zero gaps.
 
 4b       29–32      MCP Server: ~30 tools wrapping the REST API.
-                    Published to npm as @lifeos/mcp-server.
-                    Users connect LifeOS to Claude Desktop,
+                    Published to npm as @sophionos/mcp-server.
+                    Users connect SophionOS to Claude Desktop,
                     Claude Code, Cursor, or any MCP client.
-                    "LifeOS works inside the AI you already use."
+                    "SophionOS works inside the AI you already use."
 
 5        33–36      3 personal trackers (Bookmarks, Groceries,
                     Books) with UI + API routes
@@ -1784,4 +1784,4 @@ POST-MVP 43+        Agent (Project 2), remaining trackers,
 
 ---
 
-*Each step in this roadmap maps directly to the LifeOS Core PRD, Architecture Document, and AI Rules. When building any step, reference all three documents.*
+*Each step in this roadmap maps directly to the SophionOS Core PRD, Architecture Document, and AI Rules. When building any step, reference all three documents.*

@@ -49,9 +49,9 @@ describe("api-auth", () => {
 
   it("authenticateRequest resolves an API-key bearer to its user (type api_key)", async () => {
     mockValidateApiKey.mockResolvedValue({ userId: "user_key", keyId: "k1" });
-    const result = await authenticateRequest(req({ authorization: "Bearer lif_abc" }));
+    const result = await authenticateRequest(req({ authorization: "Bearer sop_abc" }));
     expect(result).toEqual({ userId: "user_key", type: "api_key" });
-    expect(mockValidateApiKey).toHaveBeenCalledWith("lif_abc");
+    expect(mockValidateApiKey).toHaveBeenCalledWith("sop_abc");
   });
 
   it("authenticateRequest falls through to Clerk when the bearer is not a valid API key", async () => {

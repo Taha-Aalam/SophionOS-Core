@@ -9,7 +9,7 @@ export function ThemeProvider({ children, ...props }: React.ComponentProps<typeo
     <NextThemesProvider
       {...props}
       defaultTheme="dark"
-      storageKey="lifeos-theme"
+      storageKey="sophionos-theme"
       enableSystem={false}
       disableTransitionOnChange={false}
     >

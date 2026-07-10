@@ -1,20 +1,20 @@
-# LifeOS Core — Product Requirements Document
+# SophionOS Core — Product Requirements Document
 
 **Project 1 of 2** · Version 1.0 · April 2026 · Status: Draft
 
-> LifeOS Core is the data platform, API layer, MCP server, and web dashboard that powers the LifeOS life management product. It is the system of record — every piece of user data lives here. It ships with an MCP server that lets users connect LifeOS to any AI client they already use (Claude Desktop, Claude Code, Cursor, Codex). The companion project (LifeOS Agent) is a future WhatsApp/Telegram AI assistant built on top of this platform.
+> SophionOS Core is the data platform, API layer, MCP server, and web dashboard that powers the SophionOS life management product. It is the system of record — every piece of user data lives here. It ships with an MCP server that lets users connect SophionOS to any AI client they already use (Claude Desktop, Claude Code, Cursor, Codex). The companion project (SophionOS Agent) is a future WhatsApp/Telegram AI assistant built on top of this platform.
 
 ---
 
 ## 1. Product Overview
 
-LifeOS Core is a cloud-based SaaS platform that gives users a single, structured system to manage every domain of their life — work, health, finances, goals, knowledge, and personal tracking.
+SophionOS Core is a cloud-based SaaS platform that gives users a single, structured system to manage every domain of their life — work, health, finances, goals, knowledge, and personal tracking.
 
 **What it is:** A relational data platform with a clean web dashboard, built on the PARA methodology (Projects, Areas, Resources, Archive). It exposes a public REST API and an MCP server so that any AI client can read and write user data programmatically — no custom integration needed.
 
-**What makes it different from Notion/Todoist/Obsidian:** LifeOS Core is purpose-built, not general-purpose. The data model is pre-designed with relationships baked in (Areas → Goals → Projects → Tasks). Users don't build databases — they just use them. Every entity is interconnected out of the box. And unlike any competitor, LifeOS ships with native AI integration via MCP — users can manage their life system from inside the AI tools they already use.
+**What makes it different from Notion/Todoist/Obsidian:** SophionOS Core is purpose-built, not general-purpose. The data model is pre-designed with relationships baked in (Areas → Goals → Projects → Tasks). Users don't build databases — they just use them. Every entity is interconnected out of the box. And unlike any competitor, SophionOS ships with native AI integration via MCP — users can manage their life system from inside the AI tools they already use.
 
-**The three interfaces:** LifeOS Core has three access layers from day one. The web dashboard for visual management and deep planning. The REST API for programmatic access and third-party integrations. The MCP server for frictionless AI-assisted input — users talk to Claude, Cursor, or Codex and their data flows into LifeOS automatically. A future fourth interface (the LifeOS Agent on WhatsApp/Telegram) will extend this to non-technical users.
+**The three interfaces:** SophionOS Core has three access layers from day one. The web dashboard for visual management and deep planning. The REST API for programmatic access and third-party integrations. The MCP server for frictionless AI-assisted input — users talk to Claude, Cursor, or Codex and their data flows into SophionOS automatically. A future fourth interface (the SophionOS Agent on WhatsApp/Telegram) will extend this to non-technical users.
 
 ---
 
@@ -53,7 +53,7 @@ Specific problems:
 
 3. **Disconnected data.** A goal like "Advance my career" should surface its linked projects, tasks, notes, and resources automatically. In current tools, users manually maintain these connections — and stop doing so within weeks.
 
-4. **No API for AI.** The next generation of productivity is AI-assisted. But AI assistants need structured, queryable data to be useful. Notion doesn't expose a user-friendly API for this purpose. LifeOS Core is designed API-first specifically so the AI Agent can read and write user data reliably.
+4. **No API for AI.** The next generation of productivity is AI-assisted. But AI assistants need structured, queryable data to be useful. Notion doesn't expose a user-friendly API for this purpose. SophionOS Core is designed API-first specifically so the AI Agent can read and write user data reliably.
 
 ---
 
@@ -142,7 +142,7 @@ These are MVP features. Nothing else ships until these work flawlessly.
 - **Password Manager:** client-side AES-256-GCM encryption, master password, web dashboard only (excluded from AI Agent)
 
 ### 4.12 Public REST API
-- Every feature accessible via API (consumed by LifeOS Agent + future clients)
+- Every feature accessible via API (consumed by SophionOS Agent + future clients)
 - JWT auth for dashboard, API key auth for external clients
 - Scoped permissions per API key
 - Rate limiting: 100 req/min (free), 1000 req/min (paid)
@@ -155,13 +155,13 @@ These are MVP features. Nothing else ships until these work flawlessly.
 - Tier enforcement at API layer
 
 ### 4.14 MCP Server
-- Published npm package (`@lifeos/mcp-server`) that wraps the REST API as MCP tools
+- Published npm package (`@sophionos/mcp-server`) that wraps the REST API as MCP tools
 - ~30 tools covering every entity: create/list/update tasks, goals, projects, notes, resources, contacts; search; dashboard; inbox
 - Supports stdio transport (Claude Desktop, Claude Code, Cursor) and HTTP/SSE transport (remote hosting)
 - Users configure with their API key — one-time setup, under 2 minutes
 - Tool descriptions optimized for AI model consumption (not human-readable docs)
 - Dashboard settings page with pre-filled setup instructions and copy-paste config buttons
-- Launch differentiator: "LifeOS works inside the AI you already use"
+- Launch differentiator: "SophionOS works inside the AI you already use"
 
 ---
 
@@ -171,7 +171,7 @@ Being clear about what we're NOT building is just as important as what we are.
 
 | Non-Goal | Reason |
 |----------|--------|
-| AI processing (voice, image, NLP, routing) | That's LifeOS Agent (Project 2). Core is the data platform, not the AI brain. |
+| AI processing (voice, image, NLP, routing) | That's SophionOS Agent (Project 2). Core is the data platform, not the AI brain. |
 | WhatsApp/Telegram integration | Channel integrations belong to the Agent. Core exposes the API; Agent consumes it. |
 | Habit tracking with streaks | Overcomplicates MVP. Can be added as a Phase 2 tracker. Goals and tasks cover most habit use cases. |
 | Calendar sync (Google/Outlook) | Tempting but complex. MVP uses its own calendar view. Third-party sync is a Phase 3 integration. |
@@ -225,7 +225,7 @@ If you can do it in the dashboard, you can do it via API. No dashboard-only feat
 ### Why this works:
 - **Free tier is generous enough to hook users** but limited enough that active users hit the wall within 2–3 weeks.
 - **Pro is the real product.** Most users will land here. $14/mo is priced below Notion's team plan and above Todoist's pro tier — right in the sweet spot.
-- **Premium exists for power users and API consumers.** The $29 tier also unlocks API access, which is required for the AI Agent integration (Project 2). This means the full LifeOS experience (Core + Agent) costs $29/mo — positioning it as a premium personal AI assistant.
+- **Premium exists for power users and API consumers.** The $29 tier also unlocks API access, which is required for the AI Agent integration (Project 2). This means the full SophionOS experience (Core + Agent) costs $29/mo — positioning it as a premium personal AI assistant.
 
 ### Revenue targets (conservative, 5% conversion):
 | Month | MAU | Paid Users | MRR |
@@ -324,7 +324,7 @@ If you can do it in the dashboard, you can do it via API. No dashboard-only feat
 
 ### Risk 1: "It's just another Notion"
 **Likelihood: High.** Every productivity app gets compared to Notion.
-**Mitigation:** The positioning is "pre-structured system" vs Notion's "build your own." Marketing must hammer this: "You don't build LifeOS. You just use it." The AI Agent (Project 2) is the real differentiator — no Notion equivalent exists.
+**Mitigation:** The positioning is "pre-structured system" vs Notion's "build your own." Marketing must hammer this: "You don't build SophionOS. You just use it." The AI Agent (Project 2) is the real differentiator — no Notion equivalent exists.
 
 ### Risk 2: Feature scope creep from 25+ modules
 **Likelihood: High.** The temptation to build everything before launching is strong.
@@ -344,7 +344,7 @@ If you can do it in the dashboard, you can do it via API. No dashboard-only feat
 
 ### Risk 6: Competitors add AI features
 **Likelihood: High.** Notion, Todoist, and Obsidian are all adding AI.
-**Mitigation:** Their AI is bolted on top of general-purpose tools. LifeOS is designed AI-first — the data model, the API, and the relationship structure are all built for an AI to consume efficiently. A general-purpose tool adding AI is like a sedan adding a tow hitch. LifeOS is the truck.
+**Mitigation:** Their AI is bolted on top of general-purpose tools. SophionOS is designed AI-first — the data model, the API, and the relationship structure are all built for an AI to consume efficiently. A general-purpose tool adding AI is like a sedan adding a tow hitch. SophionOS is the truck.
 
 ### Risk 7: Password Manager liability
 **Likelihood: Low but high impact.** If encryption is compromised, trust is destroyed.
@@ -368,4 +368,4 @@ If you can do it in the dashboard, you can do it via API. No dashboard-only feat
 
 ---
 
-*This PRD covers LifeOS Core (Project 1 of 2). For the AI assistant layer including WhatsApp/Telegram integration, voice processing, and OpenClaw agent orchestration, see the LifeOS Agent PRD (Project 2 of 2).*
+*This PRD covers SophionOS Core (Project 1 of 2). For the AI assistant layer including WhatsApp/Telegram integration, voice processing, and OpenClaw agent orchestration, see the SophionOS Agent PRD (Project 2 of 2).*

@@ -1,14 +1,14 @@
-# LifeOS Core — AI Coding Rules
+# SophionOS Core — AI Coding Rules
 
 **This file is law.** Place it at the root of the repository as `.cursorrules`, `CLAUDE.md`, or `.github/copilot-instructions.md` depending on your AI tool. Every AI-generated line of code must comply with these rules. No exceptions, no "I'll fix it later," no clever workarounds.
 
-You are a senior engineer on the LifeOS Core project. You write code that a junior engineer can read, a principal engineer would approve, and a production server won't choke on. You are not creative with architecture. You are creative with solutions within the architecture.
+You are a senior engineer on the SophionOS Core project. You write code that a junior engineer can read, a principal engineer would approve, and a production server won't choke on. You are not creative with architecture. You are creative with solutions within the architecture.
 
 ---
 
 ## 0. Project Context (Read This First)
 
-LifeOS Core is a SaaS life management platform. It is **Project 1 of 2** — the data platform, REST API, and web dashboard. **Project 2** (LifeOS Agent) is a separate AI assistant that consumes this API. Everything you build must work for both human users (dashboard) and programmatic clients (Agent via API).
+SophionOS Core is a SaaS life management platform. It is **Project 1 of 2** — the data platform, REST API, and web dashboard. **Project 2** (SophionOS Agent) is a separate AI assistant that consumes this API. Everything you build must work for both human users (dashboard) and programmatic clients (Agent via API).
 
 **Stack (non-negotiable):**
 - Next.js 14 (App Router) + TypeScript (strict)
@@ -680,14 +680,14 @@ Publish MCP server                     npm publish from packages/mcp-server/
 
 ## Appendix B: MCP Server Rules
 
-The MCP server (`packages/mcp-server/`) is a separate TypeScript package within the monorepo. It wraps the LifeOS Core REST API as MCP tools. These rules apply when writing MCP server code.
+The MCP server (`packages/mcp-server/`) is a separate TypeScript package within the monorepo. It wraps the SophionOS Core REST API as MCP tools. These rules apply when writing MCP server code.
 
 ### MCP Tool Rules
 - **One file per entity category** in `src/tools/`. Tasks tools in `tasks.ts`, goals in `goals.ts`, etc.
 - **Tool names are snake_case.** `create_task`, `list_goals`, `get_dashboard`. Not camelCase, not kebab-case.
 - **Tool descriptions are written for AI models, not humans.** Be specific about what the tool does, when to use it, and what the parameters mean. The AI model reads this to decide which tool to call.
 - **Every tool calls the typed API client** (`src/client.ts`). Never call the REST API directly with raw fetch. The client handles auth headers, error parsing, and response typing.
-- **Never hardcode the API URL or API key.** Read from environment variables: `LIFEOS_API_KEY`, `LIFEOS_API_URL`.
+- **Never hardcode the API URL or API key.** Read from environment variables: `SOPHIONOS_API_KEY`, `SOPHIONOS_API_URL`.
 - **Return structured data, not formatted text.** The AI model handles presentation. Return the raw API response data. Let the model decide how to display it to the user.
 - **Handle errors gracefully.** A failed API call should return a clear error message ("Task not found" or "You don't have permission to access this project"), never a raw HTTP status code or stack trace.
 - **No business logic in the MCP server.** The server is a thin translation layer: MCP tool call → REST API call → return result. All business logic lives in the Core API services.
@@ -695,7 +695,7 @@ The MCP server (`packages/mcp-server/`) is a separate TypeScript package within 
 
 ### MCP Testing Rules
 - **Every tool gets a unit test** that mocks the API client and verifies correct parameter mapping.
-- **Integration testing happens via Claude Desktop.** Connect, invoke each tool, verify the result matches the LifeOS dashboard.
+- **Integration testing happens via Claude Desktop.** Connect, invoke each tool, verify the result matches the SophionOS dashboard.
 - **Never ship a tool without testing it in a real MCP client.** Unit tests alone are insufficient — the tool description and schema must work with actual AI model reasoning.
 
 ---
