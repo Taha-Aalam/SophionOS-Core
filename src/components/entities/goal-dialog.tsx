@@ -217,6 +217,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
             <Input
               id="goal-name"
               placeholder="e.g. Run a marathon"
+              maxLength={100}
               {...form.register("name")}
             />
             {form.formState.errors.name && (
@@ -232,6 +233,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
               id="goal-description"
               placeholder="Describe your objective..."
               rows={3}
+              maxLength={500}
               {...form.register("description")}
             />
             {form.formState.errors.description && (

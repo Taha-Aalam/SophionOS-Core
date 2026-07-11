@@ -754,7 +754,7 @@ export function TaskDialog({
             <FormItem>
               <FormLabel>Task Name</FormLabel>
               <FormControl>
-                <Input autoFocus placeholder="What needs to be done?" {...form.register("name")} />
+                <Input autoFocus placeholder="What needs to be done?" maxLength={255} {...form.register("name")} />
               </FormControl>
               <FormMessage>{form.formState.errors.name?.message}</FormMessage>
             </FormItem>
@@ -765,6 +765,7 @@ export function TaskDialog({
                 <Textarea
                   placeholder="Add context, notes, or the next action"
                   rows={3}
+                  maxLength={1000}
                   {...form.register("description")}
                 />
               </FormControl>
