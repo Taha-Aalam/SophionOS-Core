@@ -1,5 +1,7 @@
 "use client";
 
+import { cardGrid } from "@/components/ui/layout";
+
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, CalendarDays, CheckCircle, Clock, Flag, PauseCircle, Plus, Target } from "lucide-react";
@@ -166,13 +168,13 @@ export function GoalsContent() {
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={cardGrid}>
           {Array.from({ length: 6 }).map((_, index) => (
             <Skeleton key={index} className="h-32 rounded-xl" />
           ))}
         </div>
       ) : filteredGoals && filteredGoals.length > 0 ? (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={cardGrid}>
           {filteredGoals.map((goal) => {
             const linkedAreaNames = getGoalLinkedAreaIds(goal)
               .map((id) => areaNamesById.get(id))

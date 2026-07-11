@@ -97,7 +97,7 @@ export function Topbar() {
         <button
           type="button"
           onClick={openMobileNav}
-          className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground lg:hidden"
+          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground lg:hidden"
           aria-label="Open navigation menu"
         >
           <MenuIcon className="size-4" />

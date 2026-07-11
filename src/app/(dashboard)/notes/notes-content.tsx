@@ -538,7 +538,7 @@ export function NotesContent() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={NOTES_SEARCH_PLACEHOLDER}
-                className="h-9 sm:h-7 w-44 pl-8 text-xs"
+                className="h-10 sm:h-8 w-44 pl-8 text-xs"
               />
             </div>
 
@@ -548,7 +548,7 @@ export function NotesContent() {
                 setFilterStatus(value === ALL_STATUS_VALUE ? "" : (value || ""))
               }
             >
-              <SelectTrigger className="h-9 sm:h-7 w-[120px] text-xs">
+              <SelectTrigger className="h-10 sm:h-8 w-[160px] sm:w-52 sm:w-48 text-xs">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -565,7 +565,7 @@ export function NotesContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterAreaIds.length === 0 ? (
@@ -618,7 +618,7 @@ export function NotesContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterGoalIds.length === 0 ? (
@@ -668,7 +668,7 @@ export function NotesContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterProjectIds.length === 0 ? (
@@ -718,7 +718,7 @@ export function NotesContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterTaskIds.length === 0 ? (
@@ -768,7 +768,7 @@ export function NotesContent() {
               value={filterNotebook}
               onValueChange={(value) => setFilterNotebook(value || "")}
             >
-              <SelectTrigger className="h-9 sm:h-7 w-[140px] text-xs">
+              <SelectTrigger className="h-10 sm:h-8 w-[160px] sm:w-52 text-xs">
                 <SelectValue placeholder="Notebook" />
               </SelectTrigger>
               <SelectContent>
@@ -797,18 +797,18 @@ export function NotesContent() {
           <div className="flex items-center gap-2 border-b border-border/30 px-6 py-2">
             <span className="text-sm font-medium">{selectedIds.size} selected</span>
             <div className="ml-auto flex items-center gap-2">
-              <Button variant="outline" size="sm" className="h-9 sm:h-7 text-xs" onClick={handleArchiveSelected}>
+              <Button variant="outline" size="sm" className="h-10 sm:h-8 text-xs" onClick={handleArchiveSelected}>
                 <Archive className="mr-1.5 size-3.5" />
                 Archive
               </Button>
-              <Button variant="outline" size="sm" className="h-9 sm:h-7 text-xs" onClick={handleRestoreSelected}>
+              <Button variant="outline" size="sm" className="h-10 sm:h-8 text-xs" onClick={handleRestoreSelected}>
                 <Archive className="mr-1.5 size-3.5" />
                 Restore
               </Button>
               <Button
                 variant="destructive"
                 size="sm"
-                className="h-9 sm:h-7 text-xs"
+                className="h-10 sm:h-8 text-xs"
                 onClick={handleDeleteSelected}
                 disabled={bulkDelete.isPending}
               >
@@ -818,7 +818,7 @@ export function NotesContent() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 sm:h-7 text-xs"
+                className="h-10 sm:h-8 text-xs"
                 onClick={() => setSelectedIds(new Set())}
               >
                 Clear
