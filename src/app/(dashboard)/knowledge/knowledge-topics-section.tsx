@@ -295,7 +295,7 @@ export function KnowledgeTopicsSection({
       />
       <div className="mt-4">
           <Tabs value={topicsTab} onValueChange={setTopicsTab}>
-            <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain max-[1023px]:[scrollbar-width:thin] max-[1023px]:[&::-webkit-scrollbar]:block">
               <TabsTrigger value="active" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
                 <CircleDot className="mr-1 size-3" />Active
               </TabsTrigger>
