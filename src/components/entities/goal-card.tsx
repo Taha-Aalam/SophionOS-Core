@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Goal } from '@/lib/types/domain.types';
 import { PRIORITY_COLORS } from '@/lib/constants/entity-colors';
+import { formatDate } from '@/lib/format';
 import ProgressRing from '@/components/charts/progress-ring';
 
 import { DeleteEntityPopover } from './delete-entity-popover';
@@ -73,10 +74,7 @@ function calculateDueState(targetDate: string | null): { text: string; isOverdue
 
   const dueDate = parseGoalDate(targetDate);
   const dayDiff = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  const formattedDate = dueDate.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
+  const formattedDate = formatDate(dueDate);
 
   if (dayDiff < 0) {
     return { text: `Overdue • ${formattedDate}`, isOverdue: true };

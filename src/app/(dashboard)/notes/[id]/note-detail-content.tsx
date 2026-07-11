@@ -18,6 +18,7 @@ import { NoteArchiveToggle } from "@/components/entities/note-archive-toggle";
 import { NoteMetadataPanel } from "@/components/entities/note-metadata-panel";
 import { EmptyState } from "@/components/views/empty-state";
 import { ErrorState } from "@/components/views/error-state";
+import { formatDateLong } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -449,19 +450,11 @@ export function NoteDetailContent() {
             <div className="mt-auto space-y-1 border-t border-border pt-4 text-xs text-muted-foreground">
               <p>
                 Created{" "}
-                {new Date(note.created_at).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                {formatDateLong(note.created_at)}
               </p>
               <p>
                 Updated{" "}
-                {new Date(note.updated_at).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                {formatDateLong(note.updated_at)}
               </p>
             </div>
           </div>

@@ -379,6 +379,7 @@ export function ProjectDialog({
                 <Input
                   autoFocus
                   placeholder="Enter project name"
+                  maxLength={100}
                   {...form.register("name")}
                 />
               </FormControl>
@@ -391,6 +392,7 @@ export function ProjectDialog({
                 <Textarea
                   placeholder="Add the project outcome or context"
                   rows={3}
+                  maxLength={500}
                   {...form.register("description")}
                 />
               </FormControl>

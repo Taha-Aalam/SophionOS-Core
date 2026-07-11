@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
 import { ErrorState } from "@/components/views/error-state";
+import { formatDateHuman } from "@/lib/format";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useMyDayAvailable, useMyDayTasks } from "@/lib/hooks/use-my-day";
@@ -162,11 +163,7 @@ export function MyDayContent() {
   const focusCount = myDay.focused.length;
   const totalMyDay = todayCount + focusCount;
 
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  const today = formatDateHuman(new Date());
 
   if (myDayError || availableError) {
     return (

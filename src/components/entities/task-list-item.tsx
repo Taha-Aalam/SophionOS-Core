@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
 import { PriorityBadge } from "./priority-badge";
+import { formatDate } from "@/lib/format";
 import { StatusBadge } from "./status-badge";
 import { SmartPriorityBadge } from "./smart-priority-badge";
 import { TaskArchiveToggle } from "./task-archive-toggle";
@@ -51,7 +52,7 @@ function formatDueDate(dateStr: string | null): { label: string; overdue: boolea
 
   const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const overdue = dateDay < today;
-  const label = date.toLocaleDateString("en-US", { day: "numeric", month: "short" });
+  const label = formatDate(date);
 
   return { label, overdue };
 }
