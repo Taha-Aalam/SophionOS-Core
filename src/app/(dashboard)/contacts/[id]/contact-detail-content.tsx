@@ -487,7 +487,7 @@ export function ContactDetailContent() {
                 <h2 className="text-sm font-semibold">Properties</h2>
               </div>
               <div className="border-t px-6 py-4 space-y-3">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
                   {contact.phone && (
                     <div>
                       <p className="text-muted-foreground">Phone</p>

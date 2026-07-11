@@ -575,7 +575,7 @@ export function TasksContent() {
                 setFilterPriority(value === ALL_PRIORITY_VALUE ? "" : (value ?? ""))
               }
             >
-              <SelectTrigger className="h-9 sm:h-7 w-[120px] text-xs">
+              <SelectTrigger className="h-10 sm:h-8 w-[140px] sm:w-48 text-xs">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
@@ -590,7 +590,7 @@ export function TasksContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterAreaIds.length === 0 ? (
@@ -643,7 +643,7 @@ export function TasksContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterGoalIds.length === 0 ? (
@@ -693,7 +693,7 @@ export function TasksContent() {
               <PopoverTrigger
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
+                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
                 )}
               >
                 {filterProjectIds.length === 0 ? (

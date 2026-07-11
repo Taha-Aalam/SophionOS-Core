@@ -7,6 +7,7 @@ import { ContactCard } from "@/components/entities/contact-card";
 import { EmptyState } from "@/components/views/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cardGrid } from "@/components/ui/layout";
 import type { Contact } from "@/lib/types/domain.types";
 import type { ContactCategorySection } from "@/lib/utils/contact-category-sections";
 
@@ -70,7 +71,7 @@ function CollapsibleContactSection({
       </div>
 
       {isOpen && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={cardGrid}>
           {section.contacts.map((contact) => (
             <ContactCard
               key={contact.id}

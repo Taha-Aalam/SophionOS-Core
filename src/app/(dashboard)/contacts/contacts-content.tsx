@@ -1,5 +1,6 @@
 "use client";
 
+import { cardGrid } from "@/components/ui/layout";
 import { useMemo, useState } from "react";
 import { Archive, Clock, FolderKanban, Map as MapIcon, Plus, Star, Target as GoalIcon, Users } from "lucide-react";
 
@@ -231,7 +232,7 @@ export function ContactsContent() {
               }}
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {allContacts.map((contact) => (
                 <ContactCard
                   key={contact.id}
@@ -254,7 +255,7 @@ export function ContactsContent() {
               description="Star contacts to see them here."
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {favContacts.map((contact) => (
                 <ContactCard
                   key={contact.id}
@@ -300,7 +301,7 @@ export function ContactsContent() {
 
         <TabsContent value="by-project" className="mt-4">
           {isLoadingByProject ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-40 w-full" />
               ))}
@@ -319,7 +320,7 @@ export function ContactsContent() {
 
         <TabsContent value="by-area" className="mt-4">
           {isLoadingByArea ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full" />)}
             </div>
           ) : (
@@ -336,7 +337,7 @@ export function ContactsContent() {
 
         <TabsContent value="by-goal" className="mt-4">
           {isLoadingByGoal ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full" />)}
             </div>
           ) : (
@@ -353,7 +354,7 @@ export function ContactsContent() {
 
         <TabsContent value="archive" className="mt-4">
           {isLoadingArchived ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full" />)}
             </div>
           ) : archivedContacts.length === 0 ? (
@@ -363,7 +364,7 @@ export function ContactsContent() {
               description="Archived contacts will appear here."
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {archivedContacts.map((contact) => (
                 <ContactCard
                   key={contact.id}

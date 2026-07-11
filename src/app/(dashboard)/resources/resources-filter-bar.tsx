@@ -81,7 +81,7 @@ function FilterPopover({
       <PopoverTrigger
         className={cn(
           buttonVariants({ variant: "outline" }),
-          "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
+          "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
         )}
       >
         {selectedIds.length === 0 ? (
@@ -168,7 +168,7 @@ export function ResourcesFilterBar({
             onFilterTypeChange(value === "__all_type__" ? "" : (value ?? ""))
           }
         >
-          <SelectTrigger className="h-9 sm:h-7 w-[120px] text-xs">
+          <SelectTrigger className="h-10 sm:h-8 w-[140px] sm:w-48 text-xs">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>

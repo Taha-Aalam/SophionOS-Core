@@ -20,3 +20,4 @@ export * from "./scroll-area";
 export * from "./sonner";
 export * from "./textarea";
 export * from "./input-group";
+export * from "./layout";

@@ -1,5 +1,7 @@
 "use client";
 
+import { cardGrid } from "@/components/ui/layout";
+
 import { Folder, Globe, Map as MapIcon, NotebookPen, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -303,7 +305,7 @@ export function DashboardContent() {
             </div>
             <div className="mt-4">
               {title === "Active Goals" ? (
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                <div className={cardGrid}>
                   {[0, 1].map((j) => (
                     <Skeleton key={j} className="h-40 rounded-xl" />
                   ))}
@@ -388,7 +390,7 @@ export function DashboardContent() {
               description="Create your first goal to start tracking progress."
             />
           ) : (
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div className={cardGrid}>
               {goalsActive.map((goal) => {
                 const linkedAreaIds = getGoalLinkedAreaIds(goal);
                 const linkedAreaNames = linkedAreaIds
