@@ -188,7 +188,7 @@ export function AreasContent() {
       </div>
 
       <Tabs defaultValue="active" className="w-full">
-        <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1">
+        <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain">
           <TabsTrigger value="active">
             <Activity className="mr-1.5 size-3.5" />
             Active

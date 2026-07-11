@@ -127,7 +127,7 @@ export function GoalsContent() {
       </div>
 
       <Tabs value={currentView} onValueChange={handleViewChange} className="w-full">
-        <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1">
+        <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain">
           <TabsTrigger value="active">
             <Target className="mr-1.5 size-3.5" />
             Active
