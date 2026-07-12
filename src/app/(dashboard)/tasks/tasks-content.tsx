@@ -5,9 +5,7 @@ import {
   Archive,
   CalendarDays,
   CheckSquare,
-  ChevronDownIcon,
   Clock,
-  Filter,
   FolderKanban,
   Inbox as InboxIcon,
   Layers,
@@ -21,18 +19,8 @@ import React, { useCallback, useMemo, useState } from "react";
 
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskList } from "@/components/entities/task-list";
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { TasksFilterBar } from "@/components/filters/tasks-filter-bar";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarView } from "@/components/views/calendar-view";
 import { EmptyState } from "@/components/views/empty-state";
@@ -52,7 +40,6 @@ import {
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import type { Task } from "@/lib/types/domain.types";
-import { cn } from "@/lib/utils";
 import {
   getTaskCounts,
   getTaskLinkedAreaIds,
@@ -70,8 +57,6 @@ import {
   taskMatchesProjectId,
 } from "@/lib/utils/tasks";
 
-const ALL_PRIORITY_VALUE = "__all_priority__";
-
 export function TasksContent() {
   const [activeTab, setActiveTab] = useState<TaskView>(TASK_VIEW.ALL);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -83,9 +68,6 @@ export function TasksContent() {
   const [newTaskAreaId, setNewTaskAreaId] = useState<string | undefined>(undefined);
   const [newTaskGoalId, setNewTaskGoalId] = useState<string | undefined>(undefined);
   const [newTaskProjectId, setNewTaskProjectId] = useState<string | undefined>(undefined);
-  const [areaPopoverOpen, setAreaPopoverOpen] = useState(false);
-  const [goalPopoverOpen, setGoalPopoverOpen] = useState(false);
-  const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
 
   const {
     data: allTasks,
@@ -403,38 +385,9 @@ export function TasksContent() {
     setIsDialogOpen(true);
   };
 
-  const hasFilters = Boolean(
-    filterPriority ||
-      filterAreaIds.length > 0 ||
-      filterGoalIds.length > 0 ||
-      filterProjectIds.length > 0,
-  );
   const activeAreas = allAreas?.filter((area) => !area.archive) ?? [];
   const activeGoals = allGoals?.filter((goal) => !goal.is_archived) ?? [];
   const activeProjects = allProjects?.filter((project) => !project.is_archived) ?? [];
-
-  const selectedAreaLabels = filterAreaIds
-    .map((id) => activeAreas.find((a) => a.id === id))
-    .filter(Boolean)
-    .map(
-      (a) =>
-        `${(a as { icon?: string }).icon ? `${(a as { icon?: string }).icon} ` : ""}${(a as { name: string }).name}`,
-    );
-
-  const selectedGoalLabels = filterGoalIds
-    .map((id) => activeGoals.find((g) => g.id === id))
-    .filter(Boolean)
-    .map((g) => (g as { name: string }).name);
-
-  const selectedProjectLabels = filterProjectIds
-    .map((id) => activeProjects.find((p) => p.id === id))
-    .filter(Boolean)
-    .map((p) => (p as { name: string }).name);
-
-  const filterPopoverContentClassName = "w-80 max-w-[calc(100vw-2rem)] overflow-x-hidden p-2";
-  const filterOptionClassName =
-    "flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
-  const filterOptionLabelClassName = "min-w-0 flex-1 whitespace-normal break-words text-sm";
 
   if (tasksError || archivedError) {
     return (
@@ -530,196 +483,19 @@ export function TasksContent() {
           </TabsTrigger>
           </TabsList>
 
-        <div className="flex items-center gap-3 border-b border-border/30 px-6 py-3">
-          <Filter className="size-3.5 shrink-0 text-muted-foreground" />
-          <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value={filterPriority || ALL_PRIORITY_VALUE}
-              onValueChange={(value) =>
-                setFilterPriority(value === ALL_PRIORITY_VALUE ? "" : (value ?? ""))
-              }
-            >
-              <SelectTrigger className="h-10 sm:h-8 w-[140px] sm:w-48 text-xs">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_PRIORITY_VALUE}>All priorities</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Popover open={areaPopoverOpen} onOpenChange={setAreaPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterAreaIds.length === 0 ? (
-                  "Area"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedAreaLabels[0]}</span>
-                    {selectedAreaLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedAreaLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {activeAreas.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">No areas available.</p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {activeAreas.map((area) => {
-                      const checked = filterAreaIds.includes(area.id);
-                      return (
-                        <label key={area.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterAreaIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, area.id]))
-                                  : prev.filter((id) => id !== area.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>
-                            {area.icon ? `${area.icon} ` : ""}
-                            {area.name}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover open={goalPopoverOpen} onOpenChange={setGoalPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterGoalIds.length === 0 ? (
-                  "Goal"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedGoalLabels[0]}</span>
-                    {selectedGoalLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedGoalLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {activeGoals.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">No goals available.</p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {activeGoals.map((goal) => {
-                      const checked = filterGoalIds.includes(goal.id);
-                      return (
-                        <label key={goal.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterGoalIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, goal.id]))
-                                  : prev.filter((id) => id !== goal.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>{goal.name}</span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover open={projectPopoverOpen} onOpenChange={setProjectPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterProjectIds.length === 0 ? (
-                  "Project"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedProjectLabels[0]}</span>
-                    {selectedProjectLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedProjectLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {activeProjects.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">
-                      No projects available.
-                    </p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {activeProjects.map((project) => {
-                      const checked = filterProjectIds.includes(project.id);
-                      return (
-                        <label key={project.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterProjectIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, project.id]))
-                                  : prev.filter((id) => id !== project.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>{project.name}</span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {hasFilters && (
-              <button
-                onClick={() => {
-                  setFilterPriority("");
-                  setFilterAreaIds([]);
-                  setFilterGoalIds([]);
-                  setFilterProjectIds([]);
-                }}
-                className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        </div>
+        <TasksFilterBar
+          priority={filterPriority}
+          areaIds={filterAreaIds}
+          goalIds={filterGoalIds}
+          projectIds={filterProjectIds}
+          areas={activeAreas}
+          goals={activeGoals}
+          projects={activeProjects}
+          onPriorityChange={setFilterPriority}
+          onAreaIdsChange={setFilterAreaIds}
+          onGoalIdsChange={setFilterGoalIds}
+          onProjectIdsChange={setFilterProjectIds}
+        />
 
         <TabsContent value={TASK_VIEW.CALENDAR} className="mt-0 flex-1">
           {isLoading ? (

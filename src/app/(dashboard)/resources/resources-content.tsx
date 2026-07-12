@@ -1,26 +1,16 @@
 "use client";
 
 import { useCallback, useState, useMemo } from "react";
-import { Archive, Bookmark, ChevronDownIcon, Eye, FilePlus, Filter, Folder, Globe, Heart, Inbox as InboxIcon, LayoutGrid, Map as LucideMap, Tag, Target, Zap } from "lucide-react";
+import { Archive, Bookmark, Eye, FilePlus, Folder, Globe, Heart, Inbox as InboxIcon, LayoutGrid, Map as LucideMap, Tag, Target, Zap } from "lucide-react";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { ErrorState } from "@/components/views/error-state";
 import { ResourcesByGroupView, type ResourceGroup } from "@/components/views/resources-by-group-view";
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResourceDialog } from "@/components/entities/resource-dialog";
 import { ResourceRow } from "@/components/entities/resource-row";
+import { ResourcesFilterBar } from "@/components/filters/resources-filter-bar";
 import { ResourceRowSkeleton } from "@/components/views/list-page-skeleton";
 import { useAreas } from "@/lib/hooks/use-areas";
 import {
@@ -39,7 +29,7 @@ import { useTasks } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
 import { useAuth } from "@/components/providers/auth-provider";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "@/lib/types/domain.types";
-import { RESOURCE_STATUS, RESOURCE_TYPE } from "@/lib/utils/constants";
+import { RESOURCE_STATUS } from "@/lib/utils/constants";
 import {
   RESOURCE_VIEW,
   type ResourceView,
@@ -48,7 +38,6 @@ import {
   getResourceLinkedProjectIds,
   getResourceLinkedTaskIds,
 } from "@/lib/utils/resources";
-import { cn } from "@/lib/utils";
 
 export function ResourcesContent() {
   const { isLoading: authLoading, user } = useAuth();
@@ -67,12 +56,8 @@ export function ResourcesContent() {
   const [filterGoalIds, setFilterGoalIds] = useState<string[]>([]);
   const [filterTaskIds, setFilterTaskIds] = useState<string[]>([]);
   const [filterTopicIds, setFilterTopicIds] = useState<string[]>([]);
-  const [areaPopoverOpen, setAreaPopoverOpen] = useState(false);
-  const [goalPopoverOpen, setGoalPopoverOpen] = useState(false);
-  const [taskPopoverOpen, setTaskPopoverOpen] = useState(false);
-  const [topicPopoverOpen, setTopicPopoverOpen] = useState(false);
 
-  const { data: allResources = [], isLoading, isFetching, isError, refetch } = useResources({ status: "all" });
+  const { data: allResources = [], isFetching, isError, refetch } = useResources({ status: "all" });
   // Show skeletons while auth resolves, user is absent, or any fetch is in
   // flight with no cached data. isFetching covers refetch/retry windows that
   // isLoading misses — prevents flashing to empty when data transiently clears.
@@ -215,58 +200,6 @@ export function ResourcesContent() {
     filterTaskIds,
     filterTopicIds,
   ]);
-
-  const hasFilters = Boolean(
-    filterType ||
-      filterAreaIds.length > 0 ||
-      filterGoalIds.length > 0 ||
-      filterTaskIds.length > 0 ||
-      filterTopicIds.length > 0,
-  );
-
-  const selectedAreaLabels = useMemo(
-    () =>
-      filterAreaIds
-        .map((id) => activeAreas.find((a) => a.id === id))
-        .filter(Boolean)
-        .map(
-          (a) =>
-            `${(a as { icon?: string }).icon ? `${(a as { icon?: string }).icon} ` : ""}${(a as { name: string }).name}`,
-        ),
-    [filterAreaIds, activeAreas],
-  );
-
-  const selectedGoalLabels = useMemo(
-    () =>
-      filterGoalIds
-        .map((id) => activeGoals.find((g) => g.id === id))
-        .filter(Boolean)
-        .map((g) => (g as { name: string }).name),
-    [filterGoalIds, activeGoals],
-  );
-
-  const selectedTaskLabels = useMemo(
-    () =>
-      filterTaskIds
-        .map((id) => activeTasks.find((t) => t.id === id))
-        .filter(Boolean)
-        .map((t) => (t as { name: string }).name),
-    [filterTaskIds, activeTasks],
-  );
-
-  const selectedTopicLabels = useMemo(
-    () =>
-      filterTopicIds
-        .map((id) => activeTopics.find((t) => t.id === id))
-        .filter(Boolean)
-        .map((t) => (t as { name: string }).name),
-    [filterTopicIds, activeTopics],
-  );
-
-  const filterPopoverContentClassName = "w-80 max-w-[calc(100vw-2rem)] overflow-x-hidden p-2";
-  const filterOptionClassName =
-    "flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
-  const filterOptionLabelClassName = "min-w-0 flex-1 whitespace-normal break-words text-sm";
 
   const resourceGroupsByTopic = useMemo((): ResourceGroup[] => {
     const grouped = new Map<string, Resource[]>();
@@ -471,249 +404,22 @@ export function ResourcesContent() {
             </TabsTrigger>
           </TabsList>
 
-        <div className="flex items-center gap-3 border-b border-border/30 px-6 py-3">
-          <Filter className="size-3.5 shrink-0 text-muted-foreground" />
-          <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value={filterType || "__all_type__"}
-              onValueChange={(value) =>
-                setFilterType(value === "__all_type__" ? "" : (value ?? ""))
-              }
-            >
-              <SelectTrigger className="h-10 sm:h-8 w-[140px] sm:w-48 text-xs">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all_type__">All types</SelectItem>
-                <SelectItem value={RESOURCE_TYPE.WEBSITE}>Website</SelectItem>
-                <SelectItem value={RESOURCE_TYPE.ARTICLE}>Article</SelectItem>
-                <SelectItem value={RESOURCE_TYPE.VIDEO}>Video</SelectItem>
-                <SelectItem value={RESOURCE_TYPE.DOCUMENT}>Document</SelectItem>
-                <SelectItem value={RESOURCE_TYPE.PODCAST}>Podcast</SelectItem>
-                <SelectItem value={RESOURCE_TYPE.SOCIAL_MEDIA}>Social Media</SelectItem>
-                <SelectItem value={RESOURCE_TYPE.TOOL}>Tool</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Popover open={areaPopoverOpen} onOpenChange={setAreaPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterAreaIds.length === 0 ? (
-                  "Area"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedAreaLabels[0]}</span>
-                    {selectedAreaLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedAreaLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {activeAreas.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">No areas available.</p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {activeAreas.map((area) => {
-                      const checked = filterAreaIds.includes(area.id);
-                      return (
-                        <label key={area.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterAreaIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, area.id]))
-                                  : prev.filter((id) => id !== area.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>
-                            {area.icon ? `${area.icon} ` : ""}
-                            {area.name}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover open={goalPopoverOpen} onOpenChange={setGoalPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterGoalIds.length === 0 ? (
-                  "Goal"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedGoalLabels[0]}</span>
-                    {selectedGoalLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedGoalLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {activeGoals.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">No goals available.</p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {activeGoals.map((goal) => {
-                      const checked = filterGoalIds.includes(goal.id);
-                      return (
-                        <label key={goal.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterGoalIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, goal.id]))
-                                  : prev.filter((id) => id !== goal.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>{goal.name}</span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover open={taskPopoverOpen} onOpenChange={setTaskPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterTaskIds.length === 0 ? (
-                  "Task"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedTaskLabels[0]}</span>
-                    {selectedTaskLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedTaskLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {activeTasks.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">No tasks available.</p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {activeTasks.map((task) => {
-                      const checked = filterTaskIds.includes(task.id);
-                      return (
-                        <label key={task.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterTaskIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, task.id]))
-                                  : prev.filter((id) => id !== task.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>{task.name}</span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover open={topicPopoverOpen} onOpenChange={setTopicPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterTopicIds.length === 0 ? (
-                  "Topic"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedTopicLabels[0]}</span>
-                    {selectedTopicLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedTopicLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {activeTopics.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">No topics available.</p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {activeTopics.map((topic) => {
-                      const checked = filterTopicIds.includes(topic.id);
-                      return (
-                        <label key={topic.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterTopicIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, topic.id]))
-                                  : prev.filter((id) => id !== topic.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>{topic.name}</span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {hasFilters && (
-              <button
-                onClick={() => {
-                  setFilterType("");
-                  setFilterAreaIds([]);
-                  setFilterGoalIds([]);
-                  setFilterTaskIds([]);
-                  setFilterTopicIds([]);
-                }}
-                className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        </div>
+        <ResourcesFilterBar
+          type={filterType}
+          areaIds={filterAreaIds}
+          goalIds={filterGoalIds}
+          taskIds={filterTaskIds}
+          topicIds={filterTopicIds}
+          areas={activeAreas}
+          goals={activeGoals}
+          tasks={activeTasks}
+          topics={activeTopics}
+          onTypeChange={setFilterType}
+          onAreaIdsChange={setFilterAreaIds}
+          onGoalIdsChange={setFilterGoalIds}
+          onTaskIdsChange={setFilterTaskIds}
+          onTopicIdsChange={setFilterTopicIds}
+        />
 
         {/* Flat list views: All, Inbox, To Review, Active, Favorite, Saved, Archived */}
         {([RESOURCE_VIEW.ALL, RESOURCE_VIEW.INBOX, RESOURCE_VIEW.TO_REVIEW, RESOURCE_VIEW.ACTIVE, RESOURCE_VIEW.FAVORITE, RESOURCE_VIEW.COMPLETED, RESOURCE_VIEW.ARCHIVED] as ResourceView[]).includes(tab) && (
