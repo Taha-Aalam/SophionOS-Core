@@ -29,19 +29,19 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "SophionOS Core",
+  title: "SophionOS",
   description: "SaaS Life Management Platform",
   manifest: "/manifest.webmanifest",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://sophionos.com"),
   openGraph: {
-    title: "SophionOS Core",
+    title: "SophionOS",
     description: "One calm system for your whole life.",
     type: "website",
-    siteName: "SophionOS Core",
+    siteName: "SophionOS",
   },
   twitter: {
     card: "summary_large_image",
-    title: "SophionOS Core",
+    title: "SophionOS",
     description: "One calm system for your whole life.",
   },
   icons: {
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "SophionOS Core",
+    title: "SophionOS",
   },
 };
 

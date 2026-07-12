@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "SophionOS Core",
+    name: "SophionOS",
     short_name: "SophionOS",
     description: "SaaS Life Management Platform",
     start_url: "/dashboard",

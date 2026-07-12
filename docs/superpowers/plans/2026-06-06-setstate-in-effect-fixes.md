@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-06-06-setstate-in-effect-fixes-design.md`
 
-**Worktree:** `C:\Users\tahaa\OneDrive\Documents\SaaS\LifeOS Core\.claude\worktrees\feat-recurring-task`
+**Worktree:** `C:\Users\tahaa\OneDrive\Documents\SaaS\SophionOS\.claude\worktrees\feat-recurring-task`
 
 ---
 
