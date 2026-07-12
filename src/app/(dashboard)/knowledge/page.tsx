@@ -877,7 +877,7 @@ export default function KnowledgeHubPage() {
             />
             <div className="mt-4">
               <Tabs value={topicsTab} onValueChange={setTopicsTab}>
-                <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain">
+                <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <TabsTrigger value="active">
                     <CircleDot className="mr-1.5 size-3.5" />Active
                   </TabsTrigger>
@@ -1138,7 +1138,7 @@ export default function KnowledgeHubPage() {
             />
             <div className="mt-4">
               <Tabs value={resourcesTab} onValueChange={setResourcesTab}>
-                <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain">
+                <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <TabsTrigger value={RESOURCE_VIEW.ALL}><LayoutGrid className="mr-1.5 size-3.5" />All
                   </TabsTrigger>
                   <TabsTrigger value={RESOURCE_VIEW.INBOX}><InboxIcon className="mr-1.5 size-3.5" />Inbox

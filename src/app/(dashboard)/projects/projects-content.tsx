@@ -285,7 +285,7 @@ export function ProjectsContent() {
         onValueChange={(value) => setActiveView(value as typeof activeView)}
         className="w-full"
       >
-        <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden bg-muted/50 p-1">
+        <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden bg-muted/50 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value={PROJECT_VIEW.ALL}>
             <LayoutGrid className="mr-1.5 size-3.5" />
             All

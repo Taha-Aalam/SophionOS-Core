@@ -115,7 +115,7 @@ export function GoalDetailSection({
       </div>
 
       <Tabs value={activeTab} onValueChange={onTabChange}>
-        <TabsList className="h-9 w-full flex-nowrap justify-start overflow-x-auto overflow-y-hidden bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-[1023px]:[scrollbar-width:thin] max-[1023px]:[&::-webkit-scrollbar]:block">
+        <TabsList className="h-9 w-full flex-nowrap justify-start overflow-x-auto overflow-y-hidden bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value} className="text-sm px-3">
               {tab.label}

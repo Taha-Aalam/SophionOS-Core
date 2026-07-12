@@ -1,5 +1,5 @@
 export const NOTES_TABS_LIST_CLASS_NAME =
-  "flex h-auto w-full justify-start flex-nowrap gap-0 overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain";
+  "flex h-auto w-full justify-start flex-nowrap gap-0 overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
 export const NOTES_PAGE_SHELL_CLASS_NAME = "content-fade-in reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6";
 
