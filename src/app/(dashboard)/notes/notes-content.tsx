@@ -368,8 +368,7 @@ export function NotesContent() {
   const filterOptionClassName =
     "flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
   const filterOptionLabelClassName = "min-w-0 flex-1 whitespace-normal break-words text-sm";
-  const compactTabTriggerClassName =
-    "rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
+  const compactTabTriggerClassName = "snap-start";
 
   const handleArchiveSelected = async () => {
     if (selectedIds.size === 0) return;
@@ -473,9 +472,8 @@ export function NotesContent() {
         }}
         className="flex flex-1 flex-col"
       >
-        <div className="border-b border-border/50 px-6 pt-4">
-          <TabsList className={NOTES_TABS_LIST_CLASS_NAME}>
-            <TabsTrigger value={NOTE_VIEW.ALL} className={compactTabTriggerClassName}>
+        <TabsList className={NOTES_TABS_LIST_CLASS_NAME}>
+          <TabsTrigger value={NOTE_VIEW.ALL} className={compactTabTriggerClassName}>
               All
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.INBOX} className={compactTabTriggerClassName}>
@@ -527,7 +525,6 @@ export function NotesContent() {
               Archive
             </TabsTrigger>
           </TabsList>
-        </div>
 
         <div className="flex items-center gap-3 border-b border-border/30 px-6 py-3">
           <Filter className="size-3.5 shrink-0 text-muted-foreground" />
