@@ -2,6 +2,7 @@
 
 import {
   CheckSquare,
+  CircleDashed,
   FileType,
   FolderKanban,
   Layers,
@@ -20,11 +21,12 @@ import {
   filterSingle,
   filterValues,
 } from "@/components/ui/linear-filter-state";
-import { RESOURCE_TYPE } from "@/lib/utils/constants";
+import { RESOURCE_STATUS, RESOURCE_TYPE } from "@/lib/utils/constants";
 
 type NamedOption = { id: string; name: string; icon?: string | null };
 
 export type ResourcesFilterBarProps = {
+  status: string;
   type: string;
   areaIds: string[];
   goalIds: string[];
@@ -36,6 +38,7 @@ export type ResourcesFilterBarProps = {
   projects: NamedOption[];
   tasks: NamedOption[];
   topics: NamedOption[];
+  onStatusChange: (value: string) => void;
   onTypeChange: (value: string) => void;
   onAreaIdsChange: (ids: string[]) => void;
   onGoalIdsChange: (ids: string[]) => void;
@@ -45,6 +48,7 @@ export type ResourcesFilterBarProps = {
 };
 
 export function ResourcesFilterBar({
+  status,
   type,
   areaIds,
   goalIds,
@@ -56,6 +60,7 @@ export function ResourcesFilterBar({
   projects,
   tasks,
   topics,
+  onStatusChange,
   onTypeChange,
   onAreaIdsChange,
   onGoalIdsChange,
@@ -65,6 +70,18 @@ export function ResourcesFilterBar({
 }: ResourcesFilterBarProps) {
   const types = useMemo<LinearFilterTypeConfig[]>(
     () => [
+      {
+        type: "status",
+        label: "Status",
+        icon: <CircleDashed className="size-3.5" />,
+        selection: "single",
+        options: [
+          { value: RESOURCE_STATUS.INBOX, label: "Inbox" },
+          { value: RESOURCE_STATUS.TO_REVIEW, label: "To Review" },
+          { value: RESOURCE_STATUS.ACTIVE, label: "Active" },
+          { value: RESOURCE_STATUS.COMPLETED, label: "Completed" },
+        ],
+      },
       {
         type: "type",
         label: "Type",
@@ -125,6 +142,7 @@ export function ResourcesFilterBar({
   const filters = useMemo(
     () =>
       buildFilters([
+        { type: "status", value: status ? [status] : [], selection: "single" },
         { type: "type", value: type ? [type] : [], selection: "single" },
         { type: "area", value: areaIds },
         { type: "goal", value: goalIds },
@@ -132,10 +150,11 @@ export function ResourcesFilterBar({
         { type: "task", value: taskIds },
         { type: "topic", value: topicIds },
       ]),
-    [type, areaIds, goalIds, projectIds, taskIds, topicIds],
+    [status, type, areaIds, goalIds, projectIds, taskIds, topicIds],
   );
 
   const handleChange = (next: LinearFilter[]) => {
+    onStatusChange(filterSingle(next, "status"));
     onTypeChange(filterSingle(next, "type"));
     onAreaIdsChange(filterValues(next, "area"));
     onGoalIdsChange(filterValues(next, "goal"));
