@@ -115,7 +115,7 @@ export function GoalDetailSection({
       </div>
 
       <Tabs value={activeTab} onValueChange={onTabChange}>
-        <TabsList className="h-9">
+        <TabsList className="h-9 w-full justify-start overflow-x-auto max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain">
           {tabs.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value} className="text-sm px-3">
               {tab.label}

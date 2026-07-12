@@ -11,6 +11,7 @@ import {
   FolderKanban,
   Inbox as InboxIcon,
   Layers,
+  LayoutGrid,
   Plus,
   Star,
   Target,
@@ -480,6 +481,7 @@ export function TasksContent() {
       >
         <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain">
           <TabsTrigger value={TASK_VIEW.ALL}>
+            <LayoutGrid className="mr-1.5 size-3.5" />
             All
           </TabsTrigger>
           <TabsTrigger value={TASK_VIEW.INBOX}>
