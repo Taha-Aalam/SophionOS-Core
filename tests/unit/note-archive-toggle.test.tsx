@@ -15,7 +15,7 @@ describe("NoteArchiveToggle", () => {
     );
 
     expect(html).toContain("Archive");
-    expect(html).toContain("group-hover:opacity-100");
+    expect(html).not.toContain("group-hover:opacity-100");
   });
 
   it("renders Restore copy for archived notes in detail mode", () => {

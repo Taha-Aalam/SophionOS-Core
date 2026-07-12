@@ -5,7 +5,7 @@ import { cardGrid } from "@/components/ui/layout";
 import { Folder, Globe, Map as MapIcon, NotebookPen, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { type DashboardStats, GreetingBar } from "@/components/dashboard/greeting-bar";
+import { GreetingBar } from "@/components/dashboard/greeting-bar";
 import { AreaCard } from "@/components/entities/area-card";
 import { AreaDialog } from "@/components/entities/area-dialog";
 import { GoalCard } from "@/components/entities/goal-card";
@@ -54,7 +54,6 @@ import { useTopics } from "@/lib/hooks/use-topics";
 import { SectionHeader } from "@/components/dashboard/section-header";
 import { classifyAreaStatus, getAreaRollups, sortAreasForDisplay } from "@/lib/utils/areas";
 import { NOTE_STATUS, PROJECT_STATUS, RESOURCE_STATUS, TASK_STATUS } from "@/lib/utils/constants";
-import { getLocalDateStart, getWeekStart } from "@/lib/utils/dates";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import {
@@ -216,37 +215,6 @@ export function DashboardContent() {
     [sortedAreas, rollupsByAreaId],
   );
 
-  const stats: DashboardStats = useMemo(
-    () => ({
-      activeAreasCount: activeAreas.length,
-      activeGoalsCount: goalsActive.length,
-      activeProjectsCount: activeProjects.length,
-      remainingTasksCount: todoInProgressTasks.length,
-      remainingNotesCount: toReviewActiveNotes.length,
-      remainingResourcesCount: toReviewActiveResources.length,
-      overdueCount: allTasks.filter(
-        (t) =>
-          !t.is_archived &&
-          !t.is_completed &&
-          t.due_date &&
-          new Date(t.due_date) < new Date(getLocalDateStart()),
-      ).length,
-      completedThisWeek: allTasks.filter(
-        (t) =>
-          t.is_completed && t.completed_at && new Date(t.completed_at) >= new Date(getWeekStart()),
-      ).length,
-    }),
-    [
-      activeAreas,
-      goalsActive,
-      activeProjects,
-      todoInProgressTasks,
-      toReviewActiveNotes,
-      toReviewActiveResources,
-      allTasks,
-    ],
-  );
-
   const isLoading =
     areasLoading ||
     goalsLoading ||
@@ -332,7 +300,7 @@ export function DashboardContent() {
 
   return (
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      <GreetingBar userName={user?.name ?? undefined} stats={stats} />
+      <GreetingBar userName={user?.name ?? undefined} />
 
       {/* Active Areas */}
       <section>

@@ -89,7 +89,7 @@ export function NoteRow({
             "rounded p-1 transition-colors",
             note.pin
               ? "text-primary"
-              : "text-muted-foreground opacity-0 hover:text-primary group-hover:opacity-100",
+              : "text-muted-foreground/40 hover:text-primary",
           )}
           aria-label={note.pin ? "Unpin" : "Pin"}
         >
@@ -192,7 +192,7 @@ export function NoteRow({
           "shrink-0 rounded-md p-1.5 transition-colors",
           note.favorite
             ? "text-amber-500"
-            : "text-muted-foreground/20 opacity-0 hover:text-amber-400 group-hover:opacity-100",
+            : "text-muted-foreground/40 hover:text-amber-400",
         )}
         aria-label={note.favorite ? "Unfavorite" : "Favorite"}
       >
@@ -202,7 +202,7 @@ export function NoteRow({
       {/* Archive / Restore + Delete */}
       {(onArchive || onRestore || onDelete) && (
         <div
-          className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+          className="flex shrink-0 items-center gap-0.5"
           onClick={(e) => e.stopPropagation()}
         >
           {(onArchive || onRestore) && (
