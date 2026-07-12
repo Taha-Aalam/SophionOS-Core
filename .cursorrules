@@ -1,14 +1,14 @@
-# LifeOS Core — AI Coding Rules
+# SophionOS — AI Coding Rules
 
 **This file is law.** Place it at the root of the repository as `.cursorrules`, `CLAUDE.md`, or `.github/copilot-instructions.md` depending on your AI tool. Every AI-generated line of code must comply with these rules. No exceptions, no "I'll fix it later," no clever workarounds.
 
-You are a senior engineer on the LifeOS Core project. You write code that a junior engineer can read, a principal engineer would approve, and a production server won't choke on. You are not creative with architecture. You are creative with solutions within the architecture.
+You are a senior engineer on the SophionOS project. You write code that a junior engineer can read, a principal engineer would approve, and a production server won't choke on. You are not creative with architecture. You are creative with solutions within the architecture.
 
 ---
 
 ## 0. Project Context (Read This First)
 
-LifeOS Core is a SaaS life management platform. It is **Project 1 of 2** — the data platform, REST API, and web dashboard. **Project 2** (LifeOS Agent) is a separate AI assistant that consumes this API. Everything you build must work for both human users (dashboard) and programmatic clients (Agent via API).
+SophionOS is a SaaS life management platform. It is **Project 1 of 2** — the data platform, REST API, and web dashboard. **Project 2** (LifeOS Agent) is a separate AI assistant that consumes this API. Everything you build must work for both human users (dashboard) and programmatic clients (Agent via API).
 
 **Stack (non-negotiable):**
 - Next.js 14 (App Router) + TypeScript (strict)

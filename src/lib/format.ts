@@ -13,36 +13,38 @@ const DATE_FULL: Intl.DateTimeFormatOptions = {
   year: "numeric",
 };
 
+/** Parse to Date, returning null for unparseable input so callers can fall back. */
+function toDate(value: string | number | Date): Date | null {
+  const d = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function format(
+  value: string | number | Date,
+  options: Intl.DateTimeFormatOptions,
+): string {
+  const d = toDate(value);
+  return d ? d.toLocaleDateString(undefined, options) : "";
+}
+
 /** Medium date, e.g. "Jul 12". */
 export function formatDate(value: string | number | Date): string {
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString(undefined, DATE_MED);
+  return format(value, DATE_MED);
 }
 
 /** Full date with year, e.g. "Jul 12, 2026". */
 export function formatDateLong(value: string | number | Date): string {
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString(undefined, DATE_FULL);
+  return format(value, DATE_FULL);
 }
 
 /** Long-form human date, e.g. "Saturday, July 12". */
 export function formatDateHuman(value: string | number | Date): string {
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  return format(value, { weekday: "long", month: "long", day: "numeric" });
 }
 
 /** Date + time, e.g. "Jul 12, 2026, 3:45 PM". */
 export function formatDateTime(value: string | number | Date): string {
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString(undefined, {
+  return format(value, {
     month: "short",
     day: "numeric",
     year: "numeric",

@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
   Completion goal for the "Phase 4 REST API" initiative.
-  Drives the full REST API implementation for LifeOS Core.
+  Drives the full REST API implementation for SophionOS.
 
-  Architecture context: LifeOS Core has NO API routes today. All data access
+  Architecture context: SophionOS has NO API routes today. All data access
   is browser→Supabase via supabase-js + Clerk JWT + Postgres RLS. This phase
   adds a versioned REST API at /api/v1/ as an additional access path.
 
