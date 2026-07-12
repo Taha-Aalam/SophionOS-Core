@@ -79,38 +79,55 @@ export function GoalDetailSection({
     return map;
   }, [tabs]);
 
+  const activeTabCount = tabCountMap.get(activeTab);
+  const showTotal = tabs.some((t) => t.value === activeTab && t.count !== undefined);
+
   return (
     <section id={id} className="scroll-mt-20">
-      {/* Section header */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className={cn("h-5 w-1 rounded-full", accentColor.replace("bg-", "bg-"))} />
-        <h2 className="text-lg font-semibold font-heading capitalize">{heading ?? entityType}</h2>
-        {tabs.find((t) => t.value === activeTab)?.count !== undefined && (
-          <span className="text-sm text-muted-foreground">
-            {tabCountMap.get(activeTab) ?? 0} total
-          </span>
-        )}
-        {onLinkExisting && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={onLinkExisting}
-            className="ml-auto gap-1.5"
-          >
-            <LinkIcon className="size-3.5" />
-            {linkLabel}
-          </Button>
-        )}
-        {onCreateNew && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={onCreateNew}
-            className={cn("gap-1.5", !onLinkExisting && "ml-auto")}
-          >
-            <Plus className="size-3.5" />
-            {createLabel}
-          </Button>
+      {/* Section header — title+accent stay left; actions wrap on mobile so the
+          accent bar (e.g. resources orange) is never squeezed off-screen. */}
+      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex min-w-0 items-center gap-3">
+          {/* shrink-0 + min-w: accent bar must not collapse when action buttons fill the row on mobile */}
+          <div
+            className={cn("h-5 w-1 min-w-1 shrink-0 rounded-full", accentColor)}
+            aria-hidden
+          />
+          <h2 className="min-w-0 truncate text-lg font-semibold font-heading capitalize">
+            {heading ?? entityType}
+          </h2>
+          {/* Totals are desktop-only; hidden below sm (mobile) */}
+          {showTotal && (
+            <span className="hidden text-sm text-muted-foreground sm:inline">
+              {activeTabCount ?? 0} total
+            </span>
+          )}
+        </div>
+        {(onLinkExisting || onCreateNew) && (
+          <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
+            {onLinkExisting && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onLinkExisting}
+                className="gap-1.5"
+              >
+                <LinkIcon className="size-3.5" />
+                {linkLabel}
+              </Button>
+            )}
+            {onCreateNew && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onCreateNew}
+                className="gap-1.5"
+              >
+                <Plus className="size-3.5" />
+                {createLabel}
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
