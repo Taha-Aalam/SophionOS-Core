@@ -424,53 +424,51 @@ export function ResourcesContent() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="flex flex-1 flex-col">
-        <div className="border-b border-border/50 px-6 pt-4">
-          <TabsList className="flex h-auto flex-nowrap gap-0 bg-transparent p-0">
-            <TabsTrigger value={RESOURCE_VIEW.ALL} className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+        <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain">
+          <TabsTrigger value={RESOURCE_VIEW.ALL}>
               All
             </TabsTrigger>
-            <TabsTrigger value={RESOURCE_VIEW.INBOX} className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <TabsTrigger value={RESOURCE_VIEW.INBOX} className="">
               <InboxIcon className="mr-1.5 size-3.5" />
               Inbox
             </TabsTrigger>
-            <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW} className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW} className="">
               <Eye className="mr-1.5 size-3.5" />
               To Review
             </TabsTrigger>
-            <TabsTrigger value={RESOURCE_VIEW.ACTIVE} className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <TabsTrigger value={RESOURCE_VIEW.ACTIVE} className="">
               <Zap className="mr-1.5 size-3.5" />
               Active
             </TabsTrigger>
-            <TabsTrigger value={RESOURCE_VIEW.FAVORITE} className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <TabsTrigger value={RESOURCE_VIEW.FAVORITE} className="">
               <Heart className="mr-1.5 size-3.5" />
               Favorite
             </TabsTrigger>
-            <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC} className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC} className="">
               <Tag className="mr-1.5 size-3.5" />
               By Topic
             </TabsTrigger>
-            <TabsTrigger value={RESOURCE_VIEW.BY_AREA} className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <TabsTrigger value={RESOURCE_VIEW.BY_AREA} className="">
               <LucideMap className="mr-1.5 size-3.5" />
               By Area
             </TabsTrigger>
-            <TabsTrigger value={RESOURCE_VIEW.BY_GOAL} className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <TabsTrigger value={RESOURCE_VIEW.BY_GOAL} className="">
               <Target className="mr-1.5 size-3.5" />
               By Goal
             </TabsTrigger>
-            <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT} className="">
               <Folder className="mr-1.5 size-3.5" />
               By Project
             </TabsTrigger>
-            <TabsTrigger value={RESOURCE_VIEW.COMPLETED} className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <TabsTrigger value={RESOURCE_VIEW.COMPLETED} className="">
               <Bookmark className="mr-1.5 size-3.5" />
               Completed
             </TabsTrigger>
-            <TabsTrigger value={RESOURCE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+            <TabsTrigger value={RESOURCE_VIEW.ARCHIVED} className="">
               <Archive className="mr-1.5 size-3.5" />
               Archived
             </TabsTrigger>
           </TabsList>
-        </div>
 
         <div className="flex items-center gap-3 border-b border-border/30 px-6 py-3">
           <Filter className="size-3.5 shrink-0 text-muted-foreground" />

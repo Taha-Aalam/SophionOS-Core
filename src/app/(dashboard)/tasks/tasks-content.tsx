@@ -478,93 +478,55 @@ export function TasksContent() {
         onValueChange={(value) => setActiveTab(value as TaskView)}
         className="flex flex-1 flex-col"
       >
-        <div className="border-b border-border/50 px-6 pt-4">
-          <TabsList className="flex h-auto flex-nowrap gap-0 bg-transparent p-0">
-            <TabsTrigger
-              value={TASK_VIEW.ALL}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              All
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.INBOX}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <InboxIcon className="mr-1.5 size-3.5" />
-              Inbox
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.UPCOMING}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <Clock className="mr-1.5 size-3.5" />
-              Upcoming
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.OVERDUE}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <AlertTriangle className="mr-1.5 size-3.5" />
-              Overdue
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.FOCUS}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <Star className="mr-1.5 size-3.5" />
-              Focus
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.SMART_PRIORITY}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <Zap className="mr-1.5 size-3.5" />
-              Smart Priority
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.CALENDAR}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <CalendarDays className="mr-1.5 size-3.5" />
-              Calendar
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.BY_AREA}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <Layers className="mr-1.5 size-3.5" />
-              By Area
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.BY_GOAL}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <Target className="mr-1.5 size-3.5" />
-              By Goal
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.BY_PROJECT}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <FolderKanban className="mr-1.5 size-3.5" />
-              By Project
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.COMPLETED}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <CheckSquare className="mr-1.5 size-3.5" />
-              Completed
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.ARCHIVE}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <Archive className="mr-1.5 size-3.5" />
-              Archive
-            </TabsTrigger>
+        <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain">
+          <TabsTrigger value={TASK_VIEW.ALL}>
+            All
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.INBOX}>
+            <InboxIcon className="mr-1.5 size-3.5" />
+            Inbox
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.UPCOMING}>
+            <Clock className="mr-1.5 size-3.5" />
+            Upcoming
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.OVERDUE}>
+            <AlertTriangle className="mr-1.5 size-3.5" />
+            Overdue
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.FOCUS}>
+            <Star className="mr-1.5 size-3.5" />
+            Focus
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.SMART_PRIORITY}>
+            <Zap className="mr-1.5 size-3.5" />
+            Smart Priority
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.CALENDAR}>
+            <CalendarDays className="mr-1.5 size-3.5" />
+            Calendar
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.BY_AREA}>
+            <Layers className="mr-1.5 size-3.5" />
+            By Area
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.BY_GOAL}>
+            <Target className="mr-1.5 size-3.5" />
+            By Goal
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.BY_PROJECT}>
+            <FolderKanban className="mr-1.5 size-3.5" />
+            By Project
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.COMPLETED}>
+            <CheckSquare className="mr-1.5 size-3.5" />
+            Completed
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.ARCHIVE}>
+            <Archive className="mr-1.5 size-3.5" />
+            Archive
+          </TabsTrigger>
           </TabsList>
-        </div>
 
         <div className="flex items-center gap-3 border-b border-border/30 px-6 py-3">
           <Filter className="size-3.5 shrink-0 text-muted-foreground" />
