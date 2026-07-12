@@ -253,12 +253,6 @@ export function DashboardContent() {
             <Skeleton className="h-4 w-48" />
           </div>
         </div>
-        {/* Stat chips */}
-        <div className="flex flex-wrap gap-4">
-          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <Skeleton key={i} className="h-7 w-28 rounded-full" />
-          ))}
-        </div>
         {/* 6 sections matching actual render */}
         {["Active Areas", "Active Goals", "Active Projects", "Active Tasks", "Active Notes", "Active Resources"].map((title, i) => (
           <section key={i}>
@@ -300,7 +294,7 @@ export function DashboardContent() {
 
   return (
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      <GreetingBar userName={user?.name ?? undefined} />
+      <GreetingBar userName={user?.name ?? undefined} activeTaskCount={todoInProgressTasks.length} />
 
       {/* Active Areas */}
       <section>
