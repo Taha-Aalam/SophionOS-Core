@@ -51,6 +51,7 @@ export function ResourcesContent() {
     topicId?: string;
   }>({});
 
+  const [filterStatus, setFilterStatus] = useState<string>("");
   const [filterType, setFilterType] = useState<string>("");
   const [filterAreaIds, setFilterAreaIds] = useState<string[]>([]);
   const [filterGoalIds, setFilterGoalIds] = useState<string[]>([]);
@@ -160,6 +161,10 @@ export function ResourcesContent() {
         break;
     }
 
+    if (filterStatus) {
+      result = result.filter((r) => r.status === filterStatus);
+    }
+
     if (filterType) {
       result = result.filter((r) => r.type === filterType);
     }
@@ -206,6 +211,7 @@ export function ResourcesContent() {
     tab,
     allResources,
     archivedResources,
+    filterStatus,
     filterType,
     filterAreaIds,
     filterGoalIds,
@@ -418,6 +424,7 @@ export function ResourcesContent() {
           </TabsList>
 
         <ResourcesFilterBar
+          status={filterStatus}
           type={filterType}
           areaIds={filterAreaIds}
           goalIds={filterGoalIds}
@@ -429,6 +436,7 @@ export function ResourcesContent() {
           projects={activeProjects}
           tasks={activeTasks}
           topics={activeTopics}
+          onStatusChange={setFilterStatus}
           onTypeChange={setFilterType}
           onAreaIdsChange={setFilterAreaIds}
           onGoalIdsChange={setFilterGoalIds}
