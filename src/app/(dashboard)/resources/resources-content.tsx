@@ -424,7 +424,7 @@ export function ResourcesContent() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="flex flex-1 flex-col">
-        <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain">
+        <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value={RESOURCE_VIEW.ALL}>
               <LayoutGrid className="mr-1.5 size-3.5" />
               All
