@@ -55,13 +55,6 @@ export default function DashboardLoading() {
         </div>
       </div>
 
-      {/* Stat chips */}
-      <div className="flex flex-wrap gap-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-7 w-28 rounded-full" />
-        ))}
-      </div>
-
       {/* Active Areas */}
       <section className="flex flex-col gap-4">
         <SectionHeaderSkeleton />
