@@ -9,7 +9,7 @@ export const NOTES_RELATION_BADGE_CLASS_NAME =
 export const NOTES_RELATION_BADGE_LIMIT_CLASS_NAME = "text-2xs";
 
 export const NOTES_ROW_ACTION_BUTTON_CLASS_NAME =
-  "rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 hover:text-foreground";
+  "rounded p-1 text-muted-foreground transition-colors hover:text-foreground";
 
 export const NOTES_SEARCH_PLACEHOLDER = "Search...";
 export const NOTES_LOADING_LABEL = "Loading notes...";

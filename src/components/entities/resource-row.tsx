@@ -173,16 +173,16 @@ export function ResourceRow({
           "shrink-0 rounded-md p-1.5 transition-colors",
           resource.favorite
             ? "text-amber-500"
-            : "text-muted-foreground/20 opacity-0 hover:text-amber-400 group-hover:opacity-100",
+            : "text-muted-foreground/40 hover:text-amber-400",
         )}
         aria-label={resource.favorite ? "Unfavorite" : "Favorite"}
       >
         <Star className={cn("size-3.5", resource.favorite && "fill-current")} />
       </button>
 
-      {/* Action buttons — Edit, Archive, Delete (hover-only) */}
+      {/* Action buttons — Edit, Archive, Delete */}
       <div
-        className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+        className="flex shrink-0 items-center gap-0.5"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Edit */}

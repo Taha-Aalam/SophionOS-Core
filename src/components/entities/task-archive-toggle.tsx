@@ -29,7 +29,7 @@ export function TaskArchiveToggle({
         size="sm"
         {...buttonProps}
         className={cn(
-          "rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 hover:text-foreground",
+          "rounded p-1 text-muted-foreground transition-colors hover:text-foreground",
           className,
         )}
         title={label}
