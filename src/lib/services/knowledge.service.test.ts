@@ -3,12 +3,15 @@ import { describe, it, expect, vi } from "vitest";
 // Build a recording supabase client that captures the filter args passed to
 // `.ilike()` / `.or()` on each table, then returns empty rows.
 function makeRecordingClient() {
-  const calls: Record<string, { ilike?: [string, string]; or?: string }> = {};
+  const calls: Record<string, { ilike?: [string, string]; or?: string; select?: string }> = {};
   const makeChain = (table: string) => {
-    const rec: { ilike?: [string, string]; or?: string } = {};
+    const rec: { ilike?: [string, string]; or?: string; select?: string } = calls[table] ?? {};
     calls[table] = rec;
     const chain: Record<string, unknown> = {
-      select: () => chain,
+      select: (s: string) => {
+        rec.select = s;
+        return chain;
+      },
       eq: () => chain,
       ilike: (col: string, val: string) => {
         rec.ilike = [col, val];
@@ -32,18 +35,20 @@ function makeRecordingClient() {
 import { knowledgeService } from "@/lib/services/knowledge.service";
 
 describe("knowledgeService.search", () => {
-  it("uses `*` wildcards so the gateway's double percent-decode can't break ILIKE", async () => {
+  it("builds ILIKE filters with % wildcards and never requests dropped resource columns", async () => {
     const { client, calls } = makeRecordingClient();
     await knowledgeService.search("user-1", "react", { supabase: client as never });
 
     // Notes + topics use `.ilike(name, ...)` directly.
-    expect(calls.notes?.ilike?.[1]).toBe("*react*");
-    expect(calls.topics?.ilike?.[1]).toBe("*react*");
+    expect(calls.notes?.ilike?.[1]).toBe("%react%");
+    expect(calls.topics?.ilike?.[1]).toBe("%react%");
     // Resources combine name + url via `.or(...)`.
-    expect(calls.resources?.or).toBe("name.ilike.*react*,url.ilike.*react*");
-    // No `%` wildcards anywhere — those get mangled by the live gateway.
-    const allArgs = JSON.stringify(calls);
-    expect(allArgs).not.toContain("%react%");
+    expect(calls.resources?.or).toBe("name.ilike.%react%,url.ilike.%react%");
+    // The resource select must not reference columns the table no longer has
+    // (project_id/slug/pin were moved to junction tables), or the whole query 42703s.
+    expect(calls.resources?.select).not.toContain("project_id");
+    expect(calls.resources?.select).not.toContain("slug");
+    expect(calls.resources?.select).not.toContain("pin");
   });
 
   it("returns empty results for a blank query without hitting the db", async () => {
