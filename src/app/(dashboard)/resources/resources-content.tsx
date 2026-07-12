@@ -54,6 +54,7 @@ export function ResourcesContent() {
   const [filterType, setFilterType] = useState<string>("");
   const [filterAreaIds, setFilterAreaIds] = useState<string[]>([]);
   const [filterGoalIds, setFilterGoalIds] = useState<string[]>([]);
+  const [filterProjectIds, setFilterProjectIds] = useState<string[]>([]);
   const [filterTaskIds, setFilterTaskIds] = useState<string[]>([]);
   const [filterTopicIds, setFilterTopicIds] = useState<string[]>([]);
 
@@ -120,6 +121,10 @@ export function ResourcesContent() {
 
   const activeAreas = useMemo(() => areas.filter((area) => !area.archive), [areas]);
   const activeGoals = useMemo(() => goals.filter((goal) => !goal.is_archived), [goals]);
+  const activeProjects = useMemo(
+    () => projects.filter((project) => !project.is_archived),
+    [projects],
+  );
   const activeTasks = useMemo(() => tasks.filter((task) => !task.is_archived), [tasks]);
   const activeTopics = useMemo(() => topics.filter((topic) => !topic.inactive), [topics]);
 
@@ -175,6 +180,13 @@ export function ResourcesContent() {
       });
     }
 
+    if (filterProjectIds.length > 0) {
+      result = result.filter((r) => {
+        const linked = getResourceLinkedProjectIds(r);
+        return filterProjectIds.some((id) => linked.includes(id));
+      });
+    }
+
     if (filterTaskIds.length > 0) {
       result = result.filter((r) => {
         const linked = r.linkedTaskIds ?? [];
@@ -197,6 +209,7 @@ export function ResourcesContent() {
     filterType,
     filterAreaIds,
     filterGoalIds,
+    filterProjectIds,
     filterTaskIds,
     filterTopicIds,
   ]);
@@ -408,15 +421,18 @@ export function ResourcesContent() {
           type={filterType}
           areaIds={filterAreaIds}
           goalIds={filterGoalIds}
+          projectIds={filterProjectIds}
           taskIds={filterTaskIds}
           topicIds={filterTopicIds}
           areas={activeAreas}
           goals={activeGoals}
+          projects={activeProjects}
           tasks={activeTasks}
           topics={activeTopics}
           onTypeChange={setFilterType}
           onAreaIdsChange={setFilterAreaIds}
           onGoalIdsChange={setFilterGoalIds}
+          onProjectIdsChange={setFilterProjectIds}
           onTaskIdsChange={setFilterTaskIds}
           onTopicIdsChange={setFilterTopicIds}
         />

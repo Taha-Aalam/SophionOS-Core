@@ -3,6 +3,7 @@
 import {
   CheckSquare,
   FileType,
+  FolderKanban,
   Layers,
   Tag,
   Target,
@@ -27,15 +28,18 @@ export type ResourcesFilterBarProps = {
   type: string;
   areaIds: string[];
   goalIds: string[];
+  projectIds: string[];
   taskIds: string[];
   topicIds: string[];
   areas: NamedOption[];
   goals: NamedOption[];
+  projects: NamedOption[];
   tasks: NamedOption[];
   topics: NamedOption[];
   onTypeChange: (value: string) => void;
   onAreaIdsChange: (ids: string[]) => void;
   onGoalIdsChange: (ids: string[]) => void;
+  onProjectIdsChange: (ids: string[]) => void;
   onTaskIdsChange: (ids: string[]) => void;
   onTopicIdsChange: (ids: string[]) => void;
 };
@@ -44,15 +48,18 @@ export function ResourcesFilterBar({
   type,
   areaIds,
   goalIds,
+  projectIds,
   taskIds,
   topicIds,
   areas,
   goals,
+  projects,
   tasks,
   topics,
   onTypeChange,
   onAreaIdsChange,
   onGoalIdsChange,
+  onProjectIdsChange,
   onTaskIdsChange,
   onTopicIdsChange,
 }: ResourcesFilterBarProps) {
@@ -91,6 +98,13 @@ export function ResourcesFilterBar({
         options: goals.map((g) => ({ value: g.id, label: g.name })),
       },
       {
+        type: "project",
+        label: "Project",
+        icon: <FolderKanban className="size-3.5" />,
+        selection: "multi",
+        options: projects.map((p) => ({ value: p.id, label: p.name })),
+      },
+      {
         type: "task",
         label: "Task",
         icon: <CheckSquare className="size-3.5" />,
@@ -105,7 +119,7 @@ export function ResourcesFilterBar({
         options: topics.map((t) => ({ value: t.id, label: t.name })),
       },
     ],
-    [areas, goals, tasks, topics],
+    [areas, goals, projects, tasks, topics],
   );
 
   const filters = useMemo(
@@ -114,16 +128,18 @@ export function ResourcesFilterBar({
         { type: "type", value: type ? [type] : [], selection: "single" },
         { type: "area", value: areaIds },
         { type: "goal", value: goalIds },
+        { type: "project", value: projectIds },
         { type: "task", value: taskIds },
         { type: "topic", value: topicIds },
       ]),
-    [type, areaIds, goalIds, taskIds, topicIds],
+    [type, areaIds, goalIds, projectIds, taskIds, topicIds],
   );
 
   const handleChange = (next: LinearFilter[]) => {
     onTypeChange(filterSingle(next, "type"));
     onAreaIdsChange(filterValues(next, "area"));
     onGoalIdsChange(filterValues(next, "goal"));
+    onProjectIdsChange(filterValues(next, "project"));
     onTaskIdsChange(filterValues(next, "task"));
     onTopicIdsChange(filterValues(next, "topic"));
   };
