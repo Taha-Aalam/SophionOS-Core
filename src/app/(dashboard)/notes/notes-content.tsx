@@ -11,6 +11,7 @@ import {
   Filter,
   FolderOpen,
   Inbox as InboxIcon,
+  LayoutGrid,
   Map as LucideMap,
   NotebookPen,
   Pin,
@@ -474,6 +475,7 @@ export function NotesContent() {
       >
         <TabsList className={NOTES_TABS_LIST_CLASS_NAME}>
           <TabsTrigger value={NOTE_VIEW.ALL} className={compactTabTriggerClassName}>
+              <LayoutGrid className="mr-1.5 size-3.5" />
               All
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.INBOX} className={compactTabTriggerClassName}>
