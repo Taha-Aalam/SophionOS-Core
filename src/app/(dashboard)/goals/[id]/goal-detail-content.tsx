@@ -61,6 +61,7 @@ const KanbanBoard = dynamic(
 );
 
 import { Separator } from "@/components/ui/separator";
+import ProgressRing from "@/components/charts/progress-ring";
 import { useAreas } from "@/lib/hooks/use-areas";
 import {
   useContacts,
@@ -1181,10 +1182,16 @@ export function GoalDetailContent() {
 
       {/* Properties Header */}
       <div className="rounded-xl border bg-card">
-        <div className="flex items-start justify-between gap-4 p-6">
-          <div className="flex items-start gap-4">
-            {/* Progress Ring */}
-            <div className="relative flex items-center justify-center">
+        <div className="flex items-start justify-between gap-3 p-4 sm:gap-4 sm:p-6">
+          <div className="flex items-start gap-2 sm:gap-4 min-w-0">
+            {/* Progress ring — mobile matches GoalCard (48/4); desktop keeps detail scale */}
+            <ProgressRing
+              percentage={goalProgressPercent}
+              size={48}
+              strokeWidth={4}
+              className="shrink-0 sm:hidden"
+            />
+            <div className="relative hidden items-center justify-center sm:flex">
               <svg width="80" height="80" className="transform -rotate-90">
                 <circle
                   cx="40"
@@ -1211,12 +1218,14 @@ export function GoalDetailContent() {
               <span className="absolute text-sm font-bold">{goalProgressPercent}%</span>
             </div>
 
-            <div className="space-y-2">
-              {/* Title */}
-              <h1 className="text-3xl font-bold tracking-tight font-heading">{goal.name}</h1>
+            <div className="min-w-0 space-y-1.5 sm:space-y-2">
+              {/* Title — mobile matches GoalCard (text-sm font-medium); desktop keeps detail scale */}
+              <h1 className="truncate text-sm font-medium tracking-tight font-heading sm:text-3xl sm:font-bold sm:overflow-visible sm:whitespace-normal">
+                {goal.name}
+              </h1>
 
               {/* Badges row */}
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 {getGoalLinkedAreaIds(goal).map((areaId) => {
                   const area = areas.find((a) => a.id === areaId);
                   if (!area) return null;
@@ -1252,11 +1261,11 @@ export function GoalDetailContent() {
               {dueState && (
                 <div
                   className={cn(
-                    "flex items-center gap-1.5 text-sm",
+                    "flex items-center gap-1.5 text-xs sm:text-sm",
                     dueState.isOverdue && "text-destructive font-medium",
                   )}
                 >
-                  <Calendar className="size-3.5" />
+                  <Calendar className="size-3 sm:size-3.5" />
                   {dueState.text}
                 </div>
               )}
@@ -1267,7 +1276,7 @@ export function GoalDetailContent() {
             variant="ghost"
             size="sm"
             onClick={() => setIsPropertiesOpen(!isPropertiesOpen)}
-            className="gap-1"
+            className="gap-1 shrink-0 text-xs sm:text-sm"
           >
             Properties
             {isPropertiesOpen ? (
@@ -1278,9 +1287,48 @@ export function GoalDetailContent() {
           </Button>
         </div>
 
-        {/* Goal Activity Rollups */}
-        <div className="flex flex-wrap items-center gap-4 px-6 pb-4">
+        {/* Goal Activity Rollups — mobile: emoji + count (GoalCard); desktop: bubble chips */}
+        <div className="flex flex-wrap items-center gap-4 px-4 pb-4 text-sm text-muted-foreground sm:hidden">
           <button
+            type="button"
+            onClick={() => scrollToSection("projects")}
+            className="flex items-center gap-1 transition-colors hover:text-foreground"
+            title="Projects"
+          >
+            <span className="text-xs">📁</span>
+            <span>{goal?.projectCount ?? 0}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection("tasks")}
+            className="flex items-center gap-1 transition-colors hover:text-foreground"
+            title="Tasks"
+          >
+            <span className="text-xs">☑️</span>
+            <span>{goal?.taskCount ?? 0}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection("notes")}
+            className="flex items-center gap-1 transition-colors hover:text-foreground"
+            title="Notes"
+          >
+            <span className="text-xs">📝</span>
+            <span>{goal?.noteCount ?? 0}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection("resources")}
+            className="flex items-center gap-1 transition-colors hover:text-foreground"
+            title="Resources"
+          >
+            <span className="text-xs">🔗</span>
+            <span>{goal?.resourceCount ?? 0}</span>
+          </button>
+        </div>
+        <div className="hidden flex-wrap items-center gap-4 px-6 pb-4 sm:flex">
+          <button
+            type="button"
             onClick={() => scrollToSection("projects")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -1290,6 +1338,7 @@ export function GoalDetailContent() {
             <span className="text-muted-foreground">Projects</span>
           </button>
           <button
+            type="button"
             onClick={() => scrollToSection("tasks")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -1299,6 +1348,7 @@ export function GoalDetailContent() {
             <span className="text-muted-foreground">Tasks</span>
           </button>
           <button
+            type="button"
             onClick={() => scrollToSection("notes")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -1308,6 +1358,7 @@ export function GoalDetailContent() {
             <span className="text-muted-foreground">Notes</span>
           </button>
           <button
+            type="button"
             onClick={() => scrollToSection("resources")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -1322,7 +1373,7 @@ export function GoalDetailContent() {
         {isPropertiesOpen && (
           <>
             <Separator />
-            <div className="space-y-4 p-6">
+            <div className="space-y-4 p-4 sm:p-6">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
                 {/* Areas */}
                 <div>
@@ -1333,7 +1384,7 @@ export function GoalDetailContent() {
                         <Badge
                           key={area.id}
                           variant="secondary"
-                          className="flex items-center gap-1"
+                          className="flex items-center gap-1 text-xs sm:text-sm"
                         >
                           {area.icon ? `${area.icon} ` : ""}
                           {area.name}
@@ -1356,7 +1407,9 @@ export function GoalDetailContent() {
                 {/* Term */}
                 <div>
                   <Label className="text-xs text-muted-foreground">Term</Label>
-                  <p className="mt-1 font-medium">{TERM_LABELS[goal.term] ?? goal.term}</p>
+                  <p className="mt-1 text-sm font-medium sm:text-base">
+                    {TERM_LABELS[goal.term] ?? goal.term}
+                  </p>
                 </div>
                 {/* Priority */}
                 <div>
@@ -1378,7 +1431,10 @@ export function GoalDetailContent() {
                       }
                     }}
                     min={new Date().toISOString().slice(0, 10)}
-                    className={cn("mt-1 font-medium", dueState?.isOverdue && "text-destructive")}
+                    className={cn(
+                      "mt-1 text-sm font-medium sm:text-base",
+                      dueState?.isOverdue && "text-destructive",
+                    )}
                   />
                 </div>
               </div>

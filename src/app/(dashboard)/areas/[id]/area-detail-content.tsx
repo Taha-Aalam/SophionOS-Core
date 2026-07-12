@@ -987,19 +987,19 @@ export function AreaDetailContent() {
 
       {/* Properties Header */}
       <div className="rounded-xl border bg-card">
-        <div className="flex items-start justify-between gap-4 p-6">
-          <div className="flex items-start gap-4">
-            {/* Area Icon */}
+        <div className="flex items-start justify-between gap-3 p-4 sm:gap-4 sm:p-6">
+          <div className="flex items-start gap-2 sm:gap-4 min-w-0">
+            {/* Area Icon — mobile matches AreaCard (w-10/text-lg); desktop keeps detail scale */}
             {area.icon ? (
               <div
-                className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl shrink-0"
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0 sm:w-16 sm:h-16 sm:rounded-xl sm:text-2xl"
                 style={{ backgroundColor: area.color ? `color-mix(in srgb, ${area.color} 20%, transparent)` : "var(--muted)" }}
               >
                 {area.icon}
               </div>
             ) : (
               <div
-                className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl shrink-0 font-bold"
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0 font-bold sm:w-16 sm:h-16 sm:rounded-xl sm:text-2xl"
                 style={{
                   backgroundColor: area.color ? `color-mix(in srgb, ${area.color} 20%, transparent)` : "var(--muted)",
                   color: area.color || "var(--foreground)",
@@ -1009,12 +1009,14 @@ export function AreaDetailContent() {
               </div>
             )}
 
-            <div className="space-y-2">
-              {/* Title */}
-              <h1 className="text-3xl font-bold tracking-tight font-heading">{area.name}</h1>
+            <div className="min-w-0 space-y-1.5 sm:space-y-2">
+              {/* Title — mobile matches AreaCard (font-medium); desktop keeps detail scale */}
+              <h1 className="text-base font-medium tracking-tight font-heading truncate sm:text-3xl sm:font-bold sm:overflow-visible sm:whitespace-normal">
+                {area.name}
+              </h1>
 
               {/* Badges row */}
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <Badge variant="secondary" className={cn("text-xs", AREA_TYPE_COLORS[areaType.toLowerCase()] ?? AREA_TYPE_FALLBACK)}>
                   {areaType}
                 </Badge>
@@ -1032,7 +1034,7 @@ export function AreaDetailContent() {
 
               {/* Description */}
               {area.description && (
-                <p className="text-sm text-muted-foreground">{area.description}</p>
+                <p className="text-xs text-muted-foreground sm:text-sm">{area.description}</p>
               )}
             </div>
           </div>
@@ -1041,7 +1043,7 @@ export function AreaDetailContent() {
             variant="ghost"
             size="sm"
             onClick={() => setIsPropertiesOpen(!isPropertiesOpen)}
-            className="gap-1"
+            className="gap-1 shrink-0 text-xs sm:text-sm"
           >
             Properties
             {isPropertiesOpen ? (
@@ -1052,9 +1054,57 @@ export function AreaDetailContent() {
           </Button>
         </div>
 
-        {/* Activity Rollups */}
-        <div className="flex flex-wrap items-center gap-4 px-6 pb-4">
+        {/* Activity Rollups — mobile: emoji + count (AreaCard); desktop: bubble chips */}
+        <div className="flex flex-wrap items-center gap-4 px-4 pb-4 text-sm text-muted-foreground sm:hidden">
           <button
+            type="button"
+            onClick={() => scrollToSection("goals")}
+            className="flex items-center gap-1 transition-colors hover:text-foreground"
+            title="Goals"
+          >
+            <span className="text-xs">🎯</span>
+            <span>{rollups.goalCount}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection("projects")}
+            className="flex items-center gap-1 transition-colors hover:text-foreground"
+            title="Projects"
+          >
+            <span className="text-xs">📁</span>
+            <span>{rollups.projectCount}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection("tasks")}
+            className="flex items-center gap-1 transition-colors hover:text-foreground"
+            title="Tasks"
+          >
+            <span className="text-xs">☑️</span>
+            <span>{rollups.taskCount}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection("notes")}
+            className="flex items-center gap-1 transition-colors hover:text-foreground"
+            title="Notes"
+          >
+            <span className="text-xs">📝</span>
+            <span>{rollups.noteCount}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection("resources")}
+            className="flex items-center gap-1 transition-colors hover:text-foreground"
+            title="Resources"
+          >
+            <span className="text-xs">🔗</span>
+            <span>{rollups.resourceCount}</span>
+          </button>
+        </div>
+        <div className="hidden flex-wrap items-center gap-4 px-6 pb-4 sm:flex">
+          <button
+            type="button"
             onClick={() => scrollToSection("goals")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -1064,6 +1114,7 @@ export function AreaDetailContent() {
             <span className="text-muted-foreground">Goals</span>
           </button>
           <button
+            type="button"
             onClick={() => scrollToSection("projects")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -1073,6 +1124,7 @@ export function AreaDetailContent() {
             <span className="text-muted-foreground">Projects</span>
           </button>
           <button
+            type="button"
             onClick={() => scrollToSection("tasks")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -1082,6 +1134,7 @@ export function AreaDetailContent() {
             <span className="text-muted-foreground">Tasks</span>
           </button>
           <button
+            type="button"
             onClick={() => scrollToSection("notes")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -1091,6 +1144,7 @@ export function AreaDetailContent() {
             <span className="text-muted-foreground">Notes</span>
           </button>
           <button
+            type="button"
             onClick={() => scrollToSection("resources")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -1105,22 +1159,22 @@ export function AreaDetailContent() {
         {isPropertiesOpen && (
           <>
             <Separator />
-            <div className="space-y-4 p-6">
+            <div className="space-y-4 p-4 sm:p-6">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
                 {/* Type */}
                 <div>
                   <Label className="text-xs text-muted-foreground">Type</Label>
-                  <p className="mt-1 font-medium">{areaType}</p>
+                  <p className="mt-1 text-sm font-medium sm:text-base">{areaType}</p>
                 </div>
                 {/* Status */}
                 <div>
                   <Label className="text-xs text-muted-foreground">Status</Label>
-                  <p className="mt-1 font-medium">{STATUS_LABELS[areaStatus]}</p>
+                  <p className="mt-1 text-sm font-medium sm:text-base">{STATUS_LABELS[areaStatus]}</p>
                 </div>
                 {/* Icon */}
                 <div>
                   <Label className="text-xs text-muted-foreground">Icon</Label>
-                  <p className="mt-1 font-medium">{area.icon || "None"}</p>
+                  <p className="mt-1 text-sm font-medium sm:text-base">{area.icon || "None"}</p>
                 </div>
                 {/* Color */}
                 <div>
@@ -1132,7 +1186,7 @@ export function AreaDetailContent() {
                         style={{ backgroundColor: area.color }}
                       />
                     )}
-                    <span className="font-medium">{area.color || "None"}</span>
+                    <span className="text-sm font-medium sm:text-base">{area.color || "None"}</span>
                   </div>
                 </div>
               </div>
