@@ -39,7 +39,11 @@ export const knowledgeService = {
       };
     }
 
-    const p = `%${q}%`;
+    // Use `*` wildcards, not `%`. The live Supabase gateway double
+    // percent-decodes the query string, so `%25…%25` arrives as `%…%` and then
+    // re-decodes to garbage, making ILIKE match nothing. PostgREST maps `*`
+    // to `%` server-side, sidestepping the double-decode entirely.
+    const p = `*${q}*`;
 
     const [nr, rr, tr] = await Promise.all([
       sb
