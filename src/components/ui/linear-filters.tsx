@@ -116,8 +116,11 @@ function FilterValueCombobox({
           <span className="truncate">{displayLabel}</span>
         </div>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[220px] p-0">
-        <Command>
+      <PopoverContent
+        align="start"
+        className="w-max min-w-[12rem] max-w-[min(90vw,32rem)] p-0"
+      >
+        <Command className="h-auto w-max min-w-[12rem] max-w-[min(90vw,32rem)]">
           <CommandInput
             placeholder={config.label}
             value={query}
@@ -141,7 +144,7 @@ function FilterValueCombobox({
                   >
                     {isMulti ? <Checkbox checked /> : null}
                     {opt.icon}
-                    <span className="truncate">{opt.label}</span>
+                    <span className="whitespace-nowrap">{opt.label}</span>
                     {!isMulti ? <Check className="ml-auto size-3.5 opacity-100" /> : null}
                   </CommandItem>
                 ))}
@@ -168,7 +171,7 @@ function FilterValueCombobox({
                       <Checkbox checked={false} className="opacity-50" />
                     ) : null}
                     {opt.icon}
-                    <span className="truncate">{opt.label}</span>
+                    <span className="whitespace-nowrap">{opt.label}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>
@@ -220,8 +223,11 @@ function AddFilterButton({
         <ListFilter className="size-3.5" />
         Filter
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[220px] p-0">
-        <Command>
+      <PopoverContent
+        align="start"
+        className="w-max min-w-[12rem] max-w-[min(90vw,32rem)] p-0"
+      >
+        <Command className="h-auto w-max min-w-[12rem] max-w-[min(90vw,32rem)]">
           <CommandInput
             placeholder={selectedType ? activeConfig?.label ?? "Filter..." : "Filter..."}
             value={query}
@@ -248,7 +254,7 @@ function AddFilterButton({
                       }}
                     >
                       {type.icon}
-                      <span>{type.label}</span>
+                      <span className="whitespace-nowrap">{type.label}</span>
                     </CommandItem>
                   ))
                 )}
@@ -266,7 +272,7 @@ function AddFilterButton({
                     }}
                   >
                     {opt.icon}
-                    <span className="truncate">{opt.label}</span>
+                    <span className="whitespace-nowrap">{opt.label}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>
