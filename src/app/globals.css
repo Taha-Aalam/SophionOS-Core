@@ -261,6 +261,29 @@
     animation: var(--animate-shimmer);
   }
 
+  /* Fixed, brand-tinted grain layer. One subtle noise pass breaks the
+     digital flatness of solid surfaces without disturbing the calm indigo
+     palette. pointer-events-none keeps it inert; reduced-motion hides it.
+     z-10 keeps it above page surfaces but below z-50 modal portals. */
+  .grain-overlay {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    opacity: 0.035;
+    mix-blend-mode: soft-light;
+    background-size: 160px 160px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .dark .grain-overlay {
+    opacity: 0.05;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .grain-overlay {
+      display: none;
+    }
+  }
+
   /* Content fade-in: for content appearing after skeleton removal. */
   .content-fade-in {
     animation: var(--animate-fade-in);

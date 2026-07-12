@@ -32,6 +32,22 @@ export const metadata: Metadata = {
   title: "SophionOS Core",
   description: "SaaS Life Management Platform",
   manifest: "/manifest.webmanifest",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://sophionos.com"),
+  openGraph: {
+    title: "SophionOS Core",
+    description: "One calm system for your whole life.",
+    type: "website",
+    siteName: "SophionOS Core",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SophionOS Core",
+    description: "One calm system for your whole life.",
+  },
+  icons: {
+    icon: [{ url: "/icons/icon-192.png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -40,7 +56,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#4f46e5",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fcfcfd" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
@@ -69,6 +88,7 @@ export default function RootLayout({
           </QueryProvider>
         </ClerkProvider>
         </PostHogProvider>
+        <div className="grain-overlay" aria-hidden="true" />
         <Analytics />
         <SpeedInsights />
       </body>
