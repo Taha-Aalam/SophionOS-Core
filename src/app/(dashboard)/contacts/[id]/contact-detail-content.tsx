@@ -358,81 +358,118 @@ export function ContactDetailContent() {
 
         {/* Main card */}
         <div className="rounded-xl border bg-card">
-          {/* Header with avatar, name, role, and actions */}
-          <div className="flex items-start gap-4 p-6">
-            {/* Avatar */}
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center shrink-0 ring-2 ring-border overflow-hidden relative">
+          {/* Header with avatar, name, role, and actions.
+              Mobile sizes match ContactCard; sm+ keeps detail scale. */}
+          <div className="flex items-start gap-3 p-4 sm:gap-4 sm:p-6">
+            {/* Avatar — mobile: ContactCard (w-10); desktop: detail (w-16) */}
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted ring-1 ring-border sm:h-16 sm:w-16 sm:ring-2">
               {contact.image_display_url ? (
                 <Image src={contact.image_display_url} alt={contact.name} fill className="object-cover" unoptimized />
               ) : (
-                <span className="text-2xl font-semibold text-muted-foreground">
+                <span className="text-sm font-semibold text-muted-foreground sm:text-2xl">
                   {contact.name.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
 
             {/* Name and role */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold tracking-tight font-heading truncate">{contact.name}</h1>
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
+                <h1 className="truncate font-heading text-base font-medium tracking-tight sm:text-2xl sm:font-bold">
+                  {contact.name}
+                </h1>
                 {contact.group && (
-                  <Badge variant="secondary">{contact.group}</Badge>
+                  <Badge variant="secondary" className="text-2xs sm:text-xs">
+                    {contact.group}
+                  </Badge>
                 )}
               </div>
               {(contact.role || contact.organization) && (
-                <p className="text-sm text-muted-foreground mt-0.5">
+                <p className="mt-0.5 truncate text-sm text-muted-foreground">
                   {[contact.role, contact.organization].filter(Boolean).join(" · ")}
                 </p>
               )}
 
-              {/* Contact info row */}
-              <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
+              {/* Contact info row — mobile: ContactCard text-xs; desktop: text-sm */}
+              <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground sm:text-sm">
                 {contact.email && (
                   <a href={`mailto:${contact.email}`} className="flex items-center gap-1 hover:text-foreground">
-                    <Mail className="size-3.5" />
+                    <Mail className="size-3 sm:size-3.5" />
                     {contact.email}
                   </a>
                 )}
                 {contact.phone && (
                   <a href={`tel:${contact.phone}`} className="flex items-center gap-1 hover:text-foreground">
-                    <Phone className="size-3.5" />
+                    <Phone className="size-3 sm:size-3.5" />
                     {contact.phone}
                   </a>
                 )}
               </div>
             </div>
 
-            {/* Action buttons */}
-            <div className="flex items-center gap-1 shrink-0">
+            {/* Action buttons — mobile: icon-sm + row delete like ContactCard; desktop unchanged */}
+            <div className="flex shrink-0 items-center gap-1">
               <Button
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
+                className="sm:size-8"
                 onClick={handleToggleFavorite}
                 title={contact.favorite ? "Remove from favorites" : "Add to favorites"}
+                aria-label={contact.favorite ? "Remove from favorites" : "Add to favorites"}
               >
-                <Star className={`size-4 ${contact.favorite ? "fill-yellow-400 text-yellow-400" : ""}`} />
+                <Star className={`size-3.5 sm:size-4 ${contact.favorite ? "fill-yellow-400 text-yellow-400" : ""}`} />
               </Button>
-              <Button variant="ghost" size="icon" onClick={handleEdit} title="Edit contact">
-                <Edit className="size-4" />
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="sm:size-8"
+                onClick={handleEdit}
+                title="Edit contact"
+                aria-label="Edit contact"
+              >
+                <Edit className="size-3.5 sm:size-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={handleArchive} title={contact.archive ? "Unarchive" : "Archive"}>
-                {contact.archive ? <RotateCcw className="size-4" /> : <Archive className="size-4" />}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="sm:size-8"
+                onClick={handleArchive}
+                title={contact.archive ? "Unarchive" : "Archive"}
+                aria-label={contact.archive ? "Unarchive" : "Archive"}
+              >
+                {contact.archive ? (
+                  <RotateCcw className="size-3.5 sm:size-4" />
+                ) : (
+                  <Archive className="size-3.5 sm:size-4" />
+                )}
               </Button>
-              <DeleteEntityPopover
-                variant="detail"
-                entityLabel="contact"
-                entityName={contact.name}
-                requireTypedConfirmation={false}
-                disabled={deleteContact.isPending}
-                onConfirm={() => handleDelete()}
-              />
+              <div className="sm:hidden">
+                <DeleteEntityPopover
+                  variant="row"
+                  entityLabel="contact"
+                  entityName={contact.name}
+                  requireTypedConfirmation={false}
+                  disabled={deleteContact.isPending}
+                  onConfirm={() => handleDelete()}
+                />
+              </div>
+              <div className="hidden sm:block">
+                <DeleteEntityPopover
+                  variant="detail"
+                  entityLabel="contact"
+                  entityName={contact.name}
+                  requireTypedConfirmation={false}
+                  disabled={deleteContact.isPending}
+                  onConfirm={() => handleDelete()}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Stats row */}
-          <div className="flex gap-3 border-t px-6 py-3">
-            <div className="flex-1 rounded-md border bg-muted/40 px-3 py-2">
-              <p className="text-2xs text-muted-foreground uppercase tracking-wide mb-0.5">Last log</p>
+          {/* Stats row — bubble content matches ContactCard; tighter mobile padding */}
+          <div className="flex gap-2 border-t px-4 py-2.5 sm:gap-3 sm:px-6 sm:py-3">
+            <div className="flex-1 rounded-md border bg-muted/40 px-2.5 py-1.5 sm:px-3 sm:py-2">
+              <p className="mb-0.5 text-2xs uppercase tracking-wide text-muted-foreground">Last log</p>
               <p className="text-xs font-medium">
                 {contact.last_interaction_at
                   ? (() => {
@@ -442,8 +479,8 @@ export function ContactDetailContent() {
                   : "Never"}
               </p>
             </div>
-            <div className="flex-1 rounded-md border bg-muted/40 px-3 py-2">
-              <p className="text-2xs text-muted-foreground uppercase tracking-wide mb-0.5">Follow-up</p>
+            <div className="flex-1 rounded-md border bg-muted/40 px-2.5 py-1.5 sm:px-3 sm:py-2">
+              <p className="mb-0.5 text-2xs uppercase tracking-wide text-muted-foreground">Follow-up</p>
               {(() => {
                 const daysUntil = contactService.computeDaysUntilFollowUp(
                   contact.last_interaction_at,
@@ -481,47 +518,47 @@ export function ContactDetailContent() {
         {/* Tab content */}
         {activeTab === "details" && (
           <div className="space-y-6">
-            {/* Properties section — always open */}
+            {/* Properties section — always open; mobile type matches card/header scale */}
             <div className="rounded-xl border bg-card">
-              <div className="px-6 py-4">
+              <div className="px-4 py-3 sm:px-6 sm:py-4">
                 <h2 className="text-sm font-semibold">Properties</h2>
               </div>
-              <div className="border-t px-6 py-4 space-y-3">
-                <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+              <div className="space-y-3 border-t px-4 py-3 sm:px-6 sm:py-4">
+                <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2 sm:gap-4 sm:text-sm">
                   {contact.phone && (
                     <div>
                       <p className="text-muted-foreground">Phone</p>
-                      <p className="font-medium mt-0.5">{contact.phone}</p>
+                      <p className="mt-0.5 font-medium">{contact.phone}</p>
                     </div>
                   )}
                   {contact.email && (
                     <div>
                       <p className="text-muted-foreground">Email</p>
-                      <p className="font-medium mt-0.5">{contact.email}</p>
+                      <p className="mt-0.5 font-medium">{contact.email}</p>
                     </div>
                   )}
                   {contact.organization && (
                     <div>
                       <p className="text-muted-foreground">Organization</p>
-                      <p className="font-medium mt-0.5">{contact.organization}</p>
+                      <p className="mt-0.5 font-medium">{contact.organization}</p>
                     </div>
                   )}
                   {contact.group && (
                     <div>
                       <p className="text-muted-foreground">Group</p>
-                      <p className="font-medium mt-0.5">{contact.group}</p>
+                      <p className="mt-0.5 font-medium">{contact.group}</p>
                     </div>
                   )}
                   {contact.follow_up_interval_days && (
                     <div>
                       <p className="text-muted-foreground">Follow-up interval</p>
-                      <p className="font-medium mt-0.5">{contact.follow_up_interval_days} days</p>
+                      <p className="mt-0.5 font-medium">{contact.follow_up_interval_days} days</p>
                     </div>
                   )}
                   {contact.linkedin && safeHttpUrl(contact.linkedin) && (
                     <div>
                       <p className="text-muted-foreground">LinkedIn</p>
-                      <a href={safeHttpUrl(contact.linkedin)} target="_blank" rel="noopener noreferrer" className="font-medium mt-0.5 hover:underline break-all">
+                      <a href={safeHttpUrl(contact.linkedin)} target="_blank" rel="noopener noreferrer" className="mt-0.5 break-all font-medium hover:underline">
                         {contact.linkedin}
                       </a>
                     </div>
@@ -529,16 +566,16 @@ export function ContactDetailContent() {
                   {contact.website && safeHttpUrl(contact.website) && (
                     <div>
                       <p className="text-muted-foreground">Website</p>
-                      <a href={safeHttpUrl(contact.website)} target="_blank" rel="noopener noreferrer" className="font-medium mt-0.5 hover:underline break-all">
+                      <a href={safeHttpUrl(contact.website)} target="_blank" rel="noopener noreferrer" className="mt-0.5 break-all font-medium hover:underline">
                         {contact.website}
                       </a>
                     </div>
                   )}
                 </div>
                 {contact.notes && (
-                  <div className="pt-2 border-t">
-                    <p className="text-muted-foreground text-sm">Notes</p>
-                    <p className="text-sm mt-0.5 whitespace-pre-wrap">{contact.notes}</p>
+                  <div className="border-t pt-2">
+                    <p className="text-xs text-muted-foreground sm:text-sm">Notes</p>
+                    <p className="mt-0.5 whitespace-pre-wrap text-xs sm:text-sm">{contact.notes}</p>
                   </div>
                 )}
               </div>
