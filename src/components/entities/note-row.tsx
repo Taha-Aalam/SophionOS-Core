@@ -9,7 +9,6 @@ import type { Note } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
 import { encodeReturnTo } from "@/lib/utils/return-to";
 import { STATUS_COLORS } from "@/lib/constants/entity-colors";
-import { formatDate } from "@/lib/format";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
 import { useClickableProps } from "@/components/ui/clickable";
@@ -175,9 +174,6 @@ export function NoteRow({
             +{taskNames.length - 2}
           </Badge>
         )}
-        <span className="text-2xs leading-none text-muted-foreground">
-          {formatDate(note.updated_at)}
-        </span>
         </div>
       </div>
 
