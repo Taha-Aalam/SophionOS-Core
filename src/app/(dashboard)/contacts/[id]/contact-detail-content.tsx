@@ -81,45 +81,6 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
-function RelationshipSummary({
-  label,
-  links,
-  entities,
-  routePrefix,
-  router,
-}: {
-  label: string;
-  links: Array<{ area_id?: string; goal_id?: string; project_id?: string; task_id?: string }>;
-  entities: Array<{ id: string; name: string }>;
-  routePrefix: string | null;
-  router: ReturnType<typeof useRouter>;
-}) {
-  if (links.length === 0) return null;
-  const idKey = label === "Areas" ? "area_id" : label === "Goals" ? "goal_id" : label === "Projects" ? "project_id" : "task_id";
-  const firstId = links[0]?.[idKey as keyof typeof links[0]];
-  const firstName = entities.find((e) => e.id === firstId)?.name ?? "Unknown";
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-muted-foreground">{label}:</span>
-      {routePrefix ? (
-        <button
-          className="text-sm font-medium hover:underline"
-          onClick={() => router.push(`${routePrefix}/${firstId}`)}
-        >
-          {firstName}
-        </button>
-      ) : (
-        <span className="text-sm font-medium">{firstName}</span>
-      )}
-      {links.length > 1 && (
-        <span className="text-xs text-muted-foreground">+{links.length - 1}</span>
-      )}
-    </div>
-  );
-}
-
-
-
 export function ContactDetailContent() {
   const router = useRouter();
   const params = useParams();
@@ -581,7 +542,7 @@ export function ContactDetailContent() {
               </div>
             </div>
 
-            {/* Relationship summary */}
+            {/* Relationships — manage only; linked entities listed in sections below */}
             <div className="rounded-xl border bg-card">
               <div className="flex items-center justify-between px-6 py-4">
                 <h2 className="text-sm font-semibold">Relationships</h2>
@@ -589,15 +550,6 @@ export function ContactDetailContent() {
                   <Link2 className="size-3.5" />
                   Manage
                 </Button>
-              </div>
-              <Separator />
-              <div className="px-6 py-3">
-                <div className="flex gap-4 text-sm">
-                  <RelationshipSummary label="Areas" links={areaLinks} entities={allAreas} routePrefix="/areas" router={router} />
-                  <RelationshipSummary label="Goals" links={goalLinks} entities={allGoals} routePrefix="/goals" router={router} />
-                  <RelationshipSummary label="Projects" links={projectLinks} entities={allProjects} routePrefix="/projects" router={router} />
-                  <RelationshipSummary label="Tasks" links={taskLinks} entities={allTasks} routePrefix={null} router={router} />
-                </div>
               </div>
             </div>
 
