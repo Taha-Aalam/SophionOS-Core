@@ -98,7 +98,9 @@ export function ResourceRow({
 
       {/* Name + URL subtitle */}
       <div className="min-w-0 flex-1 self-center">
-        <span className="block truncate font-medium">{resource.name}</span>
+        <span className="block font-medium max-md:text-sm max-md:leading-tight max-md:break-words md:truncate">
+          {resource.name}
+        </span>
         {resource.url ? (
           <span className="block truncate text-xs text-muted-foreground">{resource.url}</span>
         ) : null}
