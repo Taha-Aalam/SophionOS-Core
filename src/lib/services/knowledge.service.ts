@@ -11,7 +11,7 @@ type ServiceOptions = { supabase?: SupabaseClient };
 const NOTE_SELECT =
   "id, user_id, area_id, project_id, topic_id, name, slug, type, status, favorite, pin, is_archived, metadata, created_at, updated_at";
 const RESOURCE_SELECT =
-  "id, user_id, area_id, project_id, topic_id, name, url, type, status, favorite, is_archived, metadata, created_at, updated_at";
+  "id, user_id, area_id, topic_id, name, url, type, status, favorite, is_archived, metadata, created_at, updated_at";
 const TOPIC_SELECT =
   "id, user_id, area_id, name, favorite, inactive, metadata, created_at, updated_at";
 

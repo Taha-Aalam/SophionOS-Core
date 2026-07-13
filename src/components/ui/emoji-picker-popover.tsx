@@ -18,7 +18,7 @@ const EmojiPicker = dynamic(
     ssr: false,
     // Reserve the picker's footprint so the popover doesn't resize/jump when
     // the lazy chunk resolves.
-    loading: () => <div className="h-[435px] w-full max-w-[352px]" aria-hidden="true" />,
+    loading: () => <div className="h-[435px] w-full max-w-[min(352px,calc(100vw-2rem))]" aria-hidden="true" />,
   },
 ) as unknown as React.ComponentType<{
   data: () => Promise<unknown>;
@@ -122,7 +122,7 @@ export function EmojiPickerPopover({
           )}
         />
       </PopoverTrigger>
-      <PopoverContent align={align} sideOffset={8} className="w-full max-w-[352px] p-0">
+      <PopoverContent align={align} sideOffset={8} className="w-full max-w-[min(352px,calc(100vw-2rem))] p-0">
         <div role="dialog" aria-label="Pick an emoji">
           <EmojiPicker
             data={loadEmojiData}

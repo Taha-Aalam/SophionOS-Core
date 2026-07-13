@@ -10,7 +10,7 @@ import Link from "next/link";
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center">
-      <h1 className="text-2xl font-semibold tracking-tight sm:text-4xl">SophionOS Core</h1>
+      <h1 className="text-2xl font-semibold tracking-tight sm:text-4xl">SophionOS</h1>
       <p className="max-w-md text-muted-foreground">
         Your personal operating system for goals, projects, tasks, notes, and
         the people and areas of your life.

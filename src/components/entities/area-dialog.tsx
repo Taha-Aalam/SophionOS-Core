@@ -152,13 +152,13 @@ export function AreaDialog({
         <form onSubmit={handleSubmit(onFormSubmit as SubmitHandler<AreaFormValues>)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
-            <Input id="name" placeholder="e.g., Career Growth" {...register("name")} />
+            <Input id="name" placeholder="e.g., Career Growth" maxLength={100} {...register("name")} />
             {errors.name && <p className="text-xs text-destructive">{String(errors.name.message)}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-            <Textarea id="description" placeholder="Describe this area..." rows={3} {...register("description")} />
+            <Textarea id="description" placeholder="Describe this area..." rows={3} maxLength={500} {...register("description")} />
             {errors.description && <p className="text-xs text-destructive">{String(errors.description.message)}</p>}
           </div>
 

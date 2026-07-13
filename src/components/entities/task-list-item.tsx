@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
 import { PriorityBadge } from "./priority-badge";
+import { formatDate } from "@/lib/format";
 import { StatusBadge } from "./status-badge";
 import { SmartPriorityBadge } from "./smart-priority-badge";
 import { TaskArchiveToggle } from "./task-archive-toggle";
@@ -51,7 +52,7 @@ function formatDueDate(dateStr: string | null): { label: string; overdue: boolea
 
   const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const overdue = dateDay < today;
-  const label = date.toLocaleDateString("en-US", { day: "numeric", month: "short" });
+  const label = formatDate(date);
 
   return { label, overdue };
 }
@@ -78,6 +79,7 @@ export function TaskListItemComponent({
   const displayGoalNames = linkedGoalNames && linkedGoalNames.length > 0 ? linkedGoalNames : (goalName ? [goalName] : []);
   const displayProjectNames = linkedProjectNames && linkedProjectNames.length > 0 ? linkedProjectNames : (projectName ? [projectName] : []);
   const dueInfo = formatDueDate(task.due_date);
+  const clickableProps = useClickableProps(() => onEdit?.(task));
 
   return (
     <div
@@ -86,7 +88,7 @@ export function TaskListItemComponent({
         task.is_completed && "opacity-60",
       )}
       onClick={() => onEdit?.(task)}
-      {...(onEdit ? useClickableProps(() => onEdit(task)) : {})}
+      {...(onEdit ? clickableProps : {})}
     >
       <span onClick={(e) => e.stopPropagation()}>
         <Checkbox
@@ -189,14 +191,14 @@ export function TaskListItemComponent({
           "shrink-0 rounded-md p-1.5 transition-colors",
           task.is_focused
             ? "text-yellow-500"
-            : "text-muted-foreground/20 opacity-0 hover:text-yellow-400 group-hover:opacity-100",
+            : "text-muted-foreground/40 hover:text-yellow-400",
         )}
         aria-label={task.is_focused ? "Remove from focus" : "Add to focus"}
       >
         <Star className={cn("size-3.5", task.is_focused && "fill-current")} />
       </button>
 
-      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="flex shrink-0 items-center gap-0.5">
         {onEdit && (
           <button
             onClick={(e) => {

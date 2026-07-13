@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { formatDate, formatDateTime } from "@/lib/format";
 
 interface ApiKeyRecord {
   id: string;
@@ -131,7 +132,7 @@ export function ApiKeyManager({
     const d = new Date(k.expires_at);
     const now = new Date();
     if (d < now) return " (expired)";
-    return ` · expires ${d.toLocaleDateString()}`;
+    return ` · expires ${formatDate(d)}`;
   }
 
   return (
@@ -213,7 +214,7 @@ export function ApiKeyManager({
                   <p className="truncate text-sm font-medium">{k.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {k.last_used_at
-                      ? `Last used ${new Date(k.last_used_at).toLocaleString()}`
+                      ? `Last used ${formatDateTime(k.last_used_at)}`
                       : "Never used"}
                     {formatExpiry(k)}
                   </p>

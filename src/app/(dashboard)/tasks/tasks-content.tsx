@@ -5,12 +5,11 @@ import {
   Archive,
   CalendarDays,
   CheckSquare,
-  ChevronDownIcon,
   Clock,
-  Filter,
   FolderKanban,
   Inbox as InboxIcon,
   Layers,
+  LayoutGrid,
   Plus,
   Star,
   Target,
@@ -20,18 +19,8 @@ import React, { useCallback, useMemo, useState } from "react";
 
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskList } from "@/components/entities/task-list";
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { TasksFilterBar } from "@/components/filters/tasks-filter-bar";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarView } from "@/components/views/calendar-view";
 import { EmptyState } from "@/components/views/empty-state";
@@ -51,7 +40,6 @@ import {
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import type { Task } from "@/lib/types/domain.types";
-import { cn } from "@/lib/utils";
 import {
   getTaskCounts,
   getTaskLinkedAreaIds,
@@ -69,12 +57,11 @@ import {
   taskMatchesProjectId,
 } from "@/lib/utils/tasks";
 
-const ALL_PRIORITY_VALUE = "__all_priority__";
-
 export function TasksContent() {
   const [activeTab, setActiveTab] = useState<TaskView>(TASK_VIEW.ALL);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [search, setSearch] = useState("");
   const [filterPriority, setFilterPriority] = useState("");
   const [filterAreaIds, setFilterAreaIds] = useState<string[]>([]);
   const [filterGoalIds, setFilterGoalIds] = useState<string[]>([]);
@@ -82,9 +69,6 @@ export function TasksContent() {
   const [newTaskAreaId, setNewTaskAreaId] = useState<string | undefined>(undefined);
   const [newTaskGoalId, setNewTaskGoalId] = useState<string | undefined>(undefined);
   const [newTaskProjectId, setNewTaskProjectId] = useState<string | undefined>(undefined);
-  const [areaPopoverOpen, setAreaPopoverOpen] = useState(false);
-  const [goalPopoverOpen, setGoalPopoverOpen] = useState(false);
-  const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
 
   const {
     data: allTasks,
@@ -188,6 +172,11 @@ export function TasksContent() {
   const visibleTasks = useMemo(() => {
     let result = getVisibleTasks(tasks, activeTab);
 
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((task) => task.name.toLowerCase().includes(q));
+    }
+
     if (filterPriority) {
       result = result.filter((task) => task.priority === filterPriority);
     }
@@ -211,7 +200,7 @@ export function TasksContent() {
     }
 
     return result;
-  }, [activeTab, filterAreaIds, filterGoalIds, filterPriority, filterProjectIds, tasks]);
+  }, [activeTab, filterAreaIds, filterGoalIds, filterPriority, filterProjectIds, search, tasks]);
 
   const activeTasks = useMemo(
     () => tasks.filter((t) => !t.is_archived && !t.is_completed),
@@ -402,38 +391,9 @@ export function TasksContent() {
     setIsDialogOpen(true);
   };
 
-  const hasFilters = Boolean(
-    filterPriority ||
-      filterAreaIds.length > 0 ||
-      filterGoalIds.length > 0 ||
-      filterProjectIds.length > 0,
-  );
   const activeAreas = allAreas?.filter((area) => !area.archive) ?? [];
   const activeGoals = allGoals?.filter((goal) => !goal.is_archived) ?? [];
   const activeProjects = allProjects?.filter((project) => !project.is_archived) ?? [];
-
-  const selectedAreaLabels = filterAreaIds
-    .map((id) => activeAreas.find((a) => a.id === id))
-    .filter(Boolean)
-    .map(
-      (a) =>
-        `${(a as { icon?: string }).icon ? `${(a as { icon?: string }).icon} ` : ""}${(a as { name: string }).name}`,
-    );
-
-  const selectedGoalLabels = filterGoalIds
-    .map((id) => activeGoals.find((g) => g.id === id))
-    .filter(Boolean)
-    .map((g) => (g as { name: string }).name);
-
-  const selectedProjectLabels = filterProjectIds
-    .map((id) => activeProjects.find((p) => p.id === id))
-    .filter(Boolean)
-    .map((p) => (p as { name: string }).name);
-
-  const filterPopoverContentClassName = "w-80 max-w-[calc(100vw-2rem)] overflow-x-hidden p-2";
-  const filterOptionClassName =
-    "flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
-  const filterOptionLabelClassName = "min-w-0 flex-1 whitespace-normal break-words text-sm";
 
   if (tasksError || archivedError) {
     return (
@@ -478,284 +438,72 @@ export function TasksContent() {
         onValueChange={(value) => setActiveTab(value as TaskView)}
         className="flex flex-1 flex-col"
       >
-        <div className="border-b border-border/50 px-6 pt-4">
-          <TabsList className="flex h-auto flex-nowrap gap-0 bg-transparent p-0">
-            <TabsTrigger
-              value={TASK_VIEW.ALL}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              All
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.INBOX}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <InboxIcon className="mr-1.5 size-3.5" />
-              Inbox
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.UPCOMING}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <Clock className="mr-1.5 size-3.5" />
-              Upcoming
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.OVERDUE}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <AlertTriangle className="mr-1.5 size-3.5" />
-              Overdue
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.FOCUS}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <Star className="mr-1.5 size-3.5" />
-              Focus
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.SMART_PRIORITY}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <Zap className="mr-1.5 size-3.5" />
-              Smart Priority
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.CALENDAR}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <CalendarDays className="mr-1.5 size-3.5" />
-              Calendar
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.BY_AREA}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <Layers className="mr-1.5 size-3.5" />
-              By Area
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.BY_GOAL}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <Target className="mr-1.5 size-3.5" />
-              By Goal
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.BY_PROJECT}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <FolderKanban className="mr-1.5 size-3.5" />
-              By Project
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.COMPLETED}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <CheckSquare className="mr-1.5 size-3.5" />
-              Completed
-            </TabsTrigger>
-            <TabsTrigger
-              value={TASK_VIEW.ARCHIVE}
-              className="rounded-none border-b-2 border-transparent px-4 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-            >
-              <Archive className="mr-1.5 size-3.5" />
-              Archive
-            </TabsTrigger>
+        <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsTrigger value={TASK_VIEW.ALL}>
+            <LayoutGrid className="mr-1.5 size-3.5" />
+            All
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.INBOX}>
+            <InboxIcon className="mr-1.5 size-3.5" />
+            Inbox
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.UPCOMING}>
+            <Clock className="mr-1.5 size-3.5" />
+            Upcoming
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.OVERDUE}>
+            <AlertTriangle className="mr-1.5 size-3.5" />
+            Overdue
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.FOCUS}>
+            <Star className="mr-1.5 size-3.5" />
+            Focus
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.SMART_PRIORITY}>
+            <Zap className="mr-1.5 size-3.5" />
+            Smart Priority
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.CALENDAR}>
+            <CalendarDays className="mr-1.5 size-3.5" />
+            Calendar
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.BY_AREA}>
+            <Layers className="mr-1.5 size-3.5" />
+            By Area
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.BY_GOAL}>
+            <Target className="mr-1.5 size-3.5" />
+            By Goal
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.BY_PROJECT}>
+            <FolderKanban className="mr-1.5 size-3.5" />
+            By Project
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.COMPLETED}>
+            <CheckSquare className="mr-1.5 size-3.5" />
+            Completed
+          </TabsTrigger>
+          <TabsTrigger value={TASK_VIEW.ARCHIVE}>
+            <Archive className="mr-1.5 size-3.5" />
+            Archive
+          </TabsTrigger>
           </TabsList>
-        </div>
 
-        <div className="flex items-center gap-3 border-b border-border/30 px-6 py-3">
-          <Filter className="size-3.5 shrink-0 text-muted-foreground" />
-          <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value={filterPriority || ALL_PRIORITY_VALUE}
-              onValueChange={(value) =>
-                setFilterPriority(value === ALL_PRIORITY_VALUE ? "" : (value ?? ""))
-              }
-            >
-              <SelectTrigger className="h-9 sm:h-7 w-[120px] text-xs">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_PRIORITY_VALUE}>All priorities</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Popover open={areaPopoverOpen} onOpenChange={setAreaPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterAreaIds.length === 0 ? (
-                  "Area"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedAreaLabels[0]}</span>
-                    {selectedAreaLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedAreaLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {activeAreas.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">No areas available.</p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {activeAreas.map((area) => {
-                      const checked = filterAreaIds.includes(area.id);
-                      return (
-                        <label key={area.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterAreaIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, area.id]))
-                                  : prev.filter((id) => id !== area.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>
-                            {area.icon ? `${area.icon} ` : ""}
-                            {area.name}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover open={goalPopoverOpen} onOpenChange={setGoalPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterGoalIds.length === 0 ? (
-                  "Goal"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedGoalLabels[0]}</span>
-                    {selectedGoalLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedGoalLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {activeGoals.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">No goals available.</p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {activeGoals.map((goal) => {
-                      const checked = filterGoalIds.includes(goal.id);
-                      return (
-                        <label key={goal.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterGoalIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, goal.id]))
-                                  : prev.filter((id) => id !== goal.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>{goal.name}</span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover open={projectPopoverOpen} onOpenChange={setProjectPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterProjectIds.length === 0 ? (
-                  "Project"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedProjectLabels[0]}</span>
-                    {selectedProjectLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedProjectLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {activeProjects.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">
-                      No projects available.
-                    </p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {activeProjects.map((project) => {
-                      const checked = filterProjectIds.includes(project.id);
-                      return (
-                        <label key={project.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterProjectIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, project.id]))
-                                  : prev.filter((id) => id !== project.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>{project.name}</span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {hasFilters && (
-              <button
-                onClick={() => {
-                  setFilterPriority("");
-                  setFilterAreaIds([]);
-                  setFilterGoalIds([]);
-                  setFilterProjectIds([]);
-                }}
-                className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        </div>
+        <TasksFilterBar
+          search={search}
+          priority={filterPriority}
+          areaIds={filterAreaIds}
+          goalIds={filterGoalIds}
+          projectIds={filterProjectIds}
+          areas={activeAreas}
+          goals={activeGoals}
+          projects={activeProjects}
+          onSearchChange={setSearch}
+          onPriorityChange={setFilterPriority}
+          onAreaIdsChange={setFilterAreaIds}
+          onGoalIdsChange={setFilterGoalIds}
+          onProjectIdsChange={setFilterProjectIds}
+        />
 
         <TabsContent value={TASK_VIEW.CALENDAR} className="mt-0 flex-1">
           {isLoading ? (

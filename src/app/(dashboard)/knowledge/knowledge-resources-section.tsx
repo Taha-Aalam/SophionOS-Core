@@ -269,24 +269,24 @@ export function KnowledgeResourcesSection({
         />
         <div className="mt-4">
           <Tabs value={resourcesTab} onValueChange={setResourcesTab}>
-            <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <TabsTrigger value={RESOURCE_VIEW.ALL} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">All
+            <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <TabsTrigger value={RESOURCE_VIEW.ALL} className="">All
               </TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.INBOX} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><InboxIcon className="mr-1.5 size-3.5" />Inbox
+              <TabsTrigger value={RESOURCE_VIEW.INBOX} className=""><InboxIcon className="mr-1.5 size-3.5" />Inbox
               </TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Clock className="mr-1.5 size-3.5" />To Review
+              <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW} className=""><Clock className="mr-1.5 size-3.5" />To Review
               </TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.ACTIVE} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Zap className="mr-1.5 size-3.5" />Active
+              <TabsTrigger value={RESOURCE_VIEW.ACTIVE} className=""><Zap className="mr-1.5 size-3.5" />Active
               </TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.FAVORITE} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Heart className="mr-1.5 size-3.5" />Favorites
+              <TabsTrigger value={RESOURCE_VIEW.FAVORITE} className=""><Heart className="mr-1.5 size-3.5" />Favorites
               </TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Tag className="mr-1.5 size-3.5" />By Topic</TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.BY_AREA} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><MapIcon className="mr-1.5 size-3.5" />By Area</TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.BY_GOAL} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Target className="mr-1.5 size-3.5" />By Goal</TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><FolderOpen className="mr-1.5 size-3.5" />By Project</TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.COMPLETED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Bookmark className="mr-1.5 size-3.5" />Completed
+              <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC} className=""><Tag className="mr-1.5 size-3.5" />By Topic</TabsTrigger>
+              <TabsTrigger value={RESOURCE_VIEW.BY_AREA} className=""><MapIcon className="mr-1.5 size-3.5" />By Area</TabsTrigger>
+              <TabsTrigger value={RESOURCE_VIEW.BY_GOAL} className=""><Target className="mr-1.5 size-3.5" />By Goal</TabsTrigger>
+              <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT} className=""><FolderOpen className="mr-1.5 size-3.5" />By Project</TabsTrigger>
+              <TabsTrigger value={RESOURCE_VIEW.COMPLETED} className=""><Bookmark className="mr-1.5 size-3.5" />Completed
               </TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Archive className="mr-1.5 size-3.5" />Archived
+              <TabsTrigger value={RESOURCE_VIEW.ARCHIVED} className=""><Archive className="mr-1.5 size-3.5" />Archived
               </TabsTrigger>
             </TabsList>
 

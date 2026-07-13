@@ -120,6 +120,7 @@ function NoteEditorDialogForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Note title"
+            maxLength={255}
           />
         </div>
         <div className="space-y-2">

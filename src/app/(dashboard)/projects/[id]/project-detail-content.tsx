@@ -113,6 +113,7 @@ import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
 import { buildAreaContactGoalSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections, buildContactByAreaSections } from "@/lib/utils/area-detail";
 import { buildReturnTo, buildReturnToChain, popReturnToHref, encodeReturnTo, getRawReturnToChain } from "@/lib/utils/return-to";
 import { PRIORITY_COLORS, STATUS_COLORS, BADGE_COLOR } from "@/lib/constants/entity-colors";
+import ProgressRing from "@/components/charts/progress-ring";
 
 export function ProjectDetailContent() {
   const params = useParams();
@@ -1144,9 +1145,16 @@ export function ProjectDetailContent() {
       </div>
 
       <div className="rounded-xl border bg-card">
-        <div className="flex items-start justify-between gap-4 p-6">
-          <div className="flex items-start gap-4">
-            <div className="relative flex items-center justify-center">
+        <div className="flex items-start justify-between gap-3 p-4 sm:gap-4 sm:p-6">
+          <div className="flex min-w-0 items-start gap-2 sm:gap-4">
+            {/* Progress ring — mobile matches ProjectCard (48/4); desktop keeps detail scale */}
+            <ProgressRing
+              percentage={progressPercent}
+              size={48}
+              strokeWidth={4}
+              className="shrink-0 sm:hidden"
+            />
+            <div className="relative hidden items-center justify-center sm:flex">
               <svg width="80" height="80" className="transform -rotate-90">
                 <circle
                   cx="40"
@@ -1173,10 +1181,13 @@ export function ProjectDetailContent() {
               <span className="absolute text-sm font-bold">{progressPercent}%</span>
             </div>
 
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight font-heading">{project.name}</h1>
+            <div className="min-w-0 space-y-1.5 sm:space-y-2">
+              {/* Title — mobile matches ProjectCard (text-sm font-medium); desktop keeps detail scale */}
+              <h1 className="truncate text-sm font-medium tracking-tight font-heading sm:text-3xl sm:font-bold sm:overflow-visible sm:whitespace-normal">
+                {project.name}
+              </h1>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 {linkedAreas.length > 0
                   ? linkedAreas.map((linkedArea) => (
                       <Badge
@@ -1214,16 +1225,16 @@ export function ProjectDetailContent() {
               </div>
 
               {project.description ? (
-                <p className="text-sm text-muted-foreground">{project.description}</p>
+                <p className="text-xs text-muted-foreground sm:text-sm">{project.description}</p>
               ) : null}
 
               <div
                 className={cn(
-                  "flex items-center gap-1.5 text-sm",
+                  "flex items-center gap-1.5 text-xs sm:text-sm",
                   dueState.isOverdue && "text-destructive font-medium",
                 )}
               >
-                <Calendar className="size-3.5" />
+                <Calendar className="size-3 sm:size-3.5" />
                 {dueState.label}
               </div>
             </div>
@@ -1233,7 +1244,7 @@ export function ProjectDetailContent() {
             variant="ghost"
             size="sm"
             onClick={() => setIsPropertiesOpen((current) => !current)}
-            className="gap-1"
+            className="gap-1 shrink-0 text-xs sm:text-sm"
           >
             Properties
             {isPropertiesOpen ? (
@@ -1244,8 +1255,48 @@ export function ProjectDetailContent() {
           </Button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 px-6 pb-4">
+        {/* Activity rollups — mobile: emoji + count (ProjectCard); desktop: bubble chips */}
+        <div className="flex flex-wrap items-center gap-4 px-4 pb-4 text-sm text-muted-foreground sm:hidden">
           <button
+            type="button"
+            onClick={() => scrollToSection("goals")}
+            className="flex items-center gap-1 transition-colors hover:text-foreground"
+            title="Goals"
+          >
+            <span className="text-xs">🎯</span>
+            <span>{activeGoalCount}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection("tasks")}
+            className="flex items-center gap-1 transition-colors hover:text-foreground"
+            title="Tasks"
+          >
+            <span className="text-xs">☑️</span>
+            <span>{activeTaskCount}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection("notes")}
+            className="flex items-center gap-1 transition-colors hover:text-foreground"
+            title="Notes"
+          >
+            <span className="text-xs">📝</span>
+            <span>{activeNoteCount}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection("resources")}
+            className="flex items-center gap-1 transition-colors hover:text-foreground"
+            title="Resources"
+          >
+            <span className="text-xs">🔗</span>
+            <span>{activeResourceCount}</span>
+          </button>
+        </div>
+        <div className="hidden flex-wrap items-center gap-4 px-6 pb-4 sm:flex">
+          <button
+            type="button"
             onClick={() => scrollToSection("goals")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -1253,6 +1304,7 @@ export function ProjectDetailContent() {
             <span className="text-muted-foreground">Goals</span>
           </button>
           <button
+            type="button"
             onClick={() => scrollToSection("tasks")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -1260,6 +1312,7 @@ export function ProjectDetailContent() {
             <span className="text-muted-foreground">Tasks</span>
           </button>
           <button
+            type="button"
             onClick={() => scrollToSection("notes")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -1267,6 +1320,7 @@ export function ProjectDetailContent() {
             <span className="text-muted-foreground">Notes</span>
           </button>
           <button
+            type="button"
             onClick={() => scrollToSection("resources")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
@@ -1280,14 +1334,18 @@ export function ProjectDetailContent() {
         {isPropertiesOpen ? (
           <>
             <Separator />
-            <div className="space-y-4 p-6">
+            <div className="space-y-4 p-4 sm:p-6">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
                 <div>
                   <Label className="text-xs text-muted-foreground">Areas</Label>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {linkedAreas.length > 0 ? (
                       linkedAreas.map((linkedArea) => (
-                        <Badge key={linkedArea.id} variant="secondary" className="flex items-center gap-1">
+                        <Badge
+                          key={linkedArea.id}
+                          variant="secondary"
+                          className="flex items-center gap-1 text-xs sm:text-sm"
+                        >
                           {linkedArea.icon ? `${linkedArea.icon} ` : ""}
                           {linkedArea.name}
                           <button
@@ -1306,11 +1364,15 @@ export function ProjectDetailContent() {
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Status</Label>
-                  <p className="mt-1 font-medium">{getProjectStatusLabel(project.status)}</p>
+                  <p className="mt-1 text-sm font-medium sm:text-base">
+                    {getProjectStatusLabel(project.status)}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Start Date</Label>
-                  <p className="mt-1 font-medium">{project.start_date ?? "Not set"}</p>
+                  <p className="mt-1 text-sm font-medium sm:text-base">
+                    {project.start_date ?? "Not set"}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Due Date</Label>
@@ -1328,7 +1390,10 @@ export function ProjectDetailContent() {
                       }
                     }}
                     min={new Date().toISOString().slice(0, 10)}
-                    className={cn("mt-1 font-medium", dueState.isOverdue && "text-destructive")}
+                    className={cn(
+                      "mt-1 text-sm font-medium sm:text-base",
+                      dueState.isOverdue && "text-destructive",
+                    )}
                   />
                 </div>
               </div>

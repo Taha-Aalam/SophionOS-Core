@@ -300,14 +300,18 @@ export function TopicDetailContent() {
 
       {/* Header card */}
       <div className="rounded-xl border bg-card">
-        <div className="flex items-start justify-between gap-4 p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center shrink-0">
-              <Tag className="size-6 text-muted-foreground" />
+        <div className="flex items-start justify-between gap-3 p-4 sm:gap-4 sm:p-6">
+          <div className="flex min-w-0 items-start gap-2 sm:gap-4">
+            {/* Avatar — mobile matches TopicCard (text-base); desktop keeps detail scale */}
+            <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted sm:size-14 sm:rounded-xl">
+              <Tag className="size-3.5 text-muted-foreground sm:size-6" />
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-3xl font-bold tracking-tight font-heading">{topic.name}</h1>
+            <div className="min-w-0 space-y-1.5 sm:space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Title — mobile matches TopicCard (text-sm font-medium); desktop keeps detail scale */}
+                <h1 className="truncate text-sm font-medium tracking-tight font-heading sm:overflow-visible sm:whitespace-normal sm:text-3xl sm:font-bold">
+                  {topic.name}
+                </h1>
                 {topic.inactive && (
                   <Badge variant="outline" className="text-xs text-muted-foreground">Inactive</Badge>
                 )}
@@ -332,7 +336,7 @@ export function TopicDetailContent() {
             variant="ghost"
             size="sm"
             onClick={() => setIsPropertiesOpen((v) => !v)}
-            className="gap-1 shrink-0"
+            className="gap-1 shrink-0 text-xs sm:text-sm"
           >
             Properties
             {isPropertiesOpen ? (
@@ -344,7 +348,7 @@ export function TopicDetailContent() {
         </div>
 
         {/* Rollup counts */}
-        <div className="flex flex-wrap items-center gap-4 px-6 pb-4">
+        <div className="flex flex-wrap items-center gap-4 px-4 pb-4 sm:px-6">
           <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm">
             <span className="font-medium text-purple-600 dark:text-purple-400">{notes.length}</span>
             <span className="text-muted-foreground">Notes</span>
@@ -359,14 +363,14 @@ export function TopicDetailContent() {
         {isPropertiesOpen && (
           <>
             <Separator />
-            <div className="space-y-4 p-6">
+            <div className="space-y-4 p-4 sm:p-6">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
                 <div>
                   <Label className="text-xs text-muted-foreground">Areas</Label>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {linkedAreas.length > 0 ? (
                       linkedAreas.map((area) => (
-                        <Badge key={area.id} variant="secondary">
+                        <Badge key={area.id} variant="secondary" className="text-xs sm:text-sm">
                           {area.icon ? <span className="mr-0.5 text-2xs leading-none">{area.icon}</span> : null}
                           {area.name}
                         </Badge>
@@ -378,11 +382,16 @@ export function TopicDetailContent() {
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Status</Label>
-                  <p className="mt-1 font-medium">{topic.inactive ? "Inactive" : "Active"}</p>
+                  {/* Values — mobile text-sm to match panel; desktop keeps base weight scale */}
+                  <p className="mt-1 text-sm font-medium sm:text-base">
+                    {topic.inactive ? "Inactive" : "Active"}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Favorite</Label>
-                  <p className="mt-1 font-medium">{topic.favorite ? "Yes" : "No"}</p>
+                  <p className="mt-1 text-sm font-medium sm:text-base">
+                    {topic.favorite ? "Yes" : "No"}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 pt-2">

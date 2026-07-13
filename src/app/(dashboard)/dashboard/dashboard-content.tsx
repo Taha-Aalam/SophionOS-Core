@@ -1,9 +1,11 @@
 "use client";
 
+import { cardGrid } from "@/components/ui/layout";
+
 import { Folder, Globe, Map as MapIcon, NotebookPen, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { type DashboardStats, GreetingBar } from "@/components/dashboard/greeting-bar";
+import { GreetingBar } from "@/components/dashboard/greeting-bar";
 import { AreaCard } from "@/components/entities/area-card";
 import { AreaDialog } from "@/components/entities/area-dialog";
 import { GoalCard } from "@/components/entities/goal-card";
@@ -52,7 +54,6 @@ import { useTopics } from "@/lib/hooks/use-topics";
 import { SectionHeader } from "@/components/dashboard/section-header";
 import { classifyAreaStatus, getAreaRollups, sortAreasForDisplay } from "@/lib/utils/areas";
 import { NOTE_STATUS, PROJECT_STATUS, RESOURCE_STATUS, TASK_STATUS } from "@/lib/utils/constants";
-import { getLocalDateStart, getWeekStart } from "@/lib/utils/dates";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import {
@@ -214,37 +215,6 @@ export function DashboardContent() {
     [sortedAreas, rollupsByAreaId],
   );
 
-  const stats: DashboardStats = useMemo(
-    () => ({
-      activeAreasCount: activeAreas.length,
-      activeGoalsCount: goalsActive.length,
-      activeProjectsCount: activeProjects.length,
-      remainingTasksCount: todoInProgressTasks.length,
-      remainingNotesCount: toReviewActiveNotes.length,
-      remainingResourcesCount: toReviewActiveResources.length,
-      overdueCount: allTasks.filter(
-        (t) =>
-          !t.is_archived &&
-          !t.is_completed &&
-          t.due_date &&
-          new Date(t.due_date) < new Date(getLocalDateStart()),
-      ).length,
-      completedThisWeek: allTasks.filter(
-        (t) =>
-          t.is_completed && t.completed_at && new Date(t.completed_at) >= new Date(getWeekStart()),
-      ).length,
-    }),
-    [
-      activeAreas,
-      goalsActive,
-      activeProjects,
-      todoInProgressTasks,
-      toReviewActiveNotes,
-      toReviewActiveResources,
-      allTasks,
-    ],
-  );
-
   const isLoading =
     areasLoading ||
     goalsLoading ||
@@ -283,12 +253,6 @@ export function DashboardContent() {
             <Skeleton className="h-4 w-48" />
           </div>
         </div>
-        {/* Stat chips */}
-        <div className="flex flex-wrap gap-4">
-          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <Skeleton key={i} className="h-7 w-28 rounded-full" />
-          ))}
-        </div>
         {/* 6 sections matching actual render */}
         {["Active Areas", "Active Goals", "Active Projects", "Active Tasks", "Active Notes", "Active Resources"].map((title, i) => (
           <section key={i}>
@@ -303,7 +267,7 @@ export function DashboardContent() {
             </div>
             <div className="mt-4">
               {title === "Active Goals" ? (
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                <div className={cardGrid}>
                   {[0, 1].map((j) => (
                     <Skeleton key={j} className="h-40 rounded-xl" />
                   ))}
@@ -330,7 +294,7 @@ export function DashboardContent() {
 
   return (
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      <GreetingBar userName={user?.name ?? undefined} stats={stats} />
+      <GreetingBar userName={user?.name ?? undefined} activeTaskCount={todoInProgressTasks.length} />
 
       {/* Active Areas */}
       <section>
@@ -388,7 +352,7 @@ export function DashboardContent() {
               description="Create your first goal to start tracking progress."
             />
           ) : (
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div className={cardGrid}>
               {goalsActive.map((goal) => {
                 const linkedAreaIds = getGoalLinkedAreaIds(goal);
                 const linkedAreaNames = linkedAreaIds

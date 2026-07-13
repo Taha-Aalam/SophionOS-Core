@@ -37,7 +37,7 @@ export function EmptyState({
           className="group/cta h-9 gap-2 rounded-full pl-4 pr-1.5 transition-all duration-300 ease-[var(--ease-out-quint)] active:scale-[0.98]"
         >
           {actionLabel}
-          <span className="flex size-6 items-center justify-center rounded-full bg-primary-foreground/15 transition-transform duration-300 ease-[var(--ease-out-back)] group-hover/cta:translate-x-0.5">
+          <span className="flex size-6 items-center justify-center rounded-full bg-primary-foreground/15 transition-transform duration-300 ease-[var(--ease-out-quint)] group-hover/cta:translate-x-0.5">
             <ArrowRight className="size-3.5" />
           </span>
         </Button>

@@ -3,6 +3,7 @@
 import ProgressRing from "@/components/charts/progress-ring";
 import { Card, CardContent } from "@/components/ui/card";
 import type { TodayData } from "@/lib/services/dashboard.service";
+import { formatDate } from "@/lib/format";
 
 interface ActiveGoalsWidgetProps {
   goals: TodayData["activeGoals"];
@@ -46,10 +47,7 @@ export function ActiveGoalsWidget({ goals }: ActiveGoalsWidgetProps) {
             {goal.targetDate && (
               <p className="text-xs text-muted-foreground">
                 Target:{" "}
-                {new Date(goal.targetDate).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                })}
+                {formatDate(goal.targetDate)}
               </p>
             )}
           </CardContent>

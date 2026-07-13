@@ -877,24 +877,24 @@ export default function KnowledgeHubPage() {
             />
             <div className="mt-4">
               <Tabs value={topicsTab} onValueChange={setTopicsTab}>
-                <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  <TabsTrigger value="active" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                    <CircleDot className="mr-1 size-3" />Active
+                <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <TabsTrigger value="active">
+                    <CircleDot className="mr-1.5 size-3.5" />Active
                   </TabsTrigger>
-                  <TabsTrigger value="favorite" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                    <Heart className="mr-1 size-3" />Favorite
+                  <TabsTrigger value="favorite">
+                    <Heart className="mr-1.5 size-3.5" />Favorite
                   </TabsTrigger>
-                  <TabsTrigger value="inactive" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                    <CircleOff className="mr-1 size-3" />Inactive
+                  <TabsTrigger value="inactive">
+                    <CircleOff className="mr-1.5 size-3.5" />Inactive
                   </TabsTrigger>
-                  <TabsTrigger value="by_area" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                    <MapIcon className="mr-1 size-3" />By Area
+                  <TabsTrigger value="by_area">
+                    <MapIcon className="mr-1.5 size-3.5" />By Area
                   </TabsTrigger>
-                  <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                    <LayoutGrid className="mr-1 size-3" />All
+                  <TabsTrigger value="all">
+                    <LayoutGrid className="mr-1.5 size-3.5" />All
                   </TabsTrigger>
-                  <TabsTrigger value="archived" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                    <Archive className="mr-1 size-3" />Archived
+                  <TabsTrigger value="archived">
+                    <Archive className="mr-1.5 size-3.5" />Archived
                   </TabsTrigger>
                 </TabsList>
 
@@ -1040,19 +1040,19 @@ export default function KnowledgeHubPage() {
                 onValueChange={(v) => { setNotesTab(v as NoteView); }}
               >
                 <TabsList className={NOTES_TABS_LIST_CLASS_NAME}>
-                  <TabsTrigger value={NOTE_VIEW.ALL} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">All</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.INBOX} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><InboxIcon className="mr-1 size-3" />Inbox</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.TO_REVIEW} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Clock className="mr-1 size-3" />To Review</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.ACTIVE} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Zap className="mr-1 size-3" />Active</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.PINNED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Pin className="mr-1 size-3" />Pinned</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.FAVORITE} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Star className="mr-1 size-3" />Favorites</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.BY_AREA} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><MapIcon className="mr-1 size-3" />By Area</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.BY_GOAL} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Target className="mr-1 size-3" />By Goal</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><FolderOpen className="mr-1 size-3" />By Project</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.BY_TOPIC} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Tag className="mr-1 size-3" />By Topic</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.BY_NOTEBOOK} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><BookOpen className="mr-1 size-3" />By Notebook</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.COMPLETED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Bookmark className="mr-1 size-3" />Completed</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Archive className="mr-1 size-3" />Archived</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.ALL}><LayoutGrid className="mr-1.5 size-3.5" />All</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.INBOX}><InboxIcon className="mr-1.5 size-3.5" />Inbox</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.TO_REVIEW}><Clock className="mr-1.5 size-3.5" />To Review</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.ACTIVE}><Zap className="mr-1.5 size-3.5" />Active</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.PINNED}><Pin className="mr-1.5 size-3.5" />Pinned</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.FAVORITE}><Star className="mr-1.5 size-3.5" />Favorites</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_AREA}><MapIcon className="mr-1.5 size-3.5" />By Area</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_GOAL}><Target className="mr-1.5 size-3.5" />By Goal</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_PROJECT}><FolderOpen className="mr-1.5 size-3.5" />By Project</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_TOPIC}><Tag className="mr-1.5 size-3.5" />By Topic</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_NOTEBOOK}><BookOpen className="mr-1.5 size-3.5" />By Notebook</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.COMPLETED}><Bookmark className="mr-1.5 size-3.5" />Completed</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.ARCHIVED}><Archive className="mr-1.5 size-3.5" />Archived</TabsTrigger>
                 </TabsList>
 
                 {([
@@ -1138,24 +1138,24 @@ export default function KnowledgeHubPage() {
             />
             <div className="mt-4">
               <Tabs value={resourcesTab} onValueChange={setResourcesTab}>
-                <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  <TabsTrigger value={RESOURCE_VIEW.ALL} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">All
+                <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <TabsTrigger value={RESOURCE_VIEW.ALL}><LayoutGrid className="mr-1.5 size-3.5" />All
                   </TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.INBOX} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><InboxIcon className="mr-1.5 size-3.5" />Inbox
+                  <TabsTrigger value={RESOURCE_VIEW.INBOX}><InboxIcon className="mr-1.5 size-3.5" />Inbox
                   </TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Clock className="mr-1.5 size-3.5" />To Review
+                  <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW}><Clock className="mr-1.5 size-3.5" />To Review
                   </TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.ACTIVE} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Zap className="mr-1.5 size-3.5" />Active
+                  <TabsTrigger value={RESOURCE_VIEW.ACTIVE}><Zap className="mr-1.5 size-3.5" />Active
                   </TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.FAVORITE} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Heart className="mr-1.5 size-3.5" />Favorites
+                  <TabsTrigger value={RESOURCE_VIEW.FAVORITE}><Heart className="mr-1.5 size-3.5" />Favorites
                   </TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Tag className="mr-1.5 size-3.5" />By Topic</TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.BY_AREA} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><MapIcon className="mr-1.5 size-3.5" />By Area</TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.BY_GOAL} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Target className="mr-1.5 size-3.5" />By Goal</TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><FolderOpen className="mr-1.5 size-3.5" />By Project</TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.COMPLETED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Bookmark className="mr-1.5 size-3.5" />Completed
+                  <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC}><Tag className="mr-1.5 size-3.5" />By Topic</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_AREA}><MapIcon className="mr-1.5 size-3.5" />By Area</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_GOAL}><Target className="mr-1.5 size-3.5" />By Goal</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT}><FolderOpen className="mr-1.5 size-3.5" />By Project</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.COMPLETED}><Bookmark className="mr-1.5 size-3.5" />Completed
                   </TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Archive className="mr-1.5 size-3.5" />Archived
+                  <TabsTrigger value={RESOURCE_VIEW.ARCHIVED}><Archive className="mr-1.5 size-3.5" />Archived
                   </TabsTrigger>
                 </TabsList>
 
