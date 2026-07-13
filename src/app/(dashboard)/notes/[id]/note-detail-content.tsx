@@ -4,12 +4,15 @@ import { startTransition, useCallback, useEffect, useMemo, useRef, useState } fr
 import dynamic from "next/dynamic";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
+  Archive,
+  ArchiveRestore,
   ArrowLeft,
   BookOpen,
   Link2,
   NotebookPen,
   PanelRightClose,
   PanelRightOpen,
+  Pencil,
   Pin,
   X,
 } from "lucide-react";
@@ -283,29 +286,108 @@ export function NoteDetailContent() {
     );
   }
 
+  const renderMetadataPanel = () => (
+    <NoteMetadataPanel
+      areas={areas}
+      goals={goals}
+      projects={projects}
+      tasks={tasks}
+      noteTypes={noteTypes}
+      status={note.status}
+      type={note.type}
+      notebooks={localNotebooks}
+      notebookOptions={notebookOptions}
+      areaIds={localAreaIds}
+      goalIds={localGoalIds}
+      projectIds={localProjectIds}
+      taskIds={localTaskIds}
+      favorite={note.favorite}
+      pin={note.pin}
+      onStatusChange={(status) => handleMetaChange({ status })}
+      onTypeChange={(type) => handleMetaChange({ type })}
+      onNotebooksChange={(notebooks) => { setLocalNotebooks(notebooks); handleMetaChange({ notebooks }); }}
+      onAreaIdsChange={(ids) => { setLocalAreaIds(ids); handleMetaChange({ area_ids: ids }); }}
+      onGoalIdsChange={(ids) => { setLocalGoalIds(ids); handleMetaChange({ goal_ids: ids }); }}
+      onProjectIdsChange={(ids) => { setLocalProjectIds(ids); handleMetaChange({ project_ids: ids }); }}
+      onTaskIdsChange={(ids) => { setLocalTaskIds(ids); handleMetaChange({ task_ids: ids }); }}
+      onFavoriteChange={(favorite) => handleMetaChange({ favorite })}
+      onPinChange={(pin) => handleMetaChange({ pin })}
+      disabled={updateNote.isPending}
+    />
+  );
+
+  const renderMetadataTimestamps = () => (
+    <div className="mt-auto space-y-1 border-t border-border pt-4 text-xs text-muted-foreground">
+      <p>
+        Created{" "}
+        {formatDateLong(note.created_at)}
+      </p>
+      <p>
+        Updated{" "}
+        {formatDateLong(note.updated_at)}
+      </p>
+    </div>
+  );
+
   return (
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-4 py-2.5">
-        <div className="flex items-center gap-2">
+      {/* Header: wraps so long breadcrumb pushes status + actions onto the next line */}
+      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-2.5">
+        <div className="flex min-w-0 max-w-full items-center gap-2">
           <Button variant="ghost" size="icon-sm" onClick={() => router.push(noteBackHref)} aria-label="Back to notes">
             <ArrowLeft className="size-4" />
           </Button>
-          <span className="text-sm text-muted-foreground">/ Notes / {note.name}</span>
+          <span className="min-w-0 truncate text-sm text-muted-foreground" title={`/ Notes / ${note.name}`}>
+            / Notes / {note.name}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground ml-auto">
           <Badge variant="secondary" className={cn("text-xs", STATUS_COLORS[note.status])}>
             {note.status === "completed" ? "Done" : note.status.replace("_", " ")}
           </Badge>
+
+          {/* Desktop: pinned bubble when pinned. Mobile: pin toggle matching notes list row */}
           {note.pin && (
-            <Badge variant="outline" className="text-xs gap-1">
+            <Badge variant="outline" className="hidden text-xs gap-1 md:inline-flex">
               <Pin className="size-2.5" /> Pinned
             </Badge>
           )}
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <button
+            type="button"
+            onClick={() => handleMetaChange({ pin: !note.pin })}
+            disabled={updateNote.isPending}
+            className={cn(
+              "rounded p-1 transition-colors md:hidden",
+              note.pin
+                ? "text-primary"
+                : "text-muted-foreground/40 hover:text-primary",
+            )}
+            aria-label={note.pin ? "Unpin" : "Pin"}
+            title={note.pin ? "Unpin" : "Pin"}
+          >
+            <Pin className={cn("size-3.5", note.pin && "fill-current")} />
+          </button>
+
           {saveState === "saving" && <span className="text-xs" role="status" aria-live="polite">Saving…</span>}
           {saveState === "saved" && <span className="text-xs text-green-600 dark:text-green-400" role="status" aria-live="polite">Saved</span>}
+
+          {/* Mobile: edit icon opens bottom metadata. Desktop: panel toggle for side rail */}
           <Button
             variant="ghost"
             size="icon-sm"
+            className="md:hidden"
+            onClick={() => setIsMetadataOpen((open) => !open)}
+            aria-label={isMetadataOpen ? "Hide metadata" : "Edit metadata"}
+            title={isMetadataOpen ? "Hide metadata" : "Edit metadata"}
+            aria-expanded={isMetadataOpen}
+          >
+            <Pencil className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="hidden md:inline-flex"
             onClick={() => setIsMetadataOpen((open) => !open)}
             aria-label={isMetadataOpen ? "Hide metadata" : "Show metadata"}
             title={isMetadataOpen ? "Hide metadata" : "Show metadata"}
@@ -316,22 +398,57 @@ export function NoteDetailContent() {
               <PanelRightOpen className="size-4" />
             )}
           </Button>
-          <NoteArchiveToggle
-            isArchived={localIsArchived}
-            mode="detail"
-            disabled={isArchiveMutationPending}
-            onClick={handleArchiveToggle}
-          />
-          <DeleteEntityPopover
-            variant="detail"
-            entityLabel="note"
-            entityName={note.name}
-            requireTypedConfirmation={false}
-            disabled={deleteNote.isPending}
-            onConfirm={() => {
-              void handleDelete();
+
+          {/* Mobile: icon-only archive matching notes row. Desktop: labelled detail toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              void handleArchiveToggle();
             }}
-          />
+            disabled={isArchiveMutationPending}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-red-500 disabled:pointer-events-none disabled:opacity-50 md:hidden"
+            aria-label={localIsArchived ? "Restore" : "Archive"}
+          >
+            {localIsArchived ? (
+              <ArchiveRestore className="size-3.5" />
+            ) : (
+              <Archive className="size-3.5" />
+            )}
+          </button>
+          <div className="hidden md:block">
+            <NoteArchiveToggle
+              isArchived={localIsArchived}
+              mode="detail"
+              disabled={isArchiveMutationPending}
+              onClick={handleArchiveToggle}
+            />
+          </div>
+
+          {/* Mobile: row trash icon. Desktop: labelled delete button */}
+          <div className="md:hidden">
+            <DeleteEntityPopover
+              variant="row"
+              entityLabel="note"
+              entityName={note.name}
+              requireTypedConfirmation={false}
+              disabled={deleteNote.isPending}
+              onConfirm={() => {
+                void handleDelete();
+              }}
+            />
+          </div>
+          <div className="hidden md:block">
+            <DeleteEntityPopover
+              variant="detail"
+              entityLabel="note"
+              entityName={note.name}
+              requireTypedConfirmation={false}
+              disabled={deleteNote.isPending}
+              onConfirm={() => {
+                void handleDelete();
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -405,6 +522,17 @@ export function NoteDetailContent() {
               ))
             )}
           </div>
+
+          {/* Mobile: metadata stacks below content (same pattern as new note page) */}
+          {isMetadataOpen && (
+            <aside className="mt-8 rounded-lg border p-4 md:hidden" aria-label="Note metadata">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Metadata
+              </p>
+              {renderMetadataPanel()}
+              {renderMetadataTimestamps()}
+            </aside>
+          )}
         </div>
 
         <aside
@@ -419,44 +547,9 @@ export function NoteDetailContent() {
               Metadata
             </p>
 
-            <NoteMetadataPanel
-              areas={areas}
-              goals={goals}
-              projects={projects}
-              tasks={tasks}
-              noteTypes={noteTypes}
-              status={note.status}
-              type={note.type}
-              notebooks={localNotebooks}
-              notebookOptions={notebookOptions}
-              areaIds={localAreaIds}
-              goalIds={localGoalIds}
-              projectIds={localProjectIds}
-              taskIds={localTaskIds}
-              favorite={note.favorite}
-              pin={note.pin}
-              onStatusChange={(status) => handleMetaChange({ status })}
-              onTypeChange={(type) => handleMetaChange({ type })}
-              onNotebooksChange={(notebooks) => { setLocalNotebooks(notebooks); handleMetaChange({ notebooks }); }}
-              onAreaIdsChange={(ids) => { setLocalAreaIds(ids); handleMetaChange({ area_ids: ids }); }}
-              onGoalIdsChange={(ids) => { setLocalGoalIds(ids); handleMetaChange({ goal_ids: ids }); }}
-              onProjectIdsChange={(ids) => { setLocalProjectIds(ids); handleMetaChange({ project_ids: ids }); }}
-              onTaskIdsChange={(ids) => { setLocalTaskIds(ids); handleMetaChange({ task_ids: ids }); }}
-              onFavoriteChange={(favorite) => handleMetaChange({ favorite })}
-              onPinChange={(pin) => handleMetaChange({ pin })}
-              disabled={updateNote.isPending}
-            />
+            {renderMetadataPanel()}
 
-            <div className="mt-auto space-y-1 border-t border-border pt-4 text-xs text-muted-foreground">
-              <p>
-                Created{" "}
-                {formatDateLong(note.created_at)}
-              </p>
-              <p>
-                Updated{" "}
-                {formatDateLong(note.updated_at)}
-              </p>
-            </div>
+            {renderMetadataTimestamps()}
           </div>
         </aside>
       </div>
