@@ -1,8 +1,9 @@
 "use client";
 
-import { FolderKanban, Layers, SignalHigh, Target } from "lucide-react";
+import { FolderKanban, Layers, Search, SignalHigh, Target } from "lucide-react";
 import { useMemo } from "react";
 
+import { Input } from "@/components/ui/input";
 import {
   LinearFilters,
   type LinearFilter,
@@ -17,6 +18,7 @@ import {
 type NamedOption = { id: string; name: string; icon?: string | null };
 
 export type TasksFilterBarProps = {
+  search: string;
   priority: string;
   areaIds: string[];
   goalIds: string[];
@@ -24,6 +26,7 @@ export type TasksFilterBarProps = {
   areas: NamedOption[];
   goals: NamedOption[];
   projects: NamedOption[];
+  onSearchChange: (value: string) => void;
   onPriorityChange: (value: string) => void;
   onAreaIdsChange: (ids: string[]) => void;
   onGoalIdsChange: (ids: string[]) => void;
@@ -31,6 +34,7 @@ export type TasksFilterBarProps = {
 };
 
 export function TasksFilterBar({
+  search,
   priority,
   areaIds,
   goalIds,
@@ -38,6 +42,7 @@ export function TasksFilterBar({
   areas,
   goals,
   projects,
+  onSearchChange,
   onPriorityChange,
   onAreaIdsChange,
   onGoalIdsChange,
@@ -102,5 +107,22 @@ export function TasksFilterBar({
     onProjectIdsChange(filterValues(next, "project"));
   };
 
-  return <LinearFilters types={types} filters={filters} onFiltersChange={handleChange} />;
+  return (
+    <LinearFilters
+      types={types}
+      filters={filters}
+      onFiltersChange={handleChange}
+      leading={
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search..."
+            className="h-10 sm:h-8 w-44 pl-8 text-xs"
+          />
+        </div>
+      }
+    />
+  );
 }

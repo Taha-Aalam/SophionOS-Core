@@ -51,6 +51,7 @@ export function ResourcesContent() {
     topicId?: string;
   }>({});
 
+  const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [filterType, setFilterType] = useState<string>("");
   const [filterAreaIds, setFilterAreaIds] = useState<string[]>([]);
@@ -161,6 +162,11 @@ export function ResourcesContent() {
         break;
     }
 
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((r) => r.name.toLowerCase().includes(q));
+    }
+
     if (filterStatus) {
       result = result.filter((r) => r.status === filterStatus);
     }
@@ -211,6 +217,7 @@ export function ResourcesContent() {
     tab,
     allResources,
     archivedResources,
+    search,
     filterStatus,
     filterType,
     filterAreaIds,
@@ -424,6 +431,7 @@ export function ResourcesContent() {
           </TabsList>
 
         <ResourcesFilterBar
+          search={search}
           status={filterStatus}
           type={filterType}
           areaIds={filterAreaIds}
@@ -436,6 +444,7 @@ export function ResourcesContent() {
           projects={activeProjects}
           tasks={activeTasks}
           topics={activeTopics}
+          onSearchChange={setSearch}
           onStatusChange={setFilterStatus}
           onTypeChange={setFilterType}
           onAreaIdsChange={setFilterAreaIds}

@@ -6,11 +6,13 @@ import {
   FileType,
   FolderKanban,
   Layers,
+  Search,
   Tag,
   Target,
 } from "lucide-react";
 import { useMemo } from "react";
 
+import { Input } from "@/components/ui/input";
 import {
   LinearFilters,
   type LinearFilter,
@@ -26,6 +28,7 @@ import { RESOURCE_STATUS, RESOURCE_TYPE } from "@/lib/utils/constants";
 type NamedOption = { id: string; name: string; icon?: string | null };
 
 export type ResourcesFilterBarProps = {
+  search: string;
   status: string;
   type: string;
   areaIds: string[];
@@ -38,6 +41,7 @@ export type ResourcesFilterBarProps = {
   projects: NamedOption[];
   tasks: NamedOption[];
   topics: NamedOption[];
+  onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onTypeChange: (value: string) => void;
   onAreaIdsChange: (ids: string[]) => void;
@@ -48,6 +52,7 @@ export type ResourcesFilterBarProps = {
 };
 
 export function ResourcesFilterBar({
+  search,
   status,
   type,
   areaIds,
@@ -60,6 +65,7 @@ export function ResourcesFilterBar({
   projects,
   tasks,
   topics,
+  onSearchChange,
   onStatusChange,
   onTypeChange,
   onAreaIdsChange,
@@ -163,5 +169,22 @@ export function ResourcesFilterBar({
     onTopicIdsChange(filterValues(next, "topic"));
   };
 
-  return <LinearFilters types={types} filters={filters} onFiltersChange={handleChange} />;
+  return (
+    <LinearFilters
+      types={types}
+      filters={filters}
+      onFiltersChange={handleChange}
+      leading={
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search..."
+            className="h-10 sm:h-8 w-44 pl-8 text-xs"
+          />
+        </div>
+      }
+    />
+  );
 }
