@@ -403,6 +403,7 @@ export function ResourceDialog({
               onChange={(e) => setName(e.target.value)}
               aria-required="true"
               required
+              maxLength={255}
             />
           </div>
           <div className="grid gap-2">

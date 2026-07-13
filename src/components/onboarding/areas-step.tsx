@@ -50,7 +50,7 @@ export function AreasStep({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <Card key={i} className="flex flex-col items-center gap-1 p-4">
             <Skeleton className="h-7 w-7 rounded" />
@@ -63,7 +63,7 @@ export function AreasStep({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
         {areas?.map((area) => (
           <Card
             key={area.id}

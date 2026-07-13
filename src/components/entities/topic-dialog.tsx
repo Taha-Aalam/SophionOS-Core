@@ -200,6 +200,7 @@ export function TopicDialog({ open, onOpenChange, topic, defaultAreaId, onSucces
               placeholder="e.g., Productivity, Machine Learning, Recipes"
               value={form.name}
               onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+              maxLength={255}
             />
           </div>
           <div className="grid gap-2">

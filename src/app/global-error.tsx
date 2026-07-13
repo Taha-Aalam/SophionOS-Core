@@ -17,13 +17,13 @@ export default function GlobalError({
       <body
         style={{
           margin: 0,
-          minHeight: "100vh",
+          minHeight: "100dvh",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           fontFamily:
             "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-          background: "#0a0a0a",
+          background: "#0b0b10",
           color: "#fafafa",
         }}
       >
@@ -40,12 +40,19 @@ export default function GlobalError({
               marginTop: "1.5rem",
               padding: "0.5rem 1rem",
               borderRadius: "0.5rem",
-              border: "1px solid #3f3f46",
-              background: "#fafafa",
-              color: "#0a0a0a",
+              border: "1px solid #4f46e5",
+              background: "#4f46e5",
+              color: "#ffffff",
               fontSize: "0.875rem",
               fontWeight: 500,
               cursor: "pointer",
+              outlineOffset: "2px",
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.outline = "2px solid #818cf8";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.outline = "none";
             }}
           >
             Try again

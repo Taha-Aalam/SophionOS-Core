@@ -350,7 +350,7 @@ export function ContactDialog({
                 Name <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
-                <Input autoFocus placeholder="Full name" {...form.register("name")} />
+                <Input autoFocus placeholder="Full name" maxLength={255} {...form.register("name")} />
               </FormControl>
               <FormMessage>{form.formState.errors.name?.message}</FormMessage>
             </FormItem>

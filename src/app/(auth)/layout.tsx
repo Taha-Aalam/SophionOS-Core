@@ -18,7 +18,7 @@ export default function AuthLayout({
       />
       <div className="reveal-stagger w-full max-w-md space-y-8">
         <div className="flex flex-col items-center space-y-3 text-center">
-          <div className="group flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-2xl font-bold text-primary-foreground shadow-[0_8px_24px_oklch(0.3_0.15_260/0.35)] ring-1 ring-foreground/10 transition-transform duration-500 ease-[var(--ease-out-back)] hover:scale-105">
+          <div className="group flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-2xl font-bold text-primary-foreground shadow-[0_8px_24px_oklch(0.3_0.15_260/0.35)] ring-1 ring-foreground/10 transition-transform duration-500 ease-[var(--ease-out-quint)] hover:scale-105">
             S
           </div>
           <h1 className="text-3xl font-bold tracking-tight font-heading">SophionOS</h1>

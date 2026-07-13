@@ -6,16 +6,14 @@ import {
   Archive,
   Bookmark,
   BookOpen,
-  ChevronDownIcon,
   Clock,
-  Filter,
   FolderOpen,
   Inbox as InboxIcon,
+  LayoutGrid,
   Map as LucideMap,
   NotebookPen,
   Pin,
   Plus,
-  Search,
   Star,
   Tag,
   Target,
@@ -23,26 +21,10 @@ import {
   Zap,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NoteRow } from "@/components/entities/note-row";
+import { NotesFilterBar } from "@/components/filters/notes-filter-bar";
 import { NotesByGroupView, type NoteGroup } from "@/components/views/notes-by-group-view";
 import { EmptyState } from "@/components/views/empty-state";
 import { ErrorState } from "@/components/views/error-state";
@@ -60,7 +42,6 @@ import {
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
-import { cn } from "@/lib/utils";
 import {
   getNoteLinkedAreaIds,
   getNoteLinkedGoalIds,
@@ -79,13 +60,9 @@ import {
   formatNotesSummary,
   NOTES_LOADING_LABEL,
   NOTES_PAGE_SHELL_CLASS_NAME,
-  NOTES_SEARCH_PLACEHOLDER,
   NOTES_TABS_LIST_CLASS_NAME,
 } from "@/lib/utils/note-page-display";
 import type { Note } from "@/lib/types/domain.types";
-
-const ALL_STATUS_VALUE = "__all_status__";
-const ALL_NOTEBOOK_VALUE = "__all_notebooks__";
 
 export function NotesContent() {
   const router = useRouter();
@@ -97,13 +74,8 @@ export function NotesContent() {
   const [filterGoalIds, setFilterGoalIds] = useState<string[]>([]);
   const [filterProjectIds, setFilterProjectIds] = useState<string[]>([]);
   const [filterTaskIds, setFilterTaskIds] = useState<string[]>([]);
-  const [filterNotebook, setFilterNotebook] = useState(ALL_NOTEBOOK_VALUE);
+  const [filterNotebook, setFilterNotebook] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  const [areaPopoverOpen, setAreaPopoverOpen] = useState(false);
-  const [goalPopoverOpen, setGoalPopoverOpen] = useState(false);
-  const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
-  const [taskPopoverOpen, setTaskPopoverOpen] = useState(false);
 
   const { data: allNotes = [], isLoading, isError, refetch } = useNotes({ includeArchived: true });
   const { data: allAreas = [] } = useAreas();
@@ -183,7 +155,7 @@ export function NotesContent() {
       );
     }
 
-    if (filterNotebook !== ALL_NOTEBOOK_VALUE) {
+    if (filterNotebook) {
       result = result.filter((n) => (n.notebooks ?? []).includes(filterNotebook));
     }
 
@@ -311,65 +283,13 @@ export function NotesContent() {
     }
   }, [selectedIds, visibleNotes]);
 
-  const hasFilters = Boolean(
-    filterStatus ||
-      filterAreaIds.length > 0 ||
-      filterGoalIds.length > 0 ||
-      filterProjectIds.length > 0 ||
-      filterTaskIds.length > 0 ||
-      filterNotebook !== ALL_NOTEBOOK_VALUE ||
-      search.trim(),
-  );
-
   const activeAreas = useMemo(() => allAreas.filter((a) => !a.archive), [allAreas]);
   const activeGoals = useMemo(() => allGoals.filter((g) => !g.is_archived), [allGoals]);
   const activeProjects = useMemo(
     () => allProjects.filter((p) => !p.is_archived),
     [allProjects],
   );
-
-  const selectedAreaLabels = useMemo(
-    () =>
-      filterAreaIds
-        .map((id) => activeAreas.find((a) => a.id === id))
-        .filter(Boolean)
-        .map((a) => `${a!.icon ? `${a!.icon} ` : ""}${a!.name}`),
-    [filterAreaIds, activeAreas],
-  );
-
-  const selectedGoalLabels = useMemo(
-    () =>
-      filterGoalIds
-        .map((id) => activeGoals.find((g) => g.id === id))
-        .filter(Boolean)
-        .map((g) => g!.name),
-    [filterGoalIds, activeGoals],
-  );
-
-  const selectedProjectLabels = useMemo(
-    () =>
-      filterProjectIds
-        .map((id) => activeProjects.find((p) => p.id === id))
-        .filter(Boolean)
-        .map((p) => p!.name),
-    [filterProjectIds, activeProjects],
-  );
-
-  const selectedTaskLabels = useMemo(
-    () =>
-      filterTaskIds
-        .map((id) => allTasks.find((t) => t.id === id))
-        .filter(Boolean)
-        .map((t) => t!.name),
-    [filterTaskIds, allTasks],
-  );
-
-  const filterPopoverContentClassName = "w-80 max-w-[calc(100vw-2rem)] overflow-x-hidden p-2";
-  const filterOptionClassName =
-    "flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors hover:bg-muted/40";
-  const filterOptionLabelClassName = "min-w-0 flex-1 whitespace-normal break-words text-sm";
-  const compactTabTriggerClassName =
-    "rounded-none border-b-2 border-transparent px-4 py-2 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
+  const compactTabTriggerClassName = "snap-start";
 
   const handleArchiveSelected = async () => {
     if (selectedIds.size === 0) return;
@@ -388,16 +308,6 @@ export function NotesContent() {
       await restoreNote.mutateAsync(id);
     }
     setSelectedIds(new Set());
-  };
-
-  const clearFilters = () => {
-    setSearch("");
-    setFilterStatus("");
-    setFilterAreaIds([]);
-    setFilterGoalIds([]);
-    setFilterProjectIds([]);
-    setFilterTaskIds([]);
-    setFilterNotebook(ALL_NOTEBOOK_VALUE);
   };
 
   // ── Note row renderer (shared by flat list and grouped views) ──────────────
@@ -473,9 +383,9 @@ export function NotesContent() {
         }}
         className="flex flex-1 flex-col"
       >
-        <div className="border-b border-border/50 px-6 pt-4">
-          <TabsList className={NOTES_TABS_LIST_CLASS_NAME}>
-            <TabsTrigger value={NOTE_VIEW.ALL} className={compactTabTriggerClassName}>
+        <TabsList className={NOTES_TABS_LIST_CLASS_NAME}>
+          <TabsTrigger value={NOTE_VIEW.ALL} className={compactTabTriggerClassName}>
+              <LayoutGrid className="mr-1.5 size-3.5" />
               All
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.INBOX} className={compactTabTriggerClassName}>
@@ -527,288 +437,45 @@ export function NotesContent() {
               Archive
             </TabsTrigger>
           </TabsList>
-        </div>
 
-        <div className="flex items-center gap-3 border-b border-border/30 px-6 py-3">
-          <Filter className="size-3.5 shrink-0 text-muted-foreground" />
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={NOTES_SEARCH_PLACEHOLDER}
-                className="h-9 sm:h-7 w-44 pl-8 text-xs"
-              />
-            </div>
-
-            <Select
-              value={filterStatus || ALL_STATUS_VALUE}
-              onValueChange={(value) =>
-                setFilterStatus(value === ALL_STATUS_VALUE ? "" : (value || ""))
-              }
-            >
-              <SelectTrigger className="h-9 sm:h-7 w-[120px] text-xs">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_STATUS_VALUE}>All statuses</SelectItem>
-                <SelectItem value="inbox">Inbox</SelectItem>
-                <SelectItem value="to_review">To Review</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="archive">Archive</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Popover open={areaPopoverOpen} onOpenChange={setAreaPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterAreaIds.length === 0 ? (
-                  "Area"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedAreaLabels[0]}</span>
-                    {selectedAreaLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedAreaLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {activeAreas.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">No areas available.</p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {activeAreas.map((area) => {
-                      const checked = filterAreaIds.includes(area.id);
-                      return (
-                        <label key={area.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterAreaIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, area.id]))
-                                  : prev.filter((id) => id !== area.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>
-                            {area.icon ? `${area.icon} ` : ""}
-                            {area.name}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover open={goalPopoverOpen} onOpenChange={setGoalPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterGoalIds.length === 0 ? (
-                  "Goal"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedGoalLabels[0]}</span>
-                    {selectedGoalLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedGoalLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {activeGoals.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">No goals available.</p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {activeGoals.map((goal) => {
-                      const checked = filterGoalIds.includes(goal.id);
-                      return (
-                        <label key={goal.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterGoalIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, goal.id]))
-                                  : prev.filter((id) => id !== goal.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>{goal.name}</span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover open={projectPopoverOpen} onOpenChange={setProjectPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterProjectIds.length === 0 ? (
-                  "Project"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedProjectLabels[0]}</span>
-                    {selectedProjectLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedProjectLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {activeProjects.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">No projects available.</p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {activeProjects.map((project) => {
-                      const checked = filterProjectIds.includes(project.id);
-                      return (
-                        <label key={project.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterProjectIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, project.id]))
-                                  : prev.filter((id) => id !== project.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>{project.name}</span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Popover open={taskPopoverOpen} onOpenChange={setTaskPopoverOpen}>
-              <PopoverTrigger
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
-                )}
-              >
-                {filterTaskIds.length === 0 ? (
-                  "Task"
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <span className="max-w-[100px] truncate">{selectedTaskLabels[0]}</span>
-                    {selectedTaskLabels.length > 1 && (
-                      <Badge variant="secondary" className="h-4 px-1 text-2xs">
-                        +{selectedTaskLabels.length - 1}
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                <ChevronDownIcon className="size-3 text-muted-foreground" />
-              </PopoverTrigger>
-              <PopoverContent className={filterPopoverContentClassName}>
-                <div className="space-y-1">
-                  {allTasks.length === 0 && (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">No tasks available.</p>
-                  )}
-                  <ScrollArea className="max-h-60 w-full">
-                    {allTasks.map((task) => {
-                      const checked = filterTaskIds.includes(task.id);
-                      return (
-                        <label key={task.id} className={filterOptionClassName}>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(next) => {
-                              setFilterTaskIds((prev) =>
-                                next === true
-                                  ? Array.from(new Set([...prev, task.id]))
-                                  : prev.filter((id) => id !== task.id),
-                              );
-                            }}
-                          />
-                          <span className={filterOptionLabelClassName}>{task.name}</span>
-                        </label>
-                      );
-                    })}
-                  </ScrollArea>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Select
-              value={filterNotebook}
-              onValueChange={(value) => setFilterNotebook(value || "")}
-            >
-              <SelectTrigger className="h-9 sm:h-7 w-[140px] text-xs">
-                <SelectValue placeholder="Notebook" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_NOTEBOOK_VALUE}>All notebooks</SelectItem>
-                {notebooks.map((nb) => (
-                  <SelectItem key={nb} value={nb}>
-                    <BookOpen className="mr-1 inline size-3" />
-                    {nb}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {hasFilters && (
-              <button
-                onClick={clearFilters}
-                className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        </div>
+        <NotesFilterBar
+          search={search}
+          status={filterStatus}
+          areaIds={filterAreaIds}
+          goalIds={filterGoalIds}
+          projectIds={filterProjectIds}
+          taskIds={filterTaskIds}
+          notebook={filterNotebook}
+          areas={activeAreas}
+          goals={activeGoals}
+          projects={activeProjects}
+          tasks={allTasks}
+          notebooks={notebooks}
+          onSearchChange={setSearch}
+          onStatusChange={setFilterStatus}
+          onAreaIdsChange={setFilterAreaIds}
+          onGoalIdsChange={setFilterGoalIds}
+          onProjectIdsChange={setFilterProjectIds}
+          onTaskIdsChange={setFilterTaskIds}
+          onNotebookChange={setFilterNotebook}
+        />
 
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-2 border-b border-border/30 px-6 py-2">
             <span className="text-sm font-medium">{selectedIds.size} selected</span>
             <div className="ml-auto flex items-center gap-2">
-              <Button variant="outline" size="sm" className="h-9 sm:h-7 text-xs" onClick={handleArchiveSelected}>
+              <Button variant="outline" size="sm" className="h-10 sm:h-8 text-xs" onClick={handleArchiveSelected}>
                 <Archive className="mr-1.5 size-3.5" />
                 Archive
               </Button>
-              <Button variant="outline" size="sm" className="h-9 sm:h-7 text-xs" onClick={handleRestoreSelected}>
+              <Button variant="outline" size="sm" className="h-10 sm:h-8 text-xs" onClick={handleRestoreSelected}>
                 <Archive className="mr-1.5 size-3.5" />
                 Restore
               </Button>
               <Button
                 variant="destructive"
                 size="sm"
-                className="h-9 sm:h-7 text-xs"
+                className="h-10 sm:h-8 text-xs"
                 onClick={handleDeleteSelected}
                 disabled={bulkDelete.isPending}
               >
@@ -818,7 +485,7 @@ export function NotesContent() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 sm:h-7 text-xs"
+                className="h-10 sm:h-8 text-xs"
                 onClick={() => setSelectedIds(new Set())}
               >
                 Clear

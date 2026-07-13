@@ -1,7 +1,8 @@
 "use client";
 
+import { cardGrid } from "@/components/ui/layout";
 import { useMemo, useState } from "react";
-import { Archive, Clock, FolderKanban, Map as MapIcon, Plus, Star, Target as GoalIcon, Users } from "lucide-react";
+import { Archive, Clock, FolderKanban, LayoutGrid, Map as MapIcon, Plus, Star, Target as GoalIcon, Users } from "lucide-react";
 
 import { ContactCard } from "@/components/entities/contact-card";
 import { ContactDialog, type ContactDialogDefaults } from "@/components/entities/contact-dialog";
@@ -184,35 +185,36 @@ export function ContactsContent() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-        <TabsList className="flex h-auto w-full flex-nowrap gap-0 overflow-x-auto bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+        <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsTrigger value="all">
+            <LayoutGrid className="mr-1.5 size-3.5" />
             All
           </TabsTrigger>
-          <TabsTrigger value="favorite" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value="favorite">
             <Star className="mr-1.5 size-3.5" />
             Favorite
           </TabsTrigger>
-          <TabsTrigger value="follow-up" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value="follow-up">
             <Clock className="mr-1.5 size-3.5" />
             Follow-up
           </TabsTrigger>
-          <TabsTrigger value="by-group" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value="by-group">
             <Users className="mr-1.5 size-3.5" />
             By Group
           </TabsTrigger>
-          <TabsTrigger value="by-project" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value="by-project">
             <FolderKanban className="mr-1.5 size-3.5" />
             By Project
           </TabsTrigger>
-          <TabsTrigger value="by-area" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value="by-area">
             <MapIcon className="mr-1.5 size-3.5" />
             By Area
           </TabsTrigger>
-          <TabsTrigger value="by-goal" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value="by-goal">
             <GoalIcon className="mr-1.5 size-3.5" />
             By Goal
           </TabsTrigger>
-          <TabsTrigger value="archive" className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+          <TabsTrigger value="archive">
             <Archive className="mr-1.5 size-3.5" />
             Archive
           </TabsTrigger>
@@ -231,7 +233,7 @@ export function ContactsContent() {
               }}
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {allContacts.map((contact) => (
                 <ContactCard
                   key={contact.id}
@@ -254,7 +256,7 @@ export function ContactsContent() {
               description="Star contacts to see them here."
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {favContacts.map((contact) => (
                 <ContactCard
                   key={contact.id}
@@ -300,7 +302,7 @@ export function ContactsContent() {
 
         <TabsContent value="by-project" className="mt-4">
           {isLoadingByProject ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-40 w-full" />
               ))}
@@ -319,7 +321,7 @@ export function ContactsContent() {
 
         <TabsContent value="by-area" className="mt-4">
           {isLoadingByArea ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full" />)}
             </div>
           ) : (
@@ -336,7 +338,7 @@ export function ContactsContent() {
 
         <TabsContent value="by-goal" className="mt-4">
           {isLoadingByGoal ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full" />)}
             </div>
           ) : (
@@ -353,7 +355,7 @@ export function ContactsContent() {
 
         <TabsContent value="archive" className="mt-4">
           {isLoadingArchived ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full" />)}
             </div>
           ) : archivedContacts.length === 0 ? (
@@ -363,7 +365,7 @@ export function ContactsContent() {
               description="Archived contacts will appear here."
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={cardGrid}>
               {archivedContacts.map((contact) => (
                 <ContactCard
                   key={contact.id}

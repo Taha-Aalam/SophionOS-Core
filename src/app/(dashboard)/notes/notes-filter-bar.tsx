@@ -165,7 +165,7 @@ export function NotesFilterBar({
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={NOTES_SEARCH_PLACEHOLDER}
-            className="h-9 sm:h-7 w-44 pl-8 text-xs"
+            className="h-10 sm:h-8 w-44 pl-8 text-xs"
           />
         </div>
 
@@ -175,7 +175,7 @@ export function NotesFilterBar({
             onFilterStatusChange(value === ALL_STATUS_VALUE ? "" : (value || ""))
           }
         >
-          <SelectTrigger className="h-9 sm:h-7 w-[120px] text-xs">
+          <SelectTrigger className="h-10 sm:h-8 w-[160px] sm:w-52 sm:w-48 text-xs">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -192,7 +192,7 @@ export function NotesFilterBar({
           <PopoverTrigger
             className={cn(
               buttonVariants({ variant: "outline" }),
-              "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
+              "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
             )}
           >
             {filterAreaIds.length === 0 ? (
@@ -245,7 +245,7 @@ export function NotesFilterBar({
           <PopoverTrigger
             className={cn(
               buttonVariants({ variant: "outline" }),
-              "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
+              "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
             )}
           >
             {filterGoalIds.length === 0 ? (
@@ -295,7 +295,7 @@ export function NotesFilterBar({
           <PopoverTrigger
             className={cn(
               buttonVariants({ variant: "outline" }),
-              "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
+              "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
             )}
           >
             {filterProjectIds.length === 0 ? (
@@ -345,7 +345,7 @@ export function NotesFilterBar({
           <PopoverTrigger
             className={cn(
               buttonVariants({ variant: "outline" }),
-              "h-9 sm:h-7 gap-1 px-2 py-0 text-xs font-normal",
+              "h-10 sm:h-8 gap-1 px-2 py-0 text-xs font-normal",
             )}
           >
             {filterTaskIds.length === 0 ? (
@@ -395,7 +395,7 @@ export function NotesFilterBar({
           value={filterNotebook}
           onValueChange={(value) => onFilterNotebookChange(value || "")}
         >
-          <SelectTrigger className="h-9 sm:h-7 w-[140px] text-xs">
+          <SelectTrigger className="h-10 sm:h-8 w-[160px] sm:w-52 text-xs">
             <SelectValue placeholder="Notebook" />
           </SelectTrigger>
           <SelectContent>

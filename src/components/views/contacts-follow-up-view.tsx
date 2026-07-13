@@ -6,6 +6,7 @@ import { ChevronDownIcon, ChevronRightIcon, Bell } from "lucide-react";
 import { ContactCard } from "@/components/entities/contact-card";
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { cardGrid } from "@/components/ui/layout";
 import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/types/domain.types";
 import type { FollowUpSection } from "@/lib/utils/contact-category-sections";
@@ -72,7 +73,7 @@ function CollapsibleFollowUpSection({
       </div>
 
       {isOpen && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={cardGrid}>
           {section.contacts.map((contact) => (
             <ContactCard
               key={contact.id}

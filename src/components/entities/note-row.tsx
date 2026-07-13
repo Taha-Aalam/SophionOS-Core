@@ -88,7 +88,7 @@ export function NoteRow({
             "rounded p-1 transition-colors",
             note.pin
               ? "text-primary"
-              : "text-muted-foreground opacity-0 hover:text-primary group-hover:opacity-100",
+              : "text-muted-foreground/40 hover:text-primary",
           )}
           aria-label={note.pin ? "Unpin" : "Pin"}
         >
@@ -111,7 +111,9 @@ export function NoteRow({
 
       {/* Name + metadata */}
       <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-        <span className="block truncate text-sm font-medium">{note.name}</span>
+        <span className="block text-sm font-medium max-md:leading-tight max-md:break-words md:truncate">
+          {note.name}
+        </span>
 
         {/* Metadata cluster — max 2 per category, +N overflow per category, smaller */}
         <div className="hidden flex-wrap items-center gap-1 md:flex">
@@ -174,12 +176,6 @@ export function NoteRow({
             +{taskNames.length - 2}
           </Badge>
         )}
-        <span className="text-2xs leading-none text-muted-foreground">
-          {new Date(note.updated_at).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          })}
-        </span>
         </div>
       </div>
 
@@ -194,7 +190,7 @@ export function NoteRow({
           "shrink-0 rounded-md p-1.5 transition-colors",
           note.favorite
             ? "text-amber-500"
-            : "text-muted-foreground/20 opacity-0 hover:text-amber-400 group-hover:opacity-100",
+            : "text-muted-foreground/40 hover:text-amber-400",
         )}
         aria-label={note.favorite ? "Unfavorite" : "Favorite"}
       >
@@ -204,7 +200,7 @@ export function NoteRow({
       {/* Archive / Restore + Delete */}
       {(onArchive || onRestore || onDelete) && (
         <div
-          className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+          className="flex shrink-0 items-center gap-0.5"
           onClick={(e) => e.stopPropagation()}
         >
           {(onArchive || onRestore) && (
