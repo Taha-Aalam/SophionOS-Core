@@ -111,7 +111,9 @@ export function NoteRow({
 
       {/* Name + metadata */}
       <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-        <span className="block truncate text-sm font-medium">{note.name}</span>
+        <span className="block text-sm font-medium max-md:leading-tight max-md:break-words md:truncate">
+          {note.name}
+        </span>
 
         {/* Metadata cluster — max 2 per category, +N overflow per category, smaller */}
         <div className="hidden flex-wrap items-center gap-1 md:flex">
