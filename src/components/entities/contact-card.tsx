@@ -26,6 +26,9 @@ interface ContactCardProps {
   returnToChain?: string;
 }
 
+/** On mobile, stack org under role once role is long enough to crowd action buttons. */
+const MOBILE_ROLE_STACK_THRESHOLD = 22;
+
 export function ContactCard({
   contact,
   onEdit,
@@ -37,10 +40,14 @@ export function ContactCard({
 }: ContactCardProps) {
   const router = useRouter();
   const groupColor = contact.group ? CONTACT_GROUP_COLORS[contact.group] ?? "" : "";
+  const roleOrgLine = [contact.role, contact.organization].filter(Boolean).join(" · ");
+  const stackRoleOrgOnMobile =
+    Boolean(contact.role && contact.organization) &&
+    contact.role!.length > MOBILE_ROLE_STACK_THRESHOLD;
 
   return (
     <Card
-      className="group flex h-full cursor-pointer flex-col hover-lift"
+      className="group flex h-full cursor-pointer flex-col overflow-hidden hover-lift"
       onClick={() => {
         const base = `/contacts/${contact.slug ?? contact.id}`;
         router.push(
@@ -64,7 +71,8 @@ export function ContactCard({
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-3 min-w-0">
+          {/* flex-1 + min-w-0 lets this column shrink so action buttons keep their slot */}
+          <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
             {/* Avatar circle */}
             <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-muted relative">
               {contact.image_display_url ? (
@@ -73,17 +81,31 @@ export function ContactCard({
                 <User2 className="size-5 text-muted-foreground" />
               )}
             </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="font-medium truncate">{contact.name}</span>
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span className="min-w-0 truncate font-medium">{contact.name}</span>
                 {contact.favorite && (
                   <Star className="size-3 shrink-0 fill-yellow-400 text-yellow-400" />
                 )}
               </div>
               {(contact.role || contact.organization) && (
-                <p className="text-sm text-muted-foreground truncate">
-                  {[contact.role, contact.organization].filter(Boolean).join(" · ")}
-                </p>
+                <>
+                  {/* Desktop: keep role · organization on one line */}
+                  <p className="hidden text-sm text-muted-foreground truncate md:block">
+                    {roleOrgLine}
+                  </p>
+                  {/* Mobile: stack org under long roles so buttons stay in-card */}
+                  {stackRoleOrgOnMobile ? (
+                    <div className="md:hidden text-sm text-muted-foreground">
+                      <p className="truncate">{contact.role}</p>
+                      <p className="truncate">{contact.organization}</p>
+                    </div>
+                  ) : (
+                    <p className="truncate text-sm text-muted-foreground md:hidden">
+                      {roleOrgLine}
+                    </p>
+                  )}
+                </>
               )}
               {contact.group && (
                 <Badge variant="secondary" className={cn("mt-1 text-2xs", groupColor)}>
@@ -93,9 +115,9 @@ export function ContactCard({
             </div>
           </div>
 
-          {/* Action buttons */}
+          {/* Action buttons — fixed-width cluster; does not shrink with long metadata */}
           <div
-            className="flex items-center gap-1 shrink-0"
+            className="flex shrink-0 items-center gap-1"
             onClick={(e) => e.stopPropagation()}
           >
             <Button
