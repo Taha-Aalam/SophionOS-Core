@@ -61,6 +61,7 @@ export function TasksContent() {
   const [activeTab, setActiveTab] = useState<TaskView>(TASK_VIEW.ALL);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [search, setSearch] = useState("");
   const [filterPriority, setFilterPriority] = useState("");
   const [filterAreaIds, setFilterAreaIds] = useState<string[]>([]);
   const [filterGoalIds, setFilterGoalIds] = useState<string[]>([]);
@@ -171,6 +172,11 @@ export function TasksContent() {
   const visibleTasks = useMemo(() => {
     let result = getVisibleTasks(tasks, activeTab);
 
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((task) => task.name.toLowerCase().includes(q));
+    }
+
     if (filterPriority) {
       result = result.filter((task) => task.priority === filterPriority);
     }
@@ -194,7 +200,7 @@ export function TasksContent() {
     }
 
     return result;
-  }, [activeTab, filterAreaIds, filterGoalIds, filterPriority, filterProjectIds, tasks]);
+  }, [activeTab, filterAreaIds, filterGoalIds, filterPriority, filterProjectIds, search, tasks]);
 
   const activeTasks = useMemo(
     () => tasks.filter((t) => !t.is_archived && !t.is_completed),
@@ -484,6 +490,7 @@ export function TasksContent() {
           </TabsList>
 
         <TasksFilterBar
+          search={search}
           priority={filterPriority}
           areaIds={filterAreaIds}
           goalIds={filterGoalIds}
@@ -491,6 +498,7 @@ export function TasksContent() {
           areas={activeAreas}
           goals={activeGoals}
           projects={activeProjects}
+          onSearchChange={setSearch}
           onPriorityChange={setFilterPriority}
           onAreaIdsChange={setFilterAreaIds}
           onGoalIdsChange={setFilterGoalIds}
