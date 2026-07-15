@@ -37,7 +37,7 @@ vi.mock("@/lib/api/subscription", () => ({
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({})),
+  createClient: vi.fn(async () => ({})), createDataClient: vi.fn(async () => ({})),
 }));
 
 vi.mock("@/lib/api/rate-limiter", () => ({

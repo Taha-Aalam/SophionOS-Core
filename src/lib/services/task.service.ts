@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
+import { assertOwnedIds } from "../api/ownership";
 import { createClient } from "../supabase/client";
 import type { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
 import { LIST_SAFETY_CAP, TASK_STATUS, type TaskStatus } from "../utils/constants";
@@ -943,7 +944,11 @@ export const taskService = {
     };
   },
 
-  async replaceAreaLinks(_userId: string, taskId: string, areaIds: string[], options?: ServiceOptions): Promise<void> {
+  async replaceAreaLinks(userId: string, taskId: string, areaIds: string[], options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    if (areaIds.length > 0) {
+      await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
+    }
     const existingAreaIdsList = await this.getAreaLinks(taskId, options);
     const existingAreaIds = new Set(existingAreaIdsList);
     const nextAreaIds = new Set(areaIds);
@@ -951,7 +956,7 @@ export const taskService = {
     const areaIdsToRemove = existingAreaIdsList.filter((areaId) => !nextAreaIds.has(areaId));
 
     if (areaIdsToAdd.length > 0) {
-      const { error } = await (options?.supabase ?? createClient())
+      const { error } = await sb
         .from("task_areas")
         .insert(areaIdsToAdd.map((area_id) => ({ area_id, task_id: taskId })));
 
@@ -975,7 +980,11 @@ export const taskService = {
     await this.syncTaskStatusFromContext(taskId, options);
   },
 
-  async replaceGoalLinks(_userId: string, taskId: string, goalIds: string[], options?: ServiceOptions): Promise<void> {
+  async replaceGoalLinks(userId: string, taskId: string, goalIds: string[], options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    if (goalIds.length > 0) {
+      await assertOwnedIds(sb, "goals", userId, goalIds, "Goal");
+    }
     const existingGoalIdsList = await this.getGoalLinks(taskId, options);
     const existingGoalIds = new Set(existingGoalIdsList);
     const nextGoalIds = new Set(goalIds);
@@ -983,7 +992,7 @@ export const taskService = {
     const goalIdsToRemove = existingGoalIdsList.filter((goalId) => !nextGoalIds.has(goalId));
 
     if (goalIdsToAdd.length > 0) {
-      const { error } = await (options?.supabase ?? createClient())
+      const { error } = await sb
         .from("goal_tasks")
         .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, task_id: taskId })));
 
@@ -1004,11 +1013,15 @@ export const taskService = {
   },
 
   async replaceProjectLinks(
-    _userId: string,
+    userId: string,
     taskId: string,
     projectIds: string[],
     options?: ServiceOptions,
   ): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    if (projectIds.length > 0) {
+      await assertOwnedIds(sb, "projects", userId, projectIds, "Project");
+    }
     const existingProjectIdsList = await this.getProjectLinks(taskId, options);
     const existingProjectIds = new Set(existingProjectIdsList);
     const nextProjectIds = new Set(projectIds);
@@ -1020,7 +1033,7 @@ export const taskService = {
     );
 
     if (projectIdsToAdd.length > 0) {
-      const { error } = await (options?.supabase ?? createClient())
+      const { error } = await sb
         .from("task_projects")
         .insert(projectIdsToAdd.map((project_id) => ({ project_id, task_id: taskId })));
 
@@ -1030,7 +1043,7 @@ export const taskService = {
     }
 
     if (projectIdsToRemove.length > 0) {
-      const { error } = await (options?.supabase ?? createClient())
+      const { error } = await sb
         .from("task_projects")
         .delete()
         .eq("task_id", taskId)

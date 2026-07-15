@@ -5,19 +5,20 @@ import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { success, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 
 const linkBodySchema = z.object({ project_id: z.string().uuid() });
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     await resourceService.getById(userId, id, { supabase });
     const relations = await resourceService.getWithRelations(id, { supabase });
     return success({ project_ids: relations.project_ids });
@@ -28,7 +29,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { id } = await params;
     const { project_id } = await validateBody(request, linkBodySchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     await resourceService.getById(userId, id, { supabase });
     const relations = await resourceService.getWithRelations(id, { supabase });
     const next = Array.from(new Set([...relations.project_ids, project_id]));
@@ -51,7 +53,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -61,7 +64,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     const { id } = await params;
     const { project_id } = await validateBody(request, linkBodySchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     await resourceService.getById(userId, id, { supabase });
     const relations = await resourceService.getWithRelations(id, { supabase });
     const next = relations.project_ids.filter((projectId) => projectId !== project_id);

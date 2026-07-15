@@ -5,7 +5,7 @@ import { success, paginated, created, error } from "@/lib/api/api-response";
 import { getPaginationParams } from "@/lib/api/pagination";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 import { createResourceSchema } from "@/lib/validators/resource.schema";
 import type { Resource } from "@/lib/types/domain.types";
@@ -38,13 +38,14 @@ function resolveGroupKey(resource: Resource, groupBy: string): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
     const { searchParams } = new URL(request.url);
     const { page, pageSize } = getPaginationParams(searchParams);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
 
     const status = searchParams.get("status") as ResourceStatus | "all" | null;
     const favorite = parseBool(searchParams.get("favorite"));
@@ -99,7 +100,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -108,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await validateBody(request, createResourceSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const resource = await resourceService.create(userId, body, { supabase });
     return created(resource);
   } catch (err) {

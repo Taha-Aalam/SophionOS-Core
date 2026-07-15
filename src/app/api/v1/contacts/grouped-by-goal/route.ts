@@ -4,18 +4,19 @@ import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { paginated, error } from "@/lib/api/api-response";
 import { getPaginationParams } from "@/lib/api/pagination";
 import { rateLimit } from "@/lib/api/rate-limiter";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
     const { searchParams } = new URL(request.url);
     const { page, pageSize } = getPaginationParams(searchParams);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
 
     const groups = await contactService.getContactsGroupedByGoal(userId, { supabase });
     return paginated(groups, groups.length, page, pageSize);

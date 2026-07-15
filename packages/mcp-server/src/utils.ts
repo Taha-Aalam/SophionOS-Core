@@ -3,6 +3,29 @@
  */
 
 import type { SophionOSApiError } from "./types.js";
+import * as z from "zod/v4";
+
+/** Align with API MAX_BULK_IDS — hard cap on destructive/bulk mutations. */
+export const MAX_BULK_IDS = 100;
+
+/** UUID bulk id list with max bound (for tools that accept ids). */
+export const bulkIdsField = z
+  .array(z.string().min(1))
+  .min(1)
+  .max(MAX_BULK_IDS)
+  .describe(`One or more entity ids (max ${MAX_BULK_IDS}).`);
+
+/**
+ * Require explicit confirm:true for irreversible bulk deletes so agents cannot
+ * mass-delete from prompt injection alone without an explicit user-approved arg.
+ */
+export function requireDestructiveConfirm(confirm: boolean | undefined): void {
+  if (confirm !== true) {
+    throw new Error(
+      'Destructive bulk action requires confirm: true. Ask the user to confirm before deleting permanently.',
+    );
+  }
+}
 
 export interface ToolTextResult {
   [key: string]: unknown;

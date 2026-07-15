@@ -5,7 +5,7 @@ import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { success, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 
 const linkSchema = z.object({ goal_id: z.string().uuid() });
@@ -13,12 +13,13 @@ const linkSchema = z.object({ goal_id: z.string().uuid() });
 /** GET — goal ids linked to the note. */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.linkedGoalIds ?? []);
   } catch (err) {
@@ -29,7 +30,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 /** POST — link a goal to the note. */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { id } = await params;
     const body = await validateBody(request, linkSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     await noteService.getById(userId, id, { supabase });
     const relations = await noteService.getWithRelations(id, { supabase });
     const next = Array.from(new Set([...relations.goal_ids, body.goal_id]));
@@ -54,7 +56,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 /** DELETE — unlink a goal (?goal_id=<uuid>). */
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -63,7 +66,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!goalId) {
       return error(new AppError("Missing required query parameter: goal_id", 400, "VALIDATION_ERROR"));
     }
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     await noteService.getById(userId, id, { supabase });
     const relations = await noteService.getWithRelations(id, { supabase });
     const next = relations.goal_ids.filter((g) => g !== goalId);

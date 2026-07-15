@@ -9,7 +9,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
 import type { SophionOSClient } from "../client.js";
-import { jsonResult, runTool, type ToolTextResult } from "../utils.js";
+import {
+  bulkIdsField,
+  jsonResult,
+  runTool,
+  type ToolTextResult,
+} from "../utils.js";
 
 export function registerCoreTools(
   server: McpServer,
@@ -338,12 +343,9 @@ export function registerCoreTools(
     {
       title: "Complete Task",
       description:
-        "Mark one or more tasks as complete. Completing a task updates its parent project's progress. Pass one id or several.",
+        "Mark one or more tasks as complete (max 100). Completing a task updates its parent project's progress.",
       inputSchema: {
-        ids: z
-          .array(z.string())
-          .min(1)
-          .describe("One or more task ids to complete."),
+        ids: bulkIdsField,
       },
       annotations: { idempotentHint: true },
     },
