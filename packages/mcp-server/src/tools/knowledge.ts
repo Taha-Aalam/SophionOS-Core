@@ -8,7 +8,13 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
 import type { SophionOSClient } from "../client.js";
-import { jsonResult, runTool, type ToolTextResult } from "../utils.js";
+import {
+  bulkIdsField,
+  jsonResult,
+  requireDestructiveConfirm,
+  runTool,
+  type ToolTextResult,
+} from "../utils.js";
 
 export function registerKnowledgeTools(
   server: McpServer,
@@ -363,9 +369,9 @@ export function registerKnowledgeTools(
     "bulk_archive_notes",
     {
       title: "Bulk Archive Notes",
-      description: "Archive multiple notes at once by id.",
+      description: "Archive multiple notes at once by id (max 100).",
       inputSchema: {
-        ids: z.array(z.string()).min(1).describe("Note ids to archive."),
+        ids: bulkIdsField,
       },
       annotations: { idempotentHint: true },
     },
@@ -378,14 +384,20 @@ export function registerKnowledgeTools(
     {
       title: "Bulk Delete Notes",
       description:
-        "Permanently delete multiple notes at once by id. Irreversible — prefer bulk_archive_notes to merely hide them.",
+        "Permanently delete multiple notes (max 100). Irreversible — prefer bulk_archive_notes. Requires confirm: true.",
       inputSchema: {
-        ids: z.array(z.string()).min(1).describe("Note ids to delete."),
+        ids: bulkIdsField,
+        confirm: z
+          .boolean()
+          .describe("Must be true to proceed with permanent deletion."),
       },
       annotations: { destructiveHint: true, idempotentHint: true },
     },
-    async ({ ids }): Promise<ToolTextResult> =>
-      runTool(async () => jsonResult(await client.notes.bulkDelete(ids))),
+    async ({ ids, confirm }): Promise<ToolTextResult> =>
+      runTool(async () => {
+        requireDestructiveConfirm(confirm);
+        return jsonResult(await client.notes.bulkDelete(ids));
+      }),
   );
 
   server.registerTool(
@@ -393,9 +405,9 @@ export function registerKnowledgeTools(
     {
       title: "Bulk Update Note Status",
       description:
-        "Set the status of multiple notes at once (e.g. inbox, to_review, active, completed, archive).",
+        "Set the status of multiple notes at once (max 100; e.g. inbox, to_review, active, completed, archive).",
       inputSchema: {
-        ids: z.array(z.string()).min(1),
+        ids: bulkIdsField,
         status: z.string().describe("Target status for all the notes."),
       },
     },

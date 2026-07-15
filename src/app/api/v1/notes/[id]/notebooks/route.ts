@@ -5,7 +5,7 @@ import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { success, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 
 const replaceSchema = z.object({
@@ -18,12 +18,13 @@ const addSchema = z.object({
 /** GET — the note's current notebook memberships. */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.notebooks ?? []);
   } catch (err) {
@@ -34,7 +35,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 /** PUT — replace the full notebook membership set. */
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -44,7 +46,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params;
     const body = await validateBody(request, replaceSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     await noteService.replaceNotebooks(id, body.notebooks, { supabase });
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.notebooks ?? []);
@@ -56,7 +58,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 /** POST — add the note to a single notebook. */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -66,7 +69,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { id } = await params;
     const body = await validateBody(request, addSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     await noteService.addNotesToNotebook(userId, body.notebook, [id], { supabase });
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.notebooks ?? []);
@@ -78,7 +81,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 /** DELETE — remove the note from a notebook (?notebook=<name>). */
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -87,7 +91,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!notebook) {
       return error(new AppError("Missing required query parameter: notebook", 400, "VALIDATION_ERROR"));
     }
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     await noteService.removeNoteFromNotebook(userId, id, notebook, { supabase });
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.notebooks ?? []);

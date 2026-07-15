@@ -5,7 +5,7 @@ import { error, success } from "@/lib/api/api-response";
 import { AppError } from "@/lib/api/error-handler";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { goalService } from "@/lib/services/goal.service";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 
 /**
  * POST /api/v1/goals/[id]/restore — restore an archived goal.
@@ -15,7 +15,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
@@ -23,7 +24,7 @@ export async function POST(
     }
 
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const goal = await goalService.restore(userId, id, { supabase });
     return success(goal);
   } catch (err) {

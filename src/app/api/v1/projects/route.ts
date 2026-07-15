@@ -8,7 +8,7 @@ import { getPaginationParams } from "@/lib/api/pagination";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { contactService } from "@/lib/services/contact.service";
 import { projectService } from "@/lib/services/project.service";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import type { Project } from "@/lib/types/domain.types";
 import type { ProjectStatus } from "@/lib/utils/constants";
 import { createProjectSchema } from "@/lib/validators/project.schema";
@@ -25,14 +25,15 @@ function isTruthy(value: string | null): boolean {
  */
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
       return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
     }
 
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const searchParams = new URL(request.url).searchParams;
 
     const areaId = searchParams.get("area_id") ?? undefined;
@@ -98,7 +99,8 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
@@ -113,7 +115,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await validateBody(request, createProjectSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const project = await projectService.create(userId, body, { supabase });
     return created(project);
   } catch (err) {

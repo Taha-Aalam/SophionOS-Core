@@ -6,12 +6,12 @@ import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { success, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 
 const bulkSchema = z
   .object({
-    ids: z.array(z.string().uuid()).min(1),
+    ids: z.array(z.string().uuid()).min(1).max(100),
     status: z.enum([
       NOTE_STATUS.INBOX,
       NOTE_STATUS.TO_REVIEW,
@@ -24,7 +24,8 @@ const bulkSchema = z
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { ids, status } = await validateBody(request, bulkSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
 
     const succeeded: string[] = [];
     const failed: Array<{ id: string; error: string }> = [];

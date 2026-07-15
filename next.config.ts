@@ -69,8 +69,10 @@ const cspDirectives = [
   // worker — breaking Clerk's session refresh in CSP-strict modes.
   "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' blob: data: https: ${cspHostList}`.trim(),
+  // Prefer self/blob/data + known hosts over unrestricted https: for user content images.
+  `img-src 'self' blob: data: ${supabaseOrigin} ${cspHostList} https://*.googleusercontent.com https://lh3.googleusercontent.com`.trim(),
   "font-src 'self'",
+  // PostHog is proxied via /ingest rewrites (same-origin). Keep self + Supabase + Clerk.
   `connect-src 'self' ${supabaseOrigin} ${supabaseWsOrigin} ${cspHostList}`.trim(),
   `frame-src 'self' ${cspHostList}`.trim(),
   "object-src 'none'",

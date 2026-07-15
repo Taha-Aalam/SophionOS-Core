@@ -6,7 +6,7 @@ import { validateBody } from "@/lib/api/api-validator";
 import { AppError } from "@/lib/api/error-handler";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { projectService } from "@/lib/services/project.service";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { updateProjectSchema } from "@/lib/validators/project.schema";
 
 /**
@@ -18,7 +18,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
@@ -26,7 +27,7 @@ export async function GET(
     }
 
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const project = await projectService.getById(userId, id, { supabase });
     return success(project);
   } catch (err) {
@@ -44,7 +45,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
@@ -60,7 +62,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await validateBody(request, updateProjectSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const project = await projectService.update(userId, id, body, { supabase });
     return success(project);
   } catch (err) {
@@ -78,7 +80,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
@@ -86,7 +89,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     await projectService.delete(userId, id, { supabase });
     return success({ id, deleted: true });
   } catch (err) {

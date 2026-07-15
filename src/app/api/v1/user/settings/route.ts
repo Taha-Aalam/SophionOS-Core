@@ -5,7 +5,7 @@ import { requireAuth } from "@/lib/api/api-auth";
 import { success, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 
 const noteDefaultsSchema = z.object({
@@ -52,11 +52,12 @@ const updateSettingsSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await requireAuth(request);
+    const authResult = await requireAuth(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const [noteDefaults, preferences, notifications, onboarding] =
       await Promise.all([
         userSettingsService.getNoteDefaults(userId, { supabase }),
@@ -77,7 +78,8 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const { userId } = await requireAuth(request);
+    const authResult = await requireAuth(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -86,7 +88,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await validateBody(request, updateSettingsSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
 
     if (body.note_defaults !== undefined) {
       await userSettingsService.setNoteDefaults(userId, body.note_defaults, { supabase });

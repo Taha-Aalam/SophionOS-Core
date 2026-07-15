@@ -45,10 +45,16 @@ describe("rate-limiter", () => {
     expect(result.success).toBe(true);
   });
 
-  it("applies the premium tier limit (1000)", async () => {
-    mockMaybeSingle.mockResolvedValue({ data: { tier: "premium", status: "active" }, error: null });
+  it("applies the max tier limit (1000)", async () => {
+    mockMaybeSingle.mockResolvedValue({ data: { tier: "max", status: "active" }, error: null });
     const result = await rateLimit(req(), uniqueId());
     expect(result.limit).toBe(1000);
+  });
+
+  it("applies the lifetime tier limit (500, same as pro)", async () => {
+    mockMaybeSingle.mockResolvedValue({ data: { tier: "lifetime", status: "active" }, error: null });
+    const result = await rateLimit(req(), uniqueId());
+    expect(result.limit).toBe(500);
   });
 
   it("blocks once the free-tier limit is exceeded within the window", async () => {
