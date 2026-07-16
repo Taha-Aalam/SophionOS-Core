@@ -257,10 +257,8 @@ export async function finalizeAccountDeletion(
 
   for (const table of ACCOUNT_DELETION_TABLE_ORDER) {
     try {
-      // audit_events uses clerk_user_id
-      if (table === "audit_events" || table === "account_deletion_requests") {
-        // Keep deletion request row until end; skip self mid-loop
-        if (table === "account_deletion_requests") continue;
+      // audit_events uses clerk_user_id (deletion request row is updated after the loop)
+      if (table === "audit_events") {
         const { error } = await admin
           .from(table)
           .delete()

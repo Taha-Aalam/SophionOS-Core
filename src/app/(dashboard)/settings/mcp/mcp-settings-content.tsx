@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -146,12 +146,18 @@ export function McpSettingsContent() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Button asChild>
-            <Link href="/settings/ai-access">Continue with read-only access</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/data-and-ai">Review what this means</Link>
-          </Button>
+          <Link
+            href="/settings/ai-access"
+            className={buttonVariants()}
+          >
+            Continue with read-only access
+          </Link>
+          <Link
+            href="/data-and-ai"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            Review what this means
+          </Link>
         </CardContent>
       </Card>
 

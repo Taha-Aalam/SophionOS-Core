@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Download, Loader2, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -218,9 +218,12 @@ export function PrivacyCenter() {
                 : "blocked"}
             </strong>
           </p>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/settings/ai-access">Manage AI Access</Link>
-          </Button>
+          <Link
+            href="/settings/ai-access"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Manage AI Access
+          </Link>
         </CardContent>
       </Card>
 

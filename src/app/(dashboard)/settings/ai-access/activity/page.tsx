@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AiActivityList } from "@/components/settings/ai-activity-list";
 import { SettingsDetailHeader } from "@/components/settings/settings-detail-header";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function AiActivityPage() {
   return (
@@ -11,9 +11,12 @@ export default function AiActivityPage() {
         description="Review what connected clients and API keys did recently."
       />
       <div>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/settings/ai-access">← Back to AI Access</Link>
-        </Button>
+        <Link
+          href="/settings/ai-access"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          ← Back to AI Access
+        </Link>
       </div>
       <AiActivityList />
     </div>
