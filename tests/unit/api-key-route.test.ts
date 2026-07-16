@@ -5,11 +5,30 @@ vi.mock("@/lib/api/api-key-service", () => ({
   listApiKeys: vi.fn(),
   generateApiKey: vi.fn(),
   revokeApiKey: vi.fn(),
+  toPublicApiKeyRecord: (r: Record<string, unknown>) => ({
+    ...r,
+    status: r.revoked_at ? "revoked" : "active",
+  }),
+}));
+
+vi.mock("@/lib/api/ai-access-service", () => ({
+  recordAuditEvent: vi.fn(async () => {}),
+  getAiAccessSettings: vi.fn(async () => ({
+    ai_access_enabled: true,
+    ai_write_access_enabled: false,
+    privacy_notice_version: null,
+    privacy_notice_accepted_at: null,
+  })),
 }));
 
 vi.mock("@/lib/api/api-auth", () => {
   const authFn = vi.fn();
-  return { requireAuth: authFn, authorizeApiRequest: authFn };
+  return {
+    requireAuth: authFn,
+    authorizeApiRequest: authFn,
+    requireClerkSession: authFn,
+    assertClerkSession: vi.fn(),
+  };
 });
 
 vi.mock("@/lib/api/subscription", () => ({
@@ -70,10 +89,17 @@ describe("POST /api/v1/user/api-keys", () => {
         id: "k1",
         user_id: "user_123",
         name: "CLI",
+        key_prefix: "sop_raws…tkey",
+        client_type: "unknown",
+        client_name: null,
+        access_mode: "read_only",
+        scopes: [],
         last_used_at: null,
+        last_used_user_agent: null,
         expires_at: null,
         created_at: "2026-07-01T00:00:00Z",
         revoked_at: null,
+        revoke_reason: null,
       },
     } as never);
 
@@ -92,10 +118,17 @@ describe("POST /api/v1/user/api-keys", () => {
         id: "k2",
         user_id: "user_123",
         name: "Claude Desktop",
+        key_prefix: "sop_expi…ykey",
+        client_type: "unknown",
+        client_name: null,
+        access_mode: "read_only",
+        scopes: [],
         last_used_at: null,
+        last_used_user_agent: null,
         expires_at: "2026-10-01T00:00:00.000Z",
         created_at: "2026-07-01T00:00:00Z",
         revoked_at: null,
+        revoke_reason: null,
       },
     } as never);
 
@@ -118,10 +151,17 @@ describe("POST /api/v1/user/api-keys", () => {
         id: "k3",
         user_id: "user_123",
         name: "Long-lived",
+        key_prefix: "sop_null…lkey",
+        client_type: "unknown",
+        client_name: null,
+        access_mode: "read_only",
+        scopes: [],
         last_used_at: null,
+        last_used_user_agent: null,
         expires_at: null,
         created_at: "2026-07-01T00:00:00Z",
         revoked_at: null,
+        revoke_reason: null,
       },
     } as never);
 
@@ -145,10 +185,17 @@ describe("GET /api/v1/user/api-keys", () => {
         id: "k1",
         user_id: "user_123",
         name: "CLI",
+        key_prefix: "sop_xxxx…yyyy",
+        client_type: "unknown",
+        client_name: null,
+        access_mode: "read_only",
+        scopes: [],
         last_used_at: null,
+        last_used_user_agent: null,
         expires_at: null,
         created_at: "2026-06-30T00:00:00Z",
         revoked_at: null,
+        revoke_reason: null,
       },
     ] as never);
 
@@ -173,6 +220,6 @@ describe("DELETE /api/v1/user/api-keys/[id]", () => {
 
     const json = await res.json();
     expect(json.data).toMatchObject({ id: "k1", revoked: true });
-    expect(mockRevokeApiKey).toHaveBeenCalledWith("user_123", "k1");
+    expect(mockRevokeApiKey).toHaveBeenCalledWith("user_123", "k1", "user_revoked");
   });
 });

@@ -3,8 +3,10 @@ import {
   Bell,
   CreditCard,
   KeyRound,
+  Lock,
   Plug,
   Settings2,
+  Shield,
   User,
 } from "lucide-react";
 
@@ -28,6 +30,19 @@ const settingsCards = [
     title: "Notifications",
     description: "Configure briefings, digests, and reminder schedules.",
     icon: Bell,
+  },
+  {
+    href: "/settings/ai-access",
+    title: "AI Access",
+    description:
+      "See connected clients, revoke keys, and disable all AI/API access.",
+    icon: Shield,
+  },
+  {
+    href: "/settings/privacy",
+    title: "Privacy & data",
+    description: "Export your data, review counts, and request account deletion.",
+    icon: Lock,
   },
   {
     href: "/settings/api-keys",
