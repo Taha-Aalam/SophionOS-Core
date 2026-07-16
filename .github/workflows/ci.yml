@@ -25,7 +25,7 @@ jobs:
       - name: Setup pnpm
         # Version comes only from package.json "packageManager" (pnpm@11.13.1).
         # Do not also set `version:` here — action-setup errors on dual sources.
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
         uses: actions/setup-node@v7
