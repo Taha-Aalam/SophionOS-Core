@@ -13,6 +13,8 @@
     "analyze": "cross-env ANALYZE=true next build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:isolation": "vitest run tests/unit/dual-user-isolation.test.ts tests/unit/rls-policy-presence.test.ts",
+    "check:migrations": "node scripts/check-migrations-structure.mjs",
     "seed:demo": "node scripts/seed-demo.mjs"
   },
   "dependencies": {

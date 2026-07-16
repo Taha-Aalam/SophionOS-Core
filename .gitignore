@@ -59,7 +59,7 @@ skills/
 skills-lock.json
 .openclaude-profile.json
 
-# Local artifacts
+# Local artifacts / tool spill
 all_info.txt
 bin/
 screenshots/
@@ -67,7 +67,25 @@ tsconfig.tsbuildinfo
 coverage/
 *.log
 session-report-*.html
+route-permission-coverage.log
+tests_output.txt
 graphify-out/
+.next-dev.log
+
+# Accidental one-word attribute dump files at repo root (editor/tool spills)
+/className
+/data-base-ui-click-trigger
+/data-slot
+/disabled
+/id
+/onClick
+/onKeyDown
+/onKeyUp
+/onMouseDown
+/onPointerDown
+/ref
+/tabIndex
+/type
 
 # OS / IDE noise (keep intentional .vscode if shared)
 .idea/
@@ -79,3 +97,7 @@ Thumbs.db
 # Worktrees
 .worktrees/
 worktrees/
+
+# CodeGraph local index
+.codegraph/
+

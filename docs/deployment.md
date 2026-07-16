@@ -21,9 +21,11 @@ SophionOS is a Next.js application plus Supabase (Postgres) and Clerk.
 
 ## Docker
 
-A full multi-service Compose stack is **optional/P1**. For alpha, prefer the
-documented local path (`pnpm dev` + Supabase CLI or hosted Supabase) unless you
-maintain your own Dockerfile.
+- `Dockerfile` — multi-stage production build of the Next.js app.
+- `docker-compose.yml` — evaluation run of the app with env from the host.
+
+Clerk and Supabase are **not** bundled. Prefer `pnpm dev` + Supabase CLI for
+day-to-day development; use Docker when validating a production-like image.
 
 ## Upgrades
 

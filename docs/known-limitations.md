@@ -23,14 +23,25 @@
 - Many UI services talk to Supabase **from the browser** with RLS. That is an
   intentional early architecture; a full dual-path server repository layer is
   still maturing.
-- Multi-user RLS integration tests require a live Clerk+Supabase fixture; CI
-  focuses on unit tests + static migration/policy presence checks.
+- **Dual-user isolation unit tests** (`pnpm test:isolation`) exercise real
+  service/export/ownership/API-key paths with fixture users. **Live** dual-JWT
+  PostgREST RLS tests are **not** in default CI (need Clerk + Supabase JWTs).
+- CI runs structural migration/RLS presence checks (`pnpm check:migrations`) and
+  optional plain-Postgres migration apply (Supabase-specific SQL may skip).
 
 ## Self-hosting
 
-- No guaranteed one-command production Docker Compose for all dependencies.
+- Docker evaluation image/Compose builds the **app** only; Clerk and Supabase
+  remain external services you configure (see `Dockerfile`, `docker-compose.yml`).
 - Clerk is required; alternative auth providers are **not** supported yet.
 - You own backups, TLS, upgrades, and secret rotation.
+
+## Secret history
+
+- A historical Google OAuth secret was found in git history under
+  `supabase/config.toml` and removed from the **current tree**. Full history
+  rewrite was not applied without owner force-push approval. Operators must
+  **rotate** that credential. Details: `docs/ops/secret-history-remediation.md`.
 
 ## Privacy
 

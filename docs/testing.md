@@ -16,11 +16,14 @@
 | `tests/unit/api-key-*.test.ts` | Key routes / crypto helpers |
 | `tests/unit/personal-data-export.test.ts` | Export shaping |
 | `tests/unit/rls-policy-presence.test.ts` | Structural RLS migration checks |
+| `tests/unit/dual-user-isolation.test.ts` | Dual-user service/export/ownership/key isolation |
 
 ## Running
 
 ```bash
 pnpm test
+pnpm test:isolation
+pnpm check:migrations
 pnpm test -- tests/unit/personal-data-export.test.ts
 ```
 
@@ -33,9 +36,12 @@ re-implement production logic inside the test.
 
 ## RLS integration gap
 
-Full dual-user RLS tests need live Supabase + Clerk JWTs. When unavailable,
-structural tests assert that core migrations define RLS policies. Document any
-residual risk in `docs/known-limitations.md`.
+**Default CI:** dual-user isolation unit tests + structural migration/RLS checks.
+
+**Live dual-JWT PostgREST RLS** (User A/B tokens against a real Supabase): set
+`LIVE_RLS_INTEGRATION=1` and provide fixture credentials when a suite is added.
+Until then, do not claim “full multi-user RLS CI.” Residual risk is documented
+in `docs/known-limitations.md`.
 
 ## Adding tests
 

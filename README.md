@@ -38,7 +38,7 @@ them in one personal system with Row Level Security isolation per user.
 - Full API-key **scopes** matrix and guaranteed MCP read-only defaults
 - Comprehensive multi-user RLS CI in every environment
 - SophionOS Business / Company Brain features
-- Turnkey one-command Docker production stack (docs cover local + managed services)
+- Bundled Clerk/Supabase in Docker (app image only; external identity + DB)
 
 ## License
 
@@ -106,6 +106,14 @@ pnpm dev
 ```
 
 Optional demo data: `pnpm seed:demo` (synthetic only — see `docs/demo-users/`).
+
+### Docker evaluation
+
+```bash
+docker compose build
+docker compose up
+# http://localhost:3000 — set real Clerk/Supabase env first (see .env.example)
+```
 
 ## Contributing
 

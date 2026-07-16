@@ -1,0 +1,20 @@
+# Gitleaks config for SophionOS CI and local scans.
+# Extends defaults; path allowlists reduce noise from local agent caches.
+
+title = "SophionOS gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Local tooling and build artifacts"
+paths = [
+  '''node_modules''',
+  '''\.next''',
+  '''\.claude''',
+  '''\.codegraph''',
+  '''graphify-out''',
+  '''bin/''',
+  '''pnpm-lock\.yaml''',
+  '''\.worktrees''',
+]

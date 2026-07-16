@@ -315,10 +315,12 @@ max_frequency = "5s"
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
 [auth.external.google]
-enabled = true
-client_id = "1033039659828-j0vt1oel93rko6u718a4qu54ad4jnk4e.apps.googleusercontent.com"
+# Disabled by default for public/self-host clones. Enable only with local env secrets.
+# Never commit real client_id or secret values — use env substitution (e.g. env(GOOGLE_CLIENT_ID)).
+enabled = false
+client_id = "env(GOOGLE_CLIENT_ID)"
 # DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
-secret = "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"
+secret = "env(GOOGLE_CLIENT_SECRET)"
 # Overrides the default auth redirectUrl.
 redirect_uri = "http://localhost:54321/auth/v1/callback"
 # Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
