@@ -32,9 +32,10 @@ describe("note page display helpers", () => {
   });
 
   it("uses visible archive row actions with explicit archive labels", () => {
-    expect(NOTES_ROW_ACTION_BUTTON_CLASS_NAME).toContain("group-hover:opacity-100");
-    expect(NOTES_ROW_ACTION_BUTTON_CLASS_NAME).toContain("group-focus-within:opacity-100");
-    expect(NOTES_ROW_ACTION_BUTTON_CLASS_NAME).toContain("focus-visible:opacity-100");
+    // Row actions stay visible (not hover-only opacity) for touch/mobile.
+    expect(NOTES_ROW_ACTION_BUTTON_CLASS_NAME).toContain("text-muted-foreground");
+    expect(NOTES_ROW_ACTION_BUTTON_CLASS_NAME).toContain("hover:text-foreground");
+    expect(NOTES_ROW_ACTION_BUTTON_CLASS_NAME).not.toContain("opacity-0");
     expect(getNoteArchiveActionCopy(false)).toBe("Archive");
     expect(getNoteArchiveActionCopy(true)).toBe("Restore");
   });
