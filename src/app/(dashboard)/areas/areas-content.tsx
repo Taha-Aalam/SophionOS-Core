@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { Activity, Archive, LayoutGrid, Map as MapIcon, PauseCircle, Plus, Tags } from "lucide-react";
 
 import { useAuth } from "@/components/providers/auth-provider";
@@ -48,7 +48,7 @@ export function AreasContent() {
   const { data: areas = [], isLoading, isError, refetch } = useAreas();
 
   useEffect(() => {
-    setMounted(true);
+    startTransition(() => setMounted(true));
   }, []);
   const { data: goals = [] } = useGoals({ status: "all" });
   const { data: projects = [] } = useProjects({ status: "all" });

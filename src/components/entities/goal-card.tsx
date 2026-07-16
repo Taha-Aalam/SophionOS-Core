@@ -101,6 +101,8 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
     return fallback ? [fallback] : ['Unassigned'];
   })();
   const isInteractive = typeof onEdit === 'function';
+  const handleActivate = () => onEdit?.(goal);
+  const clickableProps = useClickableProps(handleActivate);
 
   const showDuplicateBadge = duplicateIndex != null && duplicateIndex > 1;
 
@@ -111,8 +113,8 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
         isInteractive && "cursor-pointer hover-lift",
         goal.is_archived && "opacity-60 grayscale"
       )}
-      onClick={() => onEdit?.(goal)}
-      {...(isInteractive ? useClickableProps(() => onEdit?.(goal)) : {})}
+      onClick={handleActivate}
+      {...(isInteractive ? clickableProps : {})}
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-4">
