@@ -72,10 +72,13 @@ tests_output.txt
 graphify-out/
 .next-dev.log
 
-# Agent session artifacts (plans, goals, prompts, specs, local error dumps)
-# Keep real product docs under docs/*.md, docs/ops, docs/decisions, docs/audit, etc.
+# Agent session / internal marketing / non-product doc dumps (local only)
+# Keep real product docs under docs/*.md, docs/ops, docs/decisions, etc.
 docs/superpowers/
 docs/error/
+docs/audit/
+docs/demo-users/
+docs/app-info/
 info/
 
 # Accidental one-word attribute dump files at repo root (editor/tool spills)

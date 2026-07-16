@@ -35,7 +35,7 @@ features.
    npx supabase db reset   # local: migrations + seed
    ```
 
-6. Optional synthetic data: `pnpm seed:demo` (see `docs/demo-users/README.md`).
+6. Optional synthetic data: `pnpm seed:demo` (see `supabase/seed.sql`).
 
 ## Development workflow
 

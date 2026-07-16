@@ -28,7 +28,7 @@ if (!/synthetic|demo|example\.com/i.test(seedSql)) {
 console.log("SophionOS demo seed");
 console.log("--------------------");
 console.log("Seed file:", seedPath);
-console.log("Synthetic personas: docs/demo-users/");
+console.log("Synthetic personas: supabase/seed.sql");
 console.log("");
 console.log("Recommended (local Supabase):");
 console.log("  npx supabase db reset");
