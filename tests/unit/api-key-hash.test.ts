@@ -80,12 +80,21 @@ describe("validateApiKey", () => {
         user_id: "user_1",
         expires_at: null,
         revoked_at: null,
+        access_mode: "read_only",
+        client_type: "mcp",
+        client_name: null,
       },
       error: null,
     });
 
     const result = await validateApiKey(raw);
-    expect(result).toEqual({ userId: "user_1", keyId: "k1" });
+    expect(result).toEqual({
+      userId: "user_1",
+      keyId: "k1",
+      accessMode: "read_only",
+      clientType: "mcp",
+      clientName: null,
+    });
     expect(eq).toHaveBeenCalledWith("key_hash", hashApiKey(raw));
   });
 });

@@ -12,6 +12,19 @@ vi.mock("@/lib/api/api-key-service", () => ({
   validateApiKey: (key: string) => mockValidateApiKey(key),
 }));
 
+vi.mock("@/lib/api/ai-access-service", () => ({
+  getAiAccessSettings: vi.fn(async () => ({
+    ai_access_enabled: true,
+    ai_write_access_enabled: true,
+    privacy_notice_version: null,
+    privacy_notice_accepted_at: null,
+  })),
+}));
+
+vi.mock("@/lib/api/subscription", () => ({
+  requirePaidTier: vi.fn(async () => {}),
+}));
+
 import {
   requireAuth,
   authenticateRequest,
@@ -48,9 +61,16 @@ describe("api-auth", () => {
   });
 
   it("authenticateRequest resolves an API-key bearer to its user (type api_key)", async () => {
-    mockValidateApiKey.mockResolvedValue({ userId: "user_key", keyId: "k1" });
+    mockValidateApiKey.mockResolvedValue({
+      userId: "user_key",
+      keyId: "k1",
+      accessMode: "read_only",
+      clientType: "mcp",
+      clientName: null,
+    });
+    // requireAuth enforces AI flags; mock settings open
     const result = await authenticateRequest(req({ authorization: "Bearer sop_abc" }));
-    expect(result).toEqual({ userId: "user_key", type: "api_key" });
+    expect(result).toMatchObject({ userId: "user_key", type: "api_key", keyId: "k1" });
     expect(mockValidateApiKey).toHaveBeenCalledWith("sop_abc");
   });
 
