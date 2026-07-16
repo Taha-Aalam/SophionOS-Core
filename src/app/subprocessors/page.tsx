@@ -47,8 +47,8 @@ export default function SubprocessorsPage() {
         </tbody>
       </table>
       <p className="text-sm text-muted-foreground">
-        Self-hosters choose their own processors. Keep{" "}
-        <code>docs/data-inventory.md</code> current when integrations change.
+        Self-hosters choose their own processors. See{" "}
+        <code>docs/privacy-and-data.md</code> when integrations change.
       </p>
     </TrustPageShell>
   );

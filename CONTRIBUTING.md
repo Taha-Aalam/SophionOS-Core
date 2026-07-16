@@ -67,7 +67,7 @@ features.
 - Add new files under `supabase/migrations/` with timestamp prefixes.
 - Prefer additive, reversible-friendly changes.
 - Update RLS when adding user-owned tables.
-- Document destructive or multi-step upgrades in `docs/release-process.md`.
+- Document destructive or multi-step upgrades in the PR description and `CHANGELOG.md`.
 - Do not commit real user data or production dumps.
 
 ## Large changes

@@ -41,7 +41,7 @@
 - A historical Google OAuth secret was found in git history under
   `supabase/config.toml` and removed from the **current tree**. Full history
   rewrite was not applied without owner force-push approval. Operators must
-  **rotate** that credential. Details: `docs/ops/secret-history-remediation.md`.
+  **rotate** that credential if it was ever used.
 
 ## Privacy
 

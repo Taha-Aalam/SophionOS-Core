@@ -29,4 +29,5 @@ day-to-day development; use Docker when validating a production-like image.
 
 ## Upgrades
 
-See `docs/release-process.md`. Backup Postgres before applying migrations.
+Backup Postgres before applying migrations. Prefer additive migrations under
+`supabase/migrations/`. Note breaking changes in `CHANGELOG.md`.

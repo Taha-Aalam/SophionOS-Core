@@ -1,1 +1,0 @@
-SELECT name, status FROM resources WHERE id = 'bf254411-...';
