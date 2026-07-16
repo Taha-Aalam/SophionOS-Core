@@ -5,7 +5,7 @@ import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { success, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 
 const linkSchema = z.object({ topic_id: z.string().uuid() });
@@ -17,12 +17,13 @@ const linkSchema = z.object({ topic_id: z.string().uuid() });
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.topic_id ? [note.topic_id] : []);
   } catch (err) {
@@ -33,7 +34,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 /** POST — set the note's topic. */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { id } = await params;
     const body = await validateBody(request, linkSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const note = await noteService.update(userId, id, { topic_id: body.topic_id }, { supabase });
     return success(note.topic_id ? [note.topic_id] : []);
   } catch (err) {
@@ -54,12 +56,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 /** DELETE — clear the note's topic. */
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const note = await noteService.update(userId, id, { topic_id: null }, { supabase });
     return success(note.topic_id ? [note.topic_id] : []);
   } catch (err) {

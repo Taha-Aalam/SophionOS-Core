@@ -28,13 +28,13 @@ vi.mock("@/lib/api/rate-limiter", () => ({
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(),
+  createClient: vi.fn(), createDataClient: vi.fn(),
 }));
 
 import { goalService } from "@/lib/services/goal.service";
 import { requireAuth } from "@/lib/api/api-auth";
 import { rateLimit } from "@/lib/api/rate-limiter";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createDataClient } from "@/lib/supabase/server";
 import { AuthError } from "@/lib/api/error-handler";
 
 import { GET, POST } from "../goals/route";
@@ -50,6 +50,7 @@ import {
 const requireAuthMock = vi.mocked(requireAuth);
 const rateLimitMock = vi.mocked(rateLimit);
 const createClientMock = vi.mocked(createClient);
+const createDataClientMock = vi.mocked(createDataClient);
 
 const GOAL_ID = "11111111-1111-1111-8111-111111111111";
 const AREA_ID = "33333333-3333-3333-8333-333333333333";
@@ -95,6 +96,7 @@ beforeEach(() => {
   // The handlers only forward the client to the service (which is mocked), so
   // a bare object stands in for the real supabase client.
   createClientMock.mockResolvedValue({} as never);
+  createDataClientMock.mockResolvedValue({} as never);
 });
 
 describe("GET /api/v1/goals", () => {

@@ -66,6 +66,10 @@ const AreaCardComponent = ({
   })();
   const isInactive = area.inactive;
   const areaType = normalizeAreaType(area.type);
+  const navigateToArea = () => {
+    if (!isArchived) router.push(areaHref);
+  };
+  const clickableProps = useClickableProps(navigateToArea);
 
   return (
     <Card
@@ -73,8 +77,8 @@ const AreaCardComponent = ({
         "group cursor-pointer hover-lift",
         isArchived && "opacity-60 grayscale"
       )}
-      onClick={() => !isArchived && router.push(areaHref)}
-      {...(!isArchived ? useClickableProps(() => router.push(areaHref)) : {})}
+      onClick={navigateToArea}
+      {...(!isArchived ? clickableProps : {})}
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">

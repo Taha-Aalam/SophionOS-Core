@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/api/api-auth";
 import { success, created, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { AppError, DatabaseError } from "@/lib/api/error-handler";
 
 const createIntegrationSchema = z.object({
@@ -14,13 +14,14 @@ const createIntegrationSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await requireAuth(request);
+    const authResult = await requireAuth(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
     // No service layer for integrations — query the table directly, always
     // scoped to the authenticated user.
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const { data, error: dbError } = await supabase
       .from("integrations")
       .select("id, user_id, type, external_id, status, created_at")
@@ -37,7 +38,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await requireAuth(request);
+    const authResult = await requireAuth(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await validateBody(request, createIntegrationSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
 
     // user_id is taken from the authenticated session, never from the body.
     const { data, error: dbError } = await supabase

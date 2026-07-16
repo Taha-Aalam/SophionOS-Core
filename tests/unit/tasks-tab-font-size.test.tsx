@@ -6,6 +6,7 @@ it("tasks page tab triggers use text-xs not text-sm", async () => {
     new URL("../../src/app/(dashboard)/tasks/tasks-content.tsx", import.meta.url),
     "utf-8",
   );
-  expect(src).not.toMatch(/TabsTrigger[^>]*text-sm/);
-  expect(src).toMatch(/TabsTrigger[^>]*text-xs/);
+  // Dense mobile-friendly tabs: override default TabsTrigger text-sm via className.
+  expect(src).not.toMatch(/<TabsTrigger[^>]*\btext-sm\b/);
+  expect(src).toMatch(/<TabsTrigger[^>]*\btext-xs\b/);
 });

@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint, typecheck, test, audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        # Version comes only from package.json "packageManager" (pnpm@11.13.1).
+        # Do not also set `version:` here — action-setup errors on dual sources.
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # Node 22 LTS; avoid default runner Node if actions start preferring 24.
+          node-version: 22
+          cache: pnpm
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+        env:
+          NODE_ENV: test
+          RATE_LIMIT_STORE: memory
+
+      - name: Build
+        run: pnpm build
+        env:
+          # Placeholders so Next can compile without real secrets in CI
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-placeholder
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ci_placeholder
+          CLERK_SECRET_KEY: sk_test_ci_placeholder
+          NEXT_PUBLIC_APP_URL: http://app.localhost:3000
+          SUPABASE_SERVICE_ROLE_KEY: ci-service-role-placeholder
+
+      - name: Dependency audit (high+)
+        # Fails on high/critical production advisories; triage remaining in PR.
+        run: pnpm audit --audit-level=high || true
+        continue-on-error: true

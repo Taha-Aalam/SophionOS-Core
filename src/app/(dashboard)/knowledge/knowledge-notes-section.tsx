@@ -26,7 +26,6 @@ import { NOTES_TABS_LIST_CLASS_NAME } from "@/lib/utils/note-page-display";
 import { encodeReturnTo } from "@/lib/utils/return-to";
 import {
   NOTE_VIEW,
-  getNoteCounts,
   getNoteLinkedAreaIds,
   getNoteLinkedGoalIds,
   getNoteLinkedProjectIds,
@@ -72,7 +71,6 @@ export function KnowledgeNotesSection({
   const router = useRouter();
   const [notesTab, setNotesTab] = useState<NoteView>(NOTE_VIEW.ALL);
 
-  const noteCounts = getNoteCounts(notes);
   const visibleNotes = (() => {
     const list = getVisibleNotes(notes, notesTab).slice();
     return list.sort((a, b) => {

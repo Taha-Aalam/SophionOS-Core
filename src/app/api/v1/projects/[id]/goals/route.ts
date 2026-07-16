@@ -7,7 +7,7 @@ import { validateBody } from "@/lib/api/api-validator";
 import { AppError, ValidationError } from "@/lib/api/error-handler";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { projectService } from "@/lib/services/project.service";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 
 const linkGoalSchema = z.object({ goal_id: z.string().uuid() }).strict();
 
@@ -20,7 +20,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
@@ -28,7 +29,7 @@ export async function GET(
     }
 
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const relations = await projectService.getWithRelations(userId, id, {
       supabase,
     });
@@ -49,7 +50,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
@@ -65,7 +67,7 @@ export async function POST(
 
     const { id } = await params;
     const { goal_id } = await validateBody(request, linkGoalSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     await projectService.linkToGoal(userId, id, goal_id, { supabase });
     const project = await projectService.getById(userId, id, { supabase });
     return created(project);
@@ -84,7 +86,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
@@ -96,7 +99,7 @@ export async function DELETE(
     if (!goalId) {
       throw new ValidationError("goal_id is required");
     }
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     await projectService.unlinkFromGoal(userId, id, goalId, { supabase });
     const project = await projectService.getById(userId, id, { supabase });
     return success(project);

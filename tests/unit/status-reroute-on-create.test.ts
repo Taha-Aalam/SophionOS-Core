@@ -18,30 +18,43 @@ vi.mock("../../src/lib/supabase/client", () => ({ createClient: vi.fn() }));
 
 function makeClient() {
   const calls: Array<{ method: string; args: unknown[] }> = [];
+  let listResult: unknown[] | null = null;
+  const row = {
+    id: "x", name: "x", slug: "x", user_id: "u",
+    status: "inbox", is_archived: false, is_completed: false,
+    previous_status: null, completed_at: null, due_date: null,
+    area_id: null, project_id: null, type: null, url: null, topic_id: null,
+  };
   const builder: any = {
     from: vi.fn(() => builder),
-    insert: vi.fn((p) => { calls.push({ method: "insert", args: [p] }); return builder; }),
+    insert: vi.fn((p) => { calls.push({ method: "insert", args: [p] }); listResult = null; return builder; }),
     upsert: vi.fn((p) => { calls.push({ method: "upsert", args: [p] }); return builder; }),
     update: vi.fn((p) => { calls.push({ method: "update", args: [p] }); return builder; }),
     delete: vi.fn(() => builder),
     select: vi.fn(() => builder),
     eq: vi.fn(() => builder),
-    in: vi.fn(() => builder),
+    in: vi.fn((column: string, ids?: string[]) => {
+      // assertOwnedIds — echo requested ids as owned rows
+      if (column === "id" && Array.isArray(ids)) {
+        listResult = ids.map((id) => ({ id }));
+      } else {
+        listResult = [];
+      }
+      return builder;
+    }),
     ilike: vi.fn(() => builder),
     order: vi.fn(() => builder),
     not: vi.fn(() => builder),
     is: vi.fn(() => builder),
-    single: vi.fn(() => Promise.resolve({
-      data: {
-        id: "x", name: "x", slug: "x", user_id: "u",
-        status: "inbox", is_archived: false, is_completed: false,
-        previous_status: null, completed_at: null, due_date: null,
-        area_id: null, project_id: null, type: null, url: null, topic_id: null,
-      },
-      error: null,
-    })),
+    single: vi.fn(() => Promise.resolve({ data: { ...row }, error: null })),
     maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
     rpc: vi.fn(() => Promise.resolve({ data: [], error: null })),
+  };
+  // Awaitable builder for chains ending at .eq() / .in() / .insert()
+  builder.then = (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) => {
+    const data = listResult !== null ? listResult : [];
+    listResult = null;
+    return Promise.resolve({ data, error: null }).then(resolve, reject);
   };
   (builder as any)._calls = calls;
   return builder;
