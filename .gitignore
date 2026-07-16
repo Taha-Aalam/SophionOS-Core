@@ -8,12 +8,18 @@ node_modules/
 package-lock.json
 yarn.lock
 
-# Environment
+# Environment / secrets
 .env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+*.pem
+*.key
+credentials.json
+service-account*.json
 
 # Supabase
 .supabase/
@@ -58,6 +64,13 @@ all_info.txt
 bin/
 screenshots/
 tsconfig.tsbuildinfo
+coverage/
+*.log
+session-report-*.html
+graphify-out/
+
+# OS / IDE noise (keep intentional .vscode if shared)
+.idea/
 
 # OS
 .DS_Store
