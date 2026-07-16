@@ -119,4 +119,4 @@ These are product/engineering targets for Sophion Cloud-style deployments. Self-
 - `docs/data-inventory.md` — processors and data classes  
 - `docs/privacy-and-data.md` — self-host oriented privacy notes  
 - `docs/security-model.md` — trust boundaries  
-- `docs/audit/SophionOS-Trust-Privacy-AI-Control-Implementation-Plan.md` — delivery plan  
+

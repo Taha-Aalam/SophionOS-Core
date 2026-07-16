@@ -75,8 +75,8 @@ Apex hosts may serve marketing and redirect app routes—see `src/proxy.ts`.
 pnpm seed:demo
 ```
 
-Uses synthetic personas only (`docs/demo-users/`). Never seed real personal data
-into shared environments.
+Uses synthetic personas only (`supabase/seed.sql` / `pnpm seed:demo`). Never seed
+real personal data into shared environments.
 
 To reset local DB + seed:
 

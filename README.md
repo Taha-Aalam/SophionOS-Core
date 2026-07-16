@@ -105,7 +105,7 @@ pnpm dev
 # App: http://app.localhost:3000 (see docs/self-hosting.md for host routing)
 ```
 
-Optional demo data: `pnpm seed:demo` (synthetic only — see `docs/demo-users/`).
+Optional demo data: `pnpm seed:demo` (synthetic only — see `supabase/seed.sql`).
 
 ### Docker evaluation
 
