@@ -71,9 +71,11 @@ export function PrivacyCenter() {
     }
   }, []);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- mount fetch */
   useEffect(() => {
     void refresh();
   }, [refresh]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   async function handleExport() {
     setExporting(true);

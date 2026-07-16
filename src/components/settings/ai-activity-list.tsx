@@ -63,9 +63,11 @@ export function AiActivityList() {
     }
   }, [page, eventType]);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- page/filter fetch */
   useEffect(() => {
     void load();
   }, [load]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <Card>

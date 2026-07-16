@@ -42,9 +42,11 @@ export function useApiKeys() {
     }
   }, []);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- mount fetch */
   useEffect(() => {
     void refresh();
   }, [refresh]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const createKey = useCallback(async (payload: CreateApiKeyPayload) => {
     const data = await apiFetch<{ key: string; record: ApiKeyRecord }>(
