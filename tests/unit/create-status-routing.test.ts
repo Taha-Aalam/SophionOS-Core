@@ -21,7 +21,7 @@ vi.mock("../../src/lib/supabase/client", () => ({
 }));
 
 function makeDefaultClient(): any {
-  return {
+  const client: any = {
     from: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
@@ -29,13 +29,23 @@ function makeDefaultClient(): any {
     upsert: vi.fn().mockResolvedValue({ error: null }),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
-    in: vi.fn().mockReturnThis(),
+    in: vi.fn((column: string, ids?: string[]) => {
+      // assertOwnedIds: .select().eq().in("id", ids)
+      if (column === "id" && Array.isArray(ids)) {
+        return Promise.resolve({ data: ids.map((id) => ({ id })), error: null });
+      }
+      return Promise.resolve({ data: [], error: null });
+    }),
     order: vi.fn().mockReturnThis(),
     ilike: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data: null, error: null }),
     maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
   };
+  // Terminal .eq() chains (get*Links) can be awaited.
+  client.then = (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) =>
+    Promise.resolve({ data: [], error: null }).then(resolve, reject);
+  return client;
 }
 
 const userId = "user-123";
@@ -230,18 +240,20 @@ describe("taskService.create status routing (bug #3, #4, create manual-status)",
     const insertClient = makeDefaultClient();
     insertClient.single.mockResolvedValue({ data: created, error: null });
 
-    const areaLookupClient = makeDefaultClient();
-    areaLookupClient.eq.mockResolvedValue({ data: [], error: null });
-    const areaInsertClient = makeDefaultClient();
-    areaInsertClient.insert.mockResolvedValue({ error: null });
+    // replaceAreaLinks `sb`: ownership + insert
+    const areaSb = makeDefaultClient();
+    areaSb.insert.mockResolvedValue({ error: null });
+    // getAreaLinks
+    const areaLinksClient = makeDefaultClient();
+    areaLinksClient.eq.mockResolvedValue({ data: [], error: null });
 
     const touchClient = makeDefaultClient();
     touchClient.single.mockResolvedValue({ data: created, error: null });
 
     vi.mocked(createClient)
       .mockImplementationOnce(() => insertClient)
-      .mockImplementationOnce(() => areaLookupClient)
-      .mockImplementationOnce(() => areaInsertClient)
+      .mockImplementationOnce(() => areaSb)
+      .mockImplementationOnce(() => areaLinksClient)
       .mockImplementation(() => touchClient);
 
     await taskService.create(userId, {

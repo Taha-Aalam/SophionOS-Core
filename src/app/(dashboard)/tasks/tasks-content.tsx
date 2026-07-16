@@ -439,51 +439,51 @@ export function TasksContent() {
         className="flex flex-1 flex-col"
       >
         <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <TabsTrigger value={TASK_VIEW.ALL}>
+          <TabsTrigger className="text-xs" value={TASK_VIEW.ALL}>
             <LayoutGrid className="mr-1.5 size-3.5" />
             All
           </TabsTrigger>
-          <TabsTrigger value={TASK_VIEW.INBOX}>
+          <TabsTrigger className="text-xs" value={TASK_VIEW.INBOX}>
             <InboxIcon className="mr-1.5 size-3.5" />
             Inbox
           </TabsTrigger>
-          <TabsTrigger value={TASK_VIEW.UPCOMING}>
+          <TabsTrigger className="text-xs" value={TASK_VIEW.UPCOMING}>
             <Clock className="mr-1.5 size-3.5" />
             Upcoming
           </TabsTrigger>
-          <TabsTrigger value={TASK_VIEW.OVERDUE}>
+          <TabsTrigger className="text-xs" value={TASK_VIEW.OVERDUE}>
             <AlertTriangle className="mr-1.5 size-3.5" />
             Overdue
           </TabsTrigger>
-          <TabsTrigger value={TASK_VIEW.FOCUS}>
+          <TabsTrigger className="text-xs" value={TASK_VIEW.FOCUS}>
             <Star className="mr-1.5 size-3.5" />
             Focus
           </TabsTrigger>
-          <TabsTrigger value={TASK_VIEW.SMART_PRIORITY}>
+          <TabsTrigger className="text-xs" value={TASK_VIEW.SMART_PRIORITY}>
             <Zap className="mr-1.5 size-3.5" />
             Smart Priority
           </TabsTrigger>
-          <TabsTrigger value={TASK_VIEW.CALENDAR}>
+          <TabsTrigger className="text-xs" value={TASK_VIEW.CALENDAR}>
             <CalendarDays className="mr-1.5 size-3.5" />
             Calendar
           </TabsTrigger>
-          <TabsTrigger value={TASK_VIEW.BY_AREA}>
+          <TabsTrigger className="text-xs" value={TASK_VIEW.BY_AREA}>
             <Layers className="mr-1.5 size-3.5" />
             By Area
           </TabsTrigger>
-          <TabsTrigger value={TASK_VIEW.BY_GOAL}>
+          <TabsTrigger className="text-xs" value={TASK_VIEW.BY_GOAL}>
             <Target className="mr-1.5 size-3.5" />
             By Goal
           </TabsTrigger>
-          <TabsTrigger value={TASK_VIEW.BY_PROJECT}>
+          <TabsTrigger className="text-xs" value={TASK_VIEW.BY_PROJECT}>
             <FolderKanban className="mr-1.5 size-3.5" />
             By Project
           </TabsTrigger>
-          <TabsTrigger value={TASK_VIEW.COMPLETED}>
+          <TabsTrigger className="text-xs" value={TASK_VIEW.COMPLETED}>
             <CheckSquare className="mr-1.5 size-3.5" />
             Completed
           </TabsTrigger>
-          <TabsTrigger value={TASK_VIEW.ARCHIVE}>
+          <TabsTrigger className="text-xs" value={TASK_VIEW.ARCHIVE}>
             <Archive className="mr-1.5 size-3.5" />
             Archive
           </TabsTrigger>

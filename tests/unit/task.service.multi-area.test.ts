@@ -8,18 +8,67 @@ vi.mock("../../src/lib/supabase/client", () => ({
   createClient: vi.fn(),
 }));
 
+/** Mock PostgREST builder that supports assertOwnedIds (.select.eq.in on id). */
 function makeDefaultClient(): any {
+  const client: any = {
+    from: vi.fn(function (this: any) {
+      return this;
+    }),
+    select: vi.fn(function (this: any) {
+      return this;
+    }),
+    insert: vi.fn(function (this: any) {
+      return this;
+    }),
+    update: vi.fn(function (this: any) {
+      return this;
+    }),
+    delete: vi.fn(function (this: any) {
+      return this;
+    }),
+    eq: vi.fn(function (this: any) {
+      return this;
+    }),
+    in: vi.fn(function (this: any, column: string, ids?: string[]) {
+      if (column === "id" && Array.isArray(ids)) {
+        return Promise.resolve({ data: ids.map((id) => ({ id })), error: null });
+      }
+      return Promise.resolve({ data: [], error: null });
+    }),
+    order: vi.fn(function (this: any) {
+      return this;
+    }),
+    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+  };
+  // Terminal chains that end on .eq() (e.g. getAreaLinks) can be awaited.
+  client.then = (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) =>
+    Promise.resolve({ data: [], error: null }).then(resolve, reject);
+  return client;
+}
+
+/** Client used as replace*Links `sb`: ownership check + junction insert. */
+function makeOwnershipAndInsertClient(): any {
   return {
     from: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
-    in: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({ data: null, error: null }),
-    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    in: vi.fn((column: string, ids: string[]) => {
+      if (column === "id" && Array.isArray(ids)) {
+        return Promise.resolve({ data: ids.map((id) => ({ id })), error: null });
+      }
+      return Promise.resolve({ data: [], error: null });
+    }),
+    insert: vi.fn().mockResolvedValue({ error: null }),
+  };
+}
+
+/** getAreaLinks / getGoalLinks terminal .eq() lookup. */
+function makeLinkLookupClient(rows: unknown[] = []): any {
+  return {
+    from: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockResolvedValue({ data: rows, error: null }),
   };
 }
 
@@ -69,29 +118,15 @@ describe("taskService – multi-area create", () => {
       single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
     } as any;
 
-    const areaLookupClient = {
-      from: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({ data: [], error: null }),
-    } as any;
-
-    const areaInsertClient = {
-      from: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockResolvedValue({ error: null }),
-    } as any;
-
-    const _touchClient = {
-      from: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
-    } as any;
+    // replaceAreaLinks: one client for assertOwnedIds + junction insert
+    const areaSb = makeOwnershipAndInsertClient();
+    // getAreaLinks (separate createClient)
+    const areaLinksClient = makeLinkLookupClient([]);
 
     vi.mocked(createClient)
       .mockImplementationOnce(() => taskInsertClient)
-      .mockImplementationOnce(() => areaLookupClient)
-      .mockImplementationOnce(() => areaInsertClient)
+      .mockImplementationOnce(() => areaSb)
+      .mockImplementationOnce(() => areaLinksClient)
       .mockImplementation(() => makeDefaultClient());
 
     const result = await taskService.create(userId, {
@@ -103,7 +138,7 @@ describe("taskService – multi-area create", () => {
     expect(taskInsertClient.insert).toHaveBeenCalledWith(
       expect.objectContaining({ area_id: areaA, user_id: userId }),
     );
-    expect(areaInsertClient.insert).toHaveBeenCalledWith(
+    expect(areaSb.insert).toHaveBeenCalledWith(
       expect.arrayContaining([
         { task_id: taskId, area_id: areaA },
         { task_id: taskId, area_id: areaB },
@@ -121,29 +156,13 @@ describe("taskService – multi-area create", () => {
       single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
     } as any;
 
-    const areaLookupClient = {
-      from: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({ data: [], error: null }),
-    } as any;
-
-    const areaInsertClient = {
-      from: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockResolvedValue({ error: null }),
-    } as any;
-
-    const _touchClient = {
-      from: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
-    } as any;
+    const areaSb = makeOwnershipAndInsertClient();
+    const areaLinksClient = makeLinkLookupClient([]);
 
     vi.mocked(createClient)
       .mockImplementationOnce(() => taskInsertClient)
-      .mockImplementationOnce(() => areaLookupClient)
-      .mockImplementationOnce(() => areaInsertClient)
+      .mockImplementationOnce(() => areaSb)
+      .mockImplementationOnce(() => areaLinksClient)
       .mockImplementation(() => makeDefaultClient());
 
     await taskService.create(userId, {
@@ -151,7 +170,7 @@ describe("taskService – multi-area create", () => {
       area_ids: [areaA, areaA, areaB],
     } as any);
 
-    const insertCall = areaInsertClient.insert.mock.calls[0][0];
+    const insertCall = areaSb.insert.mock.calls[0][0];
     const insertedAreaIds = insertCall.map((r: any) => r.area_id);
     const unique = new Set(insertedAreaIds);
     expect(unique.size).toBe(insertedAreaIds.length);
@@ -167,29 +186,13 @@ describe("taskService – multi-area create", () => {
       single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
     } as any;
 
-    const areaLookupClient = {
-      from: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({ data: [], error: null }),
-    } as any;
-
-    const areaInsertClient = {
-      from: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockResolvedValue({ error: null }),
-    } as any;
-
-    const _touchClient = {
-      from: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
-    } as any;
+    const areaSb = makeOwnershipAndInsertClient();
+    const areaLinksClient = makeLinkLookupClient([]);
 
     vi.mocked(createClient)
       .mockImplementationOnce(() => taskInsertClient)
-      .mockImplementationOnce(() => areaLookupClient)
-      .mockImplementationOnce(() => areaInsertClient)
+      .mockImplementationOnce(() => areaSb)
+      .mockImplementationOnce(() => areaLinksClient)
       .mockImplementation(() => makeDefaultClient());
 
     await taskService.create(userId, {
@@ -215,17 +218,10 @@ describe("taskService – multi-area update", () => {
       single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
     } as any;
 
-    const areaLookupClient = {
-      from: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({ data: [{ area_id: areaA }], error: null }),
-    } as any;
-
-    const areaInsertClient = {
-      from: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockResolvedValue({ error: null }),
-    } as any;
-
+    // replaceAreaLinks sb: ownership + insert of new links
+    const areaSb = makeOwnershipAndInsertClient();
+    // getAreaLinks — existing link areaA
+    const areaLinksClient = makeLinkLookupClient([{ area_id: areaA }]);
     const areaDeleteClient = {
       from: vi.fn().mockReturnThis(),
       delete: vi.fn().mockReturnThis(),
@@ -233,25 +229,10 @@ describe("taskService – multi-area update", () => {
       in: vi.fn().mockResolvedValue({ error: null }),
     } as any;
 
-    // replaceGoalLinks([], []) — getGoalLinks lookup returns empty, nothing to add/remove
-    const _goalLookupClient = {
-      from: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({ data: [], error: null }),
-    } as any;
-
-    const _touchClient = {
-      from: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
-    } as any;
-
     vi.mocked(createClient)
       .mockImplementationOnce(() => updateClient)
-      .mockImplementationOnce(() => areaLookupClient)
-      .mockImplementationOnce(() => areaInsertClient)
+      .mockImplementationOnce(() => areaSb)
+      .mockImplementationOnce(() => areaLinksClient)
       .mockImplementationOnce(() => areaDeleteClient)
       .mockImplementation(() => makeDefaultClient());
 
@@ -260,7 +241,7 @@ describe("taskService – multi-area update", () => {
       area_ids: [areaB, areaC],
     } as any);
 
-    expect(areaInsertClient.insert).toHaveBeenCalledWith(
+    expect(areaSb.insert).toHaveBeenCalledWith(
       expect.arrayContaining([
         { task_id: taskId, area_id: areaB },
         { task_id: taskId, area_id: areaC },
