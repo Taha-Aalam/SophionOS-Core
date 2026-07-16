@@ -441,9 +441,6 @@ export const noteService = {
         goalIds !== undefined ||
         taskIds !== undefined ||
         validatedWide.topic_id !== undefined;
-      const preservesTerminal =
-        validatedWide.status === NOTE_STATUS.COMPLETED ||
-        validatedWide.status === NOTE_STATUS.ARCHIVE;
       const preservesManual =
         validatedWide.status === NOTE_STATUS.ACTIVE ||
         validatedWide.status === NOTE_STATUS.COMPLETED ||

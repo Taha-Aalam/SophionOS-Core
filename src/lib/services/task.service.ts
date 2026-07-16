@@ -525,9 +525,6 @@ export const taskService = {
         goalIds !== undefined ||
         projectIds !== undefined ||
         datesChanged;
-      const preservesTerminal =
-        taskInputWide.status === TASK_STATUS.COMPLETED ||
-        taskInputWide.status === TASK_STATUS.ARCHIVED;
       const preservesManual =
         taskInputWide.status === TASK_STATUS.TODO ||
         taskInputWide.status === TASK_STATUS.IN_PROGRESS ||

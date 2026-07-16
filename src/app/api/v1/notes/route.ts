@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { noteService } from "@/lib/services/note.service";
 import { authorizeApiRequest } from "@/lib/api/api-auth";
-import { success, paginated, created, error } from "@/lib/api/api-response";
+import { paginated, created, error } from "@/lib/api/api-response";
 import { getPaginationParams } from "@/lib/api/pagination";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";

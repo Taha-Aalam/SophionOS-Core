@@ -32,7 +32,7 @@ const memoryCounters = new Map<string, Counter>();
 const tierCache = new Map<string, { tier: string; cachedAt: number }>();
 const TIER_CACHE_MS = 60_000;
 
-function useMemoryStore(): boolean {
+function shouldUseMemoryStore(): boolean {
   return (
     process.env.RATE_LIMIT_STORE === "memory" ||
     process.env.NODE_ENV === "test" ||
@@ -131,7 +131,7 @@ export async function rateLimit(
   const tier = await resolveTier(identifier);
   const limit = TIER_LIMITS[tier] ?? TIER_LIMITS[DEFAULT_TIER];
 
-  if (useMemoryStore()) {
+  if (shouldUseMemoryStore()) {
     return memoryRateLimit(identifier, limit);
   }
 
