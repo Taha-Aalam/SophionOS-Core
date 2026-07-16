@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SophionOS
 
-## Getting Started
+SophionOS is an open-source, self-hostable **connected-context system** for
+areas, goals, projects, tasks, notes, resources, topics, and contacts.
 
-First, run the development server:
+It helps you connect what you are doing with what you know, so context can
+follow you across personal workflows—and, when you explicitly enable it,
+compatible API/MCP clients—under revocable credentials.
+
+## Status
+
+**Public Alpha (`0.1.x`).** Core personal workflows are usable for evaluation
+and self-host experiments. REST API and MCP integrations are **experimental**
+(not production-ready). Read `docs/known-limitations.md` before relying on this
+build for sensitive production data.
+
+This is **not** claimed to be enterprise-secure, fully private in every
+deployment, or feature-complete.
+
+## Why SophionOS?
+
+Most tools store projects, notes, and people in separate silos. SophionOS links
+them in one personal system with Row Level Security isolation per user.
+
+## What is included today
+
+- Next.js app: areas, goals, projects, tasks, notes, resources, topics, contacts
+- Supabase Postgres schema + migrations and RLS policies
+- Clerk authentication with JWT forwarded into Supabase
+- Settings for preferences and API keys
+- Personal data **export** (`GET /api/v1/user/export`)
+- Experimental REST API (`/api/v1/*`) and MCP package (`packages/mcp-server`)
+- Synthetic demo seed for local evaluation
+
+## What is not included yet (or not stable)
+
+- Production-hardened multi-tenant Cloud operations
+- Full API-key **scopes** matrix and guaranteed MCP read-only defaults
+- Comprehensive multi-user RLS CI in every environment
+- SophionOS Business / Company Brain features
+- Turnkey one-command Docker production stack (docs cover local + managed services)
+
+## License
+
+Apache License 2.0 — see `LICENSE`.  
+Trademarks are separate — see `TRADEMARKS.md`.
+
+## Self-hosting
+
+Yes. You operate:
+
+- **Clerk** (identity)
+- **Supabase** (Postgres + RLS; local or hosted)
+- This Next.js app
+
+You own backups, secrets, upgrades, TLS, and compliance for your deployment.
+Guide: **`docs/self-hosting.md`**.
+
+## External services required
+
+| Service | Role |
+|---------|------|
+| Clerk | Sign-in / JWT identity |
+| Supabase | Database, RLS |
+| Optional: PostHog | Product analytics (if keys set) |
+| Optional: billing webhook secret | Only if you wire billing |
+
+## AI / MCP data path
+
+SophionOS does **not** silently send your notes to a model provider by default.
+
+If you create an API key and connect an MCP/AI client:
+
+1. The **client** (e.g. Claude Desktop) holds the key and decides what to send
+   to **its** model provider.
+2. SophionOS receives authenticated API calls and returns **your** data per
+   authorization and rate limits.
+3. You can revoke keys anytime in Settings.
+
+Details: `docs/privacy-and-data.md`, `docs/mcp.md`, `docs/api.md`.
+
+## Sophion Cloud vs open source
+
+| Open SophionOS | Sophion Cloud (commercial) |
+|----------------|----------------------------|
+| Core app + schema + self-host path | Managed hosting, backups, updates |
+| Export / deletion under your control | Operated reliability and support |
+| Experimental API/MCP you run yourself | Managed connectivity (when offered) |
+
+Basic export, deletion, and key revocation are **not** Cloud-only trust features.
+
+## Quick start (local)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Prerequisites: Node 22+, pnpm 9+, Clerk + Supabase projects
+cp .env.example .env.local
+# Edit .env.local with your keys (placeholders only in .env.example)
+
+pnpm install
+# Apply migrations (local Supabase example):
+npx supabase start
+npx supabase db reset
+
 pnpm dev
-# or
-bun dev
+# App: http://app.localhost:3000 (see docs/self-hosting.md for host routing)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Optional demo data: `pnpm seed:demo` (synthetic only — see `docs/demo-users/`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Contributing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+See `CONTRIBUTING.md`. Run `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test`,
+and `pnpm build` before PRs.
 
-## Learn More
+## Security
 
-To learn more about Next.js, take a look at the following resources:
+Report vulnerabilities privately — **`SECURITY.md`**. Do not file public issues
+for security findings.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Documentation map
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Doc | Topic |
+|-----|--------|
+| `docs/self-hosting.md` | Local and self-host setup |
+| `docs/architecture.md` | Layers, auth, RLS |
+| `docs/data-model.md` | Entities and ownership |
+| `docs/privacy-and-data.md` | Data processors, export, deletion |
+| `docs/security-model.md` | Boundaries and threat notes |
+| `docs/api.md` | REST API status |
+| `docs/mcp.md` | MCP status |
+| `docs/known-limitations.md` | Honest alpha limits |
+| `docs/roadmap.md` | Public roadmap |
+| `docs/release-process.md` | Versioning and releases |
+| `docs/testing.md` | How we test |
+| `SUPPORT.md` | Where to ask for help |
+| `GOVERNANCE.md` | Decision process |

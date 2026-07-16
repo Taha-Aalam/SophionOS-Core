@@ -19,8 +19,6 @@ import { useValidIds } from "@/lib/hooks/use-valid-ids";
 import type { Note, Project, Resource, Task } from "@/lib/types/domain.types";
 import { PROJECT_STATUS } from "@/lib/utils/constants";
 import { relativeTime } from "@/lib/utils/dates";
-import { getNoteLinkedAreaIds } from "@/lib/utils/notes";
-import { getResourceLinkedAreaIds } from "@/lib/utils/resources";
 import { cn } from "@/lib/utils";
 import {
   filterProjectDialogAreas,

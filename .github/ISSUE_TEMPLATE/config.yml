@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/sophionos/sophionos/security/advisories/new
+    about: Report security issues privately (see SECURITY.md). Do not file public issues.
+  - name: Questions and support
+    url: https://github.com/sophionos/sophionos/discussions
+    about: Setup, self-hosting, and usage questions belong in Discussions (see SUPPORT.md).

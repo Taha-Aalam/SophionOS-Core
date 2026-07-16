@@ -3,7 +3,7 @@ import { contactService } from "@/lib/services/contact.service";
 import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { success, error } from "@/lib/api/api-response";
 import { rateLimit } from "@/lib/api/rate-limiter";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { AppError, ValidationError } from "@/lib/api/error-handler";
 
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -15,7 +15,8 @@ const MAX_BYTES = 5 * 1024 * 1024; // 5MB
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       throw new ValidationError("Image exceeds the 5MB limit");
     }
 
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     // Ownership check; throws NotFoundError (404) for a foreign/missing id.
     await contactService.getById(userId, id, { supabase });
     const path = await contactService.uploadContactImage(userId, id, file, { supabase });
@@ -50,12 +51,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 /** DELETE — remove the contact's avatar (storage object + image_url field). */
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const contact = await contactService.getById(userId, id, { supabase });
     await contactService.deleteContactImage(contact.image_url, { supabase });
     const updated = await contactService.update(userId, id, { image_url: null }, { supabase });

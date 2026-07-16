@@ -12,11 +12,21 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 // Paths that must pass through on the apex host without being relocated to the
-// subdomain: the marketing landing itself plus framework/Clerk internals.
+// subdomain: marketing landing, Clerk internals, and webhooks that must hit the
+// deployment origin regardless of host.
 const isApexPassthrough = createRouteMatcher([
   "/",
   "/__clerk(.*)",
-  "/(api|trpc)(.*)",
+  // Billing webhooks are unauthenticated but signature-verified in-route.
+  "/api/v1/billing/webhook(.*)",
+]);
+
+// API routes that intentionally skip Clerk session middleware (they self-auth
+// via Bearer API key or webhook signature). Still matched so they are not
+// redirected off the apex when mis-routed.
+const isSelfAuthApi = createRouteMatcher([
+  "/api/v1/(.*)",
+  "/api/billing/(.*)",
 ]);
 
 // Origin of the application subdomain (e.g. http://app.localhost:3000). Derived
@@ -36,8 +46,13 @@ export const proxy = clerkMiddleware(async (auth, request) => {
   if (isAppHost(host) || isConfiguredAppHost(host, process.env.NEXT_PUBLIC_APP_URL)) {
     // Subdomain: this is the application. Send the bare root to the dashboard
     // and protect everything that is not an explicitly public route.
+    // /api/v1 self-authenticates (Clerk session OR API key) — do not force
+    // interactive login for Bearer API-key / MCP clients.
     if (pathname === "/") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    if (isSelfAuthApi(request)) {
+      return NextResponse.next();
     }
     if (!isPublicRoute(request)) {
       await auth.protect();
@@ -48,7 +63,17 @@ export const proxy = clerkMiddleware(async (auth, request) => {
   // Apex host: marketing only. It must never enter auth.protect()/login. Let
   // the marketing landing and framework/Clerk internals render in place;
   // relocate any application route to the subdomain origin.
+  // API on apex: redirect to app origin so inventory stays on one host, except
+  // billing webhooks which may be configured against the apex domain.
   if (isApexPassthrough(request)) {
+    return NextResponse.next();
+  }
+
+  if (isSelfAuthApi(request)) {
+    const appOrigin = resolveAppOrigin(host);
+    if (appOrigin) {
+      return NextResponse.redirect(new URL(`${pathname}${search}`, appOrigin));
+    }
     return NextResponse.next();
   }
 

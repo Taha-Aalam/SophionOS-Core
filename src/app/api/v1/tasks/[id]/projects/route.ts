@@ -5,7 +5,7 @@ import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { success, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 
 const linkSchema = z.object({ project_id: z.string().uuid() }).strict();
@@ -15,12 +15,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const projectIds = await taskService.getProjectLinks(id, { supabase });
     return success({ task_id: id, project_ids: projectIds });
   } catch (err) {
@@ -33,7 +34,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -43,7 +45,7 @@ export async function POST(
 
     const { id } = await params;
     const body = await validateBody(request, linkSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const existing = await taskService.getProjectLinks(id, { supabase });
     const next = Array.from(new Set([...existing, body.project_id]));
     await taskService.replaceProjectLinks(userId, id, next, { supabase });
@@ -58,7 +60,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -68,7 +71,7 @@ export async function DELETE(
 
     const { id } = await params;
     const body = await validateBody(request, linkSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const existing = await taskService.getProjectLinks(id, { supabase });
     const next = existing.filter((projectId) => projectId !== body.project_id);
     await taskService.replaceProjectLinks(userId, id, next, { supabase });

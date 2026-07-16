@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, startTransition, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Activity, Archive, CheckSquare, Folder, Inbox, Layers, LayoutGrid, Map as MapIcon, PauseCircle, Pencil, Plus, Target } from "lucide-react";
@@ -70,7 +70,9 @@ export function ProjectsContent() {
   const [activeView, setActiveView] = useState(PROJECT_VIEW.ALL);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    startTransition(() => setMounted(true));
+  }, []);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [defaultAreaIds, setDefaultAreaIds] = useState<string[]>([]);
   const [defaultGoalId, setDefaultGoalId] = useState<string | undefined>(undefined);

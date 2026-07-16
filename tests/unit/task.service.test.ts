@@ -183,14 +183,24 @@ describe('taskService', () => {
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: createdTask, error: null }),
     } as any;
-    const relationLookupClient = {
+    // replaceGoalLinks `sb`: assertOwnedIds (.in on id) + junction insert
+    const goalSb = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) => {
+        if (column === 'id' && Array.isArray(ids)) {
+          return Promise.resolve({ data: ids.map((id) => ({ id })), error: null });
+        }
+        return Promise.resolve({ data: [], error: null });
+      }),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+    } as any;
+    // getGoalLinks — no existing links
+    const goalLinksClient = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({ data: [], error: null }),
-    } as any;
-    const relationInsertClient = {
-      from: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockResolvedValue({ error: null }),
     } as any;
     const touchClient = {
       from: vi.fn().mockReturnThis(),
@@ -211,8 +221,8 @@ describe('taskService', () => {
 
     vi.mocked(createClient)
       .mockImplementationOnce(() => taskClient)
-      .mockImplementationOnce(() => relationLookupClient)
-      .mockImplementationOnce(() => relationInsertClient)
+      .mockImplementationOnce(() => goalSb)
+      .mockImplementationOnce(() => goalLinksClient)
       .mockImplementationOnce(() => syncFetchClient)
       .mockImplementationOnce(() => touchClient);
 
@@ -233,7 +243,7 @@ describe('taskService', () => {
         user_id: userId,
       }),
     );
-    expect(relationInsertClient.insert).toHaveBeenCalledWith([
+    expect(goalSb.insert).toHaveBeenCalledWith([
       { goal_id: goalA, task_id: taskId },
       { goal_id: goalB, task_id: taskId },
     ]);
@@ -253,17 +263,27 @@ describe('taskService', () => {
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: updatedTask, error: null }),
     } as any;
-    const relationLookupClient = {
+    // replaceGoalLinks `sb`: ownership + insert of goalC
+    const goalSb = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) => {
+        if (column === 'id' && Array.isArray(ids)) {
+          return Promise.resolve({ data: ids.map((id) => ({ id })), error: null });
+        }
+        return Promise.resolve({ data: [], error: null });
+      }),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+    } as any;
+    // getGoalLinks — existing A,B
+    const goalLinksClient = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockResolvedValue({
         data: [{ goal_id: goalA }, { goal_id: goalB }],
         error: null,
       }),
-    } as any;
-    const relationInsertClient = {
-      from: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockResolvedValue({ error: null }),
     } as any;
     const relationDeleteClient = {
       from: vi.fn().mockReturnThis(),
@@ -291,8 +311,8 @@ describe('taskService', () => {
 
     vi.mocked(createClient)
       .mockImplementationOnce(() => updateClient)
-      .mockImplementationOnce(() => relationLookupClient)
-      .mockImplementationOnce(() => relationInsertClient)
+      .mockImplementationOnce(() => goalSb)
+      .mockImplementationOnce(() => goalLinksClient)
       .mockImplementationOnce(() => relationDeleteClient)
       .mockImplementationOnce(() => syncFetchClient)
       .mockImplementationOnce(() => touchClient);
@@ -314,7 +334,7 @@ describe('taskService', () => {
       status: TASK_STATUS.TODO,
       due_date: '2026-12-31',
     });
-    expect(relationInsertClient.insert).toHaveBeenCalledWith([{ goal_id: goalC, task_id: taskId }]);
+    expect(goalSb.insert).toHaveBeenCalledWith([{ goal_id: goalC, task_id: taskId }]);
     expect(relationDeleteClient.in).toHaveBeenCalledWith('goal_id', [goalA]);
   });
 

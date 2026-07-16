@@ -518,7 +518,6 @@ export const resourceService = {
         goalIds !== undefined ||
         taskIds !== undefined ||
         validatedWide.topic_id !== undefined;
-      const preservesTerminal = validatedWide.status === RESOURCE_STATUS.COMPLETED;
       const preservesManual =
         validatedWide.status === RESOURCE_STATUS.ACTIVE ||
         validatedWide.status === RESOURCE_STATUS.COMPLETED;

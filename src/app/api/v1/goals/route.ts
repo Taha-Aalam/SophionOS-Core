@@ -7,7 +7,7 @@ import { AppError } from "@/lib/api/error-handler";
 import { getPaginationParams } from "@/lib/api/pagination";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { goalService } from "@/lib/services/goal.service";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { createGoalSchema } from "@/lib/validators/goal.schema";
 import type {
   GoalStatusFilter,
@@ -27,14 +27,15 @@ function isTruthy(value: string | null): boolean {
  */
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
       return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
     }
 
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const searchParams = new URL(request.url).searchParams;
 
     const termParam = searchParams.get("term");
@@ -83,7 +84,8 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
 
     const rl = await rateLimit(request, userId);
     if (!rl.success) {
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await validateBody(request, createGoalSchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const goal = await goalService.create(userId, body, { supabase });
     return created(goal);
   } catch (err) {

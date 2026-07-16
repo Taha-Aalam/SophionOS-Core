@@ -5,7 +5,7 @@ import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { success, created, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
-import { createClient } from "@/lib/supabase/server";
+import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 
 // A logged interaction may carry a message (creates a contact_logs row) or be
@@ -14,12 +14,13 @@ const logBodySchema = z.object({ message: z.string().min(1).max(2000).optional()
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
     const logs = await contactService.listLogs(userId, id, { supabase });
     return success(logs);
   } catch (err) {
@@ -29,7 +30,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { userId } = await authorizeApiRequest(request);
+    const authResult = await authorizeApiRequest(request);
+    const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { id } = await params;
     const body = await validateBody(request, logBodySchema);
-    const supabase = await createClient();
+    const supabase = await createDataClient(authResult);
 
     if (body.message) {
       // createLog persists the message AND bumps last_interaction_at.
