@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Loader2, Shield, ShieldOff } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -145,9 +145,12 @@ export function AiAccessCard() {
             >
               Disable all AI access
             </Button>
-            <Button asChild type="button" size="sm" variant="secondary">
-              <Link href="/settings/ai-access/activity">View activity</Link>
-            </Button>
+            <Link
+              href="/settings/ai-access/activity"
+              className={buttonVariants({ size: "sm", variant: "secondary" })}
+            >
+              View activity
+            </Link>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm">
