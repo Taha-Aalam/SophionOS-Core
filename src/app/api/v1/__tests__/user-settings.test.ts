@@ -20,11 +20,24 @@ vi.mock("@/lib/api/api-key-service", () => ({
   listApiKeys: vi.fn(),
   generateApiKey: vi.fn(),
   revokeApiKey: vi.fn(),
+  toPublicApiKeyRecord: (r: Record<string, unknown>) => ({
+    ...r,
+    status: r.revoked_at ? "revoked" : "active",
+  }),
+}));
+
+vi.mock("@/lib/api/ai-access-service", () => ({
+  recordAuditEvent: vi.fn(async () => {}),
 }));
 
 vi.mock("@/lib/api/api-auth", () => {
   const authFn = vi.fn();
-  return { requireAuth: authFn, authorizeApiRequest: authFn };
+  return {
+    requireAuth: authFn,
+    authorizeApiRequest: authFn,
+    requireClerkSession: authFn,
+    assertClerkSession: vi.fn(),
+  };
 });
 
 // POST /user/api-keys is gated by requirePaidTier (tier wall B4). Default the
@@ -159,10 +172,17 @@ describe("POST /api/v1/user/api-keys", () => {
         id: "k2",
         user_id: "user_123",
         name: "Automation",
+        key_prefix: "sop_raws…tkey",
+        client_type: "unknown",
+        client_name: null,
+        access_mode: "read_only",
+        scopes: [],
         last_used_at: null,
+        last_used_user_agent: null,
         expires_at: null,
         created_at: "2026-06-30T00:00:00Z",
         revoked_at: null,
+        revoke_reason: null,
       },
     } as never);
 
@@ -190,6 +210,6 @@ describe("DELETE /api/v1/user/api-keys/[id]", () => {
 
     const json = await res.json();
     expect(json.data).toMatchObject({ id: "k1", revoked: true });
-    expect(mockRevokeApiKey).toHaveBeenCalledWith("user_123", "k1");
+    expect(mockRevokeApiKey).toHaveBeenCalledWith("user_123", "k1", "user_revoked");
   });
 });

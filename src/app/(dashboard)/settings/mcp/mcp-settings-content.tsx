@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -125,6 +125,42 @@ export function McpSettingsContent() {
         </Card>
       )}
 
+      {/* Progressive consent */}
+      <Card className="border-primary/30">
+        <CardHeader className="space-y-2">
+          <CardTitle className="text-base">
+            Connect SophionOS to Claude or Cursor
+          </CardTitle>
+          <CardDescription className="space-y-2 text-sm">
+            <span className="block">
+              This creates an API key for the AI client you choose.
+            </span>
+            <span className="block">
+              <strong>Default access: Read your SophionOS context.</strong> It can
+              see relevant projects, tasks, goals, and research.
+            </span>
+            <span className="block">
+              It cannot change anything unless you enable write access on the key
+              and in AI Access settings.
+            </span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Link
+            href="/settings/ai-access"
+            className={buttonVariants()}
+          >
+            Continue with read-only access
+          </Link>
+          <Link
+            href="/data-and-ai"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            Review what this means
+          </Link>
+        </CardContent>
+      </Card>
+
       {/* Connection status */}
       <Card>
         <CardHeader className="space-y-3">
@@ -136,7 +172,7 @@ export function McpSettingsContent() {
             <Badge variant="secondary">Not connected yet</Badge>
           </div>
           <CardDescription>
-            Create an API key on the API keys page, then add it to your AI client.
+            Create a read-only API key in AI Access, then add it to your AI client.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -144,15 +180,16 @@ export function McpSettingsContent() {
       {/* Manage keys link */}
       <Card>
         <CardHeader className="space-y-1">
-          <CardTitle className="text-base">API keys</CardTitle>
+          <CardTitle className="text-base">AI Access</CardTitle>
           <CardDescription>
-            Keys authenticate your MCP server. Manage them on the dedicated API keys page.
+            Keys authenticate your MCP server. Manage clients, revoke access, or
+            disable all AI access from the AI Access center.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Link href="/settings/api-keys" className="block">
+          <Link href="/settings/ai-access" className="block">
             <Button variant="outline" className="w-full justify-between">
-              Manage API keys
+              Open AI Access
               <ExternalLink className="size-3.5" />
             </Button>
           </Link>
@@ -165,8 +202,8 @@ export function McpSettingsContent() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-base">Connect your AI client</CardTitle>
             <CardDescription>
-              Create an API key on the API keys page, then copy a config below into
-              your MCP client.
+              Create an API key in AI Access, then copy a config below into your
+              MCP client.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
