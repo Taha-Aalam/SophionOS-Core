@@ -41,9 +41,11 @@ export function useAiAccess() {
     }
   }, []);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- mount fetch */
   useEffect(() => {
     void refresh();
   }, [refresh]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const patchSettings = useCallback(
     async (patch: Partial<AiAccessSettings>) => {

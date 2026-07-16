@@ -38,8 +38,11 @@ export function ApiKeyPermissionDialog({
   const [mode, setMode] = useState(currentMode);
   const [saving, setSaving] = useState(false);
 
+  // Reset draft mode when the dialog opens for a key (intentional form sync).
   useEffect(() => {
-    if (open) setMode(currentMode);
+    if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMode(currentMode);
   }, [open, currentMode]);
 
   async function handleSave() {
