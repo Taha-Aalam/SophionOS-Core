@@ -55,7 +55,7 @@ features.
 ## Standards
 
 - **TypeScript**: prefer strict typing; avoid `any` unless justified.
-- **Lint**: ESLint (`pnpm lint`). Biome may also be configured in-repo.
+- **Lint**: ESLint (`pnpm lint`).
 - **UI**: follow existing shadcn / Tailwind patterns in `src/components`.
 - **Data access**: browser services use the Supabase anon client with Clerk JWT
   and RLS. Server routes use `authorizeApiRequest` / `requireAuth` and
