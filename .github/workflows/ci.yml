@@ -23,15 +23,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
+        # Version comes only from package.json "packageManager" (pnpm@11.13.1).
+        # Do not also set `version:` here — action-setup errors on dual sources.
         uses: pnpm/action-setup@v4
-        with:
-          # Must match packageManager / lockfile (overrides live in pnpm-workspace.yaml).
-          # pnpm 9 fails frozen installs with ERR_PNPM_LOCKFILE_CONFIG_MISMATCH.
-          version: 11
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
+          # Node 22 LTS; avoid default runner Node if actions start preferring 24.
           node-version: 22
           cache: pnpm
 
