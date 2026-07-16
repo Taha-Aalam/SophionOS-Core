@@ -14,23 +14,22 @@ permissions:
 
 jobs:
   quality:
-    name: Lint, typecheck, test, audit
+    name: Lint, typecheck, test, audit, secrets
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup pnpm
-        # Version comes only from package.json "packageManager" (pnpm@11.13.1).
-        # Do not also set `version:` here — action-setup errors on dual sources.
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v4
         with:
-          # Node 22 LTS; avoid default runner Node if actions start preferring 24.
           node-version: 22
           cache: pnpm
 
@@ -43,7 +42,7 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Unit tests
+      - name: Unit tests (incl. dual-user isolation)
         run: pnpm test
         env:
           NODE_ENV: test
@@ -52,7 +51,6 @@ jobs:
       - name: Build
         run: pnpm build
         env:
-          # Placeholders so Next can compile without real secrets in CI
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-placeholder
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ci_placeholder
@@ -61,6 +59,80 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ci-service-role-placeholder
 
       - name: Dependency audit (high+)
-        # Fails on high/critical production advisories; triage remaining in PR.
-        run: pnpm audit --audit-level=high || true
+        # Fails the job on high/critical production advisories.
+        run: pnpm audit --audit-level=high
+
+      - name: Structural migration gate
+        run: node scripts/check-migrations-structure.mjs
+
+      - name: Install gitleaks
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+          gitleaks version
+
+      - name: Secret scan (git history)
+        run: gitleaks git . --no-banner --redact -c .gitleaks.toml
         continue-on-error: true
+        # History may contain pre-remediation secrets; current-tree scan is blocking.
+
+      - name: Secret scan (current tree sources)
+        run: |
+          set -euo pipefail
+          for p in src supabase packages docs scripts .github; do
+            echo "Scanning $p"
+            gitleaks dir "$p" --no-banner --redact -c .gitleaks.toml
+          done
+          gitleaks dir .env.example --no-banner --redact -c .gitleaks.toml
+
+  migrations:
+    name: Migrations structure + clean Postgres attempt
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: sophionos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Structural gate (always)
+        run: node scripts/check-migrations-structure.mjs
+
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply SQL migrations (best-effort on plain Postgres)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -uo pipefail
+          # Full Supabase runtime (auth schema, roles) is not present on plain
+          # Postgres. We still attempt ordered apply for early syntax/schema
+          # feedback; structural gate above is the hard launch check.
+          ok=0
+          fail=0
+          for f in $(ls -1 supabase/migrations/*.sql | sort); do
+            echo "==> $f"
+            if psql -h localhost -U postgres -d sophionos -v ON_ERROR_STOP=1 -f "$f"; then
+              ok=$((ok+1))
+            else
+              fail=$((fail+1))
+              echo "WARN: migration required Supabase-specific objects: $f"
+            fi
+          done
+          echo "Applied_ok=$ok applied_fail=$fail"
+          test "$ok" -gt 0

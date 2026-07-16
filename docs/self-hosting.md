@@ -95,7 +95,30 @@ pnpm build
 
 Unit tests use in-memory rate limiting (`RATE_LIMIT_STORE=memory` in CI).
 
-## 5. Production basics
+## 5. Docker evaluation path
+
+Multi-stage image builds the Next.js app only (Clerk + Supabase stay external):
+
+```bash
+# Build
+docker compose build
+
+# Run (pass env from your shell or .env.local)
+docker compose up
+# Health: container healthcheck hits http://127.0.0.1:3000/
+```
+
+Or:
+
+```bash
+docker build -t sophionos-app .
+docker run --rm -p 3000:3000 --env-file .env.local sophionos-app
+```
+
+Demo seed still runs against your Supabase project (`pnpm seed:demo`), not inside
+the image by default.
+
+## 6. Production basics
 
 - Terminate TLS at your reverse proxy or platform.
 - Restrict who can read service-role and Clerk secrets.
@@ -103,12 +126,15 @@ Unit tests use in-memory rate limiting (`RATE_LIMIT_STORE=memory` in CI).
 - Set strong `BILLING_WEBHOOK_SECRET` only if you enable billing webhooks.
 - Review `docs/security-model.md` and `docs/known-limitations.md`.
 - Prefer not exposing admin/debug tools publicly.
+- Never enable demo mode or default secrets in production.
 
-## 6. Export and deletion
+## 7. Export and deletion
 
-- Export: `GET /api/v1/user/export` while authenticated.
-- Deletion: use in-app entity controls; for full wipe, delete user data by
-  `user_id` and remove the Clerk user. See `docs/privacy-and-data.md`.
+- Export: Settings → Privacy & data, or `GET /api/v1/user/export` /
+  `POST /api/v1/user/data-export` while authenticated (session).
+- Deletion: in-app account deletion request (grace + finalize) when enabled;
+  operators still own Clerk user removal and backup erasure. See
+  `docs/privacy-and-data.md`.
 
 ## Unsupported claims
 

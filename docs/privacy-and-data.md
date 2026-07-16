@@ -69,8 +69,9 @@ Raw API key secrets are never exported (only key metadata without hashes if incl
 | Layer | Behavior |
 |-------|----------|
 | Entity delete in UI/API | Soft-archive or hard-delete per entity service (see app behavior) |
-| Full account wipe | Self-hosters delete rows for `user_id` in Postgres and remove the user in Clerk. There is no single Cloud-style “erase me everywhere” for arbitrary third-party processors you add. |
-| API keys | Revoke in Settings; revoked keys fail validation immediately |
+| In-app account deletion | Settings → Privacy & data schedules deletion (`/api/v1/user/account-deletion`); after grace, finalize purges app data for `user_id`. Clerk user removal may still need operator action depending on config. |
+| Full operator wipe | Delete remaining rows/backups for `user_id` and remove the user in Clerk. No automatic erase of arbitrary third-party processors you add. |
+| API keys | Revoke in Settings → AI Access; revoked keys fail validation immediately. Disable-all AI revokes every active key. |
 | Operator responsibility | Drop backups, logs, and replicas per your retention policy |
 
 Sophion Cloud (if you use the commercial service) may offer additional
@@ -84,9 +85,9 @@ logs. Do not commit logs containing personal data.
 
 ## Disabling AI access
 
-1. Revoke all API keys in Settings → API keys / MCP.
+1. Settings → AI Access → disable AI access / disable-all (revokes keys).
 2. Disconnect MCP clients.
-3. Do not share new keys.
+3. Do not create or share new keys.
 
 ## Boundary: code vs operator
 
