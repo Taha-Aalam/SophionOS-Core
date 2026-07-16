@@ -28,9 +28,11 @@ supabase/.temp/
 # Vercel
 .vercel
 
-# Local AI / agent tooling
+# Local AI / agent tooling (rules, skills, IDE agents — not application code)
 .agents/
 .claude/
+.cursorrules
+.devin/
 .codebuddy/
 .commandcode/
 .continue/
@@ -58,6 +60,9 @@ supabase/.temp/
 skills/
 skills-lock.json
 .openclaude-profile.json
+/AGENTS.md
+/CLAUDE.md
+/Agents.md
 
 # Local artifacts / tool spill
 all_info.txt
@@ -72,14 +77,32 @@ tests_output.txt
 graphify-out/
 .next-dev.log
 
-# Agent session / internal marketing / non-product doc dumps (local only)
-# Keep real product docs under docs/*.md, docs/ops, docs/decisions, etc.
+# Non-product docs and editor spill (local only)
+# Keep operator docs: docs/self-hosting, architecture, data-model, api, mcp,
+# privacy-and-data, security-model, known-limitations, deployment, testing.
 docs/superpowers/
 docs/error/
 docs/audit/
 docs/demo-users/
 docs/app-info/
+docs/ops/
+docs/decisions/
+docs/roadmap.md
+docs/trust-contract.md
+docs/release-process.md
+docs/data-inventory.md
 info/
+
+# Supabase SQL editor untitled dumps
+supabase/snippets/
+
+# OSS contribution drafts / unused Create-Next-App placeholders
+.github/ISSUE_TEMPLATE/starter/
+public/file.svg
+public/globe.svg
+public/next.svg
+public/vercel.svg
+public/window.svg
 
 # Accidental one-word attribute dump files at repo root (editor/tool spills)
 /className

@@ -32,9 +32,8 @@ documented when the project grows beyond a single maintainer.
 
 - Semantic versioning for tagged releases (`v0.x` while alpha/beta)
 - Release notes via `CHANGELOG.md` and GitHub Releases
-- See `docs/release-process.md`
 
 ## Roadmap
 
-Public roadmap intent lives in `docs/roadmap.md`. Internal planning docs are not
-binding commitments.
+Public direction is summarized in `README.md` and `CHANGELOG.md`. Planning notes
+are not binding commitments.

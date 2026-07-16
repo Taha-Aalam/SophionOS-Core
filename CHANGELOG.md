@@ -26,15 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dual-user isolation unit tests (`pnpm test:isolation`) and migration structural
   gate (`pnpm check:migrations`).
 - Docker evaluation path (`Dockerfile`, `docker-compose.yml`).
-- Phase A starter issue drafts under `.github/ISSUE_TEMPLATE/starter/`.
 - CI: unit tests, build, high-severity audit, gitleaks source scan, migration job.
-- Secret history remediation note for historical OAuth material in git history.
 
 ### Security
 
 - Removed committed Google OAuth client secret from `supabase/config.toml`
   (current tree). Operators must rotate the historical credential; history
-  rewrite requires explicit owner approval (`docs/ops/secret-history-remediation.md`).
+  rewrite requires explicit owner approval.
 
 ### Changed
 
