@@ -6,8 +6,13 @@ const KEY_PREFIX = "sop_";
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const RAW_KEY_LENGTH = 48;
 
-function sha256Hex(value: string): string {
+/** SHA-256 hex digest used for API key storage and lookup. */
+export function hashApiKey(value: string): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function sha256Hex(value: string): string {
+  return hashApiKey(value);
 }
 
 function randomBase58(length: number): string {

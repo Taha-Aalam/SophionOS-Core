@@ -1,0 +1,16 @@
+name: Question (prefer Discussions)
+description: Redirect — most questions belong in Discussions
+title: "[question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Prefer **GitHub Discussions** for setup and how-to questions (SUPPORT.md).
+        Use this form only if Discussions are unavailable.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+    validations:
+      required: true
