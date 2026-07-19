@@ -53,15 +53,27 @@ export function DashboardAnalyticsPanels({ areas, goals, projects, tasks, notes,
   return (
     <>
       <KpiStrip kpis={analytics.kpis} />
+
+      {/* Primary analytics: execution + momentum */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <ExecutionLoadPanel load={analytics.executionLoad} />
-        <WorkHealthPanel health={analytics.workHealth} />
-        <KnowledgePipeline pipeline={analytics.knowledgePipeline} />
         <GoalMomentumPanel momentum={analytics.goalMomentum} />
-        <ActivityHeatmap heatmap={analytics.heatmap} />
-        <ContextNetworkMini network={analytics.contextNetwork} />
-        <RelationshipRiskPanel risk={analytics.relationshipRisk} />
       </div>
+
+      {/* Full-width activity map */}
+      <ActivityHeatmap heatmap={analytics.heatmap} />
+
+      {/* Work health (product scope; not in Stitch export but kept in layer) */}
+      <WorkHealthPanel health={analytics.workHealth} />
+
+      {/* Secondary: knowledge + context */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <KnowledgePipeline pipeline={analytics.knowledgePipeline} />
+        <ContextNetworkMini network={analytics.contextNetwork} />
+      </div>
+
+      {/* Full-width relationship risk */}
+      <RelationshipRiskPanel risk={analytics.relationshipRisk} />
     </>
   );
 }
