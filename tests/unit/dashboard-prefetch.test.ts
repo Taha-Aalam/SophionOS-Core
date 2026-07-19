@@ -48,12 +48,6 @@ vi.mock("@/app/(dashboard)/dashboard/dashboard-content", () => ({
 import { auth } from "@clerk/nextjs/server";
 import { makeQueryClient } from "@/lib/queries/server-query-client";
 
-const makeQueryClientMock = makeQueryClient as unknown as {
-  (): {
-    prefetchQuery: (opts: { queryKey: unknown[] }) => Promise<void>;
-  } & { _calls: Array<{ queryKey: unknown[] }> };
-};
-
 describe("dashboard page prefetch", () => {
   beforeEach(() => {
     vi.clearAllMocks();
