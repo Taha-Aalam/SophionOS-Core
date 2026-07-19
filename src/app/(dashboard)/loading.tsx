@@ -55,6 +55,22 @@ export default function DashboardLoading() {
         </div>
       </div>
 
+      {/* Analytics */}
+      <section className="flex flex-col gap-4">
+        {/* KPI strip */}
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-xl" />
+          ))}
+        </div>
+        {/* Panel grid */}
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={i} className="h-40 rounded-xl" />
+          ))}
+        </div>
+      </section>
+
       {/* Active Areas */}
       <section className="flex flex-col gap-4">
         <SectionHeaderSkeleton />
