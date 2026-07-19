@@ -50,6 +50,8 @@ import {
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
+import { useContacts } from "@/lib/hooks/use-contacts";
+import { DashboardAnalyticsSection } from "./dashboard-analytics-section";
 
 import { SectionHeader } from "@/components/dashboard/section-header";
 import { classifyAreaStatus, getAreaRollups, sortAreasForDisplay } from "@/lib/utils/areas";
@@ -108,6 +110,12 @@ export function DashboardContent() {
   const { data: allNotes = [], isLoading: notesLoading, isError: notesError, refetch: refetchNotes } = useNotes({ includeArchived: true });
   const { data: allResources = [], isLoading: resourcesLoading, isError: resourcesError, refetch: refetchResources } = useResources({ status: "all" });
   const { data: allTopics = [] } = useTopics();
+  const {
+    data: allContacts = [],
+    isLoading: contactsLoading,
+    isError: contactsError,
+    refetch: refetchContacts,
+  } = useContacts({ archive: false });
 
   const userId = user?.id;
   const archiveArea = useArchiveArea(userId);
@@ -221,9 +229,17 @@ export function DashboardContent() {
     projectsLoading ||
     tasksLoading ||
     notesLoading ||
-    resourcesLoading;
+    resourcesLoading ||
+    contactsLoading;
 
-  const isQueryError = areasError || goalsError || projectsError || tasksError || notesError || resourcesError;
+  const isQueryError =
+    areasError ||
+    goalsError ||
+    projectsError ||
+    tasksError ||
+    notesError ||
+    resourcesError ||
+    contactsError;
 
   if (isQueryError) {
     return (
@@ -237,6 +253,7 @@ export function DashboardContent() {
             if (tasksError) refetchTasks();
             if (notesError) refetchNotes();
             if (resourcesError) refetchResources();
+            if (contactsError) refetchContacts();
           }}
         />
       </div>
@@ -295,6 +312,17 @@ export function DashboardContent() {
   return (
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <GreetingBar userName={user?.name ?? undefined} activeTaskCount={todoInProgressTasks.length} />
+
+      <DashboardAnalyticsSection
+        areas={areas}
+        goals={goalsAll}
+        projects={projectsAll}
+        tasks={allTasks}
+        notes={allNotes}
+        resources={allResources}
+        topics={allTopics}
+        contacts={allContacts}
+      />
 
       {/* Active Areas */}
       <section>
