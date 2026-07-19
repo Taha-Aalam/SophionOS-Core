@@ -1,18 +1,7 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
-import {
-  ActivityHeatmap,
-  ContextNetworkMini,
-  ExecutionLoadPanel,
-  GoalMomentumPanel,
-  KpiStrip,
-  KnowledgePipeline,
-  RelationshipRiskPanel,
-  WorkHealthPanel,
-} from "@/components/dashboard/analytics";
+import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
-import { buildDashboardAnalytics } from "@/lib/analytics/dashboard-analytics";
 import type {
   Area,
   Contact,
@@ -54,53 +43,30 @@ function AnalyticsSkeleton() {
   );
 }
 
-function AnalyticsPanels({ input }: { input: DashboardAnalyticsSectionProps }) {
-  const analytics = useMemo(
-    () =>
-      buildDashboardAnalytics({
-        areas: input.areas,
-        goals: input.goals,
-        projects: input.projects,
-        tasks: input.tasks,
-        notes: input.notes,
-        resources: input.resources,
-        topics: input.topics,
-        contacts: input.contacts,
-      }),
-    [
-      input.areas,
-      input.goals,
-      input.projects,
-      input.tasks,
-      input.notes,
-      input.resources,
-      input.topics,
-      input.contacts,
-    ],
-  );
-
-  return (
-    <>
-      <KpiStrip kpis={analytics.kpis} />
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <ExecutionLoadPanel load={analytics.executionLoad} />
-        <WorkHealthPanel health={analytics.workHealth} />
-        <KnowledgePipeline pipeline={analytics.knowledgePipeline} />
-        <GoalMomentumPanel momentum={analytics.goalMomentum} />
-        <ActivityHeatmap heatmap={analytics.heatmap} />
-        <ContextNetworkMini network={analytics.contextNetwork} />
-        <RelationshipRiskPanel risk={analytics.relationshipRisk} />
-      </div>
-    </>
-  );
-}
+const DashboardAnalyticsPanels = dynamic(
+  () =>
+    import("./dashboard-analytics-panels").then(
+      (m) => m.DashboardAnalyticsPanels,
+    ),
+  {
+    ssr: false,
+    loading: () => <AnalyticsSkeleton />,
+  },
+);
 
 export function DashboardAnalyticsSection(props: DashboardAnalyticsSectionProps) {
   return (
     <section className="space-y-4" aria-label="Dashboard analytics">
-      <Suspense fallback={<AnalyticsSkeleton />}>
-        <AnalyticsPanels input={props} />
-      </Suspense>
+      <DashboardAnalyticsPanels
+        areas={props.areas}
+        goals={props.goals}
+        projects={props.projects}
+        tasks={props.tasks}
+        notes={props.notes}
+        resources={props.resources}
+        topics={props.topics}
+        contacts={props.contacts}
+      />
     </section>
   );
 }
