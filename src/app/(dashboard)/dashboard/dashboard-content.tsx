@@ -7,19 +7,31 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { GreetingBar } from "@/components/dashboard/greeting-bar";
 import { AreaCard } from "@/components/entities/area-card";
-import { AreaDialog } from "@/components/entities/area-dialog";
 import { GoalCard } from "@/components/entities/goal-card";
 import { NoteRow } from "@/components/entities/note-row";
 import { ProjectCard } from "@/components/entities/project-card";
-import { ResourceDialog } from "@/components/entities/resource-dialog";
 import { ResourceRow } from "@/components/entities/resource-row";
-import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskList } from "@/components/entities/task-list";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
 import { ErrorState } from "@/components/views/error-state";
 import { GalleryGrid } from "@/components/views/gallery-grid";
+import dynamic from "next/dynamic";
+
+const TaskDialog = dynamic(
+  () => import("@/components/entities/task-dialog").then((m) => m.TaskDialog),
+  { ssr: false },
+);
+const ResourceDialog = dynamic(
+  () => import("@/components/entities/resource-dialog").then((m) => m.ResourceDialog),
+  { ssr: false },
+);
+const AreaDialog = dynamic(
+  () => import("@/components/entities/area-dialog").then((m) => m.AreaDialog),
+  { ssr: false },
+);
+
 import { useArchiveArea, useAreas, useUpdateArea } from "@/lib/hooks/use-areas";
 import { useArchiveGoal, useGoals } from "@/lib/hooks/use-goals";
 import {
