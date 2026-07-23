@@ -49,10 +49,8 @@ hosts. Revoke keys to cut off API access.
 
 ## Telemetry
 
-Optional product analytics (e.g. PostHog) activate only if you set public
-analytics keys. Omit those variables for a quieter self-host. Vercel Analytics
-may appear in some hosted deployments of marketing/app builds—disable or remove
-if you do not want them.
+SophionOS does not ship third-party product analytics. Hosting platforms may
+still collect operational request logs per their own defaults.
 
 ## Export
 
