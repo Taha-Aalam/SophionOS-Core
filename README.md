@@ -62,7 +62,6 @@ Guide: **`docs/self-hosting.md`**.
 |---------|------|
 | Clerk | Sign-in / JWT identity |
 | Supabase | Database, RLS |
-| Optional: PostHog | Product analytics (if keys set) |
 | Optional: billing webhook secret | Only if you wire billing |
 
 ## AI / MCP data path

@@ -429,13 +429,23 @@ async function hydrateProjectRollupCounts(projects: Project[], options?: Service
 
 async function hydrateProjectRelations(projects: Project[], options?: ServiceOptions): Promise<Project[]> {
   if (projects.length === 0) return projects;
-  const withAreas = await hydrateProjectAreaLinks(projects, options);
-  const withGoals = await hydrateProjectGoalLinks(withAreas, options);
+
+  // Area + goal junction tables are independent; progress/rollups need goals first.
+  const [withAreas, withGoals] = await Promise.all([
+    hydrateProjectAreaLinks(projects, options),
+    hydrateProjectGoalLinks(projects, options),
+  ]);
+  const areasById = new Map(withAreas.map((project) => [project.id, project]));
+  const linked = withGoals.map((project) => ({
+    ...project,
+    linkedAreaIds: areasById.get(project.id)?.linkedAreaIds ?? project.linkedAreaIds,
+  }));
+
   // Progress + rollup counts depend only on the project IDs, so they can run
   // in parallel with each other once we have linkedGoalIds for the rollups.
   const [withProgress, withRollups] = await Promise.all([
-    hydrateProjectProgress(withGoals, options),
-    hydrateProjectRollupCounts(withGoals, options),
+    hydrateProjectProgress(linked, options),
+    hydrateProjectRollupCounts(linked, options),
   ]);
   // Merge rollup counts into the progress-hydrated array so we keep both.
   const rollupsById = new Map(withRollups.map((p) => [p.id, p]));

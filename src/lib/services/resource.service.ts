@@ -309,10 +309,32 @@ async function hydrateResourceRelations(
   resources: Resource[],
   sb: SupabaseClient,
 ): Promise<Resource[]> {
-  const withAreas = await hydrateResourceAreaLinks(resources, sb);
-  const withGoals = await hydrateResourceGoalLinks(withAreas, sb);
-  const withProjects = await hydrateResourceProjectLinks(withGoals, sb);
-  return await hydrateResourceTaskLinks(withProjects, sb);
+  if (resources.length === 0) return resources;
+
+  // Junction tables are independent: fan out in parallel instead of 4 serial
+  // round trips (dashboard SSR + list pages). Merge link fields by resource id.
+  const [withAreas, withGoals, withProjects, withTasks] = await Promise.all([
+    hydrateResourceAreaLinks(resources, sb),
+    hydrateResourceGoalLinks(resources, sb),
+    hydrateResourceProjectLinks(resources, sb),
+    hydrateResourceTaskLinks(resources, sb),
+  ]);
+
+  const goalsById = new Map(withGoals.map((resource) => [resource.id, resource]));
+  const projectsById = new Map(withProjects.map((resource) => [resource.id, resource]));
+  const tasksById = new Map(withTasks.map((resource) => [resource.id, resource]));
+
+  return withAreas.map((resource) => {
+    const goals = goalsById.get(resource.id);
+    const projects = projectsById.get(resource.id);
+    const tasks = tasksById.get(resource.id);
+    return {
+      ...resource,
+      linkedGoalIds: goals?.linkedGoalIds ?? [],
+      linkedProjectIds: projects?.linkedProjectIds ?? [],
+      linkedTaskIds: tasks?.linkedTaskIds ?? [],
+    };
+  });
 }
 
 async function hydrateSingleResourceRelations(

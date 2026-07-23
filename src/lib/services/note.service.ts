@@ -203,11 +203,36 @@ async function hydrateNoteNotebookLinks(notes: Note[], options?: ServiceOptions)
 }
 
 async function hydrateNoteRelations(notes: Note[], options?: ServiceOptions): Promise<Note[]> {
-  const withAreas = await hydrateNoteAreaLinks(notes, options);
-  const withGoals = await hydrateNoteGoalLinks(withAreas, options);
-  const withProjects = await hydrateNoteProjectLinks(withGoals, options);
-  const withTasks = await hydrateNoteTaskLinks(withProjects, options);
-  return await hydrateNoteNotebookLinks(withTasks, options);
+  if (notes.length === 0) return notes;
+
+  // Junction tables are independent: fan out in parallel instead of 5 serial
+  // round trips (dashboard SSR + list pages). Merge link fields by note id.
+  const [withAreas, withGoals, withProjects, withTasks, withNotebooks] = await Promise.all([
+    hydrateNoteAreaLinks(notes, options),
+    hydrateNoteGoalLinks(notes, options),
+    hydrateNoteProjectLinks(notes, options),
+    hydrateNoteTaskLinks(notes, options),
+    hydrateNoteNotebookLinks(notes, options),
+  ]);
+
+  const goalsById = new Map(withGoals.map((note) => [note.id, note]));
+  const projectsById = new Map(withProjects.map((note) => [note.id, note]));
+  const tasksById = new Map(withTasks.map((note) => [note.id, note]));
+  const notebooksById = new Map(withNotebooks.map((note) => [note.id, note]));
+
+  return withAreas.map((note) => {
+    const goals = goalsById.get(note.id);
+    const projects = projectsById.get(note.id);
+    const tasks = tasksById.get(note.id);
+    const notebooks = notebooksById.get(note.id);
+    return {
+      ...note,
+      linkedGoalIds: goals?.linkedGoalIds ?? [],
+      linkedProjectIds: projects?.linkedProjectIds ?? [],
+      linkedTaskIds: tasks?.linkedTaskIds ?? [],
+      notebooks: notebooks?.notebooks ?? [],
+    };
+  });
 }
 
 async function hydrateSingleNoteRelations(note: Note, options?: ServiceOptions): Promise<Note> {
