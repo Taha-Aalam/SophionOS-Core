@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import {
   ActivityHeatmap,
   ContextNetworkMini,
@@ -34,7 +34,16 @@ interface DashboardAnalyticsPanelsProps {
   contacts: Contact[];
 }
 
-export function DashboardAnalyticsPanels({ areas, goals, projects, tasks, notes, resources, topics, contacts }: DashboardAnalyticsPanelsProps) {
+function DashboardAnalyticsPanelsImpl({
+  areas,
+  goals,
+  projects,
+  tasks,
+  notes,
+  resources,
+  topics,
+  contacts,
+}: DashboardAnalyticsPanelsProps) {
   const analytics = useMemo(
     () =>
       buildDashboardAnalytics({
@@ -51,20 +60,24 @@ export function DashboardAnalyticsPanels({ areas, goals, projects, tasks, notes,
   );
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
       <KpiStrip kpis={analytics.kpis} />
 
-      {/* Primary analytics: execution + momentum */}
+      {/* Primary: execution + momentum */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <ExecutionLoadPanel load={analytics.executionLoad} />
         <GoalMomentumPanel momentum={analytics.goalMomentum} />
       </div>
 
-      {/* Full-width activity map */}
-      <ActivityHeatmap heatmap={analytics.heatmap} />
-
-      {/* Work health (product scope; not in Stitch export but kept in layer) */}
-      <WorkHealthPanel health={analytics.workHealth} />
+      {/* Activity map leads; work health sits beside it — equal row height */}
+      <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-5">
+        <div className="h-full min-h-0 xl:col-span-3">
+          <ActivityHeatmap heatmap={analytics.heatmap} />
+        </div>
+        <div className="h-full min-h-0 xl:col-span-2">
+          <WorkHealthPanel health={analytics.workHealth} />
+        </div>
+      </div>
 
       {/* Secondary: knowledge + context */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -72,8 +85,10 @@ export function DashboardAnalyticsPanels({ areas, goals, projects, tasks, notes,
         <ContextNetworkMini network={analytics.contextNetwork} />
       </div>
 
-      {/* Full-width relationship risk */}
       <RelationshipRiskPanel risk={analytics.relationshipRisk} />
-    </>
+    </div>
   );
 }
+
+/** Skip re-renders when parent dialogs/mutations re-render without entity changes. */
+export const DashboardAnalyticsPanels = memo(DashboardAnalyticsPanelsImpl);

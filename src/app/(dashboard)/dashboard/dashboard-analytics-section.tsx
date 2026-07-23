@@ -1,7 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardAnalyticsPanels } from "./dashboard-analytics-panels";
 import type {
   Area,
   Contact,
@@ -24,39 +23,14 @@ interface DashboardAnalyticsSectionProps {
   contacts: Contact[];
 }
 
-function AnalyticsSkeleton() {
-  return (
-    <div className="space-y-4">
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-20 rounded-xl" />
-        ))}
-      </div>
-      {/* Panel grid */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        {Array.from({ length: 7 }).map((_, i) => (
-          <Skeleton key={i} className="h-40 rounded-xl" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const DashboardAnalyticsPanels = dynamic(
-  () =>
-    import("./dashboard-analytics-panels").then(
-      (m) => m.DashboardAnalyticsPanels,
-    ),
-  {
-    ssr: false,
-    loading: () => <AnalyticsSkeleton />,
-  },
-);
-
+/**
+ * Analytics are imported statically (not next/dynamic with a loading skeleton)
+ * so after the page-level skeleton unmounts the dashboard paints once —
+ * no second analytics-only skeleton flash.
+ */
 export function DashboardAnalyticsSection(props: DashboardAnalyticsSectionProps) {
   return (
-    <section className="space-y-4" aria-label="Dashboard analytics">
+    <section className="min-w-0" aria-label="Dashboard analytics">
       <DashboardAnalyticsPanels
         areas={props.areas}
         goals={props.goals}
