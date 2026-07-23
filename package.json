@@ -18,7 +18,7 @@
     "seed:demo": "node scripts/seed-demo.mjs"
   },
   "dependencies": {
-    "@base-ui/react": "^1.4.0",
+    "@base-ui/react": "^1.6.0",
     "@clerk/nextjs": "^7.5.19",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
