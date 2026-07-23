@@ -7,19 +7,31 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { GreetingBar } from "@/components/dashboard/greeting-bar";
 import { AreaCard } from "@/components/entities/area-card";
-import { AreaDialog } from "@/components/entities/area-dialog";
 import { GoalCard } from "@/components/entities/goal-card";
 import { NoteRow } from "@/components/entities/note-row";
 import { ProjectCard } from "@/components/entities/project-card";
-import { ResourceDialog } from "@/components/entities/resource-dialog";
 import { ResourceRow } from "@/components/entities/resource-row";
-import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskList } from "@/components/entities/task-list";
 import { useAuth } from "@/components/providers/auth-provider";
-import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton";
 import { EmptyState } from "@/components/views/empty-state";
 import { ErrorState } from "@/components/views/error-state";
 import { GalleryGrid } from "@/components/views/gallery-grid";
+import dynamic from "next/dynamic";
+
+const TaskDialog = dynamic(
+  () => import("@/components/entities/task-dialog").then((m) => m.TaskDialog),
+  { ssr: false },
+);
+const ResourceDialog = dynamic(
+  () => import("@/components/entities/resource-dialog").then((m) => m.ResourceDialog),
+  { ssr: false },
+);
+const AreaDialog = dynamic(
+  () => import("@/components/entities/area-dialog").then((m) => m.AreaDialog),
+  { ssr: false },
+);
+
 import { useArchiveArea, useAreas, useUpdateArea } from "@/lib/hooks/use-areas";
 import { useArchiveGoal, useGoals } from "@/lib/hooks/use-goals";
 import {
@@ -50,6 +62,8 @@ import {
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
+import { useContacts } from "@/lib/hooks/use-contacts";
+import { DashboardAnalyticsSection } from "./dashboard-analytics-section";
 
 import { SectionHeader } from "@/components/dashboard/section-header";
 import { classifyAreaStatus, getAreaRollups, sortAreasForDisplay } from "@/lib/utils/areas";
@@ -108,6 +122,12 @@ export function DashboardContent() {
   const { data: allNotes = [], isLoading: notesLoading, isError: notesError, refetch: refetchNotes } = useNotes({ includeArchived: true });
   const { data: allResources = [], isLoading: resourcesLoading, isError: resourcesError, refetch: refetchResources } = useResources({ status: "all" });
   const { data: allTopics = [] } = useTopics();
+  const {
+    data: allContacts = [],
+    isLoading: contactsLoading,
+    isError: contactsError,
+    refetch: refetchContacts,
+  } = useContacts({ archive: false });
 
   const userId = user?.id;
   const archiveArea = useArchiveArea(userId);
@@ -221,9 +241,17 @@ export function DashboardContent() {
     projectsLoading ||
     tasksLoading ||
     notesLoading ||
-    resourcesLoading;
+    resourcesLoading ||
+    contactsLoading;
 
-  const isQueryError = areasError || goalsError || projectsError || tasksError || notesError || resourcesError;
+  const isQueryError =
+    areasError ||
+    goalsError ||
+    projectsError ||
+    tasksError ||
+    notesError ||
+    resourcesError ||
+    contactsError;
 
   if (isQueryError) {
     return (
@@ -237,6 +265,7 @@ export function DashboardContent() {
             if (tasksError) refetchTasks();
             if (notesError) refetchNotes();
             if (resourcesError) refetchResources();
+            if (contactsError) refetchContacts();
           }}
         />
       </div>
@@ -244,65 +273,39 @@ export function DashboardContent() {
   }
 
   if (isLoading) {
-    return (
-      <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-        {/* GreetingBar skeleton */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-        </div>
-        {/* 6 sections matching actual render */}
-        {["Active Areas", "Active Goals", "Active Projects", "Active Tasks", "Active Notes", "Active Resources"].map((title, i) => (
-          <section key={i}>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="mt-1.5 h-full min-h-[2.5rem] w-px shrink-0 rounded-full bg-muted-foreground/20" />
-                <div>
-                  <Skeleton className="h-6 w-36" />
-                  <Skeleton className="mt-1 h-4 w-56" />
-                </div>
-              </div>
-            </div>
-            <div className="mt-4">
-              {title === "Active Goals" ? (
-                <div className={cardGrid}>
-                  {[0, 1].map((j) => (
-                    <Skeleton key={j} className="h-40 rounded-xl" />
-                  ))}
-                </div>
-              ) : title === "Active Areas" || title === "Active Projects" ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {[0, 1, 2].map((j) => (
-                    <Skeleton key={j} className="h-48 rounded-xl" />
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-lg border border-border">
-                  {[0, 1, 2].map((j) => (
-                    <Skeleton key={j} className="h-14 rounded-lg" />
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-        ))}
-      </div>
-    );
+    // Same component as route `loading.tsx` so route → client transition
+    // is one continuous skeleton matching the real dashboard layout.
+    return <DashboardPageSkeleton />;
   }
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in mx-auto flex w-full max-w-7xl flex-col gap-8 p-6">
       <GreetingBar userName={user?.name ?? undefined} activeTaskCount={todoInProgressTasks.length} />
 
-      {/* Active Areas */}
-      <section>
+      <DashboardAnalyticsSection
+        areas={areas}
+        goals={goalsAll}
+        projects={projectsAll}
+        tasks={allTasks}
+        notes={allNotes}
+        resources={allResources}
+        topics={allTopics}
+        contacts={allContacts}
+      />
+
+      {/* Quiet break between cockpit metrics and entity lists */}
+      <div className="h-px w-full bg-border/60" role="separator" aria-hidden="true" />
+
+      {/* Active Areas — content-visibility skips layout/paint for off-screen sections */}
+      <section
+        className="space-y-0"
+        style={{ contentVisibility: "auto", containIntrinsicSize: "0 320px" }}
+      >
         <SectionHeader
           accentClass="bg-orange-500"
           title="Active Areas"
           totalCount={activeAreas.length}
-          description="Your active focus areas."
+          description="Focus areas you are actively driving."
         />
         <div className="mt-4">
           {activeAreas.length === 0 ? (
@@ -337,12 +340,12 @@ export function DashboardContent() {
       </section>
 
       {/* Active Goals */}
-      <section>
+      <section style={{ contentVisibility: "auto", containIntrinsicSize: "0 280px" }}>
         <SectionHeader
           accentClass="bg-rose-500"
           title="Active Goals"
           totalCount={goalsActive.length}
-          description="Goals you're currently working on."
+          description="Goals currently in motion."
         />
         <div className="mt-4">
           {goalsActive.length === 0 ? (
@@ -391,12 +394,12 @@ export function DashboardContent() {
       </section>
 
       {/* Active Projects */}
-      <section>
+      <section style={{ contentVisibility: "auto", containIntrinsicSize: "0 320px" }}>
         <SectionHeader
           accentClass="bg-amber-500"
           title="Active Projects"
           totalCount={activeProjects.length}
-          description="Projects in progress."
+          description="Projects still open and in progress."
         />
         <div className="mt-4">
           {activeProjects.length === 0 ? (
@@ -431,12 +434,12 @@ export function DashboardContent() {
       </section>
 
       {/* Active Tasks */}
-      <section>
+      <section style={{ contentVisibility: "auto", containIntrinsicSize: "0 240px" }}>
         <SectionHeader
           accentClass="bg-blue-500"
           title="Active Tasks"
           totalCount={todoInProgressTasks.length}
-          description="Tasks in To do and In progress status."
+          description="To do and in progress work."
         />
         <div className="mt-4">
           <TaskList
@@ -471,12 +474,12 @@ export function DashboardContent() {
       </section>
 
       {/* Active Notes */}
-      <section>
+      <section style={{ contentVisibility: "auto", containIntrinsicSize: "0 220px" }}>
         <SectionHeader
           accentClass="bg-purple-500"
           title="Active Notes"
           totalCount={toReviewActiveNotes.length}
-          description="Notes in To Review and Active status."
+          description="Notes waiting for review or still active."
         />
         <div className="mt-4">
           {toReviewActiveNotes.length === 0 ? (
@@ -518,12 +521,12 @@ export function DashboardContent() {
       </section>
 
       {/* Active Resources */}
-      <section>
+      <section style={{ contentVisibility: "auto", containIntrinsicSize: "0 220px" }}>
         <SectionHeader
           accentClass="bg-emerald-500"
           title="Active Resources"
           totalCount={toReviewActiveResources.length}
-          description="Resources in To Review and Active status."
+          description="Resources waiting for review or still active."
         />
         <div className="mt-4">
           {toReviewActiveResources.length === 0 ? (

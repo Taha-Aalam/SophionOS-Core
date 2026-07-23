@@ -37,10 +37,6 @@ export default function SubprocessorsPage() {
             <td>Subscriptions and invoices when enabled</td>
           </tr>
           <tr>
-            <td>PostHog (optional)</td>
-            <td>Product analytics only if keys are configured</td>
-          </tr>
-          <tr>
             <td>User-chosen AI clients</td>
             <td>MCP/API consumers authorized by the user</td>
           </tr>

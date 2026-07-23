@@ -72,7 +72,7 @@ const cspDirectives = [
   // Prefer self/blob/data + known hosts over unrestricted https: for user content images.
   `img-src 'self' blob: data: ${supabaseOrigin} ${cspHostList} https://*.googleusercontent.com https://lh3.googleusercontent.com`.trim(),
   "font-src 'self'",
-  // PostHog is proxied via /ingest rewrites (same-origin). Keep self + Supabase + Clerk.
+  // Browser API calls: same-origin + Supabase + Clerk/Turnstile hosts.
   `connect-src 'self' ${supabaseOrigin} ${supabaseWsOrigin} ${cspHostList}`.trim(),
   `frame-src 'self' ${cspHostList}`.trim(),
   "object-src 'none'",
@@ -114,18 +114,6 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 86400,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/ingest/static/:path*',
-        destination: 'https://us-assets.i.posthog.com/static/:path*',
-      },
-      {
-        source: '/ingest/:path*',
-        destination: 'https://us.i.posthog.com/:path*',
-      },
-    ]
   },
   async headers() {
     return [

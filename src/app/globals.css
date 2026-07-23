@@ -23,6 +23,11 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  /* Dashboard analytics semantic accents (Stitch action / risk / success / accent). */
+  --color-analytics-action: var(--analytics-action);
+  --color-analytics-risk: var(--analytics-risk);
+  --color-analytics-success: var(--analytics-success);
+  --color-analytics-accent: var(--analytics-accent);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -135,11 +140,19 @@
   --border: oklch(0.916 0.006 260);
   --input: oklch(0.916 0.006 260);
   --ring: oklch(0.55 0.13 260);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: oklch(0.62 0.13 155);
+  --chart-2: oklch(0.58 0.14 260);
+  --chart-3: oklch(0.62 0.16 35);
+  --chart-4: oklch(0.58 0.12 210);
+  --chart-5: oklch(0.56 0.12 315);
+  --analytics-action: oklch(0.58 0.14 260);
+  --analytics-risk: oklch(0.55 0.2 27);
+  --analytics-success: oklch(0.62 0.13 155);
+  --analytics-accent: oklch(0.56 0.12 315);
+  --heatmap-empty: oklch(0.9 0.01 260);
+  --heatmap-1: oklch(0.88 0.06 155);
+  --heatmap-2: oklch(0.78 0.1 155);
+  --heatmap-3: oklch(0.68 0.12 155);
   --radius: 0.625rem;
   --sidebar: oklch(0.984 0.004 260);
   --sidebar-foreground: oklch(0.145 0.012 260);
@@ -170,11 +183,19 @@
   --border: oklch(0.985 0.01 260 / 10%);
   --input: oklch(0.985 0.01 260 / 15%);
   --ring: oklch(0.6 0.13 260);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: oklch(0.72 0.12 155);
+  --chart-2: oklch(0.72 0.13 260);
+  --chart-3: oklch(0.74 0.14 35);
+  --chart-4: oklch(0.7 0.11 210);
+  --chart-5: oklch(0.72 0.11 315);
+  --analytics-action: oklch(0.72 0.13 260);
+  --analytics-risk: oklch(0.7 0.16 27);
+  --analytics-success: oklch(0.72 0.12 155);
+  --analytics-accent: oklch(0.72 0.11 315);
+  --heatmap-empty: oklch(0.28 0.02 260);
+  --heatmap-1: oklch(0.35 0.06 155);
+  --heatmap-2: oklch(0.45 0.1 155);
+  --heatmap-3: oklch(0.58 0.12 155);
   --sidebar: oklch(0.205 0.014 260);
   --sidebar-foreground: oklch(0.985 0.002 260);
   --sidebar-primary: oklch(0.6366 0.15 260);
@@ -217,6 +238,56 @@
 }
 
 @layer utilities {
+  /* Stitch analytics chart bars — track + fill segment (Execution Load / density). */
+  .chart-bar-container {
+    height: 0.5rem;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 9999px;
+    background: color-mix(in oklch, var(--muted) 100%, transparent);
+  }
+  .chart-bar-segment {
+    height: 100%;
+    min-width: 0;
+    border-radius: 9999px;
+    transition: width 300ms var(--ease-out-quint);
+  }
+  .chart-bar-segment--action {
+    background: var(--analytics-action);
+  }
+  .chart-bar-segment--risk {
+    background: var(--analytics-risk);
+  }
+  .chart-bar-segment--success {
+    background: var(--analytics-success);
+  }
+  .chart-bar-segment--accent {
+    background: var(--analytics-accent);
+  }
+
+  /* Contribution / GitHub-style heatmap cells */
+  .heatmap-cell {
+    width: 0.875rem;
+    height: 0.875rem;
+    border-radius: 0.15rem;
+    box-sizing: border-box;
+  }
+  .heatmap-cell--0 {
+    background: color-mix(in oklch, var(--muted) 85%, var(--foreground) 8%);
+  }
+  .heatmap-cell--1 {
+    background: color-mix(in oklch, var(--analytics-success) 25%, var(--muted));
+  }
+  .heatmap-cell--2 {
+    background: color-mix(in oklch, var(--analytics-success) 45%, var(--muted));
+  }
+  .heatmap-cell--3 {
+    background: color-mix(in oklch, var(--analytics-success) 70%, transparent);
+  }
+  .heatmap-cell--4 {
+    background: var(--analytics-success);
+  }
+
   /* Page-entrance choreography: applies the `reveal` keyframe to direct children
      with an increasing delay so content cascades in instead of snapping. Pair with
      `reveal-stagger` on a container. GPU-cheap (transform + opacity only). The
