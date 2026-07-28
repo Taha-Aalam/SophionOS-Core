@@ -13,7 +13,7 @@ import { DatabaseError, NotFoundError, mapDatabaseError } from "../api/error-han
 import { generateSlug } from "../utils";
 import { LIST_SAFETY_CAP } from "../utils/constants";
 
-type ServiceOptions = { supabase?: SupabaseClient };
+type ServiceOptions = { supabase?: SupabaseClient; userId?: string };
 
 const GOAL_SELECT =
   "id, user_id, area_id, name, description, term, priority, target_date, progress, is_completed, is_archived, is_inactive, slug, created_at, updated_at";
@@ -477,7 +477,7 @@ export function mapGoalProgressSummary(
   });
 }
 
-async function hydrateGoalRollupCounts(goals: Goal[], sb?: SupabaseClient): Promise<Goal[]> {
+async function hydrateGoalRollupCounts(goals: Goal[], userId?: string, sb?: SupabaseClient): Promise<Goal[]> {
   if (goals.length === 0) return goals;
   const goalIds = goals.map((g) => g.id);
 
@@ -486,6 +486,7 @@ async function hydrateGoalRollupCounts(goals: Goal[], sb?: SupabaseClient): Prom
   // goal (the previous O(goals x links) countFor).
   const { data, error } = await (sb ?? createClient()).rpc("goal_progress_summary", {
     p_goal_ids: goalIds,
+    p_user_id: userId,
   });
   if (error) throw new DatabaseError(error.message);
 
@@ -502,8 +503,8 @@ async function hydrateSingleGoalAreaLinks(goal: Goal, sb: SupabaseClient): Promi
   return hydratedGoal;
 }
 
-async function hydrateSingleGoalRollupCounts(goal: Goal, sb: SupabaseClient): Promise<Goal> {
-  const [hydratedGoal] = await hydrateGoalRollupCounts([goal], sb);
+async function hydrateSingleGoalRollupCounts(goal: Goal, userId?: string, sb?: SupabaseClient): Promise<Goal> {
+  const [hydratedGoal] = await hydrateGoalRollupCounts([goal], userId, sb);
   return hydratedGoal;
 }
 
@@ -550,7 +551,7 @@ export const goalService = {
     const [goalsWithAreas, goalsWithProgress, goalsWithRollups] = await Promise.all([
       hydrateGoalAreaLinks(rawGoals, sb),
       hydrateGoalProgress(rawGoals, sb),
-      hydrateGoalRollupCounts(rawGoals, sb),
+      hydrateGoalRollupCounts(rawGoals, userId, sb),
     ]);
 
     let goals = goalsWithAreas.map((goal, i) => ({
@@ -588,7 +589,7 @@ export const goalService = {
 
     const areaHydrated = await hydrateSingleGoalAreaLinks(data, sb);
     const [progressHydrated] = await hydrateGoalProgress([areaHydrated], sb);
-    return hydrateSingleGoalRollupCounts(progressHydrated, sb);
+    return hydrateSingleGoalRollupCounts(progressHydrated, userId, sb);
   },
 
   async getBySlug(userId: string, slug: string, options?: ServiceOptions): Promise<Goal> {
@@ -609,7 +610,7 @@ export const goalService = {
 
     const areaHydrated = await hydrateSingleGoalAreaLinks(data, sb);
     const [progressHydrated] = await hydrateGoalProgress([areaHydrated], sb);
-    return hydrateSingleGoalRollupCounts(progressHydrated, sb);
+    return hydrateSingleGoalRollupCounts(progressHydrated, userId, sb);
   },
 
   async getByIdentifier(userId: string, identifier: string, options?: ServiceOptions): Promise<Goal> {
@@ -731,6 +732,7 @@ export const goalService = {
 
     return hydrateSingleGoalRollupCounts(
       await hydrateSingleGoalAreaLinks(await hydrateSingleGoalProgress(data, sb), sb),
+      userId,
       sb,
     );
   },

@@ -1,0 +1,404 @@
+<!DOCTYPE html><html lang="en" class="light" style=""><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">try{
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "secondary-container": "#e3e1ec",
+                        "surface-container-low": "#f7f3f2",
+                        "primary-container": "#1b1b1e",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "outline-variant": "#c8c5cb",
+                        "surface-container-highest": "#e5e2e1",
+                        "on-primary-fixed": "#1b1b1e",
+                        "on-surface-variant": "#47464b",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#c6c5cf",
+                        "inverse-on-surface": "#f4f0ef",
+                        "tertiary-container": "#1d1b16",
+                        "on-primary-container": "#858387",
+                        "primary-fixed": "#e4e1e6",
+                        "on-secondary-fixed": "#1a1b22",
+                        "surface-tint": "#5f5e61",
+                        "on-secondary-fixed-variant": "#46464e",
+                        "accent": "oklch(0.56 0.12 315)",
+                        "primary-fixed-dim": "#c8c5ca",
+                        "error-container": "#ffdad6",
+                        "on-surface": "#1c1b1c",
+                        "success": "oklch(0.62 0.13 155)",
+                        "on-background": "#1c1b1c",
+                        "inverse-primary": "#c8c5ca",
+                        "surface-container-high": "#ebe7e7",
+                        "on-tertiary-fixed": "#1d1b16",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed-variant": "#47464a",
+                        "tertiary": "#000000",
+                        "outline": "#77767b",
+                        "tertiary-fixed": "#e8e2d9",
+                        "tertiary-fixed-dim": "#cbc6bd",
+                        "primary": "#000000",
+                        "inverse-surface": "#313030",
+                        "secondary-fixed": "#e3e1ec",
+                        "surface": "#fdf8f8",
+                        "action": "oklch(0.58 0.14 260)",
+                        "background": "#fdf8f8",
+                        "surface-bright": "#fdf8f8",
+                        "secondary": "#5d5e66",
+                        "surface-container": "#f1eded",
+                        "on-tertiary-fixed-variant": "#494640",
+                        "surface-dim": "#ddd9d9",
+                        "surface-variant": "#e5e2e1",
+                        "on-secondary-container": "#63646c",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-container": "#88837c",
+                        "risk": "oklch(0.62 0.16 35)",
+                        "info": "oklch(0.58 0.12 210)",
+                        "on-secondary": "#ffffff",
+                        "chart-1": "oklch(0.56 0.12 315)",
+                        "chart-2": "oklch(0.58 0.14 260)",
+                        "chart-3": "oklch(0.62 0.16 35)"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "card-padding": "0.75rem",
+                        "grid-gap": "1rem",
+                        "heatmap-gap": "0.25rem",
+                        "internal-gap": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "metric-label": ["Inter"],
+                        "body": ["Inter"],
+                        "section-header": ["Inter"],
+                        "card-title": ["Inter"],
+                        "helper-text": ["Inter"],
+                        "kpi-value": ["Inter"]
+                    },
+                    "fontSize": {
+                        "metric-label": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "body": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "section-header": ["18px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "card-title": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+                        "helper-text": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "kpi-value": ["24px", { "lineHeight": "1", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    }catch(_e){}</script><meta charset="utf-8"></head><body class="bg-background text-on-background font-body min-h-screen flex flex-col md:flex-row antialiased">
+<!-- SideNavBar -->
+
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col min-h-screen relative">
+<!-- TopAppBar -->
+
+<!-- Canvas -->
+<main class="flex-1 p-4 md:p-6 overflow-y-auto">
+<!-- Greeting Bar -->
+<div class="mb-8">
+<h1 class="font-section-header text-2xl font-bold text-on-surface">Dashboard Overview</h1>
+<p class="font-body text-on-surface-variant">System status and execution metrics for current cycle.</p>
+</div>
+<!-- Section 1: KPI Strip -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-grid-gap mb-8">
+<!-- Focus Tasks -->
+<div class="bg-surface rounded-lg border border-outline-variant p-card-padding flex flex-col justify-between h-24">
+<div class="flex justify-between items-start">
+<span class="font-metric-label text-metric-label text-on-surface-variant uppercase tracking-wider">Focus Tasks</span>
+<div class="size-8 rounded-full bg-action/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-action text-sm" data-original-icon="crosshair">circle</span>
+</div>
+</div>
+<div class="font-kpi-value text-kpi-value text-on-surface">1</div>
+</div>
+<!-- Overdue -->
+<div class="bg-surface rounded-lg border border-outline-variant p-card-padding flex flex-col justify-between h-24">
+<div class="flex justify-between items-start">
+<span class="font-metric-label text-metric-label text-on-surface-variant uppercase tracking-wider">Overdue</span>
+<div class="size-8 rounded-full bg-error/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-error text-sm">warning</span>
+</div>
+</div>
+<div class="font-kpi-value text-kpi-value text-error">1</div>
+</div>
+<!-- Completed -->
+<div class="bg-surface rounded-lg border border-outline-variant p-card-padding flex flex-col justify-between h-24">
+<div class="flex justify-between items-start">
+<span class="font-metric-label text-metric-label text-on-surface-variant uppercase tracking-wider">Completed (Week)</span>
+<div class="size-8 rounded-full bg-success/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-success text-sm">check_circle</span>
+</div>
+</div>
+<div class="font-kpi-value text-kpi-value text-on-surface">1</div>
+</div>
+<!-- Active Goals -->
+<div class="bg-surface rounded-lg border border-outline-variant p-card-padding flex flex-col justify-between h-24">
+<div class="flex justify-between items-start">
+<span class="font-metric-label text-metric-label text-on-surface-variant uppercase tracking-wider">Active Goals</span>
+<div class="size-8 rounded-full bg-accent/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-accent text-sm">track_changes</span>
+</div>
+</div>
+<div class="font-kpi-value text-kpi-value text-on-surface">2</div>
+</div>
+</div>
+<!-- Section 2: Analytics Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-grid-gap mb-8">
+<!-- ExecutionLoadPanel -->
+<div class="bg-surface rounded-lg border border-outline-variant p-card-padding col-span-1">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-on-surface-variant text-base">bar_chart</span>
+<h3 class="font-card-title text-card-title text-on-surface">Execution Load</h3>
+</div>
+<div class="space-y-4">
+<!-- Today -->
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="font-body text-on-surface-variant">Today</span>
+<span class="font-metric-label text-on-surface font-semibold">1</span>
+</div>
+<div class="chart-bar-container">
+<div class="chart-bar-segment bg-action" style="width: 20%;"></div>
+</div>
+</div>
+<!-- Overdue -->
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="font-body text-on-surface-variant">Overdue</span>
+<span class="font-metric-label text-error font-semibold">1</span>
+</div>
+<div class="chart-bar-container">
+<div class="chart-bar-segment bg-error" style="width: 20%;"></div>
+</div>
+</div>
+<!-- Focus -->
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="font-body text-on-surface-variant">Focus</span>
+<span class="font-metric-label text-on-surface font-semibold">1</span>
+</div>
+<div class="chart-bar-container">
+<div class="chart-bar-segment bg-accent" style="width: 20%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- GoalMomentumPanel -->
+<div class="bg-surface rounded-lg border border-outline-variant p-card-padding col-span-1 flex flex-col">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-on-surface-variant text-base">donut_large</span>
+<h3 class="font-card-title text-card-title text-on-surface">Goal Momentum</h3>
+</div>
+<div class="flex-1 flex items-center justify-center relative min-h-[150px]">
+<!-- SVG Donut Chart Placeholder -->
+<div class="relative size-32 rounded-full border-[16px] border-surface-container-high border-t-accent border-r-action border-l-risk border-b-surface-container-high rotate-45 flex items-center justify-center">
+<div class="absolute inset-0 bg-surface rounded-full flex items-center justify-center -rotate-45 m-2">
+<span class="font-kpi-value text-xl font-bold">2</span>
+</div>
+</div>
+<div class="absolute right-4 top-1/2 -translate-y-1/2 space-y-2">
+<div class="flex items-center gap-2">
+<div class="size-3 rounded bg-risk"></div>
+<span class="font-metric-label text-on-surface-variant text-xs">Stuck: 1</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-3 rounded bg-action"></div>
+<span class="font-metric-label text-on-surface-variant text-xs">Moving: 1</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-3 rounded bg-accent"></div>
+<span class="font-metric-label text-on-surface-variant text-xs">Almost done: 0</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Activity Heatmap -->
+<div class="bg-surface rounded-lg border border-outline-variant p-card-padding col-span-1 xl:col-span-2">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-on-surface-variant text-base">calendar_month</span>
+<h3 class="font-card-title text-card-title text-on-surface">Activity Map (Last 28 Days)</h3>
+</div>
+<div class="flex gap-2">
+    <div class="flex flex-col justify-between py-1 text-[10px] text-on-surface-variant font-metric-label">
+        <span class="">Mon</span>
+        <span class="">Wed</span>
+        <span class="">Fri</span>
+    </div>
+    <div class="flex-1">
+        <div class="grid grid-rows-7 grid-flow-col gap-1">
+            <div class="size-3 rounded-sm bg-surface-container-high"></div>
+            <div class="size-3 rounded-sm bg-success/20"></div>
+            <div class="size-3 rounded-sm bg-surface-container-high"></div>
+            <div class="size-3 rounded-sm bg-success/40"></div>
+            <div class="size-3 rounded-sm bg-success/60"></div>
+            <div class="size-3 rounded-sm bg-surface-container-high"></div>
+            <div class="size-3 rounded-sm bg-surface-container-high"></div>
+            <div class="size-3 rounded-sm bg-success/80"></div>
+            <div class="size-3 rounded-sm bg-success/20"></div>
+            <div class="size-3 rounded-sm bg-surface-container-high"></div>
+            <div class="size-3 rounded-sm bg-success/40"></div>
+            <div class="size-3 rounded-sm bg-surface-container-high"></div>
+            <div class="size-3 rounded-sm bg-success"></div>
+            <div class="size-3 rounded-sm bg-success/60"></div>
+            <div class="size-3 rounded-sm bg-surface-container-high"></div>
+            <div class="size-3 rounded-sm bg-surface-container-high"></div>
+            <div class="size-3 rounded-sm bg-success/20"></div>
+            <div class="size-3 rounded-sm bg-success/80"></div>
+            <div class="size-3 rounded-sm bg-surface-container-high"></div>
+            <div class="size-3 rounded-sm bg-success/40"></div>
+            <div class="size-3 rounded-sm bg-surface-container-high"></div>
+            <div class="size-3 rounded-sm bg-success"></div>
+            <div class="size-3 rounded-sm bg-success/60"></div>
+            <div class="size-3 rounded-sm bg-surface-container-high"></div>
+            <div class="size-3 rounded-sm bg-surface-container-high"></div>
+            <div class="size-3 rounded-sm bg-success/20"></div>
+            <div class="size-3 rounded-sm bg-success/40"></div>
+            <div class="size-3 rounded-sm bg-success/80"></div>
+        </div>
+    </div>
+</div>
+</div>
+</div><div class="grid grid-cols-1 xl:grid-cols-2 gap-grid-gap mb-8">
+    <!-- Knowledge Pipeline Panel -->
+    <div class="bg-surface rounded-lg border border-outline-variant p-card-padding col-span-1">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-on-surface-variant text-base">auto_stories</span>
+            <h3 class="font-card-title text-card-title text-on-surface">Knowledge Pipeline</h3>
+        </div>
+        <p class="font-helper-text text-helper-text text-on-surface-variant mb-4">Capture, review, saved knowledge, archive, and active topics.</p>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="bg-surface-container-low p-2 rounded flex items-center gap-2">
+                <span class="material-symbols-outlined text-accent text-sm">auto_awesome</span>
+                <div>
+                    <div class="text-xs text-on-surface-variant">Captured</div>
+                    <div class="font-bold">2</div>
+                </div>
+            </div>
+            <div class="bg-surface-container-low p-2 rounded flex items-center gap-2">
+                <span class="material-symbols-outlined text-action text-sm">inbox</span>
+                <div>
+                    <div class="text-xs text-on-surface-variant">Review</div>
+                    <div class="font-bold">3</div>
+                </div>
+            </div>
+            <div class="bg-surface-container-low p-2 rounded flex items-center gap-2">
+                <span class="material-symbols-outlined text-on-surface-variant text-sm">library_books</span>
+                <div>
+                    <div class="text-xs text-on-surface-variant">Saved</div>
+                    <div class="font-bold">2</div>
+                </div>
+            </div>
+            <div class="bg-surface-container-low p-2 rounded flex items-center gap-2">
+                <span class="material-symbols-outlined text-on-surface-variant text-sm">archive</span>
+                <div>
+                    <div class="text-xs text-on-surface-variant">Archived</div>
+                    <div class="font-bold">1</div>
+                </div>
+            </div>
+        </div>
+        <div class="border-t border-outline-variant pt-3">
+            <div class="flex justify-between items-center">
+                <span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Most active topics</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-body">AI Research</span>
+                    <span class="bg-primary text-on-primary text-[10px] px-1.5 rounded-full">3</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Network Panel -->
+    <div class="bg-surface rounded-lg border border-outline-variant p-card-padding col-span-1">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-on-surface-variant text-base">hub</span>
+            <h3 class="font-card-title text-card-title text-on-surface">Context Network</h3>
+        </div>
+        <p class="font-helper-text text-helper-text text-on-surface-variant mb-4">Relationship density across areas, goals, projects, and tasks.</p>
+        <div class="flex justify-between mb-6">
+            <div class="text-center">
+                <div class="text-xs text-on-surface-variant">Areas</div>
+                <div class="font-bold">1</div>
+            </div>
+            <div class="text-center">
+                <div class="text-xs text-on-surface-variant">Goals</div>
+                <div class="font-bold">2</div>
+            </div>
+            <div class="text-center">
+                <div class="text-xs text-on-surface-variant">Projects</div>
+                <div class="font-bold">1</div>
+            </div>
+            <div class="text-center">
+                <div class="text-xs text-on-surface-variant">Tasks</div>
+                <div class="font-bold">1</div>
+            </div>
+        </div>
+        <div>
+            <div class="flex justify-between text-xs mb-1">
+                <span class="text-on-surface-variant">Density Score</span>
+                <span class="font-bold text-success">High (100%)</span>
+            </div>
+            <div class="chart-bar-container">
+                <div class="chart-bar-segment bg-success" style="width: 100%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Relationship Risk Panel -->
+    <div class="bg-surface rounded-lg border border-outline-variant p-card-padding col-span-1 xl:col-span-2">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-error text-base">person_alert</span>
+            <h3 class="font-card-title text-card-title text-on-surface">Relationship Risk</h3>
+        </div>
+        <p class="font-helper-text text-helper-text text-on-surface-variant mb-4">Follow-ups due, especially contacts tied to active projects.</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-1 space-y-3">
+                <div class="flex justify-between items-center p-2 bg-error/10 rounded">
+                    <span class="text-sm text-on-surface">Follow-ups due</span>
+                    <span class="font-bold text-error">1</span>
+                </div>
+                <div class="flex justify-between items-center p-2 bg-surface-container-low rounded">
+                    <span class="text-sm text-on-surface">On active projects</span>
+                    <span class="font-bold">1</span>
+                </div>
+            </div>
+            <div class="md:col-span-2 border-l border-outline-variant pl-4">
+                <div class="flex items-center justify-between p-2 hover:bg-surface-container-low rounded transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="size-8 rounded-full bg-surface-container-highest flex items-center justify-center text-xs font-bold">C</div>
+                        <span class="text-sm font-medium">Contact</span>
+                    </div>
+                    <span class="text-xs text-error font-semibold">14d overdue</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-4 pt-2 bg-surface shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] rounded-t-xl">
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl p-2 w-16" href="#">
+<span class="material-symbols-outlined" data-weight="fill">home</span>
+<span class="font-metric-label text-metric-label mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 w-16" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-metric-label text-metric-label mt-1">Vault</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 w-16" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+<span class="font-metric-label text-metric-label mt-1">Graph</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 w-16" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-metric-label text-metric-label mt-1">Me</span>
+</a>
+</nav>
+</div>
+
+</body></html>

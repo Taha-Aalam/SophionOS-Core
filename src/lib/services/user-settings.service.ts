@@ -22,6 +22,8 @@ export interface NotificationSettings {
   evening_review_enabled?: boolean;
   evening_review_time?: string | null;
   weekly_digest_day?: number | null;
+  /** Default true when undefined — email channel opt-in */
+  email_enabled?: boolean;
 }
 
 export const ONBOARDING_STEPS = [

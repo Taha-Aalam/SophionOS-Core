@@ -29,6 +29,8 @@ export function AnalyticsPanel({
     <section
       className={cn(
         "flex flex-col rounded-xl border border-border/70 bg-card p-4 text-card-foreground shadow-soft",
+        "transition-[box-shadow,border-color] duration-200 ease-[var(--ease-out-quint)]",
+        "hover:border-border hover:shadow-soft-lg",
         className,
       )}
     >
@@ -105,7 +107,8 @@ export function MetricBar({
     borderRadius: 9999,
     backgroundColor: fillColor,
     minWidth: value > 0 ? 6 : 0,
-    transition: "width 300ms cubic-bezier(0.22, 1, 0.36, 1)",
+    // Width settles when values change; first paint uses scaleX (see .metric-bar-fill).
+    transition: "width 280ms var(--ease-out-quint)",
   };
 
   return (
@@ -129,6 +132,7 @@ export function MetricBar({
           data-slot="chart-bar-fill"
           data-testid="chart-bar-segment"
           data-tone={tone}
+          className={value > 0 ? "metric-bar-fill" : undefined}
           style={fillStyle}
         />
       </div>

@@ -28,10 +28,10 @@ export default function PrivacyPage() {
       </ul>
       <h2>AI clients</h2>
       <p>
-        When you connect Claude, Cursor, or another MCP client, SophionOS serves
-        data through the API key you authorize. The client and its model provider
-        process whatever that client sends under their terms—outside SophionOS
-        control after you connect them.
+        When you connect Claude, Codex, Antigravity, Cursor, OpenCode, or any
+        MCP-compatible AI client, SophionOS serves data through the API key you
+        authorize. The client and its model provider process whatever that client
+        sends under their terms—outside SophionOS control after you connect them.
       </p>
       <h2>Retention &amp; deletion</h2>
       <p>

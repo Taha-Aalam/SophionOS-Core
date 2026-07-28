@@ -75,6 +75,7 @@ export function GoalMomentumPanel({ momentum }: GoalMomentumPanelProps) {
             {arcs.map((arc) => (
               <circle
                 key={arc.key}
+                className="momentum-ring-segment"
                 cx={SIZE / 2}
                 cy={SIZE / 2}
                 r={RADIUS}
@@ -88,7 +89,7 @@ export function GoalMomentumPanel({ momentum }: GoalMomentumPanelProps) {
             ))}
           </svg>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-xl font-semibold leading-none tabular-nums text-foreground">
+            <span className="text-xl font-semibold leading-none tabular-nums text-foreground transition-colors duration-200 ease-[var(--ease-out-quint)]">
               {total}
             </span>
             <span className="mt-1 text-2xs text-muted-foreground">goals</span>
