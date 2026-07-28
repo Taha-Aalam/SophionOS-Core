@@ -188,8 +188,8 @@ export function AiAccessCard() {
           <Separator />
           {keys.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No active API keys. Create one to connect Claude, Cursor, or another
-              client.
+              No active API keys. Create one to connect Claude, Codex,
+              Antigravity, Cursor, OpenCode, or any MCP-compatible AI client.
             </p>
           ) : (
             <ul className="space-y-4">

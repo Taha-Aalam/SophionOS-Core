@@ -30,6 +30,8 @@ export type PersonalDataExport = {
   settings: unknown;
   ai_access: unknown;
   api_keys_metadata: unknown[];
+  /** Delivery log metadata (no full email payload bodies). */
+  notification_deliveries?: unknown[];
   meta: {
     counts: Record<keyof PersonalExportEntityBucket, number>;
     files: string[];
@@ -74,6 +76,7 @@ export function buildPersonalDataExport(
         settings?: unknown;
         ai_access?: unknown;
         api_keys_metadata?: unknown[];
+        notification_deliveries?: unknown[];
         exportedAt?: string;
       },
 ): PersonalDataExport {
@@ -98,6 +101,27 @@ export function buildPersonalDataExport(
   }
 
   const apiKeysMeta = (extras.api_keys_metadata ?? []).map(stripSensitiveFields);
+  const deliveryMeta = (extras.notification_deliveries ?? []).map(
+    stripSensitiveFields,
+  );
+
+  const files = [
+    "manifest.json",
+    "areas.json",
+    "goals.json",
+    "projects.json",
+    "tasks.json",
+    "notes.json",
+    "resources.json",
+    "topics.json",
+    "contacts.json",
+    "settings.json",
+    "ai-access.json",
+    "api-keys-metadata.json",
+  ];
+  if (deliveryMeta.length > 0) {
+    files.push("notification-deliveries.json");
+  }
 
   return {
     schema_version: PERSONAL_EXPORT_SCHEMA_VERSION,
@@ -107,22 +131,10 @@ export function buildPersonalDataExport(
     settings: stripSensitiveFields(extras.settings ?? null),
     ai_access: stripSensitiveFields(extras.ai_access ?? null),
     api_keys_metadata: apiKeysMeta,
+    notification_deliveries: deliveryMeta,
     meta: {
       counts,
-      files: [
-        "manifest.json",
-        "areas.json",
-        "goals.json",
-        "projects.json",
-        "tasks.json",
-        "notes.json",
-        "resources.json",
-        "topics.json",
-        "contacts.json",
-        "settings.json",
-        "ai-access.json",
-        "api-keys-metadata.json",
-      ],
+      files,
     },
   };
 }
@@ -177,6 +189,7 @@ export async function exportPersonalDataForUser(
   let settingsRows: unknown[] = [];
   let apiKeysMeta: unknown[] = [];
   let ai_access: unknown = null;
+  let notificationDeliveries: unknown[] = [];
   try {
     if (
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -199,6 +212,16 @@ export async function exportPersonalDataForUser(
       } catch {
         /* optional */
       }
+      try {
+        const { data: deliveries } = await admin
+          .from("notification_deliveries")
+          .select("id, kind, channel, local_date, status, error, created_at")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+        notificationDeliveries = deliveries ?? [];
+      } catch {
+        /* optional — table may not exist yet */
+      }
     }
   } catch {
     /* optional in unit tests / misconfigured envs */
@@ -208,6 +231,7 @@ export async function exportPersonalDataForUser(
     settings: settingsRows,
     ai_access,
     api_keys_metadata: apiKeysMeta,
+    notification_deliveries: notificationDeliveries,
   });
   assertExportHasNoSecrets(payload);
   return payload;

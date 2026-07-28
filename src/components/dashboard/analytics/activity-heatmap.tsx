@@ -61,6 +61,8 @@ function cellStyle(level: 0 | 1 | 2 | 3 | 4, options?: { invisible?: boolean }):
     boxSizing: "border-box",
     backgroundColor: heatmapCellBackground(level),
     opacity: options?.invisible ? 0 : 1,
+    // Position for hover scale without shifting the grid.
+    position: "relative" as const,
   };
 }
 
@@ -166,6 +168,7 @@ function ActivityHeatmapImpl({ heatmap }: ActivityHeatmapProps) {
                 return (
                   <div
                     key={day.date}
+                    className="heatmap-day-cell"
                     title={
                       isEmpty
                         ? `${day.date}: no activity`

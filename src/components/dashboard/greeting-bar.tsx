@@ -21,7 +21,7 @@ export function GreetingBar({ userName, activeTaskCount }: GreetingBarProps) {
       <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
         {headline}
       </h1>
-      <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+      <p className="max-w-xl text-sm leading-relaxed text-muted-foreground transition-colors duration-200 ease-[var(--ease-out-quint)]">
         {taskPhrase
           ? `${taskPhrase} in play. Load, momentum, and risk signals sit below.`
           : "Load, momentum, and risk signals for the current cycle sit below."}

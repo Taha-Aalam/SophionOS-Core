@@ -57,7 +57,7 @@ export function ApiKeyCreateDialog({
   async function handleCreate() {
     const label = name.trim();
     if (!label) {
-      toast.error("Give the key a label, e.g. Claude Desktop — MacBook Pro.");
+      toast.error("Give the key a label, e.g. Cursor — MacBook Pro.");
       return;
     }
     setCreating(true);
@@ -135,7 +135,7 @@ export function ApiKeyCreateDialog({
                 id="key-label"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Claude Desktop — MacBook Pro"
+                placeholder="Cursor — MacBook Pro"
                 maxLength={80}
               />
             </div>
@@ -145,7 +145,7 @@ export function ApiKeyCreateDialog({
                 id="client-name"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
-                placeholder="Claude Desktop"
+                placeholder="OpenCode"
               />
             </div>
             <div className="space-y-1.5">

@@ -116,6 +116,48 @@
     50% { box-shadow: 0 0 0 4px oklch(0.55 0.13 260 / 0.15); }
     100% { box-shadow: 0 0 0 0 oklch(0.55 0.13 260 / 0); }
   }
+
+  /* Dashboard product motion: short state draws (transform/opacity only).
+     Only `from` keyframes so the end state is the element's real styles. */
+  --animate-metric-bar: metric-bar-reveal 280ms var(--ease-out-quint) backwards;
+  @keyframes metric-bar-reveal {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  --animate-ring-segment: ring-segment-draw 320ms var(--ease-out-quint) backwards;
+  @keyframes ring-segment-draw {
+    from {
+      opacity: 0;
+      stroke-dasharray: 0 400;
+    }
+  }
+
+  --animate-kpi-in: kpi-in 220ms var(--ease-out-quint) both;
+  @keyframes kpi-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.35rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Cockpit rows: product-speed cascade (not the 700ms page reveal). */
+  --animate-cockpit-in: cockpit-in 240ms var(--ease-out-quint) both;
+  @keyframes cockpit-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.4rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 :root {
@@ -286,6 +328,94 @@
   }
   .heatmap-cell--4 {
     background: var(--analytics-success);
+  }
+
+  /* Heatmap day cells: color settle + hover scan feedback (GPU-cheap). */
+  .heatmap-day-cell {
+    transition:
+      background-color 180ms var(--ease-out-quint),
+      opacity 150ms var(--ease-out-quint),
+      transform 150ms var(--ease-out-quint);
+  }
+  .heatmap-day-cell[data-empty="false"]:hover {
+    transform: scale(1.35);
+    opacity: 0.92;
+    z-index: 1;
+  }
+
+  /* Metric / density bar fill: grow from the origin on first paint. */
+  .metric-bar-fill {
+    transform-origin: left center;
+    animation: var(--animate-metric-bar);
+  }
+  [data-slot="execution-load-bars"] > *:nth-child(1) .metric-bar-fill {
+    animation-delay: 40ms;
+  }
+  [data-slot="execution-load-bars"] > *:nth-child(2) .metric-bar-fill {
+    animation-delay: 80ms;
+  }
+  [data-slot="execution-load-bars"] > *:nth-child(3) .metric-bar-fill {
+    animation-delay: 120ms;
+  }
+  [data-slot="execution-load-bars"] > *:nth-child(4) .metric-bar-fill {
+    animation-delay: 160ms;
+  }
+  [data-slot="execution-load-bars"] > *:nth-child(5) .metric-bar-fill {
+    animation-delay: 200ms;
+  }
+
+  /* Goal momentum ring segments draw in once. */
+  .momentum-ring-segment {
+    animation: var(--animate-ring-segment);
+  }
+  .momentum-ring-segment:nth-of-type(2) {
+    animation-delay: 40ms;
+  }
+  .momentum-ring-segment:nth-of-type(3) {
+    animation-delay: 80ms;
+  }
+  .momentum-ring-segment:nth-of-type(4) {
+    animation-delay: 120ms;
+  }
+
+  /* KPI strip: quick product cascade (not page-load theater). */
+  .kpi-stagger > * {
+    animation: var(--animate-kpi-in);
+  }
+  .kpi-stagger > *:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  .kpi-stagger > *:nth-child(2) {
+    animation-delay: 40ms;
+  }
+  .kpi-stagger > *:nth-child(3) {
+    animation-delay: 80ms;
+  }
+  .kpi-stagger > *:nth-child(4) {
+    animation-delay: 120ms;
+  }
+
+  /* Analytics cockpit rows only: short cascade after content fade-in. */
+  .cockpit-stagger > * {
+    animation: var(--animate-cockpit-in);
+  }
+  .cockpit-stagger > *:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  .cockpit-stagger > *:nth-child(2) {
+    animation-delay: 50ms;
+  }
+  .cockpit-stagger > *:nth-child(3) {
+    animation-delay: 100ms;
+  }
+  .cockpit-stagger > *:nth-child(4) {
+    animation-delay: 150ms;
+  }
+  .cockpit-stagger > *:nth-child(5) {
+    animation-delay: 200ms;
+  }
+  .cockpit-stagger > *:nth-child(n + 6) {
+    animation-delay: 240ms;
   }
 
   /* Page-entrance choreography: applies the `reveal` keyframe to direct children

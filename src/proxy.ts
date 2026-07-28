@@ -27,6 +27,8 @@ const isApexPassthrough = createRouteMatcher([
 const isSelfAuthApi = createRouteMatcher([
   "/api/v1/(.*)",
   "/api/billing/(.*)",
+  // pg_cron → pg_net POST; authenticates via CRON_SECRET in-route.
+  "/api/cron/(.*)",
 ]);
 
 // Origin of the application subdomain (e.g. http://app.localhost:3000). Derived

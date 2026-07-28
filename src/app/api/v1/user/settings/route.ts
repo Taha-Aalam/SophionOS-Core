@@ -26,6 +26,7 @@ const notificationsSchema = z.object({
   evening_review_enabled: z.boolean().optional(),
   evening_review_time: z.string().nullable().optional(),
   weekly_digest_day: z.number().int().min(0).max(6).nullable().optional(),
+  email_enabled: z.boolean().optional(),
 });
 
 const onboardingSchema = z.object({

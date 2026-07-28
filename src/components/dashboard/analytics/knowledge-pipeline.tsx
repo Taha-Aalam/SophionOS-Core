@@ -50,7 +50,7 @@ export function KnowledgePipeline({ pipeline }: KnowledgePipelineProps) {
           return (
             <div
               key={metric.label}
-              className="flex items-center gap-2.5 rounded-lg bg-muted/40 px-2.5 py-2"
+              className="flex items-center gap-2.5 rounded-lg bg-muted/40 px-2.5 py-2 transition-colors duration-200 ease-[var(--ease-out-quint)] hover:bg-muted/60"
             >
               <Icon className={cn("size-4 shrink-0", metric.iconClass)} aria-hidden="true" />
               <div className="min-w-0">

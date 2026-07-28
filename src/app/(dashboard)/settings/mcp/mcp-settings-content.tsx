@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Copy, ExternalLink, Plug, Lock } from "lucide-react";
-import { toast } from "sonner";
+import { ExternalLink, Plug, Lock } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { McpClientMatrix } from "@/components/settings/mcp-client-matrix";
 
 interface SubscriptionInfo {
   tier: "free" | "pro" | "lifetime" | "max";
@@ -35,28 +34,7 @@ async function apiFetch<T>(input: string, init?: RequestInit): Promise<T> {
   return json?.data as T;
 }
 
-function buildClaudeDesktopConfig(apiKey: string, baseUrl: string): string {
-  return JSON.stringify(
-    {
-      mcpServers: {
-        sophionos: {
-          command: "npx",
-          args: ["-y", "@sophionos/mcp-server"],
-          env: { SOPHIONOS_API_KEY: apiKey, SOPHIONOS_API_URL: baseUrl },
-        },
-      },
-    },
-    null,
-    2,
-  );
-}
-
-function buildClaudeCodeCommand(apiKey: string, baseUrl: string): string {
-  return `claude mcp add sophionos --env SOPHIONOS_API_KEY=${apiKey} --env SOPHIONOS_API_URL=${baseUrl} -- npx -y @sophionos/mcp-server`;
-}
-
 export function McpSettingsContent() {
-  const [copied, setCopied] = useState<string | null>(null);
   const [baseUrl, setBaseUrl] = useState("https://app.sophionos.com");
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [subLoading, setSubLoading] = useState(true);
@@ -79,28 +57,15 @@ export function McpSettingsContent() {
         if (!cancelled) setSubLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  async function copy(label: string, value: string) {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(label);
-      setTimeout(() => setCopied((c) => (c === label ? null : c)), 1500);
-      toast.success("Copied to clipboard.");
-    } catch {
-      toast.error("Could not copy. Copy manually instead.");
-    }
-  }
 
   const isPaid = subLoading ? true : (subscription?.isPaid ?? false);
 
-  // Note: connection status is now static since key management moved to
-  // /settings/api-keys. The MCP page focuses on config snippets and onboarding.
-
   return (
     <div className="flex flex-col gap-6">
-      {/* Free-tier upgrade CTA */}
       {!isPaid && (
         <Card className="border-primary/40 bg-primary/5">
           <CardHeader className="space-y-3">
@@ -118,22 +83,28 @@ export function McpSettingsContent() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => { window.location.href = "/settings/billing"; }}>
+            <Button
+              onClick={() => {
+                window.location.href = "/settings/billing";
+              }}
+            >
               Upgrade to Pro
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Progressive consent */}
       <Card className="border-primary/30">
         <CardHeader className="space-y-2">
           <CardTitle className="text-base">
-            Connect SophionOS to Claude or Cursor
+            Connect SophionOS to your AI client
           </CardTitle>
           <CardDescription className="space-y-2 text-sm">
             <span className="block">
-              This creates an API key for the AI client you choose.
+              Works with any MCP-compatible AI client you choose.
+            </span>
+            <span className="block">
+              This creates an API key for that client.
             </span>
             <span className="block">
               <strong>Default access: Read your SophionOS context.</strong> It can
@@ -146,10 +117,7 @@ export function McpSettingsContent() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Link
-            href="/settings/ai-access"
-            className={buttonVariants()}
-          >
+          <Link href="/settings/ai-access" className={buttonVariants()}>
             Continue with read-only access
           </Link>
           <Link
@@ -161,7 +129,6 @@ export function McpSettingsContent() {
         </CardContent>
       </Card>
 
-      {/* Connection status */}
       <Card>
         <CardHeader className="space-y-3">
           <div className="flex items-center justify-between">
@@ -177,7 +144,6 @@ export function McpSettingsContent() {
         </CardHeader>
       </Card>
 
-      {/* Manage keys link */}
       <Card>
         <CardHeader className="space-y-1">
           <CardTitle className="text-base">AI Access</CardTitle>
@@ -196,68 +162,18 @@ export function McpSettingsContent() {
         </CardContent>
       </Card>
 
-      {/* Setup snippets — Pro only */}
       {isPaid && (
         <Card>
           <CardHeader className="space-y-1">
             <CardTitle className="text-base">Connect your AI client</CardTitle>
             <CardDescription>
-              Create an API key in AI Access, then copy a config below into your
-              MCP client.
+              Create an API key in AI Access, then choose a client and copy the
+              config below. MCP remains experimental — documented for evaluation,
+              not certified for every host.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Claude Desktop (claude_desktop_config.json)</Label>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    void copy(
-                      "desktop",
-                      buildClaudeDesktopConfig("sop_your_key_here", baseUrl),
-                    )
-                  }
-                >
-                  {copied === "desktop" ? (
-                    <Check className="size-4" />
-                  ) : (
-                    <Copy className="size-4" />
-                  )}
-                  <span className="ml-1">Copy</span>
-                </Button>
-              </div>
-              <pre className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs">
-                {buildClaudeDesktopConfig("sop_your_key_here", baseUrl)}
-              </pre>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Claude Code (terminal)</Label>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    void copy(
-                      "code",
-                      buildClaudeCodeCommand("sop_your_key_here", baseUrl),
-                    )
-                  }
-                >
-                  {copied === "code" ? (
-                    <Check className="size-4" />
-                  ) : (
-                    <Copy className="size-4" />
-                  )}
-                  <span className="ml-1">Copy</span>
-                </Button>
-              </div>
-              <pre className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs">
-                {buildClaudeCodeCommand("sop_your_key_here", baseUrl)}
-              </pre>
-            </div>
+          <CardContent>
+            <McpClientMatrix baseUrl={baseUrl} />
           </CardContent>
         </Card>
       )}

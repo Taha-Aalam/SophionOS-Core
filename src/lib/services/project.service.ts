@@ -7,7 +7,7 @@ import { generateSlug } from "../utils";
 import { LIST_SAFETY_CAP, PROJECT_STATUS, type ProjectStatus } from "../utils/constants";
 import { deriveProjectStatus } from "../utils/status-routing";
 
-type ServiceOptions = { supabase?: SupabaseClient };
+type ServiceOptions = { supabase?: SupabaseClient; userId?: string };
 
 type ProjectRecord = Omit<Project, "slug"> & { slug?: string | null };
 type ProjectQueryError = { code?: string; message?: string } | null;
@@ -398,7 +398,7 @@ async function hydrateProjectRollupCounts(projects: Project[], options?: Service
           .select("id, is_completed, is_archived")
           .in("id", allGoalIds)
       : Promise.resolve({ data: [] as Array<{ id: string; is_completed: boolean; is_archived: boolean }> }),
-    supabase.rpc("project_progress_summary", { p_project_ids: projectIds }),
+    supabase.rpc("project_progress_summary", { p_project_ids: projectIds, p_user_id: options?.userId }),
   ]);
 
   const summaryError = (summaryResult as { error?: { message: string } | null }).error;
