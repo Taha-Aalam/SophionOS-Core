@@ -1,13 +1,13 @@
 # @sophionos/mcp-server
 
-Connect [SophionOS Core](https://sophionos.com) to any MCP-compatible AI client — Claude Desktop, Claude Code, Cursor, Codex, or any future MCP host. Your AI assistant gets structured tools for your tasks, goals, projects, notes, resources, contacts, and more.
+**Status: experimental.** Connect [SophionOS Core](https://sophionos.com) to Claude, Codex, Antigravity, Cursor, OpenCode, or any MCP-compatible AI client. Your AI assistant gets structured tools for your tasks, goals, projects, notes, resources, contacts, and more.
 
-The server wraps the SophionOS Core REST API. Your existing AI model handles the natural language; this server handles the structured data operations against your SophionOS account.
+The server wraps the SophionOS Core REST API. Your existing AI model handles the natural language; this server handles the structured data operations against your SophionOS account. Clients below are **documented for evaluation**, not certified.
 
 ## Prerequisites
 
 1. A SophionOS Core account.
-2. A SophionOS **API key** — create one in **SophionOS → Settings → MCP** (or **Settings → API Keys**). Keys start with `sop_`. Copy it when shown; it is only displayed once.
+2. A SophionOS **API key** — create one in **SophionOS → Settings → AI Access** (or **Settings → MCP**). Keys start with `sop_`. Copy it when shown; it is only displayed once.
 
 ## Configuration
 
@@ -22,6 +22,8 @@ On startup the server validates the key against `GET /api/v1/user/settings`. An 
 
 ## Setup
 
+In-app snippets (Settings → MCP, Pro) use the same shapes as below. Paths are **typical**, not certified for every host version.
+
 ### Claude Desktop
 
 Add to your `claude_desktop_config.json`
@@ -35,7 +37,8 @@ Windows: `%APPDATA%\Claude\claude_desktop_config.json`):
       "command": "npx",
       "args": ["-y", "@sophionos/mcp-server"],
       "env": {
-        "SOPHIONOS_API_KEY": "sop_your_key_here"
+        "SOPHIONOS_API_KEY": "sop_your_key_here",
+        "SOPHIONOS_API_URL": "https://app.sophionos.com"
       }
     }
   }
@@ -47,7 +50,7 @@ Restart Claude Desktop. The SophionOS tools appear in the tools menu.
 ### Claude Code
 
 ```bash
-claude mcp add sophionos --env SOPHIONOS_API_KEY=sop_your_key_here -- npx -y @sophionos/mcp-server
+claude mcp add sophionos --env SOPHIONOS_API_KEY=sop_your_key_here --env SOPHIONOS_API_URL=https://app.sophionos.com -- npx -y @sophionos/mcp-server
 ```
 
 ### Cursor
@@ -61,16 +64,31 @@ Add to `~/.cursor/mcp.json` (or the project `.cursor/mcp.json`):
       "command": "npx",
       "args": ["-y", "@sophionos/mcp-server"],
       "env": {
-        "SOPHIONOS_API_KEY": "sop_your_key_here"
+        "SOPHIONOS_API_KEY": "sop_your_key_here",
+        "SOPHIONOS_API_URL": "https://app.sophionos.com"
       }
     }
   }
 }
 ```
 
-### Self-hosted SophionOS
+### Codex
 
-Set `SOPHIONOS_API_URL` to your instance origin:
+Add to `~/.codex/config.toml` (or project `.codex/config.toml`). Stdio servers use a `[mcp_servers.<name>]` table:
+
+```toml
+[mcp_servers.sophionos]
+command = "npx"
+args = ["-y", "@sophionos/mcp-server"]
+env = { "SOPHIONOS_API_KEY" = "sop_your_key_here", "SOPHIONOS_API_URL" = "https://app.sophionos.com" }
+```
+
+See [OpenAI Codex MCP docs](https://developers.openai.com/codex/mcp) for current options.
+
+### Antigravity
+
+Google Antigravity uses the same `mcpServers` JSON shape. Typical path:
+`~/.gemini/config/mcp_config.json` (or workspace `.agents/mcp_config.json`). You can also open **MCP Store → Manage MCP Servers → View raw config**.
 
 ```json
 {
@@ -80,12 +98,58 @@ Set `SOPHIONOS_API_URL` to your instance origin:
       "args": ["-y", "@sophionos/mcp-server"],
       "env": {
         "SOPHIONOS_API_KEY": "sop_your_key_here",
-        "SOPHIONOS_API_URL": "https://sophionos.yourcompany.com"
+        "SOPHIONOS_API_URL": "https://app.sophionos.com"
       }
     }
   }
 }
 ```
+
+### OpenCode
+
+OpenCode uses a dedicated `mcp` object (not `mcpServers`). Merge into `opencode.json` / `opencode.jsonc`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "sophionos": {
+      "type": "local",
+      "command": ["npx", "-y", "@sophionos/mcp-server"],
+      "enabled": true,
+      "environment": {
+        "SOPHIONOS_API_KEY": "sop_your_key_here",
+        "SOPHIONOS_API_URL": "https://app.sophionos.com"
+      }
+    }
+  }
+}
+```
+
+See [OpenCode MCP servers](https://opencode.ai/docs/mcp-servers).
+
+### Other (generic MCP)
+
+Any host that supports stdio MCP can adapt the shared payload:
+
+```json
+{
+  "mcpServers": {
+    "sophionos": {
+      "command": "npx",
+      "args": ["-y", "@sophionos/mcp-server"],
+      "env": {
+        "SOPHIONOS_API_KEY": "sop_your_key_here",
+        "SOPHIONOS_API_URL": "https://app.sophionos.com"
+      }
+    }
+  }
+}
+```
+
+### Self-hosted SophionOS
+
+Set `SOPHIONOS_API_URL` to your instance origin (no trailing slash). The examples above already show the env key; for cloud SaaS you may omit it and rely on the default `https://app.sophionos.com`.
 
 ## Tools
 

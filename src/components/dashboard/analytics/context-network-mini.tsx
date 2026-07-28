@@ -40,6 +40,7 @@ export function ContextNetworkMini({ network }: ContextNetworkMiniProps) {
     borderRadius: 9999,
     backgroundColor: "var(--analytics-success, oklch(0.62 0.13 155))",
     minWidth: barWidth > 0 ? 6 : 0,
+    transition: "width 280ms var(--ease-out-quint)",
   };
 
   return (
@@ -80,7 +81,11 @@ export function ContextNetworkMini({ network }: ContextNetworkMiniProps) {
           data-slot="chart-bar-track"
           style={trackStyle}
         >
-          <div data-testid="chart-bar-segment" style={fillStyle} />
+          <div
+            data-testid="chart-bar-segment"
+            className={barWidth > 0 ? "metric-bar-fill" : undefined}
+            style={fillStyle}
+          />
         </div>
       </div>
     </AnalyticsPanel>

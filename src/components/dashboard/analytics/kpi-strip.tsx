@@ -48,15 +48,21 @@ export function KpiStrip({ kpis }: KpiStripProps) {
   return (
     <section
       aria-label="Dashboard key metrics"
-      className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4"
+      className="kpi-stagger grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4"
     >
       {items.map((item) => {
         const Icon = item.icon;
         const value = kpis[item.key];
+        const isRisk = item.key === "overdueTasks" && value > 0;
         return (
           <div
             key={item.key}
-            className="group flex h-[5.5rem] flex-col justify-between rounded-xl border border-border/70 bg-card p-3.5 shadow-soft transition-[transform,box-shadow] duration-200 ease-[var(--ease-out-quint)] hover:border-border active:scale-[0.99]"
+            className={cn(
+              "group flex h-[5.5rem] flex-col justify-between rounded-xl border border-border/70 bg-card p-3.5 shadow-soft",
+              "transition-[transform,box-shadow,border-color] duration-200 ease-[var(--ease-out-quint)]",
+              "hover:border-border hover:shadow-soft-lg active:scale-[0.99]",
+              isRisk && "border-analytics-risk/25",
+            )}
           >
             <div className="flex items-start justify-between gap-2">
               <span className="text-xs font-medium text-muted-foreground">
@@ -64,7 +70,8 @@ export function KpiStrip({ kpis }: KpiStripProps) {
               </span>
               <div
                 className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-full transition-transform duration-200 group-hover:scale-105",
+                  "flex size-8 shrink-0 items-center justify-center rounded-full",
+                  "transition-transform duration-200 ease-[var(--ease-out-quint)] group-hover:scale-105",
                   item.chipClass,
                 )}
               >
@@ -74,6 +81,7 @@ export function KpiStrip({ kpis }: KpiStripProps) {
             <div
               className={cn(
                 "text-2xl font-semibold leading-none tracking-tight tabular-nums text-foreground",
+                "transition-colors duration-200 ease-[var(--ease-out-quint)]",
                 item.valueClass,
               )}
             >

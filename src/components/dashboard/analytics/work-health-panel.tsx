@@ -62,7 +62,7 @@ export function WorkHealthPanel({ health }: WorkHealthPanelProps) {
           return (
             <div
               key={row.label}
-              className="flex min-h-0 flex-col justify-between rounded-lg border border-border/50 bg-muted/30 px-2.5 py-2"
+              className="flex min-h-0 flex-col justify-between rounded-lg border border-border/50 bg-muted/30 px-2.5 py-2 transition-[background-color,border-color] duration-200 ease-[var(--ease-out-quint)] hover:border-border/80 hover:bg-muted/45"
             >
               <div className="flex items-start justify-between gap-1.5">
                 <span className="text-2xs leading-snug text-muted-foreground">
