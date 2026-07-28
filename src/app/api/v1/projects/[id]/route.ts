@@ -28,7 +28,7 @@ export async function GET(
 
     const { id } = await params;
     const supabase = await createDataClient(authResult);
-    const project = await projectService.getById(userId, id, { supabase });
+    const project = await projectService.getById(userId, id, { supabase, userId });
     return success(project);
   } catch (err) {
     return err instanceof AppError
@@ -63,7 +63,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await validateBody(request, updateProjectSchema);
     const supabase = await createDataClient(authResult);
-    const project = await projectService.update(userId, id, body, { supabase });
+    const project = await projectService.update(userId, id, body, { supabase, userId });
     return success(project);
   } catch (err) {
     return err instanceof AppError
@@ -90,7 +90,7 @@ export async function DELETE(
 
     const { id } = await params;
     const supabase = await createDataClient(authResult);
-    await projectService.delete(userId, id, { supabase });
+    await projectService.delete(userId, id, { supabase, userId });
     return success({ id, deleted: true });
   } catch (err) {
     return err instanceof AppError
