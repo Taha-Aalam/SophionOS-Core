@@ -154,7 +154,7 @@ export function ApiKeyManager({
               <Label htmlFor="new-key-name">New key name</Label>
               <Input
                 id="new-key-name"
-                placeholder="e.g. Claude Desktop"
+                placeholder="e.g. Codex laptop"
                 value={newKeyName}
                 onChange={(e) => setNewKeyName(e.target.value)}
                 onKeyDown={(e) => {

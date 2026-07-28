@@ -60,7 +60,7 @@ function DashboardAnalyticsPanelsImpl({
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="cockpit-stagger flex flex-col gap-4">
       <KpiStrip kpis={analytics.kpis} />
 
       {/* Primary: execution + momentum */}

@@ -56,6 +56,7 @@ export default function NotificationsPage() {
     const weeklyDigestDay = formData.get("weekly_digest_day")
       ? Number(formData.get("weekly_digest_day"))
       : null;
+    const emailEnabled = formData.get("email_enabled") === "on";
 
     updateNotifications(
       {
@@ -64,6 +65,7 @@ export default function NotificationsPage() {
         evening_review_enabled: eveningReviewEnabled,
         evening_review_time: eveningReviewEnabled ? eveningReviewTime : null,
         weekly_digest_day: weeklyDigestDay,
+        email_enabled: emailEnabled,
       },
       {
         onSuccess: () => toast.success("Notification settings saved"),
@@ -85,15 +87,42 @@ export default function NotificationsPage() {
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <SettingsDetailHeader
         title="Notifications"
-        description="Configure when and how you receive briefings, reviews, and digests. More delivery channels coming soon."
+        description="SophionOS emails briefings at the times you set (within a 15-minute window), using your account email. Set your timezone under Preferences."
       />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
+            <CardTitle className="text-base">Delivery channel</CardTitle>
+            <CardDescription>
+              Additional channels (Telegram, WhatsApp) later. Delivery uses the
+              timezone from Settings → Preferences.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between space-x-2">
+              <div className="space-y-0.5">
+                <Label htmlFor="email_enabled">Email delivery</Label>
+                <CardDescription>
+                  Send briefings to the email on your account.
+                </CardDescription>
+              </div>
+              <Checkbox
+                id="email_enabled"
+                name="email_enabled"
+                defaultChecked={notifications?.email_enabled !== false}
+                disabled={isPending}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle className="text-base">Daily briefings</CardTitle>
             <CardDescription>
-              Start and end your day with a summary of what matters.
+              Start and end your day with a summary of what matters. Sent within
+              15 minutes of the time you set.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -159,7 +188,8 @@ export default function NotificationsPage() {
           <CardHeader>
             <CardTitle className="text-base">Weekly digest</CardTitle>
             <CardDescription>
-              A weekly summary of your progress and insights.
+              A weekly summary of your progress and insights. Weekly digest
+              emails send at 09:00 local on the selected day.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

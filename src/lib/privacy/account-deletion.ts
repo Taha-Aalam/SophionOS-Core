@@ -48,6 +48,7 @@ export const ACCOUNT_DELETION_TABLE_ORDER = [
   "user_settings",
   "integrations",
   "api_keys",
+  "notification_deliveries",
   "data_export_jobs",
   "audit_events",
 ] as const;
