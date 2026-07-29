@@ -55,14 +55,14 @@ export async function GET(request: NextRequest) {
 
     let projects: Project[];
     if (goalId) {
-      projects = await projectService.listByGoal(userId, goalId, { supabase });
+      projects = await projectService.listByGoal(userId, goalId, { supabase, userId });
     } else if (areaId) {
-      projects = await projectService.listByArea(userId, areaId, { supabase });
+      projects = await projectService.listByArea(userId, areaId, { supabase, userId });
     } else {
       projects = await projectService.list(
         userId,
         { status, areaId },
-        { supabase },
+        { supabase, userId },
       );
     }
 
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     const body = await validateBody(request, createProjectSchema);
     const supabase = await createDataClient(authResult);
-    const project = await projectService.create(userId, body, { supabase });
+    const project = await projectService.create(userId, body, { supabase, userId });
     return created(project);
   } catch (err) {
     return err instanceof AppError

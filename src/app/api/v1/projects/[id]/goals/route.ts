@@ -31,7 +31,7 @@ export async function GET(
     const { id } = await params;
     const supabase = await createDataClient(authResult);
     const relations = await projectService.getWithRelations(userId, id, {
-      supabase,
+      supabase, userId,
     });
     return success({ goal_ids: relations.goal_ids, goals: relations.goals });
   } catch (err) {
@@ -68,8 +68,8 @@ export async function POST(
     const { id } = await params;
     const { goal_id } = await validateBody(request, linkGoalSchema);
     const supabase = await createDataClient(authResult);
-    await projectService.linkToGoal(userId, id, goal_id, { supabase });
-    const project = await projectService.getById(userId, id, { supabase });
+    await projectService.linkToGoal(userId, id, goal_id, { supabase, userId });
+    const project = await projectService.getById(userId, id, { supabase, userId });
     return created(project);
   } catch (err) {
     return err instanceof AppError
@@ -100,8 +100,8 @@ export async function DELETE(
       throw new ValidationError("goal_id is required");
     }
     const supabase = await createDataClient(authResult);
-    await projectService.unlinkFromGoal(userId, id, goalId, { supabase });
-    const project = await projectService.getById(userId, id, { supabase });
+    await projectService.unlinkFromGoal(userId, id, goalId, { supabase, userId });
+    const project = await projectService.getById(userId, id, { supabase, userId });
     return success(project);
   } catch (err) {
     return err instanceof AppError

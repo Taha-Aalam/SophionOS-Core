@@ -25,7 +25,7 @@ export async function POST(
 
     const { id } = await params;
     const supabase = await createDataClient(authResult);
-    const project = await projectService.restore(userId, id, { supabase });
+    const project = await projectService.restore(userId, id, { supabase, userId });
     return success(project);
   } catch (err) {
     return err instanceof AppError
