@@ -53,6 +53,29 @@ const positiveRepeatEverySchema = z.preprocess(
     .optional(),
 );
 
+const SINGULAR_TO_PLURAL_CYCLE: Record<string, (typeof TASK_REPEAT_CYCLE)[keyof typeof TASK_REPEAT_CYCLE]> = {
+  day: TASK_REPEAT_CYCLE.DAYS,
+  week: TASK_REPEAT_CYCLE.WEEKS,
+  month: TASK_REPEAT_CYCLE.MONTHS,
+  year: TASK_REPEAT_CYCLE.YEARS,
+};
+
+/** Normalizes agent-friendly singular cycle values (day/week/month/year)
+ *  to the DB enum's plural form, while leaving already-correct values and
+ *  the special calendar-anchor variants untouched. */
+const normalizedRepeatCycleSchema = z.preprocess(
+  (value) => {
+    if (value === undefined) return undefined;
+    if (value === "" || value === null) return null;
+    if (typeof value === "string") {
+      const normalized = SINGULAR_TO_PLURAL_CYCLE[value.toLowerCase()];
+      if (normalized) return normalized;
+    }
+    return value;
+  },
+  z.nativeEnum(TASK_REPEAT_CYCLE).nullable().optional(),
+);
+
 const nullableRepeatCycleSchema = z.preprocess(
   (value) => (value === undefined ? undefined : value === "" ? null : value),
   z.nativeEnum(TASK_REPEAT_CYCLE).nullable().optional(),
@@ -88,11 +111,18 @@ export const updateTaskSchema = z
     completed_at: z.string().datetime().optional().nullable(),
     is_recurring: z.boolean().optional(),
     repeat_every: positiveRepeatEverySchema,
-    repeat_cycle: nullableRepeatCycleSchema,
+    repeat_cycle: normalizedRepeatCycleSchema,
   })
   .superRefine((data, ctx) => {
-    // Partial update — only enforce the recurring-requires-due-date invariant
-    // when the caller is enabling recurrence. Turning recurrence off leaves
+    // Partial update — when the caller enables recurrence but omits
+    // `due_date`, auto-derive today's date so AI agents / MCP callers
+    // don't have to compute it themselves.
+    if (data.is_recurring === true && !data.due_date) {
+      data.due_date = new Date().toISOString().split("T")[0];
+    }
+
+    // Enforce the recurring-requires-due-date invariant only when the
+    // caller is enabling recurrence. Turning recurrence off leaves
     // `due_date` untouched.
     if (data.is_recurring === true) {
       if (!data.due_date) {
@@ -127,9 +157,9 @@ export const updateTaskSchema = z
 export const createTaskSchema = z
   .object({
     area_id: nullableUuidSchema,
-    area_ids: z.array(z.string().uuid()).default([]),
+    area_ids: z.array(z.string().uuid()).optional(),
     project_id: nullableUuidSchema,
-    project_ids: z.array(z.string().uuid()).default([]),
+    project_ids: z.array(z.string().uuid()).optional(),
     name: z.string().min(1, "Name is required").max(255),
     description: z.string().max(1000).optional().nullable(),
     status: z.nativeEnum(TASK_STATUS).optional(),

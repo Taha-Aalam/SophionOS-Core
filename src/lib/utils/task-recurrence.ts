@@ -60,6 +60,10 @@ function formatIsoDate(value: Date): string {
   return format(value, ISO_DATE_FORMAT);
 }
 
+export function getTodayIsoDate(): string {
+  return formatIsoDate(new Date());
+}
+
 function isWeekday(date: Date): boolean {
   const day = date.getDay();
   return day >= 1 && day <= 5;

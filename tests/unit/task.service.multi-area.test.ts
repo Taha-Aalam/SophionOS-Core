@@ -410,4 +410,56 @@ describe("taskService – getWithRelations includes area_ids and project_ids", (
 
     expect(result.project_ids).toEqual([]);
   });
+
+  it("preserves project_id when project_ids is not provided (create)", async () => {
+    const projectId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const taskRow = makeTaskRow({ project_id: projectId });
+
+    const taskInsertClient = {
+      from: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
+    } as any;
+
+    const projectSb = makeOwnershipAndInsertClient();
+    const projectLinksClient = makeLinkLookupClient([]);
+
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => taskInsertClient)
+      .mockImplementationOnce(() => projectSb)
+      .mockImplementationOnce(() => projectLinksClient)
+      .mockImplementation(() => makeDefaultClient());
+
+    await taskService.create(userId, {
+      name: "Test Task",
+      project_id: projectId,
+    } as any);
+
+    expect(taskInsertClient.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ project_id: projectId }),
+    );
+  });
+
+  it("preserves is_urgent when set to true on create", async () => {
+    const taskRow = makeTaskRow({ is_urgent: true });
+
+    const taskInsertClient = {
+      from: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
+    } as any;
+
+    vi.mocked(createClient).mockImplementationOnce(() => taskInsertClient);
+
+    await taskService.create(userId, {
+      name: "Test Task",
+      is_urgent: true,
+    } as any);
+
+    expect(taskInsertClient.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ is_urgent: true }),
+    );
+  });
 });
