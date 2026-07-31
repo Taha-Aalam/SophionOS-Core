@@ -154,13 +154,17 @@ describe("updateTaskSchema – partial recurrence edits", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects enabling recurrence without due_date", () => {
+  it("auto-derives due_date when enabling recurrence without providing one", () => {
+    const today = new Date().toISOString().split("T")[0];
     const result = updateTaskSchema.safeParse({
       is_recurring: true,
       repeat_every: 1,
       repeat_cycle: TASK_REPEAT_CYCLE.DAYS,
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.due_date).toBe(today);
+    }
   });
 });
 
@@ -1285,5 +1289,167 @@ describe("taskService.update – recurring completion transition delegation", ()
 
     expect(rpcClient.rpc).not.toHaveBeenCalled();
     expect((result as any).is_completed).toBe(true);
+  });
+});
+
+describe("updateTaskSchema – AI-agent-friendly normalization", () => {
+  it("normalizes singular repeat_cycle values (day → days)", () => {
+    const result = updateTaskSchema.safeParse({
+      is_recurring: true,
+      repeat_every: 2,
+      repeat_cycle: "day",
+      due_date: futureDate(1),
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.repeat_cycle).toBe(TASK_REPEAT_CYCLE.DAYS);
+    }
+  });
+
+  it("normalizes singular repeat_cycle values (week → weeks)", () => {
+    const result = updateTaskSchema.safeParse({
+      is_recurring: true,
+      repeat_every: 1,
+      repeat_cycle: "week",
+      due_date: futureDate(1),
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.repeat_cycle).toBe(TASK_REPEAT_CYCLE.WEEKS);
+    }
+  });
+
+  it("normalizes singular repeat_cycle values (month → months)", () => {
+    const result = updateTaskSchema.safeParse({
+      is_recurring: true,
+      repeat_every: 1,
+      repeat_cycle: "month",
+      due_date: futureDate(1),
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.repeat_cycle).toBe(TASK_REPEAT_CYCLE.MONTHS);
+    }
+  });
+
+  it("normalizes singular repeat_cycle values (year → years)", () => {
+    const result = updateTaskSchema.safeParse({
+      is_recurring: true,
+      repeat_every: 1,
+      repeat_cycle: "year",
+      due_date: futureDate(1),
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.repeat_cycle).toBe(TASK_REPEAT_CYCLE.YEARS);
+    }
+  });
+
+  it("leaves already-plural values unchanged", () => {
+    const result = updateTaskSchema.safeParse({
+      is_recurring: true,
+      repeat_every: 2,
+      repeat_cycle: TASK_REPEAT_CYCLE.WEEKS,
+      due_date: futureDate(1),
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.repeat_cycle).toBe(TASK_REPEAT_CYCLE.WEEKS);
+    }
+  });
+
+  it("auto-derives due_date when recurrence is enabled but due_date is missing", () => {
+    const today = new Date().toISOString().split("T")[0];
+    const result = updateTaskSchema.safeParse({
+      is_recurring: true,
+      repeat_every: 2,
+      repeat_cycle: "weeks",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.due_date).toBe(today);
+    }
+  });
+
+  it("auto-derives due_date when recurrence is enabled with normalized singular cycle", () => {
+    const today = new Date().toISOString().split("T")[0];
+    const result = updateTaskSchema.safeParse({
+      is_recurring: true,
+      repeat_every: 1,
+      repeat_cycle: "day",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.due_date).toBe(today);
+      expect(result.data.repeat_cycle).toBe(TASK_REPEAT_CYCLE.DAYS);
+    }
+  });
+});
+
+describe("taskService.update – AI-agent-friendly recurrence", () => {
+  const userId = "user-1";
+  const taskId = "task-1";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(createClient).mockReset();
+  });
+
+  it("auto-derives due_date when enabling recurrence without providing it", async () => {
+    const updated = { id: taskId, is_recurring: true };
+    const mockClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: updated, error: null }),
+    } as any;
+    vi.mocked(createClient).mockImplementation(() => mockClient);
+
+    const today = new Date().toISOString().split("T")[0];
+    await taskService.update(userId, taskId, {
+      is_recurring: true,
+      repeat_every: 2,
+      repeat_cycle: "weeks",
+    } as never);
+
+    const updatePayload = mockClient.update.mock.calls[0]?.[0];
+    expect(updatePayload).toEqual(
+      expect.objectContaining({
+        is_recurring: true,
+        repeat_every: 2,
+        repeat_cycle: TASK_REPEAT_CYCLE.WEEKS,
+        due_date: today,
+      }),
+    );
+  });
+
+  it("normalizes singular repeat_cycle through the service layer", async () => {
+    const updated = { id: taskId, is_recurring: true };
+    const mockClient = {
+      from: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: updated, error: null }),
+    } as any;
+    vi.mocked(createClient).mockImplementation(() => mockClient);
+
+    const today = new Date().toISOString().split("T")[0];
+    await taskService.update(userId, taskId, {
+      is_recurring: true,
+      repeat_every: 1,
+      repeat_cycle: "day",
+    } as never);
+
+    const updatePayload = mockClient.update.mock.calls[0]?.[0];
+    expect(updatePayload).toEqual(
+      expect.objectContaining({
+        is_recurring: true,
+        repeat_every: 1,
+        repeat_cycle: TASK_REPEAT_CYCLE.DAYS,
+        due_date: today,
+      }),
+    );
   });
 });

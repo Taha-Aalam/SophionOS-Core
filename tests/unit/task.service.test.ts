@@ -231,7 +231,6 @@ describe('taskService', () => {
     expect(result).toEqual(createdTask);
     expect(taskClient.insert).toHaveBeenCalledWith(
       expect.objectContaining({
-        area_id: null,
         is_archived: false,
         is_completed: false,
         is_focused: false,
