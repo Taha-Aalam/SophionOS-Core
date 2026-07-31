@@ -1,6 +1,6 @@
 {
   "name": "@sophionos/mcp-server",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "description": "MCP server that wraps the SophionOS Core REST API — connect SophionOS to any MCP-compatible AI client.",
   "type": "module",
   "bin": {
