@@ -6,6 +6,7 @@ import { AuthError } from "@/lib/api/error-handler";
 vi.mock("@/lib/services/dashboard.service", () => ({
   dashboardService: {
     getToday: vi.fn(),
+    getAnalytics: vi.fn(),
   },
 }));
 
@@ -29,6 +30,18 @@ import { GET as getActivity } from "../dashboard/activity/route";
 
 const mockRequireAuth = vi.mocked(requireAuth);
 const mockGetToday = vi.mocked(dashboardService.getToday);
+const mockGetAnalytics = vi.mocked(dashboardService.getAnalytics);
+
+const ANALYTICS = {
+  kpis: { focusTasks: 2, overdueTasks: 1, completedThisWeek: 3, activeGoals: 2 },
+  executionLoad: { today: 1, overdue: 1, focus: 2, inProgress: 0, completedThisWeek: 3 },
+  workHealth: { overdueByArea: [], overdueByProject: [], stalledProjects: [], lowProgressNearDueGoals: [], unassignedTasks: 0 },
+  knowledgePipeline: { capturedToday: 0, waitingReview: 0, saved: 0, archived: 0, backlog: 0, mostActiveTopics: [] },
+  goalMomentum: { movingGoals: 1, stalledGoals: 1, buckets: { stuck: 1, moving: 0, almostDone: 1 } },
+  relationshipRisk: { followUpsDue: 0, tiedToActiveProjects: 0, contacts: [] },
+  heatmap: { days: [] },
+  contextNetwork: { areaNodes: 1, goalNodes: 2, projectNodes: 1, taskNodes: 1, links: [], densityScore: 30 },
+};
 
 const TODAY_DATA = {
   greeting: "morning",
@@ -57,12 +70,17 @@ beforeEach(() => {
 describe("GET /api/v1/dashboard/today", () => {
   it("returns today's dashboard data (200)", async () => {
     mockGetToday.mockResolvedValue(TODAY_DATA as never);
+    mockGetAnalytics.mockResolvedValue(ANALYTICS as never);
 
     const res = await getToday(new NextRequest("http://localhost/api/v1/dashboard/today"));
     expect(res.status).toBe(200);
 
     const json = await res.json();
     expect(json.data).toMatchObject({ greeting: "morning", tasksTodayCount: 1 });
+    expect(json.data.analytics).toMatchObject({
+      kpis: { focusTasks: 2, overdueTasks: 1, completedThisWeek: 3, activeGoals: 2 },
+      goalMomentum: { buckets: { stuck: 1, moving: 0, almostDone: 1 } },
+    });
   });
 
   it("returns 401 when requireAuth throws AuthError", async () => {
