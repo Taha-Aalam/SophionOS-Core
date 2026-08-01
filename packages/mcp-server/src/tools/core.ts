@@ -375,24 +375,95 @@ export function registerCoreTools(
     {
       title: "Create Task",
       description:
-        "Create a new Task. Optionally link to areas/projects/goals, set priority, due date, focus/important flags, or recurrence (recurring tasks require due_date + repeat_every + repeat_cycle).",
+        "Create a new Task. Before creating, enrich the task with input from the user: always write a brief, meaningful description derived from the task name; ask the user to pick a priority (low/medium/high) instead of silently defaulting to medium; ask whether they want to link the task to any of their existing areas (call list_areas and present the results as choices), goals (call list_goals), or projects (call list_projects); ask for an optional due date; ask about the focus/important/urgent flags in a single multiple-select question (not separate yes/no prompts); and ask whether the task should be recurring. If recurring, ask the user for the interval (repeat_every, e.g. 2) and have them select the repeat cycle from the available options (days, weeks, months, years, months_first_weekday, months_last_weekday, months_second_saturday, months_last_day); recurring tasks require a due_date plus repeat_every and repeat_cycle, and the next due date is computed by the system from those repeat values, not by the agent. Only proceed with defaults for a field when the user explicitly declines or gives no signal.",
       inputSchema: {
-        name: z.string().min(1).max(255),
-        area_id: z.string().optional(),
-        area_ids: z.array(z.string()).optional(),
-        project_id: z.string().optional(),
-        project_ids: z.array(z.string()).optional(),
-        goal_ids: z.array(z.string()).optional(),
-        description: z.string().optional(),
-        status: z.string().optional(),
-        priority: z.string().optional().describe("Defaults to medium."),
-        due_date: z.string().optional().describe("ISO date; in the future."),
-        is_focused: z.boolean().optional(),
-        is_important: z.boolean().optional(),
-        is_urgent: z.boolean().optional(),
-        is_recurring: z.boolean().optional(),
-        repeat_every: z.number().int().optional(),
-        repeat_cycle: z.string().optional().describe("e.g. day/week/month."),
+        name: z.string().min(1).max(255).describe("Task name."),
+        priority: z
+          .string()
+          .optional()
+          .describe(
+            "Priority (low/medium/high). Ask the user to choose before creating; do not silently default to medium.",
+          ),
+        area_id: z
+          .string()
+          .optional()
+          .describe(
+            "Single area id to link. Offer to link existing areas by listing them via list_areas and asking the user.",
+          ),
+        area_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Multiple area ids to link. Offer to link existing areas by listing them via list_areas and asking the user.",
+          ),
+        project_id: z
+          .string()
+          .optional()
+          .describe(
+            "Single project id to link. Offer to link existing projects by listing them via list_projects and asking the user.",
+          ),
+        project_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Multiple project ids to link. Offer to link existing projects by listing them via list_projects and asking the user.",
+          ),
+        goal_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Goal ids to link. Offer to link existing goals by listing them via list_goals and asking the user.",
+          ),
+        description: z
+          .string()
+          .optional()
+          .describe(
+            "Brief, meaningful description of the task, derived from the task name. Always write one.",
+          ),
+        status: z.string().optional().describe("Task status."),
+        due_date: z
+          .string()
+          .optional()
+          .describe(
+            "ISO date; in the future. Ask the user for the due date; skip only if they decline. Required for recurring tasks.",
+          ),
+        is_focused: z
+          .boolean()
+          .optional()
+          .describe(
+            "Ask about the focus/important/urgent flags in a single multiple-select question before creating.",
+          ),
+        is_important: z
+          .boolean()
+          .optional()
+          .describe(
+            "Ask about the focus/important/urgent flags in a single multiple-select question before creating.",
+          ),
+        is_urgent: z
+          .boolean()
+          .optional()
+          .describe(
+            "Ask about the focus/important/urgent flags in a single multiple-select question before creating.",
+          ),
+        is_recurring: z
+          .boolean()
+          .optional()
+          .describe(
+            "Ask the user whether the task should be recurring; if yes, capture repeat_every and repeat_cycle.",
+          ),
+        repeat_every: z
+          .number()
+          .int()
+          .optional()
+          .describe(
+            "Interval for recurring tasks (e.g. 2 = every 2 units). Ask the user for the number; the system computes the next due date from repeat_every + repeat_cycle + due_date.",
+          ),
+        repeat_cycle: z
+          .string()
+          .optional()
+          .describe(
+            "Repeat cycle for recurring tasks. Have the user select from: days, weeks, months, years, months_first_weekday, months_last_weekday, months_second_saturday, months_last_day.",
+          ),
       },
     },
     async (args): Promise<ToolTextResult> =>

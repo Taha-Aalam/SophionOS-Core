@@ -8,6 +8,7 @@ import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 import { createTaskSchema } from "@/lib/validators/task.schema";
+import { getLocalDateStart } from "@/lib/utils/dates";
 import type { Task } from "@/lib/types/domain.types";
 import type { TaskStatus } from "@/lib/utils/constants";
 
@@ -105,9 +106,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (upcoming) {
-      const today = new Date().toISOString().split("T")[0];
+      // Same local-calendar-date bounds as get_dashboard and get_my_day so
+      // all three agree on what counts as "today".
+      const todayStart = getLocalDateStart();
       data = data.filter(
-        (task) => task.due_date != null && task.due_date >= today && !task.is_completed,
+        (task) => task.due_date != null && task.due_date >= todayStart && !task.is_completed,
       );
     }
 
