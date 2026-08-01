@@ -1,6 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "../supabase/client";
 import { getLocalDateEnd, getLocalDateStart, getWeekStart } from "../utils/dates";
+import { buildDashboardAnalytics } from "../analytics/dashboard-analytics";
+import type { DashboardAnalytics } from "../analytics/dashboard-analytics";
+import { serverFetchAreas } from "../queries/areas.queries";
+import { serverFetchGoals } from "../queries/goals.queries";
+import { serverFetchProjects } from "../queries/projects.queries";
+import { serverFetchTasks } from "../queries/tasks.queries";
+import { serverFetchNotes } from "../queries/notes.queries";
+import { serverFetchResources } from "../queries/resources.queries";
+import { serverFetchTopics } from "../queries/topics.queries";
+import { serverFetchContacts } from "../queries/contacts.queries";
 
 type ServiceOptions = { supabase?: SupabaseClient };
 
@@ -267,6 +277,45 @@ export const dashboardService = {
       },
       recentActivity,
     };
+  },
+
+  /**
+   * Returns the full dashboard analytics payload (KPIs + graph panels) —
+   * the same computed from the dashboard page's entity sets: kpis,
+   * executionLoad, workHealth, knowledgePipeline, goalMomentum,
+   * relationshipRisk, heatmap (year activity graph), contextNetwork.
+   */
+  async getAnalytics(
+    userId: string,
+    options?: ServiceOptions,
+  ): Promise<DashboardAnalytics> {
+    const supabase = options?.supabase ?? createClient();
+
+    // Same entity fetch set as the dashboard page prefetch. allSettled so a
+    // single failing source degrades to empty arrays instead of failing the
+    // whole analytics payload.
+    const [areas, goals, projects, tasks, notes, resources, topics, contacts] =
+      await Promise.allSettled([
+        serverFetchAreas(supabase, userId),
+        serverFetchGoals(supabase, userId, { status: "all" }),
+        serverFetchProjects(supabase, userId, { status: "all" }),
+        serverFetchTasks(supabase, userId),
+        serverFetchNotes(supabase, userId, { includeArchived: true }),
+        serverFetchResources(supabase, userId),
+        serverFetchTopics(supabase, userId),
+        serverFetchContacts(supabase, userId),
+      ]);
+
+    return buildDashboardAnalytics({
+      areas: areas.status === "fulfilled" ? (areas.value as never) : [],
+      goals: goals.status === "fulfilled" ? (goals.value as never) : [],
+      projects: projects.status === "fulfilled" ? (projects.value as never) : [],
+      tasks: tasks.status === "fulfilled" ? (tasks.value as never) : [],
+      notes: notes.status === "fulfilled" ? (notes.value as never) : [],
+      resources: resources.status === "fulfilled" ? (resources.value as never) : [],
+      topics: topics.status === "fulfilled" ? (topics.value as never) : [],
+      contacts: contacts.status === "fulfilled" ? (contacts.value as never) : [],
+    });
   },
 
   buildGreeting(): string {
