@@ -14,8 +14,11 @@ export async function GET(request: NextRequest) {
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
     const supabase = await createDataClient(authResult);
-    const data = await dashboardService.getToday(userId, { supabase });
-    return success(data);
+    const [data, analytics] = await Promise.all([
+      dashboardService.getToday(userId, { supabase }),
+      dashboardService.getAnalytics(userId, { supabase }),
+    ]);
+    return success({ ...data, analytics });
   } catch (err) {
     return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
   }
