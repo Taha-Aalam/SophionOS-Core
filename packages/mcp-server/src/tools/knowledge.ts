@@ -63,22 +63,76 @@ export function registerKnowledgeTools(
     {
       title: "Create Note",
       description:
-        "Create a Note. Optionally attach content, a type, link to a topic/project/area/goal, or place it in one or more notebooks. To 'relate' notes, put them in a shared notebook (related-notes are derived, not explicitly linked).",
+        "Create a Note. Before creating, capture the substance of the conversation as the note's content (a note is pointless without its body — if the user gives only a title, ask what the note should contain). Assign a sensible type derived from the content (consult the catalog via list_note_types; e.g. meeting, idea, research, reference) instead of leaving the default. Then ask the user before creating: whether to link the note to a topic (call list_topics and present the results as choices), areas (list_areas), goals (list_goals), projects (list_projects), or tasks (list_tasks); which notebook(s) to file it in (call list_notebooks and present the results as multi-select choices — notebook membership is what derives related-notes); and whether to mark it as favorite and/or pinned, as a single multiple-select question. Only proceed with defaults for a field when the user explicitly declines or gives no signal.",
       inputSchema: {
-        name: z.string().min(1).max(255).describe("Note title."),
-        content: z.string().optional(),
-        type: z.string().optional().describe("Free-text type; defaults to 'note'."),
-        status: z.string().optional(),
-        topic_id: z.string().optional(),
-        project_id: z.string().optional(),
-        project_ids: z.array(z.string()).optional(),
+        name: z
+          .string()
+          .min(1)
+          .max(255)
+          .describe("Note title."),
+        content: z
+          .string()
+          .optional()
+          .describe(
+            "The substance of the note — capture what the user wants recorded. If they gave only a title, ask what the note should contain.",
+          ),
+        type: z
+          .string()
+          .optional()
+          .describe(
+            "Type derived from the note's content; consult the catalog via list_note_types (e.g. meeting, idea, research, reference). Defaults to 'note' only when the content gives no signal.",
+          ),
+        topic_id: z
+          .string()
+          .optional()
+          .describe(
+            "Topic id to link. Offer to link an existing topic by listing them via list_topics and asking the user.",
+          ),
         area_id: z.string().optional(),
-        area_ids: z.array(z.string()).optional(),
-        goal_ids: z.array(z.string()).optional(),
+        area_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Area ids to link. Offer to link existing areas by listing them via list_areas and asking the user.",
+          ),
+        goal_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Goal ids to link. Offer to link existing goals by listing them via list_goals and asking the user.",
+          ),
+        project_id: z.string().optional(),
+        project_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Project ids to link. Offer to link existing projects by listing them via list_projects and asking the user.",
+          ),
+        task_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Task ids to link. Offer to link existing tasks by listing them via list_tasks and asking the user.",
+          ),
         notebooks: z
           .array(z.string())
           .optional()
-          .describe("Notebook names this note belongs to."),
+          .describe(
+            "Notebook names this note belongs to. Ask the user which notebook(s) to file it in, presenting existing notebooks via list_notebooks as multi-select choices. Shared notebooks derive related-notes.",
+          ),
+        favorite: z
+          .boolean()
+          .optional()
+          .describe(
+            "Ask whether to mark the note as favorite and/or pinned in a single multiple-select question before creating.",
+          ),
+        pin: z
+          .boolean()
+          .optional()
+          .describe(
+            "Ask whether to mark the note as favorite and/or pinned in a single multiple-select question before creating.",
+          ),
+        status: z.string().optional().describe("Note status."),
       },
     },
     async (args): Promise<ToolTextResult> =>
@@ -113,19 +167,60 @@ export function registerKnowledgeTools(
     {
       title: "Save Resource",
       description:
-        "Save a Resource — typically a URL/article/reference. Optionally set type, link to a topic/area/project, or mark favorite.",
+        "Save a Resource — a saved reference (URL/article/video/tool). Resolve the url first: it is what makes a resource a resource. If the user did not give a URL explicitly, scan the conversation for links they shared or that were referenced, present the found link and ask 'Is this the URL you want to attach?', and offer a free-text input for a different URL — only proceed with the URL the user confirms. Assign a sensible type derived from the resource (e.g. article, video, document, tool) instead of leaving the default 'website'. Then ask the user before creating: whether to link the resource to a topic (call list_topics and present the results as choices), areas (list_areas), goals (list_goals), projects (list_projects), or tasks (list_tasks); and whether to mark it as favorite. Only proceed with defaults for a field when the user explicitly declines or gives no signal.",
       inputSchema: {
-        name: z.string().min(1).max(255),
-        url: z.string().optional().describe("http(s) URL."),
-        type: z.string().optional().describe("Defaults to 'website'."),
-        status: z.string().optional(),
-        topic_id: z.string().optional(),
+        name: z.string().min(1).max(255).describe("Resource name."),
+        url: z
+          .string()
+          .optional()
+          .describe(
+            "http(s) URL of the resource. Required in practice: if the user did not give one, scan the conversation for the link they shared, show it, and ask them to confirm it (or type a different one) before creating.",
+          ),
+        type: z
+          .string()
+          .optional()
+          .describe(
+            "Type derived from the resource (e.g. article, video, document, tool). Available catalog: website, article, video, document, podcast, social_media, tool. Defaults to 'website' only when nothing else fits.",
+          ),
+        topic_id: z
+          .string()
+          .optional()
+          .describe(
+            "Topic id to link. Offer to link an existing topic by listing them via list_topics and asking the user.",
+          ),
         area_id: z.string().optional(),
-        area_ids: z.array(z.string()).optional(),
+        area_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Area ids to link. Offer to link existing areas by listing them via list_areas and asking the user.",
+          ),
+        goal_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Goal ids to link. Offer to link existing goals by listing them via list_goals and asking the user.",
+          ),
         project_id: z.string().optional(),
-        project_ids: z.array(z.string()).optional(),
-        goal_ids: z.array(z.string()).optional(),
-        favorite: z.boolean().optional(),
+        project_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Project ids to link. Offer to link existing projects by listing them via list_projects and asking the user.",
+          ),
+        task_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Task ids to link. Offer to link existing tasks by listing them via list_tasks and asking the user.",
+          ),
+        favorite: z
+          .boolean()
+          .optional()
+          .describe(
+            "Ask the user whether to mark the resource as favorite before creating.",
+          ),
+        status: z.string().optional().describe("Resource status."),
       },
     },
     async (args): Promise<ToolTextResult> =>
@@ -181,13 +276,39 @@ export function registerKnowledgeTools(
     {
       title: "Create Topic",
       description:
-        "Create a Topic. Optionally link to areas, and seed it with notes or resources.",
+        "Create a Topic (a knowledge tag grouping notes and resources). Topics have no description field, so ensure the name is clear and descriptive: if the user's name is vague or the request ambiguous, propose a more precise name for confirmation before creating (e.g. 'AI Notes' -> 'AI Research Notes'). Then ask the user before creating: whether to link the topic to areas (call list_areas and present the results as choices), whether to seed it with existing notes (call list_notes and present the results as multi-select choices), whether to seed it with existing resources (call list_resources and present the results as multi-select choices), and whether to mark it as favorite. Only proceed with defaults for a field when the user explicitly declines or gives no signal.",
       inputSchema: {
-        name: z.string().min(1).max(255),
-        area_ids: z.array(z.string()).optional(),
-        note_ids: z.array(z.string()).optional(),
-        resource_ids: z.array(z.string()).optional(),
-        favorite: z.boolean().optional(),
+        name: z
+          .string()
+          .min(1)
+          .max(255)
+          .describe(
+            "Topic name. Make it clear and descriptive; if the user's name is vague, propose a more precise one (e.g. 'AI Notes' -> 'AI Research Notes') and confirm before creating.",
+          ),
+        area_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Area ids to link. Offer to link existing areas by listing them via list_areas and asking the user.",
+          ),
+        note_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Notes to seed the topic with. Offer to seed with existing notes by listing them via list_notes as multi-select choices.",
+          ),
+        resource_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Resources to seed the topic with. Offer to seed with existing resources by listing them via list_resources as multi-select choices.",
+          ),
+        favorite: z
+          .boolean()
+          .optional()
+          .describe(
+            "Ask the user whether to mark the topic as favorite before creating.",
+          ),
       },
     },
     async (args): Promise<ToolTextResult> =>
@@ -223,18 +344,88 @@ export function registerKnowledgeTools(
     {
       title: "Create Contact",
       description:
-        "Create a Contact (a person in the user's professional network). Optionally set role, organization, group, contact channels, and a follow-up interval.",
+        "Create a Contact (a person in the user's professional network). Email and phone are required — ask the user for both in a single question with a field for each (or take them from the conversation if already stated). Auto-generate a brief note capturing what is known about the contact from the conversation (who they are, how the user knows them) and suggest a role derived from context (e.g. \"Client\", \"Engineer\", \"Reviewer\"). Then ask the user before creating: which organization the contact belongs to (skip if unknown); which group to assign (call get_contact_groups and present existing groups such as Clients/Team/Vendors as choices, or suggest a new one); optional channels LinkedIn and website as a single multi-field question; how often to follow up — selectable options none (0) / weekly (7) / bi-weekly (14) / monthly (30), mapped to follow_up_interval_days; and whether to link the contact to areas (list_areas), goals (list_goals), projects (list_projects, optionally with a role in that project), or tasks (list_tasks, optionally with a role in that task). Only proceed with defaults for a field when the user explicitly declines or gives no signal — except email and phone, which must always be provided.",
       inputSchema: {
-        name: z.string().min(1).max(255),
-        role: z.string().optional(),
-        organization: z.string().optional(),
-        group: z.string().optional(),
-        email: z.string().optional(),
-        phone: z.string().optional(),
-        linkedin: z.string().optional(),
-        website: z.string().optional(),
-        follow_up_interval_days: z.number().int().min(0).max(365).optional(),
-        notes: z.string().optional(),
+        name: z.string().min(1).max(255).describe("Contact name."),
+        email: z
+          .string()
+          .describe(
+            "Contact email. Required — ask the user for email and phone in a single question with both fields, or take them from the conversation if already stated.",
+          ),
+        phone: z
+          .string()
+          .describe(
+            "Contact phone. Required — ask the user for email and phone in a single question with both fields, or take them from the conversation if already stated.",
+          ),
+        notes: z
+          .string()
+          .optional()
+          .describe(
+            "Brief note capturing what is known about the contact from the conversation (who they are, how the user knows them, context). Always write one.",
+          ),
+        role: z
+          .string()
+          .optional()
+          .describe(
+            "Role suggested from the conversation context (e.g. \"Client\", \"Engineer\", \"Reviewer\"). Always suggest one.",
+          ),
+        organization: z
+          .string()
+          .optional()
+          .describe(
+            "Organization the contact belongs to. Ask the user; skip only if unknown.",
+          ),
+        group: z
+          .string()
+          .optional()
+          .describe(
+            "Group to assign. Present existing groups via get_contact_groups as choices (e.g. Clients, Team, Vendors), or suggest a new one if none fit.",
+          ),
+        linkedin: z
+          .string()
+          .optional()
+          .describe(
+            "LinkedIn URL. Ask for optional channels (LinkedIn and website) in a single multi-field question.",
+          ),
+        website: z
+          .string()
+          .optional()
+          .describe(
+            "Website URL. Ask for optional channels (LinkedIn and website) in a single multi-field question.",
+          ),
+        follow_up_interval_days: z
+          .number()
+          .int()
+          .min(0)
+          .max(365)
+          .optional()
+          .describe(
+            "Follow-up cadence in days. Ask the user with selectable options: none (0), weekly (7), bi-weekly (14), monthly (30).",
+          ),
+        area_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Area ids to link. Offer to link existing areas by listing them via list_areas and asking the user.",
+          ),
+        goal_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Goal ids to link. Offer to link existing goals by listing them via list_goals and asking the user.",
+          ),
+        project_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Project ids to link. Offer to link existing projects by listing them via list_projects (optionally with a role in that project).",
+          ),
+        task_ids: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Task ids to link. Offer to link existing tasks by listing them via list_tasks (optionally with a role in that task).",
+          ),
       },
     },
     async (args): Promise<ToolTextResult> =>
@@ -309,7 +500,7 @@ export function registerKnowledgeTools(
     {
       title: "Get Dashboard (Today)",
       description:
-        "Get the dashboard 'today' payload: today's tasks, focus items, overdue tasks, active goals, and stats.",
+        "Get the full dashboard payload in one call. Top-level sections: greeting, tasksTodayCount, todayTasks (due-today + focused pending tasks, each with isOverdue), activeGoals, stats (completedThisWeek, activeGoalsCount, overdueCount), recentActivity — and analytics, the same KPIs and graphs as the dashboard page: analytics.kpis (focusTasks, overdueTasks, completedThisWeek, activeGoals), analytics.executionLoad (today, overdue, focus, inProgress, completedThisWeek), analytics.workHealth (overdueByArea, overdueByProject, stalledProjects, lowProgressNearDueGoals, unassignedTasks), analytics.knowledgePipeline (capturedToday, waitingReview, saved, archived, backlog, mostActiveTopics), analytics.goalMomentum (movingGoals, stalledGoals, buckets.stuck/moving/almostDone), analytics.relationshipRisk (followUpsDue, tiedToActiveProjects, contacts with daysOverdue and activeProjectCount), analytics.heatmap (year-long activity graph: days with completed/captured/total counts), analytics.contextNetwork (areaNodes, goalNodes, projectNodes, taskNodes, densityScore). Use this to answer questions about KPIs, trends, workload, goal progress, knowledge intake, or network health.",
       inputSchema: {},
     },
     async (): Promise<ToolTextResult> =>
@@ -320,7 +511,8 @@ export function registerKnowledgeTools(
     "get_my_day",
     {
       title: "Get My Day",
-      description: "Get the user's focused tasks for the day (is_focused tasks).",
+      description:
+        "Get the user's My Day — two sections in one call: dueToday (active tasks due today, with dueTodayCount) and focused (active tasks marked is_focused, with focusedCount). Use this to answer 'what's my day?' or 'what's due today?'. For 'plan my day': list the available tasks (call list_tasks with focused=false or sort=smart-priority to get non-completed, not-yet-focused tasks), present them to the user for multi-select, then mark the chosen ones as focused via update_task with is_focused: true — optionally un-focusing tasks the user drops (update_task with is_focused: false).",
       inputSchema: {},
     },
     async (): Promise<ToolTextResult> =>
