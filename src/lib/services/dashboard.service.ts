@@ -11,6 +11,7 @@ import { serverFetchNotes } from "../queries/notes.queries";
 import { serverFetchResources } from "../queries/resources.queries";
 import { serverFetchTopics } from "../queries/topics.queries";
 import { serverFetchContacts } from "../queries/contacts.queries";
+import { userSettingsService } from "./user-settings.service";
 
 type ServiceOptions = { supabase?: SupabaseClient };
 
@@ -163,9 +164,14 @@ export const dashboardService = {
    */
   async getToday(userId: string, options?: ServiceOptions): Promise<TodayData> {
     const supabase = options?.supabase ?? createClient();
-    const todayStart = getLocalDateStart();
-    const todayEnd = getLocalDateEnd();
-    const weekStart = getWeekStart();
+
+    // Resolve "today" in the user's timezone so dueToday / overdue / thisWeek
+    // match the user's local calendar date regardless of server timezone.
+    const prefs = await userSettingsService.getPreferences(userId, { supabase });
+    const tz = prefs?.timezone;
+    const todayStart = getLocalDateStart(tz);
+    const todayEnd = getLocalDateEnd(tz);
+    const weekStart = getWeekStart(tz);
 
     const taskSelect =
       "id, title, description, due_date, priority, status, project_id, area_id, projects(name), goals(title), areas(name)";
@@ -186,20 +192,26 @@ export const dashboardService = {
         .select(taskSelect)
         .eq("user_id", userId)
         .eq("status", "pending")
-        .or(`due_date.gte.${todayStart},due_date.lte.${todayEnd}`)
+        // "Due today" is a bounded today window — the same local-calendar-date
+        // bounds used by get_my_day and list_tasks. A plain `.or(start,end)`
+        // would OR the two bounds and return every task with any due date;
+        // `.gte().lte()` keeps it to today only.
+        .gte("due_date", todayStart)
+        .lte("due_date", todayEnd)
         .order("due_date", { ascending: true }),
       supabase
         .from("tasks")
         .select(taskSelect)
         .eq("user_id", userId)
         .eq("status", "pending")
-        .eq("is_focus", true)
+        .eq("is_focused", true)
         .limit(20),
       supabase
         .from("goals")
         .select("id, title, description, progress, target_date, area_id, areas(name)")
         .eq("user_id", userId)
-        .eq("status", "active")
+        .eq("is_completed", false)
+        .eq("is_archived", false)
         .order("priority", { ascending: false })
         .limit(5),
       supabase
@@ -212,7 +224,8 @@ export const dashboardService = {
         .from("goals")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId)
-        .eq("status", "active"),
+        .eq("is_completed", false)
+        .eq("is_archived", false),
       supabase
         .from("tasks")
         .select("*", { count: "exact", head: true })
