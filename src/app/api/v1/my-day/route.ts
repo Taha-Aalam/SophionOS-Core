@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { taskService } from "@/lib/services/task.service";
+import { userSettingsService } from "@/lib/services/user-settings.service";
 import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { success, error } from "@/lib/api/api-response";
 import { rateLimit } from "@/lib/api/rate-limiter";
@@ -16,12 +17,12 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createDataClient(authResult);
 
-    // "My Day" mirrors the web app: dueToday + focused. taskService.list
-    // already excludes archived; narrow to active tasks, then split.
-    // "today" uses the same local-calendar-date bounds as get_dashboard and
-    // list_tasks date filters.
-    const todayStart = getLocalDateStart();
-    const todayEnd = getLocalDateEnd();
+    // Resolve "today" in the user's timezone so dueToday matches their local
+    // calendar date regardless of where the server runs.
+    const prefs = await userSettingsService.getPreferences(userId, { supabase });
+    const tz = prefs?.timezone;
+    const todayStart = getLocalDateStart(tz);
+    const todayEnd = getLocalDateEnd(tz);
     const tasks = await taskService.list(userId, { supabase });
     const activeTasks = tasks.filter((t) => !t.is_completed);
 
