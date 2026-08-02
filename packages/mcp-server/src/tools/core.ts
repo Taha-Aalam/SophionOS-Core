@@ -155,7 +155,7 @@ export function registerCoreTools(
     {
       title: "Create Goal",
       description:
-        "Create a new Goal. Requires a name and a term (short/mid/long). Before creating, enrich the goal with input from the user: always write a brief, meaningful description derived from the goal name; ask the user to choose the term (short/mid/long) instead of defaulting to short; ask the user to pick a priority (low/medium/high) instead of defaulting to medium; ask whether they want to link the goal to any of their existing areas (call list_areas and present the results as choices); and ask for an optional target date. Only proceed with defaults for a field when the user explicitly declines or gives no signal.",
+        "Create a new Goal. Before calling this tool you MUST gather the missing fields from the user by asking ONE QUESTION AT A TIME — never bundle them into a single prompt, and never skip asking by auto-selecting a default. Ask in this order, waiting for the user's answer before moving to the next: (1) term — 'Is this a short-, mid-, or long-term goal?' (short/mid/long); (2) priority — 'What priority: low, medium, or high?'; (3) area links — call list_areas first, then ask 'Which of these areas should this goal link to? (pick any, or none)'; (4) target date — 'Do you want a target completion date? If yes, what date?'. For the description, always write a brief, meaningful one yourself, derived from the goal name — do not ask the user for it. Only use a default for a field when the user explicitly declines or gives no signal. Do not invoke create_goal until you have asked all four questions and recorded the user's answers.",
       inputSchema: {
         name: z
           .string()
@@ -165,7 +165,7 @@ export function registerCoreTools(
         term: z
           .enum(["short", "mid", "long"])
           .describe(
-            "Time horizon. Ask the user to choose from short/mid/long before creating; do not silently default.",
+            "Time horizon (short/mid/long). You MUST ask the user to choose before calling this tool; never auto-select 'short' to skip the question.",
           ),
         priority: z
           .string()
@@ -265,14 +265,14 @@ export function registerCoreTools(
     {
       title: "Create Project",
       description:
-        "Create a new Project (a time-bound effort with an outcome). Before creating, enrich the project with input from the user: always write a brief, meaningful description derived from the project name; ask the user to pick a priority (low/medium/high) instead of silently defaulting to medium; ask whether they want to link the project to any of their existing areas (call list_areas and present the results as choices); ask whether they want to link it to any of their existing goals (call list_goals and present the results as choices); and ask for an optional start date and optional due date. Only proceed with defaults for a field when the user explicitly declines or gives no signal.",
+        "Create a new Project (a time-bound effort with an outcome). Before calling this tool you MUST gather the missing fields from the user by asking ONE QUESTION AT A TIME — never bundle them into a single prompt, and never skip asking by auto-selecting a default. Ask in this order, waiting for the user's answer before moving to the next: (1) priority — 'What priority: low, medium, or high?'; (2) area links — call list_areas first, then ask 'Which of these areas should this project link to? (pick any, or none)'; (3) goal links — call list_goals first, then ask 'Which of these goals should this project support? (pick any, or none)'; (4) start date — 'Do you want a start date? If yes, what date?'; (5) due date — 'Do you want a due date? If yes, what date?'. For the description, always write a brief, meaningful one yourself, derived from the project name — do not ask the user for it. Only use a default for a field when the user explicitly declines or gives no signal. Do not invoke create_project until you have asked all five questions and recorded the user's answers.",
       inputSchema: {
         name: z.string().min(1).max(100).describe("Project name."),
         priority: z
           .string()
           .optional()
           .describe(
-            "Priority (low/medium/high). Ask the user to choose before creating; do not silently default to medium.",
+            "Priority (low/medium/high). You MUST ask the user to choose before calling this tool; never auto-select 'medium' to skip the question.",
           ),
         area_id: z
           .string()
@@ -375,14 +375,14 @@ export function registerCoreTools(
     {
       title: "Create Task",
       description:
-        "Create a new Task. Before creating, enrich the task with input from the user: always write a brief, meaningful description derived from the task name; ask the user to pick a priority (low/medium/high) instead of silently defaulting to medium; ask whether they want to link the task to any of their existing areas (call list_areas and present the results as choices), goals (call list_goals), or projects (call list_projects); ask for an optional due date; ask about the focus/important/urgent flags in a single multiple-select question (not separate yes/no prompts); and ask whether the task should be recurring. If recurring, ask the user for the interval (repeat_every, e.g. 2) and have them select the repeat cycle from the available options (days, weeks, months, years, months_first_weekday, months_last_weekday, months_second_saturday, months_last_day); recurring tasks require a due_date plus repeat_every and repeat_cycle, and the next due date is computed by the system from those repeat values, not by the agent. Only proceed with defaults for a field when the user explicitly declines or gives no signal.",
+        "Create a new Task. Before calling this tool you MUST gather the missing fields from the user by asking ONE QUESTION AT A TIME — never bundle them into a single prompt, and never skip asking by auto-selecting a default. Ask in this order, waiting for the user's answer before moving to the next: (1) priority — 'What priority: low, medium, or high?'; (2) area links — call list_areas first, then ask 'Which of these areas should this task link to? (pick any, or none)'; (3) goal links — call list_goals first, then ask 'Which of these goals should this task support? (pick any, or none)'; (4) project links — call list_projects first, then ask 'Which of these projects should this task belong to? (pick any, or none)'; (5) due date — 'Do you want a due date? If yes, what date?'; (6) focus/important/urgent flags — ask as a SINGLE multiple-select question: 'Which of these apply: focused, important, urgent? (pick any, or none)' — do not ask these as three separate yes/no prompts; (7) recurring — 'Should this task repeat?'. If the user says yes to recurring, ask two follow-ups in order: the interval (repeat_every, e.g. 2) and the repeat cycle (have them select from: days, weeks, months, years, months_first_weekday, months_last_weekday, months_second_saturday, months_last_day). Recurring tasks require a due_date plus repeat_every and repeat_cycle; the next due date is computed by the system from those repeat values, not by you. For the description, always write a brief, meaningful one yourself, derived from the task name — do not ask the user for it. Only use a default for a field when the user explicitly declines or gives no signal. Do not invoke create_task until you have asked all seven questions and recorded the user's answers.",
       inputSchema: {
         name: z.string().min(1).max(255).describe("Task name."),
         priority: z
           .string()
           .optional()
           .describe(
-            "Priority (low/medium/high). Ask the user to choose before creating; do not silently default to medium.",
+            "Priority (low/medium/high). You MUST ask the user to choose before calling this tool; never auto-select 'medium' to skip the question.",
           ),
         area_id: z
           .string()
