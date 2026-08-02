@@ -113,10 +113,12 @@ function extractProjectAreaIds<TInput extends { area_id?: string | null; area_id
   // so a sole area_id would otherwise be silently overwritten by the empty
   // default — the link would never be created. Combining both sources
   // ensures either field works.
-  if (area_ids !== undefined || area_id !== undefined) {
+  const hasAreaIds = Array.isArray(area_ids) && area_ids.length > 0;
+  const hasAreaId = typeof area_id === "string" && area_id.length > 0;
+  if (hasAreaIds || hasAreaId) {
     const normalizedAreaIds = dedupeAreaIds([
-      ...(area_ids ?? []),
-      ...(area_id ? [area_id] : []),
+      ...(hasAreaIds ? area_ids : []),
+      ...(hasAreaId ? [area_id] : []),
     ]);
     return {
       areaIds: normalizedAreaIds,

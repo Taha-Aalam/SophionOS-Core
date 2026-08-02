@@ -23,6 +23,7 @@ function makeClient(
     "lt",
     "in",
     "maybeSingle",
+    "single",
   ]
   const client = {
     from(table: string) {
@@ -74,6 +75,9 @@ describe("serverFetchDashboardToday partial-failure degradation", () => {
       if (table === "tasks") return Promise.resolve({ data: [taskRow], count: 3 })
       if (table === "projects") return Promise.resolve({ data: [projectRow] })
       if (table === "areas") return Promise.resolve({ data: [areaRow] })
+      // user_settings uses .single() (not an array query). getPreferences
+      // reads data.value; simulate "no prefs row" → null return.
+      if (table === "user_settings") return Promise.resolve({ data: null, count: 0 })
       return Promise.resolve({ data: [], count: 0 })
     })
 
@@ -99,7 +103,10 @@ describe("serverFetchDashboardToday partial-failure degradation", () => {
   })
 
   it("returns a well-formed shell when every source fails", async () => {
-    const client = makeClient(() => Promise.reject(new Error("total outage")))
+    const client = makeClient((table) => {
+      if (table === "user_settings") return Promise.resolve({ data: null, count: 0 })
+      return Promise.reject(new Error("total outage"))
+    })
 
     const result = await serverFetchDashboardToday(client, "user-1")
 
