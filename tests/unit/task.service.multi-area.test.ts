@@ -451,7 +451,9 @@ describe("taskService – getWithRelations includes area_ids and project_ids", (
       single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
     } as any;
 
-    vi.mocked(createClient).mockImplementationOnce(() => taskInsertClient);
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => taskInsertClient)
+      .mockImplementation(() => makeDefaultClient());
 
     await taskService.create(userId, {
       name: "Test Task",
