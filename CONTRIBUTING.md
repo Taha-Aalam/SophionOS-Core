@@ -85,5 +85,5 @@ By participating, you agree to the `CODE_OF_CONDUCT.md`.
 ## License of contributions
 
 By submitting a contribution, you confirm you have the right to submit it and
-agree it will be licensed under the project’s **Apache-2.0** license
+agree it will be licensed under the project’s **AGPL-3.0** license
 (see `LICENSE`).
