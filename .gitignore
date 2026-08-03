@@ -133,3 +133,6 @@ worktrees/
 # CodeGraph local index
 .codegraph/
 
+# Private canary manifest (clone-detection fingerprints)
+canaries.manifest.json
+
