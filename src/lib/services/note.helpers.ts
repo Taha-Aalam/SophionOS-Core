@@ -59,7 +59,7 @@ export function extractNoteAreaIds<
       areaIds: normalizedAreaIds.length > 0 ? normalizedAreaIds : undefined,
       noteInput: {
         ...rest,
-        area_id: normalizedAreaIds[0] ?? null,
+        area_id: normalizedAreaIds.length > 0 ? normalizedAreaIds[0] : null,
       } as Omit<TInput, "area_ids">,
     };
   }
