@@ -82,8 +82,27 @@ See `SUPPORT.md`. Security issues go only to the process in `SECURITY.md`.
 
 By participating, you agree to the `CODE_OF_CONDUCT.md`.
 
+## Contributor License Agreement (required)
+
+SophionOS is dual-licensed: the open-source **AGPL-3.0** community version and
+the **proprietary Sophion Cloud / SophionOS Business** commercial offerings.
+To legally share code between both, every contributor must sign the
+[Contributor License Agreement](CLA.md) **before their first pull request is
+merged**.
+
+To sign, comment on your first pull request (or any issue in the repository):
+
+> I have read the CLA Document and I hereby sign the CLA
+
+The CLA Assistant bot checks this automatically — pull requests from unsigned
+contributors are blocked until the CLA is signed. The CLA is a one-time
+signature, not per-PR. See `CLA.md` for full terms; a plain-English summary is
+included at the top.
+
 ## License of contributions
 
 By submitting a contribution, you confirm you have the right to submit it and
 agree it will be licensed under the project’s **AGPL-3.0** license
-(see `LICENSE`).
+(see `LICENSE`), and that you have signed the Contributor License Agreement
+above, which additionally permits the Project Owners to license your
+contributions under the project’s commercial licenses.
