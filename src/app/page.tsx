@@ -1,12 +1,12 @@
 import Link from "next/link";
 
-// Apex marketing landing (e.g. localhost:3000 / your-domain.com).
+// Apex marketing landing (e.g. your-domain.com).
 //
-// The application lives on the `app.` subdomain; middleware (src/proxy.ts)
-// redirects the subdomain root to /dashboard, so this page is only ever
-// rendered for the apex host. The "Sign in" link points at the bare /login
-// path — on the apex host middleware relocates it to the subdomain origin, so
-// no origin/port is hardcoded here.
+// The application lives on the host configured via NEXT_PUBLIC_APP_URL;
+// middleware (src/proxy.ts) redirects that host's root to /dashboard, so this
+// page is only ever rendered for the apex/marketing host. The "Sign in" link
+// points at the bare /login path — on the apex host middleware relocates it to
+// the app origin, so no origin/port is hardcoded here.
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center">
