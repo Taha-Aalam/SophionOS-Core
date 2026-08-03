@@ -38,6 +38,11 @@ in `.env.example`.
 4. Ensure the JWT issued to the app is accepted by Supabase (Clerk Supabase
    integration / JWT template with `sub` = user id). Follow current Clerk +
    Supabase docs for your Clerk version.
+5. Add every host the app runs on to Clerk's **Allowed Origins** (Production →
+   domains, plus the development allow-list), e.g. `https://dev.sophionos.com`
+   and `https://app.sophionos.com` (and the apex if you serve marketing there).
+   Host routing is driven by `NEXT_PUBLIC_APP_URL`, so each environment's
+   allowed origin must match its configured app URL.
 
 ### Supabase
 
@@ -52,6 +57,11 @@ in `.env.example`.
 
    # Hosted: use `supabase db push` or run SQL migrations in order
    ```
+5. Supabase GoTrue auth is not used by this app — it authenticates via Clerk,
+   so `supabase/config.toml`'s `site_url` / `additional_redirect_urls` are
+   local-stack defaults only. For a hosted project, set Site URL and Redirect
+   URLs in the Supabase dashboard (Authentication → URL Configuration) to match
+   `NEXT_PUBLIC_APP_URL` (e.g. `https://app.sophionos.com`).
 
 ## 2. Install and run
 
@@ -62,12 +72,16 @@ pnpm dev
 
 ### Host routing
 
-`NEXT_PUBLIC_APP_URL` should be the **app** origin (no trailing slash), e.g.:
+The host the application runs on is decided **solely** by `NEXT_PUBLIC_APP_URL`
+(no hardcoded `app.` subdomain prefix). Set it to the exact origin you want the
+app served from (no trailing slash), e.g.:
 
-- Dev: `http://app.localhost:3000`
-- Prod: `https://app.example.com`
+- Dev: `https://dev.sophionos.com` (or `http://localhost:3000` for single-host)
+- Prod: `https://app.sophionos.com`
 
-Apex hosts may serve marketing and redirect app routes—see `src/proxy.ts`.
+Any other host is treated as the apex/marketing host; app routes hit there are
+redirected to the configured app origin. When `NEXT_PUBLIC_APP_URL` is unset the
+app runs in single-host mode on the current host. See `src/proxy.ts`.
 
 ## 3. Demo / synthetic data
 

@@ -7,7 +7,9 @@ SophionOS is a Next.js application plus Supabase (Postgres) and Clerk.
 1. Deploy the Next.js app to a Node host (e.g. Vercel, Docker Node image, VPS).
 2. Point env vars from `.env.example` at your **Clerk** and **Supabase** projects.
 3. Apply `supabase/migrations` to the database.
-4. Set `NEXT_PUBLIC_APP_URL` to the public app origin (including `app.` host if used).
+4. Set `NEXT_PUBLIC_APP_URL` to the public app origin (the exact host you want
+   the app served from, e.g. `https://app.sophionos.com` or
+   `https://dev.sophionos.com`).
 5. Configure TLS at the platform or reverse proxy.
 
 ## Operator checklist

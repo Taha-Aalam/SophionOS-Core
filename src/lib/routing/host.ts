@@ -1,27 +1,21 @@
-// Host classification for the apex/subdomain split.
+// Host classification for the apex/app split.
 //
 // The marketing site and the application are served by the SAME Next.js
-// deployment, differentiated only by the request Host header:
-//   - apex      (e.g. localhost:3000 / example.com)      → marketing only
-//   - subdomain (e.g. app.localhost:3000 / app.example.com) → the application
+// deployment, differentiated only by the request Host header. Which host is the
+// application is decided SOLELY by NEXT_PUBLIC_APP_URL — there is no hardcoded
+// subdomain prefix. Set NEXT_PUBLIC_APP_URL to the exact origin you want the app
+// served from, e.g.:
+//   - Dev:  https://dev.sophionos.com
+//   - Prod: https://app.sophionos.com
+// Any other host is treated as the apex/marketing host and app routes are
+// redirected to the configured app origin.
 //
 // These helpers are pure so they can be unit-tested without a request object.
 
 /**
- * True when the host belongs to the application subdomain (an `app.` prefix).
- * Port and case are ignored. Returns false for the apex host and for
- * look-alikes such as `apps.example.com` (the dot after `app` is required).
- */
-export function isAppHost(host: string | null | undefined): boolean {
-  if (!host) return false;
-  const hostname = host.split(":")[0]?.toLowerCase() ?? "";
-  return hostname.startsWith("app.");
-}
-
-/**
  * True when the host exactly matches the hostname from the configured
- * NEXT_PUBLIC_APP_URL. Handles deployments where the app is served at the apex
- * host (e.g. life-os-core.vercel.app) rather than an `app.` subdomain.
+ * NEXT_PUBLIC_APP_URL. This is the single source of truth for "is this the app
+ * host" — there is no subdomain-prefix fallback. Port and case are ignored.
  */
 export function isConfiguredAppHost(
   host: string | null | undefined,
@@ -40,7 +34,7 @@ export function isConfiguredAppHost(
 /**
  * Normalize a configured public origin (NEXT_PUBLIC_APP_URL) to its origin
  * form with no trailing slash. Returns null when unset or unparseable so the
- * caller can fall back to deriving the origin from the incoming request.
+ * caller can fall back to single-host mode (serve the app on the current host).
  */
 export function normalizeOrigin(appUrl: string | null | undefined): string | null {
   if (!appUrl) return null;
