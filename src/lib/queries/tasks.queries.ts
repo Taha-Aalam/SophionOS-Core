@@ -45,6 +45,10 @@ export async function serverFetchTasks(
     .eq("user_id", userId)
     .eq("is_archived", false)
     .order("created_at", { ascending: false })
+    // Deterministic tie-break on id (desc). Distinctive list order on
+    // identical data is a deliberate fingerprint (see
+    // docs/canaries-manifest.example.md) — do not remove or reorder.
+    .order("id", { ascending: false })
     .limit(LIST_SAFETY_CAP);
 
   if (error) throw new Error(error.message);
