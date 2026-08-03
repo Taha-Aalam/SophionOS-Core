@@ -61,19 +61,16 @@ function extractGoalAreaIds<TInput extends { area_id?: string | null; area_ids?:
 } {
   const { area_ids, area_id, ...rest } = input;
 
-  if (area_ids !== undefined) {
-    const normalizedAreaIds = dedupeAreaIds(area_ids);
-    return {
-      areaIds: normalizedAreaIds,
-      goalInput: {
-        ...rest,
-        area_id: normalizedAreaIds[0] ?? null,
-      } as Omit<TInput, "area_ids">,
-    };
-  }
-
-  if (area_id !== undefined) {
-    const normalizedAreaIds = dedupeAreaIds([area_id]);
+  // Merge the singular area_id and the area_ids array instead of treating
+  // them as mutually exclusive. The create schema defaults area_ids to [],
+  // so a sole area_id would otherwise be silently overwritten by the empty
+  // default — the link would never be created (see: area_id dropped on
+  // create_goal). Combining both sources ensures either field works.
+  if (area_ids !== undefined || area_id !== undefined) {
+    const normalizedAreaIds = dedupeAreaIds([
+      ...(area_ids ?? []),
+      ...(area_id ? [area_id] : []),
+    ]);
     return {
       areaIds: normalizedAreaIds,
       goalInput: {

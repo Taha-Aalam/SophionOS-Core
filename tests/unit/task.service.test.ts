@@ -31,6 +31,9 @@ describe('taskService', () => {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
+      // Hydration reads (task_areas / goal_tasks / task_projects) land here
+      // since the same persistent client mock is reused for every call.
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
       single: vi.fn().mockResolvedValue({ data: mockData, error: null }),
     } as any;
 
@@ -38,7 +41,10 @@ describe('taskService', () => {
     vi.mocked(createClient).mockImplementation(() => mockClient);
 
     const result = await taskService.create(userId, input);
-    expect(result).toEqual(mockData);
+    expect(result).toMatchObject(mockData);
+    expect(result.linkedAreaIds).toEqual([]);
+    expect(result.linkedGoalIds).toEqual([]);
+    expect(result.linkedProjectIds).toEqual([]);
     expect(mockClient.from).toHaveBeenCalledWith('tasks');
   });
 
@@ -218,17 +224,44 @@ describe('taskService', () => {
       eq: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     } as any;
+    // create() now hydrates links before returning — the three hydration reads.
+    const areasHydrateClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
+    const goalsHydrateClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({
+        data: [
+          { task_id: taskId, goal_id: goalA },
+          { task_id: taskId, goal_id: goalB },
+        ],
+        error: null,
+      }),
+    } as any;
+    const projectsHydrateClient = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
+    } as any;
 
     vi.mocked(createClient)
       .mockImplementationOnce(() => taskClient)
       .mockImplementationOnce(() => goalSb)
       .mockImplementationOnce(() => goalLinksClient)
       .mockImplementationOnce(() => syncFetchClient)
-      .mockImplementationOnce(() => touchClient);
+      .mockImplementationOnce(() => touchClient)
+      .mockImplementationOnce(() => areasHydrateClient)
+      .mockImplementationOnce(() => goalsHydrateClient)
+      .mockImplementationOnce(() => projectsHydrateClient);
 
     const result = await taskService.create(userId, input as never);
 
-    expect(result).toEqual(createdTask);
+    expect(result).toMatchObject(createdTask);
+    // The creation response confirms the goal links inline.
+    expect(result.linkedGoalIds).toEqual([goalA, goalB]);
     expect(taskClient.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         is_archived: false,
@@ -246,6 +279,94 @@ describe('taskService', () => {
       { goal_id: goalA, task_id: taskId },
       { goal_id: goalB, task_id: taskId },
     ]);
+  });
+
+  it('returns hydrated linkedAreaIds/linkedGoalIds/linkedProjectIds on create', async () => {
+    const areaId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const projectId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const input = {
+      name: 'Task with links',
+      priority: PRIORITY.LOW,
+      due_date: '2026-08-09',
+      area_ids: [areaId],
+      goal_ids: [goalA],
+      project_ids: [projectId],
+    };
+    const createdTask = {
+      id: taskId,
+      area_id: areaId,
+      project_id: projectId,
+      name: input.name,
+      user_id: userId,
+    };
+
+    const taskClient = {
+      from: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: createdTask, error: null }),
+    } as any;
+    // A junction-table mock that serves both link lookups (.eq → no existing
+    // links in get*Links) and hydration reads (.in → the persisted rows).
+    const makeJunction = (rows: Array<Record<string, string>>) => {
+      const tbl = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+        in: vi.fn().mockResolvedValue({ data: rows, error: null }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+        delete: vi.fn().mockReturnThis(),
+      };
+      return tbl;
+    };
+    const areasT = makeJunction([{ task_id: taskId, area_id: areaId }]);
+    const goalsT = makeJunction([{ task_id: taskId, goal_id: goalA }]);
+    const projectsT = makeJunction([{ task_id: taskId, project_id: projectId }]);
+    // Generic client: touch (tasks update), assertOwnedIds (areas/goals/
+    // projects), syncTaskStatusFromContext (tasks .maybeSingle → null, so it
+    // early-returns before any further link lookups).
+    const linksCommon = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        Promise.resolve({ data: ids.map((id) => ({ id })), error: null }),
+      ),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: createdTask, error: null }),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    } as any;
+    const dbClient = {
+      from: vi.fn((table: string) => {
+        if (table === 'task_areas') return areasT;
+        if (table === 'goal_tasks') return goalsT;
+        if (table === 'task_projects') return projectsT;
+        return linksCommon; // tasks / areas / goals / projects
+      }),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        Promise.resolve({ data: ids.map((id) => ({ id })), error: null }),
+      ),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+      update: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: createdTask, error: null }),
+    } as any;
+
+    // Every createClient() call after the insert uses dbClient (deps on
+    // replaceAreaLinks/replaceGoalLinks/replaceProjectLinks/touch/hydrate).
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => taskClient)
+      .mockImplementation(() => dbClient);
+
+    const result = await taskService.create(userId, input as never);
+
+    expect(result.linkedAreaIds).toEqual([areaId]);
+    expect(result.linkedGoalIds).toEqual([goalA]);
+    expect(result.linkedProjectIds).toEqual([projectId]);
+    // Scalar projections still exposed for backwards compatibility.
+    expect(result.area_id).toBe(areaId);
+    expect(result.project_id).toBe(projectId);
   });
 
   it('syncs goal links during update', async () => {
