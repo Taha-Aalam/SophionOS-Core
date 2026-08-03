@@ -63,6 +63,13 @@ const DEFAULT_AREAS: DefaultArea[] = [
     color: "#8B5CF6",
     type: "Studies",
   },
+  {
+    name: "Inception Vault",
+    description: "Seed projects, quiet experiments, and ideas not yet ready for a real area.",
+    icon: "🌱",
+    color: "#6E5BFF",
+    type: "Personal",
+  },
 ];
 
 export type { DefaultArea };

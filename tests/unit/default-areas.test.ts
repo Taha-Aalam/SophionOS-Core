@@ -13,10 +13,11 @@ describe("default area seeds", () => {
       "Home",
       "Travel",
       "Career",
+      "Inception Vault",
     ]);
   });
 
-  it("keeps the seeded set limited to the eight documented defaults", () => {
-    expect(DEFAULT_AREAS).toHaveLength(8);
+  it("keeps the seeded set limited to the nine documented defaults", () => {
+    expect(DEFAULT_AREAS).toHaveLength(9);
   });
 });
