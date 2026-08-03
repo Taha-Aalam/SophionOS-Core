@@ -101,7 +101,7 @@ npx supabase start
 npx supabase db reset
 
 pnpm dev
-# App: http://app.localhost:3000 (see docs/self-hosting.md for host routing)
+# App runs on NEXT_PUBLIC_APP_URL (e.g. http://localhost:3000) — see docs/self-hosting.md
 ```
 
 Optional demo data: `pnpm seed:demo` (synthetic only — see `supabase/seed.sql`).
