@@ -67,6 +67,7 @@ export function extractNoteAreaIds<
     areaIds: undefined,
     noteInput: {
       ...rest,
+      area_id,
     } as Omit<TInput, "area_ids">,
   };
 }
