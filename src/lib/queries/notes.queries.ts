@@ -121,7 +121,8 @@ export async function serverFetchNotes(
     query = query.eq("is_archived", false);
   }
 
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
   const notes = (data ?? []) as NoteLike[];
 
   const [withAreas, withProjects, withGoals] = await Promise.all([

@@ -39,7 +39,7 @@ export async function serverFetchTasks(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<Task[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("tasks")
     .select(TASK_SELECT)
     .eq("user_id", userId)
@@ -47,6 +47,7 @@ export async function serverFetchTasks(
     .order("created_at", { ascending: false })
     .limit(LIST_SAFETY_CAP);
 
+  if (error) throw new Error(error.message);
   const tasks = data ?? [];
   if (tasks.length === 0) return tasks;
 

@@ -186,9 +186,25 @@ describe("taskService.create – persists recurrence columns", () => {
         data: { id: taskId, user_id: userId, name: "Standup" },
         error: null,
       }),
+      // hydateSingleTaskRelations → hydrateTaskAreaLinks calls
+      // createClient() again for the task_areas lookup.
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
     } as any;
 
-    vi.mocked(createClient).mockImplementation(() => mockClient);
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => mockClient)
+      .mockImplementation(() => ({
+        from: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        in: vi.fn().mockResolvedValue({ data: [], error: null }),
+        single: vi.fn().mockResolvedValue({
+          data: { id: taskId, user_id: userId, name: "Standup" },
+          error: null,
+        }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }));
 
     await taskService.create(userId, {
       name: "Standup",
@@ -217,9 +233,25 @@ describe("taskService.create – persists recurrence columns", () => {
         data: { id: taskId, user_id: userId, name: "One-off" },
         error: null,
       }),
+      // hydateSingleTaskRelations → hydrateTaskAreaLinks calls
+      // createClient() again for the task_areas lookup.
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [], error: null }),
     } as any;
 
-    vi.mocked(createClient).mockImplementation(() => mockClient);
+    vi.mocked(createClient)
+      .mockImplementationOnce(() => mockClient)
+      .mockImplementation(() => ({
+        from: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        in: vi.fn().mockResolvedValue({ data: [], error: null }),
+        single: vi.fn().mockResolvedValue({
+          data: { id: taskId, user_id: userId, name: "One-off" },
+          error: null,
+        }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }));
 
     await taskService.create(userId, { name: "One-off" } as never);
 

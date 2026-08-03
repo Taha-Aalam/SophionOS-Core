@@ -38,7 +38,10 @@ function makeDefaultClient(): any {
     order: vi.fn(function (this: any) {
       return this;
     }),
-    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    single: vi.fn().mockResolvedValue({
+      data: { id: taskId, user_id: userId, name: "Task", status: "inbox" },
+      error: null,
+    }),
     maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
   };
   // Terminal chains that end on .eq() (e.g. getAreaLinks) can be awaited.
@@ -63,12 +66,15 @@ function makeOwnershipAndInsertClient(): any {
   };
 }
 
-/** getAreaLinks / getGoalLinks terminal .eq() lookup. */
+/** getAreaLinks / getGoalLinks terminal .eq()/.in() lookup. */
 function makeLinkLookupClient(rows: unknown[] = []): any {
   return {
     from: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockResolvedValue({ data: rows, error: null }),
+    in: vi.fn((_column: string, _ids: unknown[]) =>
+      Promise.resolve({ data: rows, error: null }),
+    ),
   };
 }
 
