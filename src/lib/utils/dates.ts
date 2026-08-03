@@ -2,69 +2,100 @@
  * Returns the start of today in UTC for Supabase date range queries.
  * Supabase stores timestamps as UTC; we query in UTC so local "today"
  * is computed correctly regardless of timezone offset.
+ *
+ * @param timeZone - IANA timezone string (e.g. "America/New_York").
+ *   When omitted, falls back to the server's local calendar date.
  */
-export function getLocalDateStart(): string {
+export function getLocalDateStart(timeZone?: string): string {
   const now = new Date();
-  return new Date(
-    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
-  ).toISOString();
+  const { year, month, day } = zonedParts(now, timeZone);
+  return new Date(Date.UTC(year, month, day, 0, 0, 0, 0)).toISOString();
 }
 
 /**
  * Returns the end of today (23:59:59.999 UTC) for range comparisons.
+ *
+ * @param timeZone - IANA timezone string. When omitted, falls back to
+ *   the server's local calendar date.
  */
-export function getLocalDateEnd(): string {
+export function getLocalDateEnd(timeZone?: string): string {
   const now = new Date();
-  return new Date(
-    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
-  ).toISOString();
+  const { year, month, day } = zonedParts(now, timeZone);
+  return new Date(Date.UTC(year, month, day, 23, 59, 59, 999)).toISOString();
 }
 
 /**
  * Returns the start of the current week (Monday 00:00 UTC).
+ *
+ * @param timeZone - IANA timezone string. When omitted, falls back to
+ *   the server's local calendar date.
  */
-export function getWeekStart(): string {
+export function getWeekStart(timeZone?: string): string {
   const now = new Date();
-  const day = now.getUTCDay();
-  // Monday = 1, Sunday = 0. Shift so Monday is the start.
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(
-    Date.UTC(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + diff,
-      0,
-      0,
-      0,
-      0
-    )
-  );
+  const { year, month, day } = zonedParts(now, timeZone);
+  const jsDay = new Date(Date.UTC(year, month, day)).getUTCDay();
+  const diff = jsDay === 0 ? -6 : 1 - jsDay;
+  const monday = new Date(Date.UTC(year, month, day + diff, 0, 0, 0, 0));
   return monday.toISOString();
 }
 
 /**
- * Returns true if a UTC ISO string falls on today's date in local time.
+ * Returns true if a UTC ISO string falls on today's date in the given
+ * timezone (or server-local when timeZone is omitted).
  */
-export function isToday(utcString: string): boolean {
+export function isToday(utcString: string, timeZone?: string): boolean {
   const date = new Date(utcString);
+  if (Number.isNaN(date.getTime())) return false;
   const now = new Date();
+  const { year, month, day } = zonedParts(now, timeZone);
   return (
-    date.getUTCFullYear() === now.getFullYear() &&
-    date.getUTCMonth() === now.getMonth() &&
-    date.getUTCDate() === now.getDate()
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month &&
+    date.getUTCDate() === day
   );
 }
 
 /**
- * Returns true if a UTC ISO string falls before today's date.
+ * Returns true if a UTC ISO string falls before today's start in the given
+ * timezone (or server-local when timeZone is omitted).
  */
-export function isPast(utcString: string): boolean {
+export function isPast(utcString: string, timeZone?: string): boolean {
   const date = new Date(utcString);
+  if (Number.isNaN(date.getTime())) return false;
   const now = new Date();
-  const todayStart = new Date(
-    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
-  );
+  const { year, month, day } = zonedParts(now, timeZone);
+  const todayStart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
   return date < todayStart;
+}
+
+/**
+ * Resolve a Date's calendar year/month/day in a given IANA timezone.
+ * When timeZone is undefined/falsy, falls back to the server's local TZ.
+ */
+function zonedParts(
+  now: Date,
+  timeZone?: string,
+): { year: number; month: number; day: number } {
+  if (!timeZone) {
+    return {
+      year: now.getFullYear(),
+      month: now.getMonth(),
+      day: now.getDate(),
+    };
+  }
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = dtf.formatToParts(now);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  return {
+    year: get("year"),
+    month: get("month") - 1,
+    day: get("day"),
+  };
 }
 
 /**

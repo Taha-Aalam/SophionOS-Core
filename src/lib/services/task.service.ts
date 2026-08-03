@@ -223,6 +223,12 @@ async function hydrateSingleTaskProjectLinks(task: Task, options?: ServiceOption
   return hydrated;
 }
 
+async function hydrateSingleTaskRelations(task: Task, options?: ServiceOptions): Promise<Task> {
+  const withAreas = await hydrateSingleTaskAreaLinks(task, options);
+  const withGoals = await hydrateSingleTaskGoalLinks(withAreas, options);
+  return hydrateSingleTaskProjectLinks(withGoals, options);
+}
+
 async function parallelHydrateTasks(tasks: Task[], options?: ServiceOptions): Promise<Task[]> {
   if (tasks.length === 0) return tasks;
   const [withAreas, withGoals, withProjects] = await Promise.all([
@@ -361,9 +367,7 @@ export const taskService = {
       throw new DatabaseError(error.message);
     }
 
-    const taskWithAreas = await hydrateSingleTaskAreaLinks(data, options);
-    const taskWithGoals = await hydrateSingleTaskGoalLinks(taskWithAreas, options);
-    return hydrateSingleTaskProjectLinks(taskWithGoals, options);
+    return hydrateSingleTaskRelations(data, options);
   },
 
   async create(userId: string, input: CreateTaskInput, options?: ServiceOptions): Promise<Task> {
@@ -421,11 +425,15 @@ export const taskService = {
         await this.replaceProjectLinks(userId, data.id, projectIds, options);
       }
 
-      if (needsTouch) {
-        return this.touch(userId, data.id, options);
-      }
-
-      return data;
+      // Hydrate the relationship ids (linkedAreaIds, linkedGoalIds,
+      // linkedProjectIds) so the creation response confirms link persistence
+      // in the same round-trip — consistent with create_project. The touch
+      // keeps the entity graph's updated_at in sync when links changed; the
+      // hydrated row (from the join tables) carries the fresh link ids.
+      const persisted = needsTouch
+        ? await this.touch(userId, data.id, options)
+        : data;
+      return hydrateSingleTaskRelations(persisted, options);
     } catch (e) {
       if (e instanceof ValidationError) throw e;
       if (e instanceof DatabaseError) throw e;

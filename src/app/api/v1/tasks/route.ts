@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { taskService } from "@/lib/services/task.service";
+import { userSettingsService } from "@/lib/services/user-settings.service";
 import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { paginated, created, error } from "@/lib/api/api-response";
 import { getPaginationParams } from "@/lib/api/pagination";
@@ -107,8 +108,11 @@ export async function GET(request: NextRequest) {
 
     if (upcoming) {
       // Same local-calendar-date bounds as get_dashboard and get_my_day so
-      // all three agree on what counts as "today".
-      const todayStart = getLocalDateStart();
+      // all three agree on what counts as "today". Resolve in the user's
+      // timezone so the filter matches their local calendar date.
+      const prefs = await userSettingsService.getPreferences(userId, { supabase });
+      const tz = prefs?.timezone;
+      const todayStart = getLocalDateStart(tz);
       data = data.filter(
         (task) => task.due_date != null && task.due_date >= todayStart && !task.is_completed,
       );
