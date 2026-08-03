@@ -17,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { isFeatureEnabled, type FeatureFlag } from "@/lib/config/feature-flags";
 
 const settingsCards = [
   {
@@ -71,6 +72,18 @@ const settingsCards = [
 ];
 
 export default function SettingsPage() {
+  // Hide a settings card when its feature flag is OFF. The flags default to off,
+  // so the gated tabs only appear once their NEXT_PUBLIC_FEATURE_* env var is
+  // truthy. Add an entry here when a new flag is introduced.
+  const featureForCard: Record<string, FeatureFlag> = {
+    "/settings/notifications": "cloud_later",
+    "/settings/billing": "sop_cloud",
+  };
+  const visibleSettingsCards = settingsCards.filter((card) => {
+    const flag = featureForCard[card.href];
+    return flag ? isFeatureEnabled(flag) : true;
+  });
+
   return (
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between">
@@ -86,7 +99,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {settingsCards.map((card) => (
+        {visibleSettingsCards.map((card) => (
           <Link key={card.href} href={card.href} className="block focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none rounded-lg">
             <Card className="hover-lift h-full">
               <CardHeader className="space-y-3">
