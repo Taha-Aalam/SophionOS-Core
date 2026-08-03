@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { getLocalDateEnd, getLocalDateStart, getWeekStart } from "../utils/dates"
 import type { TodayData, ActivityItem, ActivityEntityType } from "../services/dashboard.service"
+import { userSettingsService } from "../services/user-settings.service"
 
 async function serverFetchRecentActivity(
   supabase: SupabaseClient,
@@ -88,9 +89,13 @@ export async function serverFetchDashboardToday(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<TodayData> {
-  const todayStart = getLocalDateStart()
-  const todayEnd = getLocalDateEnd()
-  const weekStart = getWeekStart()
+  // Resolve "today" in the user's timezone so the dashboard matches their
+  // local calendar date regardless of server timezone.
+  const prefs = await userSettingsService.getPreferences(userId, { supabase });
+  const tz = prefs?.timezone;
+  const todayStart = getLocalDateStart(tz)
+  const todayEnd = getLocalDateEnd(tz)
+  const weekStart = getWeekStart(tz)
 
   const taskSelect = "id, title, description, due_date, priority, status, project_id, area_id, projects(name), goals(title), areas(name)"
 
@@ -115,13 +120,14 @@ export async function serverFetchDashboardToday(
         .select(taskSelect)
         .eq("user_id", userId)
         .eq("status", "pending")
-        .eq("is_focus", true)
+        .eq("is_focused", true)
         .limit(20),
       supabase
         .from("goals")
         .select("id, title, description, progress, target_date, area_id, areas(name)")
         .eq("user_id", userId)
-        .eq("status", "active")
+        .eq("is_completed", false)
+        .eq("is_archived", false)
         .order("priority", { ascending: false })
         .limit(5),
       supabase
@@ -134,7 +140,8 @@ export async function serverFetchDashboardToday(
         .from("goals")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId)
-        .eq("status", "active"),
+        .eq("is_completed", false)
+        .eq("is_archived", false),
       supabase
         .from("tasks")
         .select("*", { count: "exact", head: true })

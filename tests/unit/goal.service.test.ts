@@ -552,4 +552,79 @@ describe("goalService", () => {
     // Active resource: !archived && status !== "completed" → only the "active" one.
     expect(result.resourceCount).toBe(1);
   });
+
+  it("links the area when create is called with a singular area_id", async () => {
+    const areaId = "67b129e6-a6db-42f7-b6de-c40a68da918c";
+    const goalId = "4f60aec1-4be6-4ebe-ba8d-77ce5b462a70";
+    const createdGoal = {
+      area_id: null,
+      created_at: "2026-08-02T10:00:00.000Z",
+      description: null,
+      id: goalId,
+      is_archived: false,
+      is_completed: false,
+      is_inactive: false,
+      name: "Test Goal",
+      priority: "low",
+      progress: 0,
+      slug: "test-goal",
+      target_date: "2026-09-02",
+      term: GOAL_TERM.SHORT,
+      updated_at: "2026-08-02T10:00:00.000Z",
+      user_id: userId,
+    };
+
+    // Spy on the goal_areas insert — this is the assertion target.
+    const goalAreasInsert = vi.fn().mockResolvedValue({ error: null });
+
+    const goalsTable = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockImplementation((field: string) => {
+        // The second eq("id", goalId) in replaceAreaLinks is terminal.
+        if (field === "id") return Promise.resolve({ error: null });
+        return goalsTable;
+      }),
+      ilike: vi.fn().mockResolvedValue({ data: [], error: null }),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: createdGoal, error: null }),
+    };
+
+    const goalAreasTable = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+      insert: goalAreasInsert,
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({
+        data: [{ goal_id: goalId, area_id: areaId }],
+        error: null,
+      }),
+    };
+
+    const mockClient = {
+      rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
+      from: vi.fn((table: string) => {
+        if (table === "goals") return goalsTable;
+        if (table === "goal_areas") return goalAreasTable;
+        throw new Error(`Unexpected table: ${table}`);
+      }),
+    };
+
+    vi.mocked(createClient).mockImplementation(() => mockClient as never);
+
+    const result = await goalService.create(userId, {
+      name: "Test Goal",
+      term: GOAL_TERM.SHORT,
+      priority: "low",
+      target_date: "2026-09-02",
+      area_id: areaId,
+    });
+
+    // The singular area_id should have been inserted into goal_areas.
+    expect(goalAreasInsert).toHaveBeenCalledWith([
+      { area_id: areaId, goal_id: goalId },
+    ]);
+    // The returned goal should have the area linked.
+    expect(result.linkedAreaIds).toContain(areaId);
+  });
 });
