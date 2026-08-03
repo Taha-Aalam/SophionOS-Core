@@ -20,3 +20,19 @@ describe("releaseHeader", () => {
     expect(releaseHeader()).toBe(RELEASE_TAG);
   });
 });
+
+import { error, success } from "@/lib/api/api-response";
+import { AppError } from "@/lib/api/error-handler";
+
+describe("api-response envelope integration", () => {
+  it("success() includes meta.ver in the JSON body", async () => {
+    const res = success({ hello: "world" });
+    const body = await res.json();
+    expect(body).toMatchObject({ data: { hello: "world" }, meta: { ver: RELEASE_TAG } });
+  });
+
+  it("error() sets the X-Sophonios-Release header", () => {
+    const res = error(new AppError("boom", 500));
+    expect(res.headers.get("X-Sophonios-Release")).toBe(RELEASE_TAG);
+  });
+});
