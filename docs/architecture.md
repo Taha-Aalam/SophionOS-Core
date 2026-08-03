@@ -37,8 +37,9 @@ Service layer  src/lib/services/*
 
 ## Routing
 
-- Marketing/apex host vs `app.` subdomain (see `src/proxy.ts` and
-  `NEXT_PUBLIC_APP_URL`).
+- Marketing/apex host vs app host, decided solely by `NEXT_PUBLIC_APP_URL`
+  (no hardcoded subdomain prefix) — see `src/proxy.ts` and
+  `src/lib/routing/host.ts`.
 - Dashboard routes under `src/app/(dashboard)/`.
 - Public REST under `src/app/api/v1/`.
 

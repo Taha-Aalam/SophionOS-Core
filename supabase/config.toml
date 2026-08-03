@@ -149,6 +149,12 @@ max_indexes = 5
 
 [auth]
 enabled = true
+# NOTE: This configures the LOCAL Supabase stack (`supabase start`) only. The
+# app authenticates via Clerk (Supabase is the database, with a Clerk JWT
+# template for RLS), so these GoTrue redirect URLs are local-stack defaults —
+# not the lever for production hosts. For a hosted Supabase project, set Site
+# URL and Redirect URLs in the dashboard (Authentication → URL Configuration) to
+# match NEXT_PUBLIC_APP_URL. Local origins are listed below for development.
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
 site_url = "http://127.0.0.1:3000"
