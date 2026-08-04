@@ -1,9 +1,11 @@
 allowBuilds:
   core-js: false
+  esbuild: true
   msw: true
   sharp: false
   supabase: true
   unrs-resolver: false
+  workerd: true
 
 packages:
   - "packages/*"
