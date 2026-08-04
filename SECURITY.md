@@ -18,8 +18,7 @@ Prefer one of:
 
 1. **GitHub private vulnerability reporting** (Security → Report a vulnerability)
    on this repository, if enabled.
-2. Email: **security@sophionos.com** (replace with your maintainer address if
-   different; update this file before public launch if needed).
+2. Email: **security@sophionos.com** (update if your security contact differs).
 
 ### What to include
 

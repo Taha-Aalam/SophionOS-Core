@@ -39,9 +39,11 @@
 ## Secret history
 
 - A historical Google OAuth secret was found in git history under
-  `supabase/config.toml` and removed from the **current tree**. Full history
-  rewrite was not applied without owner force-push approval. Operators must
-  **rotate** that credential if it was ever used.
+  `supabase/config.toml`. The secret values were scrubbed from the **current
+  tree**; `supabase/config.toml` now uses `env(GOOGLE_CLIENT_ID)` and
+  `env(GOOGLE_CLIENT_SECRET)` placeholders. Full history rewrite was not applied
+  without owner force-push approval. Operators must **rotate** that credential if
+  it was ever used.
 
 ## Privacy
 

@@ -28,7 +28,7 @@ them in one personal system with Row Level Security isolation per user.
 - Supabase Postgres schema + migrations and RLS policies
 - Clerk authentication with JWT forwarded into Supabase
 - Settings for preferences and API keys
-- Personal data **export** (`GET /api/v1/user/export`)
+- Personal data **export**: `GET /api/v1/user/export` (Clerk session or API key) and `POST /api/v1/user/data-export` (Clerk session only; returns a job record)
 - Experimental REST API (`/api/v1/*`) and MCP package (`packages/mcp-server`)
 - Synthetic demo seed for local evaluation
 
@@ -37,12 +37,14 @@ them in one personal system with Row Level Security isolation per user.
 - Production-hardened multi-tenant Cloud operations
 - Full API-key **scopes** matrix and guaranteed MCP read-only defaults
 - Comprehensive multi-user RLS CI in every environment
-- SophionOS Business / Company Brain features
+- SophionOS Business features
 - Bundled Clerk/Supabase in Docker (app image only; external identity + DB)
 
 ## License
 
 GNU Affero General Public License v3.0 (AGPL-3.0) — see `LICENSE`.  
+The AGPL network-use clause requires that modified versions served over a
+network must make their source code available to users of that service.  
 Trademarks are separate — see `TRADEMARKS.md`.
 
 ## Self-hosting
@@ -91,7 +93,7 @@ Basic export, deletion, and key revocation are **not** Cloud-only trust features
 ## Quick start (local)
 
 ```bash
-# Prerequisites: Node 22+, pnpm 9+, Clerk + Supabase projects
+# Prerequisites: Node 22+, pnpm 11+, Clerk + Supabase projects
 cp .env.example .env.local
 # Edit .env.local with your keys (placeholders only in .env.example)
 
@@ -116,8 +118,8 @@ docker compose up
 
 ## Contributing
 
-See `CONTRIBUTING.md`. Run `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test`,
-and `pnpm build` before PRs.
+See `CONTRIBUTING.md`. You must sign the CLA before your first PR is merged.
+Run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` before opening a PR.
 
 ## Security
 
@@ -136,6 +138,8 @@ for security findings.
 | `docs/api.md` | REST API status |
 | `docs/mcp.md` | MCP status |
 | `docs/known-limitations.md` | Honest alpha limits |
+| `docs/trust-contract.md` | Product promises and data-use boundaries |
+| `docs/release-process.md` | How releases are cut and tagged |
 | `docs/deployment.md` | Deploy and upgrades |
 | `docs/testing.md` | How we test |
 | `SUPPORT.md` | Where to ask for help |
