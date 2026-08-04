@@ -118,8 +118,8 @@ copyright protection in Your Contributions.
    understandings.
 2. If any provision of this CLA is found unenforceable, the remaining
    provisions remain in full force and effect.
-3. This CLA is governed by the laws of [Jurisdiction], without regard to its
-   conflict-of-laws rules.
+3. This CLA is governed by the laws of the State of Delaware, United
+   States, without regard to its conflict-of-laws rules.
 4. You may not assign this CLA without the prior written consent of the
    Project Owners.
 5. You agree to notify the Project Owners in writing of any facts or
@@ -194,7 +194,6 @@ by this CLA.
 
 ---
 
-*Document status: v1.0 — 2026. Placeholder values in Section 8.3 (governing
-law) must be completed by the project owner before public distribution. This
-document is a legal instrument; have it reviewed by a qualified lawyer in
-your jurisdiction before relying on it.*
+*Document status: v1.0 — 2026. This document is a legal instrument; have it
+reviewed by a qualified lawyer in the applicable jurisdiction before relying on
+it.*
