@@ -1,11 +1,11 @@
 allowBuilds:
   core-js: false
-  esbuild: set this to true or false
+  esbuild: true
   msw: true
   sharp: false
   supabase: true
   unrs-resolver: false
-  workerd: set this to true or false
+  workerd: true
 
 packages:
   - "packages/*"
