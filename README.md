@@ -42,7 +42,7 @@ them in one personal system with Row Level Security isolation per user.
 
 ## License
 
-Apache License 2.0 — see `LICENSE`.  
+GNU Affero General Public License v3.0 (AGPL-3.0) — see `LICENSE`.  
 Trademarks are separate — see `TRADEMARKS.md`.
 
 ## Self-hosting

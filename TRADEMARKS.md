@@ -5,7 +5,7 @@ identity assets are trademarks or brand assets of the SophionOS project owners.
 
 ## What this license does *not* grant
 
-The open-source **Apache-2.0** license for this repository covers copyright in
+The open-source **AGPL-3.0** license for this repository covers copyright in
 the software source. It does **not** grant trademark rights.
 
 ## Permitted use (nominative)

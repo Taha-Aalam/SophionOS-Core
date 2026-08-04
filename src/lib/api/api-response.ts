@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
 import { AppError } from "./error-handler";
+import { releaseHeader, withReleaseMeta } from "@/lib/watermark/envelope";
 
 /**
  * Standard success envelope: `{ data }`. Defaults to 200.
  */
 export function success<T>(data: T, status = 200): NextResponse {
-  return NextResponse.json({ data }, { status });
+  return NextResponse.json(withReleaseMeta({ data }), { status });
 }
 
 /**
  * 201 Created envelope for write routes.
  */
 export function created<T>(data: T): NextResponse {
-  return NextResponse.json({ data }, { status: 201 });
+  return NextResponse.json(withReleaseMeta({ data }), { status: 201 });
 }
 
 /**
@@ -26,10 +27,12 @@ export function paginated<T>(
   pageSize: number,
 ): NextResponse {
   const totalPages = pageSize > 0 ? Math.max(1, Math.ceil(total / pageSize)) : 1;
-  return NextResponse.json({
-    data,
-    pagination: { total, page, pageSize, totalPages },
-  });
+  return NextResponse.json(
+    withReleaseMeta({
+      data,
+      pagination: { total, page, pageSize, totalPages },
+    }),
+  );
 }
 
 /**
@@ -48,5 +51,6 @@ export function error(err: AppError): NextResponse {
   if (err.statusCode === 429) {
     headers["Retry-After"] = "60";
   }
+  headers["X-Sophonios-Release"] = releaseHeader();
   return NextResponse.json(body, { status: err.statusCode, headers });
 }

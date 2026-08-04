@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (none yet)
 
+### Changed
+
+- Project license changed from Apache-2.0 to **AGPL-3.0** (`LICENSE`,
+  `README.md`, `CONTRIBUTING.md`, `TRADEMARKS.md`).
+
 ## [0.1.0-alpha.1] - 2026-07-16
 
 ### Added
