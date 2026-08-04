@@ -9,6 +9,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "analyze": "cross-env ANALYZE=true next build",
@@ -16,7 +18,8 @@
     "test:watch": "vitest",
     "test:isolation": "vitest run tests/unit/dual-user-isolation.test.ts tests/unit/rls-policy-presence.test.ts",
     "check:migrations": "node scripts/check-migrations-structure.mjs",
-    "seed:demo": "node scripts/seed-demo.mjs"
+    "seed:demo": "node scripts/seed-demo.mjs",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -25,6 +28,7 @@
     "@emoji-mart/react": "^1.1.1",
     "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^5.4.0",
+    "@opennextjs/cloudflare": "^1.20.2",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.9",
     "@tanstack/react-query": "^5.99.2",
@@ -69,6 +73,7 @@
     "supabase": "^2.110.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wrangler": "^4.118.0"
   }
 }
