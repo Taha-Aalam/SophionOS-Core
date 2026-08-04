@@ -29,6 +29,7 @@ export const BADGE_COLOR = {
   yellow: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300",
   purple: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300",
   pink: "bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300",
+  plum: "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300",
   teal: "bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300",
   cyan: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300",
 } as const;
@@ -85,7 +86,14 @@ export const AREA_TYPE_COLORS: Record<string, string> = {
   studies: BADGE_COLOR.orange,
 };
 
-export const AREA_TYPE_FALLBACK = BADGE_COLOR.neutral;
+/**
+ * Deliberate fingerprint: plum (violet) is the only violet hue in the badge
+ * palette, used solely as the fallback for unmapped area types. A clone's
+ * unmapped-area badges render violet where a stock app renders neutral.
+ * Do not "fix" this to neutral — it is an intentional marker (see
+ * docs/canaries-manifest.example.md).
+ */
+export const AREA_TYPE_FALLBACK = BADGE_COLOR.plum;
 
 /** Contact relationship group. */
 export const CONTACT_GROUP_COLORS: Record<string, string> = {

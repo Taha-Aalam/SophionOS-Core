@@ -18,7 +18,8 @@ Changes are evaluated for:
 
 ## How to propose changes
 
-- Small fixes: open a pull request (see `CONTRIBUTING.md`)
+- Small fixes: open a pull request (see `CONTRIBUTING.md`). All pull requests
+  require a signed Contributor License Agreement (`CLA.md`) before merge.
 - Large features or architectural changes: open a Discussion first
 - Security-sensitive work: follow `SECURITY.md` if disclosure is needed
 

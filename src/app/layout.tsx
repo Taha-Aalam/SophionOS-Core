@@ -8,6 +8,7 @@ import { QueryProvider } from "@/components/providers/query-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UIProvider } from "@/lib/stores/ui.store";
 import { PwaProvider } from "@/components/providers/pwa-provider";
+import { GENERATOR_TAG } from "@/lib/watermark/release";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,6 +30,7 @@ export const metadata: Metadata = {
   title: "SophionOS",
   description: "SaaS Life Management Platform",
   manifest: "/manifest.webmanifest",
+  other: { generator: GENERATOR_TAG },
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://sophionos.com"),
   openGraph: {
     title: "SophionOS",
