@@ -184,7 +184,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
           : "Urgent";
 
   const handleSubmit = async (values: GoalFormValues) => {
-    const nextProgress = Number.isFinite(values.progress) ? values.progress : 0;
+    const nextProgress = isCreate ? 0 : Number.isFinite(values.progress) ? values.progress : 0;
     const input = {
       ...values,
       area_id: values.area_ids[0] ?? null,
@@ -382,27 +382,29 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="goal-progress">Progress</Label>
-              <span className="text-xs font-medium text-muted-foreground">
-                {Math.round(progressValue)}%
-              </span>
+          {!isCreate && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="goal-progress">Progress</Label>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {Math.round(progressValue)}%
+                </span>
+              </div>
+              <Input
+                id="goal-progress"
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                {...form.register("progress", { valueAsNumber: true })}
+              />
+              {form.formState.errors.progress && (
+                <p className="text-xs text-destructive">
+                  {String(form.formState.errors.progress.message)}
+                </p>
+              )}
             </div>
-            <Input
-              id="goal-progress"
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              {...form.register("progress", { valueAsNumber: true })}
-            />
-            {form.formState.errors.progress && (
-              <p className="text-xs text-destructive">
-                {String(form.formState.errors.progress.message)}
-              </p>
-            )}
-          </div>
+          )}
 
           <DialogFooter className="gap-2 sm:justify-end">
             <div className="flex items-center gap-2">

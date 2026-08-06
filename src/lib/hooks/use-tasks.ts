@@ -10,6 +10,7 @@ import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
 import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
 import { DASHBOARD_QUERY_KEY } from "@/lib/services/dashboard.service";
+import { type AreaDetailData } from "@/lib/hooks/use-area-detail";
 import { taskService } from "../services/task.service";
 import { entityLimitToastMessage } from "@/lib/entity-limit";
 import { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
@@ -163,11 +164,32 @@ export function useArchiveTask() {
 
   return useMutation({
     mutationFn: (id: string) => taskService.archive(user!.id, id),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      const previousAreaDetails = queryClient.getQueriesData<AreaDetailData | undefined>({
+        queryKey: [AREA_DETAIL_QUERY_KEY],
+      });
+
+      // Optimistically move the task from active to archived in area-detail caches.
+      queryClient.setQueriesData<AreaDetailData>({ queryKey: [AREA_DETAIL_QUERY_KEY] }, (current) => {
+        if (!current) return current;
+        const active = current.tasks.filter((t) => t.id !== id);
+        const archived = current.archivedTasks.find((t) => t.id === id)
+          ? current.archivedTasks
+          : [...current.archivedTasks, { ...current.tasks.find((t) => t.id === id), is_archived: true } as Task];
+        return { ...current, tasks: active, archivedTasks: archived };
+      });
+
+      return { previousAreaDetails };
+    },
     onSuccess: async () => {
       await invalidateTaskGraph(queryClient);
       toast.success("Task archived");
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _id, context) => {
+      context?.previousAreaDetails.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
       toast.error(error.message || "Failed to archive task");
     },
   });
@@ -179,11 +201,31 @@ export function useRestoreTask() {
 
   return useMutation({
     mutationFn: (id: string) => taskService.restore(user!.id, id),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      const previousAreaDetails = queryClient.getQueriesData<AreaDetailData | undefined>({
+        queryKey: [AREA_DETAIL_QUERY_KEY],
+      });
+
+      // Optimistically move the task from archived back to active in area-detail caches.
+      queryClient.setQueriesData<AreaDetailData>({ queryKey: [AREA_DETAIL_QUERY_KEY] }, (current) => {
+        if (!current) return current;
+        const archived = current.archivedTasks.filter((t) => t.id !== id);
+        const restored = { ...current.archivedTasks.find((t) => t.id === id), is_archived: false } as Task;
+        const active = current.tasks.find((t) => t.id === id) ? current.tasks : [...current.tasks, restored];
+        return { ...current, tasks: active, archivedTasks: archived };
+      });
+
+      return { previousAreaDetails };
+    },
     onSuccess: async () => {
       await invalidateTaskGraph(queryClient);
       toast.success("Task restored");
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _id, context) => {
+      context?.previousAreaDetails.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
       toast.error(error.message || "Failed to restore task");
     },
   });

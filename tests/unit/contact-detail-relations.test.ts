@@ -290,6 +290,7 @@ describe("buildProjectTabs", () => {
       makeProject({ id: "p3", status: "completed", is_archived: false }),
       makeProject({ id: "p4", status: "active", is_archived: true }),
       makeProject({ id: "p5", status: "on_hold", is_archived: false }),
+      makeProject({ id: "p6", status: "inbox", is_archived: false }),
     ];
     const tabs = buildProjectTabs(projects);
     expect(tabs.map((t) => t.value)).toEqual([
@@ -318,6 +319,7 @@ describe("filterProjectsByTab", () => {
     makeProject({ id: "p3", status: "completed", is_archived: false }),
     makeProject({ id: "p4", status: "active", is_archived: true }),
     makeProject({ id: "p5", status: "on_hold", is_archived: false }),
+    makeProject({ id: "p6", status: "inbox", is_archived: false }),
   ];
 
   it("filters planning projects", () => {
@@ -326,9 +328,9 @@ describe("filterProjectsByTab", () => {
     );
   });
 
-  it("filters inbox projects (alias for planning)", () => {
+  it("filters inbox projects", () => {
     expect(filterProjectsByTab(projects, "inbox").map((p) => p.id)).toEqual([
-      "p1",
+      "p6",
     ]);
   });
 
@@ -356,7 +358,7 @@ describe("filterProjectsByTab", () => {
     );
   });
 
-  it("returns all projects for 'all' tab", () => {
+  it("returns non-archived projects for 'all' tab", () => {
     expect(filterProjectsByTab(projects, "all")).toHaveLength(5);
   });
 });
