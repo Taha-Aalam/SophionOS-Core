@@ -1,94 +1,20 @@
 "use client";
 
-import { cardGrid } from "@/components/ui/layout";
-
-import { Folder, Globe, Map as MapIcon, NotebookPen, Target } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import { GreetingBar } from "@/components/dashboard/greeting-bar";
-import { AreaCard } from "@/components/entities/area-card";
-import { GoalCard } from "@/components/entities/goal-card";
-import { NoteRow } from "@/components/entities/note-row";
-import { ProjectCard } from "@/components/entities/project-card";
-import { ResourceRow } from "@/components/entities/resource-row";
-import { TaskList } from "@/components/entities/task-list";
 import { useAuth } from "@/components/providers/auth-provider";
-import { DashboardPageSkeleton } from "@/components/dashboard/dashboard-page-skeleton";
-import { EmptyState } from "@/components/views/empty-state";
-import { ErrorState } from "@/components/views/error-state";
-import { GalleryGrid } from "@/components/views/gallery-grid";
-import dynamic from "next/dynamic";
-
-const TaskDialog = dynamic(
-  () => import("@/components/entities/task-dialog").then((m) => m.TaskDialog),
-  { ssr: false },
-);
-const ResourceDialog = dynamic(
-  () => import("@/components/entities/resource-dialog").then((m) => m.ResourceDialog),
-  { ssr: false },
-);
-const AreaDialog = dynamic(
-  () => import("@/components/entities/area-dialog").then((m) => m.AreaDialog),
-  { ssr: false },
-);
-
-import { useArchiveArea, useAreas, useUpdateArea } from "@/lib/hooks/use-areas";
-import { useArchiveGoal, useGoals } from "@/lib/hooks/use-goals";
-import {
-  useArchiveNote,
-  useDeleteNote,
-  useNotes,
-  useRestoreNote,
-  useToggleFavoriteNote,
-  useTogglePinNote,
-  useUpdateNote,
-} from "@/lib/hooks/use-notes";
-import { useArchiveProject, useProjects } from "@/lib/hooks/use-projects";
-import {
-  useArchiveResource,
-  useDeleteResource,
-  useResources,
-  useToggleFavoriteResource,
-  useUnarchiveResource,
-  useUpdateResource,
-} from "@/lib/hooks/use-resources";
-import {
-  useArchiveTask,
-  useCompleteTask,
-  useFocusTask,
-  usePermanentDeleteTask,
-  useRestoreTask,
-  useTasks,
-  useUpdateTask,
-} from "@/lib/hooks/use-tasks";
-import { useTopics } from "@/lib/hooks/use-topics";
-import { useContacts } from "@/lib/hooks/use-contacts";
 import { DashboardAnalyticsSection } from "./dashboard-analytics-section";
 
-import { SectionHeader } from "@/components/dashboard/section-header";
-import { classifyAreaStatus, getAreaRollups, sortAreasForDisplay } from "@/lib/utils/areas";
-import { NOTE_STATUS, PROJECT_STATUS, RESOURCE_STATUS, TASK_STATUS } from "@/lib/utils/constants";
-import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
-import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
-import {
-  getNoteLinkedAreaIds,
-  getNoteLinkedGoalIds,
-  getNoteLinkedProjectIds,
-} from "@/lib/utils/notes";
-import {
-  getResourceLinkedAreaIds,
-  getResourceLinkedGoalIds,
-  getResourceLinkedProjectIds,
-  getResourceLinkedTaskIds,
-} from "@/lib/utils/resources";
-import {
-  getTaskLinkedAreaNames,
-  getTaskLinkedAreaIcons,
-  getTaskLinkedAreaIds,
-  getTaskLinkedGoalNames,
-  getTaskLinkedProjectNames,
-  getTaskLinkedProjectIds,
-} from "@/lib/utils/tasks";
+import { useArchiveArea, useAreas, useUpdateArea } from "@/lib/hooks/use-areas";
+import { useGoals } from "@/lib/hooks/use-goals";
+import { useProjects } from "@/lib/hooks/use-projects";
+import { useTasks } from "@/lib/hooks/use-tasks";
+import { useNotes } from "@/lib/hooks/use-notes";
+import { useResources } from "@/lib/hooks/use-resources";
+import { useTopics } from "@/lib/hooks/use-topics";
+import { useContacts } from "@/lib/hooks/use-contacts";
 
 export function DashboardContent() {
   const router = useRouter();
