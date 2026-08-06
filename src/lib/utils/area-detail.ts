@@ -26,7 +26,7 @@ export function getFilteredAreaProjects(projects: Project[], tab: AreaProjectTab
   if (tab === "archived") return projects.filter((project) => project.is_archived);
   const activeProjects = projects.filter((project) => !project.is_archived);
   if (tab === "all") return activeProjects;
-  if (tab === "inbox") return activeProjects.filter((project) => project.status === PROJECT_STATUS.PLANNING);
+  if (tab === "inbox") return activeProjects.filter((project) => project.status === PROJECT_STATUS.INBOX);
   if (tab === "planning") return activeProjects.filter((project) => project.status === PROJECT_STATUS.PLANNING);
   if (tab === "in_progress") return activeProjects.filter((project) => project.status === PROJECT_STATUS.ACTIVE);
   if (tab === "on_hold") return activeProjects.filter((project) => project.status === PROJECT_STATUS.ON_HOLD);

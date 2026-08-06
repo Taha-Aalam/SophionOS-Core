@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { AREAS_QUERY_KEY, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
+import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
 import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
 import { TOPICS_QUERY_KEY } from "@/lib/hooks/use-topics";
@@ -328,6 +329,24 @@ export function useToggleFavoriteNote() {
         [NOTES_QUERY_KEY, "detail", user?.id ?? null, id],
         (current) => (current ? { ...current, favorite } : current),
       );
+
+      // Also patch area-detail and goal-detail caches so the favorite star updates
+      // immediately on area and goal detail pages without a manual refresh.
+      queryClient.setQueriesData<{ notes: Note[] }>({ queryKey: [AREA_DETAIL_QUERY_KEY] }, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          notes: current.notes.map((n) => (n.id === id ? { ...n, favorite } : n)),
+        };
+      });
+      queryClient.setQueriesData<{ notes: Note[] }>({ queryKey: [GOAL_DETAIL_QUERY_KEY] }, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          notes: current.notes.map((n) => (n.id === id ? { ...n, favorite } : n)),
+        };
+      });
+
       return { previous };
     },
     onError: (error: Error, variables, context) => {

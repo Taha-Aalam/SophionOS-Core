@@ -37,6 +37,7 @@ import {
   usePermanentDeleteTask,
   useRestoreTask,
   useTasks,
+  useUncompleteTask,
   useUpdateTask,
 } from "@/lib/hooks/use-tasks";
 import type { Task } from "@/lib/types/domain.types";
@@ -89,6 +90,7 @@ export function TasksContent() {
   const { data: allProjects } = useProjects({ status: "all" });
 
   const completeTask = useCompleteTask();
+  const uncompleteTask = useUncompleteTask();
   const focusTask = useFocusTask();
   const updateTask = useUpdateTask();
   const archiveTask = useArchiveTask();
@@ -119,12 +121,9 @@ export function TasksContent() {
         completeTask.mutate(id);
         return;
       }
-      updateTask.mutate({
-        id,
-        input: { completed_at: null, is_completed: false },
-      });
+      uncompleteTask.mutate(id);
     },
-    [completeTask, updateTask],
+    [completeTask, uncompleteTask],
   );
 
   const handleFocusToggle = useCallback(
