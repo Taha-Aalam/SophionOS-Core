@@ -81,7 +81,7 @@ export function TasksStep({ value, onChange }: TasksStepProps) {
                 size="icon"
                 className="size-7"
                 onClick={() => removeTask(i)}
-                aria-label="Remove task"
+                aria-label={`Remove task ${i + 1}`}
               >
                 <X className="size-3" />
               </Button>
