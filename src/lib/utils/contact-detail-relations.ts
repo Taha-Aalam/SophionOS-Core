@@ -241,39 +241,33 @@ export function filterGoalsByTab(goals: Goal[], tab: string): Goal[] {
 // ── Projects ──────────────────────────────────────────────────────────
 
 export function buildProjectTabs(projects: Project[]): TabOption[] {
+  const nonArchived = projects.filter((p) => !p.is_archived);
   return [
-    { value: "all", label: "All", count: projects.length },
+    { value: "all", label: "All", count: nonArchived.length },
     {
       value: "inbox",
       label: "Inbox",
-      count: projects.filter(
-        (p) => p.status === "planning" && !p.is_archived,
-      ).length,
+      count: nonArchived.filter((p) => p.status === "inbox").length,
     },
     {
       value: "planning",
       label: "Planning",
-      count: projects.filter(
-        (p) => p.status === "planning" && !p.is_archived,
-      ).length,
+      count: nonArchived.filter((p) => p.status === "planning").length,
     },
     {
       value: "in_progress",
       label: "In Progress",
-      count: projects.filter((p) => p.status === "active" && !p.is_archived)
-        .length,
+      count: nonArchived.filter((p) => p.status === "active").length,
     },
     {
       value: "on_hold",
       label: "On Hold",
-      count: projects.filter((p) => p.status === "on_hold" && !p.is_archived)
-        .length,
+      count: nonArchived.filter((p) => p.status === "on_hold").length,
     },
     {
       value: "completed",
       label: "Completed",
-      count: projects.filter((p) => p.status === "completed" && !p.is_archived)
-        .length,
+      count: nonArchived.filter((p) => p.status === "completed").length,
     },
     {
       value: "archived",
@@ -286,6 +280,7 @@ export function buildProjectTabs(projects: Project[]): TabOption[] {
 export function filterProjectsByTab(projects: Project[], tab: string): Project[] {
   switch (tab) {
     case "inbox":
+      return projects.filter((p) => p.status === "inbox" && !p.is_archived);
     case "planning":
       return projects.filter((p) => p.status === "planning" && !p.is_archived);
     case "in_progress":
@@ -299,7 +294,7 @@ export function filterProjectsByTab(projects: Project[], tab: string): Project[]
     case "archived":
       return projects.filter((p) => p.is_archived);
     default:
-      return projects;
+      return projects.filter((p) => !p.is_archived);
   }
 }
 
