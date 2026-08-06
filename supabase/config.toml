@@ -365,7 +365,7 @@ enabled = true
 # Domain = the Clerk FAPI host. Derive from NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 # by base64-decoding the segment after `pk_(test|live)_` and stripping the
 # trailing `$`. The dev key in this repo decodes to "composed-moccasin-34".
-domain = "composed-moccasin-34.clerk.accounts.dev"
+domain = "env(CLERK_URL)"
 
 # OAuth server configuration
 [auth.oauth_server]
