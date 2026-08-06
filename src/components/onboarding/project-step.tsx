@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -171,9 +172,13 @@ export function ProjectStep({ value, onChange, createdGoal }: ProjectStepProps) 
       <div className="space-y-2">
         <Label>Areas <span className="text-muted-foreground">(optional)</span></Label>
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading areas…</p>
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-7 w-20 rounded-full" />
+            ))}
+          </div>
         ) : isError ? (
-          <p className="text-sm text-destructive">Failed to load areas.</p>
+          <p className="text-sm text-destructive">Failed to load areas. You can continue and link areas later.</p>
         ) : (
         <div className="flex flex-wrap gap-2" role="group" aria-label="Areas">
           {areas?.map((area) => {
