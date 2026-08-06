@@ -106,7 +106,8 @@ import {
   getTaskLinkedGoalNames,
   getTaskLinkedProjectNames,
 } from "@/lib/utils/tasks";
-import { buildAreaTaskGroupsByGoal, buildAreaTaskGroupsByProject, getFilteredAreaProjects, getFilteredAreaNotes, getFilteredAreaResources, buildAreaContactGoalSections, buildAreaContactProjectSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections } from "@/lib/utils/area-detail";
+import { buildAreaTaskGroupsByGoal, buildAreaTaskGroupsByProject, getFilteredAreaProjects, getFilteredAreaNotes, getFilteredAreaResources, buildAreaContactGoalSections, buildAreaContactProjectSections, buildAreaContactFollowUpSections } from "@/lib/utils/area-detail";
+import { buildGroupSections } from "@/lib/utils/contact-category-sections";
 import { getGoalLinkedAreaIds } from "@/lib/utils/goals";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
 import { getProjectLinkedAreaIds } from "@/lib/utils/projects";
@@ -347,13 +348,14 @@ export function AreaDetailContent() {
       !g.is_archived && !g.is_completed &&
       (g.projectCount ?? 0) === 0 && (g.taskCount ?? 0) === 0 &&
       (g.noteCount ?? 0) === 0 && (g.resourceCount ?? 0) === 0;
+    const isInactive = (g: typeof goals[number]) => g.is_inactive || isAutoInactive(g);
     return goals.filter((g) => {
       if (goalTab === "archived") return g.is_archived;
       if (g.is_archived) return false;
-      if (goalTab === "inactive") return isAutoInactive(g);
+      if (goalTab === "inactive") return isInactive(g);
       if (g.is_completed) return goalTab === "completed";
       if (goalTab === "completed") return false;
-      if (goalTab === "active" && isAutoInactive(g)) return false;
+      if (goalTab === "active" && isInactive(g)) return false;
       if (term && g.term !== term) return false;
       return true;
     });
@@ -557,10 +559,10 @@ export function AreaDetailContent() {
     () => buildAreaContactFollowUpSections(activeLinkedContacts),
     [activeLinkedContacts],
   );
-  const groupSections = useMemo(
-    () => buildAreaContactGroupSections(activeLinkedContacts),
-    [activeLinkedContacts],
-  );
+  const groupSections = useMemo(() => {
+    const grouped = contactService.getByGroupSync(activeLinkedContacts);
+    return buildGroupSections(grouped);
+  }, [activeLinkedContacts]);
   const goalSections = useMemo(
     () => buildAreaContactGoalSections(activeLinkedContacts, areaData?.allGoals ?? []),
     [activeLinkedContacts, areaData?.allGoals],
@@ -730,13 +732,14 @@ export function AreaDetailContent() {
       !g.is_archived && !g.is_completed &&
       (g.projectCount ?? 0) === 0 && (g.taskCount ?? 0) === 0 &&
       (g.noteCount ?? 0) === 0 && (g.resourceCount ?? 0) === 0;
+    const isInactive = (g: typeof goals[number]) => g.is_inactive || isAutoInactive(g);
     const nonArchived = goals.filter((g) => !g.is_archived);
     return {
-      active: nonArchived.filter((g) => !g.is_completed && !isAutoInactive(g)).length,
+      active: nonArchived.filter((g) => !g.is_completed && !isInactive(g)).length,
       short: nonArchived.filter((g) => !g.is_completed && g.term === "short").length,
       mid: nonArchived.filter((g) => !g.is_completed && g.term === "mid").length,
       long: nonArchived.filter((g) => !g.is_completed && g.term === "long").length,
-      inactive: nonArchived.filter((g) => !g.is_completed && isAutoInactive(g)).length,
+      inactive: nonArchived.filter((g) => !g.is_completed && isInactive(g)).length,
       completed: nonArchived.filter((g) => g.is_completed).length,
       archived: goals.filter((g) => g.is_archived).length,
     };

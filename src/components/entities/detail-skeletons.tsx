@@ -60,7 +60,29 @@ function HeaderCardSkeleton({
  * Mirrors a single `GoalDetailSection` in its loading state: accent-bar heading
  * with action buttons, a TabsList bar, and the `space-y-3` list of content rows.
  */
-function SectionSkeleton() {
+function SectionSkeleton({ variant = "list" }: { variant?: "list" | "cards" }) {
+  if (variant === "cards") {
+    return (
+      <section className="scroll-mt-20">
+        {/* Section header: accent bar + heading + Link/New buttons */}
+        <div className="mb-4 flex items-center gap-3">
+          <Skeleton className="h-5 w-1 rounded-full" />
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="ml-auto h-8 w-24 rounded-md" />
+          <Skeleton className="h-8 w-24 rounded-md" />
+        </div>
+        {/* TabsList */}
+        <Skeleton className="h-9 w-full max-w-xl rounded-md" />
+        {/* Card grid */}
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-lg" />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="scroll-mt-20">
       {/* Section header: accent bar + heading + Link/New buttons */}
@@ -87,10 +109,13 @@ export function AreaDetailSkeleton() {
     <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label="Loading area details">
       <BreadcrumbSkeleton />
       <HeaderCardSkeleton iconClassName="w-16 h-16 rounded-lg" rollupCount={5} />
-      {/* Goals, Projects, Tasks, Notes, Resources, People */}
-      {Array.from({ length: 6 }).map((_, i) => (
-        <SectionSkeleton key={i} />
-      ))}
+      {/* Goals (cards), Projects (cards), Tasks (list), Notes (list), Resources (list), People (cards) */}
+      <SectionSkeleton variant="cards" />
+      <SectionSkeleton variant="cards" />
+      <SectionSkeleton />
+      <SectionSkeleton />
+      <SectionSkeleton />
+      <SectionSkeleton variant="cards" />
     </div>
   );
 }
@@ -103,10 +128,12 @@ export function GoalDetailSkeleton() {
         iconClassName="w-20 h-20 rounded-full"
         rollupCount={4}
       />
-      {/* Projects, Tasks, Notes, Resources, People */}
-      {Array.from({ length: 5 }).map((_, i) => (
-        <SectionSkeleton key={i} />
-      ))}
+      {/* Projects (cards), Tasks (list), Notes (list), Resources (list), People (cards) */}
+      <SectionSkeleton variant="cards" />
+      <SectionSkeleton />
+      <SectionSkeleton />
+      <SectionSkeleton />
+      <SectionSkeleton variant="cards" />
     </div>
   );
 }

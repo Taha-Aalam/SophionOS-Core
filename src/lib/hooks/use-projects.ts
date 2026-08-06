@@ -5,6 +5,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { AREAS_QUERY_KEY, AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-areas";
 import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
+import { type AreaDetailData } from "@/lib/hooks/use-area-detail";
 import { projectService } from "@/lib/services/project.service";
 import { entityLimitToastMessage } from "@/lib/entity-limit";
 import {
@@ -200,6 +201,24 @@ export function useArchiveProject() {
         upsertIntoStatusCache(queryClient, "archived", { ...target, is_archived: true });
       }
 
+      // Also patch area-detail caches so the area page reflects the archive immediately.
+      queryClient.setQueriesData<AreaDetailData>({ queryKey: [AREA_DETAIL_QUERY_KEY] }, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          projects: current.projects.map((p) => (p.id === id ? { ...p, is_archived: true } : p)),
+        };
+      });
+
+      // Also patch goal-detail caches so the goal page reflects the archive immediately.
+      queryClient.setQueriesData<{ projects: Project[] }>({ queryKey: [GOAL_DETAIL_QUERY_KEY] }, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          projects: current.projects.map((p) => (p.id === id ? { ...p, is_archived: true } : p)),
+        };
+      });
+
       return { previous };
     },
     onError: (error: Error, _id, context) => {
@@ -241,6 +260,24 @@ export function useRestoreProject() {
       if (target) {
         upsertIntoStatusCache(queryClient, "all", { ...target, is_archived: false });
       }
+
+      // Also patch area-detail caches so the area page reflects the restore immediately.
+      queryClient.setQueriesData<AreaDetailData>({ queryKey: [AREA_DETAIL_QUERY_KEY] }, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          projects: current.projects.map((p) => (p.id === id ? { ...p, is_archived: false } : p)),
+        };
+      });
+
+      // Also patch goal-detail caches so the goal page reflects the restore immediately.
+      queryClient.setQueriesData<{ projects: Project[] }>({ queryKey: [GOAL_DETAIL_QUERY_KEY] }, (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          projects: current.projects.map((p) => (p.id === id ? { ...p, is_archived: false } : p)),
+        };
+      });
 
       return { previous };
     },

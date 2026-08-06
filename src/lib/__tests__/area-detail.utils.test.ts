@@ -99,10 +99,10 @@ describe("area-detail helpers", () => {
     expect(result.map((project) => project.id)).toEqual(["p2"]);
   });
 
-  it("maps inbox tab to planning status", () => {
+  it("maps inbox tab to inbox status", () => {
     const result = getFilteredAreaProjects(
       [
-        { id: "p1", is_archived: false, status: "planning" },
+        { id: "p1", is_archived: false, status: "inbox" },
         { id: "p2", is_archived: false, status: "active" },
       ] as never,
       "inbox",

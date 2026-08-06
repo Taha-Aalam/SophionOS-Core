@@ -97,6 +97,7 @@ import { useNotes, useToggleFavoriteNote, useTogglePinNote, useArchiveNote, useR
 import { useResources, useToggleFavoriteResource, useCreateResource, useDeleteResource, useUpdateResource, useArchiveResource, useUnarchiveResource, useLinkResourceToGoal } from "@/lib/hooks/use-resources";
 import { useTopics } from "@/lib/hooks/use-topics";
 import { useEscapeBack } from "@/lib/hooks/use-escape-back";
+import { contactService } from "@/lib/services/contact.service";
 import { cn } from "@/lib/utils";
 import type { Contact, CreateResourceInput, Project, Resource, Task } from "@/lib/types/domain.types";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
@@ -112,6 +113,7 @@ import {
   buildAreaContactProjectSections,
   buildContactByAreaSections,
 } from "@/lib/utils/area-detail";
+import { buildGroupSections } from "@/lib/utils/contact-category-sections";
 import { buildReturnTo, buildReturnToChain, encodeReturnTo, getRawReturnToChain, popReturnToHref, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 import { PRIORITY_COLORS, BADGE_COLOR } from "@/lib/constants/entity-colors";
@@ -398,10 +400,10 @@ export function GoalDetailContent() {
     () => buildAreaContactFollowUpSections(activeLinkedContacts),
     [activeLinkedContacts],
   );
-  const goalContactGroupSections = useMemo(
-    () => buildAreaContactGroupSections(activeLinkedContacts),
-    [activeLinkedContacts],
-  );
+  const goalContactGroupSections = useMemo(() => {
+    const grouped = contactService.getByGroupSync(activeLinkedContacts);
+    return buildGroupSections(grouped);
+  }, [activeLinkedContacts]);
   const goalContactAreaSections = useMemo(
     () => buildContactByAreaSections(activeLinkedContacts, areas),
     [activeLinkedContacts, areas],
@@ -615,7 +617,7 @@ export function GoalDetailContent() {
     {
       value: "inbox",
       label: "Inbox",
-      count: goalData?.projects.filter((p) => p.status === "planning" && !p.is_archived).length,
+      count: goalData?.projects.filter((p) => p.status === "inbox" && !p.is_archived).length,
     },
     {
       value: "planning",
@@ -646,6 +648,7 @@ export function GoalDetailContent() {
     const projects = goalData?.projects ?? [];
     switch (projectTab) {
       case "inbox":
+        return projects.filter((p) => p.status === "inbox" && !p.is_archived);
       case "planning":
         return projects.filter((p) => p.status === "planning" && !p.is_archived);
       case "in_progress":

@@ -13,10 +13,15 @@ const makeGoal = (overrides: Partial<Goal> = {}): Goal =>
     area_id: "area-1",
     is_completed: false,
     is_archived: false,
+    is_inactive: false,
     target_date: null,
     created_at: "2026-04-28T10:00:00.000Z",
     updated_at: "2026-04-28T10:00:00.000Z",
     slug: "test-goal",
+    projectCount: 0,
+    taskCount: 0,
+    noteCount: 0,
+    resourceCount: 0,
     ...overrides,
   }) as Goal;
 
@@ -55,25 +60,27 @@ const makeTask = (overrides: Partial<Task> = {}): Task =>
   }) as Task;
 
 function filterGoals(goals: Goal[], tab: string): Goal[] {
-  const statusMap: Record<string, string | undefined> = {
-    active: "active",
-    short: "active",
-    mid: "active",
-    long: "active",
-    inactive: "inactive",
-    completed: "completed",
-  };
   const termMap: Record<string, string | undefined> = {
     short: "short",
     mid: "mid",
     long: "long",
   };
-  const status = statusMap[tab];
   const term = termMap[tab];
-  if (!status) return goals;
+  const isAutoInactive = (g: Goal) =>
+    !g.is_archived && !g.is_completed &&
+    (g.projectCount ?? 0) === 0 && (g.taskCount ?? 0) === 0 &&
+    (g.noteCount ?? 0) === 0 && (g.resourceCount ?? 0) === 0;
+  const isInactive = (g: Goal) => g.is_inactive || isAutoInactive(g);
+
   return goals.filter((g) => {
-    const normalized = g.is_archived ? "inactive" : g.is_completed ? "completed" : "active";
-    if (normalized !== status) return false;
+    if (tab === "archived") return g.is_archived;
+    if (g.is_archived) return false;
+    if (tab === "inactive") return isInactive(g);
+    if (g.is_completed) return tab === "completed";
+    if (tab === "completed") return false;
+    // Only exclude inactive goals from the "active" tab; term tabs keep them
+    // so users can still browse short/mid/long goals regardless of activity.
+    if (tab === "active" && isInactive(g)) return false;
     if (term && g.term !== term) return false;
     return true;
   });
@@ -106,14 +113,16 @@ function filterTasks(tasks: Task[], tab: string): Task[] {
 
 describe("area detail goal tab filtering", () => {
   const allGoals: Goal[] = [
-    makeGoal({ id: "g-active-short", term: "short", is_completed: false, is_archived: false }),
-    makeGoal({ id: "g-active-mid", term: "mid", is_completed: false, is_archived: false }),
-    makeGoal({ id: "g-active-long", term: "long", is_completed: false, is_archived: false }),
-    makeGoal({ id: "g-completed", is_completed: true, is_archived: false }),
+    makeGoal({ id: "g-active-short", term: "short", is_completed: false, is_archived: false, projectCount: 1 }),
+    makeGoal({ id: "g-active-mid", term: "mid", is_completed: false, is_archived: false, projectCount: 1 }),
+    makeGoal({ id: "g-active-long", term: "long", is_completed: false, is_archived: false, projectCount: 1 }),
+    makeGoal({ id: "g-inactive-manual", term: "short", is_completed: false, is_archived: false, is_inactive: true, projectCount: 1 }),
+    makeGoal({ id: "g-inactive-auto", term: "mid", is_completed: false, is_archived: false, projectCount: 0, taskCount: 0, noteCount: 0, resourceCount: 0 }),
+    makeGoal({ id: "g-completed", is_completed: true, is_archived: false, projectCount: 1 }),
     makeGoal({ id: "g-archived", is_archived: true }),
   ];
 
-  it("Active tab shows non-completed, non-archived goals", () => {
+  it("Active tab shows non-completed, non-archived, non-inactive goals", () => {
     const result = filterGoals(allGoals, "active");
     expect(result.map((g) => g.id)).toEqual([
       "g-active-short",
@@ -124,12 +133,12 @@ describe("area detail goal tab filtering", () => {
 
   it("Short Term tab shows active goals with term=short", () => {
     const result = filterGoals(allGoals, "short");
-    expect(result.map((g) => g.id)).toEqual(["g-active-short"]);
+    expect(result.map((g) => g.id)).toEqual(["g-active-short", "g-inactive-manual"]);
   });
 
   it("Mid Term tab shows active goals with term=mid", () => {
     const result = filterGoals(allGoals, "mid");
-    expect(result.map((g) => g.id)).toEqual(["g-active-mid"]);
+    expect(result.map((g) => g.id)).toEqual(["g-active-mid", "g-inactive-auto"]);
   });
 
   it("Long Term tab shows active goals with term=long", () => {
@@ -137,8 +146,16 @@ describe("area detail goal tab filtering", () => {
     expect(result.map((g) => g.id)).toEqual(["g-active-long"]);
   });
 
-  it("Inactive tab shows archived goals", () => {
+  it("Inactive tab shows manually inactive goals", () => {
     const result = filterGoals(allGoals, "inactive");
+    expect(result.map((g) => g.id)).toEqual([
+      "g-inactive-manual",
+      "g-inactive-auto",
+    ]);
+  });
+
+  it("Archived tab shows archived goals", () => {
+    const result = filterGoals(allGoals, "archived");
     expect(result.map((g) => g.id)).toEqual(["g-archived"]);
   });
 
@@ -149,12 +166,14 @@ describe("area detail goal tab filtering", () => {
 
   it("inactive tab does not include completed goals", () => {
     const goalsWithCompletedArchived = [
-      makeGoal({ id: "g-completed", is_completed: true, is_archived: false }),
+      makeGoal({ id: "g-completed", is_completed: true, is_archived: false, projectCount: 1 }),
       makeGoal({ id: "g-archived", is_archived: true }),
+      makeGoal({ id: "g-inactive-manual", is_completed: false, is_archived: false, is_inactive: true, projectCount: 1 }),
     ];
     const result = filterGoals(goalsWithCompletedArchived, "inactive");
-    expect(result.map((g) => g.id)).toEqual(["g-archived"]);
+    expect(result.map((g) => g.id)).toEqual(["g-inactive-manual"]);
     expect(result.find((g) => g.id === "g-completed")).toBeUndefined();
+    expect(result.find((g) => g.id === "g-archived")).toBeUndefined();
   });
 });
 

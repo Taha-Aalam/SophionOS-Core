@@ -110,7 +110,9 @@ import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds, ta
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
 import { getResourceLinkedAreaIds, getResourceLinkedProjectIds } from "@/lib/utils/resources";
 import { NOTE_STATUS, RESOURCE_STATUS } from "@/lib/utils/constants";
-import { buildAreaContactGoalSections, buildAreaContactGroupSections, buildAreaContactFollowUpSections, buildContactByAreaSections } from "@/lib/utils/area-detail";
+import { buildAreaContactGoalSections, buildAreaContactFollowUpSections, buildContactByAreaSections } from "@/lib/utils/area-detail";
+import { buildGroupSections } from "@/lib/utils/contact-category-sections";
+import { contactService } from "@/lib/services/contact.service";
 import { buildReturnTo, buildReturnToChain, popReturnToHref, encodeReturnTo, getRawReturnToChain } from "@/lib/utils/return-to";
 import { PRIORITY_COLORS, STATUS_COLORS, BADGE_COLOR } from "@/lib/constants/entity-colors";
 import ProgressRing from "@/components/charts/progress-ring";
@@ -691,10 +693,10 @@ export function ProjectDetailContent() {
     () => buildAreaContactFollowUpSections(activeLinkedContacts),
     [activeLinkedContacts],
   );
-  const projectContactGroupSections = useMemo(
-    () => buildAreaContactGroupSections(activeLinkedContacts),
-    [activeLinkedContacts],
-  );
+  const projectContactGroupSections = useMemo(() => {
+    const grouped = contactService.getByGroupSync(activeLinkedContacts);
+    return buildGroupSections(grouped);
+  }, [activeLinkedContacts]);
   const projectContactAreaSections = useMemo(
     () => buildContactByAreaSections(activeLinkedContacts, areas),
     [activeLinkedContacts, areas],

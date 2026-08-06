@@ -7,6 +7,7 @@ import {
   GOAL_DETAIL_QUERY_KEY,
   type GoalDetailData,
 } from "@/lib/hooks/use-goal-detail";
+import { type AreaDetailData } from "@/lib/hooks/use-area-detail";
 
 import { goalService } from "../services/goal.service";
 import { entityLimitToastMessage } from "@/lib/entity-limit";
@@ -45,6 +46,7 @@ function invalidateGoalCoreGraph(
 interface GoalMutationContext {
   previousGoalDetails: Array<[readonly unknown[], GoalDetailData | undefined]>;
   previousGoals: Array<[readonly unknown[], Goal | Goal[] | undefined]>;
+  previousAreaDetails: Array<[readonly unknown[], AreaDetailData | undefined]>;
 }
 
 type GoalPatch = Partial<Goal> & { area_ids?: string[] };
@@ -105,6 +107,7 @@ async function optimisticallyPatchGoal(
   await Promise.all([
     queryClient.cancelQueries({ queryKey: [GOALS_QUERY_KEY] }),
     queryClient.cancelQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] }),
+    queryClient.cancelQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
   ]);
 
   const previousGoals = queryClient.getQueriesData<Goal | Goal[] | undefined>({
@@ -112,6 +115,9 @@ async function optimisticallyPatchGoal(
   });
   const previousGoalDetails = queryClient.getQueriesData<GoalDetailData | undefined>({
     queryKey: [GOAL_DETAIL_QUERY_KEY],
+  });
+  const previousAreaDetails = queryClient.getQueriesData<AreaDetailData | undefined>({
+    queryKey: [AREA_DETAIL_QUERY_KEY],
   });
   const goalDetailData = previousGoalDetails.find(([, data]) => data?.goal.id === goalId)?.[1];
 
@@ -127,6 +133,7 @@ async function optimisticallyPatchGoal(
     return {
       previousGoalDetails,
       previousGoals,
+      previousAreaDetails,
     };
   }
 
@@ -157,9 +164,23 @@ async function optimisticallyPatchGoal(
 
   patchGoalCaches(queryClient, nextGoal, previousGoals);
 
+  // Also patch area-detail caches so linked-area pages reflect the change
+  // immediately (e.g. goals moving between active/archived/inactive tabs).
+  queryClient.setQueriesData<AreaDetailData>({ queryKey: [AREA_DETAIL_QUERY_KEY] }, (current) => {
+    if (!current) return current;
+    const patchGoalInList = (goals: Goal[]) =>
+      goals.map((g) => (g.id === goalId ? { ...g, ...nextPatch } : g));
+    return {
+      ...current,
+      goals: patchGoalInList(current.goals),
+      allGoals: patchGoalInList(current.allGoals),
+    };
+  });
+
   return {
     previousGoalDetails,
     previousGoals,
+    previousAreaDetails,
   };
 }
 
@@ -171,6 +192,9 @@ function restoreGoalCaches(
     queryClient.setQueryData(queryKey, data);
   });
   context?.previousGoalDetails.forEach(([queryKey, data]) => {
+    queryClient.setQueryData(queryKey, data);
+  });
+  context?.previousAreaDetails.forEach(([queryKey, data]) => {
     queryClient.setQueryData(queryKey, data);
   });
 }
