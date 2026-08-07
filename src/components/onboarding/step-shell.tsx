@@ -17,7 +17,10 @@ export interface StepShellProps {
   nextLabel?: string;
   onBack: () => void;
   onNext: () => void;
+  /** Skip the current step (explainer only). */
   onSkip?: () => void;
+  /** Skip the entire onboarding and go to dashboard. */
+  onSkipAll?: () => void;
   children: ReactNode;
 }
 
@@ -37,6 +40,7 @@ export function StepShell({
   onBack,
   onNext,
   onSkip,
+  onSkipAll,
   children,
 }: StepShellProps) {
   const total = ONBOARDING_STEP_LIST.length;
@@ -67,7 +71,11 @@ export function StepShell({
         </p>
       </div>
 
-      <div className="flex-1">{children}</div>
+      <div className="flex-1" key={stepIndex}>
+        <div className="animate-in fade-in duration-200">
+          {children}
+        </div>
+      </div>
 
       <div className="mt-8 flex items-center justify-between gap-3">
         <Button
@@ -83,7 +91,19 @@ export function StepShell({
               Skip
             </Button>
           )}
-          <Button onClick={onNext} disabled={!canAdvance || isBusy}>
+          {onSkipAll && (
+            <Button variant="ghost" onClick={onSkipAll} disabled={isBusy}>
+              Skip all
+            </Button>
+          )}
+          <Button
+            onClick={onNext}
+            disabled={!canAdvance || isBusy}
+            aria-disabled={!canAdvance || isBusy}
+            className={cn(
+              !canAdvance && !isBusy && "opacity-70",
+            )}
+          >
             {isBusy
               ? "Saving…"
               : (nextLabel ?? (isLastStep ? "Finish" : "Continue"))}
