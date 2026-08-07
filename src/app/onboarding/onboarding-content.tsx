@@ -172,6 +172,17 @@ export function OnboardingContent({
     await persist({ current_step: store.getState().currentStep });
   }
 
+  async function handleSkipAll() {
+    if (!user) return;
+    setIsBusy(true);
+    try {
+      await persist({ completed: true, completed_at: new Date().toISOString() });
+      router.replace("/dashboard");
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
   // Action steps that need input gate the Continue button.
   const canAdvance =
     state.currentStep === "goal"
@@ -199,6 +210,7 @@ export function OnboardingContent({
       onBack={handleBack}
       onNext={handleNext}
       onSkip={meta.kind === "explainer" ? handleSkip : undefined}
+      onSkipAll={handleSkipAll}
     >
       {state.currentStep === "areas" && <AreasStep />}
       {state.currentStep === "goal" && <GoalStep value={goal} onChange={setGoal} />}

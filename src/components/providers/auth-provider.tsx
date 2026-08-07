@@ -101,20 +101,24 @@ export function AuthProvider({
   }, [user, queryClient]);
 
   async function signOut() {
-    // Navigate FIRST (soft client-side nav). The dashboard unmounts cleanly,
-    // the (auth)/login group mounts, and Clerk's session-revoke fires in the
-    // background. This prevents the dashboard's hooks from ever seeing
-    // `user: null` while still mounted — which is what was producing the
-    // visible "data drops then logs out" flash.
-    router.replace("/login");
+    // Freeze the last known user so dashboard hooks don't drop their data
+    // (enabled:!!user -> false) while the tree is still mounted during the
+    // sign-out redirect. Captured in state (not a ref) at sign-out time so
+    // render never reads a ref.
     setFrozenUser(resolvedUser);
     setIsSigningOut(true);
     try {
-      await clerkSignOut({ redirectUrl: "/login" });
+      // Clear the Clerk session and cookies first, then navigate manually.
+      // Using redirectUrl here can cause a premature client-side redirect
+      // before cookies are cleared, leaving stale session state that
+      // produces a blank branded screen on next visit.
+      await clerkSignOut();
+      router.replace("/login");
     } catch (err) {
       if (process.env.NODE_ENV !== "production") {
         console.error("[auth-provider] signOut failed", err);
       }
+      router.replace("/login");
     } finally {
       setIsSigningOut(false);
     }
