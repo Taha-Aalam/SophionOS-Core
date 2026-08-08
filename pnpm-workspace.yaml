@@ -45,3 +45,6 @@ overrides:
 auditConfig:
   ignoreGhsas:
     - GHSA-mh99-v99m-4gvg
+
+minimumReleaseAgeExclude:
+  - nanoid@3.3.17
