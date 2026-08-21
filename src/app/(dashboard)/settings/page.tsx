@@ -17,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CohortMemberBadge } from "@/components/settings/cohort-member-badge";
 import { isFeatureEnabled, type FeatureFlag } from "@/lib/config/feature-flags";
 
 const settingsCards = [
@@ -90,7 +91,10 @@ export default function SettingsPage() {
         <div className="flex items-center gap-3">
           <Settings2 className="size-6" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-heading">Settings</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight font-heading">Settings</h1>
+              <CohortMemberBadge />
+            </div>
             <p className="text-muted-foreground text-sm mt-1">
               Configure your SophionOS experience, access, and connections.
             </p>
