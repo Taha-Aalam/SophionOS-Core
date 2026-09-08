@@ -54,16 +54,23 @@ export function AuthProvider({
       effectiveUserId
         ? {
             id: effectiveUserId,
-            email: clerkUser?.primaryEmailAddress?.emailAddress ?? null,
+            // Fall back to the server-seeded profile while Clerk's client SDK
+            // loads — without it the first client render regresses the topbar
+            // to "User" + fallback avatar until clerkUser populates.
+            email:
+              clerkUser?.primaryEmailAddress?.emailAddress ??
+              initialUser?.email ??
+              null,
             name:
               clerkUser?.fullName ||
               clerkUser?.firstName ||
               clerkUser?.username ||
+              initialUser?.name ||
               null,
-            imageUrl: clerkUser?.imageUrl || null,
+            imageUrl: clerkUser?.imageUrl || initialUser?.imageUrl || null,
           }
         : null,
-    [effectiveUserId, clerkUser],
+    [effectiveUserId, clerkUser, initialUser],
   );
 
   // During sign-out, freeze the last known user so dashboard hooks don't drop
