@@ -11,10 +11,14 @@ export default async function OnboardingLayout({
   // AuthProvider. That gives the client wizard `useAuth()` and runs the same
   // idempotent seed/provision bootstrap (seedDefaultAreas + provisionSubscription)
   // the dashboard relies on — the areas step confirms those seeded defaults.
-  const { userId } = await auth();
-  const initialUser = userId
-    ? { id: userId, email: null, name: null, imageUrl: null }
-    : null;
+
+  // Resource-based auth: pre-migration the proxy bounced anonymous
+  // /onboarding requests with auth.protect(); the gate now lives here. Same
+  // createRedirect machinery -> 307 /login?redirect_url=<current url>.
+  const { userId, redirectToSignIn } = await auth();
+  if (!userId) return redirectToSignIn();
+
+  const initialUser = { id: userId, email: null, name: null, imageUrl: null };
 
   return (
     <AuthProvider initialUser={initialUser}>
