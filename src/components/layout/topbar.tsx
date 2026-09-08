@@ -1,22 +1,12 @@
 "use client";
 
 import React from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, LogOut, Menu as MenuIcon, Settings, SunMoon } from "lucide-react";
-import { useTheme } from "next-themes";
+import { usePathname } from "next/navigation";
+import { Menu as MenuIcon } from "lucide-react";
 
 import { breadcrumbLabels } from "@/components/layout/navigation";
-import { useAuth } from "@/components/providers/auth-provider";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ProfileDropdown } from "@/components/layout/profile-dropdown";
+import type { SubscriptionSummary } from "@/lib/api/subscription-summary";
 import { useUIStore } from "@/lib/stores/ui.store";
 
 const UUID_RE =
@@ -81,15 +71,12 @@ function Breadcrumb() {
   );
 }
 
-export function Topbar() {
-  const router = useRouter();
+export function Topbar({
+  initialSubscription,
+}: {
+  initialSubscription?: SubscriptionSummary | null;
+}) {
   const { openMobileNav } = useUIStore();
-  const { user, signOut } = useAuth();
-  const { resolvedTheme, setTheme } = useTheme();
-  const displayName = user?.name || user?.email || "User";
-  const email = user?.email ?? "";
-  const avatarUrl = user?.imageUrl || undefined;
-  const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
     <header className="flex h-12 items-center justify-between gap-4 border-b border-border bg-background px-4">
@@ -105,66 +92,7 @@ export function Topbar() {
         <Breadcrumb />
       </div>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <button
-              type="button"
-              className="group flex h-auto items-center gap-2 rounded-full p-0.5 pr-1 transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-accent"
-              aria-label="User menu"
-            />
-          }
-        >
-          <Avatar size="sm">
-            {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-          <ChevronDown
-            className="size-4 shrink-0 text-muted-foreground transition-transform group-data-popup-open:rotate-180"
-            aria-hidden
-          />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-64">
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>
-              <div className="flex items-center gap-3 px-1.5 py-1.5">
-                <Avatar size="default">
-                  {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
-                <div className="flex min-w-0 flex-col">
-                  <span className="truncate text-sm font-medium text-foreground">
-                    {displayName}
-                  </span>
-                  {email ? (
-                    <span className="truncate text-xs font-normal text-muted-foreground">
-                      {email}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </DropdownMenuLabel>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem onClick={() => router.push("/settings")}>
-              <Settings className="mr-2 size-4 opacity-60" />
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            >
-              <SunMoon className="mr-2 size-4 opacity-60" />
-              {resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => signOut()} variant="destructive">
-            <LogOut className="mr-2 size-4" />
-            Sign out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ProfileDropdown className="mr-1" initialSubscription={initialSubscription} />
     </header>
   );
 }

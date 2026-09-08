@@ -59,6 +59,15 @@ export default function PreferencesPage() {
   const { mutate: updatePreferences, isPending } = useUpdatePreferences();
   const { theme, setTheme } = useTheme();
 
+  // SSR-safe client values. `next-themes`' `theme` and the browser timezone
+  // are only known after hydration; using them in the first render makes the
+  // server HTML ("system"/"UTC") disagree with the client ("dark"/local tz)
+  // and React regenerates the tree (hydration mismatch).
+  const [isMounted, setIsMounted] = useState(false);
+  /* eslint-disable react-hooks/set-state-in-effect -- mounted gate for client-only values */
+  useEffect(() => setIsMounted(true), []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   const [themeSelect, setThemeSelect] = useState<string>();
   const [languageSelect, setLanguageSelect] = useState<string>();
   const [timezoneSelect, setTimezoneSelect] = useState<string>();
@@ -114,8 +123,7 @@ export default function PreferencesPage() {
             <div className="space-y-2">
               <Label htmlFor="theme">Theme</Label>
               <Select
-                name="theme"
-                value={themeSelect ?? preferences?.theme ?? theme ?? "system"}
+                value={themeSelect ?? (isMounted ? preferences?.theme ?? theme ?? "system" : "system")}
                 onValueChange={(v) => setThemeSelect(v ?? undefined)}
                 disabled={isPending}
               >
@@ -172,7 +180,7 @@ export default function PreferencesPage() {
               <Label htmlFor="timezone">Timezone</Label>
               <Select
                 name="timezone"
-                value={timezoneSelect ?? preferences?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
+                value={timezoneSelect ?? (isMounted ? preferences?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC")}
                 onValueChange={(v) => setTimezoneSelect(v ?? undefined)}
                 disabled={isPending}
               >

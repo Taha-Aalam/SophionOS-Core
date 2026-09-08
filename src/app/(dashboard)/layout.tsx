@@ -11,6 +11,8 @@ import { InboxBackfillProvider } from "@/components/providers/inbox-backfill-pro
 import { userSettingsService } from "@/lib/services/user-settings.service";
 import { resolveDashboardDestination } from "@/lib/onboarding/onboarding-routing";
 import { createClient } from "@/lib/supabase/server";
+import { getSubscriptionSummary } from "@/lib/api/subscription-summary";
+import { resolveUserProfile } from "@/lib/notifications/resolve-email";
 
 export default async function DashboardGroupLayout({
   children,
@@ -34,10 +36,25 @@ export default async function DashboardGroupLayout({
     if (destination) redirect(destination);
   }
 
+  // Resolve the full profile + subscription server-side so the topbar renders
+  // name/email/avatar and the cohort badge in the FIRST paint — no icon-only
+  // flash, no regression to "User" while Clerk's client SDK loads (AuthProvider
+  // falls back to this seed). One Clerk backend call shared by both; the
+  // summary caches for 60s so client-side navigations don't re-hit Clerk or
+  // the marketing site. Total added latency: one Clerk call (profile), which
+  // the page already pays on every dynamic render.
+  const profile = userId ? await resolveUserProfile(userId).catch(() => null) : null;
   const initialUser = userId
-    ? { id: userId, email: null, name: null, imageUrl: null }
+    ? {
+        id: userId,
+        email: profile?.email ?? null,
+        name: profile?.name ?? null,
+        imageUrl: profile?.imageUrl ?? null,
+      }
     : null;
-
+  const initialSubscription = userId
+    ? await getSubscriptionSummary(userId, { profile })
+    : null;
   return (
     <AuthProvider initialUser={initialUser}>
       <InboxBackfillProvider>
@@ -45,7 +62,7 @@ export default async function DashboardGroupLayout({
           <Sidebar />
           <MobileNav />
           <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
-            <Topbar />
+            <Topbar initialSubscription={initialSubscription} />
             <main className="flex-1 overflow-y-auto">{children}</main>
           </div>
         </div>
