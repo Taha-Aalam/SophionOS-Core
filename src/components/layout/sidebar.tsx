@@ -147,14 +147,18 @@ export function Sidebar() {
           <SunMoon className="size-4 shrink-0" />
           {isDesktopSidebarOpen ? <span>{themeLabel}</span> : null}
         </Button>
-        <div className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5">
+        <Link
+          href="/settings/profile"
+          aria-label={`Open profile: ${displayName}`}
+          className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        >
           <Avatar size="sm">
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           {isDesktopSidebarOpen ? (
             <span className="truncate text-sm font-medium">{displayName}</span>
           ) : null}
-        </div>
+        </Link>
       </div>
     </aside>
   );
