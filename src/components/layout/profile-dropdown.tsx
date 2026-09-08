@@ -74,13 +74,6 @@ export function ProfileDropdown({
       icon: <User className="h-4 w-4" />,
     },
     {
-      label: "Cohort",
-      value: subscription?.cohortMember ? "Member" : undefined,
-      valueTone: "blue",
-      href: "/settings",
-      icon: <FileText className="h-4 w-4" />,
-    },
-    {
       label: "Subscription",
       value: billingEnabled ? (tierLabel ?? "Free") : undefined,
       valueTone: "purple",
