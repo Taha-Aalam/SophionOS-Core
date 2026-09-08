@@ -106,6 +106,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Pin the file-tracing root to this project so Next does not warn about an
   // inferred workspace root (the build is always invoked from the repo root).
+  // Allow local.sophionos.com through dev-server origin checks (hosts-file
+  // mapping for Clerk prod-keys-locally debugging; see Clerk docs).
+  allowedDevOrigins: ["local.sophionos.com"],
   outputFileTracingRoot: process.cwd(),
   transpilePackages: ["@base-ui/react", "@base-ui/utils"],
   poweredByHeader: false,
