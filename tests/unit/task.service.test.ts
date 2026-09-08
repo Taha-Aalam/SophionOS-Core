@@ -287,7 +287,7 @@ describe('taskService', () => {
     const input = {
       name: 'Task with links',
       priority: PRIORITY.LOW,
-      due_date: '2026-08-09',
+      due_date: '2099-12-31',
       area_ids: [areaId],
       goal_ids: [goalA],
       project_ids: [projectId],
