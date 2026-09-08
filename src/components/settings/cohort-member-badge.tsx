@@ -13,7 +13,9 @@ import type { SubscriptionSummary } from "@/lib/api/subscription-summary";
  * non-members — fail-closed.
  *
  * `seed` is the server-resolved subscription so the chip paints in the FIRST
- * render with no pop-in; without it the hook's client fetch decides.
+ * render with no pop-in; the hook's session-cached client fetch overtakes it
+ * once known, so a stale seed (e.g. resolved during a marketing-site blip)
+ * can't pin the chip off for the session.
  *
  * `variant="pill"` is the topbar-profile form (tiny uppercase chip shown to
  * the right of the name in the topbar trigger).
@@ -28,7 +30,7 @@ export function CohortMemberBadge({
   variant?: "plain" | "pill";
 }) {
   const { data } = useSubscription();
-  const isMember = (seed ?? data)?.cohortMember === true;
+  const isMember = (data ?? seed)?.cohortMember === true;
   if (!isMember) return null;
 
   if (variant === "pill") {

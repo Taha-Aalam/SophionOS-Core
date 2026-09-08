@@ -52,9 +52,11 @@ export function ProfileDropdown({
   const { user, signOut } = useAuth();
   const { data: liveSubscription } = useSubscription();
   const { resolvedTheme, setTheme } = useTheme();
-  // Server seed wins until the client fetch overtakes it (or it stays null —
-  // either way the first paint already shows cohort state with no pop-in).
-  const subscription = initialSubscription ?? liveSubscription;
+  // Live client data (session-cached by useSubscription) wins once known; the
+  // server seed is only the first-paint fallback. Seed-first would pin a
+  // stale seed — e.g. one computed during a marketing-site blip — for the
+  // whole session even after the client fetch resolves correctly.
+  const subscription = liveSubscription ?? initialSubscription;
 
   // Title-case every word: Clerk may return lowercase usernames/emails, and a
   // raw fallback value must still read as a proper name.
@@ -70,7 +72,7 @@ export function ProfileDropdown({
   const menuItems: MenuItem[] = [
     {
       label: "Profile",
-      href: "/settings",
+      href: "/settings/profile",
       icon: <User className="h-4 w-4" />,
     },
     {
