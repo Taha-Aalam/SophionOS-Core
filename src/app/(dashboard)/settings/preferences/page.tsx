@@ -64,7 +64,9 @@ export default function PreferencesPage() {
   // server HTML ("system"/"UTC") disagree with the client ("dark"/local tz)
   // and React regenerates the tree (hydration mismatch).
   const [isMounted, setIsMounted] = useState(false);
+  /* eslint-disable react-hooks/set-state-in-effect -- mounted gate for client-only values */
   useEffect(() => setIsMounted(true), []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const [themeSelect, setThemeSelect] = useState<string>();
   const [languageSelect, setLanguageSelect] = useState<string>();
