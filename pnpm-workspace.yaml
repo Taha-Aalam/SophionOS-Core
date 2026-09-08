@@ -16,7 +16,7 @@ ignoredBuiltDependencies:
 
 overrides:
   # GHSA-v2hh-gcrm-f6hx / GHSA-4c8g-83qw-93j6
-  fast-uri: ">=4.1.2"
+  fast-uri: ">=4.1.3"
   hono: ">=4.12.34"
   ip-address: ">=10.3.1"
   # GHSA-6g55-p6wh-862q
@@ -40,7 +40,7 @@ overrides:
   vite: ">=8.0.16"
   # next@16.2.11 still depends on sharp@0.34.x (libvips CVEs); force patched line.
   sharp: ">=0.35.0"
-  nanoid@<3.3.17: ^3.3.17
+  nanoid@<3.3.18: ^3.3.18
 
 auditConfig:
   ignoreGhsas:
@@ -48,3 +48,4 @@ auditConfig:
 
 minimumReleaseAgeExclude:
   - nanoid@3.3.17
+  - nanoid@3.3.18
