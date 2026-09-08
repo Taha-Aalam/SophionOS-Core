@@ -616,7 +616,7 @@ describe("goalService", () => {
       name: "Test Goal",
       term: GOAL_TERM.SHORT,
       priority: "low",
-      target_date: "2026-09-02",
+      target_date: "2099-09-02",
       area_id: areaId,
     });
 

@@ -44,6 +44,13 @@ vi.mock("@/lib/utils/goal-urls", () => ({
   buildGoalDetailHref: (goal: { slug?: string; name: string }) => `/goals/${goal.slug ?? "slug"}`,
 }));
 
+vi.mock("@/lib/hooks/use-subscription", () => ({
+  useSubscription: () => ({
+    data: { tier: "free", isPaid: false, cohortMember: false },
+    loading: false,
+  }),
+}));
+
 vi.mock("@/components/ui/avatar", () => ({
   Avatar: ({ children }: { children: React.ReactNode }) => (
     <div data-slot="avatar">{children}</div>
@@ -57,8 +64,17 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => (
     <div data-slot="dropdown-menu">{children}</div>
   ),
-  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => (
-    <div data-slot="dropdown-menu-trigger">{children}</div>
+  DropdownMenuTrigger: ({
+    children,
+    render,
+  }: {
+    children?: React.ReactNode;
+    render?: React.ReactElement;
+  }) => (
+    <div data-slot="dropdown-menu-trigger">
+      {render}
+      {children}
+    </div>
   ),
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => (
     <div data-slot="dropdown-menu-content">{children}</div>
@@ -78,12 +94,10 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
 import { Topbar } from "@/components/layout/topbar";
 
 describe("Topbar profile dropdown", () => {
-  it("renders the profile label and an action group in the dropdown", () => {
+  it("renders name and email in the topbar profile trigger", () => {
     const html = renderToStaticMarkup(<Topbar />);
 
-    expect(html).toContain('data-slot="dropdown-menu-group"');
-    expect(html).toContain('data-slot="dropdown-menu-label"');
-    expect(html).toContain('data-slot="dropdown-menu-label">');
+    expect(html).toContain('data-slot="dropdown-menu-trigger"');
     expect(html).toContain("Test User");
     expect(html).toContain("user@example.com");
   });

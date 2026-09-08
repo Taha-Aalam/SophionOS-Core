@@ -26,6 +26,10 @@ export interface NotificationSettings {
   email_enabled?: boolean;
 }
 
+export interface ProfileContactSettings {
+  phone_number?: string | null;
+}
+
 export const ONBOARDING_STEPS = [
   "areas",
   "goal",
@@ -57,6 +61,7 @@ const NOTE_DEFAULTS_KEY = "note_defaults";
 const PREFERENCES_KEY = "preferences";
 const NOTIFICATIONS_KEY = "notifications";
 const ONBOARDING_KEY = "onboarding";
+const PROFILE_CONTACT_KEY = "profile_contact";
 
 export const userSettingsService = {
   async get<T>(
@@ -139,6 +144,21 @@ export const userSettingsService = {
     options?: ServiceOptions,
   ): Promise<void> {
     return this.set(userId, NOTIFICATIONS_KEY, notifications, options);
+  },
+
+  async getProfileContact(
+    userId: string,
+    options?: ServiceOptions,
+  ): Promise<ProfileContactSettings | null> {
+    return this.get<ProfileContactSettings>(userId, PROFILE_CONTACT_KEY, options);
+  },
+
+  async setProfileContact(
+    userId: string,
+    contact: ProfileContactSettings,
+    options?: ServiceOptions,
+  ): Promise<void> {
+    return this.set(userId, PROFILE_CONTACT_KEY, contact, options);
   },
 
   async getOnboardingState(

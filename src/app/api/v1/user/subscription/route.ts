@@ -7,6 +7,8 @@ import {
   getEntityCountsPerType,
   ENTITY_LIMITS,
 } from "@/lib/api/subscription";
+import { isCohortMember } from "@/lib/api/cohort-membership";
+import { resolveUserEmail } from "@/lib/notifications/resolve-email";
 import { success, error } from "@/lib/api/api-response";
 import { AppError } from "@/lib/api/error-handler";
 
@@ -21,15 +23,22 @@ import { AppError } from "@/lib/api/error-handler";
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await requireAuth(request);
-    const [tier, isPaid, entityCount, entityCounts] = await Promise.all([
+    const [tier, isPaid, entityCount, entityCounts, email] = await Promise.all([
       getTier(userId),
       isPaidTier(userId),
       getEntityCount(userId),
       getEntityCountsPerType(userId),
+      // resolveUserEmail throws without CLERK_SECRET_KEY; treat that like any
+      // other lookup failure so the route never breaks on the cohort check.
+      resolveUserEmail(userId).catch(() => null),
     ]);
+    // Founding Cohort membership (paid on the marketing site). isCohortMember
+    // already fails closed, so a landing-site outage cannot fail this route.
+    const cohortMember = await isCohortMember(email);
     return success({
       tier,
       isPaid,
+      cohortMember,
       entityCount,
       entityCounts,
       entityLimit: ENTITY_LIMITS[tier],

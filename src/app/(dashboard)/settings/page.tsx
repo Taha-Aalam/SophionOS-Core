@@ -21,6 +21,12 @@ import { isFeatureEnabled, type FeatureFlag } from "@/lib/config/feature-flags";
 
 const settingsCards = [
   {
+    href: "/settings/profile",
+    title: "Profile",
+    description: "Photo, username, phone number, and account details.",
+    icon: User,
+  },
+  {
     href: "/settings/preferences",
     title: "Preferences",
     description: "Theme, timezone, language, and display options.",

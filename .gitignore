@@ -136,3 +136,5 @@ worktrees/
 # Private canary manifest (clone-detection fingerprints)
 canaries.manifest.json
 
+
+certificates
