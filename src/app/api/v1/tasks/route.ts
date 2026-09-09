@@ -9,7 +9,7 @@ import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 import { createTaskSchema } from "@/lib/validators/task.schema";
-import { getLocalDateStart } from "@/lib/utils/dates";
+import { getLocalDateKey } from "@/lib/utils/dates";
 import type { Task } from "@/lib/types/domain.types";
 import type { TaskStatus } from "@/lib/utils/constants";
 
@@ -44,9 +44,11 @@ export async function GET(request: NextRequest) {
     // Choose the most selective base fetch so the status/focused/overdue
     // filters are pushed to the service (the DB) rather than re-derived in
     // memory. Remaining filters are applied as in-memory predicates below.
+    // Overdue resolves "today" in the user's timezone (not server UTC).
     let data: Task[];
     if (overdue) {
-      data = await taskService.getOverdue(userId, { supabase });
+      const prefs = await userSettingsService.getPreferences(userId, { supabase });
+      data = await taskService.getOverdue(userId, { supabase, timezone: prefs?.timezone });
     } else if (focused) {
       data = await taskService.getFocused(userId, { supabase });
     } else if (status) {
@@ -107,14 +109,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (upcoming) {
-      // Same local-calendar-date bounds as get_dashboard and get_my_day so
-      // all three agree on what counts as "today". Resolve in the user's
-      // timezone so the filter matches their local calendar date.
+      // Same local-calendar-date comparison as get_dashboard and get_my_day so
+      // all three agree on what counts as "today". due_date is a DATE
+      // (YYYY-MM-DD) — compare date keys, not ISO timestamps.
       const prefs = await userSettingsService.getPreferences(userId, { supabase });
       const tz = prefs?.timezone;
-      const todayStart = getLocalDateStart(tz);
+      const todayKey = getLocalDateKey(tz);
       data = data.filter(
-        (task) => task.due_date != null && task.due_date >= todayStart && !task.is_completed,
+        (task) => task.due_date != null && task.due_date >= todayKey && !task.is_completed,
       );
     }
 

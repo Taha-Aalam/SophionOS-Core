@@ -1,4 +1,24 @@
 /**
+ * Returns the user's local calendar date as YYYY-MM-DD for DATE-column
+ * comparisons (due_date, target_date).
+ *
+ * DATE columns store calendar dates without time. Comparing them against
+ * full ISO timestamps (getLocalDateStart/End) breaks both in-memory string
+ * comparison ("2026-08-03" < "2026-08-03T00:00:00.000Z") and PostgREST range
+ * filters. Use this date-only key when the column is a DATE.
+ *
+ * @param timeZone - IANA timezone string. When omitted, falls back to the
+ *   server's local calendar date.
+ */
+export function getLocalDateKey(timeZone?: string): string {
+  const now = new Date();
+  const { year, month, day } = zonedParts(now, timeZone);
+  const m = String(month + 1).padStart(2, "0");
+  const d = String(day).padStart(2, "0");
+  return `${year}-${m}-${d}`;
+}
+
+/**
  * Returns the start of today in UTC for Supabase date range queries.
  * Supabase stores timestamps as UTC; we query in UTC so local "today"
  * is computed correctly regardless of timezone offset.

@@ -99,9 +99,8 @@ export function ProfileDropdown({
     },
     {
       label: "Terms & Policies",
-      href: "https://sophionos.com/terms",
+      href: "/terms",
       icon: <FileText className="h-4 w-4" />,
-      external: true,
     },
   ];
 

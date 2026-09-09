@@ -5,7 +5,7 @@ import { authorizeApiRequest } from "@/lib/api/api-auth";
 import { success, error } from "@/lib/api/api-response";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
-import { getLocalDateEnd, getLocalDateStart } from "@/lib/utils/dates";
+import { getLocalDateKey } from "@/lib/utils/dates";
 import { AppError } from "@/lib/api/error-handler";
 
 export async function GET(request: NextRequest) {
@@ -18,17 +18,17 @@ export async function GET(request: NextRequest) {
     const supabase = await createDataClient(authResult);
 
     // Resolve "today" in the user's timezone so dueToday matches their local
-    // calendar date regardless of where the server runs.
+    // calendar date regardless of where the server runs. due_date is a DATE
+    // column (YYYY-MM-DD), so compare date keys — never full ISO timestamps
+    // ("2026-08-03" < "2026-08-03T00:00:00.000Z" lexicographically, which
+    // would wrongly exclude every task due today).
     const prefs = await userSettingsService.getPreferences(userId, { supabase });
     const tz = prefs?.timezone;
-    const todayStart = getLocalDateStart(tz);
-    const todayEnd = getLocalDateEnd(tz);
+    const todayKey = getLocalDateKey(tz);
     const tasks = await taskService.list(userId, { supabase });
     const activeTasks = tasks.filter((t) => !t.is_completed);
 
-    const dueToday = activeTasks.filter(
-      (t) => t.due_date != null && t.due_date >= todayStart && t.due_date <= todayEnd,
-    );
+    const dueToday = activeTasks.filter((t) => t.due_date != null && t.due_date === todayKey);
     const dueTodayIds = new Set(dueToday.map((t) => t.id));
     const focused = activeTasks.filter((t) => t.is_focused && !dueTodayIds.has(t.id));
 

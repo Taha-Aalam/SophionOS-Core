@@ -12,6 +12,7 @@ import {
 } from "../utils/task-completion";
 import { deriveTaskStatus } from "../utils/status-routing";
 import { computeNextTaskDueDate } from "../utils/task-recurrence";
+import { getLocalDateKey } from "../utils/dates";
 import { createTaskSchema, updateTaskSchema } from "../validators/task.schema";
 
 type ServiceOptions = { supabase?: SupabaseClient };
@@ -33,9 +34,16 @@ function extractTaskAreaIds<TInput extends { area_id?: string | null; area_ids?:
 } {
   const { area_ids, area_id, ...rest } = input;
 
-  // Explicit area_ids (including empty array for clearing all areas) → multi-area mode.
-  if (area_ids !== undefined) {
-    const normalizedAreaIds = area_ids.length > 0 ? dedupeAreaIds(area_ids) : [];
+  // Merge singular area_id and area_ids so neither is silently dropped when
+  // both are sent (MCP agents may send both). An explicit empty area_ids
+  // array clears all areas unless a singular area_id is also provided.
+  const hasAreaIds = Array.isArray(area_ids) && area_ids.length > 0;
+  const hasAreaId = typeof area_id === "string" && area_id.length > 0;
+  if (hasAreaIds || hasAreaId) {
+    const normalizedAreaIds = dedupeAreaIds([
+      ...(hasAreaIds ? area_ids : []),
+      ...(hasAreaId ? [area_id] : []),
+    ]);
     return {
       areaIds: normalizedAreaIds,
       taskInput: {
@@ -45,7 +53,18 @@ function extractTaskAreaIds<TInput extends { area_id?: string | null; area_ids?:
     };
   }
 
-  // Single area_id provided (no area_ids or area_ids is empty).
+  // Explicit empty array with no singular id → clear all areas.
+  if (area_ids !== undefined) {
+    return {
+      areaIds: [],
+      taskInput: {
+        ...rest,
+        area_id: null,
+      } as Omit<TInput, "area_ids">,
+    };
+  }
+
+  // Single null area_id (clear primary) without area_ids.
   if (area_id !== undefined) {
     const normalizedAreaIds = dedupeAreaIds([area_id]);
     return {
@@ -268,13 +287,29 @@ function extractTaskProjectIds<
 } {
   const { project_ids, project_id, ...rest } = input;
 
-  if (project_ids !== undefined) {
-    const normalizedProjectIds = dedupeProjectIds(project_ids);
+  // Merge singular + plural so neither is silently dropped when both arrive.
+  const hasProjectIds = Array.isArray(project_ids) && project_ids.length > 0;
+  const hasProjectId = typeof project_id === "string" && project_id.length > 0;
+  if (hasProjectIds || hasProjectId) {
+    const normalizedProjectIds = dedupeProjectIds([
+      ...(hasProjectIds ? project_ids : []),
+      ...(hasProjectId ? [project_id] : []),
+    ]);
     return {
       projectIds: normalizedProjectIds,
       taskInput: {
         ...rest,
         project_id: normalizedProjectIds[0] ?? null,
+      } as Omit<TInput, "project_ids">,
+    };
+  }
+
+  if (project_ids !== undefined) {
+    return {
+      projectIds: [],
+      taskInput: {
+        ...rest,
+        project_id: null,
       } as Omit<TInput, "project_ids">,
     };
   }
@@ -756,9 +791,17 @@ export const taskService = {
     return parallelHydrateTasks(data || [], options);
   },
 
-  async getOverdue(userId: string, options?: ServiceOptions): Promise<Task[]> {
-    const today = new Date().toISOString().split("T")[0];
-    const { data, error } = await (options?.supabase ?? createClient())
+  async getOverdue(
+    userId: string,
+    options?: ServiceOptions & { timezone?: string },
+  ): Promise<Task[]> {
+    // due_date is a DATE (YYYY-MM-DD): resolve "today" as a date key in the
+    // user's timezone, not server UTC. The previous
+    // `new Date().toISOString().split("T")[0]` used UTC, so tasks due
+    // "yesterday local / today UTC" were never reported overdue.
+    const { timezone, ...queryOptions } = options ?? {};
+    const today = getLocalDateKey(timezone);
+    const { data, error } = await (queryOptions?.supabase ?? createClient())
       .from("tasks")
       .select(TASK_SELECT)
       .eq("user_id", userId)
@@ -769,7 +812,7 @@ export const taskService = {
 
     if (error) throw new DatabaseError(error.message);
 
-    return parallelHydrateTasks(data || [], options);
+    return parallelHydrateTasks(data || [], queryOptions);
   },
 
   async getFocused(userId: string, options?: ServiceOptions): Promise<Task[]> {

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "../supabase/client";
-import { getLocalDateEnd, getLocalDateStart, getWeekStart } from "../utils/dates";
+import { getLocalDateKey, getWeekStart } from "../utils/dates";
 import { buildDashboardAnalytics } from "../analytics/dashboard-analytics";
 import type { DashboardAnalytics } from "../analytics/dashboard-analytics";
 import { serverFetchAreas } from "../queries/areas.queries";
@@ -14,6 +14,21 @@ import { serverFetchContacts } from "../queries/contacts.queries";
 import { userSettingsService } from "./user-settings.service";
 
 type ServiceOptions = { supabase?: SupabaseClient };
+
+// Supabase many-to-one embeds return either an object ({name}) or a
+// single-element array ([{name}]) depending on the relationship cardinality
+// detected. Normalize both shapes to a name string.
+function embedName(embed: unknown): string | null {
+  if (!embed) return null;
+  if (Array.isArray(embed)) {
+    const first = embed[0] as { name?: string } | undefined;
+    return first?.name ?? null;
+  }
+  if (typeof embed === "object" && embed !== null && "name" in embed) {
+    return (embed as { name?: string }).name ?? null;
+  }
+  return null;
+}
 
 // ─── Activity feed item ────────────────────────────────────────────────────
 
@@ -74,6 +89,7 @@ async function getRecentActivity(
   const supabase = sb;
 
   // Fire all four "recent" fetches in parallel — they are independent.
+  // NOTE: tasks/goals store the display name in `name` (not `title`).
   const [
     { data: tasks },
     { data: goals },
@@ -82,13 +98,13 @@ async function getRecentActivity(
   ] = await Promise.all([
     supabase
       .from("tasks")
-      .select("id, title, description, created_at, updated_at")
+      .select("id, name, description, created_at, updated_at")
       .eq("user_id", userId)
       .order("updated_at", { ascending: false })
       .limit(5),
     supabase
       .from("goals")
-      .select("id, title, description, created_at, updated_at")
+      .select("id, name, description, created_at, updated_at")
       .eq("user_id", userId)
       .order("updated_at", { ascending: false })
       .limit(5),
@@ -107,24 +123,30 @@ async function getRecentActivity(
   ]);
 
   const activity: ActivityItem[] = [
-    ...(tasks ?? []).map((t) => ({
-      id: t.id,
-      entityType: "task" as ActivityEntityType,
-      entityId: t.id,
-      title: t.title,
-      description: t.description,
-      createdAt: t.created_at,
-      updatedAt: t.updated_at,
-    })),
-    ...(goals ?? []).map((g) => ({
-      id: g.id,
-      entityType: "goal" as ActivityEntityType,
-      entityId: g.id,
-      title: g.title,
-      description: g.description,
-      createdAt: g.created_at,
-      updatedAt: g.updated_at,
-    })),
+    ...(tasks ?? []).map((t) => {
+      const row = t as unknown as { name?: string; title?: string };
+      return {
+        id: t.id,
+        entityType: "task" as ActivityEntityType,
+        entityId: t.id,
+        title: row.name ?? row.title ?? "Untitled",
+        description: t.description,
+        createdAt: t.created_at,
+        updatedAt: t.updated_at,
+      };
+    }),
+    ...(goals ?? []).map((g) => {
+      const row = g as unknown as { name?: string; title?: string };
+      return {
+        id: g.id,
+        entityType: "goal" as ActivityEntityType,
+        entityId: g.id,
+        title: row.name ?? row.title ?? "Untitled",
+        description: g.description,
+        createdAt: g.created_at,
+        updatedAt: g.updated_at,
+      };
+    }),
     ...(projects ?? []).map((p) => ({
       id: p.id,
       entityType: "project" as ActivityEntityType,
@@ -167,17 +189,22 @@ export const dashboardService = {
 
     // Resolve "today" in the user's timezone so dueToday / overdue / thisWeek
     // match the user's local calendar date regardless of server timezone.
+    // due_date is a DATE (YYYY-MM-DD): compare date keys, not ISO timestamps.
     const prefs = await userSettingsService.getPreferences(userId, { supabase });
     const tz = prefs?.timezone;
-    const todayStart = getLocalDateStart(tz);
-    const todayEnd = getLocalDateEnd(tz);
+    const todayKey = getLocalDateKey(tz);
     const weekStart = getWeekStart(tz);
 
+    // tasks/goals store display names in `name`. The `goals(...)` embed is
+    // intentionally omitted: tasks link to goals via the goal_tasks junction,
+    // not a direct FK, so that embed always errors and would blank the query.
     const taskSelect =
-      "id, title, description, due_date, priority, status, project_id, area_id, projects(name), goals(title), areas(name)";
+      "id, name, description, due_date, priority, status, is_completed, is_archived, is_focused, project_id, area_id, projects(name), areas(name)";
 
     // All dashboard reads are independent — run them concurrently instead of
     // awaiting one at a time (was ~9 serial round-trips incl. recent activity).
+    // Active = not archived AND not completed (there is no "pending" status;
+    // TASK_STATUS is inbox/todo/in_progress/completed/archived).
     const [
       { data: tasksData },
       { data: focusTasks },
@@ -191,24 +218,23 @@ export const dashboardService = {
         .from("tasks")
         .select(taskSelect)
         .eq("user_id", userId)
-        .eq("status", "pending")
-        // "Due today" is a bounded today window — the same local-calendar-date
-        // bounds used by get_my_day and list_tasks. A plain `.or(start,end)`
-        // would OR the two bounds and return every task with any due date;
-        // `.gte().lte()` keeps it to today only.
-        .gte("due_date", todayStart)
-        .lte("due_date", todayEnd)
+        .eq("is_archived", false)
+        .eq("is_completed", false)
+        // "Due today" is an exact DATE match — the same local-calendar-date
+        // comparison used by get_my_day and list_tasks.
+        .eq("due_date", todayKey)
         .order("due_date", { ascending: true }),
       supabase
         .from("tasks")
         .select(taskSelect)
         .eq("user_id", userId)
-        .eq("status", "pending")
+        .eq("is_archived", false)
+        .eq("is_completed", false)
         .eq("is_focused", true)
         .limit(20),
       supabase
         .from("goals")
-        .select("id, title, description, progress, target_date, area_id, areas(name)")
+        .select("id, name, description, progress, target_date, area_id, areas(name)")
         .eq("user_id", userId)
         .eq("is_completed", false)
         .eq("is_archived", false)
@@ -218,7 +244,7 @@ export const dashboardService = {
         .from("tasks")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId)
-        .eq("status", "completed")
+        .eq("is_completed", true)
         .gte("updated_at", weekStart),
       supabase
         .from("goals")
@@ -230,8 +256,9 @@ export const dashboardService = {
         .from("tasks")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId)
-        .eq("status", "pending")
-        .lt("due_date", todayStart),
+        .eq("is_archived", false)
+        .eq("is_completed", false)
+        .lt("due_date", todayKey),
       getRecentActivity(userId, supabase),
     ]);
 
@@ -248,34 +275,32 @@ export const dashboardService = {
     }
     const allTodayTasks = Array.from(taskMap.values());
 
-    const todayStartDate = new Date(todayStart);
-
     const todayTasksFormatted = allTodayTasks.map((t) => {
-      const dueDate = t.due_date ? new Date(t.due_date) : null;
+      // DATE comparison: due_date "2026-08-02" < today "2026-08-03" means overdue.
       const isOverdue =
-        dueDate !== null && dueDate < todayStartDate && t.status === "pending";
+        t.due_date != null && t.due_date < todayKey && !t.is_completed && !t.is_archived;
       return {
         id: t.id,
-        title: t.title,
+        title: (t as { name?: string; title?: string }).name ?? (t as { title?: string }).title ?? "Untitled",
         description: t.description,
         dueDate: t.due_date,
         priority: t.priority,
         status: t.status,
         isOverdue,
         projectId: t.project_id,
-        projectName: (t.projects?.[0] as { name: string } | undefined)?.name ?? null,
+        projectName: embedName((t as { projects?: unknown }).projects),
         areaId: t.area_id,
-        areaName: (t.areas?.[0] as { name: string } | undefined)?.name ?? null,
+        areaName: embedName((t as { areas?: unknown }).areas),
       };
     });
 
     const activeGoals = (goalsData ?? []).map((g) => ({
       id: g.id,
-      title: g.title,
+      title: (g as { name?: string; title?: string }).name ?? (g as { title?: string }).title ?? "Untitled",
       description: g.description,
       progress: g.progress ?? 0,
       targetDate: g.target_date,
-      areaName: (g.areas as { name: string }[] | null)?.[0]?.name ?? null,
+      areaName: embedName((g as { areas?: unknown }).areas),
     }));
 
     return {
@@ -304,6 +329,13 @@ export const dashboardService = {
   ): Promise<DashboardAnalytics> {
     const supabase = options?.supabase ?? createClient();
 
+    // Resolve the user's timezone so "today" KPIs, capturedToday, and the
+    // heatmap align to their calendar date — not server UTC.
+    const prefs = await userSettingsService
+      .getPreferences(userId, { supabase })
+      .catch(() => null);
+    const timeZone = prefs?.timezone;
+
     // Same entity fetch set as the dashboard page prefetch. allSettled so a
     // single failing source degrades to empty arrays instead of failing the
     // whole analytics payload.
@@ -320,6 +352,7 @@ export const dashboardService = {
       ]);
 
     return buildDashboardAnalytics({
+      timeZone,
       areas: areas.status === "fulfilled" ? (areas.value as never) : [],
       goals: goals.status === "fulfilled" ? (goals.value as never) : [],
       projects: projects.status === "fulfilled" ? (projects.value as never) : [],
