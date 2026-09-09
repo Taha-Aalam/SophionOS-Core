@@ -341,20 +341,24 @@ export const contactService = {
 
     if (error) throw mapDatabaseError(error);
 
+    const linkedAreaIds = area_ids ?? [];
+    const linkedGoalIds = goal_ids ?? [];
+    const linkedProjectIds = project_ids ?? [];
+    const linkedTaskIds = task_ids ?? [];
     await syncContactLinks(data.id, {
-      area_ids: area_ids ?? input.area_ids ?? [],
-      goal_ids: goal_ids ?? input.goal_ids ?? [],
-      project_ids: project_ids ?? input.project_ids ?? [],
-      task_ids: task_ids ?? input.task_ids ?? [],
+      area_ids: linkedAreaIds,
+      goal_ids: linkedGoalIds,
+      project_ids: linkedProjectIds,
+      task_ids: linkedTaskIds,
     }, sb);
 
     return {
       ...data,
       image_display_url: await signContactImage(data.image_url, options),
-      linkedAreaIds: input.area_ids ?? [],
-      linkedGoalIds: input.goal_ids ?? [],
-      linkedProjectIds: input.project_ids ?? [],
-      linkedTaskIds: input.task_ids ?? [],
+      linkedAreaIds,
+      linkedGoalIds,
+      linkedProjectIds,
+      linkedTaskIds,
     };
   },
 
