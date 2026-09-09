@@ -24,18 +24,20 @@ export default async function DashboardGroupLayout({
   // Safe here (unlike the root layout): this layout is scoped to (dashboard) and
   // is never rendered for /login, so sign-out's navigation away never re-runs
   // this `auth()` mid session-revoke.
-  const { userId } = await auth();
+  const { userId, redirectToSignIn } = await auth();
+
+  // Resource-based auth: this replaces the proxy's deprecated path-based
+  // auth.protect(). Anonymous dashboard requests bounce here. Same machinery
+  // the middleware used (createRedirect): 307 /login?redirect_url=<current url>.
+  if (!userId) return redirectToSignIn();
 
   // Gate the shell behind onboarding completion BEFORE rendering. Incomplete
   // users are redirected server-side, so they never see the dashboard flash
   // then bounce on the client.
-  if (userId) {
-    const supabase = await createClient();
-    const onboarding = await userSettingsService.getOnboardingState(userId, { supabase });
-    const destination = await resolveDashboardDestination(onboarding);
-    if (destination) redirect(destination);
-  }
-
+  const supabase = await createClient();
+  const onboarding = await userSettingsService.getOnboardingState(userId, { supabase });
+  const destination = await resolveDashboardDestination(onboarding);
+  if (destination) redirect(destination);
   // Resolve the full profile + subscription server-side so the topbar renders
   // name/email/avatar and the cohort badge in the FIRST paint — no icon-only
   // flash, no regression to "User" while Clerk's client SDK loads (AuthProvider
@@ -43,18 +45,14 @@ export default async function DashboardGroupLayout({
   // summary caches for 60s so client-side navigations don't re-hit Clerk or
   // the marketing site. Total added latency: one Clerk call (profile), which
   // the page already pays on every dynamic render.
-  const profile = userId ? await resolveUserProfile(userId).catch(() => null) : null;
-  const initialUser = userId
-    ? {
-        id: userId,
-        email: profile?.email ?? null,
-        name: profile?.name ?? null,
-        imageUrl: profile?.imageUrl ?? null,
-      }
-    : null;
-  const initialSubscription = userId
-    ? await getSubscriptionSummary(userId, { profile })
-    : null;
+  const profile = await resolveUserProfile(userId).catch(() => null);
+  const initialUser = {
+    id: userId,
+    email: profile?.email ?? null,
+    name: profile?.name ?? null,
+    imageUrl: profile?.imageUrl ?? null,
+  };
+  const initialSubscription = await getSubscriptionSummary(userId, { profile });
   return (
     <AuthProvider initialUser={initialUser}>
       <InboxBackfillProvider>
