@@ -1,7 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { getLocalDateEnd, getLocalDateStart, getWeekStart } from "../utils/dates"
+import { getLocalDateKey, getWeekStart } from "../utils/dates"
 import type { TodayData, ActivityItem, ActivityEntityType } from "../services/dashboard.service"
 import { userSettingsService } from "../services/user-settings.service"
+
+// Supabase many-to-one embeds return either an object or a single-element
+// array — normalize both.
+function embedName(embed: unknown): string | null {
+  if (!embed) return null
+  if (Array.isArray(embed)) {
+    const first = embed[0] as { name?: string } | undefined
+    return first?.name ?? null
+  }
+  if (typeof embed === "object" && embed !== null && "name" in embed) {
+    return (embed as { name?: string }).name ?? null
+  }
+  return null
+}
 
 async function serverFetchRecentActivity(
   supabase: SupabaseClient,
@@ -10,13 +24,13 @@ async function serverFetchRecentActivity(
   const [tasksResult, goalsResult, projectsResult, areasResult] = await Promise.allSettled([
     supabase
       .from("tasks")
-      .select("id, title, description, created_at, updated_at")
+      .select("id, name, description, created_at, updated_at")
       .eq("user_id", userId)
       .order("updated_at", { ascending: false })
       .limit(5),
     supabase
       .from("goals")
-      .select("id, title, description, created_at, updated_at")
+      .select("id, name, description, created_at, updated_at")
       .eq("user_id", userId)
       .order("updated_at", { ascending: false })
       .limit(5),
@@ -42,24 +56,30 @@ async function serverFetchRecentActivity(
   const areaRows = areasResult.status === "fulfilled" ? (areasResult.value.data ?? []) : []
 
   const activity: ActivityItem[] = [
-    ...taskRows.map((t) => ({
-      id: t.id,
-      entityType: "task" as ActivityEntityType,
-      entityId: t.id,
-      title: t.title,
-      description: t.description,
-      createdAt: t.created_at,
-      updatedAt: t.updated_at,
-    })),
-    ...goalRows.map((g) => ({
-      id: g.id,
-      entityType: "goal" as ActivityEntityType,
-      entityId: g.id,
-      title: g.title,
-      description: g.description,
-      createdAt: g.created_at,
-      updatedAt: g.updated_at,
-    })),
+    ...taskRows.map((t) => {
+      const row = t as unknown as { name?: string; title?: string };
+      return {
+        id: t.id,
+        entityType: "task" as ActivityEntityType,
+        entityId: t.id,
+        title: row.name ?? row.title ?? "Untitled",
+        description: t.description,
+        createdAt: t.created_at,
+        updatedAt: t.updated_at,
+      };
+    }),
+    ...goalRows.map((g) => {
+      const row = g as unknown as { name?: string; title?: string };
+      return {
+        id: g.id,
+        entityType: "goal" as ActivityEntityType,
+        entityId: g.id,
+        title: row.name ?? row.title ?? "Untitled",
+        description: g.description,
+        createdAt: g.created_at,
+        updatedAt: g.updated_at,
+      };
+    }),
     ...projectRows.map((p) => ({
       id: p.id,
       entityType: "project" as ActivityEntityType,
@@ -90,14 +110,14 @@ export async function serverFetchDashboardToday(
   userId: string,
 ): Promise<TodayData> {
   // Resolve "today" in the user's timezone so the dashboard matches their
-  // local calendar date regardless of server timezone.
+  // local calendar date regardless of server timezone. due_date is a DATE:
+  // compare date keys, not ISO timestamps.
   const prefs = await userSettingsService.getPreferences(userId, { supabase });
   const tz = prefs?.timezone;
-  const todayStart = getLocalDateStart(tz)
-  const todayEnd = getLocalDateEnd(tz)
+  const todayKey = getLocalDateKey(tz)
   const weekStart = getWeekStart(tz)
 
-  const taskSelect = "id, title, description, due_date, priority, status, project_id, area_id, projects(name), goals(title), areas(name)"
+  const taskSelect = "id, name, description, due_date, priority, status, is_completed, is_archived, is_focused, project_id, area_id, projects(name), areas(name)"
 
   const [
     dueTodayResult,
@@ -112,19 +132,21 @@ export async function serverFetchDashboardToday(
         .from("tasks")
         .select(taskSelect)
         .eq("user_id", userId)
-        .eq("status", "pending")
-        .or(`due_date.gte.${todayStart},due_date.lte.${todayEnd}`)
+        .eq("is_archived", false)
+        .eq("is_completed", false)
+        .eq("due_date", todayKey)
         .order("due_date", { ascending: true }),
       supabase
         .from("tasks")
         .select(taskSelect)
         .eq("user_id", userId)
-        .eq("status", "pending")
+        .eq("is_archived", false)
+        .eq("is_completed", false)
         .eq("is_focused", true)
         .limit(20),
       supabase
         .from("goals")
-        .select("id, title, description, progress, target_date, area_id, areas(name)")
+        .select("id, name, description, progress, target_date, area_id, areas(name)")
         .eq("user_id", userId)
         .eq("is_completed", false)
         .eq("is_archived", false)
@@ -134,7 +156,7 @@ export async function serverFetchDashboardToday(
         .from("tasks")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId)
-        .eq("status", "completed")
+        .eq("is_completed", true)
         .gte("updated_at", weekStart),
       supabase
         .from("goals")
@@ -146,8 +168,9 @@ export async function serverFetchDashboardToday(
         .from("tasks")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId)
-        .eq("status", "pending")
-        .lt("due_date", todayStart),
+        .eq("is_archived", false)
+        .eq("is_completed", false)
+        .lt("due_date", todayKey),
       serverFetchRecentActivity(supabase, userId),
     ])
 
@@ -178,33 +201,36 @@ export async function serverFetchDashboardToday(
     if (!taskMap.has(t.id)) taskMap.set(t.id, t)
   }
 
-  const todayStartDate = new Date(todayStart)
   const todayTasksFormatted = Array.from(taskMap.values()).map((t) => {
-    const dueDate = t.due_date ? new Date(t.due_date) : null
-    const isOverdue = dueDate !== null && dueDate < todayStartDate && t.status === "pending"
+    const row = t as unknown as { name?: string; title?: string };
+    const isOverdue =
+      t.due_date != null && t.due_date < todayKey && !t.is_completed && !t.is_archived
     return {
       id: t.id,
-      title: t.title,
+      title: row.name ?? row.title ?? "Untitled",
       description: t.description,
       dueDate: t.due_date,
       priority: t.priority,
       status: t.status,
       isOverdue,
       projectId: t.project_id,
-      projectName: (t.projects?.[0] as { name: string } | undefined)?.name ?? null,
+      projectName: embedName(t.projects),
       areaId: t.area_id,
-      areaName: (t.areas?.[0] as { name: string } | undefined)?.name ?? null,
+      areaName: embedName(t.areas),
     }
   })
 
-  const activeGoals = goalRows.map((g) => ({
-    id: g.id,
-    title: g.title,
-    description: g.description,
-    progress: g.progress ?? 0,
-    targetDate: g.target_date,
-    areaName: (g.areas as { name: string }[] | null)?.[0]?.name ?? null,
-  }))
+  const activeGoals = goalRows.map((g) => {
+    const row = g as unknown as { name?: string; title?: string };
+    return {
+      id: g.id,
+      title: row.name ?? row.title ?? "Untitled",
+      description: g.description,
+      progress: g.progress ?? 0,
+      targetDate: g.target_date,
+      areaName: embedName(g.areas),
+    };
+  })
 
   const hour = new Date().getHours()
   const greeting =

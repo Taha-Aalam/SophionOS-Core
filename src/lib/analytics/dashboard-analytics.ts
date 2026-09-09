@@ -5,6 +5,9 @@ export type GoalProgressBucket = "stuck" | "moving" | "almostDone";
 
 export interface DashboardAnalyticsInput {
   now?: Date;
+  /** IANA timezone for "today" calculations. When omitted, falls back to
+   *  server-local (previous behaviour — correct for browser callers). */
+  timeZone?: string;
   areas: Area[];
   goals: Goal[];
   projects: Project[];
@@ -75,16 +78,47 @@ function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-/** Local calendar date key (YYYY-MM-DD) — consistent with startOfDay. */
-function toDateKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+/** Local calendar date key (YYYY-MM-DD) — consistent with startOfDay. When
+ *  timeZone is provided, resolves the calendar date in that zone (via
+ *  Intl) so server UTC vs user-local mismatches don't shift "today". */
+function toDateKey(date: Date, timeZone?: string): string {
+  if (!timeZone) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  try {
+    // en-CA formats as YYYY-MM-DD.
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  } catch {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
 }
 
-function daysBetween(a: Date, b: Date): number {
-  return Math.floor((startOfDay(a).getTime() - startOfDay(b).getTime()) / MS_PER_DAY);
+function startOfDayInTZ(date: Date, timeZone?: string): Date {
+  if (!timeZone) return startOfDay(date);
+  // Midnight UTC on the tz calendar date — diffing two such values yields
+  // whole calendar-day differences in that zone.
+  const key = toDateKey(date, timeZone);
+  return new Date(`${key}T00:00:00.000Z`);
+}
+
+function daysBetween(a: Date, b: Date, timeZone?: string): number {
+  if (!timeZone) {
+    return Math.floor((startOfDay(a).getTime() - startOfDay(b).getTime()) / MS_PER_DAY);
+  }
+  return Math.round(
+    (startOfDayInTZ(a, timeZone).getTime() - startOfDayInTZ(b, timeZone).getTime()) / MS_PER_DAY,
+  );
 }
 
 /**
@@ -115,21 +149,37 @@ function isTaskActive(task: Task): boolean {
   return !task.is_archived && !isTaskCompleted(task) && task.status !== TASK_STATUS.ARCHIVED;
 }
 
-function isDueToday(task: Task, now: Date): boolean {
+function isDueToday(task: Task, now: Date, timeZone?: string): boolean {
+  // DATE columns are calendar dates: compare directly to today's key in the
+  // user's zone. Parsing "2026-08-03" into a server-local Date then
+  // re-keying can shift a day west of UTC.
+  if (typeof task.due_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(task.due_date)) {
+    return task.due_date === toDateKey(now, timeZone);
+  }
   const due = parseDate(task.due_date);
-  return Boolean(due && toDateKey(due) === toDateKey(now));
+  return Boolean(due && toDateKey(due, timeZone) === toDateKey(now, timeZone));
 }
 
-function isOverdue(task: Task, now: Date): boolean {
+function isOverdue(task: Task, now: Date, timeZone?: string): boolean {
+  if (!isTaskActive(task)) return false;
+  if (typeof task.due_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(task.due_date)) {
+    return task.due_date < toDateKey(now, timeZone);
+  }
   const due = parseDate(task.due_date);
-  return Boolean(due && startOfDay(due) < startOfDay(now) && isTaskActive(task));
+  return Boolean(due && startOfDayInTZ(due, timeZone) < startOfDayInTZ(now, timeZone));
 }
 
-function isCompletedThisWeek(task: Task, now: Date): boolean {
+function isCompletedThisWeek(task: Task, now: Date, timeZone?: string): boolean {
   const completed = parseDate(task.completed_at ?? task.updated_at);
   if (!completed || !isTaskCompleted(task)) return false;
-  const weekStart = startOfDay(now);
+  const weekStart = startOfDayInTZ(now, timeZone);
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  // When timeZone is set, weekStart is a UTC-midnight marker while completed
+  // is a server-local instant — compare via calendar keys/days instead of raw
+  // instants to avoid zone skew. Fall back to instant comparison otherwise.
+  if (timeZone) {
+    return daysBetween(completed, weekStart, timeZone) >= 0 && completed <= now;
+  }
   return completed >= weekStart && completed <= now;
 }
 
@@ -165,10 +215,10 @@ function linkedGoalIds(entity: { goal_id?: string | null; linkedGoalIds?: string
   return entity.linkedGoalIds?.length ? entity.linkedGoalIds : entity.goal_id ? [entity.goal_id] : [];
 }
 
-export function getGoalProgressBucket(goal: Goal, now: Date): GoalProgressBucket {
+export function getGoalProgressBucket(goal: Goal, now: Date, timeZone?: string): GoalProgressBucket {
   const progress = Number(goal.progress ?? 0);
   const due = parseDate(goal.target_date);
-  const nearDue = due ? daysBetween(due, now) <= DEFAULT_NEAR_DUE_DAYS : false;
+  const nearDue = due ? daysBetween(due, now, timeZone) <= DEFAULT_NEAR_DUE_DAYS : false;
   if (progress >= 75) return "almostDone";
   if (progress < 25 || (nearDue && progress < 50)) return "stuck";
   return "moving";
@@ -176,16 +226,17 @@ export function getGoalProgressBucket(goal: Goal, now: Date): GoalProgressBucket
 
 export function buildDashboardAnalytics(input: DashboardAnalyticsInput): DashboardAnalytics {
   const now = input.now ?? new Date();
+  const tz = input.timeZone;
   const areasById = new Map(input.areas.map((area) => [area.id, entityName(area)]));
   const projectsById = new Map(input.projects.map((project) => [project.id, entityName(project)]));
   const topicsById = new Map(input.topics.map((topic) => [topic.id, entityName(topic)]));
   const activeGoalRows = activeGoals(input.goals);
   const activeProjectRows = activeProjects(input.projects);
   const activeProjectIds = new Set(activeProjectRows.map((project) => project.id));
-  const overdueTasks = input.tasks.filter((task) => isOverdue(task, now));
-  const completedThisWeek = input.tasks.filter((task) => isCompletedThisWeek(task, now)).length;
+  const overdueTasks = input.tasks.filter((task) => isOverdue(task, now, tz));
+  const completedThisWeek = input.tasks.filter((task) => isCompletedThisWeek(task, now, tz)).length;
   const focusTasks = input.tasks.filter((task) => isTaskActive(task) && task.is_focused).length;
-  const todayTasks = input.tasks.filter((task) => isTaskActive(task) && isDueToday(task, now)).length;
+  const todayTasks = input.tasks.filter((task) => isTaskActive(task) && isDueToday(task, now, tz)).length;
   const inProgress = input.tasks.filter(
     (task) => isTaskActive(task) && task.status === TASK_STATUS.IN_PROGRESS,
   ).length;
@@ -197,7 +248,7 @@ export function buildDashboardAnalytics(input: DashboardAnalyticsInput): Dashboa
     .map((project) => ({
       id: project.id,
       name: entityName(project),
-      daysSinceUpdate: daysBetween(now, parseDate(project.updated_at) ?? now),
+      daysSinceUpdate: daysBetween(now, parseDate(project.updated_at) ?? now, tz),
     }))
     .filter((project) => project.daysSinceUpdate >= DEFAULT_STALLED_DAYS)
     .sort((a, b) => b.daysSinceUpdate - a.daysSinceUpdate)
@@ -210,7 +261,7 @@ export function buildDashboardAnalytics(input: DashboardAnalyticsInput): Dashboa
         id: goal.id,
         name: entityName(goal),
         progress: Number(goal.progress ?? 0),
-        daysUntilDue: due ? daysBetween(due, now) : Number.POSITIVE_INFINITY,
+        daysUntilDue: due ? daysBetween(due, now, tz) : Number.POSITIVE_INFINITY,
       };
     })
     .filter(
@@ -247,7 +298,7 @@ export function buildDashboardAnalytics(input: DashboardAnalyticsInput): Dashboa
     input.resources.filter((resource) => resource.is_archived).length;
   const capturedToday = [...input.notes, ...input.resources].filter((item) => {
     const created = parseDate(item.created_at);
-    return Boolean(created && toDateKey(created) === toDateKey(now));
+    return Boolean(created && toDateKey(created, tz) === toDateKey(now, tz));
   }).length;
 
   const topicCounts = new Map<string, number>();
@@ -258,7 +309,7 @@ export function buildDashboardAnalytics(input: DashboardAnalyticsInput): Dashboa
       topicCounts.set(resource.topic_id, (topicCounts.get(resource.topic_id) ?? 0) + 1);
 
   const buckets: Record<GoalProgressBucket, number> = { stuck: 0, moving: 0, almostDone: 0 };
-  for (const goal of activeGoalRows) buckets[getGoalProgressBucket(goal, now)] += 1;
+  for (const goal of activeGoalRows) buckets[getGoalProgressBucket(goal, now, tz)] += 1;
 
   const relationshipContacts = input.contacts
     .filter((contact) => !contact.archive && contact.follow_up_interval_days)
@@ -269,7 +320,7 @@ export function buildDashboardAnalytics(input: DashboardAnalyticsInput): Dashboa
       const anchor =
         parseDate(contact.last_interaction_at) ?? parseDate(contact.created_at) ?? null;
       // No known anchor → treat as exactly at the interval (due, 0 days overdue).
-      const daysSinceInteraction = anchor ? daysBetween(now, anchor) : interval;
+      const daysSinceInteraction = anchor ? daysBetween(now, anchor, tz) : interval;
       const daysOverdue = Math.floor(daysSinceInteraction - interval);
       const projectIds = linkedProjectIds(contact);
       return {
@@ -326,7 +377,7 @@ export function buildDashboardAnalytics(input: DashboardAnalyticsInput): Dashboa
         .length,
       contacts: relationshipContacts,
     },
-    heatmap: buildHeatmap(input.tasks, input.notes, input.resources, now),
+    heatmap: buildHeatmap(input.tasks, input.notes, input.resources, now, tz),
     contextNetwork: buildContextNetwork(input.areas, activeGoalRows, activeProjectRows, input.tasks),
   };
 }
@@ -345,16 +396,43 @@ function countNamedGroups(
 
 /**
  * GitHub-style contribution window: from the Monday on/before (today − 1 year)
- * through today, so the grid fills complete weeks (~53 columns).
+ * through today, so the grid fills complete weeks (~53 columns). When
+ * timeZone is provided the window aligns to that zone's calendar dates.
  */
-export function buildHeatmapDateRange(now: Date): { start: Date; end: Date } {
-  const end = startOfDay(now);
-  const start = startOfDay(now);
-  start.setFullYear(start.getFullYear() - 1);
-  const jsDay = start.getDay();
-  const mondayIndex = jsDay === 0 ? 6 : jsDay - 1;
-  start.setDate(start.getDate() - mondayIndex);
-  return { start, end };
+export function buildHeatmapDateRange(now: Date, timeZone?: string): { start: Date; end: Date } {
+  if (!timeZone) {
+    const end = startOfDay(now);
+    const start = startOfDay(now);
+    start.setFullYear(start.getFullYear() - 1);
+    const jsDay = start.getDay();
+    const mondayIndex = jsDay === 0 ? 6 : jsDay - 1;
+    start.setDate(start.getDate() - mondayIndex);
+    return { start, end };
+  }
+  const end = startOfDayInTZ(now, timeZone);
+  const start = new Date(end.getTime());
+  start.setUTCFullYear(start.getUTCFullYear() - 1);
+  // Step back to the Monday on/before (start − 1 year) in the target zone.
+  let cursor = new Date(start.getTime());
+  for (let i = 0; i < 7; i++) {
+    if (weekdayInTZ(cursor, timeZone) === 1) break;
+    cursor = new Date(cursor.getTime() - MS_PER_DAY);
+  }
+  return { start: cursor, end };
+}
+
+function weekdayInTZ(date: Date, timeZone?: string): number {
+  if (!timeZone) return date.getDay();
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      weekday: "short",
+    }).formatToParts(date);
+    const wd = parts.find((p) => p.type === "weekday")?.value ?? "";
+    return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[wd] ?? date.getDay();
+  } catch {
+    return date.getDay();
+  }
 }
 
 function buildHeatmap(
@@ -362,32 +440,67 @@ function buildHeatmap(
   notes: Note[],
   resources: Resource[],
   now: Date,
+  timeZone?: string,
 ): DashboardAnalytics["heatmap"] {
-  const { start, end } = buildHeatmapDateRange(now);
+  // Without a timezone keep the exact legacy iteration (server-local
+  // midnights) so existing snapshots stay stable.
+  if (!timeZone) {
+    const { start, end } = buildHeatmapDateRange(now);
+    const days: DashboardAnalytics["heatmap"]["days"] = [];
+    for (
+      let cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      cursor.getTime() <= end.getTime();
+      cursor.setDate(cursor.getDate() + 1)
+    ) {
+      days.push({
+        date: toDateKey(cursor),
+        completed: 0,
+        captured: 0,
+        total: 0,
+      });
+    }
+    const dayMap = new Map(days.map((day) => [day.date, day]));
+
+    for (const task of tasks) {
+      if (!isTaskCompleted(task)) continue;
+      const date = parseDate(task.completed_at ?? task.updated_at);
+      const day = date ? dayMap.get(toDateKey(date)) : undefined;
+      if (day) day.completed += 1;
+    }
+    for (const item of [...notes, ...resources]) {
+      const date = parseDate(item.created_at);
+      const day = date ? dayMap.get(toDateKey(date)) : undefined;
+      if (day) day.captured += 1;
+    }
+    for (const day of days) day.total = day.completed + day.captured;
+
+    return { days };
+  }
+
+  const { start, end } = buildHeatmapDateRange(now, timeZone);
   const days: DashboardAnalytics["heatmap"]["days"] = [];
+  // Iterate calendar days in the target zone using UTC-midnight markers.
   for (
-    let cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    let cursor = new Date(start.getTime());
     cursor.getTime() <= end.getTime();
-    cursor.setDate(cursor.getDate() + 1)
+    cursor = new Date(cursor.getTime() + MS_PER_DAY)
   ) {
-    days.push({
-      date: toDateKey(cursor),
-      completed: 0,
-      captured: 0,
-      total: 0,
-    });
+    // Noon-UTC probe avoids DST-boundary key flips for the marker day.
+    const key = toDateKey(new Date(cursor.getTime() + MS_PER_DAY / 2), timeZone);
+    if (days.length > 0 && days[days.length - 1]?.date === key) continue;
+    days.push({ date: key, completed: 0, captured: 0, total: 0 });
   }
   const dayMap = new Map(days.map((day) => [day.date, day]));
 
   for (const task of tasks) {
     if (!isTaskCompleted(task)) continue;
     const date = parseDate(task.completed_at ?? task.updated_at);
-    const day = date ? dayMap.get(toDateKey(date)) : undefined;
+    const day = date ? dayMap.get(toDateKey(date, timeZone)) : undefined;
     if (day) day.completed += 1;
   }
   for (const item of [...notes, ...resources]) {
     const date = parseDate(item.created_at);
-    const day = date ? dayMap.get(toDateKey(date)) : undefined;
+    const day = date ? dayMap.get(toDateKey(date, timeZone)) : undefined;
     if (day) day.captured += 1;
   }
   for (const day of days) day.total = day.completed + day.captured;
