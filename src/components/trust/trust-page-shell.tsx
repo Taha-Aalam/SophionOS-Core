@@ -16,6 +16,9 @@ export function TrustPageShell({
             SophionOS
           </Link>
           <nav className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            <Link href="/terms" className="hover:text-foreground">
+              Terms
+            </Link>
             <Link href="/privacy" className="hover:text-foreground">
               Privacy
             </Link>
