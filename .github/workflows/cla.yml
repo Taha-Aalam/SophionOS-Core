@@ -38,3 +38,5 @@ jobs:
           path-to-signatures: signatures/version1/cla.json
           path-to-document: https://github.com/Taha-Aalam/SophionOS-Core/blob/master/CLA.md
           branch: cla-signatures
+          # Bots (Dependabot etc.) cannot sign a CLA; skip the check for them.
+          allowlist: dependabot[bot],github-actions[bot],renovate[bot]
