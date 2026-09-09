@@ -27,13 +27,29 @@ function extractResourceAreaIds<TInput extends { area_id?: string | null; area_i
 } {
   const { area_ids, area_id, ...rest } = input;
 
-  if (area_ids !== undefined && area_ids.length > 0) {
-    const normalizedAreaIds = dedupeAreaIds(area_ids);
+  // Merge singular + plural so neither is silently dropped when both arrive.
+  const hasAreaIds = Array.isArray(area_ids) && area_ids.length > 0;
+  const hasAreaId = typeof area_id === "string" && area_id.length > 0;
+  if (hasAreaIds || hasAreaId) {
+    const normalizedAreaIds = dedupeAreaIds([
+      ...(hasAreaIds ? area_ids : []),
+      ...(hasAreaId ? [area_id] : []),
+    ]);
     return {
       areaIds: normalizedAreaIds,
       resourceInput: {
         ...rest,
         area_id: normalizedAreaIds[0] ?? null,
+      } as Omit<TInput, "area_ids">,
+    };
+  }
+
+  if (area_ids !== undefined) {
+    return {
+      areaIds: [],
+      resourceInput: {
+        ...rest,
+        area_id: null,
       } as Omit<TInput, "area_ids">,
     };
   }
@@ -146,16 +162,43 @@ function extractTaskIds(input: { task_ids?: string[] }): {
 }
 
 // ─── Project ID helpers ───────────────────────────────────────────────────────
+// resources has no project_id FK column — all project links live in the
+// resource_projects junction. Accept a singular project_id anyway (MCP +
+// legacy callers send it) and merge it into project_ids so it is never
+// silently dropped — and never leaks into the DB insert payload.
 
-function extractProjectIds(input: { project_ids?: string[] }): {
+function extractProjectIds(input: { project_id?: string | null; project_ids?: string[] }): {
   projectIds: string[] | undefined;
-  resourceInput: Omit<typeof input, "project_ids">;
+  resourceInput: Omit<typeof input, "project_ids" | "project_id">;
 } {
-  const { project_ids, ...resourceInput } = input;
+  const { project_ids, project_id, ...resourceInput } = input as {
+    project_ids?: string[];
+    project_id?: string | null;
+    [k: string]: unknown;
+  };
+
+  const hasPlural = Array.isArray(project_ids) && project_ids.length > 0;
+  const hasSingular = typeof project_id === "string" && project_id.length > 0;
+  if (hasPlural || hasSingular) {
+    const merged = Array.from(
+      new Set([...(hasPlural ? project_ids : []), ...(hasSingular ? [project_id] : [])]),
+    );
+    return {
+      projectIds: merged,
+      resourceInput: resourceInput as Omit<typeof input, "project_ids" | "project_id">,
+    };
+  }
+
+  if (project_ids !== undefined || project_id !== undefined) {
+    return {
+      projectIds: [],
+      resourceInput: resourceInput as Omit<typeof input, "project_ids" | "project_id">,
+    };
+  }
 
   return {
-    projectIds: project_ids ? Array.from(new Set(project_ids)) : undefined,
-    resourceInput,
+    projectIds: undefined,
+    resourceInput: resourceInput as Omit<typeof input, "project_ids" | "project_id">,
   };
 }
 
@@ -511,10 +554,20 @@ export const resourceService = {
   ): Promise<Resource> {
     const sb = options?.supabase ?? createClient();
     try {
-      const { goal_ids, task_ids, project_ids, ...rest } = input;
+      const { goal_ids, task_ids, project_ids, project_id, ...rest } = input as UpdateResourceInput & {
+        project_id?: string | null;
+      };
       const goalIds = goal_ids ? Array.from(new Set(goal_ids)) : undefined;
       const taskIds = task_ids ? Array.from(new Set(task_ids)) : undefined;
-      const projectIds = project_ids ? Array.from(new Set(project_ids)) : undefined;
+      // Merge singular project_id into project_ids (no FK column exists).
+      const hasPluralIds = Array.isArray(project_ids) && project_ids.length > 0;
+      const hasSingularId = typeof project_id === "string" && project_id.length > 0;
+      const projectIds =
+        hasPluralIds || hasSingularId
+          ? Array.from(new Set([...(hasPluralIds ? project_ids : []), ...(hasSingularId ? [project_id] : [])]))
+          : project_ids !== undefined || project_id !== undefined
+            ? []
+            : undefined;
       const { areaIds, resourceInput: areaCleanedInput } = extractResourceAreaIds(rest);
       const validated = updateResourceSchema.parse(areaCleanedInput);
       const hasResourceUpdates = Object.keys(validated).length > 0;
