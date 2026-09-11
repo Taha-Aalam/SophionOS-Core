@@ -1,9 +1,10 @@
 "use client";
 
-import { Network } from "lucide-react";
+import { ArrowRight, Network } from "lucide-react";
 import type { CSSProperties } from "react";
 
 import { AnalyticsPanel } from "@/components/dashboard/analytics/analytics-panel";
+import { Button } from "@/components/ui/button";
 import type { DashboardAnalytics } from "@/lib/analytics/dashboard-analytics";
 
 interface ContextNetworkMiniProps {
@@ -88,6 +89,16 @@ export function ContextNetworkMini({ network }: ContextNetworkMiniProps) {
           />
         </div>
       </div>
+      <Button
+        variant="outline"
+        size="sm"
+        className="mt-4 w-full cursor-pointer"
+        nativeButton={false}
+        render={<a href="/dashboard/network" />}
+      >
+        View full map
+        <ArrowRight data-icon="inline-end" />
+      </Button>
     </AnalyticsPanel>
   );
 }
