@@ -108,7 +108,10 @@ const nextConfig: NextConfig = {
   // inferred workspace root (the build is always invoked from the repo root).
   // Allow local.sophionos.com through dev-server origin checks (hosts-file
   // mapping for Clerk prod-keys-locally debugging; see Clerk docs).
-  allowedDevOrigins: ["local.sophionos.com"],
+  // localhost/127.0.0.1 are included so the server also accepts direct
+  // hits on the loopback names (the unified mkcert in certificates/dev.pem
+  // covers all three — see below).
+  allowedDevOrigins: ["local.sophionos.com", "localhost", "127.0.0.1"],
   outputFileTracingRoot: process.cwd(),
   transpilePackages: ["@base-ui/react", "@base-ui/utils"],
   poweredByHeader: false,
