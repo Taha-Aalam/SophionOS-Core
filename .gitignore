@@ -138,3 +138,8 @@ canaries.manifest.json
 
 
 certificates
+
+# Certificate/key material + local package store
+*.crt
+certs/
+.pnpm-store/
