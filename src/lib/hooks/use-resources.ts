@@ -147,10 +147,11 @@ export function useLinkResourceToGoal() {
 
 export function useUnlinkResourceFromGoal() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: ({ resourceId, goalId }: { resourceId: string; goalId: string }) =>
-      resourceService.unlinkFromGoal(goalId, resourceId),
+      resourceService.unlinkFromGoal(user!.id, goalId, resourceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });

@@ -424,7 +424,7 @@ export const noteService = {
       }
 
       if (notebooks.length) {
-        await this.replaceNotebooks(data.id, notebooks, options);
+        await this.replaceNotebooks(userId, data.id, notebooks, options);
       }
 
       return hydrateSingleNoteRelations(data, options);
@@ -543,7 +543,7 @@ export const noteService = {
       }
 
       if (notebooks !== undefined) {
-        await this.replaceNotebooks(id, notebooks, options);
+        await this.replaceNotebooks(userId, id, notebooks, options);
       }
 
       return hydrateSingleNoteRelations(note, options);
@@ -655,8 +655,11 @@ export const noteService = {
     return hydrateNoteRelations(notes, options);
   },
 
-  async linkToGoal(goalId: string, noteId: string, options?: ServiceOptions): Promise<void> {
-    const { error } = await (options?.supabase ?? createClient())
+  async linkToGoal(userId: string, goalId: string, noteId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
+    await assertOwnedIds(sb, "notes", userId, [noteId], "Note");
+    const { error } = await sb
       .from("goal_notes")
       .upsert({ goal_id: goalId, note_id: noteId });
 
@@ -667,8 +670,11 @@ export const noteService = {
     await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async unlinkFromGoal(goalId: string, noteId: string, options?: ServiceOptions): Promise<void> {
-    const { error } = await (options?.supabase ?? createClient())
+  async unlinkFromGoal(userId: string, goalId: string, noteId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
+    await assertOwnedIds(sb, "notes", userId, [noteId], "Note");
+    const { error } = await sb
       .from("goal_notes")
       .delete()
       .eq("goal_id", goalId)
@@ -681,8 +687,11 @@ export const noteService = {
     await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async linkToTask(taskId: string, noteId: string, options?: ServiceOptions): Promise<void> {
-    const { error } = await (options?.supabase ?? createClient())
+  async linkToTask(userId: string, taskId: string, noteId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
+    await assertOwnedIds(sb, "notes", userId, [noteId], "Note");
+    const { error } = await sb
       .from("task_notes")
       .upsert({ task_id: taskId, note_id: noteId });
 
@@ -695,8 +704,11 @@ export const noteService = {
     await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async unlinkFromTask(taskId: string, noteId: string, options?: ServiceOptions): Promise<void> {
-    const { error } = await (options?.supabase ?? createClient())
+  async unlinkFromTask(userId: string, taskId: string, noteId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
+    await assertOwnedIds(sb, "notes", userId, [noteId], "Note");
+    const { error } = await sb
       .from("task_notes")
       .delete()
       .eq("task_id", taskId)
@@ -983,8 +995,11 @@ export const noteService = {
     return hydrateNoteRelations(rows, options);
   },
 
-  async replaceNotebooks(noteId: string, notebooks: string[], options?: ServiceOptions): Promise<void> {
+  async replaceNotebooks(userId: string, noteId: string, notebooks: string[], options?: ServiceOptions): Promise<void> {
     const client = options?.supabase ?? createClient();
+    // Notebook membership rows are keyed by the owning note; the API-key
+    // path must not be able to rewrite another tenant's notebook rows.
+    await assertOwnedIds(client, "notes", userId, [noteId], "Note");
     const { error: delError } = await client.from("note_notebooks").delete().eq("note_id", noteId);
     if (delError) {
       if (delError.code === "42P01") return;

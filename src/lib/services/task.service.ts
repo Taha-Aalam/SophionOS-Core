@@ -902,6 +902,8 @@ export const taskService = {
   },
 
   async permanentDelete(userId: string, id: string, options?: ServiceOptions): Promise<void> {
+    // Junction cleanup is only ever allowed for a task the caller owns.
+    await assertOwnedIds(options?.supabase ?? createClient(), "tasks", userId, [id], "Task");
     // Clean up join table rows first to avoid FK violations
     const areaIds = await this.getAreaLinks(id, options);
     if (areaIds.length > 0) {
@@ -1212,6 +1214,10 @@ export const taskService = {
     const tasks = data ?? [];
     if (tasks.length === 0) return 0;
     const taskIds = tasks.map((t) => t.id);
+
+    // The junction cleanup below is scoped to these ids; keep the write
+    // tenant-scoped at the application layer too.
+    await assertOwnedIds(options?.supabase ?? createClient(), "tasks", userId, taskIds, "Task");
 
     // Batch every junction read with a single .in(ids) query instead of three
     // per-row lookups (the old loop was O(rows) round trips). Derive in memory.

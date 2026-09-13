@@ -364,11 +364,11 @@ export const contactService = {
 
   async create(userId: string, input: CreateContactInput, options?: ServiceOptions): Promise<Contact> {
     const sb = options?.supabase ?? createClient();
-    if (input && typeof (input as Record<string, unknown>).image_url === "string") {
-      const raw = (input as Record<string, unknown>).image_url as string;
+    if (input && typeof (input as unknown as Record<string, unknown>).image_url === "string") {
+      const raw = (input as unknown as Record<string, unknown>).image_url as string;
       const path = getContactImagePath(raw);
       if (path && !enforceImageUrlOwnership(path, userId)) {
-        (input as Record<string, unknown>).image_url = null;
+        (input as unknown as Record<string, unknown>).image_url = null;
       }
     }
     const validated = createContactSchema.parse(input);
@@ -411,11 +411,11 @@ export const contactService = {
 
   async update(userId: string, id: string, input: UpdateContactInput, options?: ServiceOptions): Promise<Contact> {
     const sb = options?.supabase ?? createClient();
-    if (input && typeof (input as Record<string, unknown>).image_url === "string") {
-      const raw = (input as Record<string, unknown>).image_url as string;
+    if (input && typeof (input as unknown as Record<string, unknown>).image_url === "string") {
+      const raw = (input as unknown as Record<string, unknown>).image_url as string;
       const path = getContactImagePath(raw);
       if (path && !enforceImageUrlOwnership(path, userId)) {
-        (input as Record<string, unknown>).image_url = null;
+        (input as unknown as Record<string, unknown>).image_url = null;
       }
     }
     const validated = updateContactSchema.parse(input);
@@ -543,6 +543,7 @@ export const contactService = {
   async unlinkFromProject(userId: string, contactId: string, projectId: string, options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
     await this.getById(userId, contactId, options);
+    await assertOwnedIds(sb, "projects", userId, [projectId], "Project");
     const { error } = await sb
       .from("contact_projects")
       .delete()
@@ -587,6 +588,7 @@ export const contactService = {
   async unlinkFromTask(userId: string, contactId: string, taskId: string, options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
     await this.getById(userId, contactId, options);
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
     const { error } = await sb
       .from("contact_tasks")
       .delete()
@@ -648,6 +650,7 @@ export const contactService = {
   async unlinkFromArea(userId: string, contactId: string, areaId: string, options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
     await this.getById(userId, contactId, options);
+    await assertOwnedIds(sb, "areas", userId, [areaId], "Area");
     const { error } = await sb
       .from("contact_areas")
       .delete()
@@ -672,6 +675,7 @@ export const contactService = {
   async unlinkFromGoal(userId: string, contactId: string, goalId: string, options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
     await this.getById(userId, contactId, options);
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
     const { error } = await sb
       .from("contact_goals")
       .delete()

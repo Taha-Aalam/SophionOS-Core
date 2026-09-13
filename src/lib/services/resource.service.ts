@@ -834,11 +834,14 @@ export const resourceService = {
   },
 
   async unlinkFromGoal(
+    userId: string,
     goalId: string,
     resourceId: string,
     options?: ServiceOptions,
   ): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
+    await assertOwnedIds(sb, "resources", userId, [resourceId], "Resource");
     const { error } = await sb
       .from("goal_resources")
       .delete()
@@ -852,8 +855,10 @@ export const resourceService = {
     await this.syncResourceStatusFromContext(resourceId, options);
   },
 
-  async linkToTask(taskId: string, resourceId: string, options?: ServiceOptions): Promise<void> {
+  async linkToTask(userId: string, taskId: string, resourceId: string, options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
+    await assertOwnedIds(sb, "resources", userId, [resourceId], "Resource");
     const { error } = await sb
       .from("task_resources")
       .upsert({ task_id: taskId, resource_id: resourceId });
@@ -866,11 +871,14 @@ export const resourceService = {
   },
 
   async unlinkFromTask(
+    userId: string,
     taskId: string,
     resourceId: string,
     options?: ServiceOptions,
   ): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
+    await assertOwnedIds(sb, "resources", userId, [resourceId], "Resource");
     const { error } = await sb
       .from("task_resources")
       .delete()
@@ -1161,6 +1169,10 @@ export const resourceService = {
     const resources = data ?? [];
     if (resources.length === 0) return 0;
     const resourceIds = resources.map((r) => r.id);
+
+    // The junction cleanup below is scoped to these ids; keep the write
+    // tenant-scoped at the application layer too.
+    await assertOwnedIds(sb, "resources", userId, resourceIds, "Resource");
 
     // Batch every junction read with a single .in(ids) query instead of four
     // per-row lookups (the old loop was O(rows) round trips). Derive in memory.
