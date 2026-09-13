@@ -601,11 +601,20 @@ describe("goalService", () => {
       }),
     };
 
+    // assertOwnedIds (added with the junction IDOR guards) verifies the linked
+    // area is owned by the caller before the goal_areas insert.
+    const areasTable = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [{ id: areaId }], error: null }),
+    };
+
     const mockClient = {
       rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
       from: vi.fn((table: string) => {
         if (table === "goals") return goalsTable;
         if (table === "goal_areas") return goalAreasTable;
+        if (table === "areas") return areasTable;
         throw new Error(`Unexpected table: ${table}`);
       }),
     };

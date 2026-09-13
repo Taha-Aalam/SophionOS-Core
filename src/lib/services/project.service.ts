@@ -4,6 +4,7 @@ import type { CreateProjectInput, Project, UpdateProjectInput } from "../types/d
 import { createProjectSchema, updateProjectSchema } from "../validators/project.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
+import { assertOwnedIds, mapJunctionWriteError } from "../api/ownership";
 import { LIST_SAFETY_CAP, PROJECT_STATUS, type ProjectStatus } from "../utils/constants";
 import { deriveProjectStatus } from "../utils/status-routing";
 
@@ -923,6 +924,10 @@ export const projectService = {
   },
 
   async replaceAreaLinks(userId: string, projectId: string, areaIds: string[], options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    if (areaIds.length > 0) {
+      await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
+    }
     const existingRelations = await this.getWithRelations(userId, projectId, options);
     const existingAreaIds = new Set(existingRelations.area_ids);
     const nextAreaIds = new Set(areaIds);
@@ -930,24 +935,24 @@ export const projectService = {
     const areaIdsToRemove = existingRelations.area_ids.filter((areaId) => !nextAreaIds.has(areaId));
 
     if (areaIdsToAdd.length > 0) {
-      const { error } = await (options?.supabase ?? createClient())
+      const { error } = await sb
         .from("project_areas")
         .insert(areaIdsToAdd.map((area_id) => ({ area_id, project_id: projectId })));
 
       if (error && !isMissingProjectAreasTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
     if (areaIdsToRemove.length > 0) {
-      const { error } = await (options?.supabase ?? createClient())
+      const { error } = await sb
         .from("project_areas")
         .delete()
         .eq("project_id", projectId)
         .in("area_id", areaIdsToRemove);
 
       if (error && !isMissingProjectAreasTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -964,7 +969,7 @@ export const projectService = {
         .maybeSingle();
 
       if (fetchError) {
-        throw new DatabaseError(fetchError.message);
+        throw mapJunctionWriteError(fetchError);
       }
 
       const updatePayload: { area_id: string | null; status?: ProjectStatus } = {
@@ -998,7 +1003,7 @@ export const projectService = {
         .eq("user_id", userId);
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
   },
@@ -1019,6 +1024,10 @@ export const projectService = {
   },
 
   async replaceGoalLinks(userId: string, projectId: string, goalIds: string[], options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    if (goalIds.length > 0) {
+      await assertOwnedIds(sb, "goals", userId, goalIds, "Goal");
+    }
     const existingRelations = await this.getWithRelations(userId, projectId, options);
     const existingGoalIds = new Set(existingRelations.goal_ids);
     const nextGoalIds = new Set(goalIds);
@@ -1026,24 +1035,24 @@ export const projectService = {
     const goalIdsToRemove = existingRelations.goal_ids.filter((goalId) => !nextGoalIds.has(goalId));
 
     if (goalIdsToAdd.length > 0) {
-      const { error } = await (options?.supabase ?? createClient())
+      const { error } = await sb
         .from("goal_projects")
         .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, project_id: projectId })));
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
     if (goalIdsToRemove.length > 0) {
-      const { error } = await (options?.supabase ?? createClient())
+      const { error } = await sb
         .from("goal_projects")
         .delete()
         .eq("project_id", projectId)
         .in("goal_id", goalIdsToRemove);
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -1057,7 +1066,7 @@ export const projectService = {
       .maybeSingle();
 
     if (fetchError) {
-      throw new DatabaseError(fetchError.message);
+      throw mapJunctionWriteError(fetchError);
     }
 
     if (!currentProject) return;
@@ -1085,32 +1094,37 @@ export const projectService = {
         .eq("user_id", userId);
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
   },
 
   async linkToGoal(userId: string, projectId: string, goalId: string, options?: ServiceOptions): Promise<void> {
-    const { error } = await (options?.supabase ?? createClient())
+    const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
+    const { error } = await sb
       .from("goal_projects")
       .insert({ project_id: projectId, goal_id: goalId });
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     await this.syncProjectStatusFromContext(userId, projectId, options);
   },
 
   async unlinkFromGoal(userId: string, projectId: string, goalId: string, options?: ServiceOptions): Promise<void> {
-    const { error } = await (options?.supabase ?? createClient())
+    const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "projects", userId, [projectId], "Project");
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
+    const { error } = await sb
       .from("goal_projects")
       .delete()
       .eq("project_id", projectId)
       .eq("goal_id", goalId);
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     await this.syncProjectStatusFromContext(userId, projectId, options);
@@ -1205,12 +1219,22 @@ export const projectService = {
       .neq("status", PROJECT_STATUS.ON_HOLD);
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     const projects = (data ?? []) as unknown as Project[];
     if (projects.length === 0) return 0;
     const projectIds = projects.map((p) => p.id);
+
+    // The junction cleanup below is scoped to these ids; keep the write
+    // tenant-scoped at the application layer too.
+    await assertOwnedIds(
+      options?.supabase ?? createClient(),
+      "projects",
+      userId,
+      projectIds,
+      "Project",
+    );
 
     // Batch both junction reads with a single .in(ids) query instead of a
     // getWithRelations call per row (the old loop was O(rows) round trips).
@@ -1260,7 +1284,7 @@ export const projectService = {
         .in("id", ids)
         .eq("user_id", userId);
       if (updateError) {
-        throw new DatabaseError(updateError.message);
+        throw mapJunctionWriteError(updateError);
       }
       fixed += ids.length;
     }

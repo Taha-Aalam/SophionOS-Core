@@ -155,6 +155,12 @@ Set `SOPHIONOS_API_URL` to your instance origin (no trailing slash). The example
 
 33 tools across every SophionOS module.
 
+**Data safety:** permanent delete is dashboard-only. The API rejects every
+permanent delete from API keys and MCP with `403 PERMANENT_DELETE_DISABLED`
+(`delete_entity`, `bulk_delete_notes` included, by design). Use the archive
+tools (`archive_area`, `archive_entity`, `bulk_archive_notes`) to hide
+records reversibly, or delete permanently in the web dashboard.
+
 **Core PARA**
 - Areas — `list_areas`, `create_area`, `archive_area`, `restore_area`
 - Goals — `list_goals`, `get_goal_detail`, `create_goal`, `update_goal`

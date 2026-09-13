@@ -31,8 +31,18 @@ export function enforceApiKeyRoutePermission(
   }
 
   const perm = lookupRoutePermission(path);
-  // Unknown routes still pass method-level access_mode checks in ai-access-policy.
-  if (!perm) return;
+  // Fail closed: a route without a permission-map entry has no granted
+  // scope, so it is denied for API keys instead of silently skipping the
+  // scope check. Any future route must either map to a permission entry or
+  // be API-key-inaccessible by construction. (Method-level access_mode
+  // checks in ai-access-policy still run before this layer.)
+  if (!perm) {
+    throw new AppError(
+      "This route is not available to API keys or MCP.",
+      403,
+      "SCOPE_DENIED",
+    );
+  }
 
   const grantedFromMode = scopesForAccessMode(authResult.accessMode);
   // Per-key scopes column may refine grants later; empty means mode preset only.

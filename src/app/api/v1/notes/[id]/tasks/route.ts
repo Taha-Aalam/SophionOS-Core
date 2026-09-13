@@ -45,7 +45,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await noteService.getById(userId, id, { supabase });
     const relations = await noteService.getWithRelations(id, { supabase });
     const next = Array.from(new Set([...relations.task_ids, body.task_id]));
-    await noteService.replaceTaskLinks(id, next, { supabase });
+    await noteService.replaceTaskLinks(userId, id, next, { supabase });
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.linkedTaskIds ?? []);
   } catch (err) {
@@ -70,7 +70,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await noteService.getById(userId, id, { supabase });
     const relations = await noteService.getWithRelations(id, { supabase });
     const next = relations.task_ids.filter((t) => t !== taskId);
-    await noteService.replaceTaskLinks(id, next, { supabase });
+    await noteService.replaceTaskLinks(userId, id, next, { supabase });
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.linkedTaskIds ?? []);
   } catch (err) {

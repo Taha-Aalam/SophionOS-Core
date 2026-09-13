@@ -20,15 +20,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: pnpm
@@ -85,6 +85,39 @@ jobs:
           done
           gitleaks dir .env.example --no-banner --redact -c .gitleaks.toml
 
+  security-harness:
+    name: API-key differential permission harness
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      # Fails the build on any 2xx from a bypass variant (encoded/slug id,
+      # unmapped route) or on any permanent delete reachable via API key.
+      - name: Differential permission harness (encoded/slug × entities × key modes)
+        run: ./node_modules/.bin/vitest run tests/security/api-key-differential.test.ts
+        env:
+          NODE_ENV: test
+
+      # Fails the build if any /api/v1 data route lacks a permission-map
+      # entry (the fail-closed layer would deny it at runtime).
+      - name: Route permission map coverage
+        run: node scripts/check-route-permissions.mjs
+
   migrations:
     name: Migrations structure + clean Postgres attempt
     runs-on: ubuntu-latest
@@ -107,7 +140,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Structural gate (always)
         run: node scripts/check-migrations-structure.mjs

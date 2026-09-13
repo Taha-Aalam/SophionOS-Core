@@ -4,7 +4,7 @@
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { DatabaseError } from "@/lib/api/error-handler";
+import { AppError, DatabaseError } from "@/lib/api/error-handler";
 import { setAiAccessSettings } from "@/lib/api/ai-access-service";
 import { revokeAllApiKeysForUser } from "@/lib/api/api-key-service";
 import { recordAuditEvent } from "@/lib/audit/audit-service";
@@ -247,11 +247,22 @@ export async function finalizeAccountDeletion(
   userId: string,
 ): Promise<{ cleared: string[]; failed: string[] }> {
   const admin = createAdminClient();
-  await admin
+  const { data: claimed, error: claimError } = await admin
     .from("account_deletion_requests")
     .update({ status: "processing" })
     .eq("clerk_user_id", userId)
-    .eq("status", "scheduled");
+    .eq("status", "scheduled")
+    .select("id, status")
+    .maybeSingle();
+
+  if (claimError) throw new DatabaseError(claimError.message);
+  if (!claimed) {
+    throw new AppError(
+      "No scheduled deletion request to finalize",
+      400,
+      "VALIDATION_ERROR",
+    );
+  }
 
   const cleared: string[] = [];
   const failed: string[] = [];
@@ -301,7 +312,8 @@ export async function finalizeAccountDeletion(
       completed_at: new Date().toISOString(),
       failure_code: failed.length ? "PARTIAL_PURGE" : null,
     })
-    .eq("clerk_user_id", userId);
+    .eq("id", (claimed as { id: string }).id)
+    .eq("status", "processing");
 
   return { cleared, failed };
 }

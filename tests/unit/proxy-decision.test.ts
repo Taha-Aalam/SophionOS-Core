@@ -71,13 +71,12 @@ describe("apex host (marketing only)", () => {
   });
 
   it("quirk pin: protocol-relative pathname escapes the app origin (URL semantics)", () => {
-    // The pre-migration proxy computed `new URL(pathname + search, appOrigin)`.
-    // For a '//host'-style pathname that is protocol-relative, so the Location
-    // becomes 'https://privacy/' — pinned here so the refactor is provably
-    // behavior-identical (fixing it is a separate, deliberate change).
+    // Fix: sanitize leading '//' so protocol-relative pathnames no longer
+    // escape the app origin. Previously `new URL("//privacy", appOrigin)`
+    // became 'https://privacy/'.
     expect(decide("//privacy", { host: APEX_HOST })).toEqual({
       kind: "redirect",
-      to: "https://privacy/",
+      to: `${APP_URL}/privacy`,
     });
   });
 });

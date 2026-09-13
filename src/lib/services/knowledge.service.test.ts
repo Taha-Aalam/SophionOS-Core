@@ -59,3 +59,40 @@ describe("knowledgeService.search", () => {
     expect(Object.keys(calls)).toHaveLength(0);
   });
 });
+
+describe("knowledgeService.search topic enrichment client", () => {
+  it("passes the request's data client to topic enrichment (API-key search must not 500 on a topic match)", async () => {
+    // On the API-key/MCP path the only Supabase client is the one passed via
+    // options; enrichment falling back to createClient() throws (500) there.
+    const topicRow = { id: "topic-1", user_id: "user-1", name: "Deep Work" };
+    const client = {
+      from: vi.fn((t: string) => {
+        const chain: Record<string, unknown> = {};
+        const rows = t === "topics" ? [topicRow] : [];
+        chain.select = () => chain;
+        chain.eq = () => chain;
+        chain.ilike = () => chain;
+        chain.or = () => chain;
+        chain.order = () => chain;
+        chain.limit = () => chain;
+        // The chain is thenable, so any await order (`.in(...).eq(...)` or
+        // a bare await) resolves with the table's rows.
+        chain.in = () => chain;
+        chain.single = () => Promise.resolve({ data: rows[0] ?? null, error: null });
+        chain.maybeSingle = () => Promise.resolve({ data: rows[0] ?? null, error: null });
+        chain.then = (onFulfilled: (v: { data: unknown[]; error: null }) => unknown) =>
+          Promise.resolve({ data: rows, error: null }).then(onFulfilled);
+        return chain;
+      }),
+    };
+
+    const res = await knowledgeService.search("user-1", "deep", {
+      supabase: client as never,
+    });
+
+    expect(res.topics).toHaveLength(1);
+    expect(res.topics[0].id).toBe("topic-1");
+    // every query, including enrichment, must run on the request's client
+    expect(client.from).toHaveBeenCalledWith("topic_areas");
+  });
+});

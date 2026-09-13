@@ -100,10 +100,11 @@ export function useNotesByGoal(goalId: string) {
 
 export function useLinkNoteToGoal() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: ({ noteId, goalId }: { noteId: string; goalId: string }) =>
-      noteService.linkToGoal(goalId, noteId),
+      noteService.linkToGoal(user!.id, goalId, noteId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: ["goal-detail"] });
@@ -163,10 +164,11 @@ export function useTogglePinNote() {
 
 export function useUnlinkNoteFromGoal() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: ({ noteId, goalId }: { noteId: string; goalId: string }) =>
-      noteService.unlinkFromGoal(goalId, noteId),
+      noteService.unlinkFromGoal(user!.id, goalId, noteId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] });
       toast.success("Note unlinked from goal");

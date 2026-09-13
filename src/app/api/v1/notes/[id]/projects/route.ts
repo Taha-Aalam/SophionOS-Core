@@ -45,7 +45,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await noteService.getById(userId, id, { supabase });
     const relations = await noteService.getWithRelations(id, { supabase });
     const next = Array.from(new Set([...relations.project_ids, body.project_id]));
-    await noteService.replaceProjectLinks(id, next, { supabase });
+    await noteService.replaceProjectLinks(userId, id, next, { supabase });
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.linkedProjectIds ?? []);
   } catch (err) {
@@ -70,7 +70,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await noteService.getById(userId, id, { supabase });
     const relations = await noteService.getWithRelations(id, { supabase });
     const next = relations.project_ids.filter((p) => p !== projectId);
-    await noteService.replaceProjectLinks(id, next, { supabase });
+    await noteService.replaceProjectLinks(userId, id, next, { supabase });
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.linkedProjectIds ?? []);
   } catch (err) {

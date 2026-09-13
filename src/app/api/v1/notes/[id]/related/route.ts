@@ -19,6 +19,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params;
     const supabase = await createDataClient(authResult);
+    // Ownership gate: getRelatedByNotebook reads notebook labels by bare
+    // note_id, so without this check an API-key caller could probe another
+    // user's note's notebook memberships.
+    await noteService.getById(userId, id, { supabase });
     const groups = await noteService.getRelatedByNotebook(userId, id, { supabase });
     return success(groups);
   } catch (err) {
