@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CreateTopicInput, Topic, UpdateTopicInput } from "../types/domain.types";
 import { createTopicSchema, updateTopicSchema } from "../validators/topic.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
-import { assertOwnedIds } from "../api/ownership";
+import { assertOwnedIds, mapJunctionWriteError } from "../api/ownership";
 import { generateSlug } from "../utils";
 import { LIST_SAFETY_CAP } from "../utils/constants";
 
@@ -96,7 +96,7 @@ export const topicService = {
       .single();
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     if (validated.area_ids?.length) {
@@ -109,7 +109,7 @@ export const topicService = {
         .from("topic_areas")
         .insert(junctionRows);
       if (junctionError) {
-        throw new DatabaseError(junctionError.message);
+        throw mapJunctionWriteError(junctionError);
       }
     }
 
@@ -153,7 +153,7 @@ export const topicService = {
       if (error.code === "PGRST116") {
         throw new NotFoundError("Topic", id);
       }
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     if (validated.area_ids !== undefined) {
@@ -174,7 +174,7 @@ export const topicService = {
           .from("topic_areas")
           .insert(junctionRows);
         if (junctionError) {
-          throw new DatabaseError(junctionError.message);
+          throw mapJunctionWriteError(junctionError);
         }
       }
     }
@@ -368,7 +368,7 @@ export const topicService = {
       .update({ topic_id: topicId })
       .eq("user_id", userId)
       .in("id", noteIds);
-    if (error) throw new DatabaseError(error.message);
+    if (error) throw mapJunctionWriteError(error);
   },
 
   async linkResources(userId: string, topicId: string, resourceIds: string[], options?: ServiceOptions): Promise<void> {
@@ -380,7 +380,7 @@ export const topicService = {
       .update({ topic_id: topicId })
       .eq("user_id", userId)
       .in("id", resourceIds);
-    if (error) throw new DatabaseError(error.message);
+    if (error) throw mapJunctionWriteError(error);
   },
 
   async enrichWithCounts(topics: TopicWithCounts[], options?: ServiceOptions): Promise<TopicWithCounts[]> {

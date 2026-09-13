@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
-import { assertOwnedIds } from "../api/ownership";
+import { assertOwnedIds, mapJunctionWriteError } from "../api/ownership";
 import { createClient } from "../supabase/client";
 import type { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
 import { LIST_SAFETY_CAP, TASK_STATUS, type TaskStatus } from "../utils/constants";
@@ -912,7 +912,7 @@ export const taskService = {
         .delete()
         .eq("task_id", id);
       if (error && !isMissingTaskAreasTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -921,7 +921,7 @@ export const taskService = {
       .delete()
       .eq("task_id", id);
     if (goalError) {
-      throw new DatabaseError(goalError.message);
+      throw mapJunctionWriteError(goalError);
     }
 
     const { error: projectError } = await (options?.supabase ?? createClient())
@@ -929,7 +929,7 @@ export const taskService = {
       .delete()
       .eq("task_id", id);
     if (projectError && !isMissingTaskProjectsTableError(projectError)) {
-      throw new DatabaseError(projectError.message);
+      throw mapJunctionWriteError(projectError);
     }
 
     const { error } = await (options?.supabase ?? createClient())
@@ -939,7 +939,7 @@ export const taskService = {
       .eq("id", id);
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
   },
 
@@ -1011,7 +1011,7 @@ export const taskService = {
         .insert(areaIdsToAdd.map((area_id) => ({ area_id, task_id: taskId })));
 
       if (error && !isMissingTaskAreasTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -1023,7 +1023,7 @@ export const taskService = {
         .in("area_id", areaIdsToRemove);
 
       if (error && !isMissingTaskAreasTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -1046,7 +1046,7 @@ export const taskService = {
         .from("goal_tasks")
         .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, task_id: taskId })));
 
-      if (error) throw new DatabaseError(error.message);
+      if (error) throw mapJunctionWriteError(error);
     }
 
     if (goalIdsToRemove.length > 0) {
@@ -1056,7 +1056,7 @@ export const taskService = {
         .eq("task_id", taskId)
         .in("goal_id", goalIdsToRemove);
 
-      if (error) throw new DatabaseError(error.message);
+      if (error) throw mapJunctionWriteError(error);
     }
 
     await this.syncTaskStatusFromContext(taskId, options);
@@ -1088,7 +1088,7 @@ export const taskService = {
         .insert(projectIdsToAdd.map((project_id) => ({ project_id, task_id: taskId })));
 
       if (error && !isMissingTaskProjectsTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -1100,7 +1100,7 @@ export const taskService = {
         .in("project_id", projectIdsToRemove);
 
       if (error && !isMissingTaskProjectsTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -1208,7 +1208,7 @@ export const taskService = {
       .not("status", "in", `(${TASK_STATUS.TODO},${TASK_STATUS.IN_PROGRESS},${TASK_STATUS.COMPLETED},${TASK_STATUS.ARCHIVED})`);
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     const tasks = data ?? [];
@@ -1276,7 +1276,7 @@ export const taskService = {
         .in("id", ids)
         .eq("user_id", userId);
       if (updateError) {
-        throw new DatabaseError(updateError.message);
+        throw mapJunctionWriteError(updateError);
       }
       fixed += ids.length;
     }

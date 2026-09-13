@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { DatabaseError, ForbiddenError, NotFoundError } from "./error-handler";
+import {
+  AppError,
+  DatabaseError,
+  ForbiddenError,
+  NotFoundError,
+} from "./error-handler";
 
 /**
  * Assert that every id in `ids` exists in `table` and is owned by `userId`.
@@ -38,4 +43,25 @@ export async function assertOwnedIds(
       "One or more linked entities were not found or are not owned by you",
     );
   }
+}
+
+/**
+ * Map a junction write failure to the same denial shape assertOwnedIds
+ * produces, so a foreign-id attempt can never be distinguished from a
+ * missing id and never surfaces a driver-specific 500 existence oracle.
+ * The FK-violation branch covers the race where the ownership check passed
+ * but the linked row vanished before the write landed; every other failure
+ * (connection loss, missing table, …) still surfaces as a DatabaseError.
+ */
+export function mapJunctionWriteError(
+  error: { message?: string; code?: string } | null | undefined,
+): AppError {
+  const message = error?.message ?? "";
+  const code = error?.code ?? "";
+  if (code === "23503" || message.includes("foreign key") || message.includes("violates foreign key constraint")) {
+    return new ForbiddenError(
+      "One or more linked entities were not found or are not owned by you",
+    );
+  }
+  return new DatabaseError(message || undefined);
 }

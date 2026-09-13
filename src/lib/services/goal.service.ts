@@ -11,7 +11,7 @@ import {
 import { createGoalSchema, updateGoalSchema } from "../validators/goal.schema";
 import { DatabaseError, NotFoundError, mapDatabaseError } from "../api/error-handler";
 import { generateSlug } from "../utils";
-import { assertOwnedIds } from "../api/ownership";
+import { assertOwnedIds, mapJunctionWriteError } from "../api/ownership";
 import { LIST_SAFETY_CAP } from "../utils/constants";
 
 type ServiceOptions = { supabase?: SupabaseClient; userId?: string };
@@ -835,7 +835,7 @@ export const goalService = {
       .eq("id", goalId);
 
     if (updateError) {
-      throw new DatabaseError(updateError.message);
+      throw mapJunctionWriteError(updateError);
     }
 
     try {
@@ -849,7 +849,7 @@ export const goalService = {
           return;
         }
 
-        throw new DatabaseError(deleteError.message);
+        throw mapJunctionWriteError(deleteError);
       }
     } catch (error) {
       if (isMissingGoalAreasTableError(error)) {
@@ -878,7 +878,7 @@ export const goalService = {
           return;
         }
 
-        throw new DatabaseError(insertError.message);
+        throw mapJunctionWriteError(insertError);
       }
     } catch (error) {
       if (isMissingGoalAreasTableError(error)) {
