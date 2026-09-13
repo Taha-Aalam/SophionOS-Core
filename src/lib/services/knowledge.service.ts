@@ -69,9 +69,12 @@ export const knowledgeService = {
 
     const notes = (nr.data ?? []) as Note[];
     const resources = (rr.data ?? []) as Resource[];
-    const topics = await topicService.enrichWithCounts(
-      (tr.data ?? []) as TopicWithCounts[],
-    );
+    const topics = await topicService.enrichWithCounts((tr.data ?? []) as TopicWithCounts[], {
+      // Enrichment must run on the request's data client: on the API-key/MCP
+      // path there is no browser session client, and falling back to
+      // createClient() here 500s every search that matches a topic name.
+      supabase: sb,
+    });
 
     return {
       notes,
