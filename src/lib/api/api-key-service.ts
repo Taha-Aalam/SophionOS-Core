@@ -145,6 +145,14 @@ export async function generateApiKey(
     .single();
 
   if (error) {
+    if (
+      (error as { code?: string }).code === "P0001" ||
+      (error as { message?: string }).message?.includes("API_KEY_LIMIT_REACHED")
+    ) {
+      throw new ValidationError(
+        `You can have at most ${MAX_ACTIVE_API_KEYS} active API keys. Revoke one before creating another.`,
+      );
+    }
     throw new DatabaseError(error.message);
   }
 

@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { clearTierCache } from "@/lib/api/subscription";
+import { clearTierCache, invalidateTierCache } from "@/lib/api/subscription";
 
 /**
  * Billing webhook receiver (provider-agnostic skeleton).
@@ -68,6 +68,7 @@ async function applyEntitlement(event: BillingEvent): Promise<void> {
     throw new Error(error.message);
   }
 
+  if (event.user_id) invalidateTierCache(event.user_id);
   clearTierCache();
 }
 
