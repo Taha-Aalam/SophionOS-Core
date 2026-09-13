@@ -185,4 +185,43 @@ describe("enforceApiKeyRoutePermission", () => {
     expect(scopes).not.toContain("tasks:write");
     expect(scopes).not.toContain("bulk:write");
   });
+
+  it("denies an unmapped route for every key mode (fail-closed)", () => {
+    // Recommendation 3: a route missing from the permission map must not
+    // silently skip scope checks — no entry means no API-key access.
+    for (const accessMode of ["read_only", "write_limited", "write_enabled"] as const) {
+      expect(() =>
+        enforceApiKeyRoutePermission(
+          { ...base, accessMode },
+          req("/api/v1/future_entity/123", "DELETE"),
+        ),
+      ).toThrow(expect.objectContaining({ code: "SCOPE_DENIED" }));
+    }
+  });
+
+  it("denies an unmapped route on any method (fail-closed)", () => {
+    for (const method of ["GET", "POST", "PATCH", "DELETE"]) {
+      expect(() =>
+        enforceApiKeyRoutePermission(
+          { ...base, accessMode: "write_enabled" },
+          req("/api/v1/future_entity", method),
+        ),
+      ).toThrow(expect.objectContaining({ code: "SCOPE_DENIED" }));
+    }
+  });
+
+  it("still allows mapped routes per scope (no behavior change)", () => {
+    expect(() =>
+      enforceApiKeyRoutePermission(
+        { ...base, accessMode: "read_only" },
+        req("/api/v1/tasks/550e8400-e29b-41d4-a716-446655440000", "GET"),
+      ),
+    ).not.toThrow();
+    expect(() =>
+      enforceApiKeyRoutePermission(
+        { ...base, accessMode: "read_only" },
+        req("/api/v1/dashboard/today", "GET"),
+      ),
+    ).not.toThrow();
+  });
 });
