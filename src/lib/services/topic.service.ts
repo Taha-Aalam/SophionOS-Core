@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CreateTopicInput, Topic, UpdateTopicInput } from "../types/domain.types";
 import { createTopicSchema, updateTopicSchema } from "../validators/topic.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
+import { assertOwnedIds } from "../api/ownership";
 import { generateSlug } from "../utils";
 import { LIST_SAFETY_CAP } from "../utils/constants";
 
@@ -99,6 +100,7 @@ export const topicService = {
     }
 
     if (validated.area_ids?.length) {
+      await assertOwnedIds(sb, "areas", userId, validated.area_ids, "Area");
       const junctionRows = validated.area_ids.map((area_id) => ({
         topic_id: topic.id,
         area_id,
@@ -120,10 +122,10 @@ export const topicService = {
     };
 
     if (validated.note_ids?.length) {
-      await this.linkNotes(enriched.id, validated.note_ids, options);
+      await this.linkNotes(userId, enriched.id, validated.note_ids, options);
     }
     if (validated.resource_ids?.length) {
-      await this.linkResources(enriched.id, validated.resource_ids, options);
+      await this.linkResources(userId, enriched.id, validated.resource_ids, options);
     }
 
     return enriched;
@@ -155,6 +157,9 @@ export const topicService = {
     }
 
     if (validated.area_ids !== undefined) {
+      if (validated.area_ids.length > 0) {
+        await assertOwnedIds(sb, "areas", userId, validated.area_ids, "Area");
+      }
       await sb
         .from("topic_areas")
         .delete()
@@ -183,10 +188,10 @@ export const topicService = {
     };
 
     if (validated.note_ids?.length) {
-      await this.linkNotes(id, validated.note_ids, options);
+      await this.linkNotes(userId, id, validated.note_ids, options);
     }
     if (validated.resource_ids?.length) {
-      await this.linkResources(id, validated.resource_ids, options);
+      await this.linkResources(userId, id, validated.resource_ids, options);
     }
 
     return enriched;
@@ -354,22 +359,26 @@ export const topicService = {
     return (data || []).map((row) => row.area_id as string);
   },
 
-  async linkNotes(topicId: string, noteIds: string[], options?: ServiceOptions): Promise<void> {
+  async linkNotes(userId: string, topicId: string, noteIds: string[], options?: ServiceOptions): Promise<void> {
     if (noteIds.length === 0) return;
     const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "notes", userId, noteIds, "Note");
     const { error } = await sb
       .from("notes")
       .update({ topic_id: topicId })
+      .eq("user_id", userId)
       .in("id", noteIds);
     if (error) throw new DatabaseError(error.message);
   },
 
-  async linkResources(topicId: string, resourceIds: string[], options?: ServiceOptions): Promise<void> {
+  async linkResources(userId: string, topicId: string, resourceIds: string[], options?: ServiceOptions): Promise<void> {
     if (resourceIds.length === 0) return;
     const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "resources", userId, resourceIds, "Resource");
     const { error } = await sb
       .from("resources")
       .update({ topic_id: topicId })
+      .eq("user_id", userId)
       .in("id", resourceIds);
     if (error) throw new DatabaseError(error.message);
   },

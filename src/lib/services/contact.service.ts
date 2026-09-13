@@ -12,6 +12,7 @@ import type {
 } from "../types/domain.types";
 import { createContactSchema, updateContactSchema } from "../validators/contact.schema";
 import { DatabaseError, NotFoundError, mapDatabaseError } from "../api/error-handler";
+import { assertOwnedIds } from "../api/ownership";
 import { LIST_SAFETY_CAP } from "../utils/constants";
 
 type ServiceOptions = { supabase?: SupabaseClient };
@@ -54,6 +55,7 @@ function computeDaysUntilFollowUp(
 
 async function syncContactLinks(
   contactId: string,
+  userId: string,
   links: {
     area_ids?: string[];
     goal_ids?: string[];
@@ -63,6 +65,19 @@ async function syncContactLinks(
   sb: SupabaseClient,
 ): Promise<void> {
   const client = sb;
+
+  if (links.area_ids?.length) {
+    await assertOwnedIds(client, "areas", userId, links.area_ids, "Area");
+  }
+  if (links.goal_ids?.length) {
+    await assertOwnedIds(client, "goals", userId, links.goal_ids, "Goal");
+  }
+  if (links.project_ids?.length) {
+    await assertOwnedIds(client, "projects", userId, links.project_ids, "Project");
+  }
+  if (links.task_ids?.length) {
+    await assertOwnedIds(client, "tasks", userId, links.task_ids, "Task");
+  }
 
   if (links.area_ids !== undefined) {
     await client.from("contact_areas").delete().eq("contact_id", contactId);
@@ -130,31 +145,45 @@ function getContactImagePath(imageUrl: string | null | undefined): string | null
   return imageUrl;
 }
 
+function enforceImageUrlOwnership(path: string | null, ownerUserId: string): string | null {
+  if (!path) return null;
+  if (!ownerUserId) return null;
+  const prefix = `${ownerUserId}/`;
+  if (!path.startsWith(prefix)) return null;
+  if (path.includes("..") || path.includes("\\")) return null;
+  return path;
+}
+
 const SIGNED_URL_TTL_SECONDS = 3600;
 
-/** Resolve a short-lived signed URL for a single stored image path/URL. */
+type SignedImageOptions = ServiceOptions & { ownerUserId?: string };
+
 async function signContactImage(
   imageUrl: string | null | undefined,
-  options?: ServiceOptions,
+  options?: SignedImageOptions,
 ): Promise<string | null> {
   const sb = options?.supabase ?? createClient();
   const path = getContactImagePath(imageUrl);
   if (!path) return null;
+  const ownerUserId = options?.ownerUserId;
+  if (!ownerUserId) return null;
+  const ownedPath = enforceImageUrlOwnership(path, ownerUserId);
+  if (!ownedPath) return null;
 
   const { data } = await sb
     .storage
     .from("contact-avatars")
-    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+    .createSignedUrl(ownedPath, SIGNED_URL_TTL_SECONDS);
 
   return data?.signedUrl ?? null;
 }
 
-/** Attach `image_display_url` (signed) to a batch of contacts in one call. */
 async function attachSignedImageUrls(contacts: Contact[], sb: SupabaseClient): Promise<Contact[]> {
   const pathByContact = new Map<string, string>();
   for (const contact of contacts) {
-    const path = getContactImagePath(contact.image_url);
-    if (path) pathByContact.set(contact.id, path);
+    const rawPath = getContactImagePath(contact.image_url);
+    const ownedPath = enforceImageUrlOwnership(rawPath, contact.user_id);
+    if (ownedPath) pathByContact.set(contact.id, ownedPath);
   }
 
   const paths = Array.from(new Set(pathByContact.values()));
@@ -187,16 +216,21 @@ export const contactService = {
   computeDaysUntilFollowUp,
   getContactImagePath,
   signContactImage,
+  enforceImageUrlOwnership,
 
-  async deleteContactImage(imageUrl: string | null | undefined, options?: ServiceOptions): Promise<void> {
+  async deleteContactImage(imageUrl: string | null | undefined, options?: SignedImageOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
-    const path = getContactImagePath(imageUrl);
-    if (!path) return;
+    const rawPath = getContactImagePath(imageUrl);
+    if (!rawPath) return;
+    const ownerUserId = options?.ownerUserId;
+    if (!ownerUserId) return;
+    const ownedPath = enforceImageUrlOwnership(rawPath, ownerUserId);
+    if (!ownedPath) return;
 
     const { error } = await sb
       .storage
       .from("contact-avatars")
-      .remove([path]);
+      .remove([ownedPath]);
 
     if (error) throw new DatabaseError(error.message);
   },
@@ -208,12 +242,18 @@ export const contactService = {
    */
   async uploadContactImage(userId: string, contactId: string, file: File, options?: ServiceOptions): Promise<string> {
     const client = options?.supabase ?? createClient();
-    const ext = file.name.split(".").pop() ?? "jpg";
+    const ALLOWED_EXTS_SERVICE = new Set(["jpg", "jpeg", "png", "webp", "gif"]);
+    const rawExt = (file.name.split(".").pop() ?? "jpg").toLowerCase();
+    if (!ALLOWED_EXTS_SERVICE.has(rawExt)) throw new DatabaseError("Unsupported file extension");
+    const ext = rawExt === "jpeg" ? "jpg" : rawExt;
+    const allowedMime = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+    const ct = (file.type || "").toLowerCase();
+    if (!allowedMime.has(ct)) throw new DatabaseError("Unsupported content type");
     const path = `${userId}/${contactId}.${ext}`;
 
     const { error } = await client.storage
       .from("contact-avatars")
-      .upload(path, file, { upsert: true, contentType: file.type });
+      .upload(path, file, { upsert: true, contentType: ct });
 
     if (error) throw new DatabaseError(error.message);
 
@@ -319,11 +359,18 @@ export const contactService = {
       if (error.code === "PGRST116") throw new NotFoundError("Contact", id);
       throw new DatabaseError(error.message);
     }
-    return { ...data, image_display_url: await signContactImage(data.image_url, options) };
+    return { ...data, image_display_url: await signContactImage(data.image_url, { ...options, ownerUserId: userId }) };
   },
 
   async create(userId: string, input: CreateContactInput, options?: ServiceOptions): Promise<Contact> {
     const sb = options?.supabase ?? createClient();
+    if (input && typeof (input as Record<string, unknown>).image_url === "string") {
+      const raw = (input as Record<string, unknown>).image_url as string;
+      const path = getContactImagePath(raw);
+      if (path && !enforceImageUrlOwnership(path, userId)) {
+        (input as Record<string, unknown>).image_url = null;
+      }
+    }
     const validated = createContactSchema.parse(input);
     // Strip link arrays from DB payload
     const { area_ids, goal_ids, project_ids, task_ids, ...dbPayload } = validated as typeof validated & {
@@ -345,7 +392,7 @@ export const contactService = {
     const linkedGoalIds = goal_ids ?? [];
     const linkedProjectIds = project_ids ?? [];
     const linkedTaskIds = task_ids ?? [];
-    await syncContactLinks(data.id, {
+    await syncContactLinks(data.id, userId, {
       area_ids: linkedAreaIds,
       goal_ids: linkedGoalIds,
       project_ids: linkedProjectIds,
@@ -354,7 +401,7 @@ export const contactService = {
 
     return {
       ...data,
-      image_display_url: await signContactImage(data.image_url, options),
+      image_display_url: await signContactImage(data.image_url, { ...options, ownerUserId: userId }),
       linkedAreaIds,
       linkedGoalIds,
       linkedProjectIds,
@@ -364,6 +411,13 @@ export const contactService = {
 
   async update(userId: string, id: string, input: UpdateContactInput, options?: ServiceOptions): Promise<Contact> {
     const sb = options?.supabase ?? createClient();
+    if (input && typeof (input as Record<string, unknown>).image_url === "string") {
+      const raw = (input as Record<string, unknown>).image_url as string;
+      const path = getContactImagePath(raw);
+      if (path && !enforceImageUrlOwnership(path, userId)) {
+        (input as Record<string, unknown>).image_url = null;
+      }
+    }
     const validated = updateContactSchema.parse(input);
     const { area_ids, goal_ids, project_ids, task_ids, ...dbPayload } = validated as typeof validated & {
       area_ids?: string[];
@@ -392,14 +446,14 @@ export const contactService = {
         })()
       : await this.getById(userId, id, options);
 
-    await syncContactLinks(id, {
+    await syncContactLinks(id, userId, {
       ...(area_ids !== undefined && { area_ids }),
       ...(goal_ids !== undefined && { goal_ids }),
       ...(project_ids !== undefined && { project_ids }),
       ...(task_ids !== undefined && { task_ids }),
     }, sb);
 
-    return { ...contact, image_display_url: await signContactImage(contact.image_url, options) };
+    return { ...contact, image_display_url: await signContactImage(contact.image_url, { ...options, ownerUserId: userId }) };
   },
 
   async delete(userId: string, id: string, options?: ServiceOptions): Promise<void> {
@@ -475,6 +529,7 @@ export const contactService = {
   ): Promise<void> {
     const sb = options?.supabase ?? createClient();
     await this.getById(userId, contactId, options);
+    await assertOwnedIds(sb, "projects", userId, [projectId], "Project");
     const { error } = await sb
       .from("contact_projects")
       .upsert(
@@ -518,6 +573,7 @@ export const contactService = {
   ): Promise<void> {
     const sb = options?.supabase ?? createClient();
     await this.getById(userId, contactId, options);
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
     const { error } = await sb
       .from("contact_tasks")
       .upsert(
@@ -579,6 +635,7 @@ export const contactService = {
   async linkToArea(userId: string, contactId: string, areaId: string, options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
     await this.getById(userId, contactId, options);
+    await assertOwnedIds(sb, "areas", userId, [areaId], "Area");
     const { error } = await sb
       .from("contact_areas")
       .upsert(
@@ -602,6 +659,7 @@ export const contactService = {
   async linkToGoal(userId: string, contactId: string, goalId: string, options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
     await this.getById(userId, contactId, options);
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
     const { error } = await sb
       .from("contact_goals")
       .upsert(

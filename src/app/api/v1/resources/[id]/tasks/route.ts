@@ -44,7 +44,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await resourceService.getById(userId, id, { supabase });
     const relations = await resourceService.getWithRelations(id, { supabase });
     const next = Array.from(new Set([...relations.task_ids, task_id]));
-    await resourceService.replaceTaskLinks(id, next, { supabase });
+    await resourceService.replaceTaskLinks(userId, id, next, { supabase });
     return success({ task_ids: next });
   } catch (err) {
     return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
@@ -68,7 +68,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await resourceService.getById(userId, id, { supabase });
     const relations = await resourceService.getWithRelations(id, { supabase });
     const next = relations.task_ids.filter((t) => t !== task_id);
-    await resourceService.replaceTaskLinks(id, next, { supabase });
+    await resourceService.replaceTaskLinks(userId, id, next, { supabase });
     return success({ task_ids: next });
   } catch (err) {
     return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));

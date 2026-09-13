@@ -5,6 +5,7 @@ import { createClient } from "../supabase/client";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "../types/domain.types";
 import { createResourceSchema, updateResourceSchema } from "../validators/resource.schema";
 import { DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
+import { assertOwnedIds } from "../api/ownership";
 import { LIST_SAFETY_CAP, RESOURCE_STATUS, type ResourceStatus } from "../utils/constants";
 import { deriveResourceStatus } from "../utils/status-routing";
 
@@ -522,19 +523,19 @@ export const resourceService = {
       }
 
       if (areaIds?.length) {
-        await this.replaceAreaLinks(data.id, areaIds, options);
+        await this.replaceAreaLinks(userId, data.id, areaIds, options);
       }
 
       if (goalIds?.length) {
-        await this.replaceGoalLinks(data.id, goalIds, options);
+        await this.replaceGoalLinks(userId, data.id, goalIds, options);
       }
 
       if (taskIds?.length) {
-        await this.replaceTaskLinks(data.id, taskIds, options);
+        await this.replaceTaskLinks(userId, data.id, taskIds, options);
       }
 
       if (projectIds?.length) {
-        await this.replaceProjectLinks(data.id, projectIds, options);
+        await this.replaceProjectLinks(userId, data.id, projectIds, options);
       }
 
       return hydrateSingleResourceRelations(data, sb);
@@ -648,19 +649,19 @@ export const resourceService = {
           })();
 
       if (areaIds !== undefined) {
-        await this.replaceAreaLinks(id, areaIds, options);
+        await this.replaceAreaLinks(userId, id, areaIds, options);
       }
 
       if (goalIds !== undefined) {
-        await this.replaceGoalLinks(id, goalIds, options);
+        await this.replaceGoalLinks(userId, id, goalIds, options);
       }
 
       if (taskIds !== undefined) {
-        await this.replaceTaskLinks(id, taskIds, options);
+        await this.replaceTaskLinks(userId, id, taskIds, options);
       }
 
       if (projectIds !== undefined) {
-        await this.replaceProjectLinks(id, projectIds, options);
+        await this.replaceProjectLinks(userId, id, projectIds, options);
       }
 
       return hydrateSingleResourceRelations(resource, sb);
@@ -817,8 +818,10 @@ export const resourceService = {
     return hydrateResourceRelations(resources, sb);
   },
 
-  async linkToGoal(goalId: string, resourceId: string, options?: ServiceOptions): Promise<void> {
+  async linkToGoal(userId: string, goalId: string, resourceId: string, options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
+    await assertOwnedIds(sb, "resources", userId, [resourceId], "Resource");
     const { error } = await sb
       .from("goal_resources")
       .upsert({ goal_id: goalId, resource_id: resourceId });
@@ -968,11 +971,15 @@ export const resourceService = {
   },
 
   async replaceGoalLinks(
+    userId: string,
     resourceId: string,
     goalIds: string[],
     options?: ServiceOptions,
   ): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    if (goalIds.length > 0) {
+      await assertOwnedIds(sb, "goals", userId, goalIds, "Goal");
+    }
     const existingRelations = await this.getWithRelations(resourceId, options);
     const existingGoalIds = new Set(existingRelations.goal_ids);
     const nextGoalIds = new Set(goalIds);
@@ -1005,11 +1012,15 @@ export const resourceService = {
   },
 
   async replaceAreaLinks(
+    userId: string,
     resourceId: string,
     areaIds: string[],
     options?: ServiceOptions,
   ): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    if (areaIds.length > 0) {
+      await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
+    }
     const existingRelations = await this.getWithRelations(resourceId, options);
     const existingAreaIds = new Set(existingRelations.area_ids);
     const nextAreaIds = new Set(areaIds);
@@ -1042,11 +1053,15 @@ export const resourceService = {
   },
 
   async replaceTaskLinks(
+    userId: string,
     resourceId: string,
     taskIds: string[],
     options?: ServiceOptions,
   ): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    if (taskIds.length > 0) {
+      await assertOwnedIds(sb, "tasks", userId, taskIds, "Task");
+    }
     const existingRelations = await this.getWithRelations(resourceId, options);
     const existingTaskIds = new Set(existingRelations.task_ids);
     const nextTaskIds = new Set(taskIds);
@@ -1083,11 +1098,15 @@ export const resourceService = {
   },
 
   async replaceProjectLinks(
+    userId: string,
     resourceId: string,
     projectIds: string[],
     options?: ServiceOptions,
   ): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    if (projectIds.length > 0) {
+      await assertOwnedIds(sb, "projects", userId, projectIds, "Project");
+    }
     const existingRelations = await this.getWithRelations(resourceId, options);
     const existingProjectIds = new Set(existingRelations.project_ids);
     const nextProjectIds = new Set(projectIds);

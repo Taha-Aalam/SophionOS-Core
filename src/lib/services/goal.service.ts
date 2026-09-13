@@ -11,6 +11,7 @@ import {
 import { createGoalSchema, updateGoalSchema } from "../validators/goal.schema";
 import { DatabaseError, NotFoundError, mapDatabaseError } from "../api/error-handler";
 import { generateSlug } from "../utils";
+import { assertOwnedIds } from "../api/ownership";
 import { LIST_SAFETY_CAP } from "../utils/constants";
 
 type ServiceOptions = { supabase?: SupabaseClient; userId?: string };
@@ -822,6 +823,10 @@ export const goalService = {
   async replaceAreaLinks(userId: string, goalId: string, areaIds: string[], options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
     const normalizedAreaIds = dedupeAreaIds(areaIds);
+
+    if (normalizedAreaIds.length > 0) {
+      await assertOwnedIds(sb, "areas", userId, normalizedAreaIds, "Area");
+    }
 
     const { error: updateError } = await sb
       .from("goals")

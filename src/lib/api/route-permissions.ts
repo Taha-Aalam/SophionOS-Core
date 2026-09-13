@@ -114,16 +114,27 @@ export function normalizeApiV1Path(pathname: string): string {
   } else if (p.startsWith("api/v1/")) {
     p = p.slice("api/v1/".length);
   }
-  // UUID segments → :id
+  // Decode each segment before the UUID test: a percent-encoded segment
+  // (e.g. dashes written as %2D) must normalize to :id exactly like its
+  // decoded form, or an API key can dodge the route-permission lookup —
+  // and with it the permanent-delete block — by encoding the id.
+  // Segments that are not valid percent-encoding are left as-is (the
+  // router will reject them downstream, same as today).
   return p
     .split("/")
-    .map((seg) =>
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        seg,
+    .map((seg) => {
+      let decoded = seg;
+      try {
+        decoded = decodeURIComponent(seg);
+      } catch {
+        // malformed encoding — keep raw segment
+      }
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        decoded,
       )
         ? ":id"
-        : seg,
-    )
+        : seg;
+    })
     .join("/");
 }
 
@@ -134,6 +145,13 @@ export function lookupRoutePermission(
   return ROUTE_PERMISSIONS[key] ?? null;
 }
 
+/** Entities whose `/<id>` DELETE is a permanent delete (dashboard-only). */
+const PERMANENT_DELETE_ENTITIES = new Set(
+  Object.entries(ROUTE_PERMISSIONS)
+    .filter(([, perm]) => perm.isDestructive)
+    .map(([key]) => key.split("/")[0]),
+);
+
 export function isPermanentDeletePath(
   pathname: string,
   method: string,
@@ -143,5 +161,11 @@ export function isPermanentDeletePath(
   if (perm?.isDestructive) return true;
   // bulk delete paths
   const key = normalizeApiV1Path(pathname);
-  return key.endsWith("/bulk/delete") || key.includes("/bulk/delete");
+  if (key.endsWith("/bulk/delete") || key.includes("/bulk/delete")) return true;
+  // Fail closed on entity-id paths the map cannot resolve (slug or otherwise
+  // id-shaped segments): a DELETE on /<entity>/<id> is a permanent delete
+  // regardless of how the id is spelled, and permanent delete is
+  // dashboard-only. Mirrors the structural bulk/delete rule above.
+  const parts = key.split("/");
+  return parts.length === 2 && PERMANENT_DELETE_ENTITIES.has(parts[0]);
 }

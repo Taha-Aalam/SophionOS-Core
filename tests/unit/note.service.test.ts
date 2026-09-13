@@ -241,6 +241,10 @@ describe("noteService", () => {
     const upsert = vi.fn().mockResolvedValue({ error: null });
     vi.mocked(createClient).mockReturnValue({
       from: vi.fn().mockReturnThis(),
+      // assertOwnedIds runs first and must see both notes as owned.
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [{ id: "n2" }, { id: "n3" }], error: null }),
       upsert,
     } as never);
 
@@ -261,6 +265,10 @@ describe("noteService", () => {
     const del = vi.fn().mockReturnValue({ eq: eqNote });
     vi.mocked(createClient).mockReturnValue({
       from: vi.fn().mockReturnThis(),
+      // assertOwnedIds runs first and must see the note as owned.
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ data: [{ id: "n3" }], error: null }),
       delete: del,
     } as never);
 
