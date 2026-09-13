@@ -10,7 +10,7 @@ import type {
 } from "../types/domain.types";
 import { createNoteSchema, updateNoteSchema } from "../validators/note.schema";
 import { DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
-import { assertOwnedIds } from "../api/ownership";
+import { assertOwnedIds, mapJunctionWriteError } from "../api/ownership";
 import { LIST_SAFETY_CAP, NOTE_STATUS, type NoteStatus } from "../utils/constants";
 import { deriveNoteStatus } from "../utils/status-routing";
 import {
@@ -664,7 +664,7 @@ export const noteService = {
       .upsert({ goal_id: goalId, note_id: noteId });
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     await this.syncNoteStatusFromContext(noteId, options);
@@ -681,7 +681,7 @@ export const noteService = {
       .eq("note_id", noteId);
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     await this.syncNoteStatusFromContext(noteId, options);
@@ -697,7 +697,7 @@ export const noteService = {
 
     if (error) {
       if (!isMissingTaskNotesTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -716,7 +716,7 @@ export const noteService = {
 
     if (error) {
       if (!isMissingTaskNotesTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -842,7 +842,7 @@ export const noteService = {
         .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, note_id: noteId })));
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -854,7 +854,7 @@ export const noteService = {
         .in("goal_id", goalIdsToRemove);
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -878,7 +878,7 @@ export const noteService = {
         .insert(areaIdsToAdd.map((area_id) => ({ area_id, note_id: noteId })));
 
       if (error && !isMissingNoteAreasTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -890,7 +890,7 @@ export const noteService = {
         .in("area_id", areaIdsToRemove);
 
       if (error && !isMissingNoteAreasTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -915,7 +915,7 @@ export const noteService = {
 
       if (error) {
         if (error.code !== "42P01") {
-          throw new DatabaseError(error.message);
+          throw mapJunctionWriteError(error);
         }
       }
     }
@@ -929,7 +929,7 @@ export const noteService = {
 
       if (error) {
         if (error.code !== "42P01") {
-          throw new DatabaseError(error.message);
+          throw mapJunctionWriteError(error);
         }
       }
     }
@@ -955,7 +955,7 @@ export const noteService = {
 
       if (error) {
         if (!isMissingTaskNotesTableError(error)) {
-          throw new DatabaseError(error.message);
+          throw mapJunctionWriteError(error);
         }
       }
     }
@@ -969,7 +969,7 @@ export const noteService = {
 
       if (error) {
         if (!isMissingTaskNotesTableError(error)) {
-          throw new DatabaseError(error.message);
+          throw mapJunctionWriteError(error);
         }
       }
     }
@@ -1003,14 +1003,14 @@ export const noteService = {
     const { error: delError } = await client.from("note_notebooks").delete().eq("note_id", noteId);
     if (delError) {
       if (delError.code === "42P01") return;
-      throw new DatabaseError(delError.message);
+      throw mapJunctionWriteError(delError);
     }
     if (notebooks.length === 0) return;
     const rows = notebooks.map((notebook) => ({ note_id: noteId, notebook }));
     const { error } = await client.from("note_notebooks").insert(rows);
     if (error) {
       if (error.code === "42P01") return;
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
   },
 
@@ -1032,7 +1032,7 @@ export const noteService = {
       .upsert(rows, { onConflict: "note_id,notebook" });
     if (error) {
       if (error.code === "42P01") return;
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
   },
 
@@ -1051,7 +1051,7 @@ export const noteService = {
       .eq("notebook", notebook);
     if (error) {
       if (error.code === "42P01") return;
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
   },
 

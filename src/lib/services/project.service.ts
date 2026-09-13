@@ -4,7 +4,7 @@ import type { CreateProjectInput, Project, UpdateProjectInput } from "../types/d
 import { createProjectSchema, updateProjectSchema } from "../validators/project.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
-import { assertOwnedIds } from "../api/ownership";
+import { assertOwnedIds, mapJunctionWriteError } from "../api/ownership";
 import { LIST_SAFETY_CAP, PROJECT_STATUS, type ProjectStatus } from "../utils/constants";
 import { deriveProjectStatus } from "../utils/status-routing";
 
@@ -940,7 +940,7 @@ export const projectService = {
         .insert(areaIdsToAdd.map((area_id) => ({ area_id, project_id: projectId })));
 
       if (error && !isMissingProjectAreasTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -952,7 +952,7 @@ export const projectService = {
         .in("area_id", areaIdsToRemove);
 
       if (error && !isMissingProjectAreasTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -969,7 +969,7 @@ export const projectService = {
         .maybeSingle();
 
       if (fetchError) {
-        throw new DatabaseError(fetchError.message);
+        throw mapJunctionWriteError(fetchError);
       }
 
       const updatePayload: { area_id: string | null; status?: ProjectStatus } = {
@@ -1003,7 +1003,7 @@ export const projectService = {
         .eq("user_id", userId);
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
   },
@@ -1040,7 +1040,7 @@ export const projectService = {
         .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, project_id: projectId })));
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -1052,7 +1052,7 @@ export const projectService = {
         .in("goal_id", goalIdsToRemove);
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -1066,7 +1066,7 @@ export const projectService = {
       .maybeSingle();
 
     if (fetchError) {
-      throw new DatabaseError(fetchError.message);
+      throw mapJunctionWriteError(fetchError);
     }
 
     if (!currentProject) return;
@@ -1094,7 +1094,7 @@ export const projectService = {
         .eq("user_id", userId);
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
   },
@@ -1107,7 +1107,7 @@ export const projectService = {
       .insert({ project_id: projectId, goal_id: goalId });
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     await this.syncProjectStatusFromContext(userId, projectId, options);
@@ -1124,7 +1124,7 @@ export const projectService = {
       .eq("goal_id", goalId);
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     await this.syncProjectStatusFromContext(userId, projectId, options);
@@ -1219,7 +1219,7 @@ export const projectService = {
       .neq("status", PROJECT_STATUS.ON_HOLD);
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     const projects = (data ?? []) as unknown as Project[];
@@ -1284,7 +1284,7 @@ export const projectService = {
         .in("id", ids)
         .eq("user_id", userId);
       if (updateError) {
-        throw new DatabaseError(updateError.message);
+        throw mapJunctionWriteError(updateError);
       }
       fixed += ids.length;
     }

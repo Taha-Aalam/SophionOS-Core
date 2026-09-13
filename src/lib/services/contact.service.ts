@@ -12,7 +12,7 @@ import type {
 } from "../types/domain.types";
 import { createContactSchema, updateContactSchema } from "../validators/contact.schema";
 import { DatabaseError, NotFoundError, mapDatabaseError } from "../api/error-handler";
-import { assertOwnedIds } from "../api/ownership";
+import { assertOwnedIds, mapJunctionWriteError } from "../api/ownership";
 import { LIST_SAFETY_CAP } from "../utils/constants";
 
 type ServiceOptions = { supabase?: SupabaseClient };
@@ -537,7 +537,7 @@ export const contactService = {
         { onConflict: "contact_id,project_id" },
       );
 
-    if (error) throw new DatabaseError(error.message);
+    if (error) throw mapJunctionWriteError(error);
   },
 
   async unlinkFromProject(userId: string, contactId: string, projectId: string, options?: ServiceOptions): Promise<void> {
@@ -550,7 +550,7 @@ export const contactService = {
       .eq("contact_id", contactId)
       .eq("project_id", projectId);
 
-    if (error) throw new DatabaseError(error.message);
+    if (error) throw mapJunctionWriteError(error);
   },
 
   async getProjectLinks(userId: string, contactId: string, options?: ServiceOptions): Promise<ContactProject[]> {
@@ -582,7 +582,7 @@ export const contactService = {
         { onConflict: "contact_id,task_id" },
       );
 
-    if (error) throw new DatabaseError(error.message);
+    if (error) throw mapJunctionWriteError(error);
   },
 
   async unlinkFromTask(userId: string, contactId: string, taskId: string, options?: ServiceOptions): Promise<void> {
@@ -595,7 +595,7 @@ export const contactService = {
       .eq("contact_id", contactId)
       .eq("task_id", taskId);
 
-    if (error) throw new DatabaseError(error.message);
+    if (error) throw mapJunctionWriteError(error);
   },
 
   async getTaskLinks(userId: string, contactId: string, options?: ServiceOptions): Promise<ContactTask[]> {
@@ -644,7 +644,7 @@ export const contactService = {
         { contact_id: contactId, area_id: areaId },
         { onConflict: "contact_id,area_id" },
       );
-    if (error) throw new DatabaseError(error.message);
+    if (error) throw mapJunctionWriteError(error);
   },
 
   async unlinkFromArea(userId: string, contactId: string, areaId: string, options?: ServiceOptions): Promise<void> {
@@ -656,7 +656,7 @@ export const contactService = {
       .delete()
       .eq("contact_id", contactId)
       .eq("area_id", areaId);
-    if (error) throw new DatabaseError(error.message);
+    if (error) throw mapJunctionWriteError(error);
   },
 
   async linkToGoal(userId: string, contactId: string, goalId: string, options?: ServiceOptions): Promise<void> {
@@ -669,7 +669,7 @@ export const contactService = {
         { contact_id: contactId, goal_id: goalId },
         { onConflict: "contact_id,goal_id" },
       );
-    if (error) throw new DatabaseError(error.message);
+    if (error) throw mapJunctionWriteError(error);
   },
 
   async unlinkFromGoal(userId: string, contactId: string, goalId: string, options?: ServiceOptions): Promise<void> {
@@ -681,7 +681,7 @@ export const contactService = {
       .delete()
       .eq("contact_id", contactId)
       .eq("goal_id", goalId);
-    if (error) throw new DatabaseError(error.message);
+    if (error) throw mapJunctionWriteError(error);
   },
 
   async getBySlug(userId: string, slug: string, options?: ServiceOptions): Promise<Contact> {

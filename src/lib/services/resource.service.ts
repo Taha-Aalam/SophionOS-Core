@@ -5,7 +5,7 @@ import { createClient } from "../supabase/client";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "../types/domain.types";
 import { createResourceSchema, updateResourceSchema } from "../validators/resource.schema";
 import { DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
-import { assertOwnedIds } from "../api/ownership";
+import { assertOwnedIds, mapJunctionWriteError } from "../api/ownership";
 import { LIST_SAFETY_CAP, RESOURCE_STATUS, type ResourceStatus } from "../utils/constants";
 import { deriveResourceStatus } from "../utils/status-routing";
 
@@ -827,7 +827,7 @@ export const resourceService = {
       .upsert({ goal_id: goalId, resource_id: resourceId });
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     await this.syncResourceStatusFromContext(resourceId, options);
@@ -849,7 +849,7 @@ export const resourceService = {
       .eq("resource_id", resourceId);
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     await this.syncResourceStatusFromContext(resourceId, options);
@@ -864,7 +864,7 @@ export const resourceService = {
       .upsert({ task_id: taskId, resource_id: resourceId });
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     await this.syncResourceStatusFromContext(resourceId, options);
@@ -886,7 +886,7 @@ export const resourceService = {
       .eq("resource_id", resourceId);
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     await this.syncResourceStatusFromContext(resourceId, options);
@@ -1000,7 +1000,7 @@ export const resourceService = {
         .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, resource_id: resourceId })));
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -1012,7 +1012,7 @@ export const resourceService = {
         .in("goal_id", goalIdsToRemove);
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -1041,7 +1041,7 @@ export const resourceService = {
         .insert(areaIdsToAdd.map((area_id) => ({ area_id, resource_id: resourceId })));
 
       if (error && !isMissingResourceAreasTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -1053,7 +1053,7 @@ export const resourceService = {
         .in("area_id", areaIdsToRemove);
 
       if (error && !isMissingResourceAreasTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -1083,7 +1083,7 @@ export const resourceService = {
 
       if (error) {
         if (!isMissingTaskResourcesTableError(error)) {
-          throw new DatabaseError(error.message);
+          throw mapJunctionWriteError(error);
         }
       }
     }
@@ -1097,7 +1097,7 @@ export const resourceService = {
 
       if (error) {
         if (!isMissingTaskResourcesTableError(error)) {
-          throw new DatabaseError(error.message);
+          throw mapJunctionWriteError(error);
         }
       }
     }
@@ -1129,7 +1129,7 @@ export const resourceService = {
         .insert(projectIdsToAdd.map((project_id) => ({ project_id, resource_id: resourceId })));
 
       if (error && !isMissingResourceProjectsTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -1141,7 +1141,7 @@ export const resourceService = {
         .in("project_id", projectIdsToRemove);
 
       if (error && !isMissingResourceProjectsTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -1163,7 +1163,7 @@ export const resourceService = {
       .not("status", "in", `(${RESOURCE_STATUS.COMPLETED},${RESOURCE_STATUS.ACTIVE})`);
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     const resources = data ?? [];
@@ -1239,7 +1239,7 @@ export const resourceService = {
         .in("id", ids)
         .eq("user_id", userId);
       if (updateError) {
-        throw new DatabaseError(updateError.message);
+        throw mapJunctionWriteError(updateError);
       }
       fixed += ids.length;
     }
