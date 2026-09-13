@@ -1114,7 +1114,10 @@ export const projectService = {
   },
 
   async unlinkFromGoal(userId: string, projectId: string, goalId: string, options?: ServiceOptions): Promise<void> {
-    const { error } = await (options?.supabase ?? createClient())
+    const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "projects", userId, [projectId], "Project");
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
+    const { error } = await sb
       .from("goal_projects")
       .delete()
       .eq("project_id", projectId)
@@ -1222,6 +1225,16 @@ export const projectService = {
     const projects = (data ?? []) as unknown as Project[];
     if (projects.length === 0) return 0;
     const projectIds = projects.map((p) => p.id);
+
+    // The junction cleanup below is scoped to these ids; keep the write
+    // tenant-scoped at the application layer too.
+    await assertOwnedIds(
+      options?.supabase ?? createClient(),
+      "projects",
+      userId,
+      projectIds,
+      "Project",
+    );
 
     // Batch both junction reads with a single .in(ids) query instead of a
     // getWithRelations call per row (the old loop was O(rows) round trips).

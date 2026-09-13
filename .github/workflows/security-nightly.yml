@@ -1,0 +1,52 @@
+name: Security nightly (live RLS matrix)
+
+on:
+  schedule:
+    # 03:17 UTC daily — off the top of the hour to avoid CI load spikes.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rls-matrix:
+    name: Dual-user RLS matrix (synthetic-user env)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Check matrix configuration
+        id: cfg
+        env:
+          RLS_MATRIX_SUPABASE_URL: ${{ secrets.RLS_MATRIX_SUPABASE_URL }}
+        run: |
+          if [ -z "$RLS_MATRIX_SUPABASE_URL" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::RLS_MATRIX_* secrets are not configured — set them to a staging/synthetic-user Supabase environment (never production)."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run live RLS matrix
+        if: steps.cfg.outputs.configured == 'true'
+        env:
+          RLS_MATRIX_SUPABASE_URL: ${{ secrets.RLS_MATRIX_SUPABASE_URL }}
+          RLS_MATRIX_ANON_KEY: ${{ secrets.RLS_MATRIX_ANON_KEY }}
+          RLS_MATRIX_SERVICE_ROLE_KEY: ${{ secrets.RLS_MATRIX_SERVICE_ROLE_KEY }}
+        run: pnpm dlx tsx scripts/security/rls-matrix.ts

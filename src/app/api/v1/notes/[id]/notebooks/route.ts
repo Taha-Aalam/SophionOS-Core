@@ -47,11 +47,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     const body = await validateBody(request, replaceSchema);
     const supabase = await createDataClient(authResult);
-    // replaceNotebooks deletes+inserts by bare note_id (no userId filter), so
-    // the note ownership check MUST happen here — a service-role API-key
-    // request could otherwise rewrite another user's notebook memberships.
+    // replaceNotebooks now ownership-checks the note itself (assertOwnedIds);
+    // getById keeps the same 404-first behavior for missing notes.
     await noteService.getById(userId, id, { supabase });
-    await noteService.replaceNotebooks(id, body.notebooks, { supabase });
+    await noteService.replaceNotebooks(userId, id, body.notebooks, { supabase });
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.notebooks ?? []);
   } catch (err) {
