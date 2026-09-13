@@ -121,7 +121,7 @@ export function registerParityTools(
     {
       title: "Delete Entity",
       description:
-        "Permanently delete an entity by id. This is irreversible and cleans up junction links — prefer archive_entity/archive_area to merely hide something. Supports area, goal, project, task, note, resource, topic, contact.",
+        "Permanent delete is DASHBOARD-ONLY: the API rejects every permanent delete from API keys and MCP with 403 PERMANENT_DELETE_DISABLED, so this tool always fails with that error. Use archive_entity/archive_area instead (reversible hiding), or delete permanently in the web dashboard. Supports area, goal, project, task, note, resource, topic, contact.",
       inputSchema: {
         entity: deleteEntity.describe("The kind of entity to delete."),
         id: z.string(),

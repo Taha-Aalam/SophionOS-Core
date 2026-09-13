@@ -198,7 +198,7 @@ describe("notebook membership routes", () => {
       params("1"),
     );
     expect(res.status).toBe(200);
-    expect(noteService.replaceNotebooks).toHaveBeenCalledWith("1", ["A", "B"], expect.anything());
+    expect(noteService.replaceNotebooks).toHaveBeenCalledWith("user_1", "1", ["A", "B"], expect.anything());
 
     const body = await res.json();
     expect(body.data).toEqual(["A", "B"]);

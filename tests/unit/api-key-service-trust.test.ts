@@ -160,6 +160,66 @@ describe("api-key-service trust controls", () => {
     expect(MAX_ACTIVE_API_KEYS).toBe(5);
   });
 
+  it("generateApiKey maps the DB limit trigger (P0001 / API_KEY_LIMIT_REACHED) to a 400, not 500", async () => {
+    // Concurrent-loser path: the app-level pre-check passes (count 4 < 5),
+    // then the authoritative BEFORE INSERT trigger rejects the insert. The
+    // PostgREST error must surface as a client-side ValidationError so the
+    // racing request gets 400 instead of a generic 500.
+    const headSelect = vi.fn(() => ({
+      eq: vi.fn(() => ({
+        is: vi.fn(async () => ({ count: 4, error: null })),
+      })),
+    }));
+    const single = vi.fn(async () => ({
+      data: null,
+      error: {
+        code: "P0001",
+        message: "API_KEY_LIMIT_REACHED: at most 5 active API keys per user",
+      },
+    }));
+    const insert = vi.fn(() => ({ select: vi.fn(() => ({ single })) }));
+    mockFrom.mockImplementation((table: string) => {
+      if (table !== "api_keys") return {};
+      return {
+        select: (_cols: string, opts?: { head?: boolean }) =>
+          opts?.head ? headSelect() : {},
+        insert,
+      };
+    });
+
+    await expect(generateApiKey("user_1", { name: "racer" })).rejects.toMatchObject({
+      statusCode: 400,
+      code: "VALIDATION_ERROR",
+    });
+    expect(insert).toHaveBeenCalled();
+  });
+
+  it("generateApiKey still maps unrelated insert errors to a 500 DatabaseError", async () => {
+    const headSelect = vi.fn(() => ({
+      eq: vi.fn(() => ({
+        is: vi.fn(async () => ({ count: 0, error: null })),
+      })),
+    }));
+    const single = vi.fn(async () => ({
+      data: null,
+      error: { code: "23505", message: "duplicate key value violates unique constraint" },
+    }));
+    const insert = vi.fn(() => ({ select: vi.fn(() => ({ single })) }));
+    mockFrom.mockImplementation((table: string) => {
+      if (table !== "api_keys") return {};
+      return {
+        select: (_cols: string, opts?: { head?: boolean }) =>
+          opts?.head ? headSelect() : {},
+        insert,
+      };
+    });
+
+    await expect(generateApiKey("user_1", { name: "dupe" })).rejects.toMatchObject({
+      statusCode: 500,
+      code: "DATABASE_ERROR",
+    });
+  });
+
   it("listApiKeys select list excludes key_hash column from SAFE projection", async () => {
     const result = {
       data: [

@@ -26,6 +26,20 @@ const nullableHttpUrlSchema = z.preprocess(
     .optional(),
 );
 
+const contactImageUrlSchema = z.preprocess(
+  (value) => (value === "" ? null : value),
+  z
+    .string()
+    .max(512)
+    .regex(
+      /^[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp|gif)$/i,
+      "Invalid image path — expected <userId>/<contactId>.<ext>",
+    )
+    .refine((value) => !value.includes("..") && !value.includes("\\"), "Invalid image path")
+    .nullable()
+    .optional(),
+);
+
 const metadataSchema = z.record(z.string(), z.unknown()).default({});
 
 export const createContactSchema = z
@@ -38,7 +52,7 @@ export const createContactSchema = z
     email: nullableEmailSchema,
     linkedin: nullableHttpUrlSchema,
     website: nullableHttpUrlSchema,
-    image_url: nullableStringSchema,
+    image_url: contactImageUrlSchema,
     last_interaction_at: z.string().datetime().nullable().optional(),
     follow_up_interval_days: z.number().int().min(0).max(365).nullable().optional(),
     favorite: z.boolean().optional(),

@@ -10,6 +10,7 @@ import type {
 } from "../types/domain.types";
 import { createNoteSchema, updateNoteSchema } from "../validators/note.schema";
 import { DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
+import { assertOwnedIds, mapJunctionWriteError } from "../api/ownership";
 import { LIST_SAFETY_CAP, NOTE_STATUS, type NoteStatus } from "../utils/constants";
 import { deriveNoteStatus } from "../utils/status-routing";
 import {
@@ -407,23 +408,23 @@ export const noteService = {
       }
 
       if (areaIds?.length) {
-        await this.replaceAreaLinks(data.id, areaIds, options);
+        await this.replaceAreaLinks(userId, data.id, areaIds, options);
       }
 
       if (goalIds?.length) {
-        await this.replaceGoalLinks(data.id, goalIds, options);
+        await this.replaceGoalLinks(userId, data.id, goalIds, options);
       }
 
       if (projectIds?.length) {
-        await this.replaceProjectLinks(data.id, projectIds, options);
+        await this.replaceProjectLinks(userId, data.id, projectIds, options);
       }
 
       if (taskIds?.length) {
-        await this.replaceTaskLinks(data.id, taskIds, options);
+        await this.replaceTaskLinks(userId, data.id, taskIds, options);
       }
 
       if (notebooks.length) {
-        await this.replaceNotebooks(data.id, notebooks, options);
+        await this.replaceNotebooks(userId, data.id, notebooks, options);
       }
 
       return hydrateSingleNoteRelations(data, options);
@@ -526,23 +527,23 @@ export const noteService = {
           })();
 
       if (areaIds !== undefined) {
-        await this.replaceAreaLinks(id, areaIds, options);
+        await this.replaceAreaLinks(userId, id, areaIds, options);
       }
 
       if (goalIds !== undefined) {
-        await this.replaceGoalLinks(id, goalIds, options);
+        await this.replaceGoalLinks(userId, id, goalIds, options);
       }
 
       if (projectIds !== undefined) {
-        await this.replaceProjectLinks(id, projectIds, options);
+        await this.replaceProjectLinks(userId, id, projectIds, options);
       }
 
       if (taskIds !== undefined) {
-        await this.replaceTaskLinks(id, taskIds, options);
+        await this.replaceTaskLinks(userId, id, taskIds, options);
       }
 
       if (notebooks !== undefined) {
-        await this.replaceNotebooks(id, notebooks, options);
+        await this.replaceNotebooks(userId, id, notebooks, options);
       }
 
       return hydrateSingleNoteRelations(note, options);
@@ -654,48 +655,60 @@ export const noteService = {
     return hydrateNoteRelations(notes, options);
   },
 
-  async linkToGoal(goalId: string, noteId: string, options?: ServiceOptions): Promise<void> {
-    const { error } = await (options?.supabase ?? createClient())
+  async linkToGoal(userId: string, goalId: string, noteId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
+    await assertOwnedIds(sb, "notes", userId, [noteId], "Note");
+    const { error } = await sb
       .from("goal_notes")
       .upsert({ goal_id: goalId, note_id: noteId });
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async unlinkFromGoal(goalId: string, noteId: string, options?: ServiceOptions): Promise<void> {
-    const { error } = await (options?.supabase ?? createClient())
+  async unlinkFromGoal(userId: string, goalId: string, noteId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
+    await assertOwnedIds(sb, "notes", userId, [noteId], "Note");
+    const { error } = await sb
       .from("goal_notes")
       .delete()
       .eq("goal_id", goalId)
       .eq("note_id", noteId);
 
     if (error) {
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
 
     await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async linkToTask(taskId: string, noteId: string, options?: ServiceOptions): Promise<void> {
-    const { error } = await (options?.supabase ?? createClient())
+  async linkToTask(userId: string, taskId: string, noteId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
+    await assertOwnedIds(sb, "notes", userId, [noteId], "Note");
+    const { error } = await sb
       .from("task_notes")
       .upsert({ task_id: taskId, note_id: noteId });
 
     if (error) {
       if (!isMissingTaskNotesTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
     await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async unlinkFromTask(taskId: string, noteId: string, options?: ServiceOptions): Promise<void> {
-    const { error } = await (options?.supabase ?? createClient())
+  async unlinkFromTask(userId: string, taskId: string, noteId: string, options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
+    await assertOwnedIds(sb, "notes", userId, [noteId], "Note");
+    const { error } = await sb
       .from("task_notes")
       .delete()
       .eq("task_id", taskId)
@@ -703,7 +716,7 @@ export const noteService = {
 
     if (error) {
       if (!isMissingTaskNotesTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -812,7 +825,11 @@ export const noteService = {
     };
   },
 
-  async replaceGoalLinks(noteId: string, goalIds: string[], options?: ServiceOptions): Promise<void> {
+  async replaceGoalLinks(userId: string, noteId: string, goalIds: string[], options?: ServiceOptions): Promise<void> {
+    if (goalIds.length > 0) {
+      const sb = options?.supabase ?? createClient();
+      await assertOwnedIds(sb, "goals", userId, goalIds, "Goal");
+    }
     const existingRelations = await this.getWithRelations(noteId, options);
     const existingGoalIds = new Set(existingRelations.goal_ids);
     const nextGoalIds = new Set(goalIds);
@@ -825,7 +842,7 @@ export const noteService = {
         .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, note_id: noteId })));
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -837,14 +854,18 @@ export const noteService = {
         .in("goal_id", goalIdsToRemove);
 
       if (error) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
     await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async replaceAreaLinks(noteId: string, areaIds: string[], options?: ServiceOptions): Promise<void> {
+  async replaceAreaLinks(userId: string, noteId: string, areaIds: string[], options?: ServiceOptions): Promise<void> {
+    if (areaIds.length > 0) {
+      const sb = options?.supabase ?? createClient();
+      await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
+    }
     const existingRelations = await this.getWithRelations(noteId, options);
     const existingAreaIds = new Set(existingRelations.area_ids);
     const nextAreaIds = new Set(areaIds);
@@ -857,7 +878,7 @@ export const noteService = {
         .insert(areaIdsToAdd.map((area_id) => ({ area_id, note_id: noteId })));
 
       if (error && !isMissingNoteAreasTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
@@ -869,14 +890,18 @@ export const noteService = {
         .in("area_id", areaIdsToRemove);
 
       if (error && !isMissingNoteAreasTableError(error)) {
-        throw new DatabaseError(error.message);
+        throw mapJunctionWriteError(error);
       }
     }
 
     await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async replaceProjectLinks(noteId: string, projectIds: string[], options?: ServiceOptions): Promise<void> {
+  async replaceProjectLinks(userId: string, noteId: string, projectIds: string[], options?: ServiceOptions): Promise<void> {
+    if (projectIds.length > 0) {
+      const sb = options?.supabase ?? createClient();
+      await assertOwnedIds(sb, "projects", userId, projectIds, "Project");
+    }
     const existingRelations = await this.getWithRelations(noteId, options);
     const existingProjectIds = new Set(existingRelations.project_ids);
     const nextProjectIds = new Set(projectIds);
@@ -890,7 +915,7 @@ export const noteService = {
 
       if (error) {
         if (error.code !== "42P01") {
-          throw new DatabaseError(error.message);
+          throw mapJunctionWriteError(error);
         }
       }
     }
@@ -904,7 +929,7 @@ export const noteService = {
 
       if (error) {
         if (error.code !== "42P01") {
-          throw new DatabaseError(error.message);
+          throw mapJunctionWriteError(error);
         }
       }
     }
@@ -912,7 +937,11 @@ export const noteService = {
     await this.syncNoteStatusFromContext(noteId, options);
   },
 
-  async replaceTaskLinks(noteId: string, taskIds: string[], options?: ServiceOptions): Promise<void> {
+  async replaceTaskLinks(userId: string, noteId: string, taskIds: string[], options?: ServiceOptions): Promise<void> {
+    if (taskIds.length > 0) {
+      const sb = options?.supabase ?? createClient();
+      await assertOwnedIds(sb, "tasks", userId, taskIds, "Task");
+    }
     const existingRelations = await this.getWithRelations(noteId, options);
     const existingTaskIds = new Set(existingRelations.task_ids);
     const nextTaskIds = new Set(taskIds);
@@ -926,7 +955,7 @@ export const noteService = {
 
       if (error) {
         if (!isMissingTaskNotesTableError(error)) {
-          throw new DatabaseError(error.message);
+          throw mapJunctionWriteError(error);
         }
       }
     }
@@ -940,7 +969,7 @@ export const noteService = {
 
       if (error) {
         if (!isMissingTaskNotesTableError(error)) {
-          throw new DatabaseError(error.message);
+          throw mapJunctionWriteError(error);
         }
       }
     }
@@ -966,35 +995,55 @@ export const noteService = {
     return hydrateNoteRelations(rows, options);
   },
 
-  async replaceNotebooks(noteId: string, notebooks: string[], options?: ServiceOptions): Promise<void> {
+  async replaceNotebooks(userId: string, noteId: string, notebooks: string[], options?: ServiceOptions): Promise<void> {
     const client = options?.supabase ?? createClient();
+    // Notebook membership rows are keyed by the owning note; the API-key
+    // path must not be able to rewrite another tenant's notebook rows.
+    await assertOwnedIds(client, "notes", userId, [noteId], "Note");
     const { error: delError } = await client.from("note_notebooks").delete().eq("note_id", noteId);
     if (delError) {
       if (delError.code === "42P01") return;
-      throw new DatabaseError(delError.message);
+      throw mapJunctionWriteError(delError);
     }
     if (notebooks.length === 0) return;
     const rows = notebooks.map((notebook) => ({ note_id: noteId, notebook }));
     const { error } = await client.from("note_notebooks").insert(rows);
     if (error) {
       if (error.code === "42P01") return;
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
   },
 
-  async addNotesToNotebook(_userId: string, notebook: string, noteIds: string[], options?: ServiceOptions): Promise<void> {
+  async addNotesToNotebook(userId: string, notebook: string, noteIds: string[], options?: ServiceOptions): Promise<void> {
     if (noteIds.length === 0) return;
+    // `userId` is load-bearing: without this assertion an API-key caller could
+    // attach notebooks to (or remove them from) notes it does not own, since
+    // the API-key path uses a service-role client that bypasses RLS.
+    await assertOwnedIds(
+      options?.supabase ?? createClient(),
+      "notes",
+      userId,
+      noteIds,
+      "Note",
+    );
     const rows = noteIds.map((note_id) => ({ note_id, notebook }));
     const { error } = await (options?.supabase ?? createClient())
       .from("note_notebooks")
       .upsert(rows, { onConflict: "note_id,notebook" });
     if (error) {
       if (error.code === "42P01") return;
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
   },
 
-  async removeNoteFromNotebook(_userId: string, noteId: string, notebook: string, options?: ServiceOptions): Promise<void> {
+  async removeNoteFromNotebook(userId: string, noteId: string, notebook: string, options?: ServiceOptions): Promise<void> {
+    await assertOwnedIds(
+      options?.supabase ?? createClient(),
+      "notes",
+      userId,
+      [noteId],
+      "Note",
+    );
     const { error } = await (options?.supabase ?? createClient())
       .from("note_notebooks")
       .delete()
@@ -1002,7 +1051,7 @@ export const noteService = {
       .eq("notebook", notebook);
     if (error) {
       if (error.code === "42P01") return;
-      throw new DatabaseError(error.message);
+      throw mapJunctionWriteError(error);
     }
   },
 

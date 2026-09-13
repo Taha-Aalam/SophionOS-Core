@@ -53,6 +53,8 @@ export interface BriefDispatchResult {
   sent: number;
   skipped: number;
   failed: number;
+  /** Candidate user ids whose processing failed (loop-isolation outcomes). */
+  failures: string[];
 }
 
 export async function runBriefDispatch(
@@ -66,6 +68,7 @@ export async function runBriefDispatch(
     sent: 0,
     skipped: 0,
     failed: 0,
+    failures: [],
   };
 
   const candidates = await deps.listNotificationCandidates();
@@ -76,77 +79,132 @@ export async function runBriefDispatch(
   for (const candidate of candidates) {
     if (sendAttempts >= maxSends) break;
 
-    const dueList = kindsDueForUser({
-      prefs: candidate.prefs,
-      timezone: candidate.timezone,
-      now,
-      windowMinutes: deps.windowMinutes,
-    });
-
-    for (const due of dueList) {
-      if (sendAttempts >= maxSends) break;
-      result.due += 1;
-
-      const already = await deps.hasTerminalDelivery({
-        userId: candidate.userId,
-        kind: due.kind,
-        localDate: due.localDate,
+    // Per-candidate isolation: one stale candidate (bad prefs shape, DB
+    // hiccup on its dedupe/email lookups) must not abort the whole run and
+    // 500 the endpoint for every other user. The catch records the failure
+    // and moves on; the response reports per-candidate outcomes.
+    try {
+      const dueList = kindsDueForUser({
+        prefs: candidate.prefs,
+        timezone: candidate.timezone,
+        now,
+        windowMinutes: deps.windowMinutes,
       });
-      if (already) {
-        result.skipped += 1;
-        continue;
-      }
 
-      sendAttempts += 1;
+      for (const due of dueList) {
+        if (sendAttempts >= maxSends) break;
+        result.due += 1;
 
-      const email = await deps.resolveEmail(candidate.userId);
-      if (!email) {
-        await deps.recordDelivery({
-          userId: candidate.userId,
-          kind: due.kind,
-          localDate: due.localDate,
-          status: "skipped",
-          error: "no_email",
-        });
-        result.skipped += 1;
-        continue;
-      }
+        let already: boolean;
+        try {
+          already = await deps.hasTerminalDelivery({
+            userId: candidate.userId,
+            kind: due.kind,
+            localDate: due.localDate,
+          });
+        } catch (err) {
+          console.error(
+            `[briefs] dedupe check failed for candidate ${candidate.userId}`,
+            err,
+          );
+          result.failed += 1;
+          result.failures.push(candidate.userId);
+          continue;
+        }
+        if (already) {
+          result.skipped += 1;
+          continue;
+        }
 
-      try {
-        const today = await deps.loadToday(candidate.userId);
-        const mail = composeBriefEmail({
-          kind: due.kind,
-          today,
-          appUrl: deps.appUrl,
-          localDate: due.localDate,
-        });
-        const sendResult = await deps.sendEmail({ to: email, mail });
-        await deps.recordDelivery({
-          userId: candidate.userId,
-          kind: due.kind,
-          localDate: due.localDate,
-          status: "sent",
-          payload: {
-            resend_id: sendResult.id,
-            configured_time: due.configuredTime,
-          },
-        });
-        result.sent += 1;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "send_failed";
-        await deps.recordDelivery({
-          userId: candidate.userId,
-          kind: due.kind,
-          localDate: due.localDate,
-          status: "failed",
-          error: message,
-        });
-        result.failed += 1;
+        sendAttempts += 1;
+
+        let email: string | null | undefined;
+        try {
+          email = await deps.resolveEmail(candidate.userId);
+        } catch (err) {
+          console.error(
+            `[briefs] email lookup failed for candidate ${candidate.userId}`,
+            err,
+          );
+          await bestEffortRecordDelivery(deps, candidate.userId, due.kind, due.localDate, {
+            status: "failed",
+            error: "email_lookup_failed",
+          });
+          result.failed += 1;
+          result.failures.push(candidate.userId);
+          continue;
+        }
+        if (!email) {
+          await bestEffortRecordDelivery(deps, candidate.userId, due.kind, due.localDate, {
+            status: "skipped",
+            error: "no_email",
+          });
+          result.skipped += 1;
+          continue;
+        }
+
+        try {
+          const today = await deps.loadToday(candidate.userId);
+          const mail = composeBriefEmail({
+            kind: due.kind,
+            today,
+            appUrl: deps.appUrl,
+            localDate: due.localDate,
+          });
+          const sendResult = await deps.sendEmail({ to: email, mail });
+          await bestEffortRecordDelivery(deps, candidate.userId, due.kind, due.localDate, {
+            status: "sent",
+            payload: {
+              resend_id: sendResult.id,
+              configured_time: due.configuredTime,
+            },
+          });
+          result.sent += 1;
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "send_failed";
+          await bestEffortRecordDelivery(deps, candidate.userId, due.kind, due.localDate, {
+            status: "failed",
+            error: message,
+          });
+          result.failed += 1;
+          result.failures.push(candidate.userId);
+        }
       }
+    } catch (err) {
+      console.error(
+        `[briefs] candidate processing failed for ${candidate.userId}`,
+        err,
+      );
+      result.failed += 1;
+      result.failures.push(candidate.userId);
     }
   }
 
   return result;
+}
+
+/** Records a delivery outcome; a failing write must not abort the run. */
+async function bestEffortRecordDelivery(
+  deps: BriefDispatchDeps,
+  userId: string,
+  kind: BriefKind,
+  localDate: string,
+  args: {
+    status: DeliveryStatus;
+    error?: string | null;
+    payload?: Record<string, unknown> | null;
+  },
+): Promise<void> {
+  try {
+    await deps.recordDelivery({
+      userId,
+      kind,
+      localDate,
+      ...args,
+    });
+  } catch (err) {
+    console.error(`[briefs] delivery record failed for ${userId}`, err);
+  }
 }
 
 function parsePrefs(value: unknown): NotificationPrefs | null {

@@ -46,7 +46,25 @@ vi.mock("@/lib/supabase/admin", () => ({
             // track status transitions; allow chained .eq
             updates.push({ table, patch: { ...patch, _eq: `${column}=${userId}` } });
             return {
-              eq: () => Promise.resolve({ data: null, error: null }),
+              eq: () => {
+                // Claim pattern (.update(...).eq().eq().select().maybeSingle()):
+                // the row comes back only when it was still "scheduled", so a
+                // cancelled/concurrent request claims nothing.
+                const isClaim =
+                  table === "account_deletion_requests" &&
+                  (patch.status === "processing" || patch.status === "cancelled");
+                const claimed =
+                  isClaim && scheduledRow?.status === "scheduled"
+                    ? { id: scheduledRow.id, status: patch.status }
+                    : null;
+                const result = Promise.resolve({ data: null, error: null });
+                return {
+                  then: result.then.bind(result),
+                  select: () => ({
+                    maybeSingle: async () => ({ data: claimed, error: null }),
+                  }),
+                };
+              },
             };
           },
         }),
