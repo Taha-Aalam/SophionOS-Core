@@ -99,8 +99,6 @@ export function resolveProxyDecision(input: ProxyDecisionInput): ProxyDecision {
 }
 
 function relocate(appOrigin: string, pathname: string, search: string): ProxyDecision {
-  // Quirk pin: Location is built from the RAW pathname (matching only used the
-  // normalized form), exactly as the pre-migration proxy did. A protocol-
-  // relative '//' pathname therefore escapes the app origin.
-  return { kind: "redirect", to: new URL(`${pathname}${search}`, appOrigin).toString() };
+  const sanitizedPathname = /^\/[/\\]/.test(pathname) ? `/${pathname.replace(/^[/\\]+/, "")}` : pathname;
+  return { kind: "redirect", to: new URL(`${sanitizedPathname}${search}`, appOrigin).toString() };
 }
