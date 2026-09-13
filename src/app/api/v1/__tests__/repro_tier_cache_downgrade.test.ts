@@ -42,7 +42,7 @@ describe("repro: tier-cache downgrade window (60s stale pro)", () => {
           }),
         }),
       }),
-    } as any;
+    } as never;
 
     const second = await getTier(userId, { supabase: mockSupabaseFree });
     // BUG: still pro despite DB now being free — cache TTL is 60s
