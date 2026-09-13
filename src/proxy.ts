@@ -2,6 +2,7 @@ import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { resolveProxyDecision } from "@/lib/routing/proxy-decision";
+import { buildCspHeader } from "@/lib/security/csp";
 
 // Resource-based auth (Clerk's replacement for the deprecated
 // createRouteMatcher + auth.protect() pattern): this proxy no longer decides
@@ -18,6 +19,12 @@ import { resolveProxyDecision } from "@/lib/routing/proxy-decision";
 // The full branch matrix (with malformed-encoding 400s and redirect
 // construction) is extracted into resolveProxyDecision and pinned by
 // tests/unit/proxy-decision.test.ts against live pre-migration captures.
+//
+// Plus the nonce-based CSP (plan Task 10): a per-request nonce is generated
+// here, emitted on the request (so Next stamps its scripts with it) and on
+// the response as the Content-Security-Policy. Passing through the proxy
+// makes every page dynamic — the accepted tradeoff for removing
+// 'unsafe-inline' from script-src (see src/lib/security/csp.ts).
 export const proxy = clerkMiddleware((_auth, request) => {
   const decision = resolveProxyDecision({
     host: request.headers.get("host"),
@@ -32,7 +39,23 @@ export const proxy = clerkMiddleware((_auth, request) => {
       : new URL(decision.to);
     return NextResponse.redirect(target);
   }
-  return NextResponse.next();
+
+  const nonce = crypto.randomUUID();
+  const csp = buildCspHeader({
+    nonce,
+    isProd: process.env.NODE_ENV === "production",
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    clerkPublishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+  });
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  // Next reads the nonce for its own inline scripts from this request header.
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("Content-Security-Policy", csp);
+  return response;
 });
 
 export const config = {
