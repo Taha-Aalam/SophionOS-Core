@@ -22,6 +22,9 @@
  */
 import { randomUUID } from "node:crypto";
 
+// The matrix is schema-agnostic (columns are derived from the OpenAPI spec at
+// runtime), so the client generic must stay loose.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = import("@supabase/supabase-js").SupabaseClient<any>;
 
 const URL = process.env.RLS_MATRIX_SUPABASE_URL;

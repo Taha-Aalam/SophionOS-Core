@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any --
+   Legacy TOCTOU repro mocks: they simulate Supabase's loosely-typed query
+   builder chain (thenable builders, conditional select()/eq() returns);
+   typing the simulation faithfully would obscure the repro this test
+   documents. */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 let mockRow: any = null;
