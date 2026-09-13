@@ -103,6 +103,12 @@ export function clearTierCache(): void {
   tierCache.clear();
 }
 
+/** Invalidate a single user's cached tier — use after any direct `subscriptions` mutation. */
+export function invalidateTierCache(userId: string): void {
+  tierCache.delete(userId);
+}
+
+
 /**
  * Entity limits per tier. Free is capped at 100 total across all counted entities.
  * Paid tiers have effectively unlimited (null = no cap).

@@ -147,3 +147,9 @@ export function clearRateLimitState(): void {
   memoryCounters.clear();
   tierCache.clear();
 }
+
+/** Invalidate a single user's cached tier — mirrors subscription.ts helper. */
+export function invalidateTierCache(userId: string): void {
+  tierCache.delete(userId);
+}
+
