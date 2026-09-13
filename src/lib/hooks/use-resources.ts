@@ -126,11 +126,12 @@ export function useResourcesByGoal(goalId: string) {
 }
 
 export function useLinkResourceToGoal() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ resourceId, goalId }: { resourceId: string; goalId: string }) =>
-      resourceService.linkToGoal(goalId, resourceId),
+      resourceService.linkToGoal(user!.id, goalId, resourceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });

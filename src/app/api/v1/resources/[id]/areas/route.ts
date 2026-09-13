@@ -46,7 +46,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // No single-link helper; merge into the existing set and replace.
     const relations = await resourceService.getWithRelations(id, { supabase });
     const next = Array.from(new Set([...relations.area_ids, area_id]));
-    await resourceService.replaceAreaLinks(id, next, { supabase });
+    await resourceService.replaceAreaLinks(userId, id, next, { supabase });
     return success({ area_ids: next });
   } catch (err) {
     return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
@@ -70,7 +70,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await resourceService.getById(userId, id, { supabase });
     const relations = await resourceService.getWithRelations(id, { supabase });
     const next = relations.area_ids.filter((areaId) => areaId !== area_id);
-    await resourceService.replaceAreaLinks(id, next, { supabase });
+    await resourceService.replaceAreaLinks(userId, id, next, { supabase });
     return success({ area_ids: next });
   } catch (err) {
     return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));

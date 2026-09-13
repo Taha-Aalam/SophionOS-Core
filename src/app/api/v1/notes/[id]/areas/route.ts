@@ -46,7 +46,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await noteService.getById(userId, id, { supabase });
     const relations = await noteService.getWithRelations(id, { supabase });
     const next = Array.from(new Set([...relations.area_ids, body.area_id]));
-    await noteService.replaceAreaLinks(id, next, { supabase });
+    await noteService.replaceAreaLinks(userId, id, next, { supabase });
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.linkedAreaIds ?? []);
   } catch (err) {
@@ -71,7 +71,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await noteService.getById(userId, id, { supabase });
     const relations = await noteService.getWithRelations(id, { supabase });
     const next = relations.area_ids.filter((a) => a !== areaId);
-    await noteService.replaceAreaLinks(id, next, { supabase });
+    await noteService.replaceAreaLinks(userId, id, next, { supabase });
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.linkedAreaIds ?? []);
   } catch (err) {

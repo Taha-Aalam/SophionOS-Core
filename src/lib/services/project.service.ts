@@ -4,6 +4,7 @@ import type { CreateProjectInput, Project, UpdateProjectInput } from "../types/d
 import { createProjectSchema, updateProjectSchema } from "../validators/project.schema";
 import { DatabaseError, NotFoundError } from "../api/error-handler";
 import { generateSlug } from "../utils";
+import { assertOwnedIds } from "../api/ownership";
 import { LIST_SAFETY_CAP, PROJECT_STATUS, type ProjectStatus } from "../utils/constants";
 import { deriveProjectStatus } from "../utils/status-routing";
 
@@ -923,6 +924,10 @@ export const projectService = {
   },
 
   async replaceAreaLinks(userId: string, projectId: string, areaIds: string[], options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    if (areaIds.length > 0) {
+      await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
+    }
     const existingRelations = await this.getWithRelations(userId, projectId, options);
     const existingAreaIds = new Set(existingRelations.area_ids);
     const nextAreaIds = new Set(areaIds);
@@ -930,7 +935,7 @@ export const projectService = {
     const areaIdsToRemove = existingRelations.area_ids.filter((areaId) => !nextAreaIds.has(areaId));
 
     if (areaIdsToAdd.length > 0) {
-      const { error } = await (options?.supabase ?? createClient())
+      const { error } = await sb
         .from("project_areas")
         .insert(areaIdsToAdd.map((area_id) => ({ area_id, project_id: projectId })));
 
@@ -940,7 +945,7 @@ export const projectService = {
     }
 
     if (areaIdsToRemove.length > 0) {
-      const { error } = await (options?.supabase ?? createClient())
+      const { error } = await sb
         .from("project_areas")
         .delete()
         .eq("project_id", projectId)
@@ -1019,6 +1024,10 @@ export const projectService = {
   },
 
   async replaceGoalLinks(userId: string, projectId: string, goalIds: string[], options?: ServiceOptions): Promise<void> {
+    const sb = options?.supabase ?? createClient();
+    if (goalIds.length > 0) {
+      await assertOwnedIds(sb, "goals", userId, goalIds, "Goal");
+    }
     const existingRelations = await this.getWithRelations(userId, projectId, options);
     const existingGoalIds = new Set(existingRelations.goal_ids);
     const nextGoalIds = new Set(goalIds);
@@ -1026,7 +1035,7 @@ export const projectService = {
     const goalIdsToRemove = existingRelations.goal_ids.filter((goalId) => !nextGoalIds.has(goalId));
 
     if (goalIdsToAdd.length > 0) {
-      const { error } = await (options?.supabase ?? createClient())
+      const { error } = await sb
         .from("goal_projects")
         .insert(goalIdsToAdd.map((goal_id) => ({ goal_id, project_id: projectId })));
 
@@ -1036,7 +1045,7 @@ export const projectService = {
     }
 
     if (goalIdsToRemove.length > 0) {
-      const { error } = await (options?.supabase ?? createClient())
+      const { error } = await sb
         .from("goal_projects")
         .delete()
         .eq("project_id", projectId)
@@ -1091,7 +1100,9 @@ export const projectService = {
   },
 
   async linkToGoal(userId: string, projectId: string, goalId: string, options?: ServiceOptions): Promise<void> {
-    const { error } = await (options?.supabase ?? createClient())
+    const sb = options?.supabase ?? createClient();
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
+    const { error } = await sb
       .from("goal_projects")
       .insert({ project_id: projectId, goal_id: goalId });
 
