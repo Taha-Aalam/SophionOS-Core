@@ -576,12 +576,12 @@ export function registerKnowledgeTools(
     {
       title: "Bulk Delete Notes",
       description:
-        "Permanently delete multiple notes (max 100). Irreversible — prefer bulk_archive_notes. Requires confirm: true.",
+        "Permanent delete is DASHBOARD-ONLY: the API rejects every permanent delete from API keys and MCP with 403 PERMANENT_DELETE_DISABLED, so this tool always fails with that error. Use bulk_archive_notes instead, or delete permanently in the web dashboard. (max 100).",
       inputSchema: {
         ids: bulkIdsField,
         confirm: z
           .boolean()
-          .describe("Must be true to proceed with permanent deletion."),
+          .describe("Legacy confirmation flag. Permanent delete is dashboard-only: the call is rejected with 403 regardless."),
       },
       annotations: { destructiveHint: true, idempotentHint: true },
     },
