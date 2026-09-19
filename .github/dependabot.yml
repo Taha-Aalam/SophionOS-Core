@@ -4,9 +4,28 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 15
     labels:
       - dependencies
+    groups:
+      # Collapse routine minor/patch bumps into two reviewable PRs instead of
+      # one-per-dependency. Previously a full queue starved newer updates
+      # entirely: runs on 2026-08-20, 2026-08-27 and 2026-09-03 created zero
+      # PRs because all 10 slots were held by the 2026-08-13 batch, which sat
+      # open for 27 days.
+      #
+      # Majors are deliberately excluded (update-types limits this to
+      # minor/patch) so breaking changes still get individual review.
+      production-minor-patch:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      development-minor-patch:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: github-actions
     directory: "/"
@@ -14,3 +33,10 @@ updates:
       interval: weekly
     labels:
       - dependencies
+    groups:
+      github-actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
