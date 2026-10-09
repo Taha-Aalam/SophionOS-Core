@@ -21,6 +21,14 @@ overrides:
   ip-address: ">=10.3.1"
   # GHSA-6g55-p6wh-862q
   postcss: ">=8.5.23"
+  # GHSA-68fv-2mgg-jv7q (source-map-js event-loop DoS via indexed source-map
+  # section offsets). Transitive through postcss -> next / @clerk/nextjs / shadcn.
+  source-map-js: ">=1.2.2"
+  # GHSA-6qxp-vccf-f47h (MCP SDK OAuth client could send credentials to a
+  # redirected host). Reached only through shadcn@4.21.0, which declares
+  # ^1.26.0 - 1.31.0 is inside that range, so this is a nudge, not a force.
+  # Our own @sophionos/mcp-server already resolves 1.31.0.
+  "@modelcontextprotocol/sdk": ">=1.31.0"
   # GHSA-3jxr-9vmj-r5cp / GHSA-qhr7-859c-m2p7 / GHSA-6j4f-fj2g-mc7p —
   # pin major lines separately (blanket 5.x breaks minimatch@3/eslint)
   brace-expansion@1: "1.1.20"
