@@ -2,6 +2,7 @@
 
 import React, { startTransition, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { ChevronLeft, ChevronRightIcon, Settings, SunMoon } from "lucide-react";
@@ -88,9 +89,22 @@ export function Sidebar() {
     >
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-sidebar-border px-3">
         <Link href="/dashboard" className="group flex items-center gap-2 text-sm font-semibold">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground shadow-[0_2px_8px_oklch(0.3_0.15_260/0.35)] transition-transform duration-300 ease-[var(--ease-out-quint)] group-hover:scale-105">
-            S
-          </div>
+          <Image
+            src="/brand/sophion-symbol.svg"
+            alt={isDesktopSidebarOpen ? "" : "SophionOS"}
+            width={24}
+            height={24}
+            unoptimized
+            className="size-6 transition-transform duration-300 ease-[var(--ease-out-quint)] group-hover:scale-105 dark:hidden"
+          />
+          <Image
+            src="/brand/sophion-symbol-reversed-white.svg"
+            alt={isDesktopSidebarOpen ? "" : "SophionOS"}
+            width={24}
+            height={24}
+            unoptimized
+            className="hidden size-6 transition-transform duration-300 ease-[var(--ease-out-quint)] group-hover:scale-105 dark:block"
+          />
           {isDesktopSidebarOpen ? <span className="tracking-tight">SophionOS</span> : null}
         </Link>
         <Button

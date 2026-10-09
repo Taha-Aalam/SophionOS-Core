@@ -142,6 +142,7 @@ for security findings.
 | `docs/api.md` | REST API status |
 | `docs/mcp.md` | MCP status |
 | `docs/known-limitations.md` | Honest alpha limits |
+| `docs/BUG-smart-priority.md` | Open defects in task smart priority (unfixed) |
 | `docs/deployment.md` | Deploy and upgrades |
 | `docs/testing.md` | How we test |
 | `SUPPORT.md` | Where to ask for help |
