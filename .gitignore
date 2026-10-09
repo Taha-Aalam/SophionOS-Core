@@ -64,6 +64,10 @@ skills-lock.json
 /CLAUDE.md
 /Agents.md
 
+# Marketing motion projects (separate Remotion/HyperFrames packages with their
+# own deps and node_modules — not application code, not deployed)
+/videos/
+
 # Local artifacts / tool spill
 all_info.txt
 bin/
