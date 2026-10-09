@@ -7,6 +7,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { TaskListItem } from "@/components/entities/task-list-item";
+import { formatDate } from "@/lib/format";
 import type { Task } from "@/lib/types/domain.types";
 
 function createTask(overrides: Partial<Task> = {}): Task {
@@ -39,6 +40,14 @@ const noopHandlers = {
   onFocusToggle: vi.fn(),
   onNameSave: vi.fn(),
 };
+
+// The expected due-date label is derived from the app's own formatter rather
+// than hardcoded. formatDate() (src/lib/format.ts) passes `undefined` as the
+// locale so the browser/user locale wins, which means the day/month order is
+// not fixed: en-US renders "Jun 15", en-GB and en-IN render "15 Jun", de-DE
+// renders "15. Juni". Deriving the expected string keeps these assertions
+// locale-proof instead of binding them to one machine's regional settings.
+const DUE_LABEL = formatDate(new Date("2030-06-15"));
 
 describe("TaskListItem multi-goal badge display", () => {
   it("renders a separate badge for each linked goal", () => {
@@ -100,14 +109,14 @@ describe("TaskListItem due date badge display", () => {
         {...noopHandlers}
       />,
     );
-    expect(html).toMatch(/Jun\s*15/);
+    expect(html).toContain(DUE_LABEL);
   });
 
   it("does not render a due date badge when task has no due_date", () => {
     const html = renderToStaticMarkup(
       <TaskListItem task={createTask({ due_date: null })} {...noopHandlers} />,
     );
-    expect(html).not.toMatch(/Jun\s*15/);
+    expect(html).not.toContain(DUE_LABEL);
   });
 });
 
@@ -127,7 +136,7 @@ describe("TaskListItem badge order", () => {
     const areaIdx = html.indexOf("Career");
     const goalIdx = html.indexOf("Promotion");
     const projectIdx = html.indexOf("Q3 Initiative");
-    const dueIdx = html.search(/Jun\s*15/);
+    const dueIdx = html.indexOf(DUE_LABEL);
 
     expect(areaIdx).toBeGreaterThan(-1);
     expect(goalIdx).toBeGreaterThan(-1);
