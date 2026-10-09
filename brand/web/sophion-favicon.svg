@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"><title>SophionOS</title><g transform="translate(-36.35 -36.35) scale(1.284)">
+  <title id="title">SophionOS favicon source</title>
+  <!-- small-size cut inset to 200 units so the pointed tips keep a margin at 16 px -->
+  <g id="symbol" fill="#4338CA">
+    <path d="M113.33 32.31 A113.27 113.27 0 0 0 60.71 128 A113.27 113.27 0 0 0 113.33 223.69 L113.33 189.04 A91.49 91.49 0 0 1 90.04 128 A91.49 91.49 0 0 1 113.33 66.96 Z"/>
+    <path d="M142.67 32.31 A113.27 113.27 0 0 1 195.29 128 A113.27 113.27 0 0 1 142.67 223.69 L142.67 189.04 A91.49 91.49 0 0 0 165.96 128 A91.49 91.49 0 0 0 142.67 66.96 Z"/>
+  </g>
+</g></svg>
