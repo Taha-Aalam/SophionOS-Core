@@ -114,5 +114,7 @@ An alternate **Bone & Pitch** palette (`#F4F1EA` / `#1A1714`, 15.8:1) is include
   to pass as geometry, but anyone who knows the Mandylion will see it. That is a decision
   about the company, not the drawing.
 - **Pantone matches** are bracketing guesses; proof against a physical swatch.
-- **The `videos/` motion projects still carry the old logo.** See
-  `docs/videos-logo-replacement-plan.md` for the migration plan.
+- **The `videos/` motion projects still carry the old logo.** The migration plan was
+  written (`docs/videos-logo-replacement-plan.md`) but that document is deliberately
+  local-only — it now lives under the gitignored `docs/superpowers/`, so it is not part
+  of this repository. The assets it needs are in `brand/logos/` and `public/brand/`.
