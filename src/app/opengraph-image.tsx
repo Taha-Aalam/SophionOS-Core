@@ -23,22 +23,16 @@ export default async function OpengraphImage() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          <div
-            style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "16px",
-              background: "#4f46e5",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "32px",
-              fontWeight: 700,
-              color: "#fff",
-            }}
-          >
-            S
-          </div>
+          {/* Mandorla, reversed cut (thinner wall) because it sits on a dark ground.
+              The only place in the app where the mark's path data is duplicated
+              rather than referenced from /brand/: Satori renders with no HTTP
+              access and its image pipeline cannot rasterise an SVG data URI
+              (verified - it fails the build with "svgload_buffer: SVG rendering
+              failed"). Inline JSX <svg> is the only form Satori will accept. */}
+          <svg width="64" height="64" viewBox="0 0 256 256" fill="#fff" aria-hidden>
+            <path d="M113 18.04 A122.1 122.1 0 0 0 44.01 128 A122.1 122.1 0 0 0 113 237.96 L113 216.27 A104 104 0 0 1 64 128 A104 104 0 0 1 113 39.73 Z" />
+            <path d="M143 18.04 A122.1 122.1 0 0 1 211.99 128 A122.1 122.1 0 0 1 143 237.96 L143 216.27 A104 104 0 0 0 192 128 A104 104 0 0 0 143 39.73 Z" />
+          </svg>
           <span style={{ fontSize: "30px", fontWeight: 600, letterSpacing: "-0.01em" }}>
             SophionOS
           </span>

@@ -44,8 +44,11 @@ export const metadata: Metadata = {
     description: "One calm system for your whole life.",
   },
   icons: {
-    icon: [{ url: "/icons/icon-192.png" }],
-    apple: [{ url: "/icons/apple-touch-icon.png" }],
+    icon: [
+      { url: "/icons/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: {
     capable: true,

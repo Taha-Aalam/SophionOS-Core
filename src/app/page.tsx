@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 // Apex marketing landing (e.g. your-domain.com).
 //
@@ -10,7 +11,27 @@ import Link from "next/link";
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center">
-      <h1 className="text-2xl font-semibold tracking-tight sm:text-4xl">SophionOS</h1>
+      <div className="flex flex-col items-center gap-3">
+          <Image
+            src="/brand/sophion-symbol.svg"
+            alt=""
+            width={64}
+            height={64}
+            unoptimized
+            className="size-16 dark:hidden"
+          />
+          <Image
+            src="/brand/sophion-symbol-reversed-white.svg"
+            alt=""
+            width={64}
+            height={64}
+            unoptimized
+            className="hidden size-16 dark:block"
+          />
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-4xl font-heading">
+            SophionOS
+          </h1>
+        </div>
       <p className="max-w-md text-muted-foreground">
         Your personal operating system for goals, projects, tasks, notes, and
         the people and areas of your life.

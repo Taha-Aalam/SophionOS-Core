@@ -28,6 +28,19 @@ export default function GlobalError({
         }}
       >
         <div style={{ maxWidth: "28rem", padding: "2rem", textAlign: "center" }}>
+          {/* Logo is referenced from the shared /brand/ source of truth, never
+              inlined as path data. Reversed (white) cut because this page's
+              ground is dark. A plain <img> is deliberate: this boundary renders
+              when the root layout has already crashed, so it must not depend on
+              hydration or the Next image runtime to show the mark. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/sophion-symbol-reversed-white.svg"
+            alt=""
+            width={56}
+            height={56}
+            style={{ display: "block", margin: "0 auto 1.5rem" }}
+          />
           <h1 style={{ fontSize: "1.25rem", fontWeight: 600, margin: 0 }}>
             Something went wrong
           </h1>
@@ -40,8 +53,10 @@ export default function GlobalError({
               marginTop: "1.5rem",
               padding: "0.5rem 1rem",
               borderRadius: "0.5rem",
-              border: "1px solid #4f46e5",
-              background: "#4f46e5",
+              // Brand palette: Sophion Indigo fill, Indigo Light edge so the
+              // button boundary clears 3:1 against the near-black ground.
+              border: "1px solid #a5b4fc",
+              background: "#4338ca",
               color: "#ffffff",
               fontSize: "0.875rem",
               fontWeight: 500,
@@ -49,7 +64,7 @@ export default function GlobalError({
               outlineOffset: "2px",
             }}
             onFocus={(e) => {
-              e.currentTarget.style.outline = "2px solid #818cf8";
+              e.currentTarget.style.outline = "2px solid #a5b4fc";
             }}
             onBlur={(e) => {
               e.currentTarget.style.outline = "none";
