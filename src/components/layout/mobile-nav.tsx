@@ -2,6 +2,7 @@
 
 import React, { startTransition, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Settings, SunMoon } from "lucide-react";
@@ -82,9 +83,22 @@ export function MobileNav() {
       <SheetContent side="left" className="flex w-72 flex-col p-0">
         <SheetHeader className="flex h-12 shrink-0 flex-row items-center justify-between border-b border-border px-4">
           <SheetTitle className="flex items-center gap-2 text-sm font-semibold">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground shadow-[0_2px_8px_oklch(0.3_0.15_260/0.35)]">
-              S
-            </div>
+            <Image
+              src="/brand/sophion-symbol.svg"
+              alt=""
+              width={24}
+              height={24}
+              unoptimized
+              className="size-6 dark:hidden"
+            />
+            <Image
+              src="/brand/sophion-symbol-reversed-white.svg"
+              alt=""
+              width={24}
+              height={24}
+              unoptimized
+              className="hidden size-6 dark:block"
+            />
             SophionOS
           </SheetTitle>
         </SheetHeader>

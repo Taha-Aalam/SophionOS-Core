@@ -1,0 +1,44 @@
+{
+  "brand": "SophionOS",
+  "tagline": "The system that remembers the connections.",
+  "final": true,
+  "deck_title": "SophionOS final identity",
+  "date": "2026-10-08",
+  "designer": "SophionOS",
+  "brief": "SophionOS is named for Sophia's second movement: not the shattering that scattered the world into fragments, but the return that draws the fragments back toward wholeness. Her notes, her tasks, her people, scattered across tools that were never designed to connect them. This is a self-hostable life operating system and system of record - areas, goals, projects, tasks, notes, resources, contacts - built as the context layer for people who work with AI. Not an autonomous agent. Not magic. The system that remembers the connections, so you don't have to. Until this round it had no logo at all, only a placeholder indigo rounded-square with a bold S.",
+  "adjectives": ["wise", "calm", "precise", "redemptive"],
+  "criteria": "Success: carries Sophia's lineage rather than borrowing a category cliche; recognisable at 16 px in a browser tab; one colour, no gradients; reads as a system of record rather than a productivity app; deliberately unlike the circles, rounded squares, containment devices and node networks that make up most of this category.",
+  "industry": "software",
+  "nav": ["Dashboard", "My Day", "Inbox", "Knowledge"],
+  "brand_color": "#4338CA",
+  "tile_color": "#4338CA",
+  "greyscale": false,
+  "concepts": [
+    {
+      "name": "Mandorla, Opened",
+      "symbol": "kit2/sophion-symbol.svg",
+      "lockup": "kit2/sophion-horizontal.svg",
+      "stacked": "kit2/sophion-stacked.svg",
+      "symbol_on_tile": "kit2/sophion-symbol-reversed-white.svg",
+      "symbol_on_dark": "kit2/sophion-symbol-reversed-white.svg",
+      "lockup_on_dark": "kit2/svg/sophion-horizontal-white.svg",
+      "stacked_on_dark": "kit2/svg/sophion-stacked-white.svg",
+      "idea": "Sophia's own icon, outlined, and cut once on its axis.",
+      "rationale": [
+        "The mandorla - the almond of light - is the iconographic form of Sophia. It is the shape of the Mandylion of Edessa, the acheiropoietic icon carried for centuries as her image. This is the one mark in the whole process that was not invented; it was inherited.",
+        "Outlined, not solid. A solid almond reads as a leaf and drifts into the wellness register. A stroked almond reads as a mandorla. That single decision is what keeps the mark honest.",
+        "Cut once, on the axis. The seam is the hinge - the reason there is a broken world, and the point at which it turns. The mark is literally the second movement, not the first.",
+        "Two apertures, one form. It holds the scattering and the return simultaneously: a unity remembered as two halves that still know each other.",
+        "Built from exact geometry. A vesica of radius 122.1 units, a uniform 26-unit wall, a 26-unit seam. Every arc is circular, every angle exact, nothing drawn by eye.",
+        "Absent from the category. Across 1,400 reference marks, containment is 34 percent, the circle 26 percent, and node networks are standard. A mandorla appears in none of them."
+      ]
+    }
+  ],
+  "recommendation": "Mandorla, Opened. Three rounds of purely abstract geometry were tested first and rejected - a notched square, a squared S, a rune-inspired branching stem, an open ring, a chord-cut disc - because none of them carried anything. This one does. Two variants were built and rejected on evidence: a solid mandorla reads as a coffee bean at small sizes, and a one-rounded-corner square loses its entire idea below 32 px.",
+  "next_steps": [
+    "Install the SVG masters and web icon set into the repository",
+    "Replace the placeholder S badge in the sidebar and mobile nav",
+    "Replace the blank placeholder PWA icons and favicon.ico",
+    "Decide whether the mark stays indigo or moves to the Bone and Pitch alternate"
+  ]
+}
