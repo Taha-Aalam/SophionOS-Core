@@ -1,4 +1,4 @@
-import { TrustPageShell } from "@/components/trust/trust-page-shell";
+import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
   title: "Subprocessors | SophionOS",
@@ -7,7 +7,11 @@ export const metadata = {
 
 export default function SubprocessorsPage() {
   return (
-    <TrustPageShell title="Subprocessors">
+    <TrustPage
+      emoji="🏢"
+      title="Subprocessors"
+      description="Vendors that may process SophionOS data."
+    >
       <p>
         Depending on deployment (Sophion Cloud vs self-host), the following may
         process data:
@@ -46,6 +50,6 @@ export default function SubprocessorsPage() {
         Self-hosters choose their own processors. See{" "}
         <code>docs/privacy-and-data.md</code> when integrations change.
       </p>
-    </TrustPageShell>
+    </TrustPage>
   );
 }

@@ -1,4 +1,4 @@
-import { TrustPageShell } from "@/components/trust/trust-page-shell";
+import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
   title: "Terms & Policies | SophionOS",
@@ -8,7 +8,11 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <TrustPageShell title="Terms & Policies">
+    <TrustPage
+      emoji="📜"
+      title="Terms & Policies"
+      description="App terms for using SophionOS: accounts, plans and limits, API/MCP rules, your data, and service policies."
+    >
       <p className="text-sm text-muted-foreground">
         Last updated: September 9, 2026. These are the terms for the SophionOS
         application — the dashboard, settings, API, and MCP server you use after
@@ -323,6 +327,6 @@ export default function TermsPage() {
         · <a href="/subprocessors">Subprocessors</a> ·{" "}
         <a href="/responsible-disclosure">Disclosure</a>
       </p>
-    </TrustPageShell>
+    </TrustPage>
   );
 }

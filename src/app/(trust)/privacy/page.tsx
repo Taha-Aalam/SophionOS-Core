@@ -1,4 +1,4 @@
-import { TrustPageShell } from "@/components/trust/trust-page-shell";
+import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
   title: "Privacy | SophionOS",
@@ -7,7 +7,11 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <TrustPageShell title="Privacy">
+    <TrustPage
+      emoji="🔒"
+      title="Privacy"
+      description="How SophionOS handles your personal context data."
+    >
       <p>
         Your SophionOS data is yours. We do not train AI models on your private
         SophionOS content. SophionOS does not send your data to an AI model by
@@ -44,6 +48,6 @@ export default function PrivacyPage() {
         This page is product documentation, not legal counsel. Formal policy
         publication may follow legal review.
       </p>
-    </TrustPageShell>
+    </TrustPage>
   );
 }

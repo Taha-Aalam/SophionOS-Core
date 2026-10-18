@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { createElement } from "react";
@@ -114,5 +114,78 @@ describe("legal-doc stylesheet", () => {
   it("did not add Tailwind Typography as a dependency", () => {
     const pkg = readFileSync(join(SRC, "..", "package.json"), "utf8");
     expect(pkg).not.toContain("@tailwindcss/typography");
+  });
+});
+
+function filesUnder(dir: string): string[] {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) return filesUnder(full);
+    return /\.(ts|tsx)$/.test(entry.name) ? [full] : [];
+  });
+}
+
+describe("trust route group", () => {
+  it("keeps every policy page under the (trust) group", () => {
+    for (const href of TRUST_HREFS) {
+      const segment = href.slice(1);
+      expect(existsSync(join(SRC, "app", "(trust)", segment, "page.tsx")), segment).toBe(true);
+      expect(existsSync(join(SRC, "app", segment)), `${segment} must not stay at app root`).toBe(false);
+    }
+  });
+
+  it("no longer ships the legacy trust page shell", () => {
+    expect(existsSync(join(SRC, "components", "trust", "trust-page-shell.tsx"))).toBe(false);
+    const offenders = filesUnder(SRC).filter((file) =>
+      readFileSync(file, "utf8").includes("trust-page-shell"),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("wraps every policy page in TrustPage, never a page-level header", () => {
+    for (const href of TRUST_HREFS) {
+      const source = readFileSync(join(SRC, "app", "(trust)", href.slice(1), "page.tsx"), "utf8");
+      expect(source, href).toContain("<TrustPage");
+      expect(source, href).not.toContain("<header");
+    }
+  });
+});
+
+describe("public access (blocker: never login-wall a legal document)", () => {
+  const layout = () =>
+    readFileSync(join(SRC, "app", "(trust)", "layout.tsx"), "utf8");
+
+  it("never redirects to sign-in or anywhere else", () => {
+    expect(layout()).not.toContain("redirectToSignIn");
+    expect(layout()).not.toContain("redirect(");
+  });
+
+  it("keeps a signed-out branch whose logo links home", () => {
+    expect(layout()).toContain("signedIn");
+    expect(layout()).toContain('href="/"');
+  });
+
+  it("does not gate on onboarding completion", () => {
+    expect(layout()).not.toContain("resolveDashboardDestination");
+    expect(layout()).not.toContain("/onboarding");
+  });
+});
+
+describe("shell height model (blocker D2: long documents must scroll)", () => {
+  const layout = () =>
+    readFileSync(join(SRC, "app", "(trust)", "layout.tsx"), "utf8");
+
+  it("constrains the column around <main> so h-screen cannot clip it", () => {
+    expect(layout()).toContain("min-h-0");
+  });
+
+  it("does not pin a fixed height on small viewports", () => {
+    expect(layout()).toContain("min-h-screen");
+    expect(layout()).toMatch(/lg:hidden/);
+  });
+
+  it("contains scroll chaining inside the desktop main pane", () => {
+    expect(layout()).toContain("overscroll-contain");
   });
 });

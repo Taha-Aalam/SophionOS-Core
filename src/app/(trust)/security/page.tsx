@@ -1,4 +1,4 @@
-import { TrustPageShell } from "@/components/trust/trust-page-shell";
+import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
   title: "Security | SophionOS",
@@ -7,7 +7,11 @@ export const metadata = {
 
 export default function SecurityPage() {
   return (
-    <TrustPageShell title="How SophionOS protects your data">
+    <TrustPage
+      emoji="🛡️"
+      title="Security"
+      description="How SophionOS protects your data."
+    >
       <ul>
         <li>
           <strong>Account security</strong> — Clerk authentication and sessions.
@@ -43,6 +47,6 @@ export default function SecurityPage() {
         Report vulnerabilities via{" "}
         <a href="/responsible-disclosure">responsible disclosure</a>.
       </p>
-    </TrustPageShell>
+    </TrustPage>
   );
 }
