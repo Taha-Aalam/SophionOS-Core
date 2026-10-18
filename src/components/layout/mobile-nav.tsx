@@ -7,7 +7,11 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Settings, SunMoon } from "lucide-react";
 
-import { coreNavItems, systemNavItems } from "@/components/layout/navigation";
+import {
+  coreNavItems,
+  systemNavItems,
+  trustNavItems,
+} from "@/components/layout/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -118,6 +122,15 @@ export function MobileNav() {
               System
             </p>
             {systemNavItems.map((item) => (
+              <MobileNavLink key={item.href} {...item} onClick={closeSidebar} />
+            ))}
+          </div>
+
+          <div className="space-y-0.5">
+            <p className="mb-1 px-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Policies
+            </p>
+            {trustNavItems.map((item) => (
               <MobileNavLink key={item.href} {...item} onClick={closeSidebar} />
             ))}
           </div>
