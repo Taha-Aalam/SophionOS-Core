@@ -7,7 +7,11 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { ChevronLeft, ChevronRightIcon, Settings, SunMoon } from "lucide-react";
 
-import { coreNavItems, systemNavItems } from "@/components/layout/navigation";
+import {
+  coreNavItems,
+  systemNavItems,
+  trustNavItems,
+} from "@/components/layout/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -140,6 +144,17 @@ export function Sidebar() {
             </p>
           ) : null}
           {systemNavItems.map((item) => (
+            <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
+          ))}
+        </div>
+
+        <div className="space-y-0.5">
+          {isDesktopSidebarOpen ? (
+            <p className="mb-1 px-2.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Policies
+            </p>
+          ) : null}
+          {trustNavItems.map((item) => (
             <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
           ))}
         </div>

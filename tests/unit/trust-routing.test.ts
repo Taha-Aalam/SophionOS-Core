@@ -189,3 +189,24 @@ describe("shell height model (blocker D2: long documents must scroll)", () => {
     expect(layout()).toContain("overscroll-contain");
   });
 });
+
+describe("trust nav wiring", () => {
+  it("renders the Policies group in both the sidebar and the mobile drawer", () => {
+    for (const file of [
+      join(SRC, "components", "layout", "sidebar.tsx"),
+      join(SRC, "components", "layout", "mobile-nav.tsx"),
+    ]) {
+      const source = readFileSync(file, "utf8");
+      expect(source, file).toContain("trustNavItems");
+      expect(source, file).toContain("Policies");
+    }
+  });
+
+  it("keeps the Policies group above the sidebar footer block", () => {
+    const source = readFileSync(join(SRC, "components", "layout", "sidebar.tsx"), "utf8");
+    // Review N6: Settings/Theme/avatar stay anchored below a scrolling nav.
+    expect(source.indexOf("trustNavItems")).toBeLessThan(
+      source.indexOf("border-t border-sidebar-border"),
+    );
+  });
+});
