@@ -48,3 +48,50 @@ describe("composeBriefEmail", () => {
     expect(mail.html).toContain("Ship plan");
   });
 });
+
+const POLICY_PATHS = [
+  "/terms",
+  "/privacy",
+  "/security",
+  "/subprocessors",
+  "/data-and-ai",
+  "/responsible-disclosure",
+] as const;
+
+describe("composeBriefEmail policy footer", () => {
+  const mail = composeBriefEmail({
+    kind: "morning_briefing",
+    today: sampleToday,
+    appUrl: "https://app.example.com",
+    localDate: "2026-09-14",
+  });
+
+  it("links every policy page in the plain-text footer", () => {
+    for (const path of POLICY_PATHS) {
+      expect(mail.text).toContain(`https://app.example.com${path}`);
+    }
+  });
+
+  it("links every policy page in the HTML footer", () => {
+    for (const path of POLICY_PATHS) {
+      expect(mail.html).toContain(`href="https://app.example.com${path}"`);
+    }
+  });
+
+  it("strips a trailing slash so links never double up", () => {
+    const trailing = composeBriefEmail({
+      kind: "morning_briefing",
+      today: sampleToday,
+      appUrl: "https://app.example.com/",
+      localDate: "2026-09-14",
+    });
+    expect(trailing.html).toContain('href="https://app.example.com/terms"');
+    expect(trailing.html).not.toContain("example.com//terms");
+    expect(trailing.text).not.toContain("example.com//terms");
+  });
+
+  it("keeps the dashboard link and sign-off", () => {
+    expect(mail.text).toContain("https://app.example.com/dashboard");
+    expect(mail.text).toContain("— SophionOS");
+  });
+});
