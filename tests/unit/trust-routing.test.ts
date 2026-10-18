@@ -150,6 +150,65 @@ describe("trust route group", () => {
       expect(source, href).not.toContain("<header");
     }
   });
+
+  it("stamps every policy page with a version and effective date", () => {
+    for (const href of TRUST_HREFS) {
+      const source = readFileSync(join(SRC, "app", "(trust)", href.slice(1), "page.tsx"), "utf8");
+      expect(source, href).toContain("<PolicyMeta");
+      expect(source, href).toMatch(/version="\d+\.\d+"/);
+      expect(source, href).toMatch(/effective="[A-Z][a-z]+ \d+, \d{4}"/);
+    }
+  });
+
+  it("never resurrects the retired Lifetime tier", () => {
+    for (const href of TRUST_HREFS) {
+      const source = readFileSync(join(SRC, "app", "(trust)", href.slice(1), "page.tsx"), "utf8");
+      expect(source, href).not.toMatch(/<td>Lifetime<\/td>/);
+      expect(source, href).not.toMatch(/\$150 one-time, first/);
+    }
+  });
+
+  it("states the founding seat exactly as the marketing site sells it", () => {
+    const source = readFileSync(join(SRC, "app", "(trust)", "terms", "page.tsx"), "utf8");
+    expect(source).toContain("$150");
+    expect(source).toContain("1 year of Pro");
+    expect(source).toContain("2 years of Power");
+    expect(source).toContain("14 days");
+    for (const plan of ["Free", "Pro", "Power", "Business"]) {
+      expect(source, plan).toContain(`<td>${plan}</td>`);
+    }
+  });
+});
+
+describe("privacy coverage beyond US and EU", () => {
+  const privacy = () => readFileSync(join(SRC, "app", "(trust)", "privacy", "page.tsx"), "utf8");
+
+  it("carries a GDPR notice for European users", () => {
+    expect(privacy()).toContain("Notice to European users");
+    expect(privacy()).toContain("Legal bases");
+  });
+
+  it("carries a U.S. state privacy notice", () => {
+    expect(privacy()).toContain("Notice to U.S. state residents");
+    expect(privacy()).toContain("CCPA");
+  });
+
+  it("carries an India DPDP notice with the statutory anchors", () => {
+    const html = privacy();
+    expect(html).toContain("Digital Personal Data Protection Act, 2023");
+    expect(html).toContain("Data Protection Board of India");
+    expect(html).toContain("Data Principal");
+    expect(html).toContain("Data Fiduciary");
+    // Rule 14(3): grievance response never later than 90 days.
+    expect(html).toContain("90");
+    // Rule 7(2)(b): detailed intimation to the Board within 72 hours.
+    expect(html).toContain("72");
+  });
+
+  it("does not promise an erasure duty only large intermediaries carry", () => {
+    // Rule 8 of the DPDP Rules applies to the Third Schedule classes, not to us.
+    expect(privacy()).toContain("Third Schedule");
+  });
 });
 
 describe("public access (blocker: never login-wall a legal document)", () => {
