@@ -1,4 +1,4 @@
-import { TrustPageShell } from "@/components/trust/trust-page-shell";
+import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
   title: "Data & AI | SophionOS",
@@ -7,7 +7,11 @@ export const metadata = {
 
 export default function DataAndAiPage() {
   return (
-    <TrustPageShell title="Data, AI clients, and MCP">
+    <TrustPage
+      emoji="✨"
+      title="Data & AI"
+      description="How MCP, API keys, and AI clients access your data."
+    >
       <h2>Default behavior</h2>
       <p>
         SophionOS core does not automatically call OpenAI, Anthropic, or other
@@ -42,6 +46,6 @@ export default function DataAndAiPage() {
         Manage connections in{" "}
         <a href="/settings/ai-access">Settings → AI Access</a> (signed in).
       </p>
-    </TrustPageShell>
+    </TrustPage>
   );
 }

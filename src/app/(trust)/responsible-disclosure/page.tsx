@@ -1,4 +1,4 @@
-import { TrustPageShell } from "@/components/trust/trust-page-shell";
+import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
   title: "Responsible disclosure | SophionOS",
@@ -7,7 +7,11 @@ export const metadata = {
 
 export default function ResponsibleDisclosurePage() {
   return (
-    <TrustPageShell title="Responsible disclosure">
+    <TrustPage
+      emoji="🐛"
+      title="Responsible Disclosure"
+      description="How to report security vulnerabilities."
+    >
       <p>
         If you believe you have found a security vulnerability in SophionOS,
         please report it privately so we can investigate before public
@@ -31,6 +35,6 @@ export default function ResponsibleDisclosurePage() {
         according to severity. Please allow reasonable time before public
         disclosure.
       </p>
-    </TrustPageShell>
+    </TrustPage>
   );
 }
