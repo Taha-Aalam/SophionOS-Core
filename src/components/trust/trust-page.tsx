@@ -32,7 +32,10 @@ export function TrustPage({
         <span className="text-2xl leading-none" aria-hidden="true">
           {emoji}
         </span>
-        <div>
+        {/* min-w-0: a flex child's floor is its longest word, so without it a
+            long title pushes the column past max-w-3xl and the centred frame
+            leans left (28px dead right gutter at 1280px). */}
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight font-heading">{title}</h1>
           <p className="text-muted-foreground text-sm mt-1">{description}</p>
         </div>
