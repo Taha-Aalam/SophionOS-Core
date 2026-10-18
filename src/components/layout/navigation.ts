@@ -1,3 +1,5 @@
+import { FileText, Lock, Network, Shield, ShieldAlert, Sparkles } from "lucide-react";
+
 import { AreaEmoji } from "@/components/layout/area-emoji";
 import { ContactsEmoji } from "@/components/layout/contacts-emoji";
 import { DashboardEmoji } from "@/components/layout/dashboard-emoji";
@@ -29,10 +31,23 @@ const systemNavItems = [
   { href: "/knowledge", label: "Knowledge Hub", icon: KnowledgeEmoji },
 ] as const;
 
+// System-level policy pages, rendered in the sidebar's "Policies" group.
+// Lucide icons — not the bespoke *-emoji.tsx brand assets — because these are
+// footer-style links like Settings / Theme, not core product entities.
+const trustNavItems = [
+  { href: "/terms", label: "Terms", icon: FileText },
+  { href: "/privacy", label: "Privacy", icon: Lock },
+  { href: "/security", label: "Security", icon: Shield },
+  { href: "/subprocessors", label: "Subprocessors", icon: Network },
+  { href: "/data-and-ai", label: "Data & AI", icon: Sparkles },
+  { href: "/responsible-disclosure", label: "Responsible Disclosure", icon: ShieldAlert },
+] as const;
+
 const breadcrumbLabels: Record<string, string> = {
   areas: "Areas",
   contacts: "Contacts",
   dashboard: "Dashboard",
+  "data-and-ai": "Data & AI",
   "forgot-password": "Forgot Password",
   goals: "Goals",
   inbox: "Inbox",
@@ -40,13 +55,18 @@ const breadcrumbLabels: Record<string, string> = {
   login: "Login",
   "my-day": "My Day",
   notes: "Notes",
+  privacy: "Privacy",
   projects: "Projects",
   "reset-password": "Reset Password",
   resources: "Resources",
+  "responsible-disclosure": "Responsible Disclosure",
+  security: "Security",
   settings: "Settings",
   signup: "Sign Up",
+  subprocessors: "Subprocessors",
   tasks: "Tasks",
+  terms: "Terms",
   topics: "Topics",
 };
 
-export { breadcrumbLabels, coreNavItems, systemNavItems };
+export { breadcrumbLabels, coreNavItems, systemNavItems, trustNavItems };
