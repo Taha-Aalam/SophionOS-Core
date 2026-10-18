@@ -61,3 +61,25 @@
 - “Enterprise secure” without evidence
 - “Fully private” for every possible deployment
 - “Production MCP” until scopes, defaults, and tests match that bar
+
+## Marketing site footer does not link to the policy pages
+
+The app's policy documents (`/terms`, `/privacy`, `/security`,
+`/subprocessors`, `/data-and-ai`, `/responsible-disclosure`) are permanently
+public and are linked from the app sidebar, the profile dropdown,
+Settings → Privacy & data, and transactional email footers. The marketing site
+(`sophionos-landing`, a separate repository) does not link to them yet.
+
+Fix in that repository's footer, using the app origin
+(`NEXT_PUBLIC_APP_URL`, e.g. `https://app.sophionos.com`):
+
+````html
+<nav aria-label="Policies">
+  <a href="https://app.sophionos.com/terms">Terms</a>
+  <a href="https://app.sophionos.com/privacy">Privacy</a>
+  <a href="https://app.sophionos.com/security">Security</a>
+  <a href="https://app.sophionos.com/subprocessors">Subprocessors</a>
+  <a href="https://app.sophionos.com/data-and-ai">Data &amp; AI</a>
+  <a href="https://app.sophionos.com/responsible-disclosure">Responsible Disclosure</a>
+</nav>
+````

@@ -210,3 +210,20 @@ describe("trust nav wiring", () => {
     );
   });
 });
+
+describe("policy reachability outside the app shell", () => {
+  it("emails a footer link for every policy page", () => {
+    const source = readFileSync(
+      join(SRC, "lib", "notifications", "compose-brief.ts"),
+      "utf8",
+    );
+    for (const href of TRUST_HREFS) {
+      expect(source, href).toContain(`path: "${href}"`);
+    }
+  });
+
+  it("tracks the marketing-site footer as a known limitation", () => {
+    const doc = readFileSync(join(SRC, "..", "docs", "known-limitations.md"), "utf8");
+    expect(doc).toContain("/responsible-disclosure");
+  });
+});
