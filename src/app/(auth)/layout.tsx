@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function AuthLayout({
   children,
@@ -39,6 +40,17 @@ export default function AuthLayout({
           <p className="text-muted-foreground">Organize your life, achieve your goals.</p>
         </div>
         {children}
+        {/* Anonymous route to the policy documents. The app sidebar is not
+            available without a session, so this is the second public entry
+            point, alongside the footer of transactional email. */}
+        <p className='text-center text-sm text-muted-foreground'>
+          <Link
+            href='/terms'
+            className='underline underline-offset-4 transition-colors hover:text-foreground'
+          >
+            Terms &amp; Policies
+          </Link>
+        </p>
       </div>
     </div>
   );

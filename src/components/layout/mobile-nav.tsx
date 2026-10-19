@@ -9,6 +9,7 @@ import { Settings, SunMoon } from "lucide-react";
 
 import {
   coreNavItems,
+  isPolicyPath,
   systemNavItems,
   trustNavItems,
 } from "@/components/layout/navigation";
@@ -69,6 +70,7 @@ function MobileNavLink({
 }
 
 export function MobileNav() {
+  const pathname = usePathname();
   const { closeSidebar, isMobileNavOpen } = useUIStore();
   const { resolvedTheme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
@@ -77,6 +79,10 @@ export function MobileNav() {
   useEffect(() => {
     startTransition(() => setMounted(true));
   }, []);
+
+  // Same rule as the desktop sidebar: on a policy page the drawer is a
+  // Policies list only, with no app navigation and no account block.
+  const policyMode = isPolicyPath(pathname);
 
   const displayName = user?.name || user?.email || "User";
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -108,35 +114,39 @@ export function MobileNav() {
         </SheetHeader>
 
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-          <div className="space-y-0.5">
-            <p className="mb-1 px-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Core
-            </p>
-            {coreNavItems.map((item) => (
-              <MobileNavLink key={item.href} {...item} onClick={closeSidebar} />
-            ))}
-          </div>
+          {policyMode ? (
+            <div className="space-y-0.5">
+              <p className="mb-1 px-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Policies
+              </p>
+              {trustNavItems.map((item) => (
+                <MobileNavLink key={item.href} {...item} onClick={closeSidebar} />
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="space-y-0.5">
+                <p className="mb-1 px-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Core
+                </p>
+                {coreNavItems.map((item) => (
+                  <MobileNavLink key={item.href} {...item} onClick={closeSidebar} />
+                ))}
+              </div>
 
-          <div className="space-y-0.5">
-            <p className="mb-1 px-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
-              System
-            </p>
-            {systemNavItems.map((item) => (
-              <MobileNavLink key={item.href} {...item} onClick={closeSidebar} />
-            ))}
-          </div>
-
-          <div className="space-y-0.5">
-            <p className="mb-1 px-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Policies
-            </p>
-            {trustNavItems.map((item) => (
-              <MobileNavLink key={item.href} {...item} onClick={closeSidebar} />
-            ))}
-          </div>
-
+              <div className="space-y-0.5">
+                <p className="mb-1 px-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  System
+                </p>
+                {systemNavItems.map((item) => (
+                  <MobileNavLink key={item.href} {...item} onClick={closeSidebar} />
+                ))}
+              </div>
+            </>
+          )}
         </nav>
 
+        {policyMode ? null : (
         <div className="space-y-1 border-t border-border px-3 py-4">
           <Link
             href="/settings"
@@ -171,6 +181,7 @@ export function MobileNav() {
             <span className="truncate text-sm font-medium">{displayName}</span>
           </div>
         </div>
+        )}
       </SheetContent>
     </Sheet>
   );
