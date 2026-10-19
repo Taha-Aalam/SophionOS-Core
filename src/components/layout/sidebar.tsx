@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRightIcon, Settings, SunMoon } from "lucide-react";
 
 import {
   coreNavItems,
+  isPolicyPath,
   systemNavItems,
   trustNavItems,
 } from "@/components/layout/navigation";
@@ -71,6 +72,7 @@ function NavLink({
 }
 
 export function Sidebar() {
+  const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
   const { user } = useAuth();
   const { isDesktopSidebarOpen, toggleDesktopSidebar } = useUIStore();
@@ -79,6 +81,11 @@ export function Sidebar() {
   useEffect(() => {
     startTransition(() => setMounted(true));
   }, []);
+
+  // On a policy page the sidebar stops being app navigation: Core/System and
+  // the account footer (Settings, Theme, profile) are replaced by the Policies
+  // list alone. Policy documents should read as documents, not as the app.
+  const policyMode = isPolicyPath(pathname);
 
   const displayName = user?.name || user?.email || "User";
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -92,7 +99,7 @@ export function Sidebar() {
       )}
     >
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-sidebar-border px-3">
-        <Link href="/dashboard" className="group flex items-center gap-2 text-sm font-semibold">
+        <Link href={policyMode ? "/" : "/dashboard"} className="group flex items-center gap-2 text-sm font-semibold">
           <Image
             src="/brand/sophion-symbol.svg"
             alt={isDesktopSidebarOpen ? "" : "SophionOS"}
@@ -126,69 +133,75 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-2 py-3">
-        <div className="space-y-0.5">
-          {isDesktopSidebarOpen ? (
-            <p className="mb-1 px-2.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Core
-            </p>
-          ) : null}
-          {coreNavItems.map((item) => (
-            <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
-          ))}
-        </div>
+        {policyMode ? (
+          <div className="space-y-0.5">
+            {isDesktopSidebarOpen ? (
+              <p className="mb-1 px-2.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Policies
+              </p>
+            ) : null}
+            {trustNavItems.map((item) => (
+              <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="space-y-0.5">
+              {isDesktopSidebarOpen ? (
+                <p className="mb-1 px-2.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Core
+                </p>
+              ) : null}
+              {coreNavItems.map((item) => (
+                <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
+              ))}
+            </div>
 
-        <div className="space-y-0.5">
-          {isDesktopSidebarOpen ? (
-            <p className="mb-1 px-2.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
-              System
-            </p>
-          ) : null}
-          {systemNavItems.map((item) => (
-            <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
-          ))}
-        </div>
-
-        <div className="space-y-0.5">
-          {isDesktopSidebarOpen ? (
-            <p className="mb-1 px-2.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Policies
-            </p>
-          ) : null}
-          {trustNavItems.map((item) => (
-            <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
-          ))}
-        </div>
+            <div className="space-y-0.5">
+              {isDesktopSidebarOpen ? (
+                <p className="mb-1 px-2.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  System
+                </p>
+              ) : null}
+              {systemNavItems.map((item) => (
+                <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
+              ))}
+            </div>
+          </>
+        )}
       </nav>
 
-      <div className="space-y-1 border-t border-sidebar-border px-2 py-3">
-        <Link
-          href="/settings"
-          className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        >
-          <Settings className="size-4 shrink-0" />
-          {isDesktopSidebarOpen ? <span>Settings</span> : null}
-        </Link>
-        <Button
-          variant="ghost"
-          className="h-auto w-full justify-start gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-        >
-          <SunMoon className="size-4 shrink-0" />
-          {isDesktopSidebarOpen ? <span>{themeLabel}</span> : null}
-        </Button>
-        <Link
-          href="/settings/profile"
-          aria-label={`Open profile: ${displayName}`}
-          className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        >
-          <Avatar size="sm">
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-          {isDesktopSidebarOpen ? (
-            <span className="truncate text-sm font-medium">{displayName}</span>
-          ) : null}
-        </Link>
-      </div>
+      {policyMode ? null : (
+        <div className="space-y-1 border-t border-sidebar-border px-2 py-3">
+          <Link
+            href="/settings"
+            className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            <Settings className="size-4 shrink-0" />
+            {isDesktopSidebarOpen ? <span>Settings</span> : null}
+          </Link>
+          <Button
+            variant="ghost"
+            className="h-auto w-full justify-start gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          >
+            <SunMoon className="size-4 shrink-0" />
+            {isDesktopSidebarOpen ? <span>{themeLabel}</span> : null}
+          </Button>
+          <Link
+            href="/settings/profile"
+            aria-label={`Open profile: ${displayName}`}
+            className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            <Avatar size="sm">
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            {isDesktopSidebarOpen ? (
+              <span className="truncate text-sm font-medium">{displayName}</span>
+            ) : null}
+          </Link>
+        </div>
+      )}
     </aside>
   );
 }

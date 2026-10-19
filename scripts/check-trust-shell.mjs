@@ -129,6 +129,72 @@ for (const [w, hgt] of [[390, 800], [320, 640]]) {
   await p.close();
 }
 
+// 5. Sign-in page offers an anonymous route to the policies.
+const anonEntry = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+await anonEntry.goto(`${APP}/login`, { waitUntil: "networkidle" });
+const loginLinks = await anonEntry.evaluate(() =>
+  [...document.querySelectorAll('a[href="/terms"]')].map((a) => a.textContent?.trim()),
+);
+check(
+  "sign-in page links to Terms & Policies",
+  loginLinks.some((t) => /terms/i.test(t ?? "")),
+  JSON.stringify(loginLinks),
+);
+await anonEntry.close();
+
+// 6./7. Policies are gone from the app shell, and appear only once you are
+// inside the policies. Needs a session: set TEST_COOKIES (JSON array of
+// playwright cookies) plus TEST_APP=<signed-in app url>.
+if (process.env.TEST_COOKIES) {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  await ctx.addCookies(JSON.parse(process.env.TEST_COOKIES));
+  const signed = process.env.TEST_APP ?? APP;
+  const inspect = async (path) => {
+    const p = await ctx.newPage();
+    await p.goto(`${signed}${path}`, { waitUntil: "networkidle" });
+    // open the drawer so both desktop sidebar and mobile nav are inspectable
+    const html = await p.content();
+    const navText = await p.evaluate(async () => {
+      const aside = document.querySelector("aside");
+      return {
+        asideText: aside?.innerText.replace(/\s+/g, " ") ?? "(no aside)",
+        emojiIcons: (aside?.querySelectorAll('[role="img"]') ?? []).length,
+        lucideIcons: (aside?.querySelectorAll("svg.lucide") ?? []).length,
+      };
+    });
+    await p.close();
+    return { html, ...navText };
+  };
+
+  const appPage = await inspect("/dashboard");
+  check(
+    "app shell does not list the policies",
+    !/Policies/.test(appPage.asideText) && !/Subprocessors/.test(appPage.asideText),
+    appPage.asideText.slice(0, 160),
+  );
+  check(
+    "app shell still shows Core and System",
+    /Core/.test(appPage.asideText) && /System/.test(appPage.asideText),
+    appPage.asideText.slice(0, 160),
+  );
+
+  const policyPage = await inspect("/terms");
+  check(
+    "policy page shows Policies only",
+    /Policies/.test(policyPage.asideText) &&
+      !/Core/.test(policyPage.asideText) &&
+      !/System/.test(policyPage.asideText),
+    policyPage.asideText.slice(0, 200),
+  );
+  check(
+    "policy icons render as emoji, not lucide svgs",
+    policyPage.emojiIcons >= 6 && policyPage.lucideIcons === 0,
+    `emoji=${policyPage.emojiIcons} lucide=${policyPage.lucideIcons}`,
+  );
+} else {
+  console.log("SKIP signed-in checks — set TEST_COOKIES to a Clerk session to run them");
+}
+
 await browser.close();
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
