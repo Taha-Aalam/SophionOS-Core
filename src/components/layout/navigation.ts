@@ -1,17 +1,22 @@
-import { FileText, Lock, Network, Shield, ShieldAlert, Sparkles } from "lucide-react";
-
 import { AreaEmoji } from "@/components/layout/area-emoji";
 import { ContactsEmoji } from "@/components/layout/contacts-emoji";
+import { DataAndAiEmoji } from "@/components/layout/data-and-ai-emoji";
 import { DashboardEmoji } from "@/components/layout/dashboard-emoji";
 import { GoalEmoji } from "@/components/layout/goal-emoji";
 import { InboxTrayEmoji } from "@/components/layout/inbox-tray-emoji";
 import { KnowledgeEmoji } from "@/components/layout/knowledge-emoji";
 import { MyDayEmoji } from "@/components/layout/my-day-emoji";
 import { NoteEmoji } from "@/components/layout/note-emoji";
+import { PrivacyPolicyEmoji } from "@/components/layout/privacy-policy-emoji";
 import { ProjectEmoji } from "@/components/layout/project-emoji";
+import { ResponsibleDisclosureEmoji } from "@/components/layout/responsible-disclosure-emoji";
 import { ResourceEmoji } from "@/components/layout/resource-emoji";
+import { SecurityEmoji } from "@/components/layout/security-emoji";
+import { SubprocessorsEmoji } from "@/components/layout/subprocessors-emoji";
 import { TagEmoji } from "@/components/layout/tag-emoji";
 import { TaskEmoji } from "@/components/layout/task-emoji";
+import { TermsEmoji } from "@/components/layout/terms-emoji";
+import { isActiveNavigationPath } from "@/lib/auth/auth-routing";
 
 const coreNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: DashboardEmoji },
@@ -31,17 +36,23 @@ const systemNavItems = [
   { href: "/knowledge", label: "Knowledge Hub", icon: KnowledgeEmoji },
 ] as const;
 
-// System-level policy pages, rendered in the sidebar's "Policies" group.
-// Lucide icons — not the bespoke *-emoji.tsx brand assets — because these are
-// footer-style links like Settings / Theme, not core product entities.
+// System-level policy pages. These are NOT app navigation: they appear only
+// while you are already inside the policy pages (the sidebar swaps to a
+// Policies-only mode there), plus the profile dropdown and the sign-in page.
+// Emoji icons match each page's own header emoji, like every other nav item.
 const trustNavItems = [
-  { href: "/terms", label: "Terms", icon: FileText },
-  { href: "/privacy", label: "Privacy", icon: Lock },
-  { href: "/security", label: "Security", icon: Shield },
-  { href: "/subprocessors", label: "Subprocessors", icon: Network },
-  { href: "/data-and-ai", label: "Data & AI", icon: Sparkles },
-  { href: "/responsible-disclosure", label: "Responsible Disclosure", icon: ShieldAlert },
+  { href: "/terms", label: "Terms", icon: TermsEmoji },
+  { href: "/privacy", label: "Privacy", icon: PrivacyPolicyEmoji },
+  { href: "/security", label: "Security", icon: SecurityEmoji },
+  { href: "/subprocessors", label: "Subprocessors", icon: SubprocessorsEmoji },
+  { href: "/data-and-ai", label: "Data & AI", icon: DataAndAiEmoji },
+  { href: "/responsible-disclosure", label: "Responsible Disclosure", icon: ResponsibleDisclosureEmoji },
 ] as const;
+
+/** True when `pathname` is one of the policy pages (a trustNavItems href). */
+function isPolicyPath(pathname: string): boolean {
+  return trustNavItems.some((item) => isActiveNavigationPath(pathname, item.href));
+}
 
 const breadcrumbLabels: Record<string, string> = {
   areas: "Areas",
@@ -69,4 +80,4 @@ const breadcrumbLabels: Record<string, string> = {
   topics: "Topics",
 };
 
-export { breadcrumbLabels, coreNavItems, systemNavItems, trustNavItems };
+export { breadcrumbLabels, coreNavItems, isPolicyPath, systemNavItems, trustNavItems };

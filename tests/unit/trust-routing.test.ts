@@ -30,7 +30,9 @@ describe("trust navigation", () => {
     expect(new Set(hrefs).size).toBe(hrefs.length);
     for (const item of trustNavItems) {
       expect(item.label.trim().length).toBeGreaterThan(0);
-      expect(typeof item.icon).toBe("object");
+      // Lucide exports forwardRef objects; the emoji components are functions.
+      expect(["function", "object"], item.label).toContain(typeof item.icon);
+      expect(item.icon, item.label).toBeTruthy();
     }
   });
 
@@ -250,23 +252,87 @@ describe("shell height model (blocker D2: long documents must scroll)", () => {
 });
 
 describe("trust nav wiring", () => {
+  const sidebar = () =>
+    readFileSync(join(SRC, "components", "layout", "sidebar.tsx"), "utf8");
+  const drawer = () =>
+    readFileSync(join(SRC, "components", "layout", "mobile-nav.tsx"), "utf8");
+
   it("renders the Policies group in both the sidebar and the mobile drawer", () => {
-    for (const file of [
-      join(SRC, "components", "layout", "sidebar.tsx"),
-      join(SRC, "components", "layout", "mobile-nav.tsx"),
-    ]) {
-      const source = readFileSync(file, "utf8");
-      expect(source, file).toContain("trustNavItems");
-      expect(source, file).toContain("Policies");
+    for (const [name, source] of [
+      ["sidebar", sidebar()],
+      ["mobile-nav", drawer()],
+    ] as const) {
+      expect(source, name).toContain("trustNavItems");
+      expect(source, name).toContain("Policies");
+    }
+  });
+
+  it("keeps policies out of app navigation, behind a policy-mode switch", () => {
+    // Policies must never render alongside Core/System; a policy page swaps the
+    // whole nav, so both files gate the app groups on policyMode.
+    for (const [name, source] of [
+      ["sidebar", sidebar()],
+      ["mobile-nav", drawer()],
+    ] as const) {
+      expect(source, name).toContain("isPolicyPath");
+      expect(source, name).toContain("policyMode");
+      // The Core/System groups must sit inside the non-policy branch.
+      const nonPolicyBranch = source.slice(source.indexOf(") : ("));
+      expect(nonPolicyBranch, name).toContain("coreNavItems");
+      expect(nonPolicyBranch, name).toContain("systemNavItems");
+      const policyBranch = source.slice(
+        source.indexOf("policyMode ? ("),
+        source.indexOf(") : ("),
+      );
+      expect(policyBranch, name).not.toContain("coreNavItems");
+      expect(policyBranch, name).not.toContain("systemNavItems");
+    }
+  });
+
+  it("drops the account footer on policy pages", () => {
+    for (const [name, source] of [
+      ["sidebar", sidebar()],
+      ["mobile-nav", drawer()],
+    ] as const) {
+      expect(source, name).toMatch(/policyMode \? null : \(\s*<div[^>]*border-t/);
+    }
+  });
+
+  it("draws every policy icon as an emoji, not a lucide icon", () => {
+    const nav = readFileSync(join(SRC, "components", "layout", "navigation.ts"), "utf8");
+    expect(nav).not.toContain("lucide-react");
+    for (const item of trustNavItems) {
+      expect(item.icon.name, item.label).toMatch(/Emoji$/);
+    }
+    // Each emoji component renders a real glyph, matching the page header.
+    for (const href of TRUST_HREFS) {
+      const page = readFileSync(join(SRC, "app", "(trust)", href.slice(1), "page.tsx"), "utf8");
+      expect(page, href).toMatch(/emoji="[^"]+"/);
     }
   });
 
   it("keeps the Policies group above the sidebar footer block", () => {
-    const source = readFileSync(join(SRC, "components", "layout", "sidebar.tsx"), "utf8");
+    const source = sidebar();
     // Review N6: Settings/Theme/avatar stay anchored below a scrolling nav.
     expect(source.indexOf("trustNavItems")).toBeLessThan(
       source.indexOf("border-t border-sidebar-border"),
     );
+  });
+});
+
+describe("anonymous entry to the policies", () => {
+  it("links the policy documents from the sign-in screen", () => {
+    const authLayout = readFileSync(join(SRC, "app", "(auth)", "layout.tsx"), "utf8");
+    expect(authLayout).toContain('href=\'/terms\'');
+    expect(authLayout).toContain("Terms &amp; Policies");
+  });
+
+  it("links them from the profile dropdown", () => {
+    const dropdown = readFileSync(
+      join(SRC, "components", "layout", "profile-dropdown.tsx"),
+      "utf8",
+    );
+    expect(dropdown).toContain('href: "/terms"');
   });
 });
 
