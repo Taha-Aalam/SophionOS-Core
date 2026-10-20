@@ -16,7 +16,7 @@ export default function SecurityPage() {
       <PolicyMeta
         version="2.1"
         effective="October 19, 2026"
-        summary="Replaces the previous security page. Adds the minimum safeguards required by Rule 6 of the DPDP Rules, 2025, the incident-response and breach-notification commitments, and a clear separation between what SophionOS Cloud provides and what a self-hosted deployment does not."
+        summary="Replaces the previous security page. Adds the minimum safeguards required by Rule 6 of the DPDP Rules, 2025, and a clear separation between what SophionOS Cloud provides and what a self-hosted deployment does not."
       />
 
       <h2>What we do</h2>
@@ -145,13 +145,9 @@ export default function SecurityPage() {
 
       <h2>If something goes wrong</h2>
       <p>
-        When we become aware of a personal data breach we contain it first, then
-        notify — we do not wait for the investigation to finish. We intimate to
-        the Data Protection Board of India under Rule 7 of the DPDP Rules, 2025,
-        and to each affected Data Principal, without delay. Notices tell you
-        what happened, what data was involved, what we have done, what you
-        should do, and how to reach a person who can answer questions. The
-        Privacy Policy sets out our breach commitments in full.
+        SophionOS is self-hosted: whoever operates an instance is responsible
+        for securing it and for meeting any breach-notification duties that
+        apply to them.
       </p>
 
       <h2>Your part</h2>

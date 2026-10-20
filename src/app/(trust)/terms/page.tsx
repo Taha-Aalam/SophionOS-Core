@@ -63,7 +63,8 @@ export default function TermsPage() {
         Payments&apos; terms of sale. Where a charge, an invoice, a tax, a
         refund, or a cancellation of a purchase is concerned, Dodo Payments is
         the counterparty and we are not. Section 4 and section 11 cover the parts
-        of that you deal with through us.
+        of that you deal with through us, including a billing error or a
+        duplicate charge.
       </p>
       <p>
         SophionOS is provided <strong>as is</strong>. We do not warrant that the
@@ -432,10 +433,18 @@ export default function TermsPage() {
         </li>
       </ul>
       <p>
+        <strong>Charged in error.</strong> If you are charged in error — including
+        being charged twice for the same period — write to{" "}
+        <strong>founders@sophionos.com</strong> within 60 days of the charge and
+        we will refund the erroneous charge. Dodo Payments, as merchant of
+        record, issues the refund to the original payment method.
+      </p>
+      <p>
         Disputes about a charge must be raised within 60 days of the charge date.
-        A dispute about a charge is a dispute with Dodo Payments, which is the
-        seller of record: raise it with Dodo Payments through the customer
-        portal or the contact details on your invoice.
+        Except for a billing error or duplicate charge, which you raise with us
+        as set out above, a dispute about a charge is a dispute with Dodo
+        Payments, which is the seller of record: raise it with Dodo Payments
+        through the customer portal or the contact details on your invoice.
       </p>
       <p>
         <strong>
@@ -551,11 +560,12 @@ export default function TermsPage() {
           property rights.
         </li>
         <li>
-          <strong>Purchase disputes are not ours.</strong> A dispute about a
-          charge, a refund, a tax, or the cancellation of a purchase is a
-          dispute with Dodo Payments under its terms of sale. It is not covered
-          by this section, and nothing here changes which contract you have with
-          Dodo Payments.
+          <strong>Purchase disputes are not ours.</strong> Except for a billing
+          error or duplicate charge, which is handled under section 11, a
+          dispute about a charge, a refund, a tax, or the cancellation of a
+          purchase is a dispute with Dodo Payments under its terms of sale. It
+          is not covered by this section, and nothing here changes which
+          contract you have with Dodo Payments.
         </li>
         <li>
           <strong>Your statutory rights are unaffected.</strong> Nothing in this
@@ -669,7 +679,10 @@ export default function TermsPage() {
         Questions about a purchase — a charge, an invoice, a tax, a refund, or
         cancelling a subscription — go to Dodo Payments, which sells to you as
         merchant of record. Use the customer portal reachable from Settings →
-        Billing, or the contact details on your invoice.
+        Billing, or the contact details on your invoice. The exception is a
+        billing error or duplicate charge: write to{" "}
+        <strong>founders@sophionos.com</strong> as section 11 sets out, and we
+        will refund the erroneous charge.
       </p>
       <p>
         Grievances about these Terms are handled through the process and the
