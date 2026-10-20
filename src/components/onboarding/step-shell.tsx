@@ -19,8 +19,6 @@ export interface StepShellProps {
   onNext: () => void;
   /** Skip the current step (explainer only). */
   onSkip?: () => void;
-  /** Skip the entire onboarding and go to dashboard. */
-  onSkipAll?: () => void;
   children: ReactNode;
 }
 
@@ -40,7 +38,6 @@ export function StepShell({
   onBack,
   onNext,
   onSkip,
-  onSkipAll,
   children,
 }: StepShellProps) {
   const total = ONBOARDING_STEP_LIST.length;
@@ -89,11 +86,6 @@ export function StepShell({
           {onSkip && !isLastStep && (
             <Button variant="ghost" onClick={onSkip} disabled={isBusy}>
               Skip
-            </Button>
-          )}
-          {onSkipAll && (
-            <Button variant="ghost" onClick={onSkipAll} disabled={isBusy}>
-              Skip all
             </Button>
           )}
           <Button
