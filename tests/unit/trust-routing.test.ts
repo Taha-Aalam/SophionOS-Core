@@ -206,15 +206,25 @@ describe("privacy coverage beyond US and EU", () => {
   });
 
   it("carries an India DPDP notice with the statutory anchors", () => {
-    const html = privacy();
+    // Prose wraps at 80 columns in the source; match against normalised text.
+    const html = privacy().replace(/\s+/g, " ");
     expect(html).toContain("Digital Personal Data Protection Act, 2023");
     expect(html).toContain("Data Protection Board of India");
     expect(html).toContain("Data Principal");
     expect(html).toContain("Data Fiduciary");
     // Rule 14(3): grievance response never later than 90 days.
     expect(html).toContain("90");
-    // Rule 7(2)(b): detailed intimation to the Board within 72 hours.
-    expect(html).toContain("72");
+  });
+
+  it("promises no breach notification, because Core is self-hosted", () => {
+    // Core does not operate an instance, so it has no breach-notification
+    // duty to promise. The operator of the deployment has it instead.
+    for (const href of TRUST_HREFS) {
+      const source = readFileSync(join(SRC, "app", "(trust)", href.slice(1), "page.tsx"), "utf8");
+      expect(source, href).not.toMatch(/breach[- ]notification commitment/i);
+      expect(source, href).not.toMatch(/we will notify (you|affected)/i);
+    }
+    expect(privacy()).not.toContain("Data breach notification");
   });
 
   it("names no in-app assistant or chatbot register, because core has neither", () => {

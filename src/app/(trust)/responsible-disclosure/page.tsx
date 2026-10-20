@@ -125,10 +125,10 @@ export default function ResponsibleDisclosurePage() {
         We acknowledge reports within 7 days, tell you whether we consider the
         issue in scope, and keep you informed of progress. We aim to remediate
         critical issues within 30 days and lower-severity issues within 90 days,
-        and we will tell you if a fix will take longer. Where the law requires us
-        to notify a regulator or affected users — see the Privacy Policy — we
-        handle that, not the reporter. We are happy to credit you in the fix
-        notes or in the repository if you would like; just say so.
+        and we will tell you if a fix will take longer. Any breach-notification
+        duty falls on whoever operates the instance the issue affects, not on
+        the reporter. We are happy to credit you in the fix notes or in the
+        repository if you would like; just say so.
       </p>
       <p className="text-sm text-muted-foreground">
         This page is product documentation, not legal counsel.
