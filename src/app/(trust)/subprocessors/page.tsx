@@ -14,17 +14,27 @@ export default function SubprocessorsPage() {
       description="Vendors that may process SophionOS data."
     >
       <PolicyMeta
-        version="2.0"
-        effective="October 18, 2026"
-        summary="Replaces the previous vendor list. Names the actual vendors now in use — Dodo Payments for founding seats and Resend for transactional email — and separates what the Cloud service uses from what a self-hosted deployment uses."
+        version="2.1"
+        effective="October 19, 2026"
+        summary="Replaces the previous vendor list. Names the actual vendors now in use — Dodo Payments for subscription billing and the one-time founding-seat checkout, and Resend for transactional email — and separates what the Cloud service uses from what a self-hosted deployment uses."
       />
 
       <p>
-        Under the EU and UK GDPR we are the controller and these vendors are our
-        processors. Under India&apos;s DPDP Act, 2023 we are the Data Fiduciary
-        and they are our Data Processors. Each is bound by contract to process
-        personal data only on our instructions and to apply security
-        safeguards. This page lists who they are and why.
+        Under India&apos;s DPDP Act, 2023 Taha Aalam, sole proprietor trading as
+        SophionOS, is the Data Fiduciary and these vendors are our Data
+        Processors; where the EU or UK GDPR applies, we are the controller and
+        they are our processors. Each is bound by contract to process personal
+        data only on our instructions and to apply security safeguards. This
+        page lists who they are and why.
+      </p>
+      <p>
+        Dodo Payments is the exception. It is our merchant of record and the
+        seller of record for paid plans and founding seats, so it decides how
+        your payment data is processed rather than processing it on our
+        instructions, and Dodo&apos;s own{" "}
+        <a href="https://dodopayments.com/privacy-policy">privacy policy</a>{" "}
+        applies to that data. See section 4.1 of the{" "}
+        <a href="/privacy">Privacy Policy</a>.
       </p>
 
       <h2>SophionOS Cloud</h2>
@@ -62,11 +72,12 @@ export default function SubprocessorsPage() {
           <tr>
             <td>Dodo Payments</td>
             <td>
-              Payment processing for Founding Cohort seats; merchant of record
+              Subscription billing and the one-time founding-seat checkout;
+              merchant of record — the seller of record, not a processor
             </td>
             <td>
-              Your email and name at checkout, and the payment record. Card
-              details go to Dodo, never to us.
+              Your name, email, and billing details at checkout, and the
+              payment record. Card details go to Dodo, never to us.
             </td>
             <td>United States / India</td>
           </tr>
@@ -90,12 +101,13 @@ export default function SubprocessorsPage() {
 
       <h2>AI clients you connect</h2>
       <p>
-        Anthropic (Claude), OpenAI (Codex), Cursor, and other MCP-compatible
-        clients are <strong>not</strong> our processors. They are independent
-        controllers acting for you. SophionOS does not call them; you configure
-        them with an API key you create, and they process whatever they read
-        under their own terms. We cannot instruct them, audit them, or delete
-        data from them. See <a href="/data-and-ai">Data &amp; AI</a>.
+        Anthropic (Claude), OpenAI (Codex), Cursor, Antigravity, OpenCode, and
+        other MCP-compatible clients are <strong>not</strong> our processors.
+        They are independent controllers acting for you. SophionOS does not call
+        them; you configure them with an API key you create, and they process
+        whatever they read under their own terms. We cannot instruct them,
+        audit them, or delete data from them. See{" "}
+        <a href="/data-and-ai">Data &amp; AI</a>.
       </p>
 
       <h2>Self-hosted SophionOS Core</h2>
@@ -132,6 +144,9 @@ export default function SubprocessorsPage() {
         object or delete your account first. To be notified of changes, or to
         raise an objection, write to{" "}
         <a href="mailto:founders@sophionos.com">founders@sophionos.com</a>.
+      </p>
+      <p className="text-sm text-muted-foreground">
+        This page is product documentation, not legal counsel.
       </p>
       <p>
         Related: <a href="/privacy">Privacy</a> ·{" "}

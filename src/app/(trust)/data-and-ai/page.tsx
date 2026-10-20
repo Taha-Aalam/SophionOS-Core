@@ -3,7 +3,7 @@ import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
   title: "Data & AI | SophionOS",
-  description: "How MCP, API keys, and AI clients access your data.",
+  description: "How MCP, API keys, and AI clients access SophionOS.",
 };
 
 export default function DataAndAiPage() {
@@ -14,8 +14,8 @@ export default function DataAndAiPage() {
       description="How MCP, API keys, and AI clients access your data."
     >
       <PolicyMeta
-        version="2.0"
-        effective="October 18, 2026"
+        version="2.1"
+        effective="October 19, 2026"
         summary="Replaces the previous page. Adds who is responsible for what once a client is connected, what SophionOS does and does not do with your content for AI, and how to cut off access."
       />
 
@@ -36,7 +36,8 @@ export default function DataAndAiPage() {
         <li>Create an API key in Settings → AI Access (default: read-only).</li>
         <li>
           Configure your MCP client — Claude Desktop, Claude Code, Cursor, Codex,
-          OpenCode, or any MCP-compatible client — with the base URL and the key.
+          Antigravity, OpenCode, or any MCP-compatible client — with the base
+          URL and the key.
         </li>
         <li>
           The client calls the SophionOS REST API. SophionOS enforces
@@ -106,7 +107,9 @@ export default function DataAndAiPage() {
           It cannot act while global AI access is disabled, even with a valid
           key.
         </li>
-        <li>It cannot exceed its plan&apos;s rate limit; it will get a 429.</li>
+        <li>
+          It cannot exceed the rate limit of your plan; it will get a 429.
+        </li>
       </ul>
 
       <h2>Prompt injection and tool abuse</h2>
@@ -121,11 +124,15 @@ export default function DataAndAiPage() {
 
       <h2>Your rights over data already shared</h2>
       <p>
-        You can export your data and delete your account from Settings → Privacy
-        &amp; data at any time. Deleting your account removes it from SophionOS;
-        it does not reach into a third-party provider that already received a
-        copy, because we never held that copy. See{" "}
-        <a href="/privacy">Privacy</a> for the full picture.
+        You can export your data and delete your account from{" "}
+        <a href="/settings/privacy">Settings → Privacy &amp; data</a> at any
+        time. Deleting your account removes it from SophionOS; it does not reach
+        into a third-party provider that already received a copy, because we
+        never held that copy. See <a href="/privacy">Privacy</a> for the full
+        picture.
+      </p>
+      <p className="text-sm text-muted-foreground">
+        This page is product documentation, not legal counsel.
       </p>
       <p>
         Related: <a href="/privacy">Privacy</a> ·{" "}
