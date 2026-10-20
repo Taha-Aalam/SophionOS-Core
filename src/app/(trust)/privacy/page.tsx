@@ -752,7 +752,7 @@ export default function PrivacyPage() {
         <strong>Controller.</strong> Taha Aalam, a sole proprietor trading as
         SophionOS, is the controller of the processing described in this Policy.
         Contact:{" "}
-        <a href="mailto:founders@sophionos.com">founders@sophionos.com</a>.
+        <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a>.
         Payment data is the one exception: Dodo Payments sells to you as
         merchant of record and decides how that data is processed — see section
         4.1.
@@ -784,7 +784,7 @@ export default function PrivacyPage() {
         for transfer, restrict our processing, or object to processing we base
         on legitimate interests (including for direct marketing). Where we rely
         on consent, you may withdraw it at any time. To exercise a right, email{" "}
-        <a href="mailto:founders@sophionos.com">founders@sophionos.com</a>; we
+        <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a>; we
         may need to verify your identity and will answer within one month, or
         tell you why an extension applies. You can also lodge a complaint with
         the supervisory authority in your country of residence.
@@ -815,7 +815,7 @@ export default function PrivacyPage() {
       </p>
       <p>
         To exercise a right, email{" "}
-        <a href="mailto:founders@sophionos.com">founders@sophionos.com</a>. We
+        <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a>. We
         will verify your identity against your account email and respond within
         the period the applicable law allows. You can use an authorized agent
         where your state permits it.

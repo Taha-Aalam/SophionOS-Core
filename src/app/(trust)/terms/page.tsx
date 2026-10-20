@@ -246,7 +246,7 @@ export default function TermsPage() {
         <li>
           <strong>Refunds.</strong> Full refund on request within 14 days of
           payment, by replying to any email from the founder or writing to{" "}
-          <strong>founders@sophionos.com</strong>. Dodo Payments is the merchant
+          <strong>disputes@sophionos.com</strong>. Dodo Payments is the merchant
           of record and holds your payment, so the refund is issued by Dodo
           Payments to the original payment method, under Dodo Payments&apos;
           terms of sale. After 14 days the payment is final. Your statutory
@@ -435,7 +435,7 @@ export default function TermsPage() {
       <p>
         <strong>Charged in error.</strong> If you are charged in error — including
         being charged twice for the same period — write to{" "}
-        <strong>founders@sophionos.com</strong> within 60 days of the charge and
+        <strong>disputes@sophionos.com</strong> within 60 days of the charge and
         we will refund the erroneous charge. Dodo Payments, as merchant of
         record, issues the refund to the original payment method.
       </p>
@@ -673,7 +673,7 @@ export default function TermsPage() {
       <p>
         Questions about these Terms, and about the Service itself, addressed to
         Taha Aalam (sole proprietor, trading as SophionOS):{" "}
-        <strong>privacy@sophionos.com</strong>.
+        <strong>contact@sophionos.com</strong>.
       </p>
       <p>
         Questions about a purchase — a charge, an invoice, a tax, a refund, or
@@ -681,7 +681,7 @@ export default function TermsPage() {
         merchant of record. Use the customer portal reachable from Settings →
         Billing, or the contact details on your invoice. The exception is a
         billing error or duplicate charge: write to{" "}
-        <strong>founders@sophionos.com</strong> as section 11 sets out, and we
+        <strong>disputes@sophionos.com</strong> as section 11 sets out, and we
         will refund the erroneous charge.
       </p>
       <p>
