@@ -2,7 +2,7 @@ import { PolicyMeta } from "@/components/trust/policy-meta";
 import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
-  title: "Responsible Disclosure | SophionOS",
+  title: "Responsible disclosure | SophionOS",
   description: "How to report security vulnerabilities.",
 };
 
@@ -14,8 +14,8 @@ export default function ResponsibleDisclosurePage() {
       description="How to report security vulnerabilities."
     >
       <PolicyMeta
-        version="2.0"
-        effective="October 18, 2026"
+        version="2.1"
+        effective="October 19, 2026"
         summary="Replaces the previous page. Adds safe-harbor terms, a clear scope of what is and is not in bounds, and the timelines you can expect."
       />
 
@@ -30,10 +30,11 @@ export default function ResponsibleDisclosurePage() {
       <ul>
         <li>
           Email{" "}
-          <a href="mailto:founders@sophionos.com">founders@sophionos.com</a>{" "}
+          <a href="mailto:security@sophionos.com">security@sophionos.com</a>{" "}
           with the subject line &quot;Security&quot;. This is the security
-          contact in <code>SECURITY.md</code> in the repository. For a
-          self-hosted deployment, contact its operator instead.
+          contact for SophionOS Cloud, and the same address the
+          repository&apos;s <code>SECURITY.md</code> names. For a self-hosted
+          deployment, contact its operator instead.
         </li>
         <li>
           Include steps to reproduce, the impact you believe it has, and whether
@@ -121,13 +122,16 @@ export default function ResponsibleDisclosurePage() {
 
       <h2>What to expect</h2>
       <p>
-        We acknowledge reports within 3 working days, tell you whether we
-        consider the issue in scope, and keep you informed of progress. We aim to
-        remediate critical issues within 30 days and lower-severity issues within
-        90 days, and we will tell you if a fix will take longer. Where the law
-        requires us to notify a regulator or affected users — see the Privacy
-        Policy, §8 — we handle that, not the reporter. We are happy to credit you
-        in the fix notes or in the repository if you would like; just say so.
+        We acknowledge reports within 7 days, tell you whether we consider the
+        issue in scope, and keep you informed of progress. We aim to remediate
+        critical issues within 30 days and lower-severity issues within 90 days,
+        and we will tell you if a fix will take longer. Where the law requires us
+        to notify a regulator or affected users — see the Privacy Policy — we
+        handle that, not the reporter. We are happy to credit you in the fix
+        notes or in the repository if you would like; just say so.
+      </p>
+      <p className="text-sm text-muted-foreground">
+        This page is product documentation, not legal counsel.
       </p>
       <p>
         Related: <a href="/security">Security</a> ·{" "}

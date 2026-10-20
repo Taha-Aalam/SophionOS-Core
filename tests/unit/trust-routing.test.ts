@@ -162,10 +162,13 @@ describe("trust route group", () => {
     }
   });
 
-  it("never resurrects the retired Lifetime tier", () => {
+  it("never mentions the legacy Lifetime tier in any policy page", () => {
+    // The legacy tier was never publicly sold, and the operator's rule is that
+    // no policy text names it: a page that mentions it advertises a plan
+    // nobody was ever offered.
     for (const href of TRUST_HREFS) {
       const source = readFileSync(join(SRC, "app", "(trust)", href.slice(1), "page.tsx"), "utf8");
-      expect(source, href).not.toMatch(/<td>Lifetime<\/td>/);
+      expect(source, href).not.toMatch(/lifetime/i);
       expect(source, href).not.toMatch(/\$150 one-time, first/);
     }
   });
@@ -173,12 +176,19 @@ describe("trust route group", () => {
   it("states the founding seat exactly as the marketing site sells it", () => {
     const source = readFileSync(join(SRC, "app", "(trust)", "terms", "page.tsx"), "utf8");
     expect(source).toContain("$150");
-    expect(source).toContain("1 year of Pro");
-    expect(source).toContain("2 years of Power");
+    // A seat grants two years of Power from the payment instant.
+    expect(source).toContain("two years of Power");
+    expect(source).not.toContain("1 year of Pro");
     expect(source).toContain("14 days");
+    // The plan names may be bolded inside the table cell.
     for (const plan of ["Free", "Pro", "Power", "Business"]) {
-      expect(source, plan).toContain(`<td>${plan}</td>`);
+      expect(source, plan).toMatch(
+        new RegExp(`<td>\\s*(<strong>)?${plan}(</strong>)?\\s*</td>`),
+      );
     }
+    // Business is sales-led: the public pricing page lists it, and the terms
+    // name it as "Contact sales" rather than omitting a plan we do sell.
+    expect(source).toContain("<td>Contact sales</td>");
   });
 });
 
@@ -205,6 +215,17 @@ describe("privacy coverage beyond US and EU", () => {
     expect(html).toContain("90");
     // Rule 7(2)(b): detailed intimation to the Board within 72 hours.
     expect(html).toContain("72");
+  });
+
+  it("names no in-app assistant or chatbot register, because core has neither", () => {
+    // Core ships no in-app assistant and no chatbot data purposes register.
+    // The reviewed legal text describes both, so the ported pages name what
+    // this codebase actually has instead.
+    for (const href of TRUST_HREFS) {
+      const source = readFileSync(join(SRC, "app", "(trust)", href.slice(1), "page.tsx"), "utf8");
+      expect(source, href).not.toMatch(/\bSophi\b/);
+      expect(source, href).not.toMatch(/chatbot/i);
+    }
   });
 
   it("does not promise an erasure duty only large intermediaries carry", () => {
