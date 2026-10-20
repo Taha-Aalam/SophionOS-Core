@@ -14,9 +14,9 @@ export default function SecurityPage() {
       description="How SophionOS protects your data."
     >
       <PolicyMeta
-        version="2.0"
-        effective="October 18, 2026"
-        summary="Replaces the previous security page. Adds the minimum safeguards required by Rule 6 of the DPDP Rules, 2025, the incident-response and breach-notification commitments from §8 of the Privacy Policy, and a clear separation between what SophionOS Cloud provides and what a self-hosted deployment does not."
+        version="2.1"
+        effective="October 19, 2026"
+        summary="Replaces the previous security page. Adds the minimum safeguards required by Rule 6 of the DPDP Rules, 2025, the incident-response and breach-notification commitments, and a clear separation between what SophionOS Cloud provides and what a self-hosted deployment does not."
       />
 
       <h2>What we do</h2>
@@ -39,13 +39,14 @@ export default function SecurityPage() {
           what scripts the app will execute.
         </li>
         <li>
-          <strong>Encryption at rest</strong> — provided by our database and
-          hosting providers on their storage layer. We do not currently
-          implement application-level or field-level encryption of workspace
-          content inside this codebase. The SophionOS Cloud service advertises
-          field-level encryption of personal content; that is a property of the
-          managed service, not of this source tree, and you should confirm it
-          with us before relying on it for a specific record.
+          <strong>Encryption at rest</strong> — provider-side encryption on
+          their storage layer, plus application-level field-level encryption of
+          your personal content. In SophionOS Cloud, note bodies, contact
+          details, and the descriptions and saved links on your areas, goals,
+          projects, tasks, and resources are encrypted with AES-256-GCM before
+          they are written to the database. This is always on for every Cloud
+          account, and the key never reaches the browser. It is not end-to-end
+          encryption — the server holds the key.
         </li>
         <li>
           <strong>API keys</strong> — stored only as cryptographic hashes, shown
@@ -53,9 +54,9 @@ export default function SecurityPage() {
           scopes, and a read-only default posture for MCP.
         </li>
         <li>
-          <strong>AI controls</strong> — a global AI disable switch, per-key
-          write modes, per-connection toggles, and activity metadata you can
-          review. Revoking a key rejects subsequent requests immediately.
+          <strong>AI controls</strong> — a global AI-access switch, a separate
+          write-access switch, per-key write modes, and activity metadata you
+          can review. Revoking a key rejects subsequent requests immediately.
         </li>
         <li>
           <strong>Logging and visibility</strong> — security and access logs,
@@ -64,8 +65,8 @@ export default function SecurityPage() {
         </li>
         <li>
           <strong>Backups &amp; recovery</strong> — Cloud takes provider-backed
-          backups. They are not zero-knowledge: the operator and the database
-          provider can read what is in them.
+          backups. They are not zero-knowledge: the operator holds the
+          encryption key, so the contents of a backup are readable by us.
         </li>
         <li>
           <strong>Operator access</strong> — production credentials are held by
@@ -95,9 +96,9 @@ export default function SecurityPage() {
               data
             </td>
             <td>
-              TLS in transit, provider-side encryption at rest, hashed API keys,
-              and per-user row isolation. See the field-level encryption note
-              above.
+              TLS in transit, provider-side encryption at rest, AES-256-GCM
+              field-level encryption of personal content, hashed API keys, and
+              per-user row isolation.
             </td>
           </tr>
           <tr>
@@ -145,17 +146,20 @@ export default function SecurityPage() {
       <h2>If something goes wrong</h2>
       <p>
         When we become aware of a personal data breach we contain it first, then
-        notify. The notification timelines — including the 72-hour intimation to
-        the Data Protection Board of India under Rule 7, the GDPR Article 33
-        timeline, and the applicable U.S. state deadlines — are set out in{" "}
-        <a href="/privacy">the Privacy Policy, §8</a>. Notices tell you what
-        happened, what data was involved, what we have done, what you should do,
-        and how to reach a person who can answer questions.
+        notify — we do not wait for the investigation to finish. We intimate to
+        the Data Protection Board of India under Rule 7 of the DPDP Rules, 2025,
+        and to each affected Data Principal, without delay. Notices tell you
+        what happened, what data was involved, what we have done, what you
+        should do, and how to reach a person who can answer questions. The
+        Privacy Policy sets out our breach commitments in full.
       </p>
 
       <h2>Your part</h2>
       <ul>
-        <li>Use a unique password on the identity provider, with MFA enabled.</li>
+        <li>
+          Use a unique password on the identity provider, and turn on
+          multi-factor authentication there.
+        </li>
         <li>
           Treat an API key as your full identity on the API surface it reaches.
           Give keys short expiries, use read-only where possible, and revoke keys
@@ -170,9 +174,9 @@ export default function SecurityPage() {
       <h2>What we do not claim</h2>
       <ul>
         <li>
-          That we cannot read your data — a service role and the database
-          provider can read what is stored, and we do not operate a
-          zero-knowledge architecture.
+          That we cannot read your data — SophionOS Cloud holds the encryption
+          key server-side, so our service role and the operator can read your
+          content. We do not operate a zero-knowledge architecture.
         </li>
         <li>Military-grade security, or zero risk.</li>
         <li>
@@ -180,9 +184,11 @@ export default function SecurityPage() {
           client — they do, because that is what connecting a client does.
         </li>
         <li>
-          End-to-end encryption. We do not offer it, and the Service must be
-          able to read your content to search it, render it, and send the briefs
-          you enable.
+          End-to-end encryption. We do not offer it, and we will not describe
+          the service as end-to-end encrypted. Field-level encryption protects
+          your content at rest in our database, but the server holds the key,
+          so search, dashboards, and the email briefs you enable can read your
+          content.
         </li>
         <li>
           A formal third-party security audit or a certification such as SOC 2
@@ -194,6 +200,9 @@ export default function SecurityPage() {
       <p>
         Report vulnerabilities through{" "}
         <a href="/responsible-disclosure">responsible disclosure</a>.
+      </p>
+      <p className="text-sm text-muted-foreground">
+        This page is product documentation, not legal counsel.
       </p>
       <p>
         Related: <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·{" "}
