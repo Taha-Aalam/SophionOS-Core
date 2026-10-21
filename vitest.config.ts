@@ -20,6 +20,8 @@ export default defineConfig({
       '**/dist/**',
       '**/.next/**',
       '**/.claude/**',
+      // Gitignored motion projects — separate packages, not app tests.
+      '**/videos/**',
     ],
     testTimeout: 30000,
   },
