@@ -1,0 +1,46 @@
+# Keep the build context minimal and, critically, prevent the host's
+# node_modules from being copied over the container's install.
+# Without this, `COPY . .` in the builder stage clobbers the pnpm install
+# performed in the deps stage, and pnpm aborts the build with
+# ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY (exit 1).
+
+# Dependencies (installed inside the image, never from the host)
+node_modules
+**/node_modules
+.pnpm-store
+.pnpm-debug.log*
+
+# Next build output
+.next
+out
+next-env.d.ts
+*.tsbuildinfo
+
+# VCS / CI
+.git
+.gitignore
+.github
+
+# Local env and secrets. NEXT_PUBLIC_* enters only as an explicit build arg;
+# `**/` is load-bearing — a bare `.env*` is root-anchored and would let a
+# nested, filled .env into the context.
+**/.env*
+!**/.env.example
+
+# Local artifacts, scratch, and non-product dirs
+videos
+graphify-out
+screenshots
+terminals
+mcps
+supabase_all_migrations.sql
+RECON-INVENTORY.md
+bin
+coverage
+*.log
+
+# Editor / OS noise
+.DS_Store
+.idea
+.vscode
+*.swp

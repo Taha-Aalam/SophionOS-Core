@@ -111,21 +111,38 @@ Unit tests use in-memory rate limiting (`RATE_LIMIT_STORE=memory` in CI).
 
 ## 5. Docker evaluation path
 
-Multi-stage image builds the Next.js app only (Clerk + Supabase stay external):
+Multi-stage image builds the Next.js app only (Clerk + Supabase stay external).
+A published image is available at
+`ghcr.io/taha-aalam/sophionos-core` (`latest`, `sha-<short>`, and a version tag
+such as `0.2.1`), built for `linux/amd64` and `linux/arm64`.
+
+**Browser-visible configuration is fixed at image build time.** Next.js inlines
+every `NEXT_PUBLIC_*` value into the client bundle during `next build`, so
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `NEXT_PUBLIC_APP_URL` must be supplied
+as **build arguments**. Setting them at runtime has no effect on an image you
+did not build with your values — rebuild instead:
 
 ```bash
-# Build
+# Put your NEXT_PUBLIC_* values in the shell or a root .env, then:
 docker compose build
-
-# Run (pass env from your shell or .env.local)
 docker compose up
 # Health: container healthcheck hits http://127.0.0.1:3000/
 ```
 
+The prebuilt GHCR image was compiled with placeholder values; rebuild with your
+own if you use the compose file. Server-only secrets (`CLERK_SECRET_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`) are ordinary runtime environment variables and can
+be supplied with `env_file:` / `--env-file` — they are never baked in.
+
 Or:
 
 ```bash
-docker build -t sophionos-app .
+docker build -t sophionos-app \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL=https://xyz.supabase.co \
+  --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=... \
+  --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_... \
+  --build-arg NEXT_PUBLIC_APP_URL=https://app.example.com .
 docker run --rm -p 3000:3000 --env-file .env.local sophionos-app
 ```
 
