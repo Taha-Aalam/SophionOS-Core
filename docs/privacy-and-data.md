@@ -64,30 +64,10 @@ Raw API key secrets are never exported (only key metadata without hashes if incl
 
 ## Breach notification
 
-The procedure for a personal data breach is `docs/breach-response.md`: contain
-first, then notify, and preserve the evidence before anything is rotated,
-revoked or deleted. That runbook is written for the one-person operation
-behind the managed service, and it is the procedure a self-hosted operator
-should follow too — for a self-hosted deployment the operator is the Data
-Fiduciary, not SophionOS.
-
-The commitment it executes is: *in the event of a personal data breach, we
-will notify affected users and relevant authorities without undue delay, in
-accordance with applicable law.* For the managed service that means:
-
-- **India (DPDP Act 2023, DPDP Rules 2025).** We intimate the Data Protection
-  Board of India and each affected Data Principal without delay.
-- **EU/UK (GDPR).** We notify the relevant supervisory authority within 72
-  hours of becoming aware of a personal data breach (Article 33), and affected
-  users without undue delay where the breach is likely to result in high risk
-  to their rights (Article 34).
-- **United States.** We apply the same 72-hour target.
-
-The published text is the Privacy Policy, section 11
-(`src/app/(trust)/privacy/page.tsx`); the full jurisdiction notices are
-section 13 (European users), 14 (U.S. state residents) and 15 (users in
-India). The open questions for counsel — which authority, which threshold,
-which deadline — live in `docs/breach-response-counsel-questions.md`.
+SophionOS Core is self-hosted. The operator of each instance — not this
+project — is responsible for securing it and for any breach-notification
+duties that apply to them. The Privacy Policy makes no breach-notification
+commitment on the project's behalf.
 
 ## Deletion (self-host / Community)
 

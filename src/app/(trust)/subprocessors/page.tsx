@@ -143,7 +143,7 @@ export default function SubprocessorsPage() {
         processed, we tell you by email before it takes effect, and you may
         object or delete your account first. To be notified of changes, or to
         raise an objection, write to{" "}
-        <a href="mailto:founders@sophionos.com">founders@sophionos.com</a>.
+        <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a>.
       </p>
       <p className="text-sm text-muted-foreground">
         This page is product documentation, not legal counsel.
