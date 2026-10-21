@@ -61,7 +61,7 @@ repository has**: the code they fix is cloud-side.
 | Finding | Where it was fixed | What it means in this repository |
 |---|---|---|
 | **A.** Withdrawing the Terms locked the account out permanently (cloud #55) | The cloud-side consent gate (`src/lib/consent/gate-items.ts`) | There is no consent gate here: nothing to withdraw, nothing to strand. The published Terms carry no consent flow attached to them. |
-| **B.** The service role could wipe the whole consent ledger | The cloud-side `consent_records` grants and the `consent_records_append_only` trigger | This repository keeps no consent ledger, so there is no ledger to truncate. What it does keep is `audit_events` — a record, not a ledger — and that audit trail is what a breach preserves (see `docs/breach-response.md`). |
+| **B.** The service role could wipe the whole consent ledger | The cloud-side `consent_records` grants and the `consent_records_append_only` trigger | This repository keeps no consent ledger, so there is no ledger to truncate. What it does keep is `audit_events` — a record, not a ledger — and that audit trail is what a breach investigation preserves. |
 | **C.** The published backup window was wrong (35 days published, 30 configured) | The cloud-side `RETENTION_DAYS` and `.github/workflows/cron-backup.yml` | This repository ships no backup job and no retention-policy module. The backup window is the operator's, and the operator checklist says to schedule Postgres backups and restore-test them (`docs/deployment.md`, `docs/self-hosting.md`). |
 
 One finding in this tree is closed here:
@@ -112,7 +112,6 @@ client is unused, delete the credentials rather than rotating them.
 |---|---|---|
 | **2026-11-13** | Consent Manager framework goes live | Cloud-side. The statutory Consent Manager (s.6(5)) is a future compliance obligation of the managed service. This repository has no consent gate for it to attach to; on the cloud side it should attach to `LEGAL_REGISTRY` / `loadLegalDocument` rather than reimplement document versioning. |
 | **May 2027** | Translated legal documents | Cloud-side corpus. The three documents must be available in the scheduled languages of India before they are treated as meeting s.5(3) notice requirements for a broad Indian user base. The versioned markdown layout is already translation-friendly — add `legal/<slug>/v<n>.<lang>.md`, extend the registry, and the existing hash-and-reconsent machinery handles each language as its own version. Plan the translation as counsel-reviewed revisions, since each one is a re-consent event. |
-| Before launch | Breach runbook rehearsal | `docs/breach-response.md` is written in this repository. It carries the restored 72-hour commitment for the EU/UK and US paths alongside the India path, and the two new branches — the GDPR path and the US state path — are marked **thin procedure — expand per counsel's answers**. Walk it once on paper with the named roles filled in. A runbook that has never been walked is a document, not a procedure. |
 
 ## What is verified
 

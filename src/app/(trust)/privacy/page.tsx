@@ -16,7 +16,7 @@ export default function PrivacyPage() {
       <PolicyMeta
         version="3.0"
         effective="October 19, 2026"
-        summary="Adopts the reviewed, corrected SophionOS legal text (Privacy Policy v2, effective 19 October 2026), including the single general breach-notification commitment in section 11 and the jurisdiction deadlines it names; still DRAFT pending counsel sign-off."
+        summary="Adopts the reviewed, corrected SophionOS legal text (Privacy Policy v2, effective 19 October 2026), with the notification promises replaced by an operator-responsibility statement: SophionOS is self-hosted, and whoever operates an instance is responsible for securing it and for the duties that apply to them. Still DRAFT pending counsel sign-off."
       />
       <p className="text-sm text-muted-foreground">
         <strong>DRAFT — NOT YET IN FORCE.</strong> This document is product
@@ -106,7 +106,7 @@ export default function PrivacyPage() {
       <p>
         If a document changes materially, we publish a new version with its own
         version number and effective date, and we tell you before it takes
-        effect (see section 16). We will not retroactively apply a new version
+        effect (see section 15). We will not retroactively apply a new version
         to the terms you accepted under an older one.
       </p>
 
@@ -416,7 +416,7 @@ export default function PrivacyPage() {
           dodopayments.com/privacy-policy
         </a>
         . We are the Data Fiduciary for the data you create in the Service
-        (section 15) and for your account data; what comes back to us is only
+        (section 14) and for your account data; what comes back to us is only
         what we need to grant the entitlement — your name and email, the payment
         and subscription identifiers, and the fact that a payment succeeded.
       </p>
@@ -718,47 +718,14 @@ export default function PrivacyPage() {
         limited, logged, and reviewed.
       </p>
       <p>
-        No system is perfectly secure. If a breach affects your personal data,
-        we will notify you and the Data Protection Board without delay and tell
-        you what we know about it. Our response procedure is published at{" "}
-        <code>docs/breach-response.md</code>. See <a href="/security">Security</a>{" "}
-        for the full statement of what we do and do not claim.
+        No system is perfectly secure. SophionOS is self-hosted: whoever
+        operates an instance is responsible for securing it and for meeting any
+        breach-notification duties that apply to them. See{" "}
+        <a href="/security">Security</a> for the full statement of what the
+        software does and does not claim.
       </p>
 
-      <h2>11. Data breach notification</h2>
-      <p>
-        If a personal data breach occurs, we contain it first, then notify. In
-        the event of a personal data breach, we will notify affected users and
-        relevant authorities without undue delay, in accordance with applicable
-        law.
-      </p>
-      <p>
-        Where the Digital Personal Data Protection Act, 2023 and the DPDP Rules,
-        2025 apply to you, we intimate the Data Protection Board of India and
-        each affected Data Principal without delay. We notify on what we know at
-        the time: notification is not gated on finishing the investigation, and
-        we tell the authority what changed afterwards.
-      </p>
-      <p>
-        Where the GDPR applies to you, we notify the relevant supervisory
-        authority within 72 hours of becoming aware of a personal data breach,
-        in accordance with GDPR Article 33 (and the equivalent requirement under
-        applicable law where you are). We notify affected users without undue
-        delay where the breach is likely to result in high risk to their rights,
-        in accordance with GDPR Article 34.
-      </p>
-      <p>
-        For users in the United States, we apply the same 72-hour target, which
-        meets or exceeds the notification deadlines under applicable state
-        breach-notification laws.
-      </p>
-      <p>
-        Any notice we send describes what happened, what data was involved, what
-        we have done, what we recommend you do, and how to reach a person who
-        can answer questions.
-      </p>
-
-      <h2>12. International data transfers</h2>
+      <h2>11. International data transfers</h2>
       <p>
         We operate the Service from the United States and use service providers
         in the United States and the European Union. Your personal information
@@ -771,7 +738,7 @@ export default function PrivacyPage() {
         Rules, 2025.
       </p>
 
-      <h2>13. Notice to European users</h2>
+      <h2>12. Notice to European users</h2>
       <p>
         <strong>Scope.</strong> This section applies to you if you are in the
         European Economic Area, the United Kingdom, or Switzerland (together
@@ -785,7 +752,7 @@ export default function PrivacyPage() {
         <strong>Controller.</strong> Taha Aalam, a sole proprietor trading as
         SophionOS, is the controller of the processing described in this Policy.
         Contact:{" "}
-        <a href="mailto:founders@sophionos.com">founders@sophionos.com</a>.
+        <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a>.
         Payment data is the one exception: Dodo Payments sells to you as
         merchant of record and decides how that data is processed — see section
         4.1.
@@ -817,13 +784,13 @@ export default function PrivacyPage() {
         for transfer, restrict our processing, or object to processing we base
         on legitimate interests (including for direct marketing). Where we rely
         on consent, you may withdraw it at any time. To exercise a right, email{" "}
-        <a href="mailto:founders@sophionos.com">founders@sophionos.com</a>; we
+        <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a>; we
         may need to verify your identity and will answer within one month, or
         tell you why an extension applies. You can also lodge a complaint with
         the supervisory authority in your country of residence.
       </p>
 
-      <h2>14. Notice to U.S. state residents</h2>
+      <h2>13. Notice to U.S. state residents</h2>
       <p>
         If you live in a state with a comprehensive consumer privacy law —
         California, Colorado, Connecticut, Virginia, and the other states that
@@ -848,13 +815,13 @@ export default function PrivacyPage() {
       </p>
       <p>
         To exercise a right, email{" "}
-        <a href="mailto:founders@sophionos.com">founders@sophionos.com</a>. We
+        <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a>. We
         will verify your identity against your account email and respond within
         the period the applicable law allows. You can use an authorized agent
         where your state permits it.
       </p>
 
-      <h2>15. Notice to users in India</h2>
+      <h2>14. Notice to users in India</h2>
       <p>
         This section applies if you are in India, or if the Digital Personal
         Data Protection Act, 2023 (&quot;DPDP Act&quot;) and the Digital Personal
@@ -923,7 +890,7 @@ export default function PrivacyPage() {
         isolation, and a global AI disable switch. Rule 14 requires us to
         publish a grievance process and the contact details of the Grievance
         Officer — section 9 is that notice. Rule 15 governs transfers out of
-        India, addressed in section 12.
+        India, addressed in section 11.
       </p>
       <p>
         <strong>Erasure.</strong> Rule 8 of the DPDP Rules imposes a fixed
@@ -936,7 +903,7 @@ export default function PrivacyPage() {
         hours before erasure, as Rule 8 requires.
       </p>
 
-      <h2>16. Changes to this Policy</h2>
+      <h2>15. Changes to this Policy</h2>
       <p>
         A change is published as a new version with its own version number and
         effective date. Material changes are surfaced to you before they take
@@ -946,7 +913,7 @@ export default function PrivacyPage() {
         older one.
       </p>
 
-      <h2>17. Contact</h2>
+      <h2>16. Contact</h2>
       <p>
         <strong>
           <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a>
