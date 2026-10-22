@@ -19,7 +19,7 @@ export default function PrivacyPage() {
         summary="Adopts the reviewed, corrected SophionOS legal text (Privacy Policy v2, effective 19 October 2026), with the notification promises replaced by an operator-responsibility statement: SophionOS is self-hosted, and whoever operates an instance is responsible for securing it and for the duties that apply to them. Still DRAFT pending counsel sign-off."
       />
       <p className="text-sm text-muted-foreground">
-        <strong>DRAFT — NOT YET IN FORCE.</strong> This document is product
+        <strong>DRAFT: NOT YET IN FORCE.</strong> This document is product
         text awaiting review by qualified Indian counsel. It must not be
         published as binding until counsel signs it off. Every clause is
         subject to that review. The grievance officer details in section 9 are
@@ -93,7 +93,7 @@ export default function PrivacyPage() {
         documents above are the terms on which the Service is offered, and using
         the Service is the acceptance. We keep no consent log, no consent
         ledger, and no per-version consent record, so there is no record of a
-        decision to look up or to withdraw from — the version of each document
+        decision to look up or to withdraw from. The version of each document
         in force is the version line at the top of that document.
       </p>
       <p>
@@ -289,8 +289,8 @@ export default function PrivacyPage() {
         <a href="/data-and-ai">Data &amp; AI</a>.
       </p>
       <p>
-        If a client is ever extended to a new data type or a new use — for
-        example, reading content you have not opened — that is a new purpose. It
+        If a client is ever extended to a new data type or a new use, for
+        example, reading content you have not opened, that is a new purpose. It
         is not added to this list silently: it requires a new version of this
         Policy, published before anything new is collected. See Settings → AI
         Access to review and revoke AI access at any time.
@@ -335,7 +335,7 @@ export default function PrivacyPage() {
             </td>
             <td>
               Subscription billing and the one-time founding-seat checkout;
-              merchant of record — see 4.1
+              merchant of record; see 4.1
             </td>
             <td>Their infrastructure, United States and India</td>
           </tr>
@@ -372,7 +372,7 @@ export default function PrivacyPage() {
       <p>
         <strong>Who sells to you.</strong> Paid plans and the one-time founding
         seat are sold by &quot;Dodo Payments&quot; (as defined in Dodo Payments&apos;
-        Master Service Agreement — Dodo Payments Inc., Dodope Payments Limited,
+        Master Service Agreement: Dodo Payments Inc., Dodope Payments Limited,
         and Sarvapanchhi Technologies Private Limited, collectively the merchant
         of record), acting as our <strong>merchant of record</strong>. Dodo
         Payments is the seller of record for that purchase: it takes your
@@ -396,7 +396,7 @@ export default function PrivacyPage() {
           and country;
         </li>
         <li>
-          the <strong>payment record</strong> — the amount, the currency, the
+          the <strong>payment record</strong>: the amount, the currency, the
           payment method, the transaction status, and the timestamps of the
           payment;
         </li>
@@ -417,7 +417,7 @@ export default function PrivacyPage() {
         </a>
         . We are the Data Fiduciary for the data you create in the Service
         (section 14) and for your account data; what comes back to us is only
-        what we need to grant the entitlement — your name and email, the payment
+        what we need to grant the entitlement: your name and email, the payment
         and subscription identifiers, and the fact that a payment succeeded.
       </p>
 
@@ -457,7 +457,7 @@ export default function PrivacyPage() {
           <tr>
             <td>Database backups</td>
             <td>
-              <strong>30 days</strong>, rolling — a backup may contain data that
+              <strong>30 days</strong>, rolling. A backup may contain data that
               has already been deleted from the live database
             </td>
           </tr>
@@ -493,7 +493,7 @@ export default function PrivacyPage() {
       </p>
       <p>
         We keep billing, tax, and accounting records for as long as the law
-        requires. We keep security and access logs for at least one year — India
+        requires. We keep security and access logs for at least one year. India
         requires at least one year for data fiduciaries processing under the
         DPDP Rules, 2025, and the same window covers our incident investigation
         needs everywhere.
@@ -586,7 +586,7 @@ export default function PrivacyPage() {
         Withdrawing consent to marketing stops every promotional email
         immediately, with no other effect. Withdrawing consent to the Terms or
         the Privacy Policy means the service can no longer lawfully operate for
-        you, so it closes your account — the app tells you this before you
+        you, so it closes your account. The app tells you this before you
         confirm, and asks you to type to confirm.
       </p>
 
@@ -731,7 +731,7 @@ export default function PrivacyPage() {
         in the United States and the European Union. Your personal information
         may therefore be processed outside your country of residence, including
         in a country whose privacy laws differ from yours. Where the GDPR
-        applies, we rely on appropriate safeguards for those transfers —
+        applies, we rely on appropriate safeguards for those transfers:
         standard contractual clauses, or an applicable adequacy decision. Where
         India&apos;s DPDP Act applies, transfers are made subject to any
         restrictions the Central Government specifies under Rule 15 of the DPDP
@@ -754,7 +754,7 @@ export default function PrivacyPage() {
         Contact:{" "}
         <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a>.
         Payment data is the one exception: Dodo Payments sells to you as
-        merchant of record and decides how that data is processed — see section
+        merchant of record and decides how that data is processed; see section
         4.1.
       </p>
       <p>
@@ -762,7 +762,7 @@ export default function PrivacyPage() {
       </p>
       <ul>
         <li>
-          contractual necessity to provide the Service you asked for — your
+          contractual necessity to provide the Service you asked for: your
           account, your workspace, export, and deletion;
         </li>
         <li>legal obligation for tax, accounting, and lawful requests;</li>
@@ -792,9 +792,9 @@ export default function PrivacyPage() {
 
       <h2>13. Notice to U.S. state residents</h2>
       <p>
-        If you live in a state with a comprehensive consumer privacy law —
+        If you live in a state with a comprehensive consumer privacy law,
         California, Colorado, Connecticut, Virginia, and the other states that
-        have enacted one — you have the rights that state grants. For California
+        have enacted one, you have the rights that state grants. For California
         residents, under the CCPA as amended by the CPRA, you have the right to
         know what personal information we collect, use, and disclose; to delete
         it; to correct it; to opt out of its sale or sharing; to limit the use
@@ -802,7 +802,7 @@ export default function PrivacyPage() {
         for exercising these rights. We do not sell personal information, we do
         not share it for cross-context behavioral advertising, and we do not use
         sensitive personal information beyond what is necessary to provide the
-        Service — so there is nothing to opt out of, but you may still ask us to
+        Service, so there is nothing to opt out of, but you may still ask us to
         confirm that.
       </p>
       <p>
@@ -840,7 +840,7 @@ export default function PrivacyPage() {
       </p>
       <p>
         <strong>Consent and notice.</strong> We process your personal data only
-        on the basis you give us when you create an account — your consent — to
+        on the basis you give us when you create an account, your consent, to
         provide the Service. This Policy is the notice the DPDP Rules require:
         it states the personal data we collect, the purposes of processing, how
         to withdraw consent, and how to exercise your rights or complain. You
@@ -854,30 +854,30 @@ export default function PrivacyPage() {
       </p>
       <ul>
         <li>
-          <strong>Access</strong> — obtain a summary of the personal data we
+          <strong>Access</strong>: obtain a summary of the personal data we
           process about you and of our processing.
         </li>
         <li>
-          <strong>Correction and erasure</strong> — correct inaccurate or
+          <strong>Correction and erasure</strong>: correct inaccurate or
           incomplete personal data, and have personal data you have given us
           erased, in each case as described in section 7.
         </li>
         <li>
-          <strong>Grievance redressal</strong> — raise a grievance with our
+          <strong>Grievance redressal</strong>: raise a grievance with our
           Grievance Officer, in the manner and within the timescales set out in
           section 9, and never later than 90 days from the date you raise it, as
           required by Rule 14(3) of the DPDP Rules, 2025.
         </li>
         <li>
-          <strong>Nomination</strong> — nominate a person to exercise the
+          <strong>Nomination</strong>: nominate a person to exercise the
           rights above on your behalf in the event of your death or incapacity.
         </li>
         <li>
-          <strong>Withdraw consent</strong> — as described in section 2, at any
+          <strong>Withdraw consent</strong>: as described in section 2, at any
           time, with the same ease as giving it.
         </li>
         <li>
-          <strong>Complaint to the Board</strong> — complain to the Data
+          <strong>Complaint to the Board</strong>: complain to the Data
           Protection Board of India at any time, in addition to or instead of
           contacting us.
         </li>
@@ -889,7 +889,7 @@ export default function PrivacyPage() {
         encryption in transit and at rest, hashed API keys, per-user row
         isolation, and a global AI disable switch. Rule 14 requires us to
         publish a grievance process and the contact details of the Grievance
-        Officer — section 9 is that notice. Rule 15 governs transfers out of
+        Officer; section 9 is that notice. Rule 15 governs transfers out of
         India, addressed in section 11.
       </p>
       <p>

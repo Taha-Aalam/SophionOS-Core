@@ -16,7 +16,7 @@ export default function SubprocessorsPage() {
       <PolicyMeta
         version="2.1"
         effective="October 19, 2026"
-        summary="Replaces the previous vendor list. Names the actual vendors now in use — Dodo Payments for subscription billing and the one-time founding-seat checkout, and Resend for transactional email — and separates what the Cloud service uses from what a self-hosted deployment uses."
+        summary="Replaces the previous vendor list. Names the actual vendors now in use: Dodo Payments for subscription billing and the one-time founding-seat checkout, and Resend for transactional email, and separates what the Cloud service uses from what a self-hosted deployment uses."
       />
 
       <p>
@@ -73,7 +73,7 @@ export default function SubprocessorsPage() {
             <td>Dodo Payments</td>
             <td>
               Subscription billing and the one-time founding-seat checkout;
-              merchant of record — the seller of record, not a processor
+              merchant of record, the seller of record, not a processor
             </td>
             <td>
               Your name, email, and billing details at checkout, and the
