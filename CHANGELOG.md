@@ -52,6 +52,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   at runtime. They are compiled into the client bundle, so a runtime override
   never took effect; rebuild the image with your values instead.
 
+### Security
+
+- Bumped the `vite` override floor to `>=8.1.6`, clearing five advisories
+  (GHSA-587h-7wmj-h5pm and four moderate ones) pulled in transitively by
+  vitest. `pnpm audit --audit-level=high` passes again.
+
 ## [0.1.0-alpha.1] - 2026-07-16
 
 ### Added
