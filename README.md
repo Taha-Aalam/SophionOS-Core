@@ -1,50 +1,44 @@
 # SophionOS
 
-SophionOS is the connected context layer for people who work with AI. Give the AI you work with a system that turns information into wisdom. It knows your projects, tasks, goals, research, and how they all fit together, without making you maintain another database.
+SophionOS is a shared context layer for you and the AI tools you use. It stores your projects, tasks, goals and research in one connected model, so an AI client can read the same picture you work from. You don't have to keep it in sync by hand.
 
-## Why SophionOS?
+## Why SophionOS
 
-### The quiet cost of disconnected work
+Tasks die in tabs. Goals drift away from the work that was meant to advance them. Notes get filed and never found again. Each new AI conversation starts with the same briefing: what am I working on, what matters, what have I already learned. The tools you use don't remember each other.
 
-Tasks die in tabs. Goals drift from the work that was supposed to advance them. Notes get filed and never found again. Every new AI conversation starts with the same briefing — what am I working on, what matters, what have I already learned — because the tools you use don't remember each other.
+PARA didn't fail you. It asked you to maintain it. Your task manager didn't fail either; it was never built to connect the pieces. The cost is quiet and constant: rebuilding the same context, over and over.
 
-You didn't fail PARA. PARA made you maintain it. You didn't fail your task manager. It was never designed to connect the pieces. The cost is quiet: the low hum of reconstruction, the maintenance tax, the sense that you're always starting from scratch.
+SophionOS keeps that context in one place. It sits alongside your existing tools rather than replacing them, and it gives them a shared picture of your work.
 
-SophionOS exists because that cost isn't necessary. Information is everywhere. Understanding is nowhere. The system you've been looking for is the one that turns what you already know into something you can act on.
+- A task manager leaves work disconnected from the goals behind it. In SophionOS, tasks link to projects, goals, notes, resources and contacts.
+- A notes workspace makes you build the structure yourself. SophionOS supplies a relational model of notebooks, topics and links to work.
+- A CRM sits apart from execution. SophionOS ties contacts, roles, interactions, projects, tasks and follow-ups together.
+- An AI chat starts from incomplete context. SophionOS gives AI clients controlled access to your stored context.
+- An automation platform moves data between tools without forming a model of it. SophionOS is a system of record reachable over the API and MCP.
 
-### Not another tool in the stack
+## How the model fits together
 
-SophionOS is not a task manager, a note app, a CRM, or an AI chat. It is the layer between them — the one that makes every tool you use smarter because it knows what the others know.
+Areas are durable domains of responsibility or attention, such as Work, Health, Finances or Career; you can add your own. Goals sit inside an area as outcomes, linked to the projects and tasks that advance them. Projects are time-bound bodies of work, and tasks are the execution layer that connects to both.
 
-Task managers often leave work disconnected from long-term goals and supporting knowledge. SophionOS tasks connect to projects, goals, notes, resources, and contacts.
-Notes workspaces require you to build and maintain your own architecture. SophionOS provides a structured relational model with notebooks, topics, and links to work.
-CRMs sit apart from execution. SophionOS connects contacts, roles, interactions, projects, tasks, and follow-ups.
-AI chats start each conversation with incomplete context. SophionOS gives AI tools controlled access to a durable structured context layer.
-Automation platforms move data between tools but do not create a coherent personal model. SophionOS is a system of record accessible via API and MCP.
-
-### Not a database. A mind.
-
-SophionOS is built around a connected model of work. Areas represent durable domains of responsibility or attention — Work, Health, Finances, Career, or custom categories. Goals sit inside areas as strategic outcomes, linked to the projects and tasks that advance them. Projects are time-bound bodies of work, and tasks are the execution layer that connects to both.
-
-The key behavior is relationship-aware progress. Completed tasks update project progress; that change can affect goal completion; and the system reflects whether an area still has active work. This means the system is not just a collection of independent records. It is a model of connected work where everyday actions update the strategic picture.
+Progress moves up the chain. Completing a task updates its project's progress, which can affect goal completion, and the system shows whether an area still has active work. Everyday actions therefore update the strategic picture, not just their own record.
 
 ## What is included today
 
-- Stop deciding where everything belongs. Areas give your work durable categories, so your projects and goals have a stable home.
-- See whether your daily work is actually advancing what matters. Goals connect to projects, tasks, and notes so progress is visible.
-- Track real progress without manual status updates. Projects update automatically from the tasks inside them.
-- Know what to do next without staring at a list. Smart priority and focused daily views surface the right work at the right time.
-- Capture ideas and research without losing them. Notes link to projects and goals, so they stay relevant instead of disappearing into an archive.
-- Find anything without remembering where you saved it. The Knowledge Hub connects resources, notes, and topics in one searchable space.
-- Keep relationships attached to the work they affect. Contacts carry roles, interactions, and follow-ups so nothing falls through the cracks.
-- Start each day with clarity, not noise. The dashboard, Inbox, and My Day focus attention on what matters right now.
-- Start with a system that already understands your work. Guided onboarding and flexible settings make setup feel like preparation, not configuration.
-- Work with AI that already knows your context. MCP tools let Claude, Cursor, and other clients read and update your real SophionOS data.
+- Areas give work durable categories, so projects and goals have a stable home.
+- Goals connect to projects, tasks and notes, so you can see whether daily work is advancing them.
+- Projects update their own progress from the tasks inside them, with no manual status changes.
+- Smart priority and focused daily views surface the next work.
+- Notes link to projects and goals, so ideas and research stay attached to the work they belong to.
+- The Knowledge Hub puts resources, notes and topics in one searchable place.
+- Contacts carry roles, interactions and follow-ups, attached to the projects they affect.
+- The dashboard, Inbox and My Day focus attention on current work.
+- Guided onboarding and flexible settings cover setup.
+- MCP tools let Claude, Cursor and other clients read and update your SophionOS data.
 
 ## License
 
-GNU Affero General Public License v3.0 (AGPL-3.0) — see `LICENSE`.  
-Trademarks are separate — see `TRADEMARKS.md`.
+GNU Affero General Public License v3.0 (AGPL-3.0); see `LICENSE`.  
+Trademarks are covered separately in `TRADEMARKS.md`.
 
 ## Self-hosting
 

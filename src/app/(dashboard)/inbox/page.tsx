@@ -808,7 +808,7 @@ export default function InboxPage() {
               {isLoading
                 ? "Loading…"
                 : totalCount === 0
-                  ? "Inbox zero — everything processed"
+                  ? "Inbox zero. Everything processed"
                   : `${totalCount} item${totalCount !== 1 ? "s" : ""} to process`}
             </p>
           </div>
@@ -826,7 +826,7 @@ export default function InboxPage() {
           <EmptyState
             icon={InboxIcon}
             title="Inbox zero"
-            description="All items have been processed. Great work — capture new tasks and notes to continue."
+            description="All items have been processed. Capture new tasks and notes to continue."
           />
         ) : (
           <>
