@@ -15,10 +15,14 @@ ignoredBuiltDependencies:
   - unrs-resolver
 
 overrides:
-  # GHSA-v2hh-gcrm-f6hx / GHSA-4c8g-83qw-93j6
-  fast-uri: ">=4.1.3"
+  # GHSA-v2hh-gcrm-f6hx / GHSA-4c8g-83qw-93j6 / GHSA-hrr3-gc8f-f4qj /
+  # GHSA-jvvf-x445-j334 / GHSA-w74x-v6f9-j3xg / GHSA-wjr9-j795-jxcr /
+  # GHSA-xhq7-xmqj-769h / GHSA-333x-w4r6-6crp — everything patched by 4.2.3.
+  fast-uri: ">=4.2.3"
   hono: ">=4.12.34"
-  ip-address: ">=10.3.1"
+  # GHSA-rxp7-6hxx-x8q5 (quadratic zone-id scan patched in 10.7.4); reached at
+  # runtime via @modelcontextprotocol/sdk > express-rate-limit.
+  ip-address: ">=10.7.4"
   # GHSA-6g55-p6wh-862q
   postcss: ">=8.5.23"
   # GHSA-68fv-2mgg-jv7q (source-map-js event-loop DoS via indexed source-map
@@ -29,13 +33,18 @@ overrides:
   # ^1.26.0 - 1.31.0 is inside that range, so this is a nudge, not a force.
   # Our own @sophionos/mcp-server already resolves 1.31.0.
   "@modelcontextprotocol/sdk": ">=1.31.0"
-  # GHSA-3jxr-9vmj-r5cp / GHSA-qhr7-859c-m2p7 / GHSA-6j4f-fj2g-mc7p —
-  # pin major lines separately (blanket 5.x breaks minimatch@3/eslint)
-  brace-expansion@1: "1.1.20"
+  # GHSA-3jxr-9vmj-r5cp / GHSA-qhr7-859c-m2p7 / GHSA-6j4f-fj2g-mc7p /
+  # GHSA-q2hr-2g5m-vwhr — pin major lines separately (blanket 5.x breaks
+  # minimatch@3/eslint); 1.1.21 fixes the quadratic {a},b} expansion.
+  brace-expansion@1: "1.1.21"
   brace-expansion@5: ">=5.0.11"
-  "minimatch@3>brace-expansion": "1.1.20"
-  # GHSA-52cp-r559-cp3m / GHSA-pm4m-ph32-ghv5
-  js-yaml: ">=5.2.2"
+  "minimatch@3>brace-expansion": "1.1.21"
+  # GHSA-52cp-r559-cp3m / GHSA-pm4m-ph32-ghv5 / GHSA-r3ph-w7gj-g6xm
+  # (maxTotalMergeKeys CPU exhaustion patched in 5.4.1)
+  js-yaml: ">=5.4.1"
+  # GHSA-p498-v437-472g (recursive copy follows symlinked files outside the
+  # source tree). Dev-only: reached through eslint's file traversal.
+  "@humanfs/node": ">=0.16.8"
   ws: ">=8.21.0"
   # GHSA-q8mj-m7cp-5q26
   qs: ">=6.15.2"
