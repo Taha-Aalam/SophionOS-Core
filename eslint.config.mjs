@@ -26,6 +26,10 @@ const eslintConfig = defineConfig([
     // node_modules with mismatched React versions and pre-existing source
     // files unrelated to the current branch).
     ".claude/worktrees/**",
+    // Marketing motion projects, gitignored via /videos/ — separate
+    // Remotion/HyperFrames packages, not application code. eslint does not
+    // read .gitignore, so the boundary has to be restated here.
+    "videos/**",
   ]),
 ]);
 
