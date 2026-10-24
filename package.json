@@ -1,7 +1,7 @@
 {
   "name": "sophionos-core",
   "description": "SophionOS Core - SaaS Life Management Platform",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "license": "AGPL-3.0-or-later",
   "packageManager": "pnpm@11.13.1",
@@ -67,7 +67,7 @@
     "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
-    "jsdom": "^30.1.2",
+    "jsdom": "^30.1.3",
     "supabase": "^2.120.0",
     "tailwindcss": "^4",
     "typescript": "^6",
