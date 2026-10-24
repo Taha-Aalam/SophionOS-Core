@@ -5,16 +5,21 @@ All notable changes to SophionOS are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-
-- (none yet)
+## [0.2.2] - 2026-10-24
 
 ### Changed
 
 - Project license changed from Apache-2.0 to **AGPL-3.0** (`LICENSE`,
   `README.md`, `CONTRIBUTING.md`, `TRADEMARKS.md`).
+- Dependency refresh (#215, #216, #217): `@hookform/resolvers` 5.9.1 → 6.0.0;
+  `react`/`react-dom` 19.3.1; `@clerk/nextjs`, `@tanstack/react-query`,
+  `@tiptap/*`, `lucide-react`, `shadcn` minor/patch updates; dev deps
+  (`jsdom`, `@testing-library/*`) minor/patch updates.
+- Transitive-dependency overrides raised past three new high-severity
+  advisories: `body-parser` ≥2.4.0 (GHSA-27r3-jxmh-p828), `undici` ≥7.30.1
+  (GHSA-xjj6-f33q-929c), `zod` ≥4.6.6 (GHSA-mrhx-c7xc-m3w5).
+- Gitignored `videos/` directory excluded from eslint and vitest so local
+  reel-production scratch files no longer fail local lint/test runs (#212).
 
 ## [0.2.1] - 2026-10-21
 
