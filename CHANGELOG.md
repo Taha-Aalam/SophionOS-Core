@@ -5,6 +5,17 @@ All notable changes to SophionOS are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2026-10-24
+
+### Changed
+
+- Raised transitive-dependency overrides to clear all ten moderate/low audit
+  findings (the high-severity CI gate was already green): `fast-uri` ≥4.2.3
+  (six advisories), `ip-address` ≥10.7.4 (GHSA-rxp7-6hxx-x8q5 — the one
+  runtime path, via the MCP server's rate limiter), `js-yaml` ≥5.4.1,
+  brace-expansion 1.x pinned to 1.1.21, and `@humanfs/node` ≥0.16.8
+  (dev-only, via eslint). `pnpm audit --audit-level=low` is now clean.
+
 ## [0.2.2] - 2026-10-24
 
 ### Changed
