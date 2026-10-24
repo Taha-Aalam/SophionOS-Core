@@ -61,7 +61,7 @@ repository has**: the code they fix is cloud-side.
 | Finding | Where it was fixed | What it means in this repository |
 |---|---|---|
 | **A.** Withdrawing the Terms locked the account out permanently (cloud #55) | The cloud-side consent gate (`src/lib/consent/gate-items.ts`) | There is no consent gate here: nothing to withdraw, nothing to strand. The published Terms carry no consent flow attached to them. |
-| **B.** The service role could wipe the whole consent ledger | The cloud-side `consent_records` grants and the `consent_records_append_only` trigger | This repository keeps no consent ledger, so there is no ledger to truncate. What it does keep is `audit_events` — a record, not a ledger — and that audit trail is what a breach investigation preserves. |
+| **B.** The service role could wipe the whole consent ledger | The cloud-side `consent_records` grants and the `consent_records_append_only` trigger | This repository keeps no consent ledger, so there is no ledger to truncate. What it does keep is `audit_events`, a record rather than a ledger, and that audit trail is what a breach investigation preserves. |
 | **C.** The published backup window was wrong (35 days published, 30 configured) | The cloud-side `RETENTION_DAYS` and `.github/workflows/cron-backup.yml` | This repository ships no backup job and no retention-policy module. The backup window is the operator's, and the operator checklist says to schedule Postgres backups and restore-test them (`docs/deployment.md`, `docs/self-hosting.md`). |
 
 One finding in this tree is closed here:

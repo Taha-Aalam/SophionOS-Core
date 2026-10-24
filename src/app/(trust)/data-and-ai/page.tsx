@@ -35,8 +35,8 @@ export default function DataAndAiPage() {
       <ol>
         <li>Create an API key in Settings → AI Access (default: read-only).</li>
         <li>
-          Configure your MCP client — Claude Desktop, Claude Code, Cursor, Codex,
-          Antigravity, OpenCode, or any MCP-compatible client — with the base
+          Configure your MCP client (Claude Desktop, Claude Code, Cursor, Codex,
+          Antigravity, OpenCode, or any MCP-compatible client) with the base
           URL and the key.
         </li>
         <li>
@@ -53,15 +53,15 @@ export default function DataAndAiPage() {
       <h2>Access modes</h2>
       <ul>
         <li>
-          <strong>Read-only</strong> — query context; cannot create, update, or
+          <strong>Read-only</strong>: query context; cannot create, update, or
           delete.
         </li>
         <li>
-          <strong>Write-limited</strong> — create and update selected entities;
+          <strong>Write-limited</strong>: create and update selected entities;
           no permanent delete or archive-class actions.
         </li>
         <li>
-          <strong>Write-enabled</strong> — broader writes including archive;
+          <strong>Write-enabled</strong>: broader writes including archive;
           permanent delete remains dashboard-only, so no API key or MCP client
           can hard-delete your data.
         </li>
@@ -100,7 +100,7 @@ export default function DataAndAiPage() {
       <ul>
         <li>It cannot permanently delete your data, whatever its write mode.</li>
         <li>
-          It cannot keep working after you revoke its key or disable AI access —
+          It cannot keep working after you revoke its key or disable AI access;
           the next request is rejected.
         </li>
         <li>
@@ -115,8 +115,8 @@ export default function DataAndAiPage() {
       <h2>Prompt injection and tool abuse</h2>
       <p>
         The API and MCP server are experimental. If you import untrusted content
-        into your workspace — for example a note containing text that looks like
-        instructions — an AI client reading that note may treat it as
+        into your workspace (for example a note containing text that looks like
+        instructions), an AI client reading that note may treat it as
         instructions. This is a property of AI clients, not a bug we can patch
         from our side. Keep write-enabled keys away from untrusted content, and
         prefer read-only keys for assistants that browse or import.

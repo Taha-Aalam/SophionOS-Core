@@ -1,9 +1,9 @@
 # SophionOS Contributor License Agreement ("CLA")
 
 Thank you for your interest in contributing to SophionOS. In order to keep the
-SophionOS codebase sustainably dual-licensed — the open-source **AGPL-3.0**
+SophionOS codebase sustainably dual-licensed (the open-source **AGPL-3.0**
 community version and the **proprietary Sophion Cloud / SophionOS Business**
-commercial offerings — this CLA clarifies the rights you grant to the SophionOS
+commercial offerings), this CLA clarifies the rights you grant to the SophionOS
 project owners when you submit a contribution.
 
 **Please read this document carefully before signing.**
@@ -17,7 +17,7 @@ project owners when you submit a contribution.
   open-source license **and** under our commercial licenses (SophionOS
   Business / Sophion Cloud and any future offerings).
 - You confirm you actually own what you submit.
-- The CLA covers your submissions to SophionOS — nothing else. It does not
+- The CLA covers your submissions to SophionOS and nothing else. It does not
   give you any rights over SophionOS's existing code beyond what the project
   license already grants.
 
@@ -55,7 +55,7 @@ works.
 ### 3. Right to distribute under other licenses (dual licensing)
 
 You grant the Project Owners the right to use, copy, modify, and distribute
-Your Contributions — and derivative works thereof — under **any license the
+Your Contributions and derivative works thereof under **any license the
 Project Owners choose**, including but not limited to:
 
 - the GNU Affero General Public License version 3 (AGPL-3.0) or later; and
@@ -128,7 +128,7 @@ copyright protection in Your Contributions.
 
 ---
 
-## Schedule A — Individual Contributor CLA
+## Schedule A: Individual Contributor CLA
 
 By signing this document, You agree to the terms of the SophionOS Contributor
 License Agreement.
@@ -153,7 +153,7 @@ request.
 
 ---
 
-## Schedule B — Entity Contributor CLA
+## Schedule B: Entity Contributor CLA
 
 This section is for contributions made **on behalf of a company or legal
 entity** (e.g., by employees during work hours, or using company-owned
@@ -194,6 +194,6 @@ by this CLA.
 
 ---
 
-*Document status: v1.0 — 2026. This document is a legal instrument; have it
+*Document status: v1.0, 2026. This document is a legal instrument; have it
 reviewed by a qualified lawyer in the applicable jurisdiction before relying on
 it.*

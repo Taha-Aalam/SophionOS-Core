@@ -61,7 +61,7 @@ export function PrivacyCenter() {
       setSummary(data);
       if (data.deletion_just_processed) {
         toast.success(
-          "Grace period ended — your product data was purged for this account.",
+          "Grace period ended. Your product data was purged for this account.",
         );
       }
     } catch (err) {
