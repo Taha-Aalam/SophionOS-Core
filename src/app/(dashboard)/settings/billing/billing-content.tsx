@@ -150,7 +150,7 @@ export function BillingContent() {
             {tier === "free"
               ? "Full dashboard access with core features. Upgrade for MCP, API, and advanced capabilities."
               : tier === "pro"
-                ? "Unlock MCP server, API access, and advanced analytics."
+                ? "Pro adds MCP server access, API access, and advanced analytics."
                 : tier === "lifetime"
                   ? "One-time payment, lifetime Pro features and unlimited API keys."
                   : "The ultimate tier with highest limits and dedicated support."}

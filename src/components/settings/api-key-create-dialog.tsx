@@ -57,7 +57,7 @@ export function ApiKeyCreateDialog({
   async function handleCreate() {
     const label = name.trim();
     if (!label) {
-      toast.error("Give the key a label, e.g. Cursor — MacBook Pro.");
+      toast.error("Give the key a label, for example Cursor on MacBook Pro.");
       return;
     }
     setCreating(true);
@@ -69,7 +69,7 @@ export function ApiKeyCreateDialog({
         access_mode: accessMode,
       });
       setRevealedKey(result.key);
-      toast.success("API key created. Copy it now — it won’t be shown again.");
+      toast.success("API key created. Copy it now; it won’t be shown again.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create key");
     } finally {
@@ -135,7 +135,7 @@ export function ApiKeyCreateDialog({
                 id="key-label"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Cursor — MacBook Pro"
+                placeholder="Cursor on MacBook Pro"
                 maxLength={80}
               />
             </div>

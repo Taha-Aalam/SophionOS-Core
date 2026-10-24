@@ -20,7 +20,7 @@ export default function TermsPage() {
         summary="Adopts the reviewed and corrected SophionOS Terms & Conditions v2, effective 19 October 2026; the text is still DRAFT pending sign-off by qualified Indian counsel."
       />
       <p className="text-sm text-muted-foreground">
-        <strong>DRAFT — NOT YET IN FORCE.</strong> This document is product text
+        <strong>DRAFT: NOT YET IN FORCE.</strong> This document is product text
         awaiting review by qualified Indian counsel. It must not be published as
         binding until counsel signs it off. Every clause is subject to that
         review.
@@ -55,7 +55,7 @@ export default function TermsPage() {
         These Terms govern your use of the Service. They are not the contract for
         the purchase itself. Paid plans and Founding Cohort seats are sold by
         &quot;Dodo Payments&quot; (as defined in Dodo Payments&apos; Master Service
-        Agreement — Dodo Payments Inc., Dodope Payments Limited, and Sarvapanchhi
+        Agreement: Dodo Payments Inc., Dodope Payments Limited, and Sarvapanchhi
         Technologies Private Limited, collectively the merchant of record) as our{" "}
         <strong>merchant of record</strong>: Dodo Payments takes your payment,
         issues the invoice, applies and remits applicable taxes, and issues
@@ -188,7 +188,7 @@ export default function TermsPage() {
         <li>
           <strong>Rate limits are per minute and enforced per plan.</strong> The
           authoritative numbers are published in the app under Settings → AI
-          Access. Exceeding a limit returns HTTP 429 — back off and retry.
+          Access. Exceeding a limit returns HTTP 429; back off and retry.
         </li>
         <li>
           <strong>
@@ -316,8 +316,8 @@ export default function TermsPage() {
       </p>
       <p>
         The API and MCP surfaces are experimental. If you import untrusted
-        content into your workspace — for example a note containing text that
-        looks like instructions — an AI client reading that note may treat it as
+        content into your workspace (for example a note containing text that
+        looks like instructions), an AI client reading that note may treat it as
         instructions. Keep write-enabled keys away from untrusted content, and
         prefer read-only keys for assistants that browse or import.
       </p>
@@ -387,7 +387,7 @@ export default function TermsPage() {
         licence governs the software; these Terms govern the hosted Service.
       </p>
       <p>
-        SophionOS names, logos, and trade dress are not licensed under the AGPL —
+        SophionOS names, logos, and trade dress are not licensed under the AGPL;
         do not use them to imply endorsement.
       </p>
 
@@ -397,7 +397,7 @@ export default function TermsPage() {
         merchant of record (section 1). Dodo Payments takes the payment, issues
         the invoice, applies and remits applicable taxes, and issues refunds. We
         are not the seller of record and we do not take your payment; what Dodo
-        Payments sends us is the entitlement — that a plan is paid for, and for
+        Payments sends us is the entitlement: that a plan is paid for, and for
         which tier.
       </p>
       <p>If you subscribe to a paid tier:</p>
@@ -418,7 +418,7 @@ export default function TermsPage() {
           where the law requires it;
         </li>
         <li>
-          invoices and legally required records are retained after cancellation —
+          invoices and legally required records are retained after cancellation:
           the invoice is Dodo Payments&apos;, and we keep the subscription and
           entitlement records;
         </li>
@@ -433,8 +433,8 @@ export default function TermsPage() {
         </li>
       </ul>
       <p>
-        <strong>Charged in error.</strong> If you are charged in error — including
-        being charged twice for the same period — write to{" "}
+        <strong>Charged in error.</strong> If you are charged in error, including
+        being charged twice for the same period, write to{" "}
         <strong>disputes@sophionos.com</strong> within 60 days of the charge and
         we will refund the erroneous charge. Dodo Payments, as merchant of
         record, issues the refund to the original payment method.
@@ -494,9 +494,9 @@ export default function TermsPage() {
       </p>
       <p>
         There has been no formal third-party security audit of this codebase; the
-        API/MCP surface is experimental, and residual risks — prompt injection,
+        API/MCP surface is experimental, and residual risks (prompt injection,
         exfiltration you authorise through a client, operator-visible service
-        data — remain. Do not rely on SophionOS as the sole store for critical,
+        data) remain. Do not rely on SophionOS as the sole store for critical,
         medical, legal, or safety-critical information. Where the law requires a
         warranty, it is limited to 90 days from first use. Nothing here excludes
         liability for death, personal injury, fraud, or anything else the law
@@ -676,8 +676,8 @@ export default function TermsPage() {
         <strong>contact@sophionos.com</strong>.
       </p>
       <p>
-        Questions about a purchase — a charge, an invoice, a tax, a refund, or
-        cancelling a subscription — go to Dodo Payments, which sells to you as
+        Questions about a purchase (a charge, an invoice, a tax, a refund, or
+        cancelling a subscription) go to Dodo Payments, which sells to you as
         merchant of record. Use the customer portal reachable from Settings →
         Billing, or the contact details on your invoice. The exception is a
         billing error or duplicate charge: write to{" "}

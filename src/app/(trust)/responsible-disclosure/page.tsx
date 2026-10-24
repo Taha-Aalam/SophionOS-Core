@@ -42,7 +42,7 @@ export default function ResponsibleDisclosurePage() {
         </li>
         <li>
           Do not include raw API keys, passwords, or session tokens; redact
-          anything sensitive. If a secret leaked, tell us so we can rotate it —
+          anything sensitive. If a secret leaked, tell us so we can rotate it;
           do not send the secret itself.
         </li>
       </ul>
@@ -73,7 +73,7 @@ export default function ResponsibleDisclosurePage() {
         </li>
       </ul>
       <p>
-        This safe harbor does not cover the systems of our providers — Clerk,
+        This safe harbor does not cover the systems of our providers: Clerk,
         Supabase, Vercel, Dodo Payments, or Resend. Report issues in those
         services to them, under their own programs.
       </p>
@@ -85,7 +85,7 @@ export default function ResponsibleDisclosurePage() {
           authorization bypass.
         </li>
         <li>
-          Cross-user data access — any way to read or write another user&apos;s
+          Cross-user data access: any way to read or write another user&apos;s
           rows through the app, the REST API, or the MCP server.
         </li>
         <li>API key handling, and the plan and entitlement checks.</li>
@@ -116,7 +116,7 @@ export default function ResponsibleDisclosurePage() {
         </li>
         <li>
           Third-party services listed in{" "}
-          <a href="/subprocessors">Subprocessors</a> — report to them.
+          <a href="/subprocessors">Subprocessors</a>; report to them.
         </li>
       </ul>
 

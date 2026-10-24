@@ -64,8 +64,8 @@ Raw API key secrets are never exported (only key metadata without hashes if incl
 
 ## Breach notification
 
-SophionOS Core is self-hosted. The operator of each instance — not this
-project — is responsible for securing it and for any breach-notification
+SophionOS Core is self-hosted. The operator of each instance, not this
+project, is responsible for securing it and for any breach-notification
 duties that apply to them. The Privacy Policy makes no breach-notification
 commitment on the project's behalf.
 
@@ -80,7 +80,7 @@ commitment on the project's behalf.
 | Operator responsibility | Drop backups, logs, and replicas per your retention policy |
 
 Sophion Cloud (if you use the commercial service) may offer additional
-account-deletion workflows operated by the provider—that is separate from this
+account-deletion workflows operated by the provider. Those are separate from this
 repository.
 
 ## Logs
