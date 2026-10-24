@@ -79,7 +79,7 @@ export function ApiKeyPermissionDialog({
             value={mode}
             onChange={(e) => setMode(e.target.value)}
           >
-            <option value="read_only">Read-only — query only</option>
+            <option value="read_only">Read-only (query only)</option>
             <option value="write_limited">
               Can create/update — no archive/delete
             </option>

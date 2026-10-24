@@ -168,7 +168,7 @@ export function ContactsContent() {
             <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
             <p className="text-sm text-muted-foreground">
               {allContacts.length === 0
-                ? "No contacts yet — add your first one to start tracking relationships"
+                ? "No contacts yet. Add your first one to start tracking relationships"
                 : `${allContacts.length} contact${allContacts.length !== 1 ? "s" : ""} in your network`}
             </p>
           </div>

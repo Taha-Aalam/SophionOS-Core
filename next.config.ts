@@ -24,6 +24,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Emit the self-contained server bundle (.next/standalone) the Docker image
+  // runs with `node server.js` — see Dockerfile. Additive: `next start`, dev
+  // and Vercel keep working off the full .next output.
+  output: "standalone",
   // Pin the file-tracing root to this project so Next does not warn about an
   // inferred workspace root (the build is always invoked from the repo root).
   // Allow local.sophionos.com through dev-server origin checks (hosts-file
