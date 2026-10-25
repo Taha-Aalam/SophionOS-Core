@@ -14,9 +14,9 @@ export default function DataAndAiPage() {
       description="How MCP, API keys, and AI clients access your data."
     >
       <PolicyMeta
-        version="2.1"
-        effective="October 19, 2026"
-        summary="Replaces the previous page. Adds who is responsible for what once a client is connected, what SophionOS does and does not do with your content for AI, and how to cut off access."
+        version="2.2"
+        effective="October 25, 2026"
+        summary="Adds your own provider key (Settings → AI Providers) and the optional AI-written brief summaries: what is sent, when, and how to turn it off."
       />
 
       <h2>Default behavior</h2>
@@ -29,6 +29,24 @@ export default function DataAndAiPage() {
       <p>
         We do not train models on your workspace content, and we do not use it to
         improve a model that anyone else runs.
+      </p>
+
+      <h2>Your own provider key (brief summaries)</h2>
+      <p>
+        Separately from MCP clients, you can connect your own AI provider API
+        key in <a href="/settings/ai-providers">Settings → AI Providers</a> and
+        turn on AI summaries in Settings → Notifications. When a scheduled
+        brief is due and this is enabled, SophionOS sends your chosen provider
+        one request containing exactly the data the emailed brief already
+        carries — stat counts, top task titles, and goal titles with progress.
+        Nothing else is sent, no other feature calls the model, and if the
+        provider is unavailable the standard brief is sent instead.
+      </p>
+      <p>
+        The request runs under your provider account, so that provider&apos;s
+        terms apply to it. Turn it off any time by toggling AI summaries off or
+        disconnecting the provider; your key is stored encrypted and is never
+        shown again after you save it.
       </p>
 
       <h2>Connection flow</h2>
