@@ -9,8 +9,8 @@ describe("isFeatureEnabled", () => {
     });
   });
 
-  it("defaults both flags to off as currently configured", () => {
-    expect(isFeatureEnabled("cloud_later")).toBe(false);
+  it("matches the configured defaults (notifications live, billing still gated)", () => {
+    expect(isFeatureEnabled("cloud_later")).toBe(true);
     expect(isFeatureEnabled("sop_cloud")).toBe(false);
   });
 
