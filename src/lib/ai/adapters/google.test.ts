@@ -20,7 +20,7 @@ describe("google adapter (Gemini generateContent)", () => {
   it("POSTs to models/{model}:generateContent with the x-goog-api-key header and documented body", async () => {
     let capturedUrl = "";
     let capturedInit: RequestInit | undefined;
-    const fetchImpl = async (url: string | URL, init?: RequestInit) => {
+    const fetchImpl = async (url: string | URL | Request, init?: RequestInit) => {
       capturedUrl = String(url);
       capturedInit = init;
       return okResponse({

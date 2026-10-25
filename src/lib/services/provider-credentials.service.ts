@@ -179,6 +179,21 @@ export const providerCredentialsService = {
     if (error) throw new DatabaseError(error.message);
   },
 
+  /** Flips the credential to invalid after a provider auth failure (gateway). */
+  async markCredentialInvalid(
+    userId: string,
+    provider: ProviderId,
+    options: Pick<ServiceOptions, "supabase">,
+  ): Promise<void> {
+    const { error } = await options.supabase
+      .from("provider_credentials")
+      .update({ status: "invalid", updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("provider", provider);
+
+    if (error) throw new DatabaseError(error.message);
+  },
+
   /** Gateway-internal: the ONLY method that returns decrypted key material. */
   async getActiveCredential(
     userId: string,

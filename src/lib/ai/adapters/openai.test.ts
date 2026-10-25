@@ -22,7 +22,7 @@ describe("openai adapter (serves openai/openrouter/xai/custom)", () => {
   it("POSTs to {baseUrl}/chat/completions with Bearer auth and the documented body", async () => {
     let capturedUrl = "";
     let capturedInit: RequestInit | undefined;
-    const fetchImpl = async (url: string | URL, init?: RequestInit) => {
+    const fetchImpl = async (url: string | URL | Request, init?: RequestInit) => {
       capturedUrl = String(url);
       capturedInit = init;
       return okResponse({
@@ -55,7 +55,7 @@ describe("openai adapter (serves openai/openrouter/xai/custom)", () => {
 
   it("defaults the baseUrl to OpenAI when omitted", async () => {
     let capturedUrl = "";
-    const fetchImpl = async (url: string | URL) => {
+    const fetchImpl = async (url: string | URL | Request) => {
       capturedUrl = String(url);
       return okResponse({
         choices: [{ message: { content: "hi" } }],

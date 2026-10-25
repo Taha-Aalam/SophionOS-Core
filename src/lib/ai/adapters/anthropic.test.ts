@@ -19,7 +19,7 @@ describe("anthropic adapter", () => {
   it("POSTs to /v1/messages with x-api-key, version header, top-level system and required max_tokens", async () => {
     let capturedUrl = "";
     let capturedInit: RequestInit | undefined;
-    const fetchImpl = async (url: string | URL, init?: RequestInit) => {
+    const fetchImpl = async (url: string | URL | Request, init?: RequestInit) => {
       capturedUrl = String(url);
       capturedInit = init;
       return okResponse({
