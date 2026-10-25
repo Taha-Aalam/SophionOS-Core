@@ -31,9 +31,9 @@ const sampleToday: TodayData = {
 
 const prefs: NotificationPrefs = {
   morning_briefing_enabled: true,
-  morning_briefing_time: "08:00",
+  morning_briefing_hour: 8,
   evening_review_enabled: false,
-  evening_review_time: null,
+  evening_review_hour: null,
   weekly_digest_day: null,
   email_enabled: true,
 };
@@ -54,7 +54,6 @@ function makeDeps(
     sendEmail: vi.fn(async () => ({ id: "re_123" })),
     recordDelivery: vi.fn(async () => {}),
     appUrl: "https://app.example.com",
-    windowMinutes: 15,
     now: nowInWindow,
     ...overrides,
   };
