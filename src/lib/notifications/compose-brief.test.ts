@@ -95,3 +95,45 @@ describe("composeBriefEmail policy footer", () => {
     expect(mail.text).toContain("— SophionOS");
   });
 });
+
+describe("composeBriefEmail AI narration", () => {
+  const base = {
+    kind: "morning_briefing" as const,
+    today: sampleToday,
+    appUrl: "https://app.example.com",
+    localDate: "2026-09-14",
+  };
+
+  it("renders the narration as a labeled intro in text and html", () => {
+    const mail = composeBriefEmail({
+      ...base,
+      narration: {
+        text: "Focus on the VAT return first.\n\nThen the Apollo review.",
+        provider: "openrouter",
+      },
+    });
+    expect(mail.text).toContain("AI summary (via openrouter)");
+    expect(mail.text).toContain("Focus on the VAT return first.");
+    expect(mail.html).toContain("generated with your connected openrouter key");
+    expect(mail.html).toContain("Focus on the VAT return first.");
+  });
+
+  it("escapes narration text in the html part", () => {
+    const mail = composeBriefEmail({
+      ...base,
+      narration: { text: "<script>alert(1)</script>", provider: "p" },
+    });
+    expect(mail.html).not.toContain("<script>alert");
+    expect(mail.html).toContain("&lt;script&gt;");
+  });
+
+  it("omits the section without narration and keeps the subject stable", () => {
+    const plain = composeBriefEmail(base);
+    const narrated = composeBriefEmail({
+      ...base,
+      narration: { text: "Morning!", provider: "openai" },
+    });
+    expect(plain.text).not.toContain("AI summary");
+    expect(plain.subject).toBe(narrated.subject);
+  });
+});
