@@ -5,6 +5,18 @@ All notable changes to SophionOS are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2026-10-25
+
+### Changed
+
+- Bumped the four `docker/*` action pins in `.github/workflows/docker-build.yml`
+  to the exact commits cloud already runs (its sync PR #104): setup-qemu-action
+  v3.7.0 → v4.4.0, setup-buildx-action v3.12.0 → v4.4.1, login-action
+  v3.7.0 → v4.6.0, and build-push-action v6.19.2 → v7.4.0. Each tag was
+  resolved against upstream via `git ls-remote` before pinning. Clears the
+  "Action pin drift (4)" finding in cloud's dependency-drift check and lets
+  cloud issue #60 close on its next scheduled run.
+
 ## [0.2.3] - 2026-10-24
 
 ### Changed
