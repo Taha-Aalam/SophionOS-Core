@@ -12,7 +12,6 @@ import { resolveUserEmail } from "./resolve-email";
 import type { BriefKind, DeliveryStatus } from "./types";
 
 const MAX_SENDS_PER_RUN = 50;
-const DEFAULT_WINDOW_MINUTES = 15;
 
 export interface BriefDispatchDeps {
   listNotificationCandidates: () => Promise<
@@ -42,7 +41,6 @@ export interface BriefDispatchDeps {
     payload?: Record<string, unknown> | null;
   }) => Promise<void>;
   appUrl: string;
-  windowMinutes: number;
   now?: Date;
   maxSendsPerRun?: number;
 }
@@ -88,7 +86,6 @@ export async function runBriefDispatch(
         prefs: candidate.prefs,
         timezone: candidate.timezone,
         now,
-        windowMinutes: deps.windowMinutes,
       });
 
       for (const due of dueList) {
@@ -282,6 +279,5 @@ export function createDefaultBriefDispatchDeps(
     sendEmail: ({ to, mail }) => sendBriefEmail({ to, mail }),
     recordDelivery: (args) => recordDeliveryDb(admin, args),
     appUrl,
-    windowMinutes: DEFAULT_WINDOW_MINUTES,
   };
 }

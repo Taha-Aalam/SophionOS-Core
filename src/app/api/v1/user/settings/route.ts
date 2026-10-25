@@ -20,13 +20,18 @@ const preferencesSchema = z.object({
   language: z.string().optional(),
 });
 
+const hourField = z.number().int().min(0).max(23).nullable().optional();
 const notificationsSchema = z.object({
   morning_briefing_enabled: z.boolean().optional(),
-  morning_briefing_time: z.string().nullable().optional(),
+  morning_briefing_hour: hourField,
   evening_review_enabled: z.boolean().optional(),
-  evening_review_time: z.string().nullable().optional(),
+  evening_review_hour: hourField,
   weekly_digest_day: z.number().int().min(0).max(6).nullable().optional(),
+  weekly_digest_hour: hourField,
   email_enabled: z.boolean().optional(),
+  ai_narration_enabled: z.boolean().optional(),
+  ai_narration_provider: z.string().max(40).nullable().optional(),
+  ai_narration_model: z.string().max(200).nullable().optional(),
 });
 
 const onboardingSchema = z.object({

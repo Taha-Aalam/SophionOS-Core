@@ -18,12 +18,17 @@ export interface PreferencesSettings {
 
 export interface NotificationSettings {
   morning_briefing_enabled?: boolean;
-  morning_briefing_time?: string | null;
+  /** 1-hour slot anchor, 0-23 local. */
+  morning_briefing_hour?: number | null;
   evening_review_enabled?: boolean;
-  evening_review_time?: string | null;
+  evening_review_hour?: number | null;
   weekly_digest_day?: number | null;
+  weekly_digest_hour?: number | null;
   /** Default true when undefined — email channel opt-in */
   email_enabled?: boolean;
+  ai_narration_enabled?: boolean;
+  ai_narration_provider?: string | null;
+  ai_narration_model?: string | null;
 }
 
 export interface ProfileContactSettings {
