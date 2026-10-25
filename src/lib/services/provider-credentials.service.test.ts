@@ -202,6 +202,25 @@ describe("providerCredentialsService.remove", () => {
   });
 });
 
+describe("providerCredentialsService.markCredentialInvalid", () => {
+  it("updates only that user's row for that provider to status invalid", async () => {
+    const log: Op[] = [];
+    const sb = fakeSupabase({ data: null, error: null }, log);
+
+    await providerCredentialsService.markCredentialInvalid("user_1", "xai", {
+      supabase: sb,
+    });
+
+    expect(log.map((op) => op.op)).toEqual(["from", "update", "eq", "eq"]);
+    const updateOp = log.find((op) => op.op === "update");
+    expect(updateOp?.args[0]).toMatchObject({ status: "invalid" });
+    expect(log.find((op) => op.op === "eq")?.args).toEqual([
+      "user_id",
+      "user_1",
+    ]);
+  });
+});
+
 describe("providerCredentialsService.getActiveCredential", () => {
   it("returns the decrypted credential for the requested provider", async () => {
     const row = {
