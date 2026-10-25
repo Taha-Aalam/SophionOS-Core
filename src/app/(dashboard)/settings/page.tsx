@@ -7,6 +7,7 @@ import {
   Plug,
   Settings2,
   Shield,
+  Sparkles,
   User,
 } from "lucide-react";
 
@@ -44,6 +45,13 @@ const settingsCards = [
     description:
       "See connected clients, revoke keys, and disable all AI/API access.",
     icon: Shield,
+  },
+  {
+    href: "/settings/ai-providers",
+    title: "AI Providers",
+    description:
+      "Connect your own AI provider keys (Claude, GPT, Gemini, Grok…) to power AI features.",
+    icon: Sparkles,
   },
   {
     href: "/settings/privacy",
