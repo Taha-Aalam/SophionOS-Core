@@ -130,3 +130,77 @@ describe("runBriefDispatch", () => {
     );
   });
 });
+
+describe("runBriefDispatch narration", () => {
+  const narration = {
+    text: "AI says hi",
+    provider: "openrouter",
+    model: "deepseek/deepseek-chat-v3-0324:free",
+  };
+
+  it("passes narration into the email and records the narrated payload", async () => {
+    const narrate = vi.fn(async () => narration);
+    const deps = makeDeps({ narrate });
+    const result = await runBriefDispatch(deps);
+
+    expect(result.sent).toBe(1);
+    expect(narrate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user_1",
+        kind: "morning_briefing",
+        localDate: "2026-07-23",
+      }),
+    );
+    const sendArg = vi.mocked(deps.sendEmail).mock.calls[0]?.[0];
+    expect(sendArg?.mail.text).toContain("AI says hi");
+    expect(deps.recordDelivery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "sent",
+        payload: expect.objectContaining({
+          narrated: true,
+          narration_provider: "openrouter",
+        }),
+      }),
+    );
+  });
+
+  it("falls back to the deterministic brief when narrate returns null", async () => {
+    const deps = makeDeps({ narrate: vi.fn(async () => null) });
+    const result = await runBriefDispatch(deps);
+
+    expect(result.sent).toBe(1);
+    const sendArg = vi.mocked(deps.sendEmail).mock.calls[0]?.[0];
+    expect(sendArg?.mail.text).toContain("Ship plan");
+    expect(sendArg?.mail.text).not.toContain("AI summary");
+    expect(deps.recordDelivery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "sent",
+        payload: expect.objectContaining({
+          narrated: false,
+          fallback_reason: "narration_unavailable",
+        }),
+      }),
+    );
+  });
+
+  it("still sends the deterministic brief when narrate throws", async () => {
+    const deps = makeDeps({
+      narrate: vi.fn(async () => {
+        throw new Error("boom");
+      }),
+    });
+    const result = await runBriefDispatch(deps);
+
+    expect(result.sent).toBe(1);
+    expect(result.failed).toBe(0);
+    expect(deps.recordDelivery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "sent",
+        payload: expect.objectContaining({
+          narrated: false,
+          fallback_reason: "narration_error",
+        }),
+      }),
+    );
+  });
+});
