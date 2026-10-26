@@ -27,26 +27,30 @@ begin
   delete from goals where user_id = v_user and id = v_goal;
   delete from areas where user_id = v_user and id in (v_area_work, v_area_life);
 
-  insert into areas (id, user_id, name, description, icon, color, type)
+  -- slug is NOT NULL on areas/goals (April slug migrations) and part of the
+  -- identity model for projects/notes — every seeded row carries one.
+  insert into areas (id, user_id, name, slug, description, icon, color, type)
   values
-    (v_area_work, v_user, 'Demo Work', 'Synthetic work domain for evaluators', 'briefcase', '#6366F1', 'professional'),
-    (v_area_life, v_user, 'Demo Life', 'Synthetic personal domain', 'home', '#10B981', 'personal');
+    (v_area_work, v_user, 'Demo Work', 'demo-work', 'Synthetic work domain for evaluators', 'briefcase', '#6366F1', 'professional'),
+    (v_area_life, v_user, 'Demo Life', 'demo-life', 'Synthetic personal domain', 'home', '#10B981', 'personal');
 
-  insert into goals (id, user_id, name, description, term, priority)
+  insert into goals (id, user_id, name, slug, description, term, priority)
   values (
     v_goal,
     v_user,
     'Evaluate SophionOS alpha',
+    'evaluate-sophionos-alpha',
     'Synthetic goal — safe to delete',
     'short',
     'medium'
   );
 
-  insert into projects (id, user_id, name, description, status, priority)
+  insert into projects (id, user_id, name, slug, description, status, priority)
   values (
     v_project,
     v_user,
     'Alpha walkthrough',
+    'alpha-walkthrough',
     'Synthetic project for screenshots and demos',
     'active',
     'medium'
@@ -57,11 +61,12 @@ begin
     (v_task1, v_user, 'Import demo seed', 'completed', 'high'),
     (v_task2, v_user, 'Try personal data export', 'todo', 'medium');
 
-  insert into notes (id, user_id, name, content, type, status)
+  insert into notes (id, user_id, name, slug, content, type, status)
   values (
     v_note,
     v_user,
     'Welcome note (synthetic)',
+    'welcome-note-synthetic',
     'This content is fake demo data. Never store real secrets here.',
     'note',
     'active'
