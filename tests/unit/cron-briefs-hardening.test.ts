@@ -123,7 +123,6 @@ describe("brief dispatch per-candidate isolation", () => {
       },
       recordDelivery: vi.fn(async () => {}),
       appUrl: "http://localhost:3000",
-      windowMinutes: 30,
     };
   }
 

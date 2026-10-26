@@ -1,0 +1,16 @@
+---
+pid: 21528
+cwd: "C:\Users\tahaa\OneDrive\Documents\SaaS\LifeOS Core"
+command: "Set-Location \"C:\\Users\\tahaa\\OneDrive\\Documents\\SaaS\\LifeOS Core\"; npx vitest run tests/unit/ai-access-auth.test.ts tests/unit/ai-access-no-escalation.test.ts tests/unit/ai-access-policy.test.ts tests/unit/ai-access-routes.test.ts tests/unit/api-key-service-trust.test.ts tests/unit/authorize-scope.test.ts tests/unit/audit-redaction.test.ts tests/unit/privacy-export-deletion.test.ts tests/unit/privacy-routes.test.ts tests/unit/api-key-route.test.ts tests/unit/api-key-hash.test.ts src/app/api/v1/__tests__/auth.test.ts src/app/api/v1/__tests__/user-settings.test.ts 2>&1 | Select-Object -Last 25"
+started_at: 2026-07-16T12:25:53.663Z
+running_for_ms: 89983    
+---
+
+ RUN  v4.1.4 C:/Users/tahaa/OneDrive/Documents/SaaS/LifeOS Core
+
+
+ Test Files  13 passed (13)
+      Tests  83 passed (83)
+   Start at  17:56:13
+   Duration  41.14s (transform 9.11s, setup 39.60s, import 38.57s, tests 2.13s, environment 5ms)
+

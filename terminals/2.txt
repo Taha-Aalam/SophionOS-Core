@@ -1,0 +1,7 @@
+---
+pid: 20168
+cwd: "C:\Users\tahaa\OneDrive\Documents\SaaS\LifeOS Core"
+command: "Start-Sleep -Seconds 15"
+started_at: 2026-07-16T12:26:13.859Z
+running_for_ms: 70018    
+---
