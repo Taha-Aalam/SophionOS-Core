@@ -67,6 +67,8 @@ export async function POST(
     const { id } = await params;
     const { area_id } = await validateBody(request, linkAreaSchema);
     const supabase = await createDataClient(authResult);
+    // Ownership pre-gate before the write (was previously only checked after).
+    await projectService.getById(userId, id, { supabase });
     await projectService.linkToArea(userId, id, area_id, { supabase, userId });
     const project = await projectService.getById(userId, id, { supabase, userId });
     return created(project);
@@ -99,6 +101,8 @@ export async function DELETE(
       throw new ValidationError("area_id is required");
     }
     const supabase = await createDataClient(authResult);
+    // Ownership pre-gate before the write (was previously only checked after).
+    await projectService.getById(userId, id, { supabase });
     await projectService.unlinkFromArea(userId, id, areaId, { supabase, userId });
     const project = await projectService.getById(userId, id, { supabase, userId });
     return success(project);

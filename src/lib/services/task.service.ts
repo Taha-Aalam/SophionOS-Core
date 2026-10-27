@@ -996,6 +996,10 @@ export const taskService = {
 
   async replaceAreaLinks(userId: string, taskId: string, areaIds: string[], options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    // Parent-side ownership: the API-key path uses a service-role client
+    // that bypasses RLS, so the task id must be verified like the link
+    // targets (mirrors permanentDelete).
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
     if (areaIds.length > 0) {
       await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
     }
@@ -1027,11 +1031,13 @@ export const taskService = {
       }
     }
 
-    await this.syncTaskStatusFromContext(taskId, options);
+    await this.syncTaskStatusFromContext(userId, taskId, options);
   },
 
   async replaceGoalLinks(userId: string, taskId: string, goalIds: string[], options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    // Parent-side ownership (see replaceAreaLinks).
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
     if (goalIds.length > 0) {
       await assertOwnedIds(sb, "goals", userId, goalIds, "Goal");
     }
@@ -1059,7 +1065,7 @@ export const taskService = {
       if (error) throw mapJunctionWriteError(error);
     }
 
-    await this.syncTaskStatusFromContext(taskId, options);
+    await this.syncTaskStatusFromContext(userId, taskId, options);
   },
 
   async replaceProjectLinks(
@@ -1069,6 +1075,8 @@ export const taskService = {
     options?: ServiceOptions,
   ): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    // Parent-side ownership (see replaceAreaLinks).
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
     if (projectIds.length > 0) {
       await assertOwnedIds(sb, "projects", userId, projectIds, "Project");
     }
@@ -1104,11 +1112,11 @@ export const taskService = {
       }
     }
 
-    await this.syncTaskStatusFromContext(taskId, options);
+    await this.syncTaskStatusFromContext(userId, taskId, options);
   },
 
   /** Re-derive a task's status from its current area + goal + project + due_date context. */
-  async syncTaskStatusFromContext(taskId: string, options?: ServiceOptions): Promise<void> {
+  async syncTaskStatusFromContext(userId: string, taskId: string, options?: ServiceOptions): Promise<void> {
     const { data: task, error: fetchError } = await (options?.supabase ?? createClient())
       .from("tasks")
       .select("status, area_id, project_id, due_date")
@@ -1150,7 +1158,8 @@ export const taskService = {
       const { error } = await (options?.supabase ?? createClient())
         .from("tasks")
         .update({ status: derivedStatus })
-        .eq("id", taskId);
+        .eq("id", taskId)
+        .eq("user_id", userId);
 
       if (error) {
         throw new DatabaseError(error.message);

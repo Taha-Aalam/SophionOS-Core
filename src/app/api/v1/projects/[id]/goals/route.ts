@@ -68,6 +68,8 @@ export async function POST(
     const { id } = await params;
     const { goal_id } = await validateBody(request, linkGoalSchema);
     const supabase = await createDataClient(authResult);
+    // Ownership pre-gate before the write (was previously only checked after).
+    await projectService.getById(userId, id, { supabase });
     await projectService.linkToGoal(userId, id, goal_id, { supabase, userId });
     const project = await projectService.getById(userId, id, { supabase, userId });
     return created(project);
@@ -100,6 +102,8 @@ export async function DELETE(
       throw new ValidationError("goal_id is required");
     }
     const supabase = await createDataClient(authResult);
+    // Ownership pre-gate before the write (was previously only checked after).
+    await projectService.getById(userId, id, { supabase });
     await projectService.unlinkFromGoal(userId, id, goalId, { supabase, userId });
     const project = await projectService.getById(userId, id, { supabase, userId });
     return success(project);
