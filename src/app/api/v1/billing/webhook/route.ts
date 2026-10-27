@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { clearTierCache, invalidateTierCache } from "@/lib/api/subscription";
+import { clearTierCache, invalidateEntitlementCaches } from "@/lib/api/subscription";
 
 /**
  * Billing webhook receiver (provider-agnostic skeleton).
@@ -68,7 +68,9 @@ async function applyEntitlement(event: BillingEvent): Promise<void> {
     throw new Error(error.message);
   }
 
-  if (event.user_id) invalidateTierCache(event.user_id);
+  // Invalidate BOTH tier caches (subscription + rate limiter) — the
+  // rate limiter keeps an independent 60 s per-user tier cache.
+  if (event.user_id) invalidateEntitlementCaches(event.user_id);
   clearTierCache();
 }
 
