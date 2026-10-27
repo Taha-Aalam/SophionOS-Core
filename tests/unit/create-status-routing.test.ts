@@ -243,9 +243,9 @@ describe("taskService.create status routing (bug #3, #4, create manual-status)",
     // replaceAreaLinks `sb`: ownership + insert
     const areaSb = makeDefaultClient();
     areaSb.insert.mockResolvedValue({ error: null });
-    // getAreaLinks
+    // getAreaLinks: parent assert + junction read on one makeDefaultClient
+    // (chainable .eq for the assert, thenable for the read → no links)
     const areaLinksClient = makeDefaultClient();
-    areaLinksClient.eq.mockResolvedValue({ data: [], error: null });
 
     const touchClient = makeDefaultClient();
     touchClient.single.mockResolvedValue({ data: created, error: null });

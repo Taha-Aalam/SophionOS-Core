@@ -22,7 +22,9 @@ export async function GET(
 
     const { id } = await params;
     const supabase = await createDataClient(authResult);
-    const goalIds = await taskService.getGoalLinks(id, { supabase });
+    // Ownership pre-gate, matching the notes/resources/goals/contacts families.
+    await taskService.getById(userId, id, { supabase });
+    const goalIds = await taskService.getGoalLinks(userId, id, { supabase });
     return success({ task_id: id, goal_ids: goalIds });
   } catch (err) {
     return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
@@ -49,7 +51,7 @@ export async function POST(
     // Ownership pre-gate: the API-key path uses a service-role client that
     // bypasses RLS, so bind the parent task to the caller before mutating.
     await taskService.getById(userId, id, { supabase });
-    const existing = await taskService.getGoalLinks(id, { supabase });
+    const existing = await taskService.getGoalLinks(userId, id, { supabase });
     const next = Array.from(new Set([...existing, body.goal_id]));
     await taskService.replaceGoalLinks(userId, id, next, { supabase });
     return success({ task_id: id, goal_ids: next });
@@ -78,7 +80,7 @@ export async function DELETE(
     // Ownership pre-gate: the API-key path uses a service-role client that
     // bypasses RLS, so bind the parent task to the caller before mutating.
     await taskService.getById(userId, id, { supabase });
-    const existing = await taskService.getGoalLinks(id, { supabase });
+    const existing = await taskService.getGoalLinks(userId, id, { supabase });
     const next = existing.filter((goalId) => goalId !== body.goal_id);
     await taskService.replaceGoalLinks(userId, id, next, { supabase });
     return success({ task_id: id, goal_ids: next });

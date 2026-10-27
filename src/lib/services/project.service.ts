@@ -895,6 +895,9 @@ export const projectService = {
     area_ids: string[];
     goals: { id: string; name: string }[];
   }> {
+    // Tenant-safety: the API-key path uses a service-role client that
+    // bypasses RLS, so the parent project must be bound to the caller.
+    await assertOwnedIds(options?.supabase ?? createClient(), "projects", userId, [id], "Project");
     const [goalResult, areaResult] = await Promise.all([
       (options?.supabase ?? createClient()).from("goal_projects").select("goal_id, goals(id, name)").eq("project_id", id),
       (options?.supabase ?? createClient()).from("project_areas").select("area_id").eq("project_id", id),

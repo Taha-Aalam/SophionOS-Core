@@ -905,7 +905,7 @@ export const taskService = {
     // Junction cleanup is only ever allowed for a task the caller owns.
     await assertOwnedIds(options?.supabase ?? createClient(), "tasks", userId, [id], "Task");
     // Clean up join table rows first to avoid FK violations
-    const areaIds = await this.getAreaLinks(id, options);
+    const areaIds = await this.getAreaLinks(userId, id, options);
     if (areaIds.length > 0) {
       const { error } = await (options?.supabase ?? createClient())
         .from("task_areas")
@@ -961,10 +961,13 @@ export const taskService = {
   },
 
   async getWithRelations(
-    _userId: string,
+    userId: string,
     id: string,
     options?: ServiceOptions,
   ): Promise<{ goal_ids: string[]; area_ids: string[]; project_ids: string[] }> {
+    // Tenant-safety: the API-key path uses a service-role client that
+    // bypasses RLS, so the parent task must be bound to the caller.
+    await assertOwnedIds(options?.supabase ?? createClient(), "tasks", userId, [id], "Task");
     const [goalResult, areaResult, projectResult] = await Promise.all([
       (options?.supabase ?? createClient()).from("goal_tasks").select("goal_id").eq("task_id", id),
       (options?.supabase ?? createClient()).from("task_areas").select("area_id").eq("task_id", id),
@@ -1003,7 +1006,7 @@ export const taskService = {
     if (areaIds.length > 0) {
       await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
     }
-    const existingAreaIdsList = await this.getAreaLinks(taskId, options);
+    const existingAreaIdsList = await this.getAreaLinks(userId, taskId, options);
     const existingAreaIds = new Set(existingAreaIdsList);
     const nextAreaIds = new Set(areaIds);
     const areaIdsToAdd = areaIds.filter((areaId) => !existingAreaIds.has(areaId));
@@ -1041,7 +1044,7 @@ export const taskService = {
     if (goalIds.length > 0) {
       await assertOwnedIds(sb, "goals", userId, goalIds, "Goal");
     }
-    const existingGoalIdsList = await this.getGoalLinks(taskId, options);
+    const existingGoalIdsList = await this.getGoalLinks(userId, taskId, options);
     const existingGoalIds = new Set(existingGoalIdsList);
     const nextGoalIds = new Set(goalIds);
     const goalIdsToAdd = goalIds.filter((goalId) => !existingGoalIds.has(goalId));
@@ -1080,7 +1083,7 @@ export const taskService = {
     if (projectIds.length > 0) {
       await assertOwnedIds(sb, "projects", userId, projectIds, "Project");
     }
-    const existingProjectIdsList = await this.getProjectLinks(taskId, options);
+    const existingProjectIdsList = await this.getProjectLinks(userId, taskId, options);
     const existingProjectIds = new Set(existingProjectIdsList);
     const nextProjectIds = new Set(projectIds);
     const projectIdsToAdd = projectIds.filter(
@@ -1140,9 +1143,9 @@ export const taskService = {
     }
 
     const [areaIds, goalIds, projectIds] = await Promise.all([
-      this.getAreaLinks(taskId, options),
-      this.getGoalLinks(taskId, options),
-      this.getProjectLinks(taskId, options),
+      this.getAreaLinks(userId, taskId, options),
+      this.getGoalLinks(userId, taskId, options),
+      this.getProjectLinks(userId, taskId, options),
     ]);
 
     const derivedStatus = deriveTaskStatus({
@@ -1293,8 +1296,13 @@ export const taskService = {
     return fixed;
   },
 
-  async getGoalLinks(taskId: string, options?: ServiceOptions): Promise<string[]> {
-    const { data, error } = await (options?.supabase ?? createClient())
+  async getGoalLinks(userId: string, taskId: string, options?: ServiceOptions): Promise<string[]> {
+    const sb = options?.supabase ?? createClient();
+    // Tenant-safety: the API-key path uses a service-role client that
+    // bypasses RLS, so the parent task must be bound to the caller before
+    // the junction read.
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
+    const { data, error } = await sb
       .from("goal_tasks")
       .select("goal_id")
       .eq("task_id", taskId);
@@ -1302,8 +1310,11 @@ export const taskService = {
     return data?.map((r) => r.goal_id) ?? [];
   },
 
-  async getAreaLinks(taskId: string, options?: ServiceOptions): Promise<string[]> {
-    const result = await (options?.supabase ?? createClient()).from("task_areas").select("area_id").eq("task_id", taskId);
+  async getAreaLinks(userId: string, taskId: string, options?: ServiceOptions): Promise<string[]> {
+    const sb = options?.supabase ?? createClient();
+    // Tenant-safety (see getGoalLinks).
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
+    const result = await sb.from("task_areas").select("area_id").eq("task_id", taskId);
     if (result.error) {
       if (isMissingTaskAreasTableError(result.error)) return [];
       throw new DatabaseError(result.error.message);
@@ -1311,8 +1322,11 @@ export const taskService = {
     return result.data?.map((r) => r.area_id) ?? [];
   },
 
-  async getProjectLinks(taskId: string, options?: ServiceOptions): Promise<string[]> {
-    const result = await (options?.supabase ?? createClient())
+  async getProjectLinks(userId: string, taskId: string, options?: ServiceOptions): Promise<string[]> {
+    const sb = options?.supabase ?? createClient();
+    // Tenant-safety (see getGoalLinks).
+    await assertOwnedIds(sb, "tasks", userId, [taskId], "Task");
+    const result = await sb
       .from("task_projects")
       .select("project_id")
       .eq("task_id", taskId);

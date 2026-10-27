@@ -113,6 +113,11 @@ describe('taskService', () => {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        column === "id" && Array.isArray(ids)
+          ? Promise.resolve({ data: ids.map((id) => ({ id })), error: null })
+          : Promise.resolve({ data: [], error: null }),
+      ),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: completedTask, error: null }),
     } as any;
@@ -202,11 +207,24 @@ describe('taskService', () => {
       }),
       insert: vi.fn().mockResolvedValue({ error: null }),
     } as any;
-    // getGoalLinks — no existing links
+    // getGoalLinks — parent assert + junction read on one client: the
+    // terminal .eq is chainable for assertOwnedIds and awaitable for the
+    // read (no existing links)
     const goalLinksClient = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+      eq: vi.fn(() => ({
+        in: vi.fn((column: string, ids: string[]) => {
+          if (column === 'id' && Array.isArray(ids)) {
+            return Promise.resolve({ data: ids.map((id) => ({ id })), error: null });
+          }
+          return Promise.resolve({ data: [], error: null });
+        }),
+        then: (
+          resolve: (v: { data: unknown[]; error: null }) => unknown,
+          reject?: (e: unknown) => unknown,
+        ) => Promise.resolve({ data: [], error: null }).then(resolve, reject),
+      })),
     } as any;
     const touchClient = {
       from: vi.fn().mockReturnThis(),
@@ -380,6 +398,11 @@ describe('taskService', () => {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        column === "id" && Array.isArray(ids)
+          ? Promise.resolve({ data: ids.map((id) => ({ id })), error: null })
+          : Promise.resolve({ data: [], error: null }),
+      ),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: updatedTask, error: null }),
     } as any;
@@ -396,14 +419,27 @@ describe('taskService', () => {
       }),
       insert: vi.fn().mockResolvedValue({ error: null }),
     } as any;
-    // getGoalLinks — existing A,B
+    // getGoalLinks — parent assert + junction read on one client: existing
+    // links A,B
     const goalLinksClient = {
       from: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockResolvedValue({
-        data: [{ goal_id: goalA }, { goal_id: goalB }],
-        error: null,
-      }),
+      eq: vi.fn(() => ({
+        in: vi.fn((column: string, ids: string[]) => {
+          if (column === 'id' && Array.isArray(ids)) {
+            return Promise.resolve({ data: ids.map((id) => ({ id })), error: null });
+          }
+          return Promise.resolve({ data: [], error: null });
+        }),
+        then: (
+          resolve: (v: { data: unknown[]; error: null }) => unknown,
+          reject?: (e: unknown) => unknown,
+        ) =>
+          Promise.resolve({ data: [{ goal_id: goalA }, { goal_id: goalB }], error: null }).then(
+            resolve,
+            reject,
+          ),
+      })),
     } as any;
     const relationDeleteClient = {
       from: vi.fn().mockReturnThis(),
@@ -505,6 +541,11 @@ describe('taskService', () => {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        column === "id" && Array.isArray(ids)
+          ? Promise.resolve({ data: ids.map((id) => ({ id })), error: null })
+          : Promise.resolve({ data: [], error: null }),
+      ),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: uncompletedTask, error: null }),
     } as any;
@@ -543,6 +584,11 @@ describe('taskService', () => {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        column === "id" && Array.isArray(ids)
+          ? Promise.resolve({ data: ids.map((id) => ({ id })), error: null })
+          : Promise.resolve({ data: [], error: null }),
+      ),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: updatedTask, error: null }),
     } as any;
@@ -568,6 +614,11 @@ describe('taskService', () => {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        column === "id" && Array.isArray(ids)
+          ? Promise.resolve({ data: ids.map((id) => ({ id })), error: null })
+          : Promise.resolve({ data: [], error: null }),
+      ),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: updatedTask, error: null }),
     } as any;
