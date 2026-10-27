@@ -18,3 +18,11 @@ paths = [
   '''pnpm-lock\.yaml''',
   '''\.worktrees''',
 ]
+
+# Google OAuth client secrets (audit r1 finding 8): the class is caught by
+# name, not just by the default generic rules.
+[[rules]]
+id = "google-oauth-client-secret"
+description = "Google OAuth client secret"
+regex = '''GOCSPX-[A-Za-z0-9_-]{28,}'''
+keywords = ["GOCSPX-"]
