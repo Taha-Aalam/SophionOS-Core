@@ -42,7 +42,19 @@ export class SophionOSClient {
   // ---- low-level request --------------------------------------------------
 
   private buildUrl(path: string, query?: Query): string {
+    // Defense in depth 1: reject dot segments BEFORE new URL() collapses
+    // them ("./.." ids would otherwise silently rewrite the route).
+    const segments = path.split("?")[0].split("/");
+    if (segments.some((s) => decodeURIComponent(s) === "." || decodeURIComponent(s) === "..")) {
+      throw new Error(
+        `Refusing path with dot segment (route traversal): ${path}`,
+      );
+    }
     const url = new URL(`${this.baseUrl}/api/v1${path}`);
+    // Defense in depth 2: the final pathname must stay under the API root.
+    if (!url.pathname.startsWith("/api/v1/")) {
+      throw new Error(`Refusing to build URL outside /api/v1: ${url.pathname}`);
+    }
     if (query) {
       for (const [key, value] of Object.entries(query)) {
         if (value !== undefined && value !== null) {
@@ -146,13 +158,13 @@ export class SophionOSClient {
       page?: number;
       pageSize?: number;
     }) => this.list("/areas", q),
-    get: (id: string) => this.get(`/areas/${id}`),
+    get: (id: string) => this.get(`/areas/${encodeURIComponent(id)}`),
     create: (body: Record<string, unknown>) => this.post("/areas", body),
     update: (id: string, body: Record<string, unknown>) =>
-      this.patch(`/areas/${id}`, body),
-    delete: (id: string) => this.del(`/areas/${id}`),
-    archive: (id: string) => this.post(`/areas/${id}/archive`),
-    restore: (id: string) => this.post(`/areas/${id}/restore`),
+      this.patch(`/areas/${encodeURIComponent(id)}`, body),
+    delete: (id: string) => this.del(`/areas/${encodeURIComponent(id)}`),
+    archive: (id: string) => this.post(`/areas/${encodeURIComponent(id)}/archive`),
+    restore: (id: string) => this.post(`/areas/${encodeURIComponent(id)}/restore`),
   };
 
   // ---- goals --------------------------------------------------------------
@@ -169,18 +181,18 @@ export class SophionOSClient {
       page?: number;
       pageSize?: number;
     }) => this.list("/goals", q),
-    get: (id: string) => this.get(`/goals/${id}`),
+    get: (id: string) => this.get(`/goals/${encodeURIComponent(id)}`),
     create: (body: Record<string, unknown>) => this.post("/goals", body),
     update: (id: string, body: Record<string, unknown>) =>
-      this.patch(`/goals/${id}`, body),
-    delete: (id: string) => this.del(`/goals/${id}`),
-    archive: (id: string) => this.post(`/goals/${id}/archive`),
-    restore: (id: string) => this.post(`/goals/${id}/restore`),
-    listAreas: (id: string) => this.get(`/goals/${id}/areas`),
+      this.patch(`/goals/${encodeURIComponent(id)}`, body),
+    delete: (id: string) => this.del(`/goals/${encodeURIComponent(id)}`),
+    archive: (id: string) => this.post(`/goals/${encodeURIComponent(id)}/archive`),
+    restore: (id: string) => this.post(`/goals/${encodeURIComponent(id)}/restore`),
+    listAreas: (id: string) => this.get(`/goals/${encodeURIComponent(id)}/areas`),
     linkArea: (id: string, area_id: string) =>
-      this.post(`/goals/${id}/areas`, { area_id }),
+      this.post(`/goals/${encodeURIComponent(id)}/areas`, { area_id }),
     unlinkArea: (id: string, area_id: string) =>
-      this.del(`/goals/${id}/areas`, { query: { area_id } }), // query-param style
+      this.del(`/goals/${encodeURIComponent(id)}/areas`, { query: { area_id } }), // query-param style
   };
 
   // ---- projects -----------------------------------------------------------
@@ -196,23 +208,23 @@ export class SophionOSClient {
       page?: number;
       pageSize?: number;
     }) => this.list("/projects", q),
-    get: (id: string) => this.get(`/projects/${id}`),
+    get: (id: string) => this.get(`/projects/${encodeURIComponent(id)}`),
     create: (body: Record<string, unknown>) => this.post("/projects", body),
     update: (id: string, body: Record<string, unknown>) =>
-      this.patch(`/projects/${id}`, body),
-    delete: (id: string) => this.del(`/projects/${id}`),
-    archive: (id: string) => this.post(`/projects/${id}/archive`),
-    restore: (id: string) => this.post(`/projects/${id}/restore`),
-    listAreas: (id: string) => this.get(`/projects/${id}/areas`),
+      this.patch(`/projects/${encodeURIComponent(id)}`, body),
+    delete: (id: string) => this.del(`/projects/${encodeURIComponent(id)}`),
+    archive: (id: string) => this.post(`/projects/${encodeURIComponent(id)}/archive`),
+    restore: (id: string) => this.post(`/projects/${encodeURIComponent(id)}/restore`),
+    listAreas: (id: string) => this.get(`/projects/${encodeURIComponent(id)}/areas`),
     linkArea: (id: string, area_id: string) =>
-      this.post(`/projects/${id}/areas`, { area_id }),
+      this.post(`/projects/${encodeURIComponent(id)}/areas`, { area_id }),
     unlinkArea: (id: string, area_id: string) =>
-      this.del(`/projects/${id}/areas`, { query: { area_id } }), // query-param style
-    listGoals: (id: string) => this.get(`/projects/${id}/goals`),
+      this.del(`/projects/${encodeURIComponent(id)}/areas`, { query: { area_id } }), // query-param style
+    listGoals: (id: string) => this.get(`/projects/${encodeURIComponent(id)}/goals`),
     linkGoal: (id: string, goal_id: string) =>
-      this.post(`/projects/${id}/goals`, { goal_id }),
+      this.post(`/projects/${encodeURIComponent(id)}/goals`, { goal_id }),
     unlinkGoal: (id: string, goal_id: string) =>
-      this.del(`/projects/${id}/goals`, { query: { goal_id } }), // query-param style
+      this.del(`/projects/${encodeURIComponent(id)}/goals`, { query: { goal_id } }), // query-param style
   };
 
   // ---- tasks --------------------------------------------------------------
@@ -234,28 +246,28 @@ export class SophionOSClient {
       page?: number;
       pageSize?: number;
     }) => this.list("/tasks", q),
-    get: (id: string) => this.get(`/tasks/${id}`),
+    get: (id: string) => this.get(`/tasks/${encodeURIComponent(id)}`),
     create: (body: Record<string, unknown>) => this.post("/tasks", body),
     update: (id: string, body: Record<string, unknown>) =>
-      this.patch(`/tasks/${id}`, body),
-    delete: (id: string) => this.del(`/tasks/${id}`),
-    archive: (id: string) => this.post(`/tasks/${id}/archive`),
-    restore: (id: string) => this.post(`/tasks/${id}/restore`),
-    listAreas: (id: string) => this.get(`/tasks/${id}/areas`),
+      this.patch(`/tasks/${encodeURIComponent(id)}`, body),
+    delete: (id: string) => this.del(`/tasks/${encodeURIComponent(id)}`),
+    archive: (id: string) => this.post(`/tasks/${encodeURIComponent(id)}/archive`),
+    restore: (id: string) => this.post(`/tasks/${encodeURIComponent(id)}/restore`),
+    listAreas: (id: string) => this.get(`/tasks/${encodeURIComponent(id)}/areas`),
     linkArea: (id: string, area_id: string) =>
-      this.post(`/tasks/${id}/areas`, { area_id }),
+      this.post(`/tasks/${encodeURIComponent(id)}/areas`, { area_id }),
     unlinkArea: (id: string, area_id: string) =>
-      this.del(`/tasks/${id}/areas`, { body: { area_id } }), // body style
-    listGoals: (id: string) => this.get(`/tasks/${id}/goals`),
+      this.del(`/tasks/${encodeURIComponent(id)}/areas`, { body: { area_id } }), // body style
+    listGoals: (id: string) => this.get(`/tasks/${encodeURIComponent(id)}/goals`),
     linkGoal: (id: string, goal_id: string) =>
-      this.post(`/tasks/${id}/goals`, { goal_id }),
+      this.post(`/tasks/${encodeURIComponent(id)}/goals`, { goal_id }),
     unlinkGoal: (id: string, goal_id: string) =>
-      this.del(`/tasks/${id}/goals`, { body: { goal_id } }), // body style
-    listProjects: (id: string) => this.get(`/tasks/${id}/projects`),
+      this.del(`/tasks/${encodeURIComponent(id)}/goals`, { body: { goal_id } }), // body style
+    listProjects: (id: string) => this.get(`/tasks/${encodeURIComponent(id)}/projects`),
     linkProject: (id: string, project_id: string) =>
-      this.post(`/tasks/${id}/projects`, { project_id }),
+      this.post(`/tasks/${encodeURIComponent(id)}/projects`, { project_id }),
     unlinkProject: (id: string, project_id: string) =>
-      this.del(`/tasks/${id}/projects`, { body: { project_id } }), // body style
+      this.del(`/tasks/${encodeURIComponent(id)}/projects`, { body: { project_id } }), // body style
     bulkComplete: (ids: string[]) =>
       this.post("/tasks/bulk/complete", { ids }),
     bulkArchive: (ids: string[]) => this.post("/tasks/bulk/archive", { ids }),
@@ -279,45 +291,45 @@ export class SophionOSClient {
       page?: number;
       pageSize?: number;
     }) => this.list("/notes", q),
-    get: (id: string) => this.get(`/notes/${id}`),
+    get: (id: string) => this.get(`/notes/${encodeURIComponent(id)}`),
     create: (body: Record<string, unknown>) => this.post("/notes", body),
     update: (id: string, body: Record<string, unknown>) =>
-      this.patch(`/notes/${id}`, body),
-    delete: (id: string) => this.del(`/notes/${id}`),
-    archive: (id: string) => this.post(`/notes/${id}/archive`),
-    restore: (id: string) => this.post(`/notes/${id}/restore`),
-    related: (id: string) => this.get(`/notes/${id}/related`),
-    listAreas: (id: string) => this.get(`/notes/${id}/areas`),
+      this.patch(`/notes/${encodeURIComponent(id)}`, body),
+    delete: (id: string) => this.del(`/notes/${encodeURIComponent(id)}`),
+    archive: (id: string) => this.post(`/notes/${encodeURIComponent(id)}/archive`),
+    restore: (id: string) => this.post(`/notes/${encodeURIComponent(id)}/restore`),
+    related: (id: string) => this.get(`/notes/${encodeURIComponent(id)}/related`),
+    listAreas: (id: string) => this.get(`/notes/${encodeURIComponent(id)}/areas`),
     linkArea: (id: string, area_id: string) =>
-      this.post(`/notes/${id}/areas`, { area_id }),
+      this.post(`/notes/${encodeURIComponent(id)}/areas`, { area_id }),
     unlinkArea: (id: string, area_id: string) =>
-      this.del(`/notes/${id}/areas`, { query: { area_id } }), // query-param style
-    listProjects: (id: string) => this.get(`/notes/${id}/projects`),
+      this.del(`/notes/${encodeURIComponent(id)}/areas`, { query: { area_id } }), // query-param style
+    listProjects: (id: string) => this.get(`/notes/${encodeURIComponent(id)}/projects`),
     linkProject: (id: string, project_id: string) =>
-      this.post(`/notes/${id}/projects`, { project_id }),
+      this.post(`/notes/${encodeURIComponent(id)}/projects`, { project_id }),
     unlinkProject: (id: string, project_id: string) =>
-      this.del(`/notes/${id}/projects`, { query: { project_id } }), // query-param style
-    listGoals: (id: string) => this.get(`/notes/${id}/goals`),
+      this.del(`/notes/${encodeURIComponent(id)}/projects`, { query: { project_id } }), // query-param style
+    listGoals: (id: string) => this.get(`/notes/${encodeURIComponent(id)}/goals`),
     linkGoal: (id: string, goal_id: string) =>
-      this.post(`/notes/${id}/goals`, { goal_id }),
+      this.post(`/notes/${encodeURIComponent(id)}/goals`, { goal_id }),
     unlinkGoal: (id: string, goal_id: string) =>
-      this.del(`/notes/${id}/goals`, { query: { goal_id } }), // query-param style
-    listTasks: (id: string) => this.get(`/notes/${id}/tasks`),
+      this.del(`/notes/${encodeURIComponent(id)}/goals`, { query: { goal_id } }), // query-param style
+    listTasks: (id: string) => this.get(`/notes/${encodeURIComponent(id)}/tasks`),
     linkTask: (id: string, task_id: string) =>
-      this.post(`/notes/${id}/tasks`, { task_id }),
+      this.post(`/notes/${encodeURIComponent(id)}/tasks`, { task_id }),
     unlinkTask: (id: string, task_id: string) =>
-      this.del(`/notes/${id}/tasks`, { query: { task_id } }), // query-param style
-    listTopics: (id: string) => this.get(`/notes/${id}/topics`),
+      this.del(`/notes/${encodeURIComponent(id)}/tasks`, { query: { task_id } }), // query-param style
+    listTopics: (id: string) => this.get(`/notes/${encodeURIComponent(id)}/topics`),
     setTopic: (id: string, topic_id: string) =>
-      this.post(`/notes/${id}/topics`, { topic_id }),
-    clearTopic: (id: string) => this.del(`/notes/${id}/topics`),
-    listNotebooks: (id: string) => this.get(`/notes/${id}/notebooks`),
+      this.post(`/notes/${encodeURIComponent(id)}/topics`, { topic_id }),
+    clearTopic: (id: string) => this.del(`/notes/${encodeURIComponent(id)}/topics`),
+    listNotebooks: (id: string) => this.get(`/notes/${encodeURIComponent(id)}/notebooks`),
     replaceNotebooks: (id: string, notebooks: string[]) =>
-      this.put(`/notes/${id}/notebooks`, { notebooks }), // PUT replace
+      this.put(`/notes/${encodeURIComponent(id)}/notebooks`, { notebooks }), // PUT replace
     addNotebook: (id: string, notebook: string) =>
-      this.post(`/notes/${id}/notebooks`, { notebook }),
+      this.post(`/notes/${encodeURIComponent(id)}/notebooks`, { notebook }),
     removeNotebook: (id: string, notebook: string) =>
-      this.del(`/notes/${id}/notebooks`, { query: { notebook } }), // query-param style
+      this.del(`/notes/${encodeURIComponent(id)}/notebooks`, { query: { notebook } }), // query-param style
     // collection-level
     allNotebooks: () => this.get<string[]>("/notes/notebooks"),
     types: () => this.get("/notes/types"),
@@ -342,33 +354,33 @@ export class SophionOSClient {
       page?: number;
       pageSize?: number;
     }) => this.list("/resources", q),
-    get: (id: string) => this.get(`/resources/${id}`),
+    get: (id: string) => this.get(`/resources/${encodeURIComponent(id)}`),
     create: (body: Record<string, unknown>) => this.post("/resources", body),
     update: (id: string, body: Record<string, unknown>) =>
-      this.patch(`/resources/${id}`, body),
-    delete: (id: string) => this.del(`/resources/${id}`),
-    archive: (id: string) => this.post(`/resources/${id}/archive`),
-    restore: (id: string) => this.post(`/resources/${id}/restore`),
-    listAreas: (id: string) => this.get(`/resources/${id}/areas`),
+      this.patch(`/resources/${encodeURIComponent(id)}`, body),
+    delete: (id: string) => this.del(`/resources/${encodeURIComponent(id)}`),
+    archive: (id: string) => this.post(`/resources/${encodeURIComponent(id)}/archive`),
+    restore: (id: string) => this.post(`/resources/${encodeURIComponent(id)}/restore`),
+    listAreas: (id: string) => this.get(`/resources/${encodeURIComponent(id)}/areas`),
     linkArea: (id: string, area_id: string) =>
-      this.post(`/resources/${id}/areas`, { area_id }),
+      this.post(`/resources/${encodeURIComponent(id)}/areas`, { area_id }),
     unlinkArea: (id: string, area_id: string) =>
-      this.del(`/resources/${id}/areas`, { body: { area_id } }), // body style
-    listProjects: (id: string) => this.get(`/resources/${id}/projects`),
+      this.del(`/resources/${encodeURIComponent(id)}/areas`, { body: { area_id } }), // body style
+    listProjects: (id: string) => this.get(`/resources/${encodeURIComponent(id)}/projects`),
     linkProject: (id: string, project_id: string) =>
-      this.post(`/resources/${id}/projects`, { project_id }),
+      this.post(`/resources/${encodeURIComponent(id)}/projects`, { project_id }),
     unlinkProject: (id: string, project_id: string) =>
-      this.del(`/resources/${id}/projects`, { body: { project_id } }), // body style
-    listGoals: (id: string) => this.get(`/resources/${id}/goals`),
+      this.del(`/resources/${encodeURIComponent(id)}/projects`, { body: { project_id } }), // body style
+    listGoals: (id: string) => this.get(`/resources/${encodeURIComponent(id)}/goals`),
     linkGoal: (id: string, goal_id: string) =>
-      this.post(`/resources/${id}/goals`, { goal_id }),
+      this.post(`/resources/${encodeURIComponent(id)}/goals`, { goal_id }),
     unlinkGoal: (id: string, goal_id: string) =>
-      this.del(`/resources/${id}/goals`, { body: { goal_id } }), // body style
-    listTasks: (id: string) => this.get(`/resources/${id}/tasks`),
+      this.del(`/resources/${encodeURIComponent(id)}/goals`, { body: { goal_id } }), // body style
+    listTasks: (id: string) => this.get(`/resources/${encodeURIComponent(id)}/tasks`),
     linkTask: (id: string, task_id: string) =>
-      this.post(`/resources/${id}/tasks`, { task_id }),
+      this.post(`/resources/${encodeURIComponent(id)}/tasks`, { task_id }),
     unlinkTask: (id: string, task_id: string) =>
-      this.del(`/resources/${id}/tasks`, { body: { task_id } }), // body style
+      this.del(`/resources/${encodeURIComponent(id)}/tasks`, { body: { task_id } }), // body style
   };
 
   // ---- topics -------------------------------------------------------------
@@ -382,13 +394,13 @@ export class SophionOSClient {
       page?: number;
       pageSize?: number;
     }) => this.list("/topics", q),
-    get: (id: string) => this.get(`/topics/${id}`),
+    get: (id: string) => this.get(`/topics/${encodeURIComponent(id)}`),
     create: (body: Record<string, unknown>) => this.post("/topics", body),
     update: (id: string, body: Record<string, unknown>) =>
-      this.patch(`/topics/${id}`, body),
-    delete: (id: string) => this.del(`/topics/${id}`),
-    archive: (id: string) => this.post(`/topics/${id}/archive`),
-    restore: (id: string) => this.post(`/topics/${id}/restore`),
+      this.patch(`/topics/${encodeURIComponent(id)}`, body),
+    delete: (id: string) => this.del(`/topics/${encodeURIComponent(id)}`),
+    archive: (id: string) => this.post(`/topics/${encodeURIComponent(id)}/archive`),
+    restore: (id: string) => this.post(`/topics/${encodeURIComponent(id)}/restore`),
   };
 
   // ---- contacts -----------------------------------------------------------
@@ -402,39 +414,39 @@ export class SophionOSClient {
       page?: number;
       pageSize?: number;
     }) => this.list("/contacts", q),
-    get: (id: string) => this.get(`/contacts/${id}`),
+    get: (id: string) => this.get(`/contacts/${encodeURIComponent(id)}`),
     create: (body: Record<string, unknown>) => this.post("/contacts", body),
     update: (id: string, body: Record<string, unknown>) =>
-      this.patch(`/contacts/${id}`, body),
-    delete: (id: string) => this.del(`/contacts/${id}`),
-    archive: (id: string) => this.post(`/contacts/${id}/archive`),
-    restore: (id: string) => this.post(`/contacts/${id}/restore`),
+      this.patch(`/contacts/${encodeURIComponent(id)}`, body),
+    delete: (id: string) => this.del(`/contacts/${encodeURIComponent(id)}`),
+    archive: (id: string) => this.post(`/contacts/${encodeURIComponent(id)}/archive`),
+    restore: (id: string) => this.post(`/contacts/${encodeURIComponent(id)}/restore`),
     log: (id: string, message?: string) =>
-      this.post(`/contacts/${id}/log`, message ? { message } : {}),
-    logHistory: (id: string) => this.get(`/contacts/${id}/log`),
+      this.post(`/contacts/${encodeURIComponent(id)}/log`, message ? { message } : {}),
+    logHistory: (id: string) => this.get(`/contacts/${encodeURIComponent(id)}/log`),
     groups: () => this.list("/contacts/groups"),
     groupedByArea: () => this.list("/contacts/grouped-by-area"),
     groupedByGoal: () => this.list("/contacts/grouped-by-goal"),
-    listAreas: (id: string) => this.get(`/contacts/${id}/areas`),
+    listAreas: (id: string) => this.get(`/contacts/${encodeURIComponent(id)}/areas`),
     linkArea: (id: string, area_id: string) =>
-      this.post(`/contacts/${id}/areas`, { area_id }),
+      this.post(`/contacts/${encodeURIComponent(id)}/areas`, { area_id }),
     unlinkArea: (id: string, area_id: string) =>
-      this.del(`/contacts/${id}/areas`, { query: { area_id } }), // query-param style
-    listGoals: (id: string) => this.get(`/contacts/${id}/goals`),
+      this.del(`/contacts/${encodeURIComponent(id)}/areas`, { query: { area_id } }), // query-param style
+    listGoals: (id: string) => this.get(`/contacts/${encodeURIComponent(id)}/goals`),
     linkGoal: (id: string, goal_id: string) =>
-      this.post(`/contacts/${id}/goals`, { goal_id }),
+      this.post(`/contacts/${encodeURIComponent(id)}/goals`, { goal_id }),
     unlinkGoal: (id: string, goal_id: string) =>
-      this.del(`/contacts/${id}/goals`, { query: { goal_id } }), // query-param style
-    listProjects: (id: string) => this.get(`/contacts/${id}/projects`),
+      this.del(`/contacts/${encodeURIComponent(id)}/goals`, { query: { goal_id } }), // query-param style
+    listProjects: (id: string) => this.get(`/contacts/${encodeURIComponent(id)}/projects`),
     linkProject: (id: string, project_id: string, role_in_project?: string) =>
-      this.post(`/contacts/${id}/projects`, { project_id, role_in_project }),
+      this.post(`/contacts/${encodeURIComponent(id)}/projects`, { project_id, role_in_project }),
     unlinkProject: (id: string, project_id: string) =>
-      this.del(`/contacts/${id}/projects`, { body: { project_id } }), // body style
-    listTasks: (id: string) => this.get(`/contacts/${id}/tasks`),
+      this.del(`/contacts/${encodeURIComponent(id)}/projects`, { body: { project_id } }), // body style
+    listTasks: (id: string) => this.get(`/contacts/${encodeURIComponent(id)}/tasks`),
     linkTask: (id: string, task_id: string, role_in_task?: string) =>
-      this.post(`/contacts/${id}/tasks`, { task_id, role_in_task }),
+      this.post(`/contacts/${encodeURIComponent(id)}/tasks`, { task_id, role_in_task }),
     unlinkTask: (id: string, task_id: string) =>
-      this.del(`/contacts/${id}/tasks`, { body: { task_id } }), // body style
+      this.del(`/contacts/${encodeURIComponent(id)}/tasks`, { body: { task_id } }), // body style
   };
 
   // ---- system / aggregates ------------------------------------------------
@@ -463,10 +475,10 @@ export class SophionOSClient {
       this.patch("/user/settings", body),
     listApiKeys: () => this.get("/user/api-keys"),
     createApiKey: (name: string) => this.post("/user/api-keys", { name }),
-    revokeApiKey: (id: string) => this.del(`/user/api-keys/${id}`),
+    revokeApiKey: (id: string) => this.del(`/user/api-keys/${encodeURIComponent(id)}`),
     listIntegrations: () => this.get("/user/integrations"),
     createIntegration: (type: string, external_id: string) =>
       this.post("/user/integrations", { type, external_id }),
-    deleteIntegration: (id: string) => this.del(`/user/integrations/${id}`),
+    deleteIntegration: (id: string) => this.del(`/user/integrations/${encodeURIComponent(id)}`),
   };
 }

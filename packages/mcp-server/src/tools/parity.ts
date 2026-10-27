@@ -10,7 +10,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
 import type { SophionOSClient } from "../client.js";
-import { jsonResult, runTool, type ToolTextResult } from "../utils.js";
+import { entityIdField, jsonResult, runTool, type ToolTextResult } from "../utils.js";
 
 type Gettable = { get: (id: string) => Promise<unknown> };
 type Deletable = { delete: (id: string) => Promise<unknown> };
@@ -107,7 +107,7 @@ export function registerParityTools(
         "Fetch a single area, task, resource, topic, or contact by id (with its hydrated relations). For goals use get_goal_detail, for projects use get_project, for notes use get_note.",
       inputSchema: {
         entity: getEntity.describe("The kind of entity to fetch."),
-        id: z.string(),
+        id: entityIdField,
       },
     },
     async ({ entity, id }): Promise<ToolTextResult> =>
@@ -124,7 +124,7 @@ export function registerParityTools(
         "Permanent delete is DASHBOARD-ONLY: the API rejects every permanent delete from API keys and MCP with 403 PERMANENT_DELETE_DISABLED, so this tool always fails with that error. Use archive_entity/archive_area instead (reversible hiding), or delete permanently in the web dashboard. Supports area, goal, project, task, note, resource, topic, contact.",
       inputSchema: {
         entity: deleteEntity.describe("The kind of entity to delete."),
-        id: z.string(),
+        id: entityIdField,
       },
       annotations: { destructiveHint: true, idempotentHint: true },
     },
@@ -144,8 +144,8 @@ export function registerParityTools(
         entity: goalLinkEntity.describe(
           "project, task, contact, note, or resource.",
         ),
-        id: z.string().describe("The entity's id."),
-        goal_id: z.string(),
+        id: entityIdField.describe("The entity's id."),
+        goal_id: entityIdField,
       },
     },
     async ({ entity, id, goal_id }): Promise<ToolTextResult> =>
@@ -164,8 +164,8 @@ export function registerParityTools(
         entity: goalLinkEntity.describe(
           "project, task, contact, note, or resource.",
         ),
-        id: z.string().describe("The entity's id."),
-        goal_id: z.string(),
+        id: entityIdField.describe("The entity's id."),
+        goal_id: entityIdField,
       },
     },
     async ({ entity, id, goal_id }): Promise<ToolTextResult> =>
@@ -184,8 +184,8 @@ export function registerParityTools(
         "Link an existing task, note, or resource to a project. Use this to attach a project after creation.",
       inputSchema: {
         entity: projectLinkEntity.describe("task, note, or resource."),
-        id: z.string().describe("The entity's id."),
-        project_id: z.string(),
+        id: entityIdField.describe("The entity's id."),
+        project_id: entityIdField,
       },
     },
     async ({ entity, id, project_id }): Promise<ToolTextResult> =>
@@ -202,8 +202,8 @@ export function registerParityTools(
         "Remove the link between an existing task, note, or resource and a project.",
       inputSchema: {
         entity: projectLinkEntity.describe("task, note, or resource."),
-        id: z.string().describe("The entity's id."),
-        project_id: z.string(),
+        id: entityIdField.describe("The entity's id."),
+        project_id: entityIdField,
       },
     },
     async ({ entity, id, project_id }): Promise<ToolTextResult> =>
@@ -222,8 +222,8 @@ export function registerParityTools(
         "Link an existing note or resource to a task. Use this to attach a task after creation.",
       inputSchema: {
         entity: taskLinkEntity.describe("note or resource."),
-        id: z.string().describe("The entity's id."),
-        task_id: z.string(),
+        id: entityIdField.describe("The entity's id."),
+        task_id: entityIdField,
       },
     },
     async ({ entity, id, task_id }): Promise<ToolTextResult> =>
@@ -240,8 +240,8 @@ export function registerParityTools(
         "Remove the link between an existing note or resource and a task.",
       inputSchema: {
         entity: taskLinkEntity.describe("note or resource."),
-        id: z.string().describe("The entity's id."),
-        task_id: z.string(),
+        id: entityIdField.describe("The entity's id."),
+        task_id: entityIdField,
       },
     },
     async ({ entity, id, task_id }): Promise<ToolTextResult> =>
@@ -257,7 +257,7 @@ export function registerParityTools(
     {
       title: "Unlink Contact from Project",
       description: "Remove the link between a contact and a project.",
-      inputSchema: { contact_id: z.string(), project_id: z.string() },
+      inputSchema: { contact_id: entityIdField, project_id: entityIdField },
     },
     async ({ contact_id, project_id }): Promise<ToolTextResult> =>
       runTool(async () =>
@@ -270,7 +270,7 @@ export function registerParityTools(
     {
       title: "Unlink Contact from Task",
       description: "Remove the link between a contact and a task.",
-      inputSchema: { contact_id: z.string(), task_id: z.string() },
+      inputSchema: { contact_id: entityIdField, task_id: entityIdField },
     },
     async ({ contact_id, task_id }): Promise<ToolTextResult> =>
       runTool(async () =>
@@ -287,7 +287,7 @@ export function registerParityTools(
       description:
         "Update fields on an existing area (name, type, description, icon, color).",
       inputSchema: {
-        id: z.string(),
+        id: entityIdField,
         name: z.string().min(1).max(100).optional(),
         type: z.string().optional(),
         description: z.string().optional(),
