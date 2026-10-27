@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
+import { AppError, DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
 import { assertOwnedIds, mapJunctionWriteError } from "../api/ownership";
 import { createClient } from "../supabase/client";
 import type { CreateTaskInput, Task, UpdateTaskInput } from "../types/domain.types";
@@ -430,7 +430,20 @@ export const taskService = {
       const isCompleted = status === TASK_STATUS.COMPLETED;
       const completedAt = isCompleted ? new Date().toISOString() : null;
 
-      const { data, error } = await (options?.supabase ?? createClient())
+      // Ownership gate BEFORE the insert: the singular area_id/project_id
+      // values persist with the tasks row, and the API-key path uses a
+      // service-role client that bypasses RLS — a foreign parent reference
+      // must be rejected before anything commits (the junction-side asserts
+      // in replace*Links run only after this insert).
+      const sb = options?.supabase ?? createClient();
+      if (areaIds?.length) {
+        await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
+      }
+      if (projectIds?.length) {
+        await assertOwnedIds(sb, "projects", userId, projectIds, "Project");
+      }
+
+      const { data, error } = await sb
         .from("tasks")
         .insert({
           ...taskInput,
@@ -470,8 +483,9 @@ export const taskService = {
         : data;
       return hydrateSingleTaskRelations(persisted, options);
     } catch (e) {
-      if (e instanceof ValidationError) throw e;
-      if (e instanceof DatabaseError) throw e;
+      // AppError subclasses (ownership NotFound/Forbidden denials included)
+      // keep their status codes; only unknown failures re-wrap as 400.
+      if (e instanceof AppError) throw e;
       if (e instanceof z.ZodError) throw new ValidationError("Validation failed", e.issues);
       throw new ValidationError(e instanceof Error ? e.message : "Validation failed");
     }
@@ -586,9 +600,19 @@ export const taskService = {
         }
       }
 
+      // Ownership gate BEFORE the update: the singular area_id/project_id
+      // values persist with the tasks row (see create).
+      const sb = options?.supabase ?? createClient();
+      if (areaIds?.length) {
+        await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
+      }
+      if (projectIds?.length) {
+        await assertOwnedIds(sb, "projects", userId, projectIds, "Project");
+      }
+
       const data = hasTaskUpdates
         ? await (async () => {
-            const { data: updatedTask, error } = await (options?.supabase ?? createClient())
+            const { data: updatedTask, error } = await sb
               .from("tasks")
               .update(taskInput)
               .eq("user_id", userId)
@@ -623,8 +647,9 @@ export const taskService = {
 
       return data;
     } catch (e) {
-      if (e instanceof ValidationError) throw e;
-      if (e instanceof DatabaseError) throw e;
+      // AppError subclasses (ownership NotFound/Forbidden denials included)
+      // keep their status codes; only unknown failures re-wrap as 400.
+      if (e instanceof AppError) throw e;
       if (e instanceof z.ZodError) throw new ValidationError("Validation failed", e.issues);
       throw new ValidationError(e instanceof Error ? e.message : "Validation failed");
     }

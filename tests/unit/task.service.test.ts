@@ -322,6 +322,12 @@ describe('taskService', () => {
       from: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        column === "id" && Array.isArray(ids)
+          ? Promise.resolve({ data: ids.map((id) => ({ id })), error: null })
+          : Promise.resolve({ data: [], error: null }),
+      ),
       single: vi.fn().mockResolvedValue({ data: createdTask, error: null }),
     } as any;
     // A junction-table mock that serves both link lookups (.eq → no existing
