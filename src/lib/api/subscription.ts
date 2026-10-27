@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "../supabase/admin";
 import { AppError } from "./error-handler";
+import { invalidateTierCache as invalidateRateLimiterTierCache } from "./rate-limiter";
 
 /**
  * Subscription tier resolution for the API / MCP access tier wall.
@@ -106,6 +107,18 @@ export function clearTierCache(): void {
 /** Invalidate a single user's cached tier — use after any direct `subscriptions` mutation. */
 export function invalidateTierCache(userId: string): void {
   tierCache.delete(userId);
+}
+
+/**
+ * Single entitlement-invalidation seam: clears this module's subscription
+ * tier cache AND the rate limiter's independent tier cache. Call this (not
+ * invalidateTierCache) whenever an entitlement changes — e.g. from the
+ * billing webhook — so the new limits take effect immediately instead of
+ * after the rate limiter's 60 s cache TTL.
+ */
+export function invalidateEntitlementCaches(userId: string): void {
+  invalidateTierCache(userId);
+  invalidateRateLimiterTierCache(userId);
 }
 
 
