@@ -11,6 +11,7 @@ import {
 } from "@/lib/api/ai-access-service";
 import { listApiKeys, toPublicApiKeyRecord } from "@/lib/api/api-key-service";
 import { patchAiAccessSchema } from "@/lib/validators/ai-access.schema";
+import { assertNoScheduledAccountDeletion } from "@/lib/privacy/account-deletion";
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,6 +35,8 @@ export async function PATCH(request: NextRequest) {
   try {
     // Changing AI flags is dashboard-only — API keys cannot enable writes for themselves.
     const { userId } = await requireClerkSession(request);
+    // A scheduled deletion is a wind-down window: AI access must not be re-enabled.
+    await assertNoScheduledAccountDeletion(userId);
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
 
