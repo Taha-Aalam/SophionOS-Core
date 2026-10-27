@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { requireAuth } from "@/lib/api/api-auth";
+import { requireClerkSession } from "@/lib/api/api-auth";
 import { success, error } from "@/lib/api/api-response";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
@@ -10,7 +10,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authResult = await requireAuth(request);
+    const authResult = await requireClerkSession(request);
     const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
