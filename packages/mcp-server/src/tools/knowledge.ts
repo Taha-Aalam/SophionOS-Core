@@ -10,6 +10,7 @@ import * as z from "zod/v4";
 import type { SophionOSClient } from "../client.js";
 import {
   bulkIdsField,
+  entityIdField,
   jsonResult,
   requireDestructiveConfirm,
   runTool,
@@ -30,10 +31,10 @@ export function registerKnowledgeTools(
         "List the user's Notes. Filter by notebook, topic, project, area, status, type, favorite, or pinned. Use group_by=notebook|status|type to group. A note can belong to multiple notebooks.",
       inputSchema: {
         notebook: z.string().optional(),
-        topic_id: z.string().optional(),
-        project_id: z.string().optional(),
-        area_id: z.string().optional(),
-        goal_id: z.string().optional(),
+        topic_id: entityIdField.optional(),
+        project_id: entityIdField.optional(),
+        area_id: entityIdField.optional(),
+        goal_id: entityIdField.optional(),
         status: z.string().optional(),
         type: z.string().optional(),
         favorite: z.boolean().optional(),
@@ -52,7 +53,7 @@ export function registerKnowledgeTools(
     {
       title: "Get Note",
       description: "Get a single note with its full content. Accepts id or slug.",
-      inputSchema: { id: z.string() },
+      inputSchema: { id: entityIdField },
     },
     async ({ id }): Promise<ToolTextResult> =>
       runTool(async () => jsonResult(await client.notes.get(id))),
@@ -88,7 +89,7 @@ export function registerKnowledgeTools(
           .describe(
             "Topic id to link. Offer to link an existing topic by listing them via list_topics and asking the user.",
           ),
-        area_id: z.string().optional(),
+        area_id: entityIdField.optional(),
         area_ids: z
           .array(z.string())
           .optional()
@@ -101,7 +102,7 @@ export function registerKnowledgeTools(
           .describe(
             "Goal ids to link. Offer to link existing goals by listing them via list_goals and asking the user.",
           ),
-        project_id: z.string().optional(),
+        project_id: entityIdField.optional(),
         project_ids: z
           .array(z.string())
           .optional()
@@ -146,12 +147,12 @@ export function registerKnowledgeTools(
       description:
         "Update a note's name, content, type, status, topic, or favorite/pin flags.",
       inputSchema: {
-        id: z.string(),
+        id: entityIdField,
         name: z.string().min(1).max(255).optional(),
         content: z.string().optional(),
         type: z.string().optional(),
         status: z.string().optional(),
-        topic_id: z.string().nullable().optional(),
+        topic_id: entityIdField.nullable().optional(),
         favorite: z.boolean().optional(),
         pin: z.boolean().optional(),
       },
@@ -188,7 +189,7 @@ export function registerKnowledgeTools(
           .describe(
             "Topic id to link. Offer to link an existing topic by listing them via list_topics and asking the user.",
           ),
-        area_id: z.string().optional(),
+        area_id: entityIdField.optional(),
         area_ids: z
           .array(z.string())
           .optional()
@@ -201,7 +202,7 @@ export function registerKnowledgeTools(
           .describe(
             "Goal ids to link. Offer to link existing goals by listing them via list_goals and asking the user.",
           ),
-        project_id: z.string().optional(),
+        project_id: entityIdField.optional(),
         project_ids: z
           .array(z.string())
           .optional()
@@ -237,10 +238,10 @@ export function registerKnowledgeTools(
         status: z.string().optional(),
         type: z.string().optional(),
         favorite: z.boolean().optional(),
-        area_id: z.string().optional(),
-        topic_id: z.string().optional(),
-        project_id: z.string().optional(),
-        goal_id: z.string().optional(),
+        area_id: entityIdField.optional(),
+        topic_id: entityIdField.optional(),
+        project_id: entityIdField.optional(),
+        goal_id: entityIdField.optional(),
         group_by: z.string().optional(),
         page: z.number().int().min(1).optional(),
         pageSize: z.number().int().min(1).max(200).optional(),
@@ -439,7 +440,7 @@ export function registerKnowledgeTools(
       description:
         "Log an interaction with a contact. With a message it records a log entry and bumps last_interaction_at; without a message it just bumps the timestamp.",
       inputSchema: {
-        id: z.string().describe("Contact id."),
+        id: entityIdField.describe("Contact id."),
         message: z.string().min(1).max(2000).optional(),
       },
     },
@@ -454,8 +455,8 @@ export function registerKnowledgeTools(
       description:
         "Link a contact to a project, optionally with a role (e.g. 'Client', 'Reviewer').",
       inputSchema: {
-        id: z.string().describe("Contact id."),
-        project_id: z.string(),
+        id: entityIdField.describe("Contact id."),
+        project_id: entityIdField,
         role_in_project: z.string().optional(),
       },
     },
@@ -617,7 +618,7 @@ export function registerKnowledgeTools(
       title: "Get Contact Log History",
       description:
         "Get the interaction log history for a contact (most recent first).",
-      inputSchema: { contact_id: z.string() },
+      inputSchema: { contact_id: entityIdField },
     },
     async ({ contact_id }): Promise<ToolTextResult> =>
       runTool(async () => jsonResult(await client.contacts.logHistory(contact_id))),

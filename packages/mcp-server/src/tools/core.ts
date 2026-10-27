@@ -11,6 +11,7 @@ import * as z from "zod/v4";
 import type { SophionOSClient } from "../client.js";
 import {
   bulkIdsField,
+  entityIdField,
   jsonResult,
   runTool,
   type ToolTextResult,
@@ -91,7 +92,7 @@ export function registerCoreTools(
       title: "Archive Area",
       description:
         "Archive an area (user-initiated, moves it to long-term storage). Distinct from auto-inactive, which is computed from linked items.",
-      inputSchema: { id: z.string().describe("Area id or slug.") },
+      inputSchema: { id: entityIdField.describe("Area id or slug.") },
       annotations: { idempotentHint: true },
     },
     async ({ id }): Promise<ToolTextResult> =>
@@ -104,7 +105,7 @@ export function registerCoreTools(
       title: "Restore Area",
       description:
         "Restore an archived area. Its active/inactive state is then recomputed from its linked items.",
-      inputSchema: { id: z.string().describe("Area id or slug.") },
+      inputSchema: { id: entityIdField.describe("Area id or slug.") },
       annotations: { idempotentHint: true },
     },
     async ({ id }): Promise<ToolTextResult> =>
@@ -125,7 +126,7 @@ export function registerCoreTools(
           .optional()
           .describe("Goal time horizon."),
         status: z.string().optional(),
-        area_id: z.string().optional(),
+        area_id: entityIdField.optional(),
         priority: z.string().optional(),
         completed: z.boolean().optional(),
         archive: z.boolean().optional(),
@@ -144,7 +145,7 @@ export function registerCoreTools(
       title: "Get Goal Detail",
       description:
         "Get a single goal with its hydrated progress and rollup counts (its 'command center' view). Accepts a goal id or slug.",
-      inputSchema: { id: z.string().describe("Goal id or slug.") },
+      inputSchema: { id: entityIdField.describe("Goal id or slug.") },
     },
     async ({ id }): Promise<ToolTextResult> =>
       runTool(async () => jsonResult(await client.goals.get(id))),
@@ -210,7 +211,7 @@ export function registerCoreTools(
       description:
         "Update fields on an existing goal (name, description, priority, term, target_date, progress, completion/archive flags).",
       inputSchema: {
-        id: z.string(),
+        id: entityIdField,
         name: z.string().min(1).max(100).optional(),
         description: z.string().optional(),
         priority: z.string().optional(),
@@ -235,9 +236,9 @@ export function registerCoreTools(
         "List the user's Projects. Filter by status (including 'inbox'), area, goal, or linked contact. Use group_by to group by area or status. Returns a paginated list.",
       inputSchema: {
         status: z.string().optional(),
-        area_id: z.string().optional(),
-        goal_id: z.string().optional(),
-        contact_id: z.string().optional(),
+        area_id: entityIdField.optional(),
+        goal_id: entityIdField.optional(),
+        contact_id: entityIdField.optional(),
         archive: z.boolean().optional(),
         group_by: z.enum(["area", "status"]).optional(),
         page: z.number().int().min(1).optional(),
@@ -254,7 +255,7 @@ export function registerCoreTools(
       title: "Get Project",
       description:
         "Get a single project with its relations and progress (task count, linked areas/goals/contacts).",
-      inputSchema: { id: z.string().describe("Project id or slug.") },
+      inputSchema: { id: entityIdField.describe("Project id or slug.") },
     },
     async ({ id }): Promise<ToolTextResult> =>
       runTool(async () => jsonResult(await client.projects.get(id))),
@@ -324,7 +325,7 @@ export function registerCoreTools(
       description:
         "Update fields on an existing project (name, description, status, priority, dates, progress).",
       inputSchema: {
-        id: z.string(),
+        id: entityIdField,
         name: z.string().min(1).max(100).optional(),
         description: z.string().optional(),
         status: z.string().optional(),
@@ -349,10 +350,10 @@ export function registerCoreTools(
       inputSchema: {
         status: z.string().optional(),
         priority: z.string().optional(),
-        area_id: z.string().optional(),
-        project_id: z.string().optional(),
-        goal_id: z.string().optional(),
-        contact_id: z.string().optional(),
+        area_id: entityIdField.optional(),
+        project_id: entityIdField.optional(),
+        goal_id: entityIdField.optional(),
+        contact_id: entityIdField.optional(),
         focused: z.boolean().optional(),
         overdue: z.boolean().optional(),
         upcoming: z.boolean().optional(),
@@ -477,7 +478,7 @@ export function registerCoreTools(
       description:
         "Update fields on an existing task. Use this to toggle focus ({is_focused}), change status, priority, due date, or rename. To mark a task done, prefer complete_task.",
       inputSchema: {
-        id: z.string(),
+        id: entityIdField,
         name: z.string().min(1).max(255).optional(),
         description: z.string().optional(),
         status: z.string().optional(),

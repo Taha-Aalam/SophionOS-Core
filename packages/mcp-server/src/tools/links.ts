@@ -12,7 +12,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
 import type { SophionOSClient } from "../client.js";
-import { jsonResult, runTool, type ToolTextResult } from "../utils.js";
+import { entityIdField, jsonResult, runTool, type ToolTextResult } from "../utils.js";
 
 type AreaLinkable = {
   linkArea: (id: string, area_id: string) => Promise<unknown>;
@@ -76,7 +76,7 @@ export function registerLinkTools(
       description:
         "Add a note to a notebook (a note can belong to many notebooks). Notebooks are how notes are grouped — putting two notes in the same notebook is also how you 'relate' them.",
       inputSchema: {
-        note_id: z.string(),
+        note_id: entityIdField,
         notebook: z.string().min(1).describe("Notebook name."),
       },
     },
@@ -92,7 +92,7 @@ export function registerLinkTools(
       title: "Remove Note from Notebook",
       description: "Remove a note from one of its notebooks.",
       inputSchema: {
-        note_id: z.string(),
+        note_id: entityIdField,
         notebook: z.string().min(1).describe("Notebook name."),
       },
     },
@@ -109,7 +109,7 @@ export function registerLinkTools(
       description:
         "Replace the full set of notebooks a note belongs to. Pass the complete desired list; existing membership not in the list is removed.",
       inputSchema: {
-        note_id: z.string(),
+        note_id: entityIdField,
         notebooks: z.array(z.string()).describe("Complete notebook name list."),
       },
     },
@@ -125,7 +125,7 @@ export function registerLinkTools(
       title: "Get Related Notes",
       description:
         "Get notes related to a given note. Related-notes are derived from shared notebook membership (there is no explicit relation to set) — this is a read-only query.",
-      inputSchema: { note_id: z.string() },
+      inputSchema: { note_id: entityIdField },
     },
     async ({ note_id }): Promise<ToolTextResult> =>
       runTool(async () => jsonResult(await client.notes.related(note_id))),
@@ -141,8 +141,8 @@ export function registerLinkTools(
         "Link an existing task, goal, project, note, resource, or contact to an area. Entities can belong to multiple areas. Use this to add an area link after creation.",
       inputSchema: {
         entity: areaEntity.describe("The kind of entity being linked."),
-        id: z.string().describe("The entity's id."),
-        area_id: z.string(),
+        id: entityIdField.describe("The entity's id."),
+        area_id: entityIdField,
       },
     },
     async ({ entity, id, area_id }): Promise<ToolTextResult> =>
@@ -159,8 +159,8 @@ export function registerLinkTools(
         "Remove the link between an existing task, goal, project, note, resource, or contact and an area.",
       inputSchema: {
         entity: areaEntity.describe("The kind of entity being unlinked."),
-        id: z.string().describe("The entity's id."),
-        area_id: z.string(),
+        id: entityIdField.describe("The entity's id."),
+        area_id: entityIdField,
       },
     },
     async ({ entity, id, area_id }): Promise<ToolTextResult> =>
@@ -179,7 +179,7 @@ export function registerLinkTools(
         "Archive a goal, project, task, note, resource, topic, or contact (move it to long-term storage). For areas use archive_area instead.",
       inputSchema: {
         entity: archiveEntity.describe("The kind of entity to archive."),
-        id: z.string(),
+        id: entityIdField,
       },
       annotations: { idempotentHint: true },
     },
@@ -195,7 +195,7 @@ export function registerLinkTools(
         "Restore a previously archived goal, project, task, note, resource, topic, or contact. For areas use restore_area instead.",
       inputSchema: {
         entity: archiveEntity.describe("The kind of entity to restore."),
-        id: z.string(),
+        id: entityIdField,
       },
       annotations: { idempotentHint: true },
     },
@@ -212,8 +212,8 @@ export function registerLinkTools(
       description:
         "Link a contact to a task, optionally with a role (e.g. 'Owner', 'Reviewer').",
       inputSchema: {
-        contact_id: z.string(),
-        task_id: z.string(),
+        contact_id: entityIdField,
+        task_id: entityIdField,
         role_in_task: z.string().optional(),
       },
     },
@@ -234,12 +234,12 @@ export function registerLinkTools(
       description:
         "Update fields on an existing resource (name, url, type, status, topic, favorite).",
       inputSchema: {
-        id: z.string(),
+        id: entityIdField,
         name: z.string().min(1).max(255).optional(),
         url: z.string().optional(),
         type: z.string().optional(),
         status: z.string().optional(),
-        topic_id: z.string().nullable().optional(),
+        topic_id: entityIdField.nullable().optional(),
         favorite: z.boolean().optional(),
       },
     },
@@ -254,7 +254,7 @@ export function registerLinkTools(
       description:
         "Update fields on an existing topic (name, favorite, linked areas).",
       inputSchema: {
-        id: z.string(),
+        id: entityIdField,
         name: z.string().min(1).max(255).optional(),
         favorite: z.boolean().optional(),
         area_ids: z.array(z.string()).optional(),
@@ -271,7 +271,7 @@ export function registerLinkTools(
       description:
         "Update fields on an existing contact (name, role, organization, group, channels, follow-up interval, notes).",
       inputSchema: {
-        id: z.string(),
+        id: entityIdField,
         name: z.string().min(1).max(255).optional(),
         role: z.string().optional(),
         organization: z.string().optional(),
