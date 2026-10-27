@@ -207,6 +207,23 @@ export async function getAccountDeletionRequest(
   return (data as AccountDeletionRequest) ?? null;
 }
 
+/**
+ * Guard for privilege-granting writes: while an account deletion is
+ * scheduled, API keys must not be minted and AI access must not be
+ * re-enabled — the grace window is meant to wind the account down, not
+ * create new live credentials.
+ */
+export async function assertNoScheduledAccountDeletion(userId: string): Promise<void> {
+  const deletion = await getAccountDeletionRequest(userId);
+  if (deletion && deletion.status === "scheduled") {
+    throw new AppError(
+      "This account has a deletion scheduled. Cancel the deletion before managing credentials or AI access.",
+      403,
+      "ACCOUNT_DELETION_SCHEDULED",
+    );
+  }
+}
+
 /** Whether the grace period has elapsed for a scheduled deletion. */
 export function isAccountDeletionDue(
   scheduledFor: string,
