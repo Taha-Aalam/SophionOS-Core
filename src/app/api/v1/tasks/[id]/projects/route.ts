@@ -46,6 +46,9 @@ export async function POST(
     const { id } = await params;
     const body = await validateBody(request, linkSchema);
     const supabase = await createDataClient(authResult);
+    // Ownership pre-gate: the API-key path uses a service-role client that
+    // bypasses RLS, so bind the parent task to the caller before mutating.
+    await taskService.getById(userId, id, { supabase });
     const existing = await taskService.getProjectLinks(id, { supabase });
     const next = Array.from(new Set([...existing, body.project_id]));
     await taskService.replaceProjectLinks(userId, id, next, { supabase });
@@ -72,6 +75,9 @@ export async function DELETE(
     const { id } = await params;
     const body = await validateBody(request, linkSchema);
     const supabase = await createDataClient(authResult);
+    // Ownership pre-gate: the API-key path uses a service-role client that
+    // bypasses RLS, so bind the parent task to the caller before mutating.
+    await taskService.getById(userId, id, { supabase });
     const existing = await taskService.getProjectLinks(id, { supabase });
     const next = existing.filter((projectId) => projectId !== body.project_id);
     await taskService.replaceProjectLinks(userId, id, next, { supabase });
