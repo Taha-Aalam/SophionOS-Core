@@ -49,4 +49,4 @@ jobs:
           RLS_MATRIX_SUPABASE_URL: ${{ secrets.RLS_MATRIX_SUPABASE_URL }}
           RLS_MATRIX_ANON_KEY: ${{ secrets.RLS_MATRIX_ANON_KEY }}
           RLS_MATRIX_SERVICE_ROLE_KEY: ${{ secrets.RLS_MATRIX_SERVICE_ROLE_KEY }}
-        run: pnpm dlx tsx scripts/security/rls-matrix.ts
+        run: pnpm exec tsx scripts/security/rls-matrix.ts
