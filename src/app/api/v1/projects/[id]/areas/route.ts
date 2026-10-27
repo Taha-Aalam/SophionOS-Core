@@ -29,8 +29,10 @@ export async function GET(
 
     const { id } = await params;
     const supabase = await createDataClient(authResult);
+    // Ownership pre-gate, matching the notes/resources/goals/contacts families.
+    await projectService.getById(userId, id, { supabase });
     const relations = await projectService.getWithRelations(userId, id, {
-      supabase, userId,
+      supabase,
     });
     return success({ area_ids: relations.area_ids });
   } catch (err) {
