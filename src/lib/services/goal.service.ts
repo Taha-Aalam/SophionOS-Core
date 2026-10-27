@@ -632,6 +632,13 @@ export const goalService = {
     const validated = createGoalSchema.parse(input);
     const { areaIds, goalInput } = extractGoalAreaIds(validated);
 
+    // Ownership gate BEFORE the insert (mirrors task.service.create): the
+    // singular area_id value persists with the goals row, and the API-key
+    // path uses a service-role client that bypasses RLS.
+    if (areaIds?.length) {
+      await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
+    }
+
     const baseSlug = validated.slug ?? generateSlug(validated.name);
     const slug = await this.generateUniqueSlug(userId, baseSlug, options);
 
@@ -689,6 +696,12 @@ export const goalService = {
     const validated = updateGoalSchema.parse(input);
     const { areaIds, goalInput } = extractGoalAreaIds(validated);
     let nextInput = goalInput;
+
+    // Ownership gate BEFORE the update (see create): the singular area_id
+    // value persists with the goals row.
+    if (areaIds?.length) {
+      await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
+    }
 
     if (goalInput.is_completed === true && goalInput.progress === undefined) {
       nextInput = { ...goalInput, progress: 100 };
