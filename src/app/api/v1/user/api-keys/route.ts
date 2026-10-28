@@ -12,6 +12,7 @@ import { rateLimit } from "@/lib/api/rate-limiter";
 import { AppError } from "@/lib/api/error-handler";
 import { createApiKeySchema } from "@/lib/validators/ai-access.schema";
 import { recordAuditEvent } from "@/lib/api/ai-access-service";
+import { assertNoScheduledAccountDeletion } from "@/lib/privacy/account-deletion";
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,6 +33,8 @@ export async function POST(request: NextRequest) {
   try {
     // Minting keys is dashboard-only — API keys cannot create write_enabled peers.
     const { userId } = await requireClerkSession(request);
+    // A scheduled deletion is a wind-down window: no new live credentials.
+    await assertNoScheduledAccountDeletion(userId);
     // Minting an API key is a Pro capability — a free user can authenticate
     // (manages settings under a Clerk session) but cannot create keys.
     await requirePaidTier(userId);

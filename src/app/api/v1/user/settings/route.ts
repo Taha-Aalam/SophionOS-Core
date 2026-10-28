@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod/v4";
 import { userSettingsService } from "@/lib/services/user-settings.service";
-import { requireAuth } from "@/lib/api/api-auth";
+import { requireAuth, requireClerkSession } from "@/lib/api/api-auth";
 import { success, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const authResult = await requireAuth(request);
+    const authResult = await requireClerkSession(request);
     const { userId } = authResult;
     const rl = await rateLimit(request, userId);
     if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));

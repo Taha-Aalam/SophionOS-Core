@@ -72,6 +72,14 @@ function makeClient() {
     }),
     in: vi.fn((col: string, vals: unknown) => {
       calls.push({ method: "in", args: [col, vals] });
+      // assertOwnedIds pattern (.select("id").eq("user_id").in("id", ...)):
+      // requested ids resolve as owned so parent/linked-id asserts pass.
+      if (col === "id" && Array.isArray(vals)) {
+        return Promise.resolve({
+          data: (vals as string[]).map((id) => ({ id })),
+          error: null,
+        });
+      }
       return builder;
     }),
     ilike: vi.fn(() => builder),

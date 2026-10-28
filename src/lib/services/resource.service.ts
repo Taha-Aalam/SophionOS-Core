@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createClient } from "../supabase/client";
 import type { CreateResourceInput, Resource, UpdateResourceInput } from "../types/domain.types";
 import { createResourceSchema, updateResourceSchema } from "../validators/resource.schema";
-import { DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
+import { AppError, DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
 import { assertOwnedIds, mapJunctionWriteError } from "../api/ownership";
 import { LIST_SAFETY_CAP, RESOURCE_STATUS, type ResourceStatus } from "../utils/constants";
 import { deriveResourceStatus } from "../utils/status-routing";
@@ -512,6 +512,16 @@ export const resourceService = {
       });
       const status = preservesManual ? validated.status ?? derived : derived;
 
+      // Ownership gate BEFORE the insert (mirrors task.service.create): the
+      // singular area_id/topic_id values persist with the resources row,
+      // and topic_id previously had no gate at all.
+      if (areaIds?.length) {
+        await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
+      }
+      if (validated.topic_id) {
+        await assertOwnedIds(sb, "topics", userId, [validated.topic_id], "Topic");
+      }
+
       const { data, error } = await sb
         .from("resources")
         .insert({ ...resourceInput, status, user_id: userId })
@@ -540,8 +550,9 @@ export const resourceService = {
 
       return hydrateSingleResourceRelations(data, sb);
     } catch (e) {
-      if (e instanceof ValidationError) throw e;
-      if (e instanceof DatabaseError) throw e;
+      // AppError subclasses (ownership NotFound/Forbidden denials included)
+      // keep their status codes; only unknown failures re-wrap as 400.
+      if (e instanceof AppError) throw e;
       if (e instanceof z.ZodError) throw new ValidationError("Validation failed", e.issues);
       throw new ValidationError(e instanceof Error ? e.message : "Validation failed");
     }
@@ -611,6 +622,15 @@ export const resourceService = {
         }
       }
 
+      // Ownership gate BEFORE the update (see create): singular
+      // area_id/topic_id values persist with the resources row.
+      if (areaIds?.length) {
+        await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
+      }
+      if (validatedWide.topic_id) {
+        await assertOwnedIds(sb, "topics", userId, [validatedWide.topic_id as string], "Topic");
+      }
+
       const resource = hasResourceUpdates
         ? await (async () => {
             const { data, error } = await sb
@@ -666,8 +686,9 @@ export const resourceService = {
 
       return hydrateSingleResourceRelations(resource, sb);
     } catch (e) {
-      if (e instanceof ValidationError) throw e;
-      if (e instanceof DatabaseError) throw e;
+      // AppError subclasses (ownership NotFound/Forbidden denials included)
+      // keep their status codes; only unknown failures re-wrap as 400.
+      if (e instanceof AppError) throw e;
       if (e instanceof z.ZodError) throw new ValidationError("Validation failed", e.issues);
       throw new ValidationError(e instanceof Error ? e.message : "Validation failed");
     }

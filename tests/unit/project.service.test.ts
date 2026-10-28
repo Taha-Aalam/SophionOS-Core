@@ -18,7 +18,14 @@ function makeChainableClient(overrides: Record<string, unknown> = {}) {
     delete: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
-    in: vi.fn().mockReturnThis(),
+    // Ownership-aware default for assertOwnedIds: requested ids come back
+    // as owned. Tests override .in where they need specific data.
+    in: vi.fn((_col: string, vals: string[]) =>
+      Promise.resolve({
+        data: (vals ?? []).map((id) => ({ id })),
+        error: null,
+      }),
+    ),
     ilike: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
@@ -66,11 +73,16 @@ describe("projectService", () => {
     // 7th-10th calls: hydration (project_areas, goal_projects, progress, rollups)
 
     clients[1].single.mockResolvedValue({ data: createdProject, error: null });
-    // assertOwnedIds: both goals are owned by the caller
-    clients[2].in.mockResolvedValue({ data: [{ id: goalA }, { id: goalB }], error: null });
-    clients[3].eq.mockResolvedValue({ data: [], error: null });
-    clients[4].eq.mockResolvedValue({ data: [], error: null });
-    clients[5].maybeSingle.mockResolvedValue({ data: null, error: null });
+    // replaceGoalLinks client (c2): assertOwnedIds (parent project + goals)
+    // then the goal_projects insert. getWithRelations assert (c3) and its
+    // junction reads (c4/c5) come from the permissive factory defaults;
+    // the status refetch (c6) defaults to null.
+    clients[2].in.mockImplementation((_col: string, vals: string[]) =>
+      Promise.resolve({
+        data: (vals ?? []).map((id) => ({ id })),
+        error: null,
+      }),
+    );
 
     const result = await projectService.create(userId, {
       name: "Restore Projects",
@@ -114,14 +126,21 @@ describe("projectService", () => {
     // 6th-9th calls: hydration
 
     clients[0].single.mockResolvedValue({ data: updatedProject, error: null });
-    // assertOwnedIds: both requested goals are owned by the caller
-    clients[1].in.mockResolvedValue({ data: [{ id: goalB }, { id: goalC }], error: null });
-    clients[2].eq.mockResolvedValue({
+    // replaceGoalLinks client: assertOwnedIds (parent project + goals) then
+    // the goal_projects insert + delete. Ownership answers are permissive.
+    clients[1].in.mockImplementation((_col: string, vals: string[]) =>
+      Promise.resolve({
+        data: (vals ?? []).map((id) => ({ id })),
+        error: null,
+      }),
+    );
+    // getWithRelations: parent assert (c2), goal_projects (c3) and
+    // project_areas (c4)
+    clients[3].eq.mockResolvedValue({
       data: [{ goal_id: goalA }, { goal_id: goalB }],
       error: null,
     });
-    clients[3].eq.mockResolvedValue({ data: [], error: null });
-    clients[4].maybeSingle.mockResolvedValue({ data: null, error: null });
+    clients[4].eq.mockResolvedValue({ data: [], error: null });
 
     const result = await projectService.update(userId, projectId, {
       status: PROJECT_STATUS.ACTIVE,
@@ -459,14 +478,16 @@ describe("projectService", () => {
     });
 
     clients[1].single.mockResolvedValue({ data: createdProject, error: null });
-    // replaceAreaLinks client: assertOwnedIds sees both areas as owned, then
-    // the project_areas insert happens on the same client
-    clients[2].in.mockResolvedValue({ data: [{ id: areaA }, { id: areaB }], error: null });
-    // getWithRelations: goal_projects (clients[3]) and project_areas (clients[4])
-    clients[3].eq.mockResolvedValue({ data: [], error: null });
-    clients[4].eq.mockResolvedValue({ data: [], error: null });
-    // primary-area context fetch (clients[5]) + projects.area_id update (clients[6])
-    clients[5].maybeSingle.mockResolvedValue({ data: null, error: null });
+    // replaceAreaLinks client (c2): assertOwnedIds (parent project + areas)
+    // then the project_areas insert. getWithRelations assert (c3) and its
+    // junction reads (c4/c5) come from the permissive factory defaults;
+    // the status refetch (c6) defaults to null.
+    clients[2].in.mockImplementation((_col: string, vals: string[]) =>
+      Promise.resolve({
+        data: (vals ?? []).map((id) => ({ id })),
+        error: null,
+      }),
+    );
 
     const result = await projectService.create(userId, {
       name: "Multi Area Project",
@@ -509,19 +530,23 @@ describe("projectService", () => {
 
     // getById call (client[0]) — no project column changes, only links
     clients[0].single.mockResolvedValue({ data: updatedProject, error: null });
-    // replaceAreaLinks client (client[1]): assertOwnedIds sees areaB as owned,
-    // then the project_areas insert + delete run on the same client
-    clients[1].in.mockResolvedValue({ data: [{ id: areaB }], error: null });
-    // getWithRelations: goal_projects (clients[2]) and project_areas (clients[3])
-    clients[2].eq.mockResolvedValue({ data: [], error: null });
-    // Only areaA is linked today: the update adds areaB (insert) and removes
-    // areaA (delete), so the diff must not already contain areaB.
-    clients[3].eq.mockResolvedValue({
+    // replaceAreaLinks client (client[1]): assertOwnedIds (parent project +
+    // areas), then the project_areas insert + delete. Ownership answers are
+    // permissive.
+    clients[1].in.mockImplementation((_col: string, vals: string[]) =>
+      Promise.resolve({
+        data: (vals ?? []).map((id) => ({ id })),
+        error: null,
+      }),
+    );
+    // getWithRelations: parent assert (c2), goal_projects (c3) and
+    // project_areas (c4) — only areaA is linked today: the update adds
+    // areaB (insert) and removes areaA (delete)
+    clients[4].eq.mockResolvedValue({
       data: [{ area_id: areaA }],
       error: null,
     });
-    // primary-area context fetch (clients[4]) + projects.area_id update (clients[5])
-    clients[4].maybeSingle.mockResolvedValue({ data: null, error: null });
+    // primary-area context fetch (c5) → null; projects.area_id update (c6)
 
     const result = await projectService.update(userId, projectId, {
       area_ids: [areaB],
@@ -537,7 +562,7 @@ describe("projectService", () => {
       [{ area_id: areaB, project_id: projectId }],
     ]);
     expect(inCalls).toContainEqual(["area_id", [areaA]]);
-    expect(clients[5].update).toHaveBeenCalledWith({ area_id: areaB });
+    expect(clients[6].update).toHaveBeenCalledWith({ area_id: areaB });
   });
 
   it("hydrates linked areas from project_areas table", async () => {
@@ -653,6 +678,8 @@ describe("projectService", () => {
     });
 
     let callIndex = 0;
+    // parent-project ownership assert consumes the first client
+    vi.mocked(createClient).mockImplementationOnce(() => makeChainableClient());
     vi.mocked(createClient).mockImplementation(() => {
       return [goalClient, areaClient][callIndex++] as never;
     });
@@ -666,21 +693,19 @@ describe("projectService", () => {
   });
 
   it("linkToArea recomputes the primary area when linking the first area to an unassigned project", async () => {
-    const clients = Array.from({ length: 11 }, () => makeChainableClient());
+    const clients = Array.from({ length: 12 }, () => makeChainableClient());
 
-    // linkToArea: getWithRelations (clients[0] goal_projects, clients[1] project_areas)
-    clients[0].eq.mockResolvedValue({ data: [], error: null });
-    clients[1].eq.mockResolvedValue({ data: [], error: null });
-    // replaceAreaLinks client (clients[2]): assertOwnedIds then the
-    // project_areas insert
-    clients[2].in.mockResolvedValue({
-      data: [{ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }],
-      error: null,
-    });
-    // getWithRelations inside replaceAreaLinks: clients[3]/[4] (defaults)
-    // primary-area context fetch (clients[5]) → null
-    clients[5].maybeSingle.mockResolvedValue({ data: null, error: null });
-    // projects.area_id update runs on clients[6] (default chain resolves)
+    // linkToArea: parent assertOwnedIds (c0), getWithRelations parent assert
+    // (c1), getWithRelations junctions (c2 goal_projects, c3 project_areas)
+    clients[0].in.mockResolvedValue({ data: [{ id: projectId }], error: null });
+    clients[2].eq.mockResolvedValue({ data: [], error: null });
+    clients[3].eq.mockResolvedValue({ data: [], error: null });
+    // replaceAreaLinks sb (c4): assertOwnedIds (parent project + areas) then
+    // the project_areas insert. Ownership answers are permissive (factory).
+    // getWithRelations inside replaceAreaLinks: c5 assert, c6/c7 junctions
+    // primary-area context fetch (c8) → null
+    clients[8].maybeSingle.mockResolvedValue({ data: null, error: null });
+    // projects.area_id update runs on c9 (default chain resolves)
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
@@ -691,37 +716,40 @@ describe("projectService", () => {
 
     await projectService.linkToArea(userId, projectId, areaId);
 
-    expect(clients[2].insert).toHaveBeenCalledWith([
+    expect(clients[4].insert).toHaveBeenCalledWith([
       { area_id: areaId, project_id: projectId },
     ]);
-    expect(clients[6].update).toHaveBeenCalledWith({ area_id: areaId });
+    expect(clients[9].update).toHaveBeenCalledWith({ area_id: areaId });
   });
 
   it("unlinkFromArea recomputes the primary area from the remaining linked areas", async () => {
-    const clients = Array.from({ length: 11 }, () => makeChainableClient());
+    const clients = Array.from({ length: 12 }, () => makeChainableClient());
 
     const areaA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
     const areaB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
-    // unlinkFromArea: getWithRelations (clients[0] goal_projects, clients[1] project_areas)
-    clients[0].eq.mockResolvedValue({ data: [], error: null });
-    clients[1].eq.mockResolvedValue({
+    // unlinkFromArea: parent assertOwnedIds (c0), getWithRelations parent
+    // assert (c1), getWithRelations junctions (c2 goal_projects,
+    // c3 project_areas)
+    clients[0].in.mockResolvedValue({ data: [{ id: projectId }], error: null });
+    clients[2].eq.mockResolvedValue({ data: [], error: null });
+    clients[3].eq.mockResolvedValue({
       data: [{ area_id: areaA }, { area_id: areaB }],
       error: null,
     });
-    // replaceAreaLinks client (clients[2]): assertOwnedIds sees the remaining
-    // areaB as owned, then the project_areas delete runs on the same client
-    clients[2].in.mockResolvedValue({ data: [{ id: areaB }], error: null });
-    // getWithRelations inside replaceAreaLinks: clients[3] (goal_projects),
-    // clients[4] (project_areas)
-    clients[3].eq.mockResolvedValue({ data: [], error: null });
-    clients[4].eq.mockResolvedValue({
+    // replaceAreaLinks sb (c4): assertOwnedIds (parent project + areas),
+    // then the project_areas delete. Ownership answers are permissive.
+    // getWithRelations inside replaceAreaLinks: c5 assert, c6 goal_projects,
+    // c7 project_areas (same two links, so the diff removes only areaA)
+    clients[6].eq.mockResolvedValue({ data: [], error: null });
+    clients[7].eq.mockResolvedValue({
       data: [{ area_id: areaA }, { area_id: areaB }],
       error: null,
     });
-    // primary-area context fetch (clients[5]) → null
-    clients[5].maybeSingle.mockResolvedValue({ data: null, error: null });
-    // projects.area_id update runs on clients[6] (default chain resolves)
+    // junction delete reuses the replaceAreaLinks sb (c4)
+    // primary-area context fetch (c8) → null
+    clients[8].maybeSingle.mockResolvedValue({ data: null, error: null });
+    // projects.area_id update runs on c9 (default chain resolves)
 
     let callIndex = 0;
     vi.mocked(createClient).mockImplementation(() => {
@@ -730,8 +758,8 @@ describe("projectService", () => {
 
     await projectService.unlinkFromArea(userId, projectId, areaA);
 
-    expect(clients[2].in).toHaveBeenCalledWith("area_id", [areaA]);
-    expect(clients[6].update).toHaveBeenCalledWith({ area_id: areaB });
+    expect(clients[4].in).toHaveBeenCalledWith("area_id", [areaA]);
+    expect(clients[9].update).toHaveBeenCalledWith({ area_id: areaB });
   });
 
   it("hydrates progress and goalCount/taskCount/noteCount/resourceCount on getById so the project detail header matches project cards everywhere", async () => {

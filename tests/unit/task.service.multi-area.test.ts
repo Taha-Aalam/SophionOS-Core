@@ -66,16 +66,41 @@ function makeOwnershipAndInsertClient(): any {
   };
 }
 
-/** getAreaLinks / getGoalLinks terminal .eq()/.in() lookup. */
+/** getAreaLinks / getGoalLinks terminal .eq()/.in() lookup. The .eq()
+ *  terminal is both awaitable (junction read) and chainable (the
+ *  assertOwnedIds chain ends on .in). */
 function makeLinkLookupClient(rows: unknown[] = []): any {
-  return {
+  const client: any = {
     from: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockResolvedValue({ data: rows, error: null }),
-    in: vi.fn((_column: string, _ids: unknown[]) =>
-      Promise.resolve({ data: rows, error: null }),
-    ),
+    in: vi.fn((column: string, ids: unknown[]) => {
+      if (column === "id" && Array.isArray(ids)) {
+        return Promise.resolve({
+          data: (ids as string[]).map((id) => ({ id })),
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: rows, error: null });
+    }),
   };
+  client.eq = vi.fn(() => {
+    const terminal: any = {};
+    terminal.in = vi.fn((column: string, ids: unknown[]) => {
+      if (column === "id" && Array.isArray(ids)) {
+        return Promise.resolve({
+          data: (ids as string[]).map((id) => ({ id })),
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: rows, error: null });
+    });
+    terminal.then = (
+      resolve: (v: { data: unknown[]; error: null }) => unknown,
+      reject?: (e: unknown) => unknown,
+    ) => Promise.resolve({ data: rows, error: null }).then(resolve, reject);
+    return terminal;
+  });
+  return client;
 }
 
 const userId = "user-123";
@@ -121,6 +146,12 @@ describe("taskService – multi-area create", () => {
       from: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        column === "id" && Array.isArray(ids)
+          ? Promise.resolve({ data: ids.map((id) => ({ id })), error: null })
+          : Promise.resolve({ data: [], error: null }),
+      ),
       single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
     } as any;
 
@@ -159,6 +190,12 @@ describe("taskService – multi-area create", () => {
       from: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        column === "id" && Array.isArray(ids)
+          ? Promise.resolve({ data: ids.map((id) => ({ id })), error: null })
+          : Promise.resolve({ data: [], error: null }),
+      ),
       single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
     } as any;
 
@@ -189,6 +226,12 @@ describe("taskService – multi-area create", () => {
       from: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        column === "id" && Array.isArray(ids)
+          ? Promise.resolve({ data: ids.map((id) => ({ id })), error: null })
+          : Promise.resolve({ data: [], error: null }),
+      ),
       single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
     } as any;
 
@@ -220,13 +263,20 @@ describe("taskService – multi-area update", () => {
       from: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        column === "id" && Array.isArray(ids)
+          ? Promise.resolve({ data: ids.map((id) => ({ id })), error: null })
+          : Promise.resolve({ data: [], error: null }),
+      ),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
     } as any;
 
     // replaceAreaLinks sb: ownership + insert of new links
     const areaSb = makeOwnershipAndInsertClient();
-    // getAreaLinks — existing link areaA
+    // getAreaLinks: parent assert + junction read (existing link areaA) on
+    // one client — the terminal .eq is chainable for the assert and
+    // awaitable for the read
     const areaLinksClient = makeLinkLookupClient([{ area_id: areaA }]);
     const areaDeleteClient = {
       from: vi.fn().mockReturnThis(),
@@ -341,6 +391,7 @@ describe("taskService – getWithRelations includes area_ids and project_ids", (
     } as any;
 
     vi.mocked(createClient)
+      .mockImplementationOnce(() => makeOwnershipAndInsertClient()) // parent-task ownership assert
       .mockImplementationOnce(() => goalResultClient)
       .mockImplementationOnce(() => areaResultClient)
       .mockImplementationOnce(() => projectResultClient);
@@ -375,6 +426,7 @@ describe("taskService – getWithRelations includes area_ids and project_ids", (
     } as any;
 
     vi.mocked(createClient)
+      .mockImplementationOnce(() => makeOwnershipAndInsertClient()) // parent-task ownership assert
       .mockImplementationOnce(() => goalResultClient)
       .mockImplementationOnce(() => areaResultClient)
       .mockImplementationOnce(() => projectResultClient);
@@ -408,6 +460,7 @@ describe("taskService – getWithRelations includes area_ids and project_ids", (
     } as any;
 
     vi.mocked(createClient)
+      .mockImplementationOnce(() => makeOwnershipAndInsertClient()) // parent-task ownership assert
       .mockImplementationOnce(() => goalResultClient)
       .mockImplementationOnce(() => areaResultClient)
       .mockImplementationOnce(() => projectResultClient);
@@ -425,6 +478,12 @@ describe("taskService – getWithRelations includes area_ids and project_ids", (
       from: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        column === "id" && Array.isArray(ids)
+          ? Promise.resolve({ data: ids.map((id) => ({ id })), error: null })
+          : Promise.resolve({ data: [], error: null }),
+      ),
       single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
     } as any;
 
@@ -454,6 +513,12 @@ describe("taskService – getWithRelations includes area_ids and project_ids", (
       from: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn((column: string, ids: string[]) =>
+        column === "id" && Array.isArray(ids)
+          ? Promise.resolve({ data: ids.map((id) => ({ id })), error: null })
+          : Promise.resolve({ data: [], error: null }),
+      ),
       single: vi.fn().mockResolvedValue({ data: taskRow, error: null }),
     } as any;
 
