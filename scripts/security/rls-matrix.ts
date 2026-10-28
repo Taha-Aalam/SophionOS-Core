@@ -18,7 +18,7 @@
  * do not fail the run; a SKIP means the table could not be seeded with a
  * synthetic row and therefore was not exercised).
  *
- * Usage: pnpm dlx tsx scripts/security/rls-matrix.ts
+ * Usage: pnpm exec tsx scripts/security/rls-matrix.ts
  */
 import { randomUUID } from "node:crypto";
 
