@@ -1,0 +1,61 @@
+name: Release on merge
+
+# Cuts a GitHub release when a PR labeled `release: vX.Y.Z` is merged into
+# master. The label name carries the version; the tag is created at the
+# merge commit and the release is published (not draft), so it becomes the
+# repo's "Latest" release immediately. Pushes without a labeled PR (direct
+# pushes, or merges of unlabeled PRs) are no-ops.
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+
+jobs:
+  release:
+    name: Cut release from merge label
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Resolve release version from the merged PR
+        id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls")"
+          version="$(jq -r '[.[].labels[]?.name
+                       | select(test("^release:\\s*v[0-9]+\\.[0-9]+\\.[0-9]+([+-][0-9A-Za-z.-]+)?$"))
+                       | sub("^release:\\s*"; "")][0] // empty' <<<"$pr_json")"
+          if [ -z "$version" ]; then
+            echo "No 'release: vX.Y.Z' label on the PR merged at ${GITHUB_SHA} — nothing to release."
+            exit 0
+          fi
+          pr_number="$(jq -r 'map(select(any(.labels[]?.name; startswith("release:"))))[0].number // empty' <<<"$pr_json")"
+          pr_title="$(jq -r 'map(select(any(.labels[]?.name; startswith("release:"))))[0].title // empty' <<<"$pr_json")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+          echo "pr_title=$pr_title" >> "$GITHUB_OUTPUT"
+
+      - name: Publish release
+        if: steps.meta.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          PR_TITLE: ${{ steps.meta.outputs.pr_title }}
+        run: |
+          set -euo pipefail
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION already exists — skipping."
+            exit 0
+          fi
+          gh release create "$VERSION" --target "$GITHUB_SHA" \
+            --title "Core $VERSION — $PR_TITLE" \
+            --generate-notes
