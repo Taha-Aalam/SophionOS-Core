@@ -30,7 +30,7 @@ verified before the script exits.
 **Run it.**
 
 ```bash
-pnpm dlx tsx scripts/security/rls-matrix.ts
+pnpm exec tsx scripts/security/rls-matrix.ts
 ```
 
 Exit codes: `0` all exercised cases passed; `1` at least one isolation
