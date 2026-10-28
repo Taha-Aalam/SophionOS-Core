@@ -9,7 +9,7 @@ import type {
   UpdateNoteInput,
 } from "../types/domain.types";
 import { createNoteSchema, updateNoteSchema } from "../validators/note.schema";
-import { DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
+import { AppError, DatabaseError, NotFoundError, ValidationError, mapDatabaseError } from "../api/error-handler";
 import { assertOwnedIds, mapJunctionWriteError } from "../api/ownership";
 import { LIST_SAFETY_CAP, NOTE_STATUS, type NoteStatus } from "../utils/constants";
 import { deriveNoteStatus } from "../utils/status-routing";
@@ -377,6 +377,28 @@ export const noteService = {
       });
       const status = preservesManual ? validated.status ?? derived : derived;
 
+      // Ownership gate BEFORE the insert (mirrors task.service.create): the
+      // singular area_id/project_id/topic_id values persist with the notes
+      // row, the API-key path uses a service-role client that bypasses RLS,
+      // and topic_id previously had no gate at all.
+      const sb = options?.supabase ?? createClient();
+      const noteAreaIds = areaIds ?? (validated.area_id ? [validated.area_id] : undefined);
+      const noteProjectIds =
+        projectIds && projectIds.length > 0
+          ? projectIds
+          : validated.project_id
+            ? [validated.project_id]
+            : undefined;
+      if (noteAreaIds?.length) {
+        await assertOwnedIds(sb, "areas", userId, noteAreaIds, "Area");
+      }
+      if (noteProjectIds?.length) {
+        await assertOwnedIds(sb, "projects", userId, noteProjectIds, "Project");
+      }
+      if (validated.topic_id) {
+        await assertOwnedIds(sb, "topics", userId, [validated.topic_id], "Topic");
+      }
+
       if (validated.type) {
         await upsertNoteType(userId, validated.type, options);
       }
@@ -387,7 +409,7 @@ export const noteService = {
       let data: Note | null = null;
 
       while (!data) {
-        const { data: insertData, error } = await (options?.supabase ?? createClient())
+        const { data: insertData, error } = await sb
           .from("notes")
           .insert({ ...taskCleanedInput, status, user_id: userId, slug })
           .select(NOTE_SELECT)
@@ -429,8 +451,9 @@ export const noteService = {
 
       return hydrateSingleNoteRelations(data, options);
     } catch (e) {
-      if (e instanceof ValidationError) throw e;
-      if (e instanceof DatabaseError) throw e;
+      // AppError subclasses (ownership NotFound/Forbidden denials included)
+      // keep their status codes; only unknown failures re-wrap as 400.
+      if (e instanceof AppError) throw e;
       if (e instanceof z.ZodError) throw new ValidationError("Validation failed", e.issues);
       throw new ValidationError(e instanceof Error ? e.message : "Validation failed");
     }
@@ -485,13 +508,38 @@ export const noteService = {
         }
       }
 
+      // Ownership gate BEFORE the update (see create): singular
+      // area_id/project_id/topic_id values persist with the notes row.
+      const sb = options?.supabase ?? createClient();
+      const updateAreaIds =
+        areaIds && areaIds.length > 0
+          ? areaIds
+          : validatedWide.area_id
+            ? [validatedWide.area_id as string]
+            : undefined;
+      const updateProjectIds =
+        projectIds && projectIds.length > 0
+          ? projectIds
+          : validatedWide.project_id
+            ? [validatedWide.project_id as string]
+            : undefined;
+      if (updateAreaIds?.length) {
+        await assertOwnedIds(sb, "areas", userId, updateAreaIds, "Area");
+      }
+      if (updateProjectIds?.length) {
+        await assertOwnedIds(sb, "projects", userId, updateProjectIds, "Project");
+      }
+      if (validatedWide.topic_id) {
+        await assertOwnedIds(sb, "topics", userId, [validatedWide.topic_id as string], "Topic");
+      }
+
       if (validated.type) {
         await upsertNoteType(userId, validated.type, options);
       }
 
       const note = hasNoteUpdates
         ? await (async () => {
-            const { data, error } = await (options?.supabase ?? createClient())
+            const { data, error } = await sb
               .from("notes")
               .update(validated)
               .eq("user_id", userId)
@@ -548,8 +596,9 @@ export const noteService = {
 
       return hydrateSingleNoteRelations(note, options);
     } catch (e) {
-      if (e instanceof ValidationError) throw e;
-      if (e instanceof DatabaseError) throw e;
+      // AppError subclasses (ownership NotFound/Forbidden denials included)
+      // keep their status codes; only unknown failures re-wrap as 400.
+      if (e instanceof AppError) throw e;
       if (e instanceof z.ZodError) throw new ValidationError("Validation failed", e.issues);
       throw new ValidationError(e instanceof Error ? e.message : "Validation failed");
     }

@@ -895,6 +895,9 @@ export const projectService = {
     area_ids: string[];
     goals: { id: string; name: string }[];
   }> {
+    // Tenant-safety: the API-key path uses a service-role client that
+    // bypasses RLS, so the parent project must be bound to the caller.
+    await assertOwnedIds(options?.supabase ?? createClient(), "projects", userId, [id], "Project");
     const [goalResult, areaResult] = await Promise.all([
       (options?.supabase ?? createClient()).from("goal_projects").select("goal_id, goals(id, name)").eq("project_id", id),
       (options?.supabase ?? createClient()).from("project_areas").select("area_id").eq("project_id", id),
@@ -925,6 +928,10 @@ export const projectService = {
 
   async replaceAreaLinks(userId: string, projectId: string, areaIds: string[], options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    // Parent-side ownership: the API-key path uses a service-role client
+    // that bypasses RLS, so the project id must be verified like the link
+    // targets (mirrors unlinkFromGoal).
+    await assertOwnedIds(sb, "projects", userId, [projectId], "Project");
     if (areaIds.length > 0) {
       await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
     }
@@ -1009,6 +1016,8 @@ export const projectService = {
   },
 
   async linkToArea(userId: string, projectId: string, areaId: string, options?: ServiceOptions): Promise<void> {
+    // Parent-side ownership (see replaceAreaLinks).
+    await assertOwnedIds(options?.supabase ?? createClient(), "projects", userId, [projectId], "Project");
     const existingRelations = await this.getWithRelations(userId, projectId, options);
     if (existingRelations.area_ids.includes(areaId)) {
       return;
@@ -1018,6 +1027,8 @@ export const projectService = {
   },
 
   async unlinkFromArea(userId: string, projectId: string, areaId: string, options?: ServiceOptions): Promise<void> {
+    // Parent-side ownership (see replaceAreaLinks).
+    await assertOwnedIds(options?.supabase ?? createClient(), "projects", userId, [projectId], "Project");
     const existingRelations = await this.getWithRelations(userId, projectId, options);
     const nextAreaIds = existingRelations.area_ids.filter((linkedAreaId) => linkedAreaId !== areaId);
     await this.replaceAreaLinks(userId, projectId, nextAreaIds, options);
@@ -1025,6 +1036,8 @@ export const projectService = {
 
   async replaceGoalLinks(userId: string, projectId: string, goalIds: string[], options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    // Parent-side ownership (see replaceAreaLinks).
+    await assertOwnedIds(sb, "projects", userId, [projectId], "Project");
     if (goalIds.length > 0) {
       await assertOwnedIds(sb, "goals", userId, goalIds, "Goal");
     }
@@ -1101,6 +1114,9 @@ export const projectService = {
 
   async linkToGoal(userId: string, projectId: string, goalId: string, options?: ServiceOptions): Promise<void> {
     const sb = options?.supabase ?? createClient();
+    // Parent-side ownership (see replaceAreaLinks); unlinkFromGoal already
+    // asserts the project.
+    await assertOwnedIds(sb, "projects", userId, [projectId], "Project");
     await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
     const { error } = await sb
       .from("goal_projects")

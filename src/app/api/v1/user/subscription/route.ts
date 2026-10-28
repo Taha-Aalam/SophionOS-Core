@@ -10,6 +10,7 @@ import {
 import { isCohortMember } from "@/lib/api/cohort-membership";
 import { resolveUserEmail } from "@/lib/notifications/resolve-email";
 import { success, error } from "@/lib/api/api-response";
+import { rateLimit } from "@/lib/api/rate-limiter";
 import { AppError } from "@/lib/api/error-handler";
 
 /**
@@ -23,6 +24,10 @@ import { AppError } from "@/lib/api/error-handler";
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await requireAuth(request);
+    // Same per-user limiter every sibling /user route applies, ahead of the
+    // tier/entity-count/cohort/Clerk fan-out.
+    const rl = await rateLimit(request, userId);
+    if (!rl.success) return error(new AppError("Too many requests", 429, "RATE_LIMITED"));
     const [tier, isPaid, entityCount, entityCounts, email] = await Promise.all([
       getTier(userId),
       isPaidTier(userId),

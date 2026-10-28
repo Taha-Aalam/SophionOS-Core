@@ -22,7 +22,9 @@ export async function GET(
 
     const { id } = await params;
     const supabase = await createDataClient(authResult);
-    const areaIds = await taskService.getAreaLinks(id, { supabase });
+    // Ownership pre-gate, matching the notes/resources/goals/contacts families.
+    await taskService.getById(userId, id, { supabase });
+    const areaIds = await taskService.getAreaLinks(userId, id, { supabase });
     return success({ task_id: id, area_ids: areaIds });
   } catch (err) {
     return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
@@ -46,7 +48,10 @@ export async function POST(
     const { id } = await params;
     const body = await validateBody(request, linkSchema);
     const supabase = await createDataClient(authResult);
-    const existing = await taskService.getAreaLinks(id, { supabase });
+    // Ownership pre-gate: the API-key path uses a service-role client that
+    // bypasses RLS, so bind the parent task to the caller before mutating.
+    await taskService.getById(userId, id, { supabase });
+    const existing = await taskService.getAreaLinks(userId, id, { supabase });
     const next = Array.from(new Set([...existing, body.area_id]));
     await taskService.replaceAreaLinks(userId, id, next, { supabase });
     return success({ task_id: id, area_ids: next });
@@ -72,7 +77,10 @@ export async function DELETE(
     const { id } = await params;
     const body = await validateBody(request, linkSchema);
     const supabase = await createDataClient(authResult);
-    const existing = await taskService.getAreaLinks(id, { supabase });
+    // Ownership pre-gate: the API-key path uses a service-role client that
+    // bypasses RLS, so bind the parent task to the caller before mutating.
+    await taskService.getById(userId, id, { supabase });
+    const existing = await taskService.getAreaLinks(userId, id, { supabase });
     const next = existing.filter((areaId) => areaId !== body.area_id);
     await taskService.replaceAreaLinks(userId, id, next, { supabase });
     return success({ task_id: id, area_ids: next });

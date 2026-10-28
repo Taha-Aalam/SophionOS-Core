@@ -21,7 +21,12 @@ export async function GET(request: NextRequest) {
     }
 
     // If grace elapsed, purge product data for this user before summarizing.
-    const dueProcess = await processDueAccountDeletion(userId);
+    // The purge is an irreversible, session-only authority (finalize/cancel
+    // are Clerk-session-only), so an API-key request must never advance it.
+    const dueProcess =
+      authResult.type === "clerk"
+        ? await processDueAccountDeletion(userId)
+        : { processed: false };
 
     const supabase = await createDataClient(authResult);
     const summary = await buildPrivacySummary(userId, supabase);

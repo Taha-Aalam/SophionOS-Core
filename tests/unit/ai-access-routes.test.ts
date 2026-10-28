@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { NotFoundError } from "@/lib/api/error-handler";
 
+vi.mock("@/lib/privacy/account-deletion", () => ({
+  assertNoScheduledAccountDeletion: vi.fn(async () => {}),
+}));
+
 vi.mock("@/lib/api/api-auth", () => {
   const authFn = vi.fn();
   return {

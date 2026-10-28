@@ -30,6 +30,10 @@ vi.mock("@/lib/api/ai-access-service", () => ({
   recordAuditEvent: vi.fn(async () => {}),
 }));
 
+vi.mock("@/lib/privacy/account-deletion", () => ({
+  assertNoScheduledAccountDeletion: vi.fn(async () => {}),
+}));
+
 vi.mock("@/lib/api/api-auth", () => {
   const authFn = vi.fn();
   return {
