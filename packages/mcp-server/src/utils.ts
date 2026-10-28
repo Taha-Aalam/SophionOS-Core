@@ -8,6 +8,22 @@ import * as z from "zod/v4";
 /** Align with API MAX_BULK_IDS — hard cap on destructive/bulk mutations. */
 export const MAX_BULK_IDS = 100;
 
+/**
+ * Entity id or slug as a single URL path segment. Tool-controlled ids are
+ * interpolated into REST paths by client.ts; without this constraint an id
+ * like "../user/settings" redirects the request to a different route under
+ * the user's API key (new URL() resolves dot segments before fetch). Must
+ * start alphanumeric so "." and ".." are rejected outright.
+ */
+export const entityIdField = z
+  .string()
+  .min(1)
+  .max(200)
+  .regex(
+    /^[A-Za-z0-9][A-Za-z0-9._-]*$/,
+    "id must be a single path segment (uuid or slug)",
+  );
+
 /** UUID bulk id list with max bound (for tools that accept ids). */
 export const bulkIdsField = z
   .array(z.string().min(1))
