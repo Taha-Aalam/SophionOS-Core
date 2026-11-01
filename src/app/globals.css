@@ -519,24 +519,19 @@
   }
 }
 
-/* Hover-lift must live OUTSIDE @layer utilities so it overrides Tailwind's
+/* Quiet hover affordance for clickable cards: a hairline border step and a
+   soft neutral shadow — no transform, so the card never moves under the
+   pointer. Lives OUTSIDE @layer utilities so it overrides Tailwind's
    generated transition-* utilities (which are also @layer utilities and
    win by source-order when both are in the same layer). */
 .hover-lift {
-  overflow: visible;
-  transition-property: transform, box-shadow;
-  transition-duration: 500ms;
+  transition-property: box-shadow, border-color;
+  transition-duration: 150ms;
   transition-timing-function: var(--ease-out-quint);
-  will-change: transform;
 
   &:hover {
-    transform: translateY(-0.25rem);
-    box-shadow: var(--shadow-soft-lg), 0 0 0 2px oklch(0.3 0.15 260 / 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-    transition-duration: 150ms;
+    border-color: color-mix(in oklch, var(--border) 100%, var(--foreground) 14%);
+    box-shadow: var(--shadow-soft);
   }
 }
 

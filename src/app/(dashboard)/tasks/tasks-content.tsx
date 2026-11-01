@@ -15,6 +15,7 @@ import {
   Target,
   Zap,
 } from "lucide-react";
+import { CircleCheckIcon } from "@/components/icons";
 import React, { useCallback, useMemo, useState } from "react";
 
 import { TaskDialog } from "@/components/entities/task-dialog";
@@ -412,9 +413,9 @@ export function TasksContent() {
     <div className="content-fade-in reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between border-b border-border/50">
         <div className="flex items-center gap-3">
-          <span className="text-2xl leading-none" aria-hidden="true">☑️</span>
+          <CircleCheckIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
             <p className="text-sm text-muted-foreground" suppressHydrationWarning>
               {counts.all} task{counts.all !== 1 ? "s" : ""} ·{" "}
               {counts.overdue > 0 ? `${counts.overdue} overdue` : "all on track"}
@@ -568,7 +569,7 @@ export function TasksContent() {
                   tab === TASK_VIEW.ALL
                     ? "Create your first task to get started."
                     : tab === TASK_VIEW.OVERDUE
-                      ? "Great job - you're all caught up!"
+                      ? "You're all caught up"
                       : tab === TASK_VIEW.FOCUS
                         ? "Star a task to add it to your focus list."
                         : tab === TASK_VIEW.SMART_PRIORITY

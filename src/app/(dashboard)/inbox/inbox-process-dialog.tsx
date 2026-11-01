@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ENTITY_ICONS } from "@/lib/constants/entity-icons";
 import { useUpdateProject } from "@/lib/hooks/use-projects";
 import { useValidIds } from "@/lib/hooks/use-valid-ids";
 import type { Note, Project, Resource, Task } from "@/lib/types/domain.types";
@@ -28,11 +29,11 @@ import { TaskProcessForm } from "@/components/entities/inbox-task-process-form";
 import { NoteInboxProcessForm } from "@/components/entities/note-inbox-process-form";
 import { ResourceInboxProcessForm } from "@/components/entities/resource-inbox-process-form";
 
-// Entity-type icons — match the emoji rollups used on project-card / area-card.
-export const PROJECT_ICON = "📁";
-export const TASK_ICON = "☑️";
-export const NOTE_ICON = "📝";
-export const RESOURCE_ICON = "🔗";
+// Entity-type icons — canonical lucide glyphs from the shared entity-icon map.
+export const PROJECT_ICON = ENTITY_ICONS.project;
+export const TASK_ICON = ENTITY_ICONS.task;
+export const NOTE_ICON = ENTITY_ICONS.note;
+export const RESOURCE_ICON = ENTITY_ICONS.resource;
 
 // ─── Compact DropdownMenu multi-select (matches project/task-dialog style) ─
 
@@ -305,7 +306,7 @@ export function ProjectProcessForm({
           variant="secondary"
           className="gap-1 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
         >
-          {PROJECT_ICON} project
+          <PROJECT_ICON size={12} aria-hidden="true" /> project
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button
@@ -361,7 +362,7 @@ export function InboxProjectRow({
           variant="secondary"
           className="shrink-0 gap-1 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
         >
-          <span className="text-xs">{PROJECT_ICON}</span> project
+          <PROJECT_ICON size={12} aria-hidden="true" /> project
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{project.name}</span>
@@ -432,7 +433,7 @@ export function InboxTaskRow({
           variant="secondary"
           className="shrink-0 gap-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
         >
-          <span className="text-xs">{TASK_ICON}</span> task
+          <TASK_ICON size={12} aria-hidden="true" /> task
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{task.name}</span>
@@ -514,7 +515,7 @@ export function InboxNoteRow({
           variant="secondary"
           className="shrink-0 gap-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
         >
-          <span className="text-xs">{NOTE_ICON}</span> note
+          <NOTE_ICON size={12} aria-hidden="true" /> note
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{note.name}</span>
@@ -603,7 +604,7 @@ export function InboxResourceRow({
           variant="secondary"
           className="shrink-0 gap-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
         >
-          <span className="text-xs">{RESOURCE_ICON}</span> resource
+          <RESOURCE_ICON size={12} aria-hidden="true" /> resource
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{resource.name}</span>

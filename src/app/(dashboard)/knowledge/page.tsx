@@ -29,6 +29,7 @@ import {
   Zap,
 } from "lucide-react";
 
+import { BrainIcon, LayersIcon, Link2Icon, SquarePenIcon } from "@/components/icons";
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -57,10 +58,6 @@ import { ResourceRowSkeleton } from "@/components/views/list-page-skeleton";
 import { TopicCard } from "@/components/entities/topic-card";
 import { NoteRow } from "@/components/entities/note-row";
 import { NotesByGroupView, type NoteGroup } from "@/components/views/notes-by-group-view";
-import { KnowledgeEmoji } from "@/components/layout/knowledge-emoji";
-import { TagEmoji } from "@/components/layout/tag-emoji";
-import { NoteEmoji } from "@/components/layout/note-emoji";
-import { ResourceEmoji } from "@/components/layout/resource-emoji";
 import { encodeReturnTo } from "@/lib/utils/return-to";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
@@ -253,7 +250,7 @@ function CollapsibleTopicGroup({
           ))}
           <button
             onClick={() => onCreateNew(areaId)}
-            className="flex flex-col items-center justify-center gap-2 h-full min-h-[120px] rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-all text-muted-foreground hover:text-foreground cursor-pointer"
+            className="flex flex-col items-center justify-center gap-2 h-full min-h-[120px] rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
           >
             <Plus className="size-6" />
             <span className="text-sm font-medium">New Topic</span>
@@ -763,7 +760,7 @@ export default function KnowledgeHubPage() {
         {sr!.topics.length > 0 && (
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <TagEmoji className="text-base leading-none" />
+              <LayersIcon size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-semibold">Topics</h3>
               <Badge variant="secondary" className="text-xs">{sr!.counts.topics} found</Badge>
             </div>
@@ -787,7 +784,7 @@ export default function KnowledgeHubPage() {
         {sr!.notes.length > 0 && (
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <NoteEmoji className="text-base leading-none" />
+              <SquarePenIcon size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-semibold">Notes</h3>
               <Badge variant="secondary" className="text-xs">{sr!.counts.notes} found</Badge>
             </div>
@@ -798,7 +795,7 @@ export default function KnowledgeHubPage() {
         {sr!.resources.length > 0 && (
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <ResourceEmoji className="text-base leading-none" />
+              <Link2Icon size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-semibold">Resources</h3>
               <Badge variant="secondary" className="text-xs">{sr!.counts.resources} found</Badge>
             </div>
@@ -830,12 +827,11 @@ export default function KnowledgeHubPage() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2.5">
-          <KnowledgeEmoji className="text-2xl leading-none" />
+          <BrainIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <h1 className="text-2xl font-bold tracking-tight">Knowledge Hub</h1>
         </div>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          This hub is your go-to place for storing and easily retrieving all your knowledge.
-          Access and search your resources and notes, neatly organized by type or topic.
+          Store, search, and browse your notes and resources, organized by type or topic.
         </p>
       </div>
 
@@ -1128,7 +1124,7 @@ export default function KnowledgeHubPage() {
           {/* ── Resources Section ──────────────────────────────────────────── */}
           <section>
             <SectionHeader
-              accentClass="bg-emerald-500"
+              accentClass="bg-orange-500"
               title="Resources"
               totalCount={resources.length}
               description="Access and search your latest Resources."
@@ -1495,8 +1491,8 @@ export default function KnowledgeHubPage() {
                   className={cn(
                     "flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors",
                     topicForm.favorite
-                      ? "border-rose-500 bg-rose-500/10 text-rose-500"
-                      : "border-border bg-muted/50 text-muted-foreground hover:border-rose-500/40",
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-muted/50 text-muted-foreground hover:border-primary/40",
                   )}
                 >
                   <Heart className={cn("size-3.5", topicForm.favorite && "fill-current")} />

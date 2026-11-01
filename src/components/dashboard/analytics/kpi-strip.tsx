@@ -71,7 +71,6 @@ export function KpiStrip({ kpis }: KpiStripProps) {
               <div
                 className={cn(
                   "flex size-8 shrink-0 items-center justify-center rounded-full",
-                  "transition-transform duration-200 ease-[var(--ease-out-quint)] group-hover:scale-105",
                   item.chipClass,
                 )}
               >

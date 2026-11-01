@@ -9,6 +9,8 @@ import {
   Star,
 } from "lucide-react";
 
+import { CircleCheckIcon, FolderOpenIcon, LayersIcon, RocketIcon } from "@/components/icons";
+
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn, safeHttpUrl } from "@/lib/utils";
@@ -110,7 +112,7 @@ export function ResourceRow({
       <div className="hidden md:flex shrink-0 items-center gap-1 flex-wrap">
         {topicName && (
           <Badge variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">🏷️</span>
+            <LayersIcon size={12} aria-hidden="true" />
             {topicName}
           </Badge>
         )}
@@ -131,7 +133,7 @@ export function ResourceRow({
         )}
         {goalNames.slice(0, 2).map((name) => (
           <Badge key={`${resource.id}-goal-${name}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">🎯</span>
+            <RocketIcon size={12} aria-hidden="true" />
             {name}
           </Badge>
         ))}
@@ -142,7 +144,7 @@ export function ResourceRow({
         )}
         {projectNames.slice(0, 2).map((name) => (
           <Badge key={`${resource.id}-project-${name}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">📁</span>
+            <FolderOpenIcon size={12} aria-hidden="true" />
             {name}
           </Badge>
         ))}
@@ -153,7 +155,7 @@ export function ResourceRow({
         )}
         {taskNames.slice(0, 2).map((name) => (
           <Badge key={`${resource.id}-task-${name}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">☑️</span>
+            <CircleCheckIcon size={12} aria-hidden="true" />
             {name}
           </Badge>
         ))}

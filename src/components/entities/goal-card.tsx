@@ -2,12 +2,15 @@
 
 import React from 'react';
 import { Archive, Calendar, RotateCcw } from 'lucide-react';
+
+import { RocketIcon } from "@/components/icons";
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Goal } from '@/lib/types/domain.types';
 import { PRIORITY_COLORS } from '@/lib/constants/entity-colors';
+import { ENTITY_ICONS } from '@/lib/constants/entity-icons';
 import { formatDate } from '@/lib/format';
 import ProgressRing from '@/components/charts/progress-ring';
 
@@ -49,12 +52,6 @@ const TERM_COLORS: Record<string, string> = {
   short: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
   mid: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
   long: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-};
-
-const TERM_EMOJIS: Record<string, string> = {
-  short: '⚡',
-  mid: '📅',
-  long: '🏔️',
 };
 
 const BADGE_CLS = 'h-5 text-2xs leading-none px-1.5 py-0 items-center';
@@ -120,7 +117,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-base leading-none">🎯</span>
+              <RocketIcon size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-medium truncate text-sm">{goal.name}</h3>
               {showDuplicateBadge && (
                 <Badge variant="outline" className="text-2xs px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
@@ -158,7 +155,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
                 variant="outline"
                 className={cn(BADGE_CLS, TERM_COLORS[goal.term] || TERM_COLORS.short)}
               >
-                {TERM_EMOJIS[goal.term] ? `${TERM_EMOJIS[goal.term]} ` : ''}{TERM_LABELS[goal.term] || goal.term}
+                {TERM_LABELS[goal.term] || goal.term}
               </Badge>
               <Badge
                 variant="outline"
@@ -186,19 +183,19 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
         {rollups && (
           <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1 whitespace-nowrap" title="Projects">
-              <span className="text-xs">📁</span>
+              <ENTITY_ICONS.project size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <span>{rollups.projectCount}</span>
             </span>
             <span className="flex items-center gap-1 whitespace-nowrap" title="Tasks">
-              <span className="text-xs">☑️</span>
+              <ENTITY_ICONS.task size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <span>{rollups.taskCount}</span>
             </span>
             <span className="flex items-center gap-1 whitespace-nowrap" title="Notes">
-              <span className="text-xs">📝</span>
+              <ENTITY_ICONS.note size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <span>{rollups.noteCount}</span>
             </span>
             <span className="flex items-center gap-1 whitespace-nowrap" title="Resources">
-              <span className="text-xs">🔗</span>
+              <ENTITY_ICONS.resource size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <span>{rollups.resourceCount}</span>
             </span>
           </div>

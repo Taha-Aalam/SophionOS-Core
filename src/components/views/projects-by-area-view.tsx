@@ -132,7 +132,7 @@ function CollapsibleAreaSection({
           {group.areaId !== "unassigned" && (
             <button
               onClick={() => onCreateProject(group.areaId)}
-              className="flex flex-col items-center justify-center gap-2 h-48 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-all text-muted-foreground hover:text-foreground cursor-pointer"
+              className="flex flex-col items-center justify-center gap-2 h-48 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <Plus className="size-8" />
               <span className="text-sm font-medium">New Project in {group.areaName}</span>

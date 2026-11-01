@@ -1313,7 +1313,7 @@ export function TaskDialog({
                     checked={field.value}
                     onCheckedChange={(checked) => field.onChange(checked === true)}
                   />
-                  <span className="text-sm font-normal">Make the task as recurring task</span>
+                  <span className="text-sm font-normal">Make this task recurring</span>
                 </label>
               )}
             />

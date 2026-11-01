@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { CheckSquare, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -24,7 +24,7 @@ import {
 } from "@/lib/utils/task-dialog-filters";
 import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 
-const TASK_ICON = "☑️";
+const TASK_ICON = CheckSquare;
 const UNSET = "__none__";
 
 interface TaskProcessFormProps {
@@ -279,7 +279,7 @@ export function TaskProcessForm({
           variant="secondary"
           className="gap-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
         >
-          {TASK_ICON} task
+          <TASK_ICON className="size-3" /> task
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button

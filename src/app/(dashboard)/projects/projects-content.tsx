@@ -4,6 +4,7 @@ import { type ReactNode, startTransition, useEffect, useMemo, useState } from "r
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Activity, Archive, CheckSquare, Folder, Inbox, Layers, LayoutGrid, Map as MapIcon, PauseCircle, Pencil, Plus, Target } from "lucide-react";
+import { FolderOpenIcon } from "@/components/icons";
 
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
@@ -268,9 +269,9 @@ export function ProjectsContent() {
     <div className="content-fade-in reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="text-2xl leading-none" aria-hidden="true">📁</span>
+          <FolderOpenIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
             <p className="text-muted-foreground">
               Organize projects by area, status, and linked goals.
             </p>

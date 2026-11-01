@@ -37,7 +37,7 @@ export function CohortMemberBadge({
     return (
       <span
         className={cn(
-          "inline-flex h-4 items-center rounded-full border border-blue-500/20 bg-blue-500/10 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400",
+          "inline-flex h-4 items-center rounded-full border border-border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground",
           className,
         )}
       >

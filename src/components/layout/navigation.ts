@@ -1,52 +1,56 @@
-import { AreaEmoji } from "@/components/layout/area-emoji";
-import { ContactsEmoji } from "@/components/layout/contacts-emoji";
-import { DataAndAiEmoji } from "@/components/layout/data-and-ai-emoji";
-import { DashboardEmoji } from "@/components/layout/dashboard-emoji";
-import { GoalEmoji } from "@/components/layout/goal-emoji";
-import { InboxTrayEmoji } from "@/components/layout/inbox-tray-emoji";
-import { KnowledgeEmoji } from "@/components/layout/knowledge-emoji";
-import { MyDayEmoji } from "@/components/layout/my-day-emoji";
-import { NoteEmoji } from "@/components/layout/note-emoji";
-import { PrivacyPolicyEmoji } from "@/components/layout/privacy-policy-emoji";
-import { ProjectEmoji } from "@/components/layout/project-emoji";
-import { ResponsibleDisclosureEmoji } from "@/components/layout/responsible-disclosure-emoji";
-import { ResourceEmoji } from "@/components/layout/resource-emoji";
-import { SecurityEmoji } from "@/components/layout/security-emoji";
-import { SubprocessorsEmoji } from "@/components/layout/subprocessors-emoji";
-import { TagEmoji } from "@/components/layout/tag-emoji";
-import { TaskEmoji } from "@/components/layout/task-emoji";
-import { TermsEmoji } from "@/components/layout/terms-emoji";
+import {
+  BrainIcon,
+  BriefcaseBusinessIcon,
+  CircleCheckIcon,
+  DownloadIcon,
+  FileTextIcon,
+  FolderOpenIcon,
+  GavelIcon,
+  LayersIcon,
+  LayoutGridIcon,
+  Link2Icon,
+  LockIcon,
+  MapPinIcon,
+  RocketIcon,
+  ShieldCheckIcon,
+  SparklesIcon,
+  SquarePenIcon,
+  SunIcon,
+  UsersIcon,
+} from "@/components/icons";
+
+
 import { isActiveNavigationPath } from "@/lib/auth/auth-routing";
 
 const coreNavItems = [
-  { href: "/dashboard", label: "Dashboard", icon: DashboardEmoji },
-  { href: "/areas", label: "Areas", icon: AreaEmoji },
-  { href: "/goals", label: "Goals", icon: GoalEmoji },
-  { href: "/projects", label: "Projects", icon: ProjectEmoji },
-  { href: "/tasks", label: "Tasks", icon: TaskEmoji },
-  { href: "/notes", label: "Notes", icon: NoteEmoji },
-  { href: "/resources", label: "Resources", icon: ResourceEmoji },
-  { href: "/topics", label: "Topics", icon: TagEmoji },
-  { href: "/contacts", label: "Contacts", icon: ContactsEmoji },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutGridIcon },
+  { href: "/areas", label: "Areas", icon: MapPinIcon },
+  { href: "/goals", label: "Goals", icon: RocketIcon },
+  { href: "/projects", label: "Projects", icon: FolderOpenIcon },
+  { href: "/tasks", label: "Tasks", icon: CircleCheckIcon },
+  { href: "/notes", label: "Notes", icon: SquarePenIcon },
+  { href: "/resources", label: "Resources", icon: Link2Icon },
+  { href: "/topics", label: "Topics", icon: LayersIcon },
+  { href: "/contacts", label: "Contacts", icon: UsersIcon },
 ] as const;
 
 const systemNavItems = [
-  { href: "/my-day", label: "My Day", icon: MyDayEmoji },
-  { href: "/inbox", label: "Inbox", icon: InboxTrayEmoji },
-  { href: "/knowledge", label: "Knowledge Hub", icon: KnowledgeEmoji },
+  { href: "/my-day", label: "My Day", icon: SunIcon },
+  { href: "/inbox", label: "Inbox", icon: DownloadIcon },
+  { href: "/knowledge", label: "Knowledge Hub", icon: BrainIcon },
 ] as const;
 
 // System-level policy pages. These are NOT app navigation: they appear only
 // while you are already inside the policy pages (the sidebar swaps to a
 // Policies-only mode there), plus the profile dropdown and the sign-in page.
-// Emoji icons match each page's own header emoji, like every other nav item.
+// Icons match each page's own header icon, like every other nav item.
 const trustNavItems = [
-  { href: "/terms", label: "Terms", icon: TermsEmoji },
-  { href: "/privacy", label: "Privacy", icon: PrivacyPolicyEmoji },
-  { href: "/security", label: "Security", icon: SecurityEmoji },
-  { href: "/subprocessors", label: "Subprocessors", icon: SubprocessorsEmoji },
-  { href: "/data-and-ai", label: "Data & AI", icon: DataAndAiEmoji },
-  { href: "/responsible-disclosure", label: "Responsible Disclosure", icon: ResponsibleDisclosureEmoji },
+  { href: "/terms", label: "Terms", icon: FileTextIcon },
+  { href: "/privacy", label: "Privacy", icon: LockIcon },
+  { href: "/security", label: "Security", icon: ShieldCheckIcon },
+  { href: "/subprocessors", label: "Subprocessors", icon: BriefcaseBusinessIcon },
+  { href: "/data-and-ai", label: "Data & AI", icon: SparklesIcon },
+  { href: "/responsible-disclosure", label: "Responsible Disclosure", icon: GavelIcon },
 ] as const;
 
 /** True when `pathname` is one of the policy pages (a trustNavItems href). */

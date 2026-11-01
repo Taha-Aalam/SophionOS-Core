@@ -13,14 +13,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { AreaEmoji } from "@/components/layout/area-emoji";
-import { ContactsEmoji } from "@/components/layout/contacts-emoji";
-import { GoalEmoji } from "@/components/layout/goal-emoji";
-import { NoteEmoji } from "@/components/layout/note-emoji";
-import { ProjectEmoji } from "@/components/layout/project-emoji";
-import { ResourceEmoji } from "@/components/layout/resource-emoji";
-import { TagEmoji } from "@/components/layout/tag-emoji";
-import { TaskEmoji } from "@/components/layout/task-emoji";
+import {
+  MapPinIcon,
+  SquarePenIcon,
+  UsersIcon,
+} from "@/components/icons";
+
+import { ENTITY_ICONS } from "@/lib/constants/entity-icons";
 import { AreaDialog } from "@/components/entities/area-dialog";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { ProjectDialog } from "@/components/entities/project-dialog";
@@ -57,16 +56,16 @@ type CreateEntity = "area" | "goal" | "project" | "task" | "note" | "resource" |
 const CREATE_ACTIONS: Array<{
   entity: CreateEntity;
   label: string;
-  Icon: ComponentType<{ className?: string }>;
+  Icon: ComponentType<{ className?: string; size?: number }>;
 }> = [
-  { entity: "area", label: "Create area", Icon: AreaEmoji },
-  { entity: "goal", label: "Create goal", Icon: GoalEmoji },
-  { entity: "project", label: "Create project", Icon: ProjectEmoji },
-  { entity: "task", label: "Create task", Icon: TaskEmoji },
-  { entity: "note", label: "Create note", Icon: NoteEmoji },
-  { entity: "resource", label: "Create resource", Icon: ResourceEmoji },
-  { entity: "contact", label: "Create contact", Icon: ContactsEmoji },
-  { entity: "topic", label: "Create topic", Icon: TagEmoji },
+  { entity: "area", label: "Create area", Icon: MapPinIcon },
+  { entity: "goal", label: "Create goal", Icon: ENTITY_ICONS.goal },
+  { entity: "project", label: "Create project", Icon: ENTITY_ICONS.project },
+  { entity: "task", label: "Create task", Icon: ENTITY_ICONS.task },
+  { entity: "note", label: "Create note", Icon: SquarePenIcon },
+  { entity: "resource", label: "Create resource", Icon: ENTITY_ICONS.resource },
+  { entity: "contact", label: "Create contact", Icon: UsersIcon },
+  { entity: "topic", label: "Create topic", Icon: ENTITY_ICONS.topic },
 ];
 
 export function CommandPalette() {
@@ -226,7 +225,7 @@ export function CommandPalette() {
                       value={`nav-${item.href}`}
                       onSelect={() => go(item.href)}
                     >
-                      <Icon className="size-4" />
+                      <Icon size={16} />
                       {item.label}
                     </CommandItem>
                   );
@@ -244,7 +243,7 @@ export function CommandPalette() {
                       value={`nav-${item.href}`}
                       onSelect={() => go(item.href)}
                     >
-                      <Icon className="size-4" />
+                      <Icon size={16} />
                       {item.label}
                     </CommandItem>
                   );
@@ -262,7 +261,7 @@ export function CommandPalette() {
                       value={`create-${c.entity}`}
                       onSelect={() => openCreate(c.entity)}
                     >
-                      <Icon className="size-4" />
+                      <Icon size={16} />
                       {c.label}
                     </CommandItem>
                   );
@@ -282,7 +281,7 @@ export function CommandPalette() {
                       closeCommandPalette();
                     }}
                   >
-                    <TaskEmoji className="size-4" />
+                    <ENTITY_ICONS.task size={16} />
                     {task.name}
                   </CommandItem>
                 ))}
@@ -297,7 +296,7 @@ export function CommandPalette() {
                     value={`goal-${goal.id}`}
                     onSelect={() => go(withReturnTo(buildGoalDetailHref(goal)))}
                   >
-                    <GoalEmoji className="size-4" />
+                    <ENTITY_ICONS.goal size={16} />
                     {goal.name}
                   </CommandItem>
                 ))}
@@ -312,7 +311,7 @@ export function CommandPalette() {
                     value={`project-${project.id}`}
                     onSelect={() => go(withReturnTo(buildProjectDetailHref(project)))}
                   >
-                    <ProjectEmoji className="size-4" />
+                    <ENTITY_ICONS.project size={16} />
                     {project.name}
                   </CommandItem>
                 ))}
@@ -336,7 +335,7 @@ export function CommandPalette() {
                         {area.icon}
                       </span>
                     ) : (
-                      <AreaEmoji className="size-4" />
+                      <MapPinIcon size={16} />
                     )}
                     {area.name}
                   </CommandItem>
@@ -352,7 +351,7 @@ export function CommandPalette() {
                     value={`note-${note.id}`}
                     onSelect={() => go(withReturnTo(`/notes/${note.slug ?? note.id}`))}
                   >
-                    <NoteEmoji className="size-4" />
+                    <SquarePenIcon size={16} />
                     {note.name}
                   </CommandItem>
                 ))}
@@ -371,7 +370,7 @@ export function CommandPalette() {
                       closeCommandPalette();
                     }}
                   >
-                    <ResourceEmoji className="size-4" />
+                    <ENTITY_ICONS.resource size={16} />
                     {resource.name}
                   </CommandItem>
                 ))}
@@ -386,7 +385,7 @@ export function CommandPalette() {
                     value={`topic-${topic.id}`}
                     onSelect={() => go(withReturnTo(`/topics/${topic.slug ?? topic.id}`))}
                   >
-                    <TagEmoji className="size-4" />
+                    <ENTITY_ICONS.topic size={16} />
                     {topic.name}
                   </CommandItem>
                 ))}
@@ -401,7 +400,7 @@ export function CommandPalette() {
                     value={`contact-${contact.id}`}
                     onSelect={() => go(withReturnTo(`/contacts/${contact.slug ?? contact.id}`))}
                   >
-                    <ContactsEmoji className="size-4" />
+                    <UsersIcon size={16} />
                     {contact.name}
                   </CommandItem>
                 ))}

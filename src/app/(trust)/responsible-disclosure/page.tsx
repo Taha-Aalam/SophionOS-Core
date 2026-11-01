@@ -1,4 +1,5 @@
 import { PolicyMeta } from "@/components/trust/policy-meta";
+import { GavelIcon } from "@/components/icons";
 import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
@@ -9,7 +10,7 @@ export const metadata = {
 export default function ResponsibleDisclosurePage() {
   return (
     <TrustPage
-      emoji="🐛"
+      icon={GavelIcon}
       title="Responsible Disclosure"
       description="How to report security vulnerabilities."
     >
