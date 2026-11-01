@@ -1,6 +1,6 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
@@ -8,7 +8,11 @@ import { cn } from "@/lib/utils";
 interface AnalyticsPanelProps {
   title: string;
   description?: string;
-  icon?: LucideIcon;
+  icon?: ComponentType<{
+    size?: number;
+    className?: string;
+    "aria-hidden"?: "true" | "false";
+  }>;
   iconClassName?: string;
   className?: string;
   contentClassName?: string;
@@ -42,7 +46,7 @@ export function AnalyticsPanel({
               iconClassName,
             )}
           >
-            <Icon className="size-3.5" aria-hidden="true" />
+            <Icon size={14} aria-hidden="true" />
           </span>
         ) : null}
         <h3 className="text-sm font-semibold leading-5 tracking-tight text-foreground">

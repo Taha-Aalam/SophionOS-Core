@@ -9,6 +9,12 @@
 # box and never appear here. Unset variables fall back to the Dockerfile ARG
 # defaults, so an image built before the variables exist is CI-verified but
 # wired to the placeholder Supabase project — not production-usable.
+#
+# Images publish only for work that landed on master: the branch trigger is
+# master itself, and the version-tag trigger exists for the tags the release
+# workflow cuts at a merge commit (see release.yml). The "Version tags must
+# sit on master" step enforces that second half — a v* tag pushed from a
+# branch fails loudly instead of publishing an image.
 name: Docker build
 
 on:
@@ -38,6 +44,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Version tags must sit on master
+        # ^{commit} dereferences annotated tags, so the check works whether
+        # GITHUB_SHA carries the commit or the tag object. The compare API's
+        # status is head-relative: "behind"/"identical" mean the tag commit
+        # is an ancestor of master; "ahead"/"diverged" mean it is not.
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag_commit="$(git rev-parse "${GITHUB_SHA}^{commit}")"
+          status="$(gh api "repos/${GITHUB_REPOSITORY}/compare/master...${tag_commit}" --jq .status)"
+          if [[ "${status}" != "behind" && "${status}" != "identical" ]]; then
+            echo "::error::${GITHUB_REF_NAME} points at ${tag_commit}, which is not on master. Docker images build only after a merge to master (release.yml cuts version tags there). Skipping."
+            exit 1
+          fi
 
       - name: Compute image tags
         id: tags

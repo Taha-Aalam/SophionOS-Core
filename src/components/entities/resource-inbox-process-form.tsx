@@ -424,7 +424,7 @@ export function ResourceInboxProcessForm({
           variant="secondary"
           className="gap-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
         >
-          <RESOURCE_ICON className="size-3" /> resource
+          <RESOURCE_ICON size={12} /> resource
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button

@@ -1,6 +1,6 @@
 "use client";
 
-import { PieChart } from "lucide-react";
+import { ChartPieIcon } from "@/components/icons";
 
 import { AnalyticsPanel } from "@/components/dashboard/analytics/analytics-panel";
 import type { DashboardAnalytics } from "@/lib/analytics/dashboard-analytics";
@@ -45,7 +45,7 @@ export function GoalMomentumPanel({ momentum }: GoalMomentumPanelProps) {
   return (
     <AnalyticsPanel
       title="Goal Momentum"
-      icon={PieChart}
+      icon={ChartPieIcon}
       contentClassName="flex min-h-[160px] items-center justify-center"
     >
       <div className="relative flex w-full flex-wrap items-center justify-center gap-8 py-1">

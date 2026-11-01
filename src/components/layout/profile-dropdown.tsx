@@ -1,7 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { CreditCard, FileText, KeyRound, LogOut, Plug, Settings, SunMoon, User } from "lucide-react";
+
+import {
+  CreditCardIcon,
+  FileTextIcon,
+  KeyIcon,
+  LogoutIcon,
+  PlugZapIcon,
+  SettingsIcon,
+  SunMoonIcon,
+  UserIcon,
+} from "@/components/icons";
 
 import { CohortMemberBadge } from "@/components/settings/cohort-member-badge";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -72,33 +82,33 @@ export function ProfileDropdown({
     {
       label: "Profile",
       href: "/settings/profile",
-      icon: <User className="h-4 w-4" />,
+      icon: <UserIcon size={16} />,
     },
     {
       label: "Subscription",
       value: billingEnabled ? (tierLabel ?? "Free") : undefined,
       href: billingEnabled ? "/settings/billing" : "/settings",
-      icon: <CreditCard className="h-4 w-4" />,
+      icon: <CreditCardIcon size={16} />,
     },
     {
       label: "API Keys",
       href: "/settings/api-keys",
-      icon: <KeyRound className="h-4 w-4" />,
+      icon: <KeyIcon size={16} />,
     },
     {
       label: "MCP Server",
       href: "/settings/mcp",
-      icon: <Plug className="h-4 w-4" />,
+      icon: <PlugZapIcon size={16} />,
     },
     {
       label: "Settings",
       href: "/settings",
-      icon: <Settings className="h-4 w-4" />,
+      icon: <SettingsIcon size={16} />,
     },
     {
       label: "Terms & Policies",
       href: "/terms",
-      icon: <FileText className="h-4 w-4" />,
+      icon: <FileTextIcon size={16} />,
     },
   ];
 
@@ -214,7 +224,7 @@ export function ProfileDropdown({
               className="rounded-xl bg-destructive/10 p-3 hover:bg-destructive/20"
               onClick={() => void signOut()}
             >
-              <LogOut className="h-4 w-4" />
+              <LogoutIcon size={16} />
               <span className="text-sm font-medium">Sign Out</span>
             </DropdownMenuItem>
 
@@ -223,7 +233,7 @@ export function ProfileDropdown({
               className="mt-1 flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors outline-none hover:bg-accent/70 focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
             >
-              <SunMoon className="h-4 w-4 text-muted-foreground" />
+              <SunMoonIcon size={16} className="text-muted-foreground" />
               <span className="text-sm font-medium">
                 {resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
               </span>
