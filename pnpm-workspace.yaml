@@ -46,8 +46,9 @@ overrides:
   # source tree). Dev-only: reached through eslint's file traversal.
   "@humanfs/node": ">=0.16.8"
   ws: ">=8.21.0"
-  # GHSA-q8mj-m7cp-5q26
-  qs: ">=6.15.2"
+  # GHSA-q8mj-m7cp-5q26 / GHSA-6pq8-jhm2-2vcw (arrayFormat 'comma' TypeError
+  # DoS on non-callable toString, patched in 6.16.1)
+  qs: ">=6.16.1"
   # GHSA-v422-hmwv-36x6 / GHSA-27r3-jxmh-p828 (2.4.0 fixes the trailing-bytes
   # DoS on compressed request bodies)
   body-parser: ">=2.4.0"
@@ -67,6 +68,10 @@ overrides:
   # next still depends on sharp <0.35.4 (libvips CVEs); force patched line (GHSA-rgj7-g3m4-5g8c).
   sharp: ">=0.35.4"
   nanoid@<3.3.18: ^3.3.18
+  # GHSA-g3hv-75wg-m249 (globParts amplification DoS, patched only in 11.0.1 —
+  # no backports to 3.x/10.x). 11.x ships dual CJS/ESM builds, so the CJS
+  # consumers in the tree (eslint) tolerate the major bump.
+  minimatch: ">=11.0.1"
 
 auditConfig:
   ignoreGhsas:
@@ -75,6 +80,10 @@ auditConfig:
     # (shadcn / ts-morph / eslint plugin), not runtime. Remove once 3.0.4 ships.
     - GHSA-vfj7-8cjw-p6xm
     - GHSA-mh99-v99m-4gvg
+    # No patched release exists yet (latest deepmerge is 4.3.1; advisory claims
+    # >=4.3.2 but it is unpublished). Only reachable via build-time tooling
+    # (shadcn CLI), not runtime. Remove once 4.3.2 ships.
+    - GHSA-gcqx-w48m-w2h4
 
 minimumReleaseAgeExclude:
   - nanoid@3.3.17
