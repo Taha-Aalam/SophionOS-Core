@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
 import { ErrorState } from "@/components/views/error-state";
 import { BADGE_COLOR } from "@/lib/constants/entity-colors";
+import { DownloadIcon } from "@/components/icons";
 import { ENTITY_ICONS } from "@/lib/constants/entity-icons";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
@@ -322,7 +323,7 @@ function ProjectProcessForm({
           variant="secondary"
           className={cn("gap-1", BADGE_COLOR.orange)}
         >
-          <PROJECT_ICON className="size-3" aria-hidden="true" /> project
+          <PROJECT_ICON size={12} aria-hidden="true" /> project
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button
@@ -380,7 +381,7 @@ function InboxProjectRow({
           variant="secondary"
           className={cn("shrink-0 gap-1", BADGE_COLOR.orange)}
         >
-          <PROJECT_ICON className="size-3" aria-hidden="true" /> project
+          <PROJECT_ICON size={12} aria-hidden="true" /> project
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{project.name}</span>
@@ -451,7 +452,7 @@ function InboxTaskRow({
           variant="secondary"
           className={cn("shrink-0 gap-1", BADGE_COLOR.blue)}
         >
-          <TASK_ICON className="size-3" aria-hidden="true" /> task
+          <TASK_ICON size={12} aria-hidden="true" /> task
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{task.name}</span>
@@ -533,7 +534,7 @@ function InboxNoteRow({
           variant="secondary"
           className={cn("shrink-0 gap-1", BADGE_COLOR.purple)}
         >
-          <NOTE_ICON className="size-3" aria-hidden="true" /> note
+          <NOTE_ICON size={12} aria-hidden="true" /> note
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{note.name}</span>
@@ -622,7 +623,7 @@ function InboxResourceRow({
           variant="secondary"
           className={cn("shrink-0 gap-1", BADGE_COLOR.green)}
         >
-          <RESOURCE_ICON className="size-3" aria-hidden="true" /> resource
+          <RESOURCE_ICON size={12} aria-hidden="true" /> resource
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{resource.name}</span>
@@ -803,7 +804,7 @@ export default function InboxPage() {
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
-          <InboxIcon className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <DownloadIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Inbox</h1>
             <p className="text-sm text-muted-foreground">

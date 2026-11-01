@@ -1066,7 +1066,7 @@ export function AreaDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Goals"
           >
-            <ENTITY_ICONS.goal className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.goal size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{rollups.goalCount}</span>
           </button>
           <button
@@ -1075,7 +1075,7 @@ export function AreaDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Projects"
           >
-            <ENTITY_ICONS.project className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.project size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{rollups.projectCount}</span>
           </button>
           <button
@@ -1084,7 +1084,7 @@ export function AreaDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Tasks"
           >
-            <ENTITY_ICONS.task className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.task size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{rollups.taskCount}</span>
           </button>
           <button
@@ -1093,7 +1093,7 @@ export function AreaDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Notes"
           >
-            <ENTITY_ICONS.note className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.note size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{rollups.noteCount}</span>
           </button>
           <button
@@ -1102,7 +1102,7 @@ export function AreaDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Resources"
           >
-            <ENTITY_ICONS.resource className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.resource size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{rollups.resourceCount}</span>
           </button>
         </div>

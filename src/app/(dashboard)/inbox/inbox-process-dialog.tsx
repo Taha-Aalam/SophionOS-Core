@@ -306,7 +306,7 @@ export function ProjectProcessForm({
           variant="secondary"
           className="gap-1 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
         >
-          <PROJECT_ICON className="size-3" aria-hidden="true" /> project
+          <PROJECT_ICON size={12} aria-hidden="true" /> project
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button
@@ -362,7 +362,7 @@ export function InboxProjectRow({
           variant="secondary"
           className="shrink-0 gap-1 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
         >
-          <PROJECT_ICON className="size-3" aria-hidden="true" /> project
+          <PROJECT_ICON size={12} aria-hidden="true" /> project
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{project.name}</span>
@@ -433,7 +433,7 @@ export function InboxTaskRow({
           variant="secondary"
           className="shrink-0 gap-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
         >
-          <TASK_ICON className="size-3" aria-hidden="true" /> task
+          <TASK_ICON size={12} aria-hidden="true" /> task
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{task.name}</span>
@@ -515,7 +515,7 @@ export function InboxNoteRow({
           variant="secondary"
           className="shrink-0 gap-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
         >
-          <NOTE_ICON className="size-3" aria-hidden="true" /> note
+          <NOTE_ICON size={12} aria-hidden="true" /> note
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{note.name}</span>
@@ -604,7 +604,7 @@ export function InboxResourceRow({
           variant="secondary"
           className="shrink-0 gap-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
         >
-          <RESOURCE_ICON className="size-3" aria-hidden="true" /> resource
+          <RESOURCE_ICON size={12} aria-hidden="true" /> resource
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{resource.name}</span>

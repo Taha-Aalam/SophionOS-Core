@@ -1266,7 +1266,7 @@ export function ProjectDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Goals"
           >
-            <ENTITY_ICONS.goal className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.goal size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{activeGoalCount}</span>
           </button>
           <button
@@ -1275,7 +1275,7 @@ export function ProjectDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Tasks"
           >
-            <ENTITY_ICONS.task className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.task size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{activeTaskCount}</span>
           </button>
           <button
@@ -1284,7 +1284,7 @@ export function ProjectDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Notes"
           >
-            <ENTITY_ICONS.note className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.note size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{activeNoteCount}</span>
           </button>
           <button
@@ -1293,7 +1293,7 @@ export function ProjectDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Resources"
           >
-            <ENTITY_ICONS.resource className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.resource size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{activeResourceCount}</span>
           </button>
         </div>

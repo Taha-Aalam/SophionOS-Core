@@ -330,16 +330,17 @@ describe("trust nav wiring", () => {
     }
   });
 
-  it("draws every policy icon as an emoji, not a lucide icon", () => {
+  it("draws every policy icon as an animated line icon, matching the page header", () => {
     const nav = readFileSync(join(SRC, "components", "layout", "navigation.ts"), "utf8");
-    expect(nav).not.toContain("lucide-react");
+    // Icons come from the vendored animated set, not raw lucide or emoji.
+    expect(nav).toContain('from "@/components/icons"');
     for (const item of trustNavItems) {
-      expect(item.icon.name, item.label).toMatch(/Emoji$/);
+      expect(item.icon, item.label).toBeTruthy();
     }
-    // Each emoji component renders a real glyph, matching the page header.
+    // Each page passes the same animated component its nav row uses.
     for (const href of TRUST_HREFS) {
       const page = readFileSync(join(SRC, "app", "(trust)", href.slice(1), "page.tsx"), "utf8");
-      expect(page, href).toMatch(/emoji="[^"]+"/);
+      expect(page, href).toMatch(/icon=\{[A-Z]\w+Icon\}/);
     }
   });
 

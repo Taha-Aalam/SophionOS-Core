@@ -208,23 +208,23 @@ const AreaCardComponent = ({
       <CardContent>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1" title="Goals">
-            <ENTITY_ICONS.goal className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.goal size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{goalsCount}</span>
           </div>
           <div className="flex items-center gap-1" title="Projects">
-            <ENTITY_ICONS.project className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.project size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{projectsCount}</span>
           </div>
           <div className="flex items-center gap-1" title="Tasks">
-            <ENTITY_ICONS.task className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.task size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{tasksCount}</span>
           </div>
           <div className="flex items-center gap-1" title="Notes">
-            <ENTITY_ICONS.note className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.note size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{notesCount}</span>
           </div>
           <div className="flex items-center gap-1" title="Resources">
-            <ENTITY_ICONS.resource className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.resource size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{resourcesCount}</span>
           </div>
         </div>

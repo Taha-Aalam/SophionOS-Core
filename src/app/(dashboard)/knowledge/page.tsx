@@ -13,8 +13,6 @@ import {
   FolderOpen,
   Globe,
   Heart,
-  Library,
-  Link2,
   LayoutGrid,
   Map as MapIcon,
   NotebookPen,
@@ -31,6 +29,7 @@ import {
   Zap,
 } from "lucide-react";
 
+import { BrainIcon, LayersIcon, Link2Icon, SquarePenIcon } from "@/components/icons";
 import { EmptyState } from "@/components/views/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -761,7 +760,7 @@ export default function KnowledgeHubPage() {
         {sr!.topics.length > 0 && (
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <Tag className="size-4 shrink-0 text-muted-foreground" />
+              <LayersIcon size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-semibold">Topics</h3>
               <Badge variant="secondary" className="text-xs">{sr!.counts.topics} found</Badge>
             </div>
@@ -785,7 +784,7 @@ export default function KnowledgeHubPage() {
         {sr!.notes.length > 0 && (
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <NotebookPen className="size-4 shrink-0 text-muted-foreground" />
+              <SquarePenIcon size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-semibold">Notes</h3>
               <Badge variant="secondary" className="text-xs">{sr!.counts.notes} found</Badge>
             </div>
@@ -796,7 +795,7 @@ export default function KnowledgeHubPage() {
         {sr!.resources.length > 0 && (
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <Link2 className="size-4 shrink-0 text-muted-foreground" />
+              <Link2Icon size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-semibold">Resources</h3>
               <Badge variant="secondary" className="text-xs">{sr!.counts.resources} found</Badge>
             </div>
@@ -828,7 +827,7 @@ export default function KnowledgeHubPage() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2.5">
-          <Library className="size-6 shrink-0 text-muted-foreground" />
+          <BrainIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <h1 className="text-2xl font-bold tracking-tight">Knowledge Hub</h1>
         </div>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">

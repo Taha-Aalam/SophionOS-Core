@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Tag, FilePlus, Heart, Globe, Map as MapIcon, LayoutGrid, Archive, CircleDot, CircleOff, ChevronDownIcon, ChevronRightIcon, Plus } from "lucide-react";
+import { LayersIcon } from "@/components/icons";
 
 import { EmptyState } from "@/components/views/empty-state";
 import { ErrorState } from "@/components/views/error-state";
@@ -310,7 +311,7 @@ export function TopicsContent() {
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Tag className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <LayersIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Topics</h1>
             <p className="text-sm text-muted-foreground">

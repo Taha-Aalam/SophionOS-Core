@@ -3,6 +3,7 @@
 import { cardGrid } from "@/components/ui/layout";
 import { useMemo, useState } from "react";
 import { Archive, Clock, FolderKanban, LayoutGrid, Map as MapIcon, Plus, Star, Target as GoalIcon, Users } from "lucide-react";
+import { UsersIcon } from "@/components/icons";
 
 import { ContactCard } from "@/components/entities/contact-card";
 import { ContactDialog, type ContactDialogDefaults } from "@/components/entities/contact-dialog";
@@ -163,7 +164,7 @@ export function ContactsContent() {
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-start justify-between border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
-          <Users className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <UsersIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Contacts</h1>
             <p className="text-sm text-muted-foreground">
