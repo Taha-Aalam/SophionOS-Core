@@ -9,10 +9,8 @@ export interface ZonedClock {
   minutesOfDay: number;
 }
 
-function parseHHMM(value: string): number | null {
-  const m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(value.trim());
-  if (!m) return null;
-  return Number(m[1]) * 60 + Number(m[2]);
+function isValidHour(hour: unknown): hour is number {
+  return typeof hour === "number" && Number.isInteger(hour) && hour >= 0 && hour <= 23;
 }
 
 export function getZonedClock(now: Date, timeZone: string): ZonedClock {
@@ -33,8 +31,8 @@ export function getZonedClock(now: Date, timeZone: string): ZonedClock {
   const year = parts.year;
   const month = parts.month;
   const day = parts.day;
-  const hour = parts.hour === "24" ? "00" : parts.hour.padStart(2, "0");
-  const minute = parts.minute.padStart(2, "0");
+  const hour = parts.hour === "24" ? "00" : parts.hour!.padStart(2, "0");
+  const minute = parts.minute!.padStart(2, "0");
   const weekdayMap: Record<string, number> = {
     Sun: 0,
     Mon: 1,
@@ -44,7 +42,7 @@ export function getZonedClock(now: Date, timeZone: string): ZonedClock {
     Fri: 5,
     Sat: 6,
   };
-  const weekday = weekdayMap[parts.weekday] ?? 0;
+  const weekday = weekdayMap[parts.weekday ?? "Sun"] ?? 0;
   const minutesOfDay = Number(hour) * 60 + Number(minute);
   return {
     localDate: `${year}-${month}-${day}`,
@@ -54,22 +52,17 @@ export function getZonedClock(now: Date, timeZone: string): ZonedClock {
   };
 }
 
-export function isTimeInWindow(
-  localHHMM: string,
-  configuredHHMM: string,
-  windowMinutes: number,
-): boolean {
-  const local = parseHHMM(localHHMM);
-  const start = parseHHMM(configuredHHMM);
-  if (local === null || start === null) return false;
-  return local >= start && local < start + windowMinutes;
+function hourDue(clock: ZonedClock, hour: number | null | undefined): boolean {
+  // Same-day catch-up: due from the configured hour onward; the delivery
+  // log's per-day dedupe makes repeated ticks idempotent.
+  if (!isValidHour(hour)) return false;
+  return clock.minutesOfDay >= hour * 60;
 }
 
 export function kindsDueForUser(input: {
   prefs: NotificationPrefs;
   timezone: string;
   now: Date;
-  windowMinutes: number;
 }): DueBrief[] {
   if (input.prefs.email_enabled === false) return [];
   const clock = getZonedClock(input.now, input.timezone || "UTC");
@@ -77,33 +70,23 @@ export function kindsDueForUser(input: {
 
   if (
     input.prefs.morning_briefing_enabled &&
-    input.prefs.morning_briefing_time &&
-    isTimeInWindow(
-      clock.hhmm,
-      input.prefs.morning_briefing_time,
-      input.windowMinutes,
-    )
+    hourDue(clock, input.prefs.morning_briefing_hour)
   ) {
     due.push({
       kind: "morning_briefing",
       localDate: clock.localDate,
-      configuredTime: input.prefs.morning_briefing_time,
+      configuredTime: `${String(input.prefs.morning_briefing_hour).padStart(2, "0")}:00`,
     });
   }
 
   if (
     input.prefs.evening_review_enabled &&
-    input.prefs.evening_review_time &&
-    isTimeInWindow(
-      clock.hhmm,
-      input.prefs.evening_review_time,
-      input.windowMinutes,
-    )
+    hourDue(clock, input.prefs.evening_review_hour)
   ) {
     due.push({
       kind: "evening_review",
       localDate: clock.localDate,
-      configuredTime: input.prefs.evening_review_time,
+      configuredTime: `${String(input.prefs.evening_review_hour).padStart(2, "0")}:00`,
     });
   }
 
@@ -111,12 +94,12 @@ export function kindsDueForUser(input: {
     input.prefs.weekly_digest_day !== null &&
     input.prefs.weekly_digest_day !== undefined &&
     clock.weekday === input.prefs.weekly_digest_day &&
-    isTimeInWindow(clock.hhmm, "09:00", input.windowMinutes)
+    hourDue(clock, input.prefs.weekly_digest_hour)
   ) {
     due.push({
       kind: "weekly_digest",
       localDate: clock.localDate,
-      configuredTime: "09:00",
+      configuredTime: `${String(input.prefs.weekly_digest_hour ?? 9).padStart(2, "0")}:00`,
     });
   }
 

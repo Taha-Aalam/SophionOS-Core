@@ -1,0 +1,25 @@
+{
+  "name": "codegraph_node",
+  "description": "Get detailed info about ONE symbol (location, signature, docstring). Pass includeCode=true for source: a function/method returns its body; a class/interface/struct/enum returns a compact member OUTLINE (fields + method signatures + line numbers), not every method body — Read or codegraph_node a specific member for its body. Keep includeCode=false to minimize context. For SEVERAL related symbols, make ONE codegraph_explore (or codegraph_context) call instead of many node calls — repeated node calls each re-read the whole context and cost far more.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "Name of the symbol to get details for"
+      },
+      "includeCode": {
+        "type": "boolean",
+        "description": "Include full source code (default: false to minimize context)",
+        "default": false
+      },
+      "projectPath": {
+        "type": "string",
+        "description": "Path to a different project with .codegraph/ initialized. If omitted, uses current project. Use this to query other codebases."
+      }
+    },
+    "required": [
+      "symbol"
+    ]
+  }
+}

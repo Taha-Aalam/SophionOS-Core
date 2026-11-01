@@ -12,6 +12,7 @@ stores personal context such as:
 - Notes, resources, topics, contacts and relationship links
 - User settings / preferences
 - API key **hashes** (not raw secrets), metadata (name, expiry, last used, revoked)
+- User-connected AI provider keys (Settings → AI Providers), stored **encrypted at rest** (AES-256-GCM); only a key hint (last 4 characters) is ever displayed or returned by the API
 - Optional subscription/tier fields used by Cloud-style feature gates
 
 Content is associated with your **Clerk user id** (`user_id` text / JWT `sub`).
@@ -46,6 +47,18 @@ When **you** enable API keys / MCP:
 
 SophionOS cannot control retention policies of external AI clients or model
 hosts. Revoke keys to cut off API access.
+
+### Your own provider key (brief summaries)
+
+Separately from MCP clients, you can connect **your own AI provider API key**
+(Settings → AI Providers) and enable **AI summaries** (Settings →
+Notifications). Only then, when a scheduled brief is due, SophionOS sends your
+chosen provider a request containing exactly the dashboard data the emailed
+brief already carries (stat counts, top task titles, goal titles with
+progress). No other content is sent, no other features call the model, and a
+provider failure falls back to the standard brief. The request runs under
+**your** provider account and terms; disable it by toggling AI summaries off
+or disconnecting the provider.
 
 ## Telemetry
 

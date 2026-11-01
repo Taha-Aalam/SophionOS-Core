@@ -31,6 +31,8 @@ export function composeBriefEmail(input: {
   today: TodayData;
   appUrl: string;
   localDate: string;
+  /** Optional AI narration (SPEC-brief-narration.md): labeled intro, escaped. */
+  narration?: { text: string; provider: string } | null;
 }): ComposedEmail {
   const title = KIND_TITLE[input.kind];
   const base = input.appUrl.replace(/\/$/, "");
@@ -38,16 +40,24 @@ export function composeBriefEmail(input: {
   const policyLinks = POLICY_LINKS.map((l) => ({ ...l, url: `${base}${l.path}` }));
   const tasks = input.today.todayTasks.slice(0, 10);
   const goals = input.today.activeGoals.slice(0, 5);
+  const narration = input.narration?.text?.trim()
+    ? { text: input.narration.text.trim(), provider: input.narration.provider }
+    : null;
   const lines: string[] = [
     `${title} — ${input.localDate}`,
     "",
+  ];
+  if (narration) {
+    lines.push(`AI summary (via ${narration.provider}):`, narration.text, "");
+  }
+  lines.push(
     `Overdue: ${input.today.stats.overdueCount}`,
     `Due / focus items today: ${input.today.tasksTodayCount}`,
     `Completed this week: ${input.today.stats.completedThisWeek}`,
     `Active goals: ${input.today.stats.activeGoalsCount}`,
     "",
     "Top tasks:",
-  ];
+  );
   if (tasks.length === 0) lines.push("  (none listed)");
   for (const t of tasks) {
     const flag = t.isOverdue ? " [overdue]" : "";
@@ -69,9 +79,19 @@ export function composeBriefEmail(input: {
   );
 
   const text = lines.join("\n");
+  const narrationHtml = narration
+    ? `<div style="margin:0 0 16px;padding:12px 14px;border-left:3px solid #ddd;background:#fafafa">
+        <p style="margin:0 0 6px;font-size:12px;color:#666">AI summary — generated with your connected ${escapeHtml(narration.provider)} key</p>
+        ${narration.text
+          .split(/\n{2,}/)
+          .map((para) => `<p style="margin:0 0 8px">${escapeHtml(para)}</p>`)
+          .join("")}
+      </div>`
+    : "";
   const html = `
     <div style="font-family:system-ui,sans-serif;line-height:1.5;color:#111">
       <h1 style="font-size:18px">${escapeHtml(title)} — ${escapeHtml(input.localDate)}</h1>
+      ${narrationHtml}
       <p>Overdue: <strong>${input.today.stats.overdueCount}</strong> ·
          Today: <strong>${input.today.tasksTodayCount}</strong> ·
          Week done: <strong>${input.today.stats.completedThisWeek}</strong></p>
