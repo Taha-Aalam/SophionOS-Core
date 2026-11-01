@@ -5,6 +5,32 @@ All notable changes to SophionOS are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.9] - 2026-11-01
+
+### Changed
+
+- Finished the animated-icon rollout (#230): vendored 19 more animated lucide
+  icons from pqoqubbw/icons — 16 copied verbatim (settings, sun-moon, user,
+  credit-card, key, plug-zap, logout, check-check, chart-column-increasing,
+  chart-pie, calendar-days, heart-pulse, waypoints, mailbox, bookmark,
+  archive, folder-clock) plus triangle-alert, crosshair, and link-2-off
+  hand-authored in the same motion style from lucide paths, which the
+  upstream repo does not ship yet.
+- Sidebar footer (Settings, theme toggle), all eight profile-dropdown menu
+  icons, the dashboard KPI strip, every analytics panel header, the Work
+  Health row chips, and the Knowledge Pipeline Review/Saved/Archived metrics
+  now render the animated glyphs; `AnalyticsPanel`'s `icon` prop widened
+  from `LucideIcon` to a structural component type.
+- The six policy pages frame at `max-w-7xl` like every other app page
+  (areas, goals, projects) instead of a compressed `max-w-3xl` column.
+
+### Fixed
+
+- Inbox type pills rendered their animated icon at its 28px default (only a
+  `className` was passed, which the inner svg ignores), dwarfing the 12px
+  labels; the Projects/Tasks/Notes/Resources section headers and the
+  process-form badges now pass `size={12}` to match the label text.
+
 ## [0.2.4] - 2026-10-25
 
 ### Changed
