@@ -5,7 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { ChevronLeft, ChevronRightIcon, Settings, SunMoon } from "lucide-react";
+import { ChevronLeft, ChevronRightIcon } from "lucide-react";
+
+import { SettingsIcon, SunMoonIcon } from "@/components/icons";
 
 import {
   coreNavItems,
@@ -172,7 +174,7 @@ export function Sidebar() {
             href="/settings"
             className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
-            <Settings className="size-4 shrink-0" />
+            <SettingsIcon size={16} className="shrink-0" />
             {isDesktopSidebarOpen ? <span>Settings</span> : null}
           </Link>
           <Button
@@ -180,7 +182,7 @@ export function Sidebar() {
             className="h-auto w-full justify-start gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
           >
-            <SunMoon className="size-4 shrink-0" />
+            <SunMoonIcon size={16} className="shrink-0" />
             {isDesktopSidebarOpen ? <span>{themeLabel}</span> : null}
           </Button>
           <Link

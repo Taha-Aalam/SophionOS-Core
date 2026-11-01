@@ -1,6 +1,6 @@
 "use client";
 
-import { UserRoundSearch, Users } from "lucide-react";
+import { UsersIcon } from "@/components/icons";
 
 import { AnalyticsPanel } from "@/components/dashboard/analytics/analytics-panel";
 import type { DashboardAnalytics } from "@/lib/analytics/dashboard-analytics";
@@ -21,7 +21,7 @@ export function RelationshipRiskPanel({ risk }: RelationshipRiskPanelProps) {
     <AnalyticsPanel
       title="Relationship Risk"
       description="Follow-ups due, especially contacts on active projects."
-      icon={UserRoundSearch}
+      icon={UsersIcon}
       iconClassName="text-analytics-risk"
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5">
@@ -42,7 +42,7 @@ export function RelationshipRiskPanel({ risk }: RelationshipRiskPanelProps) {
         <div className="border-border md:col-span-2 md:border-l md:pl-5">
           {risk.contacts.length === 0 ? (
             <div className="flex items-center gap-2 px-1 py-2 text-sm text-muted-foreground">
-              <Users className="size-4 shrink-0" aria-hidden="true" />
+              <UsersIcon size={16} className="shrink-0" aria-hidden="true" />
               No follow-up risk right now.
             </div>
           ) : (

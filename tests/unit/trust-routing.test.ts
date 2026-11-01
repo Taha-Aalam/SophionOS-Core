@@ -88,10 +88,10 @@ describe("TrustPage heading block", () => {
     expect(html).toContain("How we handle it.");
   });
 
-  it("uses one measured column, not a wide frame with a narrow body", () => {
+  it("matches the dashboard pages' frame width (max-w-7xl)", () => {
     const html = renderTrust("Privacy", "d");
-    expect(html).toContain("max-w-3xl");
-    expect(html).not.toContain("max-w-7xl"); // review D1: dead right gutter
+    expect(html).toContain("max-w-7xl");
+    expect(html).not.toContain("max-w-3xl"); // compressed width no longer matches areas/goals/projects
     expect(html).toContain("content-fade-in reveal-stagger");
     expect(html).toContain("legal-doc");
   });

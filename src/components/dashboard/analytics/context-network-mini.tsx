@@ -1,7 +1,9 @@
 "use client";
 
-import { ArrowRight, Network } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { CSSProperties } from "react";
+
+import { WaypointsIcon } from "@/components/icons";
 
 import { AnalyticsPanel } from "@/components/dashboard/analytics/analytics-panel";
 import { Button } from "@/components/ui/button";
@@ -48,7 +50,7 @@ export function ContextNetworkMini({ network }: ContextNetworkMiniProps) {
     <AnalyticsPanel
       title="Context Network"
       description="How tightly areas, goals, projects, and tasks link together."
-      icon={Network}
+      icon={WaypointsIcon}
     >
       <div className="mb-5 grid grid-cols-4 gap-2">
         {columns.map((column) => (
