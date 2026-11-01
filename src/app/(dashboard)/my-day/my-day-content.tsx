@@ -71,7 +71,7 @@ function AvailableTaskRow({ task, areaName, projectName, onAddToDay }: Available
       <Button
         size="sm"
         variant="ghost"
-        className="h-7 shrink-0 gap-1 text-xs text-muted-foreground hover:text-yellow-500"
+        className="h-7 shrink-0 gap-1 text-xs text-muted-foreground hover:text-foreground"
         onClick={onAddToDay}
         title="Add to My Day focus"
         aria-label="Add to My Day focus"
@@ -185,7 +185,7 @@ export function MyDayContent() {
       <div className="border-b border-border/50 py-5">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Sun className="size-6 text-orange-500" />
+            <Sun className="size-6 text-muted-foreground" />
             <div>
               <h1 className="text-2xl font-bold tracking-tight font-heading">My Day</h1>
               <p className="text-sm text-muted-foreground">{today}</p>
@@ -261,7 +261,7 @@ export function MyDayContent() {
             {(todayCount > 0 || !planOpen) && (
               <section>
                 <SectionHeader
-                  accentClass="bg-amber-500"
+                  accentClass="bg-green-500"
                   title="Due Today"
                   totalCount={todayCount}
                   description="Tasks due today."
@@ -305,7 +305,7 @@ export function MyDayContent() {
             {(focusCount > 0 || !planOpen) && (
               <section>
                 <SectionHeader
-                  accentClass="bg-yellow-500"
+                  accentClass="bg-green-500"
                   title="Focus"
                   totalCount={focusCount}
                   description="Starred tasks for today's focus."

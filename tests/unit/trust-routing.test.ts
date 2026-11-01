@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { breadcrumbLabels, trustNavItems } from "@/components/layout/navigation";
 import { TrustPage } from "@/components/trust/trust-page";
 import { isActiveNavigationPath } from "@/lib/auth/auth-routing";
+import { Lock } from "lucide-react";
 
 export const TRUST_HREFS = [
   "/terms",
@@ -69,7 +70,7 @@ const renderTrust = (title: string, description: string) =>
   renderToStaticMarkup(
     createElement(
       TrustPage,
-      { emoji: "🔒", title, description },
+      { icon: Lock, title, description },
       createElement("p", null, "Body"),
     ),
   );
@@ -77,7 +78,7 @@ const renderTrust = (title: string, description: string) =>
 describe("TrustPage heading block", () => {
   it("copies the app h1 class string exactly (font-heading included)", () => {
     const html = renderTrust("Privacy", "d");
-    expect(html).toContain('class="text-2xl font-bold tracking-tight font-heading"');
+    expect(html).toContain('class="text-2xl font-semibold tracking-tight font-heading"');
     expect(html).toContain(">Privacy</h1>");
   });
 
@@ -95,7 +96,7 @@ describe("TrustPage heading block", () => {
     expect(html).toContain("legal-doc");
   });
 
-  it("marks the decorative emoji aria-hidden", () => {
+  it("marks the decorative icon aria-hidden", () => {
     expect(renderTrust("Privacy", "d")).toContain('aria-hidden="true"');
   });
 });

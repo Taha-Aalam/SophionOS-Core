@@ -430,7 +430,7 @@ export function ContactDetailContent() {
           {/* Stats row — bubble content matches ContactCard; tighter mobile padding */}
           <div className="flex gap-2 border-t px-4 py-2.5 sm:gap-3 sm:px-6 sm:py-3">
             <div className="flex-1 rounded-md border bg-muted/40 px-2.5 py-1.5 sm:px-3 sm:py-2">
-              <p className="mb-0.5 text-2xs uppercase tracking-wide text-muted-foreground">Last log</p>
+              <p className="mb-0.5 text-2xs text-muted-foreground">Last log</p>
               <p className="text-xs font-medium">
                 {contact.last_interaction_at
                   ? (() => {
@@ -441,7 +441,7 @@ export function ContactDetailContent() {
               </p>
             </div>
             <div className="flex-1 rounded-md border bg-muted/40 px-2.5 py-1.5 sm:px-3 sm:py-2">
-              <p className="mb-0.5 text-2xs uppercase tracking-wide text-muted-foreground">Follow-up</p>
+              <p className="mb-0.5 text-2xs text-muted-foreground">Follow-up</p>
               {(() => {
                 const daysUntil = contactService.computeDaysUntilFollowUp(
                   contact.last_interaction_at,

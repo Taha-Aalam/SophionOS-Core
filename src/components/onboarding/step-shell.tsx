@@ -28,7 +28,7 @@ export interface StepShellProps {
  * footer behave identically across the flow.
  */
 export function StepShell({
-  meta,
+  meta: { icon: Icon, title, subtitle },
   stepIndex,
   isFirstStep,
   isLastStep,
@@ -49,22 +49,24 @@ export function StepShell({
           <span
             key={s.step}
             className={cn(
-              "h-1.5 rounded-full transition-all",
+              "h-1.5 w-4 rounded-full transition-colors duration-200",
               i === stepIndex
-                ? "w-8 bg-primary"
+                ? "bg-primary"
                 : i < stepIndex
-                  ? "w-4 bg-primary/50"
-                  : "w-4 bg-muted",
+                  ? "bg-primary/50"
+                  : "bg-muted",
             )}
           />
         ))}
       </div>
 
       <div className="mb-6 text-center">
-        <div className="mb-3 text-3xl sm:text-4xl">{meta.icon}</div>
-        <h1 className="text-2xl font-semibold tracking-tight">{meta.title}</h1>
+        <div className="mb-3 flex justify-center">
+          <Icon className="size-8 text-muted-foreground sm:size-9" aria-hidden="true" />
+        </div>
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-          {meta.subtitle}
+          {subtitle}
         </p>
       </div>
 

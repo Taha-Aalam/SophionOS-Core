@@ -29,10 +29,10 @@ interface KanbanColumn {
 }
 
 const COLUMNS: KanbanColumn[] = [
-  { id: PROJECT_STATUS.PLANNING, color: "border-purple-500" },
-  { id: PROJECT_STATUS.ACTIVE, color: "border-green-500" },
+  { id: PROJECT_STATUS.PLANNING, color: "border-border" },
+  { id: PROJECT_STATUS.ACTIVE, color: "border-border" },
   { id: PROJECT_STATUS.COMPLETED, color: "border-border" },
-  { id: PROJECT_STATUS.ON_HOLD, color: "border-yellow-500" },
+  { id: PROJECT_STATUS.ON_HOLD, color: "border-border" },
 ];
 
 interface KanbanBoardProps {
@@ -149,11 +149,11 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
                                 // Only transition while idle. @hello-pangea/dnd
                                 // writes an inline `transform` every frame to
                                 // track the pointer; animating that transform
-                                // (transition-all) makes the card lag behind the
-                                // cursor, so disable transitions during drag.
+                                // makes the card lag behind the cursor, so
+                                // disable transitions during drag.
                                 draggableSnapshot.isDragging
                                   ? "shadow-soft-lg ring-2 ring-primary"
-                                  : "transition-all duration-300 shadow-soft hover:-translate-y-0.5 hover:shadow-soft-lg hover:ring-primary/30",
+                                  : "transition-colors duration-150 shadow-soft hover:shadow-soft-lg hover:ring-primary/30",
                               )}
                             >
                               <div className="space-y-2">
@@ -178,9 +178,9 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
                                     className={cn(
                                       "text-xs",
                                       project.priority === "high" &&
-                                        "border-orange-300 text-orange-600",
+                                        "border-orange-300 text-orange-700",
                                       project.priority === "medium" &&
-                                        "border-blue-300 text-blue-600",
+                                        "border-blue-300 text-blue-700",
                                       project.priority === "low" &&
                                         "border-border text-muted-foreground",
                                     )}

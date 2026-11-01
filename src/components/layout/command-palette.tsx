@@ -13,14 +13,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { AreaEmoji } from "@/components/layout/area-emoji";
-import { ContactsEmoji } from "@/components/layout/contacts-emoji";
-import { GoalEmoji } from "@/components/layout/goal-emoji";
-import { NoteEmoji } from "@/components/layout/note-emoji";
-import { ProjectEmoji } from "@/components/layout/project-emoji";
-import { ResourceEmoji } from "@/components/layout/resource-emoji";
-import { TagEmoji } from "@/components/layout/tag-emoji";
-import { TaskEmoji } from "@/components/layout/task-emoji";
+import { Map, NotebookPen, Users } from "lucide-react";
+
+import { ENTITY_ICONS } from "@/lib/constants/entity-icons";
 import { AreaDialog } from "@/components/entities/area-dialog";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { ProjectDialog } from "@/components/entities/project-dialog";
@@ -59,14 +54,14 @@ const CREATE_ACTIONS: Array<{
   label: string;
   Icon: ComponentType<{ className?: string }>;
 }> = [
-  { entity: "area", label: "Create area", Icon: AreaEmoji },
-  { entity: "goal", label: "Create goal", Icon: GoalEmoji },
-  { entity: "project", label: "Create project", Icon: ProjectEmoji },
-  { entity: "task", label: "Create task", Icon: TaskEmoji },
-  { entity: "note", label: "Create note", Icon: NoteEmoji },
-  { entity: "resource", label: "Create resource", Icon: ResourceEmoji },
-  { entity: "contact", label: "Create contact", Icon: ContactsEmoji },
-  { entity: "topic", label: "Create topic", Icon: TagEmoji },
+  { entity: "area", label: "Create area", Icon: Map },
+  { entity: "goal", label: "Create goal", Icon: ENTITY_ICONS.goal },
+  { entity: "project", label: "Create project", Icon: ENTITY_ICONS.project },
+  { entity: "task", label: "Create task", Icon: ENTITY_ICONS.task },
+  { entity: "note", label: "Create note", Icon: NotebookPen },
+  { entity: "resource", label: "Create resource", Icon: ENTITY_ICONS.resource },
+  { entity: "contact", label: "Create contact", Icon: Users },
+  { entity: "topic", label: "Create topic", Icon: ENTITY_ICONS.topic },
 ];
 
 export function CommandPalette() {
@@ -282,7 +277,7 @@ export function CommandPalette() {
                       closeCommandPalette();
                     }}
                   >
-                    <TaskEmoji className="size-4" />
+                    <ENTITY_ICONS.task className="size-4" />
                     {task.name}
                   </CommandItem>
                 ))}
@@ -297,7 +292,7 @@ export function CommandPalette() {
                     value={`goal-${goal.id}`}
                     onSelect={() => go(withReturnTo(buildGoalDetailHref(goal)))}
                   >
-                    <GoalEmoji className="size-4" />
+                    <ENTITY_ICONS.goal className="size-4" />
                     {goal.name}
                   </CommandItem>
                 ))}
@@ -312,7 +307,7 @@ export function CommandPalette() {
                     value={`project-${project.id}`}
                     onSelect={() => go(withReturnTo(buildProjectDetailHref(project)))}
                   >
-                    <ProjectEmoji className="size-4" />
+                    <ENTITY_ICONS.project className="size-4" />
                     {project.name}
                   </CommandItem>
                 ))}
@@ -336,7 +331,7 @@ export function CommandPalette() {
                         {area.icon}
                       </span>
                     ) : (
-                      <AreaEmoji className="size-4" />
+                      <Map className="size-4" />
                     )}
                     {area.name}
                   </CommandItem>
@@ -352,7 +347,7 @@ export function CommandPalette() {
                     value={`note-${note.id}`}
                     onSelect={() => go(withReturnTo(`/notes/${note.slug ?? note.id}`))}
                   >
-                    <NoteEmoji className="size-4" />
+                    <NotebookPen className="size-4" />
                     {note.name}
                   </CommandItem>
                 ))}
@@ -371,7 +366,7 @@ export function CommandPalette() {
                       closeCommandPalette();
                     }}
                   >
-                    <ResourceEmoji className="size-4" />
+                    <ENTITY_ICONS.resource className="size-4" />
                     {resource.name}
                   </CommandItem>
                 ))}
@@ -386,7 +381,7 @@ export function CommandPalette() {
                     value={`topic-${topic.id}`}
                     onSelect={() => go(withReturnTo(`/topics/${topic.slug ?? topic.id}`))}
                   >
-                    <TagEmoji className="size-4" />
+                    <ENTITY_ICONS.topic className="size-4" />
                     {topic.name}
                   </CommandItem>
                 ))}
@@ -401,7 +396,7 @@ export function CommandPalette() {
                     value={`contact-${contact.id}`}
                     onSelect={() => go(withReturnTo(`/contacts/${contact.slug ?? contact.id}`))}
                   >
-                    <ContactsEmoji className="size-4" />
+                    <Users className="size-4" />
                     {contact.name}
                   </CommandItem>
                 ))}

@@ -49,7 +49,7 @@ function MobileNavLink({
         onClick?.();
       }}
       className={cn(
-        "group/mnav relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-300 ease-[var(--ease-out-quint)]",
+        "group/mnav relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150 ease-[var(--ease-out-quint)]",
         isActive && !comingSoon
           ? "bg-accent text-accent-foreground"
           : comingSoon
@@ -116,7 +116,7 @@ export function MobileNav() {
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
           {policyMode ? (
             <div className="space-y-0.5">
-              <p className="mb-1 px-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="mb-1 px-2 text-2xs font-medium text-muted-foreground">
                 Policies
               </p>
               {trustNavItems.map((item) => (
@@ -126,7 +126,7 @@ export function MobileNav() {
           ) : (
             <>
               <div className="space-y-0.5">
-                <p className="mb-1 px-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="mb-1 px-2 text-2xs font-medium text-muted-foreground">
                   Core
                 </p>
                 {coreNavItems.map((item) => (
@@ -135,7 +135,7 @@ export function MobileNav() {
               </div>
 
               <div className="space-y-0.5">
-                <p className="mb-1 px-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="mb-1 px-2 text-2xs font-medium text-muted-foreground">
                   System
                 </p>
                 {systemNavItems.map((item) => (

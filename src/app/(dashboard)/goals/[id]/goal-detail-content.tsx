@@ -117,6 +117,7 @@ import { buildGroupSections } from "@/lib/utils/contact-category-sections";
 import { buildReturnTo, buildReturnToChain, encodeReturnTo, getRawReturnToChain, popReturnToHref, resolveGoalDetailNavigation } from "@/lib/utils/return-to";
 import { getTaskLinkedAreaIds, getTaskLinkedGoalIds, getTaskLinkedProjectIds } from "@/lib/utils/tasks";
 import { PRIORITY_COLORS, BADGE_COLOR } from "@/lib/constants/entity-colors";
+import { ENTITY_ICONS } from "@/lib/constants/entity-icons";
 
 const TERM_LABELS: Record<string, string> = {
   short: "Short Term",
@@ -129,13 +130,6 @@ const TERM_COLORS: Record<string, string> = {
   mid: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
   long: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
 };
-
-const TERM_EMOJIS: Record<string, string> = {
-  short: "⚡",
-  mid: "📅",
-  long: "🏔️",
-};
-
 
 function parseGoalDate(value: string): Date {
   const [year, month, day] = value.split("-").map(Number);
@@ -1215,7 +1209,7 @@ export function GoalDetailContent() {
                   strokeDasharray={32 * 2 * Math.PI}
                   strokeDashoffset={32 * 2 * Math.PI * (1 - goalProgressPercent / 100)}
                   strokeLinecap="round"
-                  className="text-primary transition-all duration-500"
+                  className="text-primary transition-[stroke-dashoffset] duration-500"
                 />
               </svg>
               <span className="absolute text-sm font-bold">{goalProgressPercent}%</span>
@@ -1243,9 +1237,9 @@ export function GoalDetailContent() {
                   );
                 })}
                 <Badge variant="outline" className={cn("h-5 text-xs px-1.5 py-0 items-center", TERM_COLORS[goal.term])}>
-                  {TERM_EMOJIS[goal.term] ? `${TERM_EMOJIS[goal.term]} ` : ""}{TERM_LABELS[goal.term] ?? goal.term}
+                  {TERM_LABELS[goal.term] ?? goal.term}
                 </Badge>
-                <Badge variant="outline" className={cn("h-5 text-xs px-1.5 py-0 uppercase items-center", PRIORITY_COLORS[goal.priority])}>
+                <Badge variant="outline" className={cn("h-5 text-xs px-1.5 py-0 items-center", PRIORITY_COLORS[goal.priority])}>
                   {goal.priority}
                 </Badge>
                 {goal.is_completed && (
@@ -1290,7 +1284,7 @@ export function GoalDetailContent() {
           </Button>
         </div>
 
-        {/* Goal Activity Rollups — mobile: emoji + count (GoalCard); desktop: bubble chips */}
+        {/* Goal Activity Rollups — mobile: icon + count (GoalCard); desktop: bubble chips */}
         <div className="flex flex-wrap items-center gap-4 px-4 pb-4 text-sm text-muted-foreground sm:hidden">
           <button
             type="button"
@@ -1298,7 +1292,7 @@ export function GoalDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Projects"
           >
-            <span className="text-xs">📁</span>
+            <ENTITY_ICONS.project className="size-3.5 text-muted-foreground" />
             <span>{goal?.projectCount ?? 0}</span>
           </button>
           <button
@@ -1307,7 +1301,7 @@ export function GoalDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Tasks"
           >
-            <span className="text-xs">☑️</span>
+            <ENTITY_ICONS.task className="size-3.5 text-muted-foreground" />
             <span>{goal?.taskCount ?? 0}</span>
           </button>
           <button
@@ -1316,7 +1310,7 @@ export function GoalDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Notes"
           >
-            <span className="text-xs">📝</span>
+            <ENTITY_ICONS.note className="size-3.5 text-muted-foreground" />
             <span>{goal?.noteCount ?? 0}</span>
           </button>
           <button
@@ -1325,7 +1319,7 @@ export function GoalDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Resources"
           >
-            <span className="text-xs">🔗</span>
+            <ENTITY_ICONS.resource className="size-3.5 text-muted-foreground" />
             <span>{goal?.resourceCount ?? 0}</span>
           </button>
         </div>
@@ -1335,7 +1329,7 @@ export function GoalDetailContent() {
             onClick={() => scrollToSection("projects")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
-            <span className="font-medium text-blue-600 dark:text-blue-400">
+            <span className="tabular-nums text-foreground">
               {goal?.projectCount ?? 0}
             </span>
             <span className="text-muted-foreground">Projects</span>
@@ -1345,7 +1339,7 @@ export function GoalDetailContent() {
             onClick={() => scrollToSection("tasks")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
-            <span className="font-medium text-green-600 dark:text-green-400">
+            <span className="tabular-nums text-foreground">
               {goal?.taskCount ?? 0}
             </span>
             <span className="text-muted-foreground">Tasks</span>
@@ -1355,7 +1349,7 @@ export function GoalDetailContent() {
             onClick={() => scrollToSection("notes")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
-            <span className="font-medium text-purple-600 dark:text-purple-400">
+            <span className="tabular-nums text-foreground">
               {goal?.noteCount ?? 0}
             </span>
             <span className="text-muted-foreground">Notes</span>
@@ -1365,7 +1359,7 @@ export function GoalDetailContent() {
             onClick={() => scrollToSection("resources")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
-            <span className="font-medium text-orange-600 dark:text-orange-400">
+            <span className="tabular-nums text-foreground">
               {goal?.resourceCount ?? 0}
             </span>
             <span className="text-muted-foreground">Resources</span>

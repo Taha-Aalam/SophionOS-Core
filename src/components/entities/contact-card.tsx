@@ -184,7 +184,7 @@ export function ContactCard({
         </div>
         <div className="mt-3 flex items-stretch gap-2">
           <div className="flex-1 rounded-md border bg-muted/40 px-3 py-2">
-            <p className="text-2xs text-muted-foreground uppercase tracking-wide mb-0.5">Last log</p>
+            <p className="text-2xs text-muted-foreground mb-0.5">Last log</p>
             <p className="text-xs font-medium">
               {contact.last_interaction_at
                 ? (() => {
@@ -196,7 +196,7 @@ export function ContactCard({
           </div>
 
           <div className="flex-1 rounded-md border bg-muted/40 px-3 py-2">
-            <p className="text-2xs text-muted-foreground uppercase tracking-wide mb-0.5">Follow-up</p>
+            <p className="text-2xs text-muted-foreground mb-0.5">Follow-up</p>
             {(() => {
               if (!contact.last_interaction_at && contact.follow_up_interval_days) {
                 return <p className="text-xs font-medium text-destructive">Overdue</p>;

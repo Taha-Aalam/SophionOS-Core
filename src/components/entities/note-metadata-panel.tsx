@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BookOpen, Check, ChevronDownIcon, Map, Pin, Star, Target, X } from "lucide-react";
+import { BookOpen, Check, ChevronDownIcon, Map, Notebook, Pin, Star, Target, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -385,7 +385,7 @@ export function NoteMetadataPanel({
           <div className="flex flex-wrap gap-1.5 pt-1">
             {notebooks.map((nb) => (
               <Badge key={nb} variant="secondary" className="flex items-center gap-1">
-                <span aria-hidden="true">📓</span>
+                <Notebook className="size-3" aria-hidden="true" />
                 <span className="max-w-[120px] truncate">{nb}</span>
                 <button
                   type="button"
@@ -645,7 +645,7 @@ function GoalSelector({
                 >
                   <Checkbox checked={selectedSet.has(goal.id)} />
                   <span className="flex-1 truncate text-sm">{goal.name}</span>
-                  <Badge variant="outline" className="text-2xs uppercase">
+                  <Badge variant="outline" className="text-2xs capitalize">
                     {goal.term}
                   </Badge>
                   {selectedSet.has(goal.id) && <Check className="size-3.5" />}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo } from "react";
-import { Calendar, Map, Pencil, Star } from "lucide-react";
+import { Calendar, Folder, Map, Pencil, Star, Target } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -148,7 +148,7 @@ export function TaskListItemComponent({
         )}
         {displayGoalNames.slice(0, 2).map((name, index) => (
           <Badge key={`goal-${index}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">🎯</span>
+            <Target className="size-3" />
             {name}
           </Badge>
         ))}
@@ -159,7 +159,7 @@ export function TaskListItemComponent({
         )}
         {displayProjectNames.slice(0, 2).map((name, index) => (
           <Badge key={`project-${index}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">📁</span>
+            <Folder className="size-3" />
             {name}
           </Badge>
         ))}

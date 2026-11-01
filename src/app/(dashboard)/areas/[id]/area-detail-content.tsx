@@ -97,6 +97,7 @@ import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { normalizeAreaType, classifyAreaStatus, type AreaStatus } from "@/lib/utils/areas";
 import { AREA_TYPE_COLORS, AREA_TYPE_FALLBACK } from "@/lib/constants/entity-colors";
+import { ENTITY_ICONS } from "@/lib/constants/entity-icons";
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 import { buildReturnTo, buildReturnToChain, encodeReturnTo, getRawReturnToChain, popReturnToHref } from "@/lib/utils/return-to";
 import {
@@ -1057,7 +1058,7 @@ export function AreaDetailContent() {
           </Button>
         </div>
 
-        {/* Activity Rollups — mobile: emoji + count (AreaCard); desktop: bubble chips */}
+        {/* Activity Rollups — mobile: icon + count (AreaCard); desktop: bubble chips */}
         <div className="flex flex-wrap items-center gap-4 px-4 pb-4 text-sm text-muted-foreground sm:hidden">
           <button
             type="button"
@@ -1065,7 +1066,7 @@ export function AreaDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Goals"
           >
-            <span className="text-xs">🎯</span>
+            <ENTITY_ICONS.goal className="size-3.5 text-muted-foreground" />
             <span>{rollups.goalCount}</span>
           </button>
           <button
@@ -1074,7 +1075,7 @@ export function AreaDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Projects"
           >
-            <span className="text-xs">📁</span>
+            <ENTITY_ICONS.project className="size-3.5 text-muted-foreground" />
             <span>{rollups.projectCount}</span>
           </button>
           <button
@@ -1083,7 +1084,7 @@ export function AreaDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Tasks"
           >
-            <span className="text-xs">☑️</span>
+            <ENTITY_ICONS.task className="size-3.5 text-muted-foreground" />
             <span>{rollups.taskCount}</span>
           </button>
           <button
@@ -1092,7 +1093,7 @@ export function AreaDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Notes"
           >
-            <span className="text-xs">📝</span>
+            <ENTITY_ICONS.note className="size-3.5 text-muted-foreground" />
             <span>{rollups.noteCount}</span>
           </button>
           <button
@@ -1101,7 +1102,7 @@ export function AreaDetailContent() {
             className="flex items-center gap-1 transition-colors hover:text-foreground"
             title="Resources"
           >
-            <span className="text-xs">🔗</span>
+            <ENTITY_ICONS.resource className="size-3.5 text-muted-foreground" />
             <span>{rollups.resourceCount}</span>
           </button>
         </div>
@@ -1111,7 +1112,7 @@ export function AreaDetailContent() {
             onClick={() => scrollToSection("goals")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
-            <span className="font-medium text-blue-600 dark:text-blue-400">
+            <span className="tabular-nums text-foreground">
               {rollups.goalCount}
             </span>
             <span className="text-muted-foreground">Goals</span>
@@ -1121,7 +1122,7 @@ export function AreaDetailContent() {
             onClick={() => scrollToSection("projects")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
-            <span className="font-medium text-green-600 dark:text-green-400">
+            <span className="tabular-nums text-foreground">
               {rollups.projectCount}
             </span>
             <span className="text-muted-foreground">Projects</span>
@@ -1131,7 +1132,7 @@ export function AreaDetailContent() {
             onClick={() => scrollToSection("tasks")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
-            <span className="font-medium text-purple-600 dark:text-purple-400">
+            <span className="tabular-nums text-foreground">
               {rollups.taskCount}
             </span>
             <span className="text-muted-foreground">Tasks</span>
@@ -1141,7 +1142,7 @@ export function AreaDetailContent() {
             onClick={() => scrollToSection("notes")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
-            <span className="font-medium text-orange-600 dark:text-orange-400">
+            <span className="tabular-nums text-foreground">
               {rollups.noteCount}
             </span>
             <span className="text-muted-foreground">Notes</span>
@@ -1151,7 +1152,7 @@ export function AreaDetailContent() {
             onClick={() => scrollToSection("resources")}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
-            <span className="font-medium text-orange-600 dark:text-orange-400">
+            <span className="tabular-nums text-foreground">
               {rollups.resourceCount}
             </span>
             <span className="text-muted-foreground">Resources</span>

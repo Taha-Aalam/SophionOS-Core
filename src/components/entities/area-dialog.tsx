@@ -178,8 +178,8 @@ export function AreaDialog({
             <div className="flex flex-wrap gap-2">
               {AREA_COLORS.map((color) => (
                 <button key={color} type="button" onClick={() => setValue("color", color)}
-                  className={cn("w-8 h-8 rounded-full transition-all",
-                    selectedColor === color ? "ring-2 ring-offset-2 ring-primary ring-offset-background" : "hover:scale-110")}
+                  className={cn("w-8 h-8 rounded-full transition-colors",
+                    selectedColor === color && "ring-2 ring-offset-2 ring-primary ring-offset-background")}
                   style={{ backgroundColor: color }} />
               ))}
             </div>
