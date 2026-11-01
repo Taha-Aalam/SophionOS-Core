@@ -132,7 +132,7 @@ function CollapsibleTopicGroup({
           ))}
           <button
             onClick={() => onCreateNew(areaId)}
-            className="flex flex-col items-center justify-center gap-2 h-full min-h-[120px] rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-all text-muted-foreground hover:text-foreground cursor-pointer"
+            className="flex flex-col items-center justify-center gap-2 h-full min-h-[120px] rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
           >
             <Plus className="size-6" />
             <span className="text-sm font-medium">New Topic</span>
@@ -310,9 +310,9 @@ export function TopicsContent() {
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="text-2xl leading-none" aria-hidden="true">🏷️</span>
+          <Tag className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Topics</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Topics</h1>
             <p className="text-sm text-muted-foreground">
               {topics.length} {topics.length === 1 ? "topic" : "topics"}
             </p>

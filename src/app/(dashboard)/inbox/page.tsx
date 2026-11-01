@@ -16,6 +16,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/views/empty-state";
 import { ErrorState } from "@/components/views/error-state";
+import { BADGE_COLOR } from "@/lib/constants/entity-colors";
+import { ENTITY_ICONS } from "@/lib/constants/entity-icons";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import {
@@ -43,11 +45,11 @@ import { TaskProcessForm } from "@/components/entities/inbox-task-process-form";
 import { NoteInboxProcessForm } from "@/components/entities/note-inbox-process-form";
 import { ResourceInboxProcessForm } from "@/components/entities/resource-inbox-process-form";
 
-// Entity-type icons — match the emoji rollups used on project-card / area-card.
-const PROJECT_ICON = "📁";
-const TASK_ICON = "☑️";
-const NOTE_ICON = "📝";
-const RESOURCE_ICON = "🔗";
+// Entity-type icons — canonical lucide glyphs from the shared entity-icon map.
+const PROJECT_ICON = ENTITY_ICONS.project;
+const TASK_ICON = ENTITY_ICONS.task;
+const NOTE_ICON = ENTITY_ICONS.note;
+const RESOURCE_ICON = ENTITY_ICONS.resource;
 
 // ─── Compact DropdownMenu multi-select (matches project/task-dialog style) ─
 
@@ -318,9 +320,9 @@ function ProjectProcessForm({
       <div className="flex items-center justify-between gap-2 pt-1">
         <Badge
           variant="secondary"
-          className="gap-1 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
+          className={cn("gap-1", BADGE_COLOR.orange)}
         >
-          {PROJECT_ICON} project
+          <PROJECT_ICON className="size-3" aria-hidden="true" /> project
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button
@@ -376,9 +378,9 @@ function InboxProjectRow({
       <div className="flex items-center gap-3">
         <Badge
           variant="secondary"
-          className="shrink-0 gap-1 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
+          className={cn("shrink-0 gap-1", BADGE_COLOR.orange)}
         >
-          <span className="text-xs">{PROJECT_ICON}</span> project
+          <PROJECT_ICON className="size-3" aria-hidden="true" /> project
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{project.name}</span>
@@ -447,9 +449,9 @@ function InboxTaskRow({
       <div className="flex items-center gap-3">
         <Badge
           variant="secondary"
-          className="shrink-0 gap-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+          className={cn("shrink-0 gap-1", BADGE_COLOR.blue)}
         >
-          <span className="text-xs">{TASK_ICON}</span> task
+          <TASK_ICON className="size-3" aria-hidden="true" /> task
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{task.name}</span>
@@ -529,9 +531,9 @@ function InboxNoteRow({
       <div className="flex items-center gap-3">
         <Badge
           variant="secondary"
-          className="shrink-0 gap-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+          className={cn("shrink-0 gap-1", BADGE_COLOR.purple)}
         >
-          <span className="text-xs">{NOTE_ICON}</span> note
+          <NOTE_ICON className="size-3" aria-hidden="true" /> note
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{note.name}</span>
@@ -618,9 +620,9 @@ function InboxResourceRow({
       <div className="flex items-center gap-3">
         <Badge
           variant="secondary"
-          className="shrink-0 gap-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+          className={cn("shrink-0 gap-1", BADGE_COLOR.green)}
         >
-          <span className="text-xs">{RESOURCE_ICON}</span> resource
+          <RESOURCE_ICON className="size-3" aria-hidden="true" /> resource
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{resource.name}</span>
@@ -801,9 +803,9 @@ export default function InboxPage() {
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
-          <span className="text-2xl leading-none" aria-hidden="true">📥</span>
+          <InboxIcon className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Inbox</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Inbox</h1>
             <p className="text-sm text-muted-foreground">
               {isLoading
                 ? "Loading…"
@@ -832,10 +834,10 @@ export default function InboxPage() {
           <>
             {inboxProjects.length > 0 && (
               <section className="flex flex-col gap-2">
-                <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  <span className="text-xs">{PROJECT_ICON}</span>
+                <h2 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                  <PROJECT_ICON className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                   Projects
-                  <span className="ml-0.5 font-normal normal-case">({inboxProjects.length})</span>
+                  <span className="ml-0.5 font-normal">({inboxProjects.length})</span>
                 </h2>
                 <div className="flex flex-col gap-2">
                   {inboxProjects.map((project) => (
@@ -855,10 +857,10 @@ export default function InboxPage() {
 
             {inboxTasks.length > 0 && (
               <section className="flex flex-col gap-2">
-                <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  <span className="text-xs">{TASK_ICON}</span>
+                <h2 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                  <TASK_ICON className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                   Tasks
-                  <span className="ml-0.5 font-normal normal-case">({inboxTasks.length})</span>
+                  <span className="ml-0.5 font-normal">({inboxTasks.length})</span>
                 </h2>
                 <div className="flex flex-col gap-2">
                   {inboxTasks.map((task) => (
@@ -879,10 +881,10 @@ export default function InboxPage() {
 
             {inboxNotes.length > 0 && (
               <section className="flex flex-col gap-2">
-                <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  <span className="text-xs">{NOTE_ICON}</span>
+                <h2 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                  <NOTE_ICON className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                   Notes
-                  <span className="ml-0.5 font-normal normal-case">({inboxNotes.length})</span>
+                  <span className="ml-0.5 font-normal">({inboxNotes.length})</span>
                 </h2>
                 <div className="flex flex-col gap-2">
                   {inboxNotes.map((note) => (
@@ -911,10 +913,10 @@ export default function InboxPage() {
 
             {inboxResources.length > 0 && (
               <section className="flex flex-col gap-2">
-                <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  <span className="text-xs">{RESOURCE_ICON}</span>
+                <h2 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                  <RESOURCE_ICON className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                   Resources
-                  <span className="ml-0.5 font-normal normal-case">({inboxResources.length})</span>
+                  <span className="ml-0.5 font-normal">({inboxResources.length})</span>
                 </h2>
                 <div className="flex flex-col gap-2">
                   {inboxResources.map((resource) => (

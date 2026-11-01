@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Crown, Rocket, Sparkles, X } from "lucide-react";
+import { Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -66,11 +66,11 @@ const TIER_FEATURES: Record<string, string[]> = {
   ],
 };
 
-const TIER_LABELS: Record<string, { name: string; icon: React.ReactNode; color: string }> = {
-  free: { name: "Free", icon: <X className="size-4" />, color: "text-muted-foreground" },
-  pro: { name: "Pro", icon: <Crown className="size-4 text-amber-500" />, color: "text-amber-600 dark:text-amber-400" },
-  lifetime: { name: "Lifetime", icon: <Sparkles className="size-4 text-purple-500" />, color: "text-purple-600 dark:text-purple-400" },
-  max: { name: "Max", icon: <Rocket className="size-4 text-rose-500" />, color: "text-rose-600 dark:text-rose-400" },
+const TIER_LABELS: Record<string, { name: string }> = {
+  free: { name: "Free" },
+  pro: { name: "Pro" },
+  lifetime: { name: "Lifetime" },
+  max: { name: "Max" },
 };
 
 export function BillingContent() {
@@ -140,12 +140,7 @@ export function BillingContent() {
       {/* Current plan */}
       <Card>
         <CardHeader className="space-y-3">
-          <div className="flex items-center gap-2">
-            {info.icon}
-            <CardTitle className={`text-2xl ${info.color}`}>
-              {info.name}
-            </CardTitle>
-          </div>
+          <CardTitle className="text-2xl">{info.name}</CardTitle>
           <CardDescription>
             {tier === "free"
               ? "Full dashboard access with core features. Upgrade for MCP, API, and advanced capabilities."
@@ -153,7 +148,7 @@ export function BillingContent() {
                 ? "Pro adds MCP server access, API access, and advanced analytics."
                 : tier === "lifetime"
                   ? "One-time payment, lifetime Pro features and unlimited API keys."
-                  : "The ultimate tier with highest limits and dedicated support."}
+                  : "Highest entity limits with a dedicated support channel."}
           </CardDescription>
         </CardHeader>
         <CardContent>

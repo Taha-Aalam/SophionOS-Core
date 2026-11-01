@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, BookOpen, Inbox, Library, Sparkles } from "lucide-react";
+import { Archive, BookOpen, Inbox, Library, NotebookPen } from "lucide-react";
 
 import { AnalyticsPanel } from "@/components/dashboard/analytics/analytics-panel";
 import type { DashboardAnalytics } from "@/lib/analytics/dashboard-analytics";
@@ -15,7 +15,7 @@ export function KnowledgePipeline({ pipeline }: KnowledgePipelineProps) {
     {
       label: "Captured",
       value: pipeline.capturedToday,
-      icon: Sparkles,
+      icon: NotebookPen,
       iconClass: "text-analytics-accent",
     },
     {

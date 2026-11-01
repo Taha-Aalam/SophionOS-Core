@@ -115,9 +115,9 @@ export function GoalsContent() {
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-2xl leading-none" aria-hidden="true">🎯</span>
+          <Target className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Goals</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Goals</h1>
             <p className="text-muted-foreground">Track and achieve your long-term objectives.</p>
           </div>
         </div>

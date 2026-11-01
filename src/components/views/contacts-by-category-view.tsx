@@ -85,7 +85,7 @@ function CollapsibleContactSection({
           <button
             type="button"
             onClick={() => onCreateInSection(section)}
-            className="flex h-full min-h-48 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border text-muted-foreground transition-all hover:border-primary/50 hover:bg-muted/50 hover:text-foreground"
+            className="flex h-full min-h-48 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/50 hover:text-foreground"
           >
             <Plus className="size-8" />
             <span className="text-sm font-medium">{section.createLabel}</span>

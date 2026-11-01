@@ -5,11 +5,12 @@ interface GreetingBarProps {
   activeTaskCount?: number;
 }
 
-export function GreetingBar({ userName, activeTaskCount }: GreetingBarProps) {
-  const firstName = userName?.split(" ")[0];
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const headline = firstName ? `${greeting}, ${firstName}` : greeting;
+export function GreetingBar({ activeTaskCount }: GreetingBarProps) {
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 
   const taskPhrase =
     typeof activeTaskCount === "number"
@@ -19,7 +20,7 @@ export function GreetingBar({ userName, activeTaskCount }: GreetingBarProps) {
   return (
     <header className="space-y-1.5">
       <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
-        {headline}
+        {today}
       </h1>
       <p className="max-w-xl text-sm leading-relaxed text-muted-foreground transition-colors duration-200 ease-[var(--ease-out-quint)]">
         {taskPhrase

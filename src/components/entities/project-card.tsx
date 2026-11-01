@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Calendar, RotateCcw } from "lucide-react";
+import { Archive, Calendar, Folder, RotateCcw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
 import ProgressRing from "@/components/charts/progress-ring";
 import { buildProjectDetailHref } from "@/lib/utils/project-urls";
 import { PRIORITY_COLORS, STATUS_COLORS } from "@/lib/constants/entity-colors";
+import { ENTITY_ICONS } from "@/lib/constants/entity-icons";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
 import { useClickableProps } from "@/components/ui/clickable";
@@ -54,13 +55,6 @@ interface ProjectCardProps {
    */
   rollups?: ProjectCardRollups;
 }
-
-const STATUS_EMOJIS: Record<string, string> = {
-  planning: "📝",
-  active: "🚀",
-  on_hold: "⏸️",
-  completed: "✅",
-};
 
 const BADGE_CLS = "h-5 text-2xs leading-none px-1.5 py-0 items-center";
 
@@ -120,7 +114,7 @@ export function ProjectCard({
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-base leading-none">📁</span>
+              <Folder className="size-4 shrink-0 text-muted-foreground" />
               <h3 className="font-medium truncate text-sm">{project.name}</h3>
               {duplicateIndex != null && duplicateIndex > 1 && (
                 <Badge
@@ -148,7 +142,6 @@ export function ProjectCard({
                 variant="outline"
                 className={cn(BADGE_CLS, "capitalize", STATUS_COLORS[project.status])}
               >
-                {STATUS_EMOJIS[project.status] ? `${STATUS_EMOJIS[project.status]} ` : ""}
                 {getProjectStatusLabel(project.status)}
               </Badge>
               <Badge
@@ -174,19 +167,19 @@ export function ProjectCard({
 
         <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1 whitespace-nowrap" title="Goals">
-            <span className="text-xs">🎯</span>
+            <ENTITY_ICONS.goal className="size-3.5 text-muted-foreground" />
             <span>{resolvedRollups.goalCount}</span>
           </span>
           <span className="flex items-center gap-1 whitespace-nowrap" title="Tasks">
-            <span className="text-xs">☑️</span>
+            <ENTITY_ICONS.task className="size-3.5 text-muted-foreground" />
             <span>{resolvedRollups.taskCount}</span>
           </span>
           <span className="flex items-center gap-1 whitespace-nowrap" title="Notes">
-            <span className="text-xs">📝</span>
+            <ENTITY_ICONS.note className="size-3.5 text-muted-foreground" />
             <span>{resolvedRollups.noteCount}</span>
           </span>
           <span className="flex items-center gap-1 whitespace-nowrap" title="Resources">
-            <span className="text-xs">🔗</span>
+            <ENTITY_ICONS.resource className="size-3.5 text-muted-foreground" />
             <span>{resolvedRollups.resourceCount}</span>
           </span>
         </div>

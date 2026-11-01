@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { BookOpen, X } from "lucide-react";
+import { BookOpen, NotebookPen, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -37,7 +37,7 @@ import {
 } from "@/lib/utils/resource-dialog-filters";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
 
-const NOTE_ICON = "📝";
+const NOTE_ICON = NotebookPen;
 
 interface NoteInboxProcessFormProps {
   note: Note;
@@ -458,7 +458,7 @@ export function NoteInboxProcessForm({
           variant="secondary"
           className="gap-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
         >
-          {NOTE_ICON} note
+          <NOTE_ICON className="size-3" /> note
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button

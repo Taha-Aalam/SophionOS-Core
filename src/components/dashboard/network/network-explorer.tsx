@@ -417,7 +417,7 @@ export function NetworkExplorer(props: NetworkExplorerProps) {
                 Open {selected.type}
               </Button>
               <div>
-                <h3 className="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                <h3 className="mb-1.5 text-xs font-semibold text-muted-foreground">
                   Connected to
                 </h3>
                 {selectedNeighbors.length === 0 ? (

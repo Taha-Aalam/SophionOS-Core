@@ -361,9 +361,9 @@ export function NotesContent() {
     <div className={NOTES_PAGE_SHELL_CLASS_NAME}>
       <div className="flex items-center justify-between border-b border-border/50">
         <div className="flex items-center gap-3">
-          <span className="text-2xl leading-none" aria-hidden="true">📝</span>
+          <NotebookPen className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Notes</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Notes</h1>
             <p className="text-sm text-muted-foreground" suppressHydrationWarning>
               {formatNotesSummary(counts.all, counts.archived)}
             </p>

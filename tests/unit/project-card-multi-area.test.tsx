@@ -79,12 +79,13 @@ describe("ProjectCard metadata layout", () => {
         }}
       />,
     );
-    expect(html).toContain("🎯");
+    // Rollup counts render with lucide line icons, not emoji.
+    expect(html).toContain("lucide-target");
     expect(html).toContain("3");
     expect(html).toContain("5");
-    expect(html).toContain("📝");
+    expect(html).toContain("lucide-notebook-pen");
     expect(html).toContain("2");
-    expect(html).toContain("🔗");
+    expect(html).toContain("lucide-link-2");
     expect(html).toContain("1");
   });
 
@@ -100,7 +101,7 @@ describe("ProjectCard metadata layout", () => {
         }}
       />,
     );
-    expect(html).toContain("🎯");
+    expect(html).toContain("lucide-target");
     expect(html).toContain("1");
     expect(html).toContain("d left");
   });
@@ -117,17 +118,14 @@ it("shows all relationship counts even when some are zero", () => {
         }}
       />
     );
-    expect(html).toContain("🎯");
-    expect(html).toContain("0");
-    expect(html).toContain("☑️");
-    expect(html).toContain("0");
-    expect(html).toContain("📝");
-    expect(html).toContain("0");
-    expect(html).toContain("🔗");
+    expect(html).toContain("lucide-target");
+    expect(html).toContain("lucide-square-check");
+    expect(html).toContain("lucide-notebook-pen");
+    expect(html).toContain("lucide-link-2");
     expect(html).toContain("0");
   });
 
-  it("uses the emoji-style task icon (☑️) matching area cards", () => {
+  it("uses the line-style task icon matching area cards", () => {
     const html = renderToStaticMarkup(
       <ProjectCard
         project={createProject()}
@@ -139,7 +137,7 @@ it("shows all relationship counts even when some are zero", () => {
         }}
       />
     );
-    expect(html).toContain("☑️");
+    expect(html).toContain("lucide-square-check");
     expect(html).toContain("3");
   });
 });

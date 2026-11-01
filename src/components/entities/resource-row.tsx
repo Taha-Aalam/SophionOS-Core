@@ -4,9 +4,13 @@ import React from "react";
 import {
   Archive,
   ArchiveRestore,
+  CheckSquare,
+  Folder,
   Map as LucideMap,
   Pencil,
   Star,
+  Tag,
+  Target,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -110,7 +114,7 @@ export function ResourceRow({
       <div className="hidden md:flex shrink-0 items-center gap-1 flex-wrap">
         {topicName && (
           <Badge variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">🏷️</span>
+            <Tag className="size-3" />
             {topicName}
           </Badge>
         )}
@@ -131,7 +135,7 @@ export function ResourceRow({
         )}
         {goalNames.slice(0, 2).map((name) => (
           <Badge key={`${resource.id}-goal-${name}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">🎯</span>
+            <Target className="size-3" />
             {name}
           </Badge>
         ))}
@@ -142,7 +146,7 @@ export function ResourceRow({
         )}
         {projectNames.slice(0, 2).map((name) => (
           <Badge key={`${resource.id}-project-${name}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">📁</span>
+            <Folder className="size-3" />
             {name}
           </Badge>
         ))}
@@ -153,7 +157,7 @@ export function ResourceRow({
         )}
         {taskNames.slice(0, 2).map((name) => (
           <Badge key={`${resource.id}-task-${name}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">☑️</span>
+            <CheckSquare className="size-3" />
             {name}
           </Badge>
         ))}

@@ -163,9 +163,9 @@ export function ContactsContent() {
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div className="flex items-start justify-between border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
-          <span className="text-2xl leading-none" aria-hidden="true">👥</span>
+          <Users className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Contacts</h1>
             <p className="text-sm text-muted-foreground">
               {allContacts.length === 0
                 ? "No contacts yet. Add your first one to start tracking relationships"

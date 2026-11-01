@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { X } from "lucide-react";
+import { Folder, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -606,7 +606,7 @@ export function ResourceDialog({
                 <div className="flex flex-wrap gap-2 pt-1">
                   {selectedProjects.map((project) => (
                     <Badge key={project.id} variant="secondary" className="flex items-center gap-1">
-                      <span className="text-xs leading-none">📁</span>
+                      <Folder className="size-3 text-muted-foreground" />
                       {project.name}
                       <button
                         type="button"
