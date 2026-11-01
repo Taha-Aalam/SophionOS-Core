@@ -16,7 +16,7 @@ export type FeatureFlag = "cloud_later" | "sop_cloud";
  * - sop_cloud: shows the Billing settings tab (plan, usage, upgrades).
  */
 export const FEATURE_FLAGS: Record<FeatureFlag, boolean> = {
-  cloud_later: false,
+  cloud_later: true,
   sop_cloud: false,
 };
 

@@ -7,12 +7,16 @@ import {
   recordDelivery as recordDeliveryDb,
 } from "./delivery-log";
 import { sendBriefEmail } from "./email";
+import { narrateBrief, type NarrationOutcome } from "./narrate";
 import { kindsDueForUser, type NotificationPrefs } from "./schedule";
 import { resolveUserEmail } from "./resolve-email";
 import type { BriefKind, DeliveryStatus } from "./types";
 
 const MAX_SENDS_PER_RUN = 50;
-const DEFAULT_WINDOW_MINUTES = 15;
+// The cron route runs with maxDuration = 60s; narration must stop early
+// enough for the deterministic fallback to still send (narrate declines
+// inside a 10s margin, so the effective budget here is 45s).
+const RUN_BUDGET_MS = 45_000;
 
 export interface BriefDispatchDeps {
   listNotificationCandidates: () => Promise<
@@ -41,8 +45,14 @@ export interface BriefDispatchDeps {
     error?: string | null;
     payload?: Record<string, unknown> | null;
   }) => Promise<void>;
+  /** Optional AI narration; null/error degrades to the deterministic brief. */
+  narrate?: (input: {
+    userId: string;
+    kind: BriefKind;
+    today: TodayData;
+    localDate: string;
+  }) => Promise<NarrationOutcome | null>;
   appUrl: string;
-  windowMinutes: number;
   now?: Date;
   maxSendsPerRun?: number;
 }
@@ -88,7 +98,6 @@ export async function runBriefDispatch(
         prefs: candidate.prefs,
         timezone: candidate.timezone,
         now,
-        windowMinutes: deps.windowMinutes,
       });
 
       for (const due of dueList) {
@@ -145,11 +154,34 @@ export async function runBriefDispatch(
 
         try {
           const today = await deps.loadToday(candidate.userId);
+
+          // Narration is additive: null or a throw must never block the send.
+          let narration: NarrationOutcome | null = null;
+          let fallbackReason: string | undefined;
+          if (deps.narrate) {
+            try {
+              narration = await deps.narrate({
+                userId: candidate.userId,
+                kind: due.kind,
+                today,
+                localDate: due.localDate,
+              });
+              if (!narration) fallbackReason = "narration_unavailable";
+            } catch (err) {
+              fallbackReason = "narration_error";
+              console.error(
+                `[briefs] narration threw for candidate ${candidate.userId}`,
+                err,
+              );
+            }
+          }
+
           const mail = composeBriefEmail({
             kind: due.kind,
             today,
             appUrl: deps.appUrl,
             localDate: due.localDate,
+            narration,
           });
           const sendResult = await deps.sendEmail({ to: email, mail });
           await bestEffortRecordDelivery(deps, candidate.userId, due.kind, due.localDate, {
@@ -157,6 +189,9 @@ export async function runBriefDispatch(
             payload: {
               resend_id: sendResult.id,
               configured_time: due.configuredTime,
+              narrated: Boolean(narration),
+              narration_provider: narration?.provider ?? null,
+              fallback_reason: fallbackReason ?? null,
             },
           });
           result.sent += 1;
@@ -272,6 +307,7 @@ export function createDefaultBriefDispatchDeps(
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
     "http://localhost:3000";
+  const runDeadlineAt = Date.now() + RUN_BUDGET_MS;
 
   return {
     listNotificationCandidates: () => listNotificationCandidates(admin),
@@ -281,7 +317,8 @@ export function createDefaultBriefDispatchDeps(
     resolveEmail: resolveUserEmail,
     sendEmail: ({ to, mail }) => sendBriefEmail({ to, mail }),
     recordDelivery: (args) => recordDeliveryDb(admin, args),
+    narrate: (input) =>
+      narrateBrief({ ...input, deadlineAt: runDeadlineAt }, { supabase: admin }),
     appUrl,
-    windowMinutes: DEFAULT_WINDOW_MINUTES,
   };
 }

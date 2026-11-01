@@ -11,7 +11,9 @@ import { describe, expect, it } from "vitest";
  * corrected, so both repos assert the same contract.
  *
  * These assertions are about product truth, not formatting:
- *  - the version/effective stamp is 2.1 / October 19, 2026 on all four;
+ *  - each page carries a stamped version/effective date (see STAMPS below;
+ *    data-and-ai advanced to 2.2 when the BYOAK brief-summary disclosure
+ *    shipped, the rest remain 2.1);
  *  - the legacy tier names never appear (the operator ruled them out of every
  *    policy page);
  *  - each page says the specific things it is supposed to say, so a future
@@ -41,13 +43,23 @@ const ALL = [
   ["responsible-disclosure", DISCLOSURE],
 ] as const;
 
+// Per-page stamp expectations. data-and-ai advanced to v2.2 (October 25,
+// 2026) when the own-provider-key brief-summary disclosure shipped.
+const STAMPS: Record<string, { version: string; effective: string }> = {
+  security: { version: "2.1", effective: "October 19, 2026" },
+  subprocessors: { version: "2.1", effective: "October 19, 2026" },
+  "data-and-ai": { version: "2.2", effective: "October 25, 2026" },
+  "responsible-disclosure": { version: "2.1", effective: "October 19, 2026" },
+};
+
 describe("policy page scaffolding", () => {
-  it("wraps every page in TrustPage and stamps it 2.1 / October 19, 2026", () => {
+  it("wraps every page in TrustPage and stamps its current version", () => {
     for (const [slug, source] of ALL) {
+      const stamp = STAMPS[slug];
       expect(source(), slug).toContain("<TrustPage");
       expect(source(), slug).toContain("<PolicyMeta");
-      expect(source(), slug).toContain('version="2.1"');
-      expect(source(), slug).toContain('effective="October 19, 2026"');
+      expect(source(), slug).toContain(`version="${stamp.version}"`);
+      expect(source(), slug).toContain(`effective="${stamp.effective}"`);
     }
   });
 
