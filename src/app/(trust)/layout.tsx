@@ -8,6 +8,8 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { userSettingsService } from "@/lib/services/user-settings.service";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Standard app shell for the system policy pages — the same Sidebar/Topbar/
@@ -37,6 +39,23 @@ export default async function TrustLayout({
   const { userId } = await auth();
   const signedIn = typeof userId === "string";
 
+  // Signed-in visitors mount the same bootstrap AuthProvider as the dashboard
+  // (below), so the seed half needs the same gate: read the account's
+  // areas_seeded_at marker here — a set marker means the bootstrap must issue
+  // no seed work at all, even from a policy page.
+  let areasSeededAt: string | null = null;
+  if (signedIn) {
+    try {
+      const supabase = await createClient();
+      ({ areasSeededAt } = await userSettingsService.getOnboardingRow(userId, { supabase }));
+    } catch {
+      // Policy pages must render even if the marker read fails; the seed RPC
+      // re-checks the marker server-side, so a NULL here only costs one no-op
+      // RPC call, never a duplicate seed.
+      areasSeededAt = null;
+    }
+  }
+
   return (
     <AuthProvider
       initialUser={{
@@ -45,6 +64,7 @@ export default async function TrustLayout({
         name: null,
         imageUrl: null,
       }}
+      initialAreasSeededAt={areasSeededAt}
     >
       {/* Desktop: fixed shell, independently scrolling main pane. */}
       <div className="hidden h-screen overflow-hidden bg-background lg:flex">

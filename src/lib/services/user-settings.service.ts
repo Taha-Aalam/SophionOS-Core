@@ -62,6 +62,18 @@ export const DEFAULT_ONBOARDING_STATE: OnboardingState = {
   current_step: "areas",
 };
 
+/** The per-user anchor record (user_settings row at key='onboarding'): the
+ * onboarding state plus the starter-areas seed marker, read together by the
+ * sign-in layouts so the seed gate uses data the session already loads. */
+export interface OnboardingRow {
+  /** Stored onboarding state; null when the anchor row doesn't exist yet. */
+  state: OnboardingState | null;
+  /** user_settings.areas_seeded_at — non-NULL = starter areas were seeded
+   * once for this account (deleted starters must stay deleted); NULL = never
+   * initialized. Set by the seed_default_areas RPC, never cleared. */
+  areasSeededAt: string | null;
+}
+
 const NOTE_DEFAULTS_KEY = "note_defaults";
 const PREFERENCES_KEY = "preferences";
 const NOTIFICATIONS_KEY = "notifications";
@@ -166,16 +178,38 @@ export const userSettingsService = {
     return this.set(userId, PROFILE_CONTACT_KEY, contact, options);
   },
 
+  async getOnboardingRow(
+    userId: string,
+    options?: ServiceOptions,
+  ): Promise<OnboardingRow> {
+    const sb = options?.supabase ?? createClient();
+    const { data, error } = await sb
+      .from("user_settings")
+      .select("value, areas_seeded_at")
+      .eq("user_id", userId)
+      .eq("key", ONBOARDING_KEY)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        return { state: null, areasSeededAt: null };
+      }
+      throw new DatabaseError(error.message);
+    }
+
+    return {
+      state: (data?.value as OnboardingState | undefined) ?? null,
+      areasSeededAt:
+        (data?.areas_seeded_at as string | undefined | null) ?? null,
+    };
+  },
+
   async getOnboardingState(
     userId: string,
     options?: ServiceOptions,
   ): Promise<OnboardingState> {
-    const stored = await this.get<OnboardingState>(
-      userId,
-      ONBOARDING_KEY,
-      options,
-    );
-    return stored ?? { ...DEFAULT_ONBOARDING_STATE };
+    const row = await this.getOnboardingRow(userId, options);
+    return row.state ?? { ...DEFAULT_ONBOARDING_STATE };
   },
 
   async setOnboardingState(
