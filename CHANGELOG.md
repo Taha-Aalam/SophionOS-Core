@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from `LucideIcon` to a structural component type.
 - The six policy pages frame at `max-w-7xl` like every other app page
   (areas, goals, projects) instead of a compressed `max-w-3xl` column.
+- Docker builds now publish images only for work that landed on master:
+  a `v*` tag pushed from a branch fails the new workflow guard instead of
+  building, so version images are cut solely from the tags the release
+  workflow creates at merge commits.
 
 ### Fixed
 
