@@ -1,6 +1,8 @@
 "use client";
 
-import { Archive, BookOpen, Inbox, Library, Sparkles } from "lucide-react";
+import { Archive, BookOpen, Inbox, Library } from "lucide-react";
+
+import { SquarePenIcon } from "@/components/icons";
 
 import { AnalyticsPanel } from "@/components/dashboard/analytics/analytics-panel";
 import type { DashboardAnalytics } from "@/lib/analytics/dashboard-analytics";
@@ -15,7 +17,7 @@ export function KnowledgePipeline({ pipeline }: KnowledgePipelineProps) {
     {
       label: "Captured",
       value: pipeline.capturedToday,
-      icon: Sparkles,
+      icon: SquarePenIcon,
       iconClass: "text-analytics-accent",
     },
     {
@@ -52,7 +54,7 @@ export function KnowledgePipeline({ pipeline }: KnowledgePipelineProps) {
               key={metric.label}
               className="flex items-center gap-2.5 rounded-lg bg-muted/40 px-2.5 py-2 transition-colors duration-200 ease-[var(--ease-out-quint)] hover:bg-muted/60"
             >
-              <Icon className={cn("size-4 shrink-0", metric.iconClass)} aria-hidden="true" />
+              <Icon size={16} className={cn("shrink-0", metric.iconClass)} aria-hidden="true" />
               <div className="min-w-0">
                 <div className="text-xs text-muted-foreground">{metric.label}</div>
                 <div className="font-semibold tabular-nums text-foreground">{metric.value}</div>

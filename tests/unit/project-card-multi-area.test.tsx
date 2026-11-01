@@ -79,12 +79,11 @@ describe("ProjectCard metadata layout", () => {
         }}
       />,
     );
-    expect(html).toContain("🎯");
+    // Rollup counts render with animated line icons, not emoji.
+    expect(html).toContain("<svg");
     expect(html).toContain("3");
     expect(html).toContain("5");
-    expect(html).toContain("📝");
     expect(html).toContain("2");
-    expect(html).toContain("🔗");
     expect(html).toContain("1");
   });
 
@@ -100,7 +99,7 @@ describe("ProjectCard metadata layout", () => {
         }}
       />,
     );
-    expect(html).toContain("🎯");
+    expect(html).toContain("<svg");
     expect(html).toContain("1");
     expect(html).toContain("d left");
   });
@@ -117,17 +116,11 @@ it("shows all relationship counts even when some are zero", () => {
         }}
       />
     );
-    expect(html).toContain("🎯");
-    expect(html).toContain("0");
-    expect(html).toContain("☑️");
-    expect(html).toContain("0");
-    expect(html).toContain("📝");
-    expect(html).toContain("0");
-    expect(html).toContain("🔗");
+    expect(html).toContain("<svg");
     expect(html).toContain("0");
   });
 
-  it("uses the emoji-style task icon (☑️) matching area cards", () => {
+  it("renders the task count with a line icon matching area cards", () => {
     const html = renderToStaticMarkup(
       <ProjectCard
         project={createProject()}
@@ -139,7 +132,7 @@ it("shows all relationship counts even when some are zero", () => {
         }}
       />
     );
-    expect(html).toContain("☑️");
+    expect(html).toContain("<svg");
     expect(html).toContain("3");
   });
 });

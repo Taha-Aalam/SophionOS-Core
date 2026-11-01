@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { Link2, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -23,7 +23,7 @@ import {
   computeFilteredTasks,
 } from "@/lib/utils/resource-dialog-filters";
 
-const RESOURCE_ICON = "🔗";
+const RESOURCE_ICON = Link2;
 
 interface ResourceInboxProcessFormProps {
   resource: Resource;
@@ -424,7 +424,7 @@ export function ResourceInboxProcessForm({
           variant="secondary"
           className="gap-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
         >
-          {RESOURCE_ICON} resource
+          <RESOURCE_ICON className="size-3" /> resource
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button

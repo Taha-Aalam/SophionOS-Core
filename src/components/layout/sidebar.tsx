@@ -45,7 +45,7 @@ function NavLink({
         }
       }}
       className={cn(
-        "group/nav relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-all duration-300 ease-[var(--ease-out-quint)]",
+        "group/nav relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors duration-150 ease-[var(--ease-out-quint)]",
         isActive && !comingSoon
           ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_1px_0_oklch(1_0_0/0.04)]"
           : comingSoon
@@ -60,12 +60,7 @@ function NavLink({
           className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary"
         />
       ) : null}
-      <Icon
-        className={cn(
-          "size-4 shrink-0 transition-transform duration-300 ease-[var(--ease-out-quint)]",
-          !isActive && !comingSoon && "group-hover/nav:scale-110",
-        )}
-      />
+<Icon size={16} className="shrink-0" />
       {showLabel ? <span>{label}</span> : null}
     </Link>
   );
@@ -106,7 +101,7 @@ export function Sidebar() {
             width={24}
             height={24}
             unoptimized
-            className="size-6 transition-transform duration-300 ease-[var(--ease-out-quint)] group-hover:scale-105 dark:hidden"
+            className="size-6 dark:hidden"
           />
           <Image
             src="/brand/sophion-symbol-reversed-white.svg"
@@ -114,7 +109,7 @@ export function Sidebar() {
             width={24}
             height={24}
             unoptimized
-            className="hidden size-6 transition-transform duration-300 ease-[var(--ease-out-quint)] group-hover:scale-105 dark:block"
+            className="hidden size-6 dark:block"
           />
           {isDesktopSidebarOpen ? <span className="tracking-tight">SophionOS</span> : null}
         </Link>
@@ -136,7 +131,7 @@ export function Sidebar() {
         {policyMode ? (
           <div className="space-y-0.5">
             {isDesktopSidebarOpen ? (
-              <p className="mb-1 px-2.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
                 Policies
               </p>
             ) : null}
@@ -148,7 +143,7 @@ export function Sidebar() {
           <>
             <div className="space-y-0.5">
               {isDesktopSidebarOpen ? (
-                <p className="mb-1 px-2.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
                   Core
                 </p>
               ) : null}
@@ -159,7 +154,7 @@ export function Sidebar() {
 
             <div className="space-y-0.5">
               {isDesktopSidebarOpen ? (
-                <p className="mb-1 px-2.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
                   System
                 </p>
               ) : null}

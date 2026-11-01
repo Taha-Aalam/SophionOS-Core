@@ -59,10 +59,10 @@ export default function ProgressRing({
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          className={cn("transition-all duration-700 ease-[var(--ease-out-quint)]", color)}
+          className={cn("transition-[stroke-dashoffset] duration-700 ease-[var(--ease-out-quint)]", color)}
         />
       </svg>
-      <span className="absolute text-xs font-bold">
+      <span className="absolute text-xs font-semibold tabular-nums">
         {Math.round(clampedPercentage)}%
       </span>
     </div>

@@ -1,6 +1,8 @@
 "use client";
 
 import { Archive, ArchiveRestore, Map as LucideMap, Pin, Star } from "lucide-react";
+
+import { BookTextIcon, CircleCheckIcon, FolderOpenIcon, RocketIcon } from "@/components/icons";
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
@@ -119,7 +121,7 @@ export function NoteRow({
         <div className="hidden flex-wrap items-center gap-1 md:flex">
         {(note.notebooks ?? []).slice(0, 2).map((nb) => (
           <Badge key={nb} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">📓</span>
+            <BookTextIcon size={12} aria-hidden="true" />
             {nb}
           </Badge>
         ))}
@@ -145,7 +147,7 @@ export function NoteRow({
         )}
         {goalNames.slice(0, 2).map((name) => (
           <Badge key={name} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">🎯</span>
+            <RocketIcon size={12} aria-hidden="true" />
             {name}
           </Badge>
         ))}
@@ -156,7 +158,7 @@ export function NoteRow({
         )}
         {projectNames.slice(0, 2).map((name) => (
           <Badge key={name} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">📁</span>
+            <FolderOpenIcon size={12} aria-hidden="true" />
             {name}
           </Badge>
         ))}
@@ -167,7 +169,7 @@ export function NoteRow({
         )}
         {taskNames.slice(0, 2).map((name) => (
           <Badge key={name} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">☑️</span>
+            <CircleCheckIcon size={12} aria-hidden="true" />
             {name}
           </Badge>
         ))}

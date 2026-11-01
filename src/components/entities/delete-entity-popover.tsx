@@ -180,7 +180,7 @@ export function DeleteEntityPopover({
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="delete-entity-confirm"
-                className="text-2xs font-medium tracking-wide text-muted-foreground uppercase"
+                className="text-2xs font-medium text-muted-foreground"
               >
                 Type the {entityLabel} name to confirm
               </label>

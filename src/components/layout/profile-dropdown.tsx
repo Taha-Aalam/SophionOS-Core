@@ -29,7 +29,6 @@ const TIER_LABELS: Record<string, string> = {
 interface MenuItem {
   label: string;
   value?: string;
-  valueTone?: "blue" | "purple";
   href: string;
   icon: React.ReactNode;
   external?: boolean;
@@ -78,7 +77,6 @@ export function ProfileDropdown({
     {
       label: "Subscription",
       value: billingEnabled ? (tierLabel ?? "Free") : undefined,
-      valueTone: "purple",
       href: billingEnabled ? "/settings/billing" : "/settings",
       icon: <CreditCard className="h-4 w-4" />,
     },
@@ -128,7 +126,7 @@ export function ProfileDropdown({
                     </span>
                   ) : null}
                 </div>
-                <span className="relative block size-9 shrink-0 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-0.5">
+                <span className="relative block size-9 shrink-0 rounded-full border border-border p-0.5">
                   <Avatar className="size-full" size="default">
                     {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
                     <AvatarFallback className="rounded-full bg-background text-foreground">
@@ -143,7 +141,7 @@ export function ProfileDropdown({
           {/* Bending line indicator on the right (stitch spec) */}
           <div
             className={cn(
-              "pointer-events-none absolute top-1/2 -translate-y-1/2 transition-all duration-200",
+              "pointer-events-none absolute top-1/2 -translate-y-1/2 transition-opacity duration-200",
               "right-0 translate-x-full",
               isOpen ? "opacity-100" : "opacity-60 group-hover:opacity-100",
             )}
@@ -155,9 +153,9 @@ export function ProfileDropdown({
               viewBox="0 0 12 24"
               fill="none"
               className={cn(
-                "transition-all duration-200",
+                "transition-colors duration-200",
                 isOpen
-                  ? "scale-110 text-blue-500 dark:text-blue-400"
+                  ? "text-foreground"
                   : "text-muted-foreground/60 group-hover:text-muted-foreground",
               )}
             >
@@ -180,7 +178,7 @@ export function ProfileDropdown({
               {menuItems.map((item) => (
                 <DropdownMenuItem
                   key={item.label}
-                  className="rounded-xl border border-transparent p-3 transition-all duration-200 hover:border-border/60 hover:bg-accent/70 hover:shadow-sm"
+                  className="rounded-xl border border-transparent p-3 transition-colors duration-150 hover:border-border/60 hover:bg-accent/70"
                   render={
                     <a
                       href={item.href}
@@ -199,9 +197,7 @@ export function ProfileDropdown({
                     <span
                       className={cn(
                         "ml-auto shrink-0 rounded-md border px-2 py-1 text-xs font-medium tracking-tight",
-                        item.valueTone === "blue"
-                          ? "border-blue-500/10 bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                          : "border-purple-500/10 bg-purple-500/10 text-purple-600 dark:text-purple-400",
+                        "border-border bg-muted text-muted-foreground",
                       )}
                     >
                       {item.value}

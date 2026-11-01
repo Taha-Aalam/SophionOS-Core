@@ -209,15 +209,19 @@ describe("CommandPalette", () => {
       .getAllByRole("option")
       .map((el) => el.textContent);
     expect(labels).toEqual([
-      "🗺️Create area",
-      "🎯Create goal",
-      "📁Create project",
-      "☑️Create task",
-      "📝Create note",
-      "🔗Create resource",
-      "👥Create contact",
-      "🏷️Create topic",
+      "Create area",
+      "Create goal",
+      "Create project",
+      "Create task",
+      "Create note",
+      "Create resource",
+      "Create contact",
+      "Create topic",
     ]);
+    // Every action carries a lucide line icon, not an emoji.
+    for (const option of within(createGroup).getAllByRole("option")) {
+      expect(option.querySelector("svg"), option.textContent ?? "").not.toBeNull();
+    }
   });
 
   it("opens the TaskDialog sentinel when 'Create task' is selected", async () => {
@@ -295,22 +299,23 @@ describe("CommandPalette", () => {
     expect(screen.getByTestId("dialog-resource")).toBeInTheDocument();
   });
 
-  it("renders the My Day nav icon tinted orange", () => {
+  it("renders the My Day nav icon as an untinted line icon", () => {
     openPalette();
     renderPalette();
     const myDay = screen.getByRole("option", { name: /My Day/ });
     const svg = myDay.querySelector("svg");
     expect(svg).not.toBeNull();
-    expect(svg?.getAttribute("class") ?? "").toContain("text-orange-500");
+    // Chrome icons take the text role color, not their own hue.
+    expect(svg?.getAttribute("class") ?? "").not.toContain("text-orange-500");
   });
 
-  it("renders the Knowledge Hub nav icon tinted blue", () => {
+  it("renders the Knowledge Hub nav icon as an untinted line icon", () => {
     openPalette();
     renderPalette();
     const knowledge = screen.getByRole("option", { name: /Knowledge Hub/ });
     const svg = knowledge.querySelector("svg");
     expect(svg).not.toBeNull();
-    expect(svg?.getAttribute("class") ?? "").toContain("text-blue-500");
+    expect(svg?.getAttribute("class") ?? "").not.toContain("text-blue-500");
   });
 
   it("does not force selected command-item svg icons to the foreground color", () => {

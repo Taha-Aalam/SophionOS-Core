@@ -143,7 +143,7 @@ export default function ProfileSettingsPage() {
       <Card>
         <CardContent className="flex items-center gap-5 p-6">
           <div className="relative size-24 shrink-0">
-            <span className="block size-full rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-0.5">
+            <span className="block size-full rounded-full border border-border p-0.5">
               <Avatar className="size-full rounded-full">
                 {user.imageUrl ? <AvatarImage src={user.imageUrl} alt={displayNameOf(user)} /> : null}
                 <AvatarFallback className="rounded-full bg-background text-lg font-medium text-foreground">

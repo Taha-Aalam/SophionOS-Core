@@ -84,7 +84,7 @@ describe("TaskDialog recurring-task UI", () => {
     expect(screen.getByText("Important")).toBeDefined();
     expect(screen.getByText("Urgent")).toBeDefined();
 
-    const label = screen.getByText("Make the task as recurring task");
+    const label = screen.getByText("Make this task recurring");
     expect(label).toBeDefined();
   });
 
@@ -162,7 +162,7 @@ describe("TaskDialog recurring-task UI", () => {
       updated_at: "2026-06-05T00:00:00Z",
     } as never);
 
-    const label = screen.getByText("Make the task as recurring task");
+    const label = screen.getByText("Make this task recurring");
     expect(label).toBeDefined();
   });
 

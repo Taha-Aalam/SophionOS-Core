@@ -526,7 +526,7 @@ export function NoteDetailContent() {
           {/* Mobile: metadata stacks below content (same pattern as new note page) */}
           {isMetadataOpen && (
             <aside className="mt-8 rounded-lg border p-4 md:hidden" aria-label="Note metadata">
-              <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="mb-4 text-xs font-semibold text-muted-foreground">
                 Metadata
               </p>
               {renderMetadataPanel()}
@@ -537,13 +537,13 @@ export function NoteDetailContent() {
 
         <aside
           className={cn(
-            "hidden md:block md:shrink-0 md:overflow-hidden md:border-l md:border-border md:transition-[width] md:duration-200",
+            "hidden md:block md:shrink-0 md:overflow-hidden md:border-l md:border-border",
             isMetadataOpen ? "md:w-72" : "md:w-0",
           )}
           aria-hidden={!isMetadataOpen}
         >
           <div className="flex h-full w-72 flex-col gap-5 overflow-y-auto p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-xs font-semibold text-muted-foreground">
               Metadata
             </p>
 

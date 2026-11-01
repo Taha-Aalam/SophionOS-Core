@@ -1,4 +1,5 @@
 import { PolicyMeta } from "@/components/trust/policy-meta";
+import { BriefcaseBusinessIcon } from "@/components/icons";
 import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
@@ -9,7 +10,7 @@ export const metadata = {
 export default function SubprocessorsPage() {
   return (
     <TrustPage
-      emoji="🏢"
+      icon={BriefcaseBusinessIcon}
       title="Subprocessors"
       description="Vendors that may process SophionOS data."
     >

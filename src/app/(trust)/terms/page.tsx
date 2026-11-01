@@ -1,4 +1,5 @@
 import { PolicyMeta } from "@/components/trust/policy-meta";
+import { FileTextIcon } from "@/components/icons";
 import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
@@ -10,7 +11,7 @@ export const metadata = {
 export default function TermsPage() {
   return (
     <TrustPage
-      emoji="📜"
+      icon={FileTextIcon}
       title="Terms & Policies"
       description="The terms that govern use of the SophionOS platform: the service, accounts, plans and limits, founding seats, acceptable use, API and MCP access, your content, billing, disputes, and governing law."
     >

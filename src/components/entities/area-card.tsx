@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Area } from "@/lib/types/domain.types";
 import { normalizeAreaType } from "@/lib/utils/areas";
 import { AREA_TYPE_COLORS, AREA_TYPE_FALLBACK } from "@/lib/constants/entity-colors";
+import { ENTITY_ICONS } from "@/lib/constants/entity-icons";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
 import { useClickableProps } from "@/components/ui/clickable";
@@ -207,23 +208,23 @@ const AreaCardComponent = ({
       <CardContent>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1" title="Goals">
-            <span className="text-xs">🎯</span>
+            <ENTITY_ICONS.goal size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{goalsCount}</span>
           </div>
           <div className="flex items-center gap-1" title="Projects">
-            <span className="text-xs">📁</span>
+            <ENTITY_ICONS.project size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{projectsCount}</span>
           </div>
           <div className="flex items-center gap-1" title="Tasks">
-            <span className="text-xs">☑️</span>
+            <ENTITY_ICONS.task size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{tasksCount}</span>
           </div>
           <div className="flex items-center gap-1" title="Notes">
-            <span className="text-xs">📝</span>
+            <ENTITY_ICONS.note size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{notesCount}</span>
           </div>
           <div className="flex items-center gap-1" title="Resources">
-            <span className="text-xs">🔗</span>
+            <ENTITY_ICONS.resource size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{resourcesCount}</span>
           </div>
         </div>

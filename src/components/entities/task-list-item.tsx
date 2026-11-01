@@ -1,7 +1,14 @@
 "use client";
 
 import React, { memo } from "react";
-import { Calendar, Map, Pencil, Star } from "lucide-react";
+import {
+  Calendar,
+  Map,
+  Pencil,
+  Star,
+} from "lucide-react";
+
+import { FolderOpenIcon, RocketIcon } from "@/components/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -148,7 +155,7 @@ export function TaskListItemComponent({
         )}
         {displayGoalNames.slice(0, 2).map((name, index) => (
           <Badge key={`goal-${index}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">🎯</span>
+            <RocketIcon size={12} aria-hidden="true" />
             {name}
           </Badge>
         ))}
@@ -159,7 +166,7 @@ export function TaskListItemComponent({
         )}
         {displayProjectNames.slice(0, 2).map((name, index) => (
           <Badge key={`project-${index}`} variant="outline" className="gap-1 text-2xs leading-none font-normal">
-            <span className="text-2xs leading-none">📁</span>
+            <FolderOpenIcon size={12} aria-hidden="true" />
             {name}
           </Badge>
         ))}

@@ -84,7 +84,7 @@ export function ContactListItem({
               variant={status === "ON TRACK" ? "outline" : "destructive"}
               className="text-2xs"
             >
-              {status}
+              {status === "ON TRACK" ? "On track" : "Follow up"}
             </Badge>
             {daysSince !== null && (
               <span className="text-xs text-muted-foreground">

@@ -2,8 +2,7 @@
 
 import React, { memo } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, HeartOff, Pencil, Archive, RotateCcw } from "lucide-react";
-import { TagEmoji } from "@/components/layout/tag-emoji";
+import { Heart, HeartOff, Pencil, Archive, RotateCcw, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -62,7 +61,7 @@ const TopicCardComponent = ({
       <CardContent className={cn("p-4", !compact && "p-5")}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <TagEmoji className="text-base leading-none shrink-0" />
+            <Tag className="size-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
               <h3 className="font-medium truncate">
                 {topic.name}
@@ -159,11 +158,11 @@ const TopicCardComponent = ({
         {!compact && (
           <div className="mt-3 flex items-center gap-2">
             <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm">
-              <span className="font-medium text-amber-600 dark:text-amber-400">{topic.notesCount}</span>
+              <span className="font-medium tabular-nums text-foreground">{topic.notesCount}</span>
               <span className="text-muted-foreground">Notes</span>
             </div>
             <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm">
-              <span className="font-medium text-purple-600 dark:text-purple-400">{topic.resourcesCount}</span>
+              <span className="font-medium tabular-nums text-foreground">{topic.resourcesCount}</span>
               <span className="text-muted-foreground">Resources</span>
             </div>
           </div>
@@ -172,11 +171,11 @@ const TopicCardComponent = ({
         {compact && (
           <div className="mt-2 flex items-center gap-2">
             <div className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs">
-              <span className="font-medium text-amber-600 dark:text-amber-400">{topic.notesCount}</span>
+              <span className="font-medium tabular-nums text-foreground">{topic.notesCount}</span>
               <span className="text-muted-foreground">Notes</span>
             </div>
             <div className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs">
-              <span className="font-medium text-purple-600 dark:text-purple-400">{topic.resourcesCount}</span>
+              <span className="font-medium tabular-nums text-foreground">{topic.resourcesCount}</span>
               <span className="text-muted-foreground">Resources</span>
             </div>
           </div>
