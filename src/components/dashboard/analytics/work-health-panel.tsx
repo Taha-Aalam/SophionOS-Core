@@ -1,6 +1,12 @@
 "use client";
 
-import { AlertTriangle, FolderClock, HeartPulse, Link2Off, Target } from "lucide-react";
+import {
+  FolderClockIcon,
+  HeartPulseIcon,
+  Link2OffIcon,
+  RocketIcon,
+  TriangleAlertIcon,
+} from "@/components/icons";
 
 import { AnalyticsPanel } from "@/components/dashboard/analytics/analytics-panel";
 import type { DashboardAnalytics } from "@/lib/analytics/dashboard-analytics";
@@ -15,28 +21,28 @@ export function WorkHealthPanel({ health }: WorkHealthPanelProps) {
       label: "Overdue by area",
       value: health.overdueByArea[0]?.count ?? 0,
       detail: health.overdueByArea[0]?.name ?? "No overdue areas",
-      icon: AlertTriangle,
+      icon: TriangleAlertIcon,
       tone: "risk" as const,
     },
     {
       label: "Overdue by project",
       value: health.overdueByProject[0]?.count ?? 0,
       detail: health.overdueByProject[0]?.name ?? "No overdue projects",
-      icon: FolderClock,
+      icon: FolderClockIcon,
       tone: "risk" as const,
     },
     {
       label: "Low progress near due",
       value: health.lowProgressNearDueGoals.length,
       detail: health.lowProgressNearDueGoals[0]?.name ?? "No goal risk",
-      icon: Target,
+      icon: RocketIcon,
       tone: "accent" as const,
     },
     {
       label: "Unassigned tasks",
       value: health.unassignedTasks,
       detail: "Missing area, project, and goal links",
-      icon: Link2Off,
+      icon: Link2OffIcon,
       tone: "muted" as const,
     },
   ];
@@ -45,7 +51,7 @@ export function WorkHealthPanel({ health }: WorkHealthPanelProps) {
     <AnalyticsPanel
       title="Work Health"
       description="Overdue work, near-due goals, and unlinked tasks."
-      icon={HeartPulse}
+      icon={HeartPulseIcon}
       className="h-full"
       contentClassName="flex h-full flex-col"
     >
@@ -71,7 +77,7 @@ export function WorkHealthPanel({ health }: WorkHealthPanelProps) {
                 <span
                   className={`flex size-6 shrink-0 items-center justify-center rounded-full ${chip}`}
                 >
-                  <Icon className="size-3" aria-hidden="true" />
+                  <Icon size={12} aria-hidden="true" />
                 </span>
               </div>
               <div className="mt-1.5 min-w-0">

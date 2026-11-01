@@ -458,7 +458,7 @@ export function NoteInboxProcessForm({
           variant="secondary"
           className="gap-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
         >
-          <NOTE_ICON className="size-3" /> note
+          <NOTE_ICON size={12} /> note
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button

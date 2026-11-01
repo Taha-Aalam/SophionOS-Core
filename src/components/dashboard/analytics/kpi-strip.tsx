@@ -1,7 +1,13 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Crosshair, Target } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType } from "react";
+
+import {
+  CheckCheckIcon,
+  CrosshairIcon,
+  RocketIcon,
+  TriangleAlertIcon,
+} from "@/components/icons";
 
 import type { DashboardAnalytics } from "@/lib/analytics/dashboard-analytics";
 import { cn } from "@/lib/utils";
@@ -10,36 +16,42 @@ interface KpiStripProps {
   kpis: DashboardAnalytics["kpis"];
 }
 
+type KpiIcon = ComponentType<{
+  size?: number;
+  className?: string;
+  "aria-hidden"?: "true" | "false";
+}>;
+
 const items: Array<{
   key: keyof DashboardAnalytics["kpis"];
   label: string;
-  icon: LucideIcon;
+  icon: KpiIcon;
   chipClass: string;
   valueClass?: string;
 }> = [
   {
     key: "focusTasks",
     label: "Focus Tasks",
-    icon: Crosshair,
+    icon: CrosshairIcon,
     chipClass: "bg-analytics-action/10 text-analytics-action",
   },
   {
     key: "overdueTasks",
     label: "Overdue",
-    icon: AlertTriangle,
+    icon: TriangleAlertIcon,
     chipClass: "bg-analytics-risk/10 text-analytics-risk",
     valueClass: "text-analytics-risk",
   },
   {
     key: "completedThisWeek",
     label: "Completed (Week)",
-    icon: CheckCircle2,
+    icon: CheckCheckIcon,
     chipClass: "bg-analytics-success/10 text-analytics-success",
   },
   {
     key: "activeGoals",
     label: "Active Goals",
-    icon: Target,
+    icon: RocketIcon,
     chipClass: "bg-analytics-accent/10 text-analytics-accent",
   },
 ];
@@ -74,7 +86,7 @@ export function KpiStrip({ kpis }: KpiStripProps) {
                   item.chipClass,
                 )}
               >
-                <Icon className="size-3.5" aria-hidden="true" />
+                <Icon size={14} aria-hidden="true" />
               </div>
             </div>
             <div

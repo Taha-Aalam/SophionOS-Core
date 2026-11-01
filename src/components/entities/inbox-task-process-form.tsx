@@ -279,7 +279,7 @@ export function TaskProcessForm({
           variant="secondary"
           className="gap-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
         >
-          <TASK_ICON className="size-3" /> task
+          <TASK_ICON size={12} /> task
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button
