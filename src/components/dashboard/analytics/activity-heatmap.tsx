@@ -1,7 +1,8 @@
 "use client";
 
-import { CalendarDays } from "lucide-react";
 import { memo, useMemo, type CSSProperties } from "react";
+
+import { CalendarDaysIcon } from "@/components/icons";
 
 import { AnalyticsPanel } from "@/components/dashboard/analytics/analytics-panel";
 import type { DashboardAnalytics } from "@/lib/analytics/dashboard-analytics";
@@ -94,7 +95,7 @@ function ActivityHeatmapImpl({ heatmap }: ActivityHeatmapProps) {
     <AnalyticsPanel
       title="Activity Map (Last Year)"
       description={`${activeDays} active day${activeDays === 1 ? "" : "s"} across the last year`}
-      icon={CalendarDays}
+      icon={CalendarDaysIcon}
       className="h-full"
       contentClassName="flex h-full flex-col"
     >

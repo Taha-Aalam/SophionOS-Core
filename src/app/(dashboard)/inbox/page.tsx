@@ -836,7 +836,7 @@ export default function InboxPage() {
             {inboxProjects.length > 0 && (
               <section className="flex flex-col gap-2">
                 <h2 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                  <PROJECT_ICON className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <PROJECT_ICON size={12} className="shrink-0 text-muted-foreground" aria-hidden="true" />
                   Projects
                   <span className="ml-0.5 font-normal">({inboxProjects.length})</span>
                 </h2>
@@ -859,7 +859,7 @@ export default function InboxPage() {
             {inboxTasks.length > 0 && (
               <section className="flex flex-col gap-2">
                 <h2 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                  <TASK_ICON className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <TASK_ICON size={12} className="shrink-0 text-muted-foreground" aria-hidden="true" />
                   Tasks
                   <span className="ml-0.5 font-normal">({inboxTasks.length})</span>
                 </h2>
@@ -883,7 +883,7 @@ export default function InboxPage() {
             {inboxNotes.length > 0 && (
               <section className="flex flex-col gap-2">
                 <h2 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                  <NOTE_ICON className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <NOTE_ICON size={12} className="shrink-0 text-muted-foreground" aria-hidden="true" />
                   Notes
                   <span className="ml-0.5 font-normal">({inboxNotes.length})</span>
                 </h2>
@@ -915,7 +915,7 @@ export default function InboxPage() {
             {inboxResources.length > 0 && (
               <section className="flex flex-col gap-2">
                 <h2 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                  <RESOURCE_ICON className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <RESOURCE_ICON size={12} className="shrink-0 text-muted-foreground" aria-hidden="true" />
                   Resources
                   <span className="ml-0.5 font-normal">({inboxResources.length})</span>
                 </h2>

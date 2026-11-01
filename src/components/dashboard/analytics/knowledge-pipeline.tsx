@@ -1,8 +1,12 @@
 "use client";
 
-import { Archive, BookOpen, Inbox, Library } from "lucide-react";
-
-import { SquarePenIcon } from "@/components/icons";
+import {
+  ArchiveIcon,
+  BookmarkIcon,
+  BookTextIcon,
+  MailboxIcon,
+  SquarePenIcon,
+} from "@/components/icons";
 
 import { AnalyticsPanel } from "@/components/dashboard/analytics/analytics-panel";
 import type { DashboardAnalytics } from "@/lib/analytics/dashboard-analytics";
@@ -23,19 +27,19 @@ export function KnowledgePipeline({ pipeline }: KnowledgePipelineProps) {
     {
       label: "Review",
       value: pipeline.waitingReview,
-      icon: Inbox,
+      icon: MailboxIcon,
       iconClass: "text-analytics-action",
     },
     {
       label: "Saved",
       value: pipeline.saved,
-      icon: Library,
+      icon: BookmarkIcon,
       iconClass: "text-muted-foreground",
     },
     {
       label: "Archived",
       value: pipeline.archived,
-      icon: Archive,
+      icon: ArchiveIcon,
       iconClass: "text-muted-foreground",
     },
   ];
@@ -44,7 +48,7 @@ export function KnowledgePipeline({ pipeline }: KnowledgePipelineProps) {
     <AnalyticsPanel
       title="Knowledge Pipeline"
       description="Capture through archive, plus topics with the most activity."
-      icon={BookOpen}
+      icon={BookTextIcon}
     >
       <div className="mb-4 grid grid-cols-2 gap-2.5">
         {metrics.map((metric) => {

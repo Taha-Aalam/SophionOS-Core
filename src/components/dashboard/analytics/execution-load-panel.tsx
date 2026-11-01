@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3 } from "lucide-react";
+import { ChartColumnIncreasingIcon } from "@/components/icons";
 
 import {
   AnalyticsPanel,
@@ -41,7 +41,7 @@ export function ExecutionLoadPanel({ load }: ExecutionLoadPanelProps) {
   ];
 
   return (
-    <AnalyticsPanel title="Execution Load" icon={BarChart3}>
+    <AnalyticsPanel title="Execution Load" icon={ChartColumnIncreasingIcon}>
       <div className="space-y-3.5" data-slot="execution-load-bars">
         {rows.map((row) => (
           <MetricBar
