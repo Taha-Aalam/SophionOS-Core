@@ -13,7 +13,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Map, NotebookPen, Users } from "lucide-react";
+import {
+  MapPinIcon,
+  SquarePenIcon,
+  UsersIcon,
+} from "@/components/icons";
 
 import { ENTITY_ICONS } from "@/lib/constants/entity-icons";
 import { AreaDialog } from "@/components/entities/area-dialog";
@@ -52,15 +56,15 @@ type CreateEntity = "area" | "goal" | "project" | "task" | "note" | "resource" |
 const CREATE_ACTIONS: Array<{
   entity: CreateEntity;
   label: string;
-  Icon: ComponentType<{ className?: string }>;
+  Icon: ComponentType<{ className?: string; size?: number }>;
 }> = [
-  { entity: "area", label: "Create area", Icon: Map },
+  { entity: "area", label: "Create area", Icon: MapPinIcon },
   { entity: "goal", label: "Create goal", Icon: ENTITY_ICONS.goal },
   { entity: "project", label: "Create project", Icon: ENTITY_ICONS.project },
   { entity: "task", label: "Create task", Icon: ENTITY_ICONS.task },
-  { entity: "note", label: "Create note", Icon: NotebookPen },
+  { entity: "note", label: "Create note", Icon: SquarePenIcon },
   { entity: "resource", label: "Create resource", Icon: ENTITY_ICONS.resource },
-  { entity: "contact", label: "Create contact", Icon: Users },
+  { entity: "contact", label: "Create contact", Icon: UsersIcon },
   { entity: "topic", label: "Create topic", Icon: ENTITY_ICONS.topic },
 ];
 
@@ -221,7 +225,7 @@ export function CommandPalette() {
                       value={`nav-${item.href}`}
                       onSelect={() => go(item.href)}
                     >
-                      <Icon className="size-4" />
+                      <Icon size={16} />
                       {item.label}
                     </CommandItem>
                   );
@@ -239,7 +243,7 @@ export function CommandPalette() {
                       value={`nav-${item.href}`}
                       onSelect={() => go(item.href)}
                     >
-                      <Icon className="size-4" />
+                      <Icon size={16} />
                       {item.label}
                     </CommandItem>
                   );
@@ -257,7 +261,7 @@ export function CommandPalette() {
                       value={`create-${c.entity}`}
                       onSelect={() => openCreate(c.entity)}
                     >
-                      <Icon className="size-4" />
+                      <Icon size={16} />
                       {c.label}
                     </CommandItem>
                   );
@@ -277,7 +281,7 @@ export function CommandPalette() {
                       closeCommandPalette();
                     }}
                   >
-                    <ENTITY_ICONS.task className="size-4" />
+                    <ENTITY_ICONS.task size={16} />
                     {task.name}
                   </CommandItem>
                 ))}
@@ -292,7 +296,7 @@ export function CommandPalette() {
                     value={`goal-${goal.id}`}
                     onSelect={() => go(withReturnTo(buildGoalDetailHref(goal)))}
                   >
-                    <ENTITY_ICONS.goal className="size-4" />
+                    <ENTITY_ICONS.goal size={16} />
                     {goal.name}
                   </CommandItem>
                 ))}
@@ -307,7 +311,7 @@ export function CommandPalette() {
                     value={`project-${project.id}`}
                     onSelect={() => go(withReturnTo(buildProjectDetailHref(project)))}
                   >
-                    <ENTITY_ICONS.project className="size-4" />
+                    <ENTITY_ICONS.project size={16} />
                     {project.name}
                   </CommandItem>
                 ))}
@@ -331,7 +335,7 @@ export function CommandPalette() {
                         {area.icon}
                       </span>
                     ) : (
-                      <Map className="size-4" />
+                      <MapPinIcon size={16} />
                     )}
                     {area.name}
                   </CommandItem>
@@ -347,7 +351,7 @@ export function CommandPalette() {
                     value={`note-${note.id}`}
                     onSelect={() => go(withReturnTo(`/notes/${note.slug ?? note.id}`))}
                   >
-                    <NotebookPen className="size-4" />
+                    <SquarePenIcon size={16} />
                     {note.name}
                   </CommandItem>
                 ))}
@@ -366,7 +370,7 @@ export function CommandPalette() {
                       closeCommandPalette();
                     }}
                   >
-                    <ENTITY_ICONS.resource className="size-4" />
+                    <ENTITY_ICONS.resource size={16} />
                     {resource.name}
                   </CommandItem>
                 ))}
@@ -381,7 +385,7 @@ export function CommandPalette() {
                     value={`topic-${topic.id}`}
                     onSelect={() => go(withReturnTo(`/topics/${topic.slug ?? topic.id}`))}
                   >
-                    <ENTITY_ICONS.topic className="size-4" />
+                    <ENTITY_ICONS.topic size={16} />
                     {topic.name}
                   </CommandItem>
                 ))}
@@ -396,7 +400,7 @@ export function CommandPalette() {
                     value={`contact-${contact.id}`}
                     onSelect={() => go(withReturnTo(`/contacts/${contact.slug ?? contact.id}`))}
                   >
-                    <Users className="size-4" />
+                    <UsersIcon size={16} />
                     {contact.name}
                   </CommandItem>
                 ))}

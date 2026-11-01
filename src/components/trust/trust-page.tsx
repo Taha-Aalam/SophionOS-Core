@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType } from "react";
 import type { ReactNode } from "react";
 
 /**
@@ -21,7 +21,7 @@ export function TrustPage({
   description,
   children,
 }: {
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string; size?: number; "aria-hidden"?: "true" | "false" | undefined }>;
   title: string;
   description: string;
   children: ReactNode;
@@ -29,7 +29,7 @@ export function TrustPage({
   return (
     <div className="content-fade-in reveal-stagger mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
       <div className="flex items-center gap-3">
-        <Icon className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <Icon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
         {/* min-w-0: a flex child's floor is its longest word, so without it a
             long title pushes the column past max-w-3xl and the centred frame
             leans left (28px dead right gutter at 1280px). */}

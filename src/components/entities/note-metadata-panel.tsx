@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BookOpen, Check, ChevronDownIcon, Map, Notebook, Pin, Star, Target, X } from "lucide-react";
+import { BookOpen, Check, ChevronDownIcon, Map, Pin, Star, Target, X } from "lucide-react";
+
+import { BookTextIcon } from "@/components/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -385,7 +387,7 @@ export function NoteMetadataPanel({
           <div className="flex flex-wrap gap-1.5 pt-1">
             {notebooks.map((nb) => (
               <Badge key={nb} variant="secondary" className="flex items-center gap-1">
-                <Notebook className="size-3" aria-hidden="true" />
+                <BookTextIcon size={12} aria-hidden="true" />
                 <span className="max-w-[120px] truncate">{nb}</span>
                 <button
                   type="button"

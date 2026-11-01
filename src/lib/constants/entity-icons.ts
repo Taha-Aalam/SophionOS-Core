@@ -1,18 +1,31 @@
-import { Folder, Link2, NotebookPen, SquareCheck, Tag, Target } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType } from "react";
+
+import {
+  CircleCheckIcon,
+  FolderOpenIcon,
+  LayersIcon,
+  Link2Icon,
+  RocketIcon,
+  SquarePenIcon,
+} from "@/components/icons";
+
+export type EntityIcon = ComponentType<{
+  className?: string;
+  size?: number;
+}>;
 
 /**
- * Canonical lucide glyph per entity type. Single source of truth for rollup
- * counts, link badges and type pills, replacing the emoji set that previously
- * drifted across components. User-chosen entity emoji (area/goal/project
- * icons via the emoji picker) are rendered separately and take precedence
- * wherever they exist.
+ * Canonical animated glyph per entity type (pqoqubbw/icons, hover-animated).
+ * Single source of truth for rollup counts, link badges and type pills,
+ * replacing the emoji set that previously drifted across components.
+ * User-chosen entity emoji (area/goal/project icons via the emoji picker)
+ * are rendered separately and take precedence wherever they exist.
  */
 export const ENTITY_ICONS = {
-  goal: Target,
-  project: Folder,
-  task: SquareCheck,
-  note: NotebookPen,
-  resource: Link2,
-  topic: Tag,
-} as const satisfies Record<string, LucideIcon>;
+  goal: RocketIcon,
+  project: FolderOpenIcon,
+  task: CircleCheckIcon,
+  note: SquarePenIcon,
+  resource: Link2Icon,
+  topic: LayersIcon,
+} as const satisfies Record<string, EntityIcon>;

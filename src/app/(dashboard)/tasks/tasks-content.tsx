@@ -15,6 +15,7 @@ import {
   Target,
   Zap,
 } from "lucide-react";
+import { CircleCheckIcon } from "@/components/icons";
 import React, { useCallback, useMemo, useState } from "react";
 
 import { TaskDialog } from "@/components/entities/task-dialog";
@@ -412,7 +413,7 @@ export function TasksContent() {
     <div className="content-fade-in reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between border-b border-border/50">
         <div className="flex items-center gap-3">
-          <CheckSquare className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <CircleCheckIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
             <p className="text-sm text-muted-foreground" suppressHydrationWarning>

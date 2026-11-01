@@ -62,7 +62,7 @@ export function StepShell({
 
       <div className="mb-6 text-center">
         <div className="mb-3 flex justify-center">
-          <Icon className="size-8 text-muted-foreground sm:size-9" aria-hidden="true" />
+          <Icon size={32} className="text-muted-foreground" aria-hidden="true" />
         </div>
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">

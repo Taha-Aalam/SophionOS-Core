@@ -1,5 +1,5 @@
 import { PolicyMeta } from "@/components/trust/policy-meta";
-import { Sparkles } from "lucide-react";
+import { SparklesIcon } from "@/components/icons";
 import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
@@ -10,7 +10,7 @@ export const metadata = {
 export default function DataAndAiPage() {
   return (
     <TrustPage
-      icon={Sparkles}
+      icon={SparklesIcon}
       title="Data & AI"
       description="How MCP, API keys, and AI clients access your data."
     >

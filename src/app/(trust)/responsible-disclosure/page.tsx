@@ -1,5 +1,5 @@
 import { PolicyMeta } from "@/components/trust/policy-meta";
-import { Bug } from "lucide-react";
+import { GavelIcon } from "@/components/icons";
 import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
@@ -10,7 +10,7 @@ export const metadata = {
 export default function ResponsibleDisclosurePage() {
   return (
     <TrustPage
-      icon={Bug}
+      icon={GavelIcon}
       title="Responsible Disclosure"
       description="How to report security vulnerabilities."
     >

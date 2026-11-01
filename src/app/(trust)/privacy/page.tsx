@@ -1,5 +1,5 @@
 import { PolicyMeta } from "@/components/trust/policy-meta";
-import { Lock } from "lucide-react";
+import { LockIcon } from "@/components/icons";
 import { TrustPage } from "@/components/trust/trust-page";
 
 export const metadata = {
@@ -10,7 +10,7 @@ export const metadata = {
 export default function PrivacyPage() {
   return (
     <TrustPage
-      icon={Lock}
+      icon={LockIcon}
       title="Privacy"
       description="How SophionOS handles your personal context data."
     >

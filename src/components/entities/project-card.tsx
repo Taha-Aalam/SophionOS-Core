@@ -2,7 +2,9 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Calendar, Folder, RotateCcw } from "lucide-react";
+import { Archive, Calendar, RotateCcw } from "lucide-react";
+
+import { FolderOpenIcon } from "@/components/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -114,7 +116,7 @@ export function ProjectCard({
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Folder className="size-4 shrink-0 text-muted-foreground" />
+              <FolderOpenIcon size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-medium truncate text-sm">{project.name}</h3>
               {duplicateIndex != null && duplicateIndex > 1 && (
                 <Badge
@@ -167,19 +169,19 @@ export function ProjectCard({
 
         <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1 whitespace-nowrap" title="Goals">
-            <ENTITY_ICONS.goal className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.goal size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{resolvedRollups.goalCount}</span>
           </span>
           <span className="flex items-center gap-1 whitespace-nowrap" title="Tasks">
-            <ENTITY_ICONS.task className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.task size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{resolvedRollups.taskCount}</span>
           </span>
           <span className="flex items-center gap-1 whitespace-nowrap" title="Notes">
-            <ENTITY_ICONS.note className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.note size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{resolvedRollups.noteCount}</span>
           </span>
           <span className="flex items-center gap-1 whitespace-nowrap" title="Resources">
-            <ENTITY_ICONS.resource className="size-3.5 text-muted-foreground" />
+            <ENTITY_ICONS.resource size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{resolvedRollups.resourceCount}</span>
           </span>
         </div>

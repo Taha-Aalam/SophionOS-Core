@@ -63,7 +63,7 @@ function MobileNavLink({
           className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary"
         />
       ) : null}
-      <Icon className="size-4 shrink-0" />
+      <Icon size={16} className="shrink-0" />
       <span>{label}</span>
     </Link>
   );
