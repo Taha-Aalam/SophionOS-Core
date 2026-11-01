@@ -27,9 +27,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({
   children,
   initialUser = null,
+  initialAreasSeededAt = null,
 }: {
   children: React.ReactNode;
   initialUser?: AuthUser | null;
+  /** Server-read areas_seeded_at for this account. Non-NULL = starter areas
+   * were already seeded once — the bootstrap must issue no seed work at all,
+   * so deliberately-deleted starter areas stay deleted. NULL = never (or
+   * incompletely) initialized: complete it exactly once via the RPC, which
+   * re-checks and stamps the marker in the same transaction as the inserts. */
+  initialAreasSeededAt?: string | null;
 }) {
   const { isLoaded, userId } = useClerkAuth();
   const { user: clerkUser } = useUser();
@@ -87,17 +94,24 @@ export function AuthProvider({
 
     void (async () => {
       try {
-        await seedDefaultAreas(user.id);
+        // Seed exactly once per account, gated on the durable areas_seeded_at
+        // marker the sign-in layout already loaded. A set marker means no
+        // seed call for the life of the account; a NULL marker completes
+        // interrupted initialization, exactly once.
+        const needsSeed = !initialAreasSeededAt;
+        if (needsSeed) await seedDefaultAreas();
         await provisionSubscription();
-        // Idempotent bootstrap only. Do NOT auto-complete onboarding here —
-        // the /onboarding route/page owns that state (see onboarding-routing).
-        // Surgical invalidation: only the "list" entry for this user. Avoids
-        // clobbering other keys (and the in-flight client fetches on login)
-        // that `invalidateQueries({ queryKey: [AREAS_QUERY_KEY] })` would
-        // wipe via prefix match.
-        await queryClient.invalidateQueries({
-          queryKey: [AREAS_QUERY_KEY, "list", user.id],
-        });
+        if (needsSeed) {
+          // Idempotent bootstrap only. Do NOT auto-complete onboarding here —
+          // the /onboarding route/page owns that state (see onboarding-routing).
+          // Surgical invalidation: only the "list" entry for this user. Avoids
+          // clobbering other keys (and the in-flight client fetches on login)
+          // that `invalidateQueries({ queryKey: [AREAS_QUERY_KEY] })` would
+          // wipe via prefix match.
+          await queryClient.invalidateQueries({
+            queryKey: [AREAS_QUERY_KEY, "list", user.id],
+          });
+        }
       } catch (error) {
         seededUserIdsRef.current.delete(user.id);
         if (process.env.NODE_ENV !== "production") {
@@ -105,7 +119,7 @@ export function AuthProvider({
         }
       }
     })();
-  }, [user, queryClient]);
+  }, [user, queryClient, initialAreasSeededAt]);
 
   async function signOut() {
     // Freeze the last known user so dashboard hooks don't drop their data

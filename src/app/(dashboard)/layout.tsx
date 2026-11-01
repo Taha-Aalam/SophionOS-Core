@@ -33,10 +33,11 @@ export default async function DashboardGroupLayout({
 
   // Gate the shell behind onboarding completion BEFORE rendering. Incomplete
   // users are redirected server-side, so they never see the dashboard flash
-  // then bounce on the client.
+  // then bounce on the client. The same single read carries areas_seeded_at —
+  // the durable marker that gates the AuthProvider bootstrap's seed below.
   const supabase = await createClient();
-  const onboarding = await userSettingsService.getOnboardingState(userId, { supabase });
-  const destination = await resolveDashboardDestination(onboarding);
+  const onboardingRow = await userSettingsService.getOnboardingRow(userId, { supabase });
+  const destination = await resolveDashboardDestination(onboardingRow.state);
   if (destination) redirect(destination);
   // Resolve the full profile + subscription server-side so the topbar renders
   // name/email/avatar and the cohort badge in the FIRST paint — no icon-only
@@ -54,7 +55,7 @@ export default async function DashboardGroupLayout({
   };
   const initialSubscription = await getSubscriptionSummary(userId, { profile });
   return (
-    <AuthProvider initialUser={initialUser}>
+    <AuthProvider initialUser={initialUser} initialAreasSeededAt={onboardingRow.areasSeededAt}>
       <InboxBackfillProvider>
         <div className="flex h-screen overflow-hidden bg-background">
           <Sidebar />

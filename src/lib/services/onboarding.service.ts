@@ -1,37 +1,44 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DEFAULT_AREAS } from "@/lib/onboarding/default-areas";
 import { createClient } from "@/lib/supabase/client";
-import { AreaInsert } from "@/lib/types/domain.types";
 import { generateSlug } from "@/lib/utils";
 
 type ServiceOptions = { supabase?: SupabaseClient };
 
+/** Seed payload for the seed_default_areas RPC — the owner is derived from
+ * the JWT inside the RPC, so unlike AreaInsert it carries no user_id. */
+interface SeedArea {
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  type: string;
+  slug: string;
+}
+
 export async function seedDefaultAreas(
-  userId: string,
   options?: ServiceOptions,
 ): Promise<void> {
   const supabase = options?.supabase ?? createClient();
 
-  const areasToInsert: AreaInsert[] = DEFAULT_AREAS.map((area) => ({
-    user_id: userId,
+  const areasToInsert: SeedArea[] = DEFAULT_AREAS.map((area) => ({
     name: area.name,
     description: area.description,
     icon: area.icon,
     color: area.color,
     type: area.type,
     slug: generateSlug(area.name),
-    archive: false,
   }));
 
-  // Idempotent: upsert on (user_id, slug). If a row already exists for that
-  // pair, skip insert (ignoreDuplicates). Avoids the select-then-insert race
-  // and React StrictMode double-effect invocations.
-  const { error } = await supabase
-    .from("areas")
-    .upsert(areasToInsert, {
-      onConflict: "user_id,slug",
-      ignoreDuplicates: true,
-    });
+  // Exactly-once seed, enforced at the database: seed_default_areas() checks
+  // the account's areas_seeded_at marker, inserts the rows, and stamps the
+  // marker in ONE transaction — rows and marker land together or not at all.
+  // The old per-login client upsert resurrected deliberately-deleted starter
+  // areas and failed outright for users at the entity cap (the cap trigger
+  // fired before Postgres resolved the (user_id, slug) conflict).
+  const { error } = await supabase.rpc("seed_default_areas", {
+    p_areas: areasToInsert,
+  });
 
   if (error) {
     throw new Error(`Failed to seed default areas: ${error.message}`);
