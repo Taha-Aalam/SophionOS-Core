@@ -145,7 +145,6 @@ export const COUNTED_ENTITIES = [
   "notes",
   "resources",
   "contacts",
-  "contact_logs",
 ] as const;
 
 /**

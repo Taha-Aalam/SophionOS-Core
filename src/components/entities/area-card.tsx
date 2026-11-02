@@ -100,7 +100,7 @@ const AreaCardComponent = ({
               </div>
             )}
             <div className="min-w-0">
-              <h3 className="font-medium truncate">
+              <h3 className="font-heading text-base font-semibold truncate">
                 {area.name}
                 {duplicateIndex != null && duplicateIndex > 1 && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">

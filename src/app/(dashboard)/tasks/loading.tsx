@@ -1,8 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 
 export default function TasksLoading() {
   return (
-    <div className="reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <div className={cn("reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}>
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border/50 py-5">
         <div className="flex items-center gap-3">

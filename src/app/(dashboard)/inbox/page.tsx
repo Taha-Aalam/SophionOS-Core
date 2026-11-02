@@ -38,6 +38,7 @@ import { relativeTime } from "@/lib/utils/dates";
 import { getNoteLinkedAreaIds } from "@/lib/utils/notes";
 import { getResourceLinkedAreaIds } from "@/lib/utils/resources";
 import { cn } from "@/lib/utils";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
 import {
   filterProjectDialogAreas,
   filterProjectDialogGoals,
@@ -801,7 +802,7 @@ export default function InboxPage() {
   }
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className={cn("content-fade-in reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}>
       <div className="border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
           <DownloadIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />

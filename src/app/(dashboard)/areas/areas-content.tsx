@@ -14,6 +14,8 @@ import { GalleryGrid } from "@/components/views/gallery-grid";
 import { EmptyState } from "@/components/views/empty-state";
 import { ErrorState } from "@/components/views/error-state";
 import { AreasByTypeView } from "@/components/views/areas-by-type-view";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 import { useGoals } from "@/lib/hooks/use-goals";
 import {
   useArchiveArea,
@@ -171,7 +173,7 @@ export function AreasContent() {
   }
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className={cn("content-fade-in reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <MapPinIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />

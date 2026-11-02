@@ -1,9 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { cardGrid } from "@/components/ui/layout";
+import { cardGrid, contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 
 export default function GoalsLoading() {
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className={cn("reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

@@ -56,6 +56,7 @@ import { getResourceLinkedAreaIds, getResourceLinkedProjectIds } from "@/lib/uti
 import { useUIStore } from "@/lib/stores/ui.store";
 import { buildReturnToChain, popReturnToHref } from "@/lib/utils/return-to";
 import { cn } from "@/lib/utils";
+import { contentColumnReading, sectionGap } from "@/components/ui/layout";
 
 export function TopicDetailContent() {
   const params = useParams();
@@ -268,7 +269,7 @@ export function TopicDetailContent() {
 
   if (!topic) {
     return (
-      <div className="p-6 lg:p-8 max-w-4xl mx-auto">
+      <div className={cn("flex flex-col gap-6", contentColumnReading)}>
         <EmptyState
           icon={Tag}
           title="Topic not found"
@@ -281,7 +282,7 @@ export function TopicDetailContent() {
   }
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className={cn("content-fade-in reveal-stagger flex flex-col", contentColumnReading, sectionGap)}>
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button

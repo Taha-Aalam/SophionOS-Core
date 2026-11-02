@@ -91,7 +91,7 @@ export function TaskListItemComponent({
   return (
     <div
       className={cn(
-        "group flex items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30",
+        "group flex items-center gap-3 border-b border-border/40 px-4 py-3 sm:py-3.5 transition-colors hover:bg-muted/30",
         task.is_completed && "opacity-60",
       )}
       onClick={() => onEdit?.(task)}
@@ -117,7 +117,7 @@ export function TaskListItemComponent({
         {onEdit ? (
           <span
             className={cn(
-              "text-sm leading-tight break-words",
+              "text-base leading-snug break-words",
               task.is_completed ? "line-through text-muted-foreground" : "cursor-pointer hover:text-foreground/80",
             )}
             onClick={(e) => {

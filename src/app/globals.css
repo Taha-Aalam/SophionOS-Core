@@ -52,6 +52,14 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
+  /* Content column max-width scale (Muse shell layout pass) */
+  --container-content-grid: var(--content-max-width-grid);
+  --container-content-reading: var(--content-max-width-reading);
+  --spacing-page-gutter: var(--page-gutter-x);
+  --spacing-card-padding: var(--card-padding);
+  --spacing-grid-gap: var(--grid-gap);
+  --spacing-section-gap: var(--section-gap);
+
   /* Typography: micro-text below text-xs (12px). */
   --text-2xs: 10px;
   --text-2xs--line-height: 1.2;
@@ -204,6 +212,18 @@
   --sidebar-accent-foreground: oklch(0.205 0.012 260);
   --sidebar-border: oklch(0.916 0.006 260);
   --sidebar-ring: oklch(0.55 0.13 260);
+  /* Content column max-width scale (Muse shell layout pass: 1200-1280px grid, narrower reading) */
+  --content-max-width-grid: 77.5rem; /* 1240px */
+  --content-max-width-reading: 54rem; /* 864px */
+
+  /* Spacing scale: generous page gutters, card padding, and grid gaps */
+  --page-gutter-x: 2rem;
+  --page-gutter-y: 2rem;
+  --card-padding: 1.5rem;
+  --card-padding-sm: 1.25rem;
+  --grid-gap: 1.5rem;
+  --grid-gap-sm: 1.25rem;
+  --section-gap: 2.5rem;
 }
 
 .dark {

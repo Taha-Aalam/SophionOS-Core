@@ -1,4 +1,6 @@
 "use client";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -125,7 +127,7 @@ export function DashboardContent() {
   }
 
   return (
-    <div className="content-fade-in mx-auto flex w-full max-w-7xl flex-col gap-8 p-6">
+    <div className={cn("content-fade-in flex flex-col", contentColumnGrid, sectionGap)}>
       <GreetingBar userName={user?.name ?? undefined} />
 
       <DashboardAnalyticsSection
