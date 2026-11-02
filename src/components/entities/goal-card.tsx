@@ -113,12 +113,12 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
       onClick={handleActivate}
       {...(isInteractive ? clickableProps : {})}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-[var(--card-padding-sm)] sm:p-[var(--card-padding)]">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <RocketIcon size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-              <h3 className="font-medium truncate text-sm">{goal.name}</h3>
+              <h3 className="font-heading text-base font-semibold truncate">{goal.name}</h3>
               {showDuplicateBadge && (
                 <Badge variant="outline" className="text-2xs px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
                   copy {duplicateIndex}

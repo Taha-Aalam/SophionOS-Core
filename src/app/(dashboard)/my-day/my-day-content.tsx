@@ -18,6 +18,8 @@ import { formatDateHuman } from "@/lib/format";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useMyDayAvailable, useMyDayTasks } from "@/lib/hooks/use-my-day";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 import { useProjects } from "@/lib/hooks/use-projects";
 import {
   useArchiveTask,
@@ -180,7 +182,7 @@ export function MyDayContent() {
   }
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full" aria-busy={isLoading}>
+    <div className={cn("content-fade-in reveal-stagger flex flex-col", contentColumnGrid, sectionGap)} aria-busy={isLoading}>
       {/* Header */}
       <div className="border-b border-border/50 py-5">
         <div className="flex items-center justify-between gap-4">

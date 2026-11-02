@@ -58,12 +58,12 @@ const TopicCardComponent = ({
         router.push(href);
       })}
     >
-      <CardContent className={cn("p-4", !compact && "p-5")}>
+      <CardContent className={cn("p-[var(--card-padding-sm)] sm:p-[var(--card-padding)]", compact && "p-4")}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Tag className="size-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
-              <h3 className="font-medium truncate">
+              <h3 className="font-heading text-base font-semibold truncate">
                 {topic.name}
                 {duplicateIndex != null && duplicateIndex > 1 && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">

@@ -13,6 +13,8 @@ import { ResourceDialog } from "@/components/entities/resource-dialog";
 import { ResourceRow } from "@/components/entities/resource-row";
 import { ResourcesFilterBar } from "@/components/filters/resources-filter-bar";
 import { ResourceRowSkeleton } from "@/components/views/list-page-skeleton";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 import { useAreas } from "@/lib/hooks/use-areas";
 import {
   useCreateResource,
@@ -366,7 +368,7 @@ export function ResourcesContent() {
   }
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className={cn("content-fade-in reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}>
       <div className="flex items-center justify-between gap-4 border-b border-border/50">
         <div className="flex items-center gap-3">
           <Link2Icon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />

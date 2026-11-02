@@ -83,7 +83,7 @@ export function ContactCard({
             </div>
             <div className="min-w-0 flex-1 overflow-hidden">
               <div className="flex min-w-0 items-center gap-1.5">
-                <span className="min-w-0 truncate font-medium">{contact.name}</span>
+                <span className="min-w-0 truncate font-heading text-base font-semibold">{contact.name}</span>
                 {contact.favorite && (
                   <Star className="size-3 shrink-0 fill-yellow-400 text-yellow-400" />
                 )}

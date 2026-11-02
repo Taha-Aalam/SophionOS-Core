@@ -14,6 +14,8 @@ import { ProjectsByAreaView, type ProjectsByAreaGroup } from "@/components/views
 import { ProjectsByGoalView, type ProjectsByGoalGroup } from "@/components/views/projects-by-goal-view";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useArchiveProject, useRestoreProject } from "@/lib/hooks/use-projects";
 import { groupProjectsByGoal } from "@/lib/utils/projects";
@@ -266,7 +268,7 @@ export function ProjectsContent() {
   }
 
   return (
-    <div className="content-fade-in reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <div className={cn("content-fade-in reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <FolderOpenIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />

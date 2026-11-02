@@ -600,6 +600,7 @@ export function ContactDetailContent() {
                   placeholder="What was discussed?"
                   value={logNote}
                   onChange={(e) => setLogNote(e.target.value)}
+                  maxLength={50000}
                   rows={2}
                   className="flex-1"
                 />
