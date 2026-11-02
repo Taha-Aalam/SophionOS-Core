@@ -20,7 +20,7 @@ const config = {
 };
 
 // Mirror of route logBodySchema
-const logBodySchema = z.object({ message: z.string().min(1).max(50000).optional() });
+const logBodySchema = z.object({ message: z.string().min(1).max(4096).optional() });
 
 async function main() {
   console.log("=== Running Contact-Logs Exempt & Conversation-Length Proofs ===");
@@ -100,10 +100,9 @@ async function main() {
     console.log("PASS Proof 1: Contact logs are free at cap; cap guard still protects entity tables.");
 
     // =========================================================================
-    // Proof 2: The meeting-minutes case (~7k chars & ~20k chars)
-    // POST a ~7,000-char log message -> 201, stored whole, returned whole on GET.
-    // Add a ~20,000-char case for margin; guardrail at 50,000.
-    // =========================================================================
+    // Proof 2: The message-cap case (4,096 chars accepted, 4,097+ refused)
+    // POST a 4,096-char log message -> accepted by schema, stored whole.
+    // Rejection at 4,097 chars and 50,001 chars.
     console.log("\n--- Proof 2: Meeting-minutes & long-form logs ---");
     const p2User = `p2_minutes_${Date.now()}`;
     const p2ContactId = randomUUID();
@@ -111,10 +110,10 @@ async function main() {
       INSERT INTO public.contacts (id, user_id, name) VALUES ('${p2ContactId}', '${p2User}', 'Meeting Partner');
     `);
 
-    // Case 2a: ~7,000 chars (meeting minutes)
-    const minutesMsg = "Agenda item discussion: approved the quarterly architectural roadmap. ".repeat(100);
-    console.log(`Case 2a length: ${minutesMsg.length} chars (~7k chars)`);
-    const val2a = logBodySchema.safeParse({ message: minutesMsg });
+    // Case 2a: 4,096 chars (Telegram-length cap)
+    const maxMsg = "x".repeat(4096);
+    console.log(`Case 2a length: ${maxMsg.length} chars (4,096 chars)`);
+    const val2a = logBodySchema.safeParse({ message: maxMsg });
     if (!val2a.success) {
       throw new Error(`Proof 2a schema validation failed: ${val2a.error.message}`);
     }
@@ -122,7 +121,7 @@ async function main() {
     const logId2a = randomUUID();
     await client.query(
       `INSERT INTO public.contact_logs (id, user_id, contact_id, message) VALUES ($1, $2, $3, $4)`,
-      [logId2a, p2User, p2ContactId, minutesMsg],
+      [logId2a, p2User, p2ContactId, maxMsg],
     );
 
     const fetched2a = (await client.query(
@@ -130,25 +129,27 @@ async function main() {
       [logId2a],
     )).rows[0].message;
 
-    if (fetched2a !== minutesMsg) {
-      throw new Error(`Proof 2a failed: stored message did not match original (${fetched2a.length} vs ${minutesMsg.length})`);
+    if (fetched2a !== maxMsg) {
+      throw new Error(`Proof 2a failed: stored message did not match original (${fetched2a.length} vs ${maxMsg.length})`);
     }
-    console.log("PASS Proof 2a: ~7,000-char meeting minutes stored whole and retrieved whole.");
+    console.log("PASS Proof 2a: 4,096-char log message stored whole and retrieved whole.");
 
-    // Case 2b: ~20,000 chars (margin case)
+    // Case 2b: 4,097 chars (guardrail boundary)
+    const overLimit4097 = "x".repeat(4097);
+    console.log(`Case 2b length: ${overLimit4097.length} chars (4,097 chars)`);
+    const val2b = logBodySchema.safeParse({ message: overLimit4097 });
+    if (val2b.success) {
+      throw new Error("Proof 2b failed: 4,097-character message was not rejected by guardrail");
+    }
+    console.log("PASS Proof 2b: 4,097-character message rejected by payload guardrail.");
+
+    // Existing stored logs remain readable at any length (>4,096 chars in DB)
     const longMsg = "Comprehensive transcript and automated minutes summary with action items. ".repeat(271);
-    console.log(`Case 2b length: ${longMsg.length} chars (~20k chars)`);
-    const val2b = logBodySchema.safeParse({ message: longMsg });
-    if (!val2b.success) {
-      throw new Error(`Proof 2b schema validation failed: ${val2b.error.message}`);
-    }
-
     const logId2b = randomUUID();
     await client.query(
       `INSERT INTO public.contact_logs (id, user_id, contact_id, message) VALUES ($1, $2, $3, $4)`,
       [logId2b, p2User, p2ContactId, longMsg],
     );
-
     const fetched2b = (await client.query(
       `SELECT message FROM public.contact_logs WHERE id = $1`,
       [logId2b],
