@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function NotesLoading() {
   return (
-    <div className="reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <div className="reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
@@ -43,7 +43,7 @@ export default function NotesLoading() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="flex cursor-pointer items-center gap-3 border-b border-border/40 px-4 py-2.5"
+            className="flex cursor-pointer items-center gap-3 border-b border-border/40 px-4 py-3 sm:py-3.5"
           >
             <Skeleton className="size-4 rounded" />
             <Skeleton className="h-4 flex-1" />

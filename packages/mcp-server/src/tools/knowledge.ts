@@ -441,7 +441,7 @@ export function registerKnowledgeTools(
         "Log an interaction with a contact. With a message it records a log entry and bumps last_interaction_at; without a message it just bumps the timestamp.",
       inputSchema: {
         id: entityIdField.describe("Contact id."),
-        message: z.string().min(1).max(2000).optional(),
+        message: z.string().min(1).max(50000).optional(),
       },
     },
     async ({ id, message }): Promise<ToolTextResult> =>

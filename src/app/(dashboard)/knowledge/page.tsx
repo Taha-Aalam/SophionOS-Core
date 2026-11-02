@@ -108,6 +108,7 @@ import {
 import { ResourcesByGroupView, type ResourceGroup } from "@/components/views/resources-by-group-view";
 import { GalleryGrid } from "@/components/views/gallery-grid";
 import { ErrorState } from "@/components/views/error-state";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
 import { NOTES_TABS_LIST_CLASS_NAME } from "@/lib/utils/note-page-display";
 import { cn } from "@/lib/utils";
 import {
@@ -823,7 +824,7 @@ export default function KnowledgeHubPage() {
   }
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className={cn("content-fade-in reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}>
       {/* Header */}
       <div>
         <div className="flex items-center gap-2.5">

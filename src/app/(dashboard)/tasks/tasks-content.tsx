@@ -27,6 +27,8 @@ import { CalendarView } from "@/components/views/calendar-view";
 import { EmptyState } from "@/components/views/empty-state";
 import { ErrorState } from "@/components/views/error-state";
 import { TasksByGroupView, type TaskGroup } from "@/components/views/tasks-by-group-view";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals } from "@/lib/hooks/use-goals";
 import { useProjects } from "@/lib/hooks/use-projects";
@@ -410,7 +412,7 @@ export function TasksContent() {
   }
 
   return (
-    <div className="content-fade-in reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <div className={cn("content-fade-in reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}>
       <div className="flex items-center justify-between border-b border-border/50">
         <div className="flex items-center gap-3">
           <CircleCheckIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />

@@ -18,6 +18,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 import { isFeatureEnabled, type FeatureFlag } from "@/lib/config/feature-flags";
 
 const settingsCards = [
@@ -99,7 +101,7 @@ export default function SettingsPage() {
   });
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className={cn("content-fade-in reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Settings2 className="size-6" aria-hidden="true" />
@@ -112,7 +114,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-[var(--grid-gap-sm)] sm:gap-[var(--grid-gap)] md:grid-cols-2 lg:grid-cols-3">
         {visibleSettingsCards.map((card) => (
           <Link key={card.href} href={card.href} className="block focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none rounded-lg">
             <Card className="hover-lift h-full">

@@ -10,7 +10,7 @@ import { AppError } from "@/lib/api/error-handler";
 
 // A logged interaction may carry a message (creates a contact_logs row) or be
 // a bare timestamp bump. `message` is optional so both flows share one route.
-const logBodySchema = z.object({ message: z.string().min(1).max(2000).optional() });
+const logBodySchema = z.object({ message: z.string().min(1).max(50000).optional() });
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

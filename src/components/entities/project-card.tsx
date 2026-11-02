@@ -112,12 +112,12 @@ export function ProjectCard({
       }}
       {...useClickableProps(() => router.push(projectHref))}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-[var(--card-padding-sm)] sm:p-[var(--card-padding)]">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <FolderOpenIcon size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-              <h3 className="font-medium truncate text-sm">{project.name}</h3>
+              <h3 className="font-heading text-base font-semibold truncate">{project.name}</h3>
               {duplicateIndex != null && duplicateIndex > 1 && (
                 <Badge
                   variant="outline"

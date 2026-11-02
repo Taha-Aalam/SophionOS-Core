@@ -1,8 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 
 export default function ProjectsLoading() {
   return (
-    <div className="reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
+    <div className={cn("reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}>
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -23,7 +25,7 @@ export default function ProjectsLoading() {
       </div>
 
       {/* ProjectCard grid */}
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-[var(--grid-gap-sm)] sm:gap-[var(--grid-gap)] md:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-48 rounded-xl" />
         ))}

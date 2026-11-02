@@ -64,7 +64,7 @@ export function NoteRow({
   return (
     <div
       className={cn(
-        "group flex cursor-pointer items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-muted/30",
+        "group flex cursor-pointer items-center gap-3 border-b border-border/40 px-4 py-3 sm:py-3.5 transition-colors hover:bg-muted/30",
         isSelected && "bg-muted/50",
       )}
       onClick={() => router.push(href)}
@@ -113,7 +113,7 @@ export function NoteRow({
 
       {/* Name + metadata */}
       <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-        <span className="block text-sm font-medium max-md:leading-tight max-md:break-words md:truncate">
+        <span className="block text-base font-medium max-md:leading-tight max-md:break-words md:truncate">
           {note.name}
         </span>
 

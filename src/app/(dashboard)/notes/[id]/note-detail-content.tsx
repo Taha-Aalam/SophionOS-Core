@@ -71,6 +71,7 @@ import { useEscapeBack } from "@/lib/hooks/use-escape-back";
 import type { Note, UpdateNoteInput } from "@/lib/types/domain.types";
 import { buildNoteMetadataUpdateInput } from "@/lib/utils/note-detail-metadata";
 import { cn } from "@/lib/utils";
+import { contentColumnReading, sectionGap } from "@/components/ui/layout";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { buildReturnToChain, encodeReturnTo, popReturnToHref } from "@/lib/utils/return-to";
 import { getNoteLinkedAreaIds, getNoteLinkedGoalIds, getNoteLinkedProjectIds, getNoteLinkedTaskIds } from "@/lib/utils/notes";
@@ -264,7 +265,7 @@ export function NoteDetailContent() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className={cn("flex flex-col gap-6", contentColumnReading)}>
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-10 w-full max-w-xl" />
         <Skeleton className="flex-1" />
@@ -274,7 +275,7 @@ export function NoteDetailContent() {
 
   if (!note) {
     return (
-      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className={cn("flex flex-col gap-6", contentColumnReading)}>
         <EmptyState
           icon={NotebookPen}
           title="Note not found"
@@ -330,7 +331,7 @@ export function NoteDetailContent() {
   );
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className={cn("content-fade-in reveal-stagger flex flex-col", contentColumnReading, sectionGap)}>
       {/* Header: wraps so long breadcrumb pushes status + actions onto the next line */}
       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-2.5">
         <div className="flex min-w-0 max-w-full items-center gap-2">

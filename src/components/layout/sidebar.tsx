@@ -18,6 +18,12 @@ import {
 import { useAuth } from "@/components/providers/auth-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { isActiveNavigationPath } from "@/lib/auth/auth-routing";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
@@ -38,7 +44,7 @@ function NavLink({
   const pathname = usePathname();
   const isActive = isActiveNavigationPath(pathname, href);
 
-  return (
+  const link = (
     <Link
       href={comingSoon ? "#" : href}
       onClick={(event) => {
@@ -47,25 +53,46 @@ function NavLink({
         }
       }}
       className={cn(
-        "group/nav relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors duration-150 ease-[var(--ease-out-quint)]",
+        "group/nav relative flex items-center transition-colors duration-150 ease-[var(--ease-out-quint)]",
+        showLabel
+          ? "gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium"
+          : "size-10 justify-center rounded-lg mx-auto",
         isActive && !comingSoon
           ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_1px_0_oklch(1_0_0/0.04)]"
           : comingSoon
             ? "cursor-not-allowed text-muted-foreground opacity-60"
             : "text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
       )}
-      title={showLabel ? undefined : label}
+      aria-label={showLabel ? undefined : label}
     >
       {isActive && !comingSoon ? (
         <span
           aria-hidden
-          className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary"
+          className={cn(
+            "absolute rounded-full bg-primary",
+            showLabel
+              ? "left-0 top-1/2 h-4 w-0.5 -translate-y-1/2"
+              : "left-1 top-1/2 h-5 w-1 -translate-y-1/2",
+          )}
         />
       ) : null}
-<Icon size={16} className="shrink-0" />
+      <Icon size={showLabel ? 16 : 19} className="shrink-0" />
       {showLabel ? <span>{label}</span> : null}
     </Link>
   );
+
+  if (!showLabel) {
+    return (
+      <Tooltip>
+        <TooltipTrigger render={link} />
+        <TooltipContent side="right" sideOffset={10}>
+          {label}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return link;
 }
 
 export function Sidebar() {
@@ -95,43 +122,99 @@ export function Sidebar() {
         isDesktopSidebarOpen ? "w-64" : "w-20",
       )}
     >
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-sidebar-border px-3">
-        <Link href={policyMode ? "/" : "/dashboard"} className="group flex items-center gap-2 text-sm font-semibold">
-          <Image
-            src="/brand/sophion-symbol.svg"
-            alt={isDesktopSidebarOpen ? "" : "SophionOS"}
-            width={24}
-            height={24}
-            unoptimized
-            className="size-6 dark:hidden"
-          />
-          <Image
-            src="/brand/sophion-symbol-reversed-white.svg"
-            alt={isDesktopSidebarOpen ? "" : "SophionOS"}
-            width={24}
-            height={24}
-            unoptimized
-            className="hidden size-6 dark:block"
-          />
-          {isDesktopSidebarOpen ? <span className="tracking-tight">SophionOS</span> : null}
-        </Link>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={toggleDesktopSidebar}
-          aria-label={isDesktopSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          {isDesktopSidebarOpen ? (
+      <TooltipProvider delay={100}>
+      <div
+        className={cn(
+          "flex h-12 shrink-0 items-center border-b border-sidebar-border",
+          isDesktopSidebarOpen ? "justify-between px-3" : "justify-between px-2.5",
+        )}
+      >
+        {isDesktopSidebarOpen ? (
+          <Link href={policyMode ? "/" : "/dashboard"} className="group flex items-center gap-2 text-sm font-semibold">
+            <Image
+              src="/brand/sophion-symbol.svg"
+              alt=""
+              width={24}
+              height={24}
+              unoptimized
+              className="size-6 dark:hidden"
+            />
+            <Image
+              src="/brand/sophion-symbol-reversed-white.svg"
+              alt=""
+              width={24}
+              height={24}
+              unoptimized
+              className="hidden size-6 dark:block"
+            />
+            <span className="tracking-tight">SophionOS</span>
+          </Link>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Link
+                  href={policyMode ? "/" : "/dashboard"}
+                  className="flex size-9 items-center justify-center rounded-lg hover:bg-sidebar-accent/70 transition-colors"
+                  aria-label="SophionOS"
+                >
+                  <Image
+                    src="/brand/sophion-symbol.svg"
+                    alt="SophionOS"
+                    width={26}
+                    height={26}
+                    unoptimized
+                    className="size-[26px] dark:hidden"
+                  />
+                  <Image
+                    src="/brand/sophion-symbol-reversed-white.svg"
+                    alt="SophionOS"
+                    width={26}
+                    height={26}
+                    unoptimized
+                    className="hidden size-[26px] dark:block"
+                  />
+                </Link>
+              }
+            />
+            <TooltipContent side="right" sideOffset={10}>
+              SophionOS
+            </TooltipContent>
+          </Tooltip>
+        )}
+        {isDesktopSidebarOpen ? (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={toggleDesktopSidebar}
+            aria-label="Collapse sidebar"
+          >
             <ChevronLeft className="size-3.5" />
-          ) : (
-            <ChevronRightIcon className="size-3.5" />
-          )}
-        </Button>
+          </Button>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={toggleDesktopSidebar}
+                  aria-label="Expand sidebar"
+                >
+                  <ChevronRightIcon className="size-3.5" />
+                </Button>
+              }
+            />
+            <TooltipContent side="right" sideOffset={10}>
+              Expand sidebar
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto px-2 py-3">
+      <nav className={cn("flex-1 overflow-y-auto px-2 py-3", isDesktopSidebarOpen ? "space-y-5" : "space-y-4")}>
         {policyMode ? (
-          <div className="space-y-0.5">
+          <div className={isDesktopSidebarOpen ? "space-y-0.5" : "space-y-2"}>
             {isDesktopSidebarOpen ? (
               <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
                 Policies
@@ -143,7 +226,7 @@ export function Sidebar() {
           </div>
         ) : (
           <>
-            <div className="space-y-0.5">
+            <div className={isDesktopSidebarOpen ? "space-y-0.5" : "space-y-2"}>
               {isDesktopSidebarOpen ? (
                 <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
                   Core
@@ -154,7 +237,7 @@ export function Sidebar() {
               ))}
             </div>
 
-            <div className="space-y-0.5">
+            <div className={isDesktopSidebarOpen ? "space-y-0.5" : "space-y-2"}>
               {isDesktopSidebarOpen ? (
                 <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
                   System
@@ -169,36 +252,80 @@ export function Sidebar() {
       </nav>
 
       {policyMode ? null : (
-        <div className="space-y-1 border-t border-sidebar-border px-2 py-3">
-          <Link
+        <div
+          className={cn(
+            "border-t border-sidebar-border px-2 py-3",
+            isDesktopSidebarOpen ? "space-y-1" : "space-y-2",
+          )}
+        >
+          <NavLink
             href="/settings"
-            className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          >
-            <SettingsIcon size={16} className="shrink-0" />
-            {isDesktopSidebarOpen ? <span>Settings</span> : null}
-          </Link>
-          <Button
-            variant="ghost"
-            className="h-auto w-full justify-start gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-          >
-            <SunMoonIcon size={16} className="shrink-0" />
-            {isDesktopSidebarOpen ? <span>{themeLabel}</span> : null}
-          </Button>
-          <Link
-            href="/settings/profile"
-            aria-label={`Open profile: ${displayName}`}
-            className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          >
-            <Avatar size="sm">
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-            {isDesktopSidebarOpen ? (
+            label="Settings"
+            icon={SettingsIcon}
+            showLabel={isDesktopSidebarOpen}
+          />
+          {isDesktopSidebarOpen ? (
+            <Button
+              variant="ghost"
+              className="h-auto w-full justify-start gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+            >
+              <SunMoonIcon size={16} className="shrink-0" />
+              <span>{themeLabel}</span>
+            </Button>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    className="size-10 mx-auto justify-center rounded-lg p-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                    aria-label={themeLabel}
+                  >
+                    <SunMoonIcon size={19} className="shrink-0" />
+                  </Button>
+                }
+              />
+              <TooltipContent side="right" sideOffset={10}>
+                {themeLabel}
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {isDesktopSidebarOpen ? (
+            <Link
+              href="/settings/profile"
+              aria-label={`Open profile: ${displayName}`}
+              className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            >
+              <Avatar size="sm">
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
               <span className="truncate text-sm font-medium">{displayName}</span>
-            ) : null}
-          </Link>
+            </Link>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Link
+                    href="/settings/profile"
+                    aria-label={`Open profile: ${displayName}`}
+                    className="flex size-10 mx-auto items-center justify-center rounded-lg text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  >
+                    <Avatar size="sm">
+                      <AvatarFallback>{initials}</AvatarFallback>
+                    </Avatar>
+                  </Link>
+                }
+              />
+              <TooltipContent side="right" sideOffset={10}>
+                Profile: {displayName}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
       )}
+      </TooltipProvider>
     </aside>
   );
 }

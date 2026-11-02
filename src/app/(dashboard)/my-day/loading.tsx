@@ -1,8 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 
 function TaskRowSkeleton() {
   return (
-    <div className="flex items-center gap-3 border-b border-border/40 px-4 py-2.5">
+    <div className="flex items-center gap-3 border-b border-border/40 px-4 py-3 sm:py-3.5">
       <Skeleton className="size-4 rounded" />
       <Skeleton className="h-4 flex-1" />
       <Skeleton className="h-4 w-16" />
@@ -27,7 +29,7 @@ function SectionHeaderSkeleton() {
 
 export default function MyDayLoading() {
   return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full" aria-busy="true" role="status" aria-label="Loading my day">
+    <div className={cn("reveal-stagger flex flex-col", contentColumnGrid, sectionGap)} aria-busy="true" role="status" aria-label="Loading my day">
       {/* Header */}
       <div className="border-b border-border/50 py-5">
         <div className="flex items-center justify-between gap-4">
