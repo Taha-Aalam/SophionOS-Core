@@ -1,4 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 
 function SectionHeaderSkeleton() {
   return (
@@ -33,7 +35,7 @@ function UnderlineTabSkeleton({ count }: { count: number }) {
 export default function KnowledgeHubLoading() {
   return (
     <div
-      className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full"
+      className={cn("flex flex-col", contentColumnGrid, sectionGap)}
       aria-busy="true"
       role="status"
       aria-label="Loading knowledge hub"

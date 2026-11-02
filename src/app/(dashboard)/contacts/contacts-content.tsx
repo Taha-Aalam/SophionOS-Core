@@ -1,6 +1,7 @@
 "use client";
 
-import { cardGrid } from "@/components/ui/layout";
+import { cardGrid, contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { Archive, Clock, FolderKanban, LayoutGrid, Map as MapIcon, Plus, Star, Target as GoalIcon, Users } from "lucide-react";
 import { UsersIcon } from "@/components/icons";
@@ -153,7 +154,7 @@ export function ContactsContent() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className={cn("flex flex-col", contentColumnGrid, sectionGap)}>
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-96 w-full" />
       </div>
@@ -161,7 +162,7 @@ export function ContactsContent() {
   }
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className={cn("content-fade-in reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}>
       <div className="flex items-start justify-between border-b border-border/50 py-5">
         <div className="flex items-center gap-3">
           <UsersIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />

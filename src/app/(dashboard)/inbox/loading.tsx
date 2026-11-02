@@ -1,4 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 
 function InboxItemSkeleton() {
   return (
@@ -12,7 +14,7 @@ function InboxItemSkeleton() {
 
 export default function InboxLoading() {
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full" aria-busy="true" role="status" aria-label="Loading inbox">
+    <div className={cn("flex flex-col", contentColumnGrid, sectionGap)} aria-busy="true" role="status" aria-label="Loading inbox">
       {/* Header */}
       <div className="border-b border-border/50 py-5">
         <div className="flex items-center gap-3">

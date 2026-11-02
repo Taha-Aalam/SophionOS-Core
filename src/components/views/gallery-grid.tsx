@@ -10,7 +10,7 @@ export function GalleryGrid({ children, className }: GalleryGridProps) {
   return (
     <div
       className={cn(
-        "grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+        "grid gap-[var(--grid-gap-sm)] sm:gap-[var(--grid-gap)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
         className
       )}
     >

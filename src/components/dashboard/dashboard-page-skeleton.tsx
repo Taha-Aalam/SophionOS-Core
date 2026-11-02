@@ -1,5 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { cardGrid } from "@/components/ui/layout";
+import { cardGrid, contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 
 /**
  * Single full-page skeleton that mirrors DashboardContent layout:
@@ -27,7 +28,7 @@ function SectionHeaderSkeleton() {
 /** Matches GalleryGrid: sm:2 / lg:3 / xl:4 (Active Areas). */
 function AreaGridSkeleton({ count = 4 }: { count?: number }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid gap-[var(--grid-gap-sm)] sm:gap-[var(--grid-gap)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {Array.from({ length: count }).map((_, i) => (
         <Skeleton key={i} className="h-48 rounded-xl" />
       ))}
@@ -38,7 +39,7 @@ function AreaGridSkeleton({ count = 4 }: { count?: number }) {
 /** Matches project card grid: md:2 / xl:3. */
 function ProjectGridSkeleton({ count = 3 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-[var(--grid-gap-sm)] sm:gap-[var(--grid-gap)] md:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: count }).map((_, i) => (
         <Skeleton key={i} className="h-48 rounded-xl" />
       ))}
@@ -103,7 +104,7 @@ export function DashboardAnalyticsSkeleton() {
 export function DashboardPageSkeleton() {
   return (
     <div
-      className="reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-8 p-6"
+      className={cn("reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}
       aria-busy="true"
       role="status"
       aria-label="Loading dashboard"

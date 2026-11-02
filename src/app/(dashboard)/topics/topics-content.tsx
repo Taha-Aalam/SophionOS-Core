@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TopicCard } from "@/components/entities/topic-card";
 import { TopicDialog } from "@/components/entities/topic-dialog";
 import { GalleryGrid } from "@/components/views/gallery-grid";
+import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 import {
   useTopics,
   useToggleFavoriteTopic,
@@ -290,7 +292,7 @@ export function TopicsContent() {
       );
     }
     return (
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-[var(--grid-gap-sm)] sm:gap-[var(--grid-gap)] sm:grid-cols-2 lg:grid-cols-3">
         {list.map((topic) => (
           <TopicCard
             key={topic.id}
@@ -308,7 +310,7 @@ export function TopicsContent() {
   };
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className={cn("content-fade-in reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <LayersIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
