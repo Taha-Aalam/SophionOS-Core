@@ -7,6 +7,7 @@ import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const linkSchema = z.object({ topic_id: z.string().uuid() });
 
@@ -15,7 +16,7 @@ const linkSchema = z.object({ topic_id: z.string().uuid() });
  * link/unlink set or clear that single field. Returns the topic id as a list
  * for shape parity with the other relationship routes.
  */
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleGet(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -27,12 +28,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.topic_id ? [note.topic_id] : []);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /** POST — set the note's topic. */
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handlePost(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -49,12 +50,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const note = await noteService.update(userId, id, { topic_id: body.topic_id }, { supabase });
     return success(note.topic_id ? [note.topic_id] : []);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /** DELETE — clear the note's topic. */
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleDelete(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -66,6 +67,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const note = await noteService.update(userId, id, { topic_id: null }, { supabase });
     return success(note.topic_id ? [note.topic_id] : []);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/notes/:id/topics", handleGet);
+export const POST = withApiLogging("/api/v1/notes/:id/topics", handlePost);
+export const DELETE = withApiLogging("/api/v1/notes/:id/topics", handleDelete);

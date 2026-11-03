@@ -6,11 +6,12 @@ import { AppError } from "@/lib/api/error-handler";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { projectService } from "@/lib/services/project.service";
 import { createDataClient } from "@/lib/supabase/server";
+import { withApiLogging } from "@/lib/api/api-log";
 
 /**
  * POST /api/v1/projects/[id]/restore — restore an archived project.
  */
-export async function POST(
+async function handlePost(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -28,8 +29,8 @@ export async function POST(
     const project = await projectService.restore(userId, id, { supabase, userId });
     return success(project);
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const POST = withApiLogging("/api/v1/projects/:id/restore", handlePost);

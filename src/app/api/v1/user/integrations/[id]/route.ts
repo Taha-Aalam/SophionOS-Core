@@ -4,8 +4,9 @@ import { success, error } from "@/lib/api/api-response";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError, DatabaseError, NotFoundError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
-export async function DELETE(
+async function handleDelete(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -33,6 +34,8 @@ export async function DELETE(
 
     return success({ id, unlinked: true });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const DELETE = withApiLogging("/api/v1/user/integrations/:id", handleDelete);

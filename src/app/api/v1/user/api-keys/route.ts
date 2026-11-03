@@ -13,8 +13,9 @@ import { AppError } from "@/lib/api/error-handler";
 import { createApiKeySchema } from "@/lib/validators/ai-access.schema";
 import { recordAuditEvent } from "@/lib/api/ai-access-service";
 import { assertNoScheduledAccountDeletion } from "@/lib/privacy/account-deletion";
+import { withApiLogging } from "@/lib/api/api-log";
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     // Listing is allowed for session or API key (no privilege escalation).
     const { userId } = await requireAuth(request);
@@ -25,11 +26,11 @@ export async function GET(request: NextRequest) {
     const keys = await listApiKeys(userId);
     return success(keys.map(toPublicApiKeyRecord));
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     // Minting keys is dashboard-only — API keys cannot create write_enabled peers.
     const { userId } = await requireClerkSession(request);
@@ -76,6 +77,9 @@ export async function POST(request: NextRequest) {
     // text. `record` carries only safe metadata (no key_hash).
     return created({ key, record: toPublicApiKeyRecord(record) });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/user/api-keys", handleGet);
+export const POST = withApiLogging("/api/v1/user/api-keys", handlePost);

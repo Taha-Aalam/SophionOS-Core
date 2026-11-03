@@ -7,13 +7,14 @@ import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const linkBodySchema = z.object({
   project_id: z.string().uuid(),
   role_in_project: z.string().max(255).optional(),
 });
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleGet(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -25,11 +26,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const links = await contactService.getProjectLinks(userId, id, { supabase });
     return success(links);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handlePost(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -47,11 +48,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const links = await contactService.getProjectLinks(userId, id, { supabase });
     return success(links);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleDelete(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -69,6 +70,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const links = await contactService.getProjectLinks(userId, id, { supabase });
     return success(links);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/contacts/:id/projects", handleGet);
+export const POST = withApiLogging("/api/v1/contacts/:id/projects", handlePost);
+export const DELETE = withApiLogging("/api/v1/contacts/:id/projects", handleDelete);

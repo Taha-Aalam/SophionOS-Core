@@ -8,9 +8,10 @@ import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 
 import { bulkIdsSchema } from "@/lib/api/bulk";
+import { withApiLogging } from "@/lib/api/api-log";
 const bulkSchema = bulkIdsSchema;
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -38,6 +39,8 @@ export async function POST(request: NextRequest) {
 
     return success({ succeeded, failed, total: ids.length });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const POST = withApiLogging("/api/v1/notes/bulk/delete", handlePost);

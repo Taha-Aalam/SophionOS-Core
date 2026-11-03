@@ -8,12 +8,13 @@ import { rateLimit } from "@/lib/api/rate-limiter";
 import { goalService } from "@/lib/services/goal.service";
 import { createDataClient } from "@/lib/supabase/server";
 import { updateGoalSchema } from "@/lib/validators/goal.schema";
+import { withApiLogging } from "@/lib/api/api-log";
 
 /**
  * GET /api/v1/goals/[id] — single goal with progress + rollups hydrated by the
  * service layer.
  */
-export async function GET(
+async function handleGet(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -31,16 +32,14 @@ export async function GET(
     const goal = await goalService.getById(userId, id, { supabase });
     return success(goal);
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /**
  * PATCH /api/v1/goals/[id] — partial update. Requires `application/json`.
  */
-export async function PATCH(
+async function handlePatch(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -66,16 +65,14 @@ export async function PATCH(
     const goal = await goalService.update(userId, id, body, { supabase });
     return success(goal);
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /**
  * DELETE /api/v1/goals/[id] — permanent delete.
  */
-export async function DELETE(
+async function handleDelete(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -93,8 +90,10 @@ export async function DELETE(
     await goalService.delete(userId, id, { supabase });
     return success({ id, deleted: true });
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/goals/:id", handleGet);
+export const PATCH = withApiLogging("/api/v1/goals/:id", handlePatch);
+export const DELETE = withApiLogging("/api/v1/goals/:id", handleDelete);

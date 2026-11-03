@@ -12,6 +12,7 @@ import { createDataClient } from "@/lib/supabase/server";
 import type { Project } from "@/lib/types/domain.types";
 import type { ProjectStatus } from "@/lib/utils/constants";
 import { createProjectSchema } from "@/lib/validators/project.schema";
+import { withApiLogging } from "@/lib/api/api-log";
 
 function isTruthy(value: string | null): boolean {
   return value === "true" || value === "1";
@@ -23,7 +24,7 @@ function isTruthy(value: string | null): boolean {
  * boolean `archive`. `group_by=area|status` returns a grouped map instead of a
  * flat page.
  */
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -88,16 +89,14 @@ export async function GET(request: NextRequest) {
     const pageItems = projects.slice(offset, offset + limit);
     return paginated(pageItems, projects.length, page, pageSize);
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /**
  * POST /api/v1/projects — create a project. Requires `application/json`.
  */
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -119,8 +118,9 @@ export async function POST(request: NextRequest) {
     const project = await projectService.create(userId, body, { supabase, userId });
     return created(project);
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/projects", handleGet);
+export const POST = withApiLogging("/api/v1/projects", handlePost);

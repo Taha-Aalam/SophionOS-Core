@@ -6,13 +6,14 @@ import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError, DatabaseError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const createIntegrationSchema = z.object({
   type: z.string().min(1).max(60),
   external_id: z.string().min(1).max(255),
 });
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const authResult = await requireAuth(request);
     const { userId } = authResult;
@@ -32,11 +33,11 @@ export async function GET(request: NextRequest) {
 
     return success(data ?? []);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const authResult = await requireClerkSession(request);
     const { userId } = authResult;
@@ -61,6 +62,9 @@ export async function POST(request: NextRequest) {
 
     return created(data);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/user/integrations", handleGet);
+export const POST = withApiLogging("/api/v1/user/integrations", handlePost);

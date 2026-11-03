@@ -12,6 +12,7 @@ import {
   isAccountDeletionDue,
   DELETION_GRACE_DAYS,
 } from "@/lib/privacy/account-deletion";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const bodySchema = z.object({
   confirmation: z.string().min(1),
@@ -28,7 +29,7 @@ export const ACCOUNT_DELETION_CONSEQUENCES = [
 ] as const;
 
 /** GET current deletion request status (processes due purges first). */
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const { userId } = await requireClerkSession(request);
     const rl = await rateLimit(request, userId);
@@ -48,14 +49,12 @@ export async function GET(request: NextRequest) {
       consequences: [...ACCOUNT_DELETION_CONSEQUENCES],
     });
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /** POST schedule account deletion after typed confirmation. */
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const { userId } = await requireClerkSession(request);
     const rl = await rateLimit(request, userId);
@@ -85,8 +84,9 @@ export async function POST(request: NextRequest) {
       throw e;
     }
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/user/account-deletion", handleGet);
+export const POST = withApiLogging("/api/v1/user/account-deletion", handlePost);

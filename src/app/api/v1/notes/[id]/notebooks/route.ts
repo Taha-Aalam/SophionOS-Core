@@ -7,6 +7,7 @@ import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const replaceSchema = z.object({
   notebooks: z.array(z.string().min(1).max(100)),
@@ -16,7 +17,7 @@ const addSchema = z.object({
 });
 
 /** GET — the note's current notebook memberships. */
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleGet(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -28,12 +29,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.notebooks ?? []);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /** PUT — replace the full notebook membership set. */
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handlePut(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -54,12 +55,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.notebooks ?? []);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /** POST — add the note to a single notebook. */
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handlePost(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -77,12 +78,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.notebooks ?? []);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /** DELETE — remove the note from a notebook (?notebook=<name>). */
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleDelete(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -99,6 +100,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.notebooks ?? []);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/notes/:id/notebooks", handleGet);
+export const POST = withApiLogging("/api/v1/notes/:id/notebooks", handlePost);
+export const PUT = withApiLogging("/api/v1/notes/:id/notebooks", handlePut);
+export const DELETE = withApiLogging("/api/v1/notes/:id/notebooks", handleDelete);

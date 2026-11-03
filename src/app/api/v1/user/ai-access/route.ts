@@ -12,8 +12,9 @@ import {
 import { listApiKeys, toPublicApiKeyRecord } from "@/lib/api/api-key-service";
 import { patchAiAccessSchema } from "@/lib/validators/ai-access.schema";
 import { assertNoScheduledAccountDeletion } from "@/lib/privacy/account-deletion";
+import { withApiLogging } from "@/lib/api/api-log";
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     // Read settings/list is fine for session or API key (no escalation).
     const { userId } = await requireAuth(request);
@@ -27,11 +28,11 @@ export async function GET(request: NextRequest) {
       keys: keys.map(toPublicApiKeyRecord),
     });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function PATCH(request: NextRequest) {
+async function handlePatch(request: NextRequest) {
   try {
     // Changing AI flags is dashboard-only — API keys cannot enable writes for themselves.
     const { userId } = await requireClerkSession(request);
@@ -66,6 +67,9 @@ export async function PATCH(request: NextRequest) {
 
     return success(settings);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/user/ai-access", handleGet);
+export const PATCH = withApiLogging("/api/v1/user/ai-access", handlePatch);

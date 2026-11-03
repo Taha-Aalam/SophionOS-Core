@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api/api-auth";
 import { requirePaidTier } from "@/lib/api/subscription";
 import { success, error } from "@/lib/api/api-response";
-import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
+
 
 /**
  * MCP startup health/authorization probe.
@@ -13,12 +14,14 @@ import { AppError } from "@/lib/api/error-handler";
  * server refuses to start with a clear "Pro required" message. A valid
  * Pro/lifetime/max key gets `{ ok: true, tier_ok: true }`.
  */
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const { userId } = await requireAuth(request);
     await requirePaidTier(userId);
     return success({ ok: true, tier_ok: true });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/mcp/health", handleGet);
