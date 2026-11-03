@@ -96,7 +96,7 @@ export function BillingContent() {
 
   if (loading) {
     return (
-      <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className="reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
         <SettingsDetailHeader
           title="Billing"
           description="View your current plan and usage."
@@ -117,7 +117,7 @@ export function BillingContent() {
 
   if (error) {
     return (
-      <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className="reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
         <SettingsDetailHeader
           title="Billing"
           description="View your current plan and usage."
@@ -131,7 +131,7 @@ export function BillingContent() {
   const info = TIER_LABELS[tier] ?? TIER_LABELS.free;
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
       <SettingsDetailHeader
         title="Billing"
         description="View your current plan and usage. Checkout is coming soon. For now, you can explore Pro features and upgrade when payment processing goes live."

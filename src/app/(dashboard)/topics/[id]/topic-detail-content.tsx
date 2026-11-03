@@ -269,7 +269,7 @@ export function TopicDetailContent() {
 
   if (!topic) {
     return (
-      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
         <EmptyState
           icon={Tag}
           title="Topic not found"
@@ -282,7 +282,7 @@ export function TopicDetailContent() {
   }
 
   return (
-    <div className={cn("content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full", sectionGap)}>
+    <div className={cn("content-fade-in reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full", sectionGap)}>
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button

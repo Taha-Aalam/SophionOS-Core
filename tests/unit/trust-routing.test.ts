@@ -88,9 +88,12 @@ describe("TrustPage heading block", () => {
     expect(html).toContain("How we handle it.");
   });
 
-  it("matches the dashboard pages' frame width (max-w-7xl)", () => {
+  it("matches the dashboard pages' adaptive frame (content-column-grid)", () => {
     const html = renderTrust("Privacy", "d");
-    expect(html).toContain("max-w-7xl");
+    // Adaptive standard shell: grows by the sidebar width delta when the rail
+    // is collapsed (see .content-column-grid in globals.css). No fixed cap.
+    expect(html).toContain("content-column-grid");
+    expect(html).not.toContain("max-w-7xl");
     expect(html).not.toContain("max-w-3xl"); // compressed width no longer matches areas/goals/projects
     expect(html).toContain("content-fade-in reveal-stagger");
     expect(html).toContain("legal-doc");

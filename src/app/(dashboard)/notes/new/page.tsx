@@ -159,7 +159,7 @@ export default function NewNotePage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-10 w-full" />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -171,7 +171,7 @@ export default function NewNotePage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon-sm" onClick={() => router.push(noteBackHref)}>

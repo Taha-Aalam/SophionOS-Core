@@ -96,7 +96,7 @@ export default function PreferencesPage() {
   }
 
   if (!user) return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full" aria-busy="true" role="status" aria-label="Loading preferences">
+    <div className="reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full" aria-busy="true" role="status" aria-label="Loading preferences">
       <div className="space-y-6">
         <div className="h-8 w-48 rounded bg-muted animate-pulse" />
         <div className="h-48 w-full rounded-lg border border-border/40 bg-muted/30 animate-pulse" />
@@ -105,7 +105,7 @@ export default function PreferencesPage() {
   );
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
       <SettingsDetailHeader
         title="Preferences"
         description="Set your timezone, theme, and language. Theme preference is synced with the UI immediately."
