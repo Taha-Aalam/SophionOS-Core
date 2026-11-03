@@ -5,6 +5,20 @@ All notable changes to SophionOS are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.10] - 2026-11-03
+
+### Changed
+
+- Contact-log interaction limits and presentation (#232):
+  - Removed client-side `maxLength={50000}` attribute from the contact-log
+    composer textarea in `ContactDetailContent`, preventing silent client-side
+    truncation of pasted text.
+  - Adjusted API route (`/api/v1/contacts/[id]/log`) and MCP tool
+    (`log_interaction`) schema limits from 50,000 to 4,096 characters with loud
+    HTTP 400 refusal on overflow. Existing stored logs remain readable at any length.
+  - Long contact-log entries (>500 characters) in the contact detail timeline
+    render clamped to 4 lines with a "Read more" / "Show less" toggle control.
+
 ## [0.2.9] - 2026-11-01
 
 ### Changed
