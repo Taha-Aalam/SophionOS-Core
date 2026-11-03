@@ -7,6 +7,7 @@ import {
   finalizeAccountDeletion,
   getAccountDeletionRequest,
 } from "@/lib/privacy/account-deletion";
+import { withApiLogging } from "@/lib/api/api-log";
 
 /**
  * POST — complete product-data purge for a scheduled deletion.
@@ -14,7 +15,7 @@ import {
  * Also invocable by processDueAccountDeletion when Privacy APIs load after due.
  * Session-only; never available to API keys.
  */
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const { userId } = await requireClerkSession(request);
     const rl = await rateLimit(request, userId);
@@ -62,8 +63,8 @@ export async function POST(request: NextRequest) {
         "Account product data purge completed. Billing records may remain. Sign-out and Clerk user removal may require separate steps.",
     });
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const POST = withApiLogging("/api/v1/user/account-deletion/finalize", handlePost);

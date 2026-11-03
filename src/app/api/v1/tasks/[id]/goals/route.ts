@@ -7,10 +7,11 @@ import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const linkSchema = z.object({ goal_id: z.string().uuid() }).strict();
 
-export async function GET(
+async function handleGet(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -27,11 +28,11 @@ export async function GET(
     const goalIds = await taskService.getGoalLinks(userId, id, { supabase });
     return success({ task_id: id, goal_ids: goalIds });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function POST(
+async function handlePost(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -56,11 +57,11 @@ export async function POST(
     await taskService.replaceGoalLinks(userId, id, next, { supabase });
     return success({ task_id: id, goal_ids: next });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function DELETE(
+async function handleDelete(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -85,6 +86,10 @@ export async function DELETE(
     await taskService.replaceGoalLinks(userId, id, next, { supabase });
     return success({ task_id: id, goal_ids: next });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/tasks/:id/goals", handleGet);
+export const POST = withApiLogging("/api/v1/tasks/:id/goals", handlePost);
+export const DELETE = withApiLogging("/api/v1/tasks/:id/goals", handleDelete);

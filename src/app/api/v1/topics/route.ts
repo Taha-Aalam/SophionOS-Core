@@ -8,8 +8,9 @@ import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 import { createTopicSchema } from "@/lib/validators/topic.schema";
+import { withApiLogging } from "@/lib/api/api-log";
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -41,11 +42,11 @@ export async function GET(request: NextRequest) {
 
     return paginated(data, data.length, page, pageSize);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -61,6 +62,9 @@ export async function POST(request: NextRequest) {
     const topic = await topicService.create(userId, body, { supabase });
     return created(topic);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/topics", handleGet);
+export const POST = withApiLogging("/api/v1/topics", handlePost);

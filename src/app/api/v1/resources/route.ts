@@ -10,6 +10,7 @@ import { AppError } from "@/lib/api/error-handler";
 import { createResourceSchema } from "@/lib/validators/resource.schema";
 import type { Resource } from "@/lib/types/domain.types";
 import type { ResourceStatus } from "@/lib/utils/constants";
+import { withApiLogging } from "@/lib/api/api-log";
 
 function parseBool(value: string | null): boolean | undefined {
   if (value === "true") return true;
@@ -36,7 +37,7 @@ function resolveGroupKey(resource: Resource, groupBy: string): string {
   }
 }
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -94,11 +95,11 @@ export async function GET(request: NextRequest) {
 
     return paginated(data, data.length, page, pageSize);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -114,6 +115,9 @@ export async function POST(request: NextRequest) {
     const resource = await resourceService.create(userId, body, { supabase });
     return created(resource);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/resources", handleGet);
+export const POST = withApiLogging("/api/v1/resources", handlePost);

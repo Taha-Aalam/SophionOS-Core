@@ -7,11 +7,12 @@ import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const linkSchema = z.object({ goal_id: z.string().uuid() });
 
 /** GET — goal ids linked to the note. */
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleGet(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -23,12 +24,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.linkedGoalIds ?? []);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /** POST — link a goal to the note. */
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handlePost(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -49,12 +50,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.linkedGoalIds ?? []);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /** DELETE — unlink a goal (?goal_id=<uuid>). */
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleDelete(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -74,6 +75,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const note = await noteService.getById(userId, id, { supabase });
     return success(note.linkedGoalIds ?? []);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/notes/:id/goals", handleGet);
+export const POST = withApiLogging("/api/v1/notes/:id/goals", handlePost);
+export const DELETE = withApiLogging("/api/v1/notes/:id/goals", handleDelete);

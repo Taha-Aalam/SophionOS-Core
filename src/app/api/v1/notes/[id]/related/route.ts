@@ -5,12 +5,13 @@ import { success, error } from "@/lib/api/api-response";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 /**
  * Related notes are DERIVED from shared notebook membership — there is no
  * link-related write path. Read-only: returns groups of co-notebook notes.
  */
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleGet(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -26,6 +27,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const groups = await noteService.getRelatedByNotebook(userId, id, { supabase });
     return success(groups);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/notes/:id/related", handleGet);

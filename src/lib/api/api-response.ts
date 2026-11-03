@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AppError } from "./error-handler";
+import { logApiFailure } from "./api-log";
 import { releaseHeader, withReleaseMeta } from "@/lib/watermark/envelope";
 
 /**
@@ -39,8 +40,30 @@ export function paginated<T>(
  * Error envelope: `{ error: { code, message } }`. Uses `publicMessage` so 5xx
  * internals never leak across the trust boundary. Rate-limit (429) responses
  * carry a `Retry-After` header.
+ *
+ * This is the single point where an error becomes an HTTP response, so it is
+ * also where every 5xx is logged with its real cause (`DatabaseError`'s
+ * `originalError`, a non-`AppError`'s message + stack). The body and status
+ * sent to the client are unchanged; only the log receives internal detail.
+ * 4xx responses need no error line — the request line covers them.
  */
-export function error(err: AppError): NextResponse {
+export function error(err: unknown): NextResponse {
+  if (!(err instanceof AppError)) {
+    // Route-level catch handed us a raw throw. Log its message + stack, then
+    // answer exactly as the previous `new AppError("Internal server error")`
+    // path did.
+    logApiFailure({ err, status: 500 });
+    return errorResponse(new AppError("Internal server error"));
+  }
+
+  if (err.statusCode >= 500) {
+    logApiFailure({ err, status: err.statusCode });
+  }
+
+  return errorResponse(err);
+}
+
+function errorResponse(err: AppError): NextResponse {
   const body = {
     error: {
       code: err.code ?? "ERROR",

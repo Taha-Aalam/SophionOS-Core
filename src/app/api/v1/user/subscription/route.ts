@@ -12,6 +12,7 @@ import { resolveUserEmail } from "@/lib/notifications/resolve-email";
 import { success, error } from "@/lib/api/api-response";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 /**
  * Returns the caller's tier + paid flag for the dashboard to gate UI.
@@ -21,7 +22,7 @@ import { AppError } from "@/lib/api/error-handler";
  * the dashboard knows to show the upgrade CTA. Gating this with the paid wall
  * would make a free user unable to discover they're free.
  */
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const { userId } = await requireAuth(request);
     // Same per-user limiter every sibling /user route applies, ahead of the
@@ -49,6 +50,8 @@ export async function GET(request: NextRequest) {
       entityLimit: ENTITY_LIMITS[tier],
     });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/user/subscription", handleGet);

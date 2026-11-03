@@ -7,10 +7,11 @@ import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const linkBodySchema = z.object({ area_id: z.string().uuid() });
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleGet(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -24,11 +25,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const relations = await resourceService.getWithRelations(id, { supabase });
     return success({ area_ids: relations.area_ids });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handlePost(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -49,11 +50,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await resourceService.replaceAreaLinks(userId, id, next, { supabase });
     return success({ area_ids: next });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleDelete(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -73,6 +74,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await resourceService.replaceAreaLinks(userId, id, next, { supabase });
     return success({ area_ids: next });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/resources/:id/areas", handleGet);
+export const POST = withApiLogging("/api/v1/resources/:id/areas", handlePost);
+export const DELETE = withApiLogging("/api/v1/resources/:id/areas", handleDelete);

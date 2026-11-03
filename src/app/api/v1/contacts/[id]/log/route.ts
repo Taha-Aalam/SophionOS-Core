@@ -7,12 +7,13 @@ import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 // A logged interaction may carry a message (creates a contact_logs row) or be
 // a bare timestamp bump. `message` is optional so both flows share one route.
 const logBodySchema = z.object({ message: z.string().min(1).max(4096).optional() });
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleGet(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -24,11 +25,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const logs = await contactService.listLogs(userId, id, { supabase });
     return success(logs);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handlePost(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -58,6 +59,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const contact = await contactService.logInteraction(userId, id, { supabase });
     return success(contact);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/contacts/:id/log", handleGet);
+export const POST = withApiLogging("/api/v1/contacts/:id/log", handlePost);
