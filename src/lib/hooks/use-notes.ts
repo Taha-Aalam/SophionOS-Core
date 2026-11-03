@@ -10,11 +10,120 @@ import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals";
 import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
 import { TOPICS_QUERY_KEY } from "@/lib/hooks/use-topics";
 import { noteService } from "@/lib/services/note.service";
+import { DASHBOARD_QUERY_KEY } from "@/lib/services/dashboard.service";
 import { entityLimitToastMessage } from "@/lib/entity-limit";
 import type { CreateNoteInput, Note, UpdateNoteInput } from "@/lib/types/domain.types";
 import type { NoteStatus } from "@/lib/utils/constants";
 
 export const NOTES_QUERY_KEY = "notes";
+
+/**
+ * Note mutations are serialized per note so a fast second click (e.g. complete →
+ * reopen) is applied by the server *after* the first, not raced against it —
+ * otherwise the older write can land last and the user ends on the wrong state.
+ * The sequence counter below additionally stops a late response from an earlier
+ * mutation from overwriting the newer optimistic state in the cache.
+ */
+const noteMutationChains = new Map<string, Promise<unknown>>();
+const noteMutationSequence = new Map<string, number>();
+
+function enqueueNoteMutation<T>(id: string, task: () => Promise<T>): Promise<T> {
+  const previous = noteMutationChains.get(id) ?? Promise.resolve();
+  const result = previous.catch(() => undefined).then(task);
+  noteMutationChains.set(id, result.catch(() => undefined));
+  return result;
+}
+
+function nextNoteMutationSequence(id: string): number {
+  const next = (noteMutationSequence.get(id) ?? 0) + 1;
+  noteMutationSequence.set(id, next);
+  return next;
+}
+
+function isLatestNoteMutation(id: string, sequence: number): boolean {
+  return noteMutationSequence.get(id) === sequence;
+}
+
+/**
+ * Apply a patch to every rendered copy of one note: list/subcollection arrays,
+ * the detail object (by id or slug), and the note arrays embedded in the parent
+ * detail caches (area-detail, goal-detail). Values that contain no copy of the
+ * note are returned unchanged so unrelated caches are not rewritten.
+ */
+function patchNoteValue(value: unknown, id: string, patch: Partial<Note>): unknown {
+  const patchEntry = (entry: unknown) => {
+    if (!entry || typeof entry !== "object") return entry;
+    const candidate = entry as { id?: unknown };
+    return candidate.id === id ? { ...(entry as object), ...patch } : entry;
+  };
+
+  if (Array.isArray(value)) {
+    let changed = false;
+    const next = value.map((entry) => {
+      const patched = patchEntry(entry);
+      if (patched !== entry) changed = true;
+      return patched;
+    });
+    return changed ? next : value;
+  }
+
+  if (!value || typeof value !== "object") return value;
+
+  const record = value as Record<string, unknown>;
+  if (record.id === id) return { ...record, ...patch };
+
+  let changed = false;
+  const next: Record<string, unknown> = { ...record };
+  for (const key of ["notes", "allNotes", "archivedNotes"] as const) {
+    const collection = record[key];
+    if (!Array.isArray(collection)) continue;
+    const patched = collection.map((entry) => {
+      const result = patchEntry(entry);
+      if (result !== entry) changed = true;
+      return result;
+    });
+    if (changed) next[key] = patched;
+  }
+  return changed ? next : value;
+}
+
+type NoteMutationSnapshot = Array<[readonly unknown[], unknown]>;
+
+function snapshotNoteCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+): NoteMutationSnapshot {
+  return [
+    ...queryClient.getQueriesData({ queryKey: [NOTES_QUERY_KEY] }),
+    ...queryClient.getQueriesData({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
+    ...queryClient.getQueriesData({ queryKey: [GOAL_DETAIL_QUERY_KEY] }),
+  ];
+}
+
+function applyNotePatch(
+  queryClient: ReturnType<typeof useQueryClient>,
+  id: string,
+  patch: Partial<Note>,
+): void {
+  for (const queryKey of [
+    [NOTES_QUERY_KEY],
+    [AREA_DETAIL_QUERY_KEY],
+    [GOAL_DETAIL_QUERY_KEY],
+  ]) {
+    queryClient.setQueriesData({ queryKey }, (current: unknown) =>
+      patchNoteValue(current, id, patch),
+    );
+  }
+}
+
+function restoreNoteCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  snapshot: NoteMutationSnapshot | undefined,
+): void {
+  if (!snapshot) return;
+  for (const [queryKey, data] of snapshot) {
+    queryClient.setQueryData(queryKey as readonly unknown[], data);
+  }
+}
 
 export function useNotes(
   filters?: {
@@ -194,14 +303,21 @@ export function useNoteTypes() {
 function invalidateNoteGraph(
   queryClient: ReturnType<typeof useQueryClient>,
 ): Promise<unknown[]> {
+  // refetchType: "all" matters for the caches the user is NOT looking at right
+  // now: an invalidated-but-inactive query would otherwise stay stale until a
+  // manual reload, so navigating to the list/detail/dashboard afterwards could
+  // resurrect the pre-mutation value. Dashboard is included because note status
+  // feeds its completed / active / inbox counts.
   return Promise.all([
-    queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY] }),
-    queryClient.invalidateQueries({ queryKey: [NOTE_TYPES_QUERY_KEY] }),
-    queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY] }),
-    queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] }),
-    queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
-    queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] }),
-    queryClient.invalidateQueries({ queryKey: ["goal-detail"] }),
+    queryClient.invalidateQueries({ queryKey: [NOTES_QUERY_KEY], refetchType: "all" }),
+    queryClient.invalidateQueries({ queryKey: [NOTE_TYPES_QUERY_KEY], refetchType: "all" }),
+    queryClient.invalidateQueries({ queryKey: [AREAS_QUERY_KEY], refetchType: "all" }),
+    queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY], refetchType: "all" }),
+    queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY], refetchType: "all" }),
+    queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY], refetchType: "all" }),
+    queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY], refetchType: "all" }),
+    queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY], refetchType: "all" }),
+    queryClient.invalidateQueries({ queryKey: [DASHBOARD_QUERY_KEY], refetchType: "all" }),
   ]);
 }
 
@@ -254,10 +370,29 @@ export function useUpdateNote() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: UpdateNoteInput }) =>
-      noteService.update(user!.id, id, input),
-    onSuccess: async (updated: Note) => {
+  return useMutation<
+    Note,
+    Error,
+    { id: string; input: UpdateNoteInput },
+    { previous: NoteMutationSnapshot; sequence: number }
+  >({
+    // Serialize per note: the second toggle of a rapid pair reaches the server
+    // after the first, so the last click wins authoritatively.
+    mutationFn: ({ id, input }) =>
+      enqueueNoteMutation(id, () => noteService.update(user!.id, id, input)),
+    onMutate: async ({ id, input }) => {
+      const sequence = nextNoteMutationSequence(id);
+      await queryClient.cancelQueries({ queryKey: [NOTES_QUERY_KEY] });
+      const previous = snapshotNoteCaches(queryClient);
+      // Status/pin/favorite/name/relations all live on the note object, so the
+      // same patch path keeps list, detail and parent-page copies in step.
+      applyNotePatch(queryClient, id, input as Partial<Note>);
+      return { previous, sequence };
+    },
+    onSuccess: (updated: Note, variables, context) => {
+      if (context && !isLatestNoteMutation(variables.id, context.sequence)) {
+        return;
+      }
       queryClient.setQueryData(
         [NOTES_QUERY_KEY, "detail", user?.id ?? null, updated.id],
         updated,
@@ -268,10 +403,18 @@ export function useUpdateNote() {
           updated,
         );
       }
-      await invalidateNoteGraph(queryClient);
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      // Roll back only our own optimistic patch, and only while it is still the
+      // newest intent — a newer toggle keeps its state. The settle refetch then
+      // reconciles with server truth.
+      if (!context || isLatestNoteMutation(variables.id, context.sequence)) {
+        restoreNoteCaches(queryClient, context?.previous);
+      }
       toast.error(error.message || "Failed to save note");
+    },
+    onSettled: async () => {
+      await invalidateNoteGraph(queryClient);
     },
   });
 }
@@ -282,11 +425,20 @@ export function useArchiveNote() {
 
   return useMutation({
     mutationFn: (id: string) => noteService.archive(user!.id, id),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: [NOTES_QUERY_KEY] });
+      const previous = snapshotNoteCaches(queryClient);
+      // The row leaves every active list immediately (filters read
+      // `is_archived`); the settle refetch reconciles with server truth.
+      applyNotePatch(queryClient, id, { is_archived: true } as Partial<Note>);
+      return { previous };
+    },
     onSuccess: async () => {
       await invalidateNoteGraph(queryClient);
       toast.success("Note archived");
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _id, context) => {
+      restoreNoteCaches(queryClient, context?.previous);
       toast.error(error.message || "Failed to archive note");
     },
   });
@@ -531,11 +683,18 @@ export function useRestoreNote() {
 
   return useMutation({
     mutationFn: (id: string) => noteService.restore(user!.id, id),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: [NOTES_QUERY_KEY] });
+      const previous = snapshotNoteCaches(queryClient);
+      applyNotePatch(queryClient, id, { is_archived: false } as Partial<Note>);
+      return { previous };
+    },
     onSuccess: async () => {
       await invalidateNoteGraph(queryClient);
       toast.success("Note restored");
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _id, context) => {
+      restoreNoteCaches(queryClient, context?.previous);
       toast.error(error.message || "Failed to restore note");
     },
   });
