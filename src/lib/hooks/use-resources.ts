@@ -5,6 +5,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { formatValidationMessage } from "@/lib/api/error-handler";
 import { isEntityLimitError, ENTITY_LIMIT_MESSAGE } from "@/lib/entity-limit";
 import { resourceService } from "@/lib/services/resource.service";
+import { DASHBOARD_QUERY_KEY } from "@/lib/services/dashboard.service";
 import { TOPICS_QUERY_KEY } from "@/lib/hooks/use-topics";
 import { AREA_DETAIL_QUERY_KEY } from "@/lib/hooks/use-area-detail";
 import { GOAL_DETAIL_QUERY_KEY } from "@/lib/hooks/use-goal-detail";
@@ -18,6 +19,103 @@ import type {
 import type { ResourceStatus } from "@/lib/utils/constants";
 
 export const RESOURCES_QUERY_KEY = "resources";
+
+// Same dynamic-update pattern as notes: optimistic patch across every rendered
+// copy, serialized per resource so a fast second toggle is applied after the
+// first, and a sequence guard so a late response cannot overwrite newer intent.
+const resourceMutationChains = new Map<string, Promise<unknown>>();
+const resourceMutationSequence = new Map<string, number>();
+
+function enqueueResourceMutation<T>(id: string, task: () => Promise<T>): Promise<T> {
+  const previous = resourceMutationChains.get(id) ?? Promise.resolve();
+  const result = previous.catch(() => undefined).then(task);
+  resourceMutationChains.set(id, result.catch(() => undefined));
+  return result;
+}
+
+function nextResourceMutationSequence(id: string): number {
+  const next = (resourceMutationSequence.get(id) ?? 0) + 1;
+  resourceMutationSequence.set(id, next);
+  return next;
+}
+
+function isLatestResourceMutation(id: string, sequence: number): boolean {
+  return resourceMutationSequence.get(id) === sequence;
+}
+
+function patchResourceValue(value: unknown, id: string, patch: Partial<Resource>): unknown {
+  const patchEntry = (entry: unknown) => {
+    if (!entry || typeof entry !== "object") return entry;
+    return (entry as { id?: unknown }).id === id ? { ...(entry as object), ...patch } : entry;
+  };
+
+  if (Array.isArray(value)) {
+    let changed = false;
+    const next = value.map((entry) => {
+      const patched = patchEntry(entry);
+      if (patched !== entry) changed = true;
+      return patched;
+    });
+    return changed ? next : value;
+  }
+
+  if (!value || typeof value !== "object") return value;
+
+  const record = value as Record<string, unknown>;
+  if (record.id === id) return { ...record, ...patch };
+
+  let changed = false;
+  const next: Record<string, unknown> = { ...record };
+  for (const key of ["resources", "allResources", "archivedResources"] as const) {
+    const collection = record[key];
+    if (!Array.isArray(collection)) continue;
+    const patched = collection.map((entry) => {
+      const result = patchEntry(entry);
+      if (result !== entry) changed = true;
+      return result;
+    });
+    if (changed) next[key] = patched;
+  }
+  return changed ? next : value;
+}
+
+type ResourceMutationSnapshot = Array<[readonly unknown[], unknown]>;
+
+function snapshotResourceCaches(queryClient: QueryClient): ResourceMutationSnapshot {
+  return [
+    ...queryClient.getQueriesData({ queryKey: [RESOURCES_QUERY_KEY] }),
+    ...queryClient.getQueriesData({ queryKey: [AREA_DETAIL_QUERY_KEY] }),
+    ...queryClient.getQueriesData({ queryKey: [GOAL_DETAIL_QUERY_KEY] }),
+    ...queryClient.getQueriesData({ queryKey: [TOPICS_QUERY_KEY] }),
+  ];
+}
+
+function applyResourcePatch(
+  queryClient: QueryClient,
+  id: string,
+  patch: Partial<Resource>,
+): void {
+  for (const queryKey of [
+    [RESOURCES_QUERY_KEY],
+    [AREA_DETAIL_QUERY_KEY],
+    [GOAL_DETAIL_QUERY_KEY],
+    [TOPICS_QUERY_KEY],
+  ]) {
+    queryClient.setQueriesData({ queryKey }, (current: unknown) =>
+      patchResourceValue(current, id, patch),
+    );
+  }
+}
+
+function restoreResourceCaches(
+  queryClient: QueryClient,
+  snapshot: ResourceMutationSnapshot | undefined,
+): void {
+  if (!snapshot) return;
+  for (const [queryKey, data] of snapshot) {
+    queryClient.setQueryData(queryKey as readonly unknown[], data);
+  }
+}
 
 // Optimistically patch a resource's favorite flag inside the goal-detail and
 // topic-resource caches (which are keyed independently of RESOURCES_QUERY_KEY),
@@ -234,23 +332,47 @@ export function useUpdateResource() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: UpdateResourceInput }) =>
-      resourceService.update(user!.id, id, input),
-    onSuccess: async (updated: Resource) => {
+  return useMutation<
+    Resource,
+    Error,
+    { id: string; input: UpdateResourceInput },
+    { previous: ResourceMutationSnapshot; sequence: number }
+  >({
+    mutationFn: ({ id, input }) =>
+      enqueueResourceMutation(id, () => resourceService.update(user!.id, id, input)),
+    onMutate: async ({ id, input }) => {
+      const sequence = nextResourceMutationSequence(id);
+      await queryClient.cancelQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      const previous = snapshotResourceCaches(queryClient);
+      applyResourcePatch(queryClient, id, input as Partial<Resource>);
+      return { previous, sequence };
+    },
+    onSuccess: (updated: Resource, variables, context) => {
+      if (context && !isLatestResourceMutation(variables.id, context.sequence)) {
+        return;
+      }
       queryClient.setQueryData(
         [RESOURCES_QUERY_KEY, "detail", user?.id ?? null, updated.id],
         updated,
       );
-      await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] });
-      toast.success("Resource updated");
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables, context) => {
+      if (!context || isLatestResourceMutation(variables.id, context.sequence)) {
+        restoreResourceCaches(queryClient, context?.previous);
+      }
       toast.error(formatValidationMessage(error) || "Failed to update resource");
+    },
+    onSettled: async () => {
+      // refetchType: "all" so inactive list/detail/dashboard caches cannot
+      // resurrect the pre-mutation status when the user navigates back.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY], refetchType: "all" }),
+        queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY], refetchType: "all" }),
+        queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY], refetchType: "all" }),
+        queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY], refetchType: "all" }),
+        queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY], refetchType: "all" }),
+        queryClient.invalidateQueries({ queryKey: [DASHBOARD_QUERY_KEY], refetchType: "all" }),
+      ]);
     },
   });
 }
@@ -263,6 +385,9 @@ export function useArchiveResource() {
     mutationFn: (id: string) => resourceService.archive(user!.id, id),
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      await queryClient.cancelQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      const previous = snapshotResourceCaches(queryClient);
+      applyResourcePatch(queryClient, id, { is_archived: true } as Partial<Resource>);
       queryClient.setQueriesData(
         { queryKey: [AREA_DETAIL_QUERY_KEY] },
         (old: unknown) => {
@@ -279,16 +404,18 @@ export function useArchiveResource() {
         },
       );
       patchResourceArchivedInDetailCaches(queryClient, id, true);
+      return { previous };
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] });
+      await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY], refetchType: "all" });
       toast.success("Resource archived");
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _id, context) => {
+      restoreResourceCaches(queryClient, context?.previous);
       toast.error(error.message || "Failed to archive resource");
     },
   });
@@ -302,6 +429,9 @@ export function useUnarchiveResource() {
     mutationFn: (id: string) => resourceService.unarchive(user!.id, id),
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
+      await queryClient.cancelQueries({ queryKey: [RESOURCES_QUERY_KEY] });
+      const previous = snapshotResourceCaches(queryClient);
+      applyResourcePatch(queryClient, id, { is_archived: false } as Partial<Resource>);
       queryClient.setQueriesData(
         { queryKey: [AREA_DETAIL_QUERY_KEY] },
         (old: unknown) => {
@@ -318,16 +448,18 @@ export function useUnarchiveResource() {
         },
       );
       patchResourceArchivedInDetailCaches(queryClient, id, false);
+      return { previous };
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] });
+      await queryClient.invalidateQueries({ queryKey: [RESOURCES_QUERY_KEY], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: [AREA_DETAIL_QUERY_KEY], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: [GOAL_DETAIL_QUERY_KEY], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: [TOPICS_QUERY_KEY], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY], refetchType: "all" });
       toast.success("Resource restored");
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _id, context) => {
+      restoreResourceCaches(queryClient, context?.previous);
       toast.error(error.message || "Failed to restore resource");
     },
   });
