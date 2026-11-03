@@ -226,17 +226,51 @@ describe("POST /api/v1/contacts/[id]/log", () => {
       expect.anything(),
     );
   });
-  it("accepts a ~7,000-character meeting minutes message and returns 201", async () => {
-    const meetingMinutes = "Meeting notes paragraph. ".repeat(280); // ~7,000 chars
+  it("accepts a 4,096-character message and returns 201", async () => {
+    const maxMessage = "a".repeat(4096);
     vi.mocked(contactService.createLog).mockResolvedValue({
-      id: "log_minutes",
+      id: "log_max",
       user_id: "user_123",
       contact_id: CONTACT_FIXTURE.id,
-      message: meetingMinutes,
+      message: maxMessage,
       logged_at: "2026-11-02T00:00:00.000Z",
       created_at: "2026-11-02T00:00:00.000Z",
     });
 
+    const res = await LOG(
+      new NextRequest("http://localhost/api/v1/contacts/x/log", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message: maxMessage }),
+      }),
+      { params: Promise.resolve({ id: CONTACT_FIXTURE.id }) },
+    );
+
+    expect(res.status).toBe(201);
+    expect(contactService.createLog).toHaveBeenCalledWith(
+      "user_123",
+      CONTACT_FIXTURE.id,
+      { message: maxMessage },
+      expect.anything(),
+    );
+  });
+
+  it("rejects a 4,097-character message with 400", async () => {
+    const overLimit = "a".repeat(4097);
+    const res = await LOG(
+      new NextRequest("http://localhost/api/v1/contacts/x/log", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message: overLimit }),
+      }),
+      { params: Promise.resolve({ id: CONTACT_FIXTURE.id }) },
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a ~7,000-character meeting minutes message with 400", async () => {
+    const meetingMinutes = "Meeting notes paragraph. ".repeat(280); // ~7,000 chars
     const res = await LOG(
       new NextRequest("http://localhost/api/v1/contacts/x/log", {
         method: "POST",
@@ -246,26 +280,11 @@ describe("POST /api/v1/contacts/[id]/log", () => {
       { params: Promise.resolve({ id: CONTACT_FIXTURE.id }) },
     );
 
-    expect(res.status).toBe(201);
-    expect(contactService.createLog).toHaveBeenCalledWith(
-      "user_123",
-      CONTACT_FIXTURE.id,
-      { message: meetingMinutes },
-      expect.anything(),
-    );
+    expect(res.status).toBe(400);
   });
 
-  it("accepts a ~20,000-character detailed conversation log and returns 201", async () => {
+  it("rejects a ~20,000-character detailed conversation log with 400", async () => {
     const longBrief = "Detailed conversation record with timestamps and decisions. ".repeat(334); // ~20,000 chars
-    vi.mocked(contactService.createLog).mockResolvedValue({
-      id: "log_long",
-      user_id: "user_123",
-      contact_id: CONTACT_FIXTURE.id,
-      message: longBrief,
-      logged_at: "2026-11-02T00:00:00.000Z",
-      created_at: "2026-11-02T00:00:00.000Z",
-    });
-
     const res = await LOG(
       new NextRequest("http://localhost/api/v1/contacts/x/log", {
         method: "POST",
@@ -275,16 +294,10 @@ describe("POST /api/v1/contacts/[id]/log", () => {
       { params: Promise.resolve({ id: CONTACT_FIXTURE.id }) },
     );
 
-    expect(res.status).toBe(201);
-    expect(contactService.createLog).toHaveBeenCalledWith(
-      "user_123",
-      CONTACT_FIXTURE.id,
-      { message: longBrief },
-      expect.anything(),
-    );
+    expect(res.status).toBe(400);
   });
 
-  it("rejects a message exceeding the 50,000-char guardrail with 400", async () => {
+  it("rejects a message exceeding the old 50,000-char guardrail (50,001 chars) with 400", async () => {
     const overLimit = "a".repeat(50001);
     const res = await LOG(
       new NextRequest("http://localhost/api/v1/contacts/x/log", {

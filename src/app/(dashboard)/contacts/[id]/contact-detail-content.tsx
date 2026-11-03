@@ -18,6 +18,7 @@ import {
 import { ContactDialog } from "@/components/entities/contact-dialog";
 import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover";
 import { ContactDetailRelationshipSections } from "@/components/entities/contact-detail-relationship-sections";
+import { ContactLogEntry } from "@/components/entities/contact-log-entry";
 import { ContactRelationshipManager } from "@/components/entities/contact-relationship-manager";
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { EmptyState } from "@/components/views/empty-state";
@@ -70,16 +71,6 @@ import {
   buildContactCreateInput,
 } from "@/lib/utils/contact-input";
 
-function timeAgo(dateStr: string): string {
-  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 export function ContactDetailContent() {
   const router = useRouter();
@@ -600,7 +591,6 @@ export function ContactDetailContent() {
                   placeholder="What was discussed?"
                   value={logNote}
                   onChange={(e) => setLogNote(e.target.value)}
-                  maxLength={50000}
                   rows={2}
                   className="flex-1"
                 />
@@ -622,10 +612,7 @@ export function ContactDetailContent() {
                 ) : (
                   <div className="space-y-3">
                     {logs.map((log) => (
-                      <div key={log.id} className="rounded-md border px-3 py-2">
-                        <p className="text-xs text-muted-foreground">{timeAgo(log.created_at)}</p>
-                        {log.message && <p className="text-sm mt-1">{log.message}</p>}
-                      </div>
+                      <ContactLogEntry key={log.id} log={log} />
                     ))}
                   </div>
                 )}
