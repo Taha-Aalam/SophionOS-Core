@@ -56,7 +56,7 @@ import { getResourceLinkedAreaIds, getResourceLinkedProjectIds } from "@/lib/uti
 import { useUIStore } from "@/lib/stores/ui.store";
 import { buildReturnToChain, popReturnToHref } from "@/lib/utils/return-to";
 import { cn } from "@/lib/utils";
-import { contentColumnReading, sectionGap } from "@/components/ui/layout";
+import { sectionGap } from "@/components/ui/layout";
 
 export function TopicDetailContent() {
   const params = useParams();
@@ -269,7 +269,7 @@ export function TopicDetailContent() {
 
   if (!topic) {
     return (
-      <div className={cn("flex flex-col gap-6", contentColumnReading)}>
+      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
         <EmptyState
           icon={Tag}
           title="Topic not found"
@@ -282,7 +282,7 @@ export function TopicDetailContent() {
   }
 
   return (
-    <div className={cn("content-fade-in reveal-stagger flex flex-col", contentColumnReading, sectionGap)}>
+    <div className={cn("content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full", sectionGap)}>
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button
