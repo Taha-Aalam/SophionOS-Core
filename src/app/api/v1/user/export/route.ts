@@ -5,13 +5,14 @@ import { rateLimit } from "@/lib/api/rate-limiter";
 import { AppError } from "@/lib/api/error-handler";
 import { createDataClient } from "@/lib/supabase/server";
 import { exportPersonalDataForUser } from "@/lib/export/personal-data-export";
+import { withApiLogging } from "@/lib/api/api-log";
 
 /**
  * GET /api/v1/user/export
  * Personal data export for the authenticated user (Clerk or API key).
  * Rate limited; does not require paid tier so free users can exercise portability.
  */
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const authResult = await requireAuth(request);
     const { userId } = authResult;
@@ -24,8 +25,8 @@ export async function GET(request: NextRequest) {
     const payload = await exportPersonalDataForUser(userId, supabase);
     return success(payload);
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/user/export", handleGet);

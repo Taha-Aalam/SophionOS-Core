@@ -8,6 +8,7 @@ import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 import { createContactSchema } from "@/lib/validators/contact.schema";
+import { withApiLogging } from "@/lib/api/api-log";
 
 function parseBool(value: string | null): boolean | undefined {
   if (value === "true") return true;
@@ -15,7 +16,7 @@ function parseBool(value: string | null): boolean | undefined {
   return undefined;
 }
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -52,11 +53,11 @@ export async function GET(request: NextRequest) {
 
     return paginated(data, data.length, page, pageSize);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -76,6 +77,9 @@ export async function POST(request: NextRequest) {
     );
     return created(contact);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/contacts", handleGet);
+export const POST = withApiLogging("/api/v1/contacts", handlePost);

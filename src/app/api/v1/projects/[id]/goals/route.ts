@@ -8,6 +8,7 @@ import { AppError, ValidationError } from "@/lib/api/error-handler";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { projectService } from "@/lib/services/project.service";
 import { createDataClient } from "@/lib/supabase/server";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const linkGoalSchema = z.object({ goal_id: z.string().uuid() }).strict();
 
@@ -15,7 +16,7 @@ const linkGoalSchema = z.object({ goal_id: z.string().uuid() }).strict();
  * GET /api/v1/projects/[id]/goals — linked goal ids (and names) for the
  * project.
  */
-export async function GET(
+async function handleGet(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -37,9 +38,7 @@ export async function GET(
     });
     return success({ goal_ids: relations.goal_ids, goals: relations.goals });
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
@@ -47,7 +46,7 @@ export async function GET(
  * POST /api/v1/projects/[id]/goals — link a goal. Requires `application/json`
  * with `{ goal_id }`.
  */
-export async function POST(
+async function handlePost(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -76,16 +75,14 @@ export async function POST(
     const project = await projectService.getById(userId, id, { supabase, userId });
     return created(project);
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /**
  * DELETE /api/v1/projects/[id]/goals?goal_id=... — unlink a goal.
  */
-export async function DELETE(
+async function handleDelete(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -110,8 +107,10 @@ export async function DELETE(
     const project = await projectService.getById(userId, id, { supabase, userId });
     return success(project);
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/projects/:id/goals", handleGet);
+export const POST = withApiLogging("/api/v1/projects/:id/goals", handlePost);
+export const DELETE = withApiLogging("/api/v1/projects/:id/goals", handleDelete);

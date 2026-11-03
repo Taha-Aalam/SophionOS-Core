@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { clearTierCache, invalidateEntitlementCaches } from "@/lib/api/subscription";
+import { logApiFailure, withApiLogging } from "@/lib/api/api-log";
 
 /**
  * Billing webhook receiver (provider-agnostic skeleton).
@@ -74,7 +75,7 @@ async function applyEntitlement(event: BillingEvent): Promise<void> {
   clearTierCache();
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   const secret = process.env.BILLING_WEBHOOK_SECRET;
   if (!secret) {
     return NextResponse.json(
@@ -146,10 +147,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: { ok: true } });
   } catch (err) {
-    console.error("[billing.webhook]", err instanceof Error ? err.message : "error");
+    // Route-specific 500 envelope (kept byte-identical); the shared error line
+    // still records the real cause for the log.
+    logApiFailure({ err, status: 500, code: "INTERNAL" });
     return NextResponse.json(
       { error: { code: "INTERNAL", message: "Webhook processing failed" } },
       { status: 500 },
     );
   }
 }
+
+export const POST = withApiLogging("/api/v1/billing/webhook", handlePost);

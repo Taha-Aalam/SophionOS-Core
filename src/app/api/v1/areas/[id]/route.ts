@@ -7,8 +7,9 @@ import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
 import { updateAreaSchema } from "@/lib/validators/area.schema";
+import { withApiLogging } from "@/lib/api/api-log";
 
-export async function GET(
+async function handleGet(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -23,11 +24,11 @@ export async function GET(
     const area = await areaService.getByIdentifier(userId, id, { supabase });
     return success(area);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function PATCH(
+async function handlePatch(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -52,11 +53,11 @@ export async function PATCH(
     );
     return success(area);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function DELETE(
+async function handleDelete(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -71,6 +72,10 @@ export async function DELETE(
     await areaService.delete(userId, id, { supabase });
     return success({ id, deleted: true });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/areas/:id", handleGet);
+export const PATCH = withApiLogging("/api/v1/areas/:id", handlePatch);
+export const DELETE = withApiLogging("/api/v1/areas/:id", handleDelete);

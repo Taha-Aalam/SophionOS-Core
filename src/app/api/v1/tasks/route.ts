@@ -12,12 +12,13 @@ import { createTaskSchema } from "@/lib/validators/task.schema";
 import { getLocalDateKey } from "@/lib/utils/dates";
 import type { Task } from "@/lib/types/domain.types";
 import type { TaskStatus } from "@/lib/utils/constants";
+import { withApiLogging } from "@/lib/api/api-log";
 
 function parseBool(value: string | null): boolean {
   return value === "true" || value === "1";
 }
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -128,11 +129,11 @@ export async function GET(request: NextRequest) {
     const pageItems = data.slice(offset, offset + limit);
     return paginated(pageItems, total, page, pageSize);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -148,6 +149,9 @@ export async function POST(request: NextRequest) {
     const task = await taskService.create(userId, body, { supabase });
     return created(task);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/tasks", handleGet);
+export const POST = withApiLogging("/api/v1/tasks", handlePost);

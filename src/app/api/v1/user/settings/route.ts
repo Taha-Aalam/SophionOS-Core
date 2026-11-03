@@ -7,6 +7,7 @@ import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const noteDefaultsSchema = z.object({
   default_status: z.enum(["inbox", "to_review", "active"]).optional(),
@@ -56,7 +57,7 @@ const updateSettingsSchema = z.object({
   onboarding: onboardingSchema.optional(),
 });
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const authResult = await requireAuth(request);
     const { userId } = authResult;
@@ -78,11 +79,11 @@ export async function GET(request: NextRequest) {
       onboarding,
     });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function PATCH(request: NextRequest) {
+async function handlePatch(request: NextRequest) {
   try {
     const authResult = await requireClerkSession(request);
     const { userId } = authResult;
@@ -123,6 +124,9 @@ export async function PATCH(request: NextRequest) {
       onboarding,
     });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/user/settings", handleGet);
+export const PATCH = withApiLogging("/api/v1/user/settings", handlePatch);

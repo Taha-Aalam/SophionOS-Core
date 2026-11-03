@@ -5,6 +5,7 @@ import {
   createDefaultBriefDispatchDeps,
   runBriefDispatch,
 } from "@/lib/notifications/dispatch";
+import { logApiFailure, withApiLogging } from "@/lib/api/api-log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ function authorize(request: NextRequest): boolean {
   return provided ? safeEqual(provided, secret) : false;
 }
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   if (!authorize(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -45,11 +46,17 @@ export async function POST(request: NextRequest) {
     // (failures lists the candidate user ids that could not be processed).
     return NextResponse.json({ ok: true, result });
   } catch (err) {
+    // Route-specific 500 envelope (kept byte-identical); the shared error line
+    // still records the real cause for the log.
+    logApiFailure({ err, status: 500, code: "DISPATCH_FAILED" });
     const message = err instanceof Error ? err.message : "dispatch_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
 
-export async function GET(request: NextRequest) {
-  return POST(request);
+async function handleGet(request: NextRequest) {
+  return handlePost(request);
 }
+
+export const GET = withApiLogging("/api/cron/briefs", handleGet);
+export const POST = withApiLogging("/api/cron/briefs", handlePost);

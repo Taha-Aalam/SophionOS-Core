@@ -8,13 +8,14 @@ import { AppError, ValidationError } from "@/lib/api/error-handler";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { goalService } from "@/lib/services/goal.service";
 import { createDataClient } from "@/lib/supabase/server";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const linkAreaSchema = z.object({ area_id: z.string().uuid() }).strict();
 
 /**
  * GET /api/v1/goals/[id]/areas — linked area ids for the goal.
  */
-export async function GET(
+async function handleGet(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -34,9 +35,7 @@ export async function GET(
     const areaIds = await goalService.getLinkedAreaIds(id, { supabase });
     return success({ area_ids: areaIds });
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
@@ -44,7 +43,7 @@ export async function GET(
  * POST /api/v1/goals/[id]/areas — link an area to the goal. Requires
  * `application/json` with `{ area_id }`.
  */
-export async function POST(
+async function handlePost(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -70,16 +69,14 @@ export async function POST(
     const goal = await goalService.linkToArea(userId, id, area_id, { supabase });
     return created(goal);
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /**
  * DELETE /api/v1/goals/[id]/areas?area_id=... — unlink an area from the goal.
  */
-export async function DELETE(
+async function handleDelete(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -103,8 +100,10 @@ export async function DELETE(
     });
     return success(goal);
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/goals/:id/areas", handleGet);
+export const POST = withApiLogging("/api/v1/goals/:id/areas", handlePost);
+export const DELETE = withApiLogging("/api/v1/goals/:id/areas", handleDelete);

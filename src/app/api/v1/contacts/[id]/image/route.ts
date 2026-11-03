@@ -5,6 +5,7 @@ import { success, error } from "@/lib/api/api-response";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError, ValidationError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 const ALLOWED_EXTS = new Set(["jpg", "jpeg", "png", "webp", "gif"]);
@@ -60,7 +61,7 @@ function isSvgOrHtml(bytes: Uint8Array): boolean {
  * POST — upload a contact avatar. Multipart form-data with a `file` field.
  * Returns the stored object path; the display URL is signed separately.
  */
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handlePost(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -120,12 +121,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const contact = await contactService.update(userId, id, { image_url: path }, { supabase });
     return success(contact);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /** DELETE — remove the contact's avatar (storage object + image_url field). */
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleDelete(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -139,6 +140,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const updated = await contactService.update(userId, id, { image_url: null }, { supabase });
     return success(updated);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const POST = withApiLogging("/api/v1/contacts/:id/image", handlePost);
+export const DELETE = withApiLogging("/api/v1/contacts/:id/image", handleDelete);

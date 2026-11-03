@@ -9,12 +9,13 @@ import { providerCredentialsService } from "@/lib/services/provider-credentials.
 import { recordAuditEvent } from "@/lib/api/ai-access-service";
 import { PROVIDER_IDS, type ProviderId } from "@/lib/ai/provider-registry";
 import { upsertProviderCredentialSchema } from "@/lib/validators/ai-providers.schema";
+import { withApiLogging } from "@/lib/api/api-log";
 
 // Management of the user's LLM provider keys is Clerk-session-only by design:
 // an API-key/MCP caller must never be able to read or swap the credentials the
 // server-side gateway uses. requireClerkSession rejects api_key auth.
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const { userId } = await requireClerkSession(request);
     const rl = await rateLimit(request, userId);
@@ -26,11 +27,11 @@ export async function GET(request: NextRequest) {
     });
     return success(items);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function PUT(request: NextRequest) {
+async function handlePut(request: NextRequest) {
   try {
     const { userId } = await requireClerkSession(request);
     const rl = await rateLimit(request, userId);
@@ -52,11 +53,11 @@ export async function PUT(request: NextRequest) {
     });
     return success(meta);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function DELETE(request: NextRequest) {
+async function handleDelete(request: NextRequest) {
   try {
     const { userId } = await requireClerkSession(request);
     const rl = await rateLimit(request, userId);
@@ -81,6 +82,10 @@ export async function DELETE(request: NextRequest) {
     });
     return success({ provider });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/user/ai-providers", handleGet);
+export const PUT = withApiLogging("/api/v1/user/ai-providers", handlePut);
+export const DELETE = withApiLogging("/api/v1/user/ai-providers", handleDelete);

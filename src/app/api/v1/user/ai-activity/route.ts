@@ -4,12 +4,13 @@ import { success, error } from "@/lib/api/api-response";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { AppError, DatabaseError } from "@/lib/api/error-handler";
 import { listAuditEventsForUser } from "@/lib/audit/audit-service";
+import { withApiLogging } from "@/lib/api/api-log";
 
 /**
  * GET /api/v1/user/ai-activity
  * Paginated audit activity for the authenticated user only.
  */
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const { userId } = await requireAuth(request);
     const rl = await rateLimit(request, userId);
@@ -55,8 +56,8 @@ export async function GET(request: NextRequest) {
       );
     }
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/user/ai-activity", handleGet);

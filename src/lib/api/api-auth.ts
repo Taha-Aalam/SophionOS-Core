@@ -15,6 +15,7 @@ import {
   createRequestId,
   recordApiMutationAudit,
 } from "@/lib/audit/audit-service";
+import { getApiLogContext, setApiLogUserId } from "./api-log";
 
 export type AuthType = "clerk" | "api_key";
 
@@ -174,6 +175,9 @@ export async function requireAuth(request: NextRequest): Promise<AuthResult> {
   if (!result) {
     throw new AuthError("Authentication required");
   }
+  // Attribute this request's log lines to the caller. This is the one shared
+  // entry point every route uses, and it records the user id only (never PII).
+  setApiLogUserId(result.userId);
   await enforceAiAccessEnabled(result);
   return result;
 }
@@ -208,8 +212,12 @@ export async function requireClerkSession(request: NextRequest): Promise<AuthRes
  */
 export async function authorizeApiRequest(request: NextRequest): Promise<AuthResult> {
   const result = await requireAuth(request);
+  // Reuse the id the observability layer already assigned to this request so
+  // audit rows, log lines and the response header all agree.
   result.requestId =
-    request.headers.get("x-request-id") ?? createRequestId();
+    getApiLogContext()?.requestId ??
+    request.headers.get("x-request-id") ??
+    createRequestId();
   await requirePaidTier(result.userId);
   await enforceApiKeyRequestPolicy(result, request.method, request);
 

@@ -7,8 +7,9 @@ import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { getLocalDateKey } from "@/lib/utils/dates";
 import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -43,6 +44,8 @@ export async function GET(request: NextRequest) {
       count: focused.length,
     });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/my-day", handleGet);
