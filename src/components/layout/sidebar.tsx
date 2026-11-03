@@ -1,11 +1,16 @@
 "use client";
 
-import React, { startTransition, useEffect, useState } from "react";
+import React, { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { ChevronLeft, ChevronRightIcon } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRightIcon,
+  ChevronUp,
+} from "lucide-react";
 
 import { SettingsIcon, SunMoonIcon } from "@/components/icons";
 
@@ -100,14 +105,84 @@ export function Sidebar() {
   const { isDesktopSidebarOpen, toggleDesktopSidebar } = useUIStore();
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    startTransition(() => setMounted(true));
-  }, []);
-
   // On a policy page the sidebar stops being app navigation: Core/System and
   // the account footer (Settings, Theme, profile) are replaced by the Policies
   // list alone. Policy documents should read as documents, not as the app.
   const policyMode = isPolicyPath(pathname);
+
+  useEffect(() => {
+    startTransition(() => setMounted(true));
+  }, []);
+
+  // --- Collapsed-rail scroll affordance ------------------------------------
+  // The nav list is the only scroll region: the logo/collapse control above and
+  // the theme/profile controls below stay pinned. Overflow is measured from the
+  // container itself (scrollHeight vs clientHeight + scroll position), never
+  // from item counts or viewport breakpoints. Cues render only in the collapsed
+  // rail; the expanded sidebar keeps its native scrollbar and geometry.
+  const navRef = useRef<HTMLElement | null>(null);
+  const [navScroll, setNavScroll] = useState({
+    canScrollUp: false,
+    canScrollDown: false,
+  });
+
+  const syncNavScroll = useCallback(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const maxScrollTop = el.scrollHeight - el.clientHeight;
+    const canScrollUp = el.scrollTop > 1;
+    const canScrollDown = maxScrollTop - el.scrollTop > 1;
+    setNavScroll((prev) =>
+      prev.canScrollUp === canScrollUp && prev.canScrollDown === canScrollDown
+        ? prev
+        : { canScrollUp, canScrollDown },
+    );
+  }, []);
+
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    // Re-measure after layout, and whenever the rail flips between expanded /
+    // collapsed or the nav list swaps to policy mode.
+    const frame =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame(syncNavScroll)
+        : null;
+    if (typeof ResizeObserver === "undefined") {
+      return () => {
+        if (frame !== null) cancelAnimationFrame(frame);
+      };
+    }
+    // Observe the region and its sections: a viewport-height change resizes the
+    // container, an item/space change resizes the content.
+    const observer = new ResizeObserver(syncNavScroll);
+    observer.observe(el);
+    for (const child of Array.from(el.children)) observer.observe(child);
+    return () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [syncNavScroll, isDesktopSidebarOpen, policyMode]);
+
+  const scrollNavByViewport = (direction: 1 | -1) => {
+    const el = navRef.current;
+    if (!el) return;
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollBy({
+      top: direction * Math.max(el.clientHeight - 24, 0),
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+  };
+
+  // Keyboard users tabbing to an item outside the visible region: bring it in.
+  const handleNavFocus = (event: React.FocusEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement;
+    if (target === event.currentTarget) return;
+    target.scrollIntoView?.({ block: "nearest" });
+  };
 
   // Same identity source as the topbar — see useUserIdentity.
   const { displayName } = useUserIdentity();
@@ -240,49 +315,127 @@ export function Sidebar() {
         </div>
       ) : null}
 
-      <nav className={cn("flex-1 overflow-y-auto px-2 py-3", isDesktopSidebarOpen ? "space-y-5" : "space-y-4")}>
-        {policyMode ? (
-          <div className={isDesktopSidebarOpen ? "space-y-0.5" : "space-y-2"}>
-            {isDesktopSidebarOpen ? (
-              <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
-                Policies
-              </p>
-            ) : null}
-            {trustNavItems.map((item) => (
-              <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
-            ))}
-          </div>
-        ) : (
-          <>
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <nav
+          ref={navRef}
+          onScroll={syncNavScroll}
+          onFocus={handleNavFocus}
+          className={cn(
+            "flex-1 overflow-y-auto overscroll-contain px-2 py-3",
+            isDesktopSidebarOpen ? "space-y-5" : "space-y-4",
+            // Collapsed rail only: the cues below replace the native scrollbar.
+            // Wheel, trackpad and touch scrolling are untouched.
+            !isDesktopSidebarOpen &&
+              "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          )}
+        >
+          {policyMode ? (
             <div className={isDesktopSidebarOpen ? "space-y-0.5" : "space-y-2"}>
               {isDesktopSidebarOpen ? (
                 <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
-                  Core
+                  Policies
                 </p>
               ) : null}
-              {coreNavItems.map((item) => (
+              {trustNavItems.map((item) => (
                 <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
               ))}
             </div>
+          ) : (
+            <>
+              <div className={isDesktopSidebarOpen ? "space-y-0.5" : "space-y-2"}>
+                {isDesktopSidebarOpen ? (
+                  <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
+                    Core
+                  </p>
+                ) : null}
+                {coreNavItems.map((item) => (
+                  <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
+                ))}
+              </div>
 
-            <div className={isDesktopSidebarOpen ? "space-y-0.5" : "space-y-2"}>
-              {isDesktopSidebarOpen ? (
-                <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
-                  System
-                </p>
-              ) : null}
-              {systemNavItems.map((item) => (
-                <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
-              ))}
-            </div>
-          </>
-        )}
-      </nav>
+              <div className={isDesktopSidebarOpen ? "space-y-0.5" : "space-y-2"}>
+                {isDesktopSidebarOpen ? (
+                  <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
+                    System
+                  </p>
+                ) : null}
+                {systemNavItems.map((item) => (
+                  <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
+                ))}
+              </div>
+            </>
+          )}
+        </nav>
+
+        {/* Scroll cues (collapsed rail only). The native scrollbar is hidden, so
+            a soft fade marks each clipped edge — top only once the list is
+            scrolled, bottom while more items remain — and a circular chevron
+            offers one-viewport jumps. Neither appears when there is no overflow
+            in that direction. */}
+        {!isDesktopSidebarOpen && navScroll.canScrollDown ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-10"
+            style={{ background: "linear-gradient(to top, var(--sidebar), transparent)" }}
+          />
+        ) : null}
+        {!isDesktopSidebarOpen && navScroll.canScrollUp ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-10"
+            style={{ background: "linear-gradient(to bottom, var(--sidebar), transparent)" }}
+          />
+        ) : null}
+        {!isDesktopSidebarOpen && navScroll.canScrollDown ? (
+          <div className="absolute inset-x-0 bottom-1 flex justify-center">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => scrollNavByViewport(1)}
+                    aria-label="More options"
+                    className="size-6 rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  >
+                    <ChevronDown className="size-3.5" />
+                  </Button>
+                }
+              />
+              <TooltipContent side="right" sideOffset={10}>
+                More options
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        ) : null}
+        {!isDesktopSidebarOpen && !navScroll.canScrollDown && navScroll.canScrollUp ? (
+          <div className="absolute inset-x-0 top-1 flex justify-center">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => scrollNavByViewport(-1)}
+                    aria-label="Scroll up"
+                    className="size-6 rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  >
+                    <ChevronUp className="size-3.5" />
+                  </Button>
+                }
+              />
+              <TooltipContent side="right" sideOffset={10}>
+                Scroll up
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        ) : null}
+      </div>
 
       {policyMode ? null : (
         <div
           className={cn(
-            "border-t border-sidebar-border px-2 py-3",
+            "shrink-0 border-t border-sidebar-border px-2 py-3",
             isDesktopSidebarOpen ? "space-y-1" : "space-y-2",
           )}
         >
