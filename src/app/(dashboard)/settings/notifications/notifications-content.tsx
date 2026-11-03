@@ -133,7 +133,7 @@ export function NotificationsContent() {
   }
 
   if (!user) return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full" aria-busy="true" role="status" aria-label="Loading notifications">
+    <div className="reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full" aria-busy="true" role="status" aria-label="Loading notifications">
       <div className="space-y-6">
         <div className="h-8 w-48 rounded bg-muted animate-pulse" />
         <div className="h-64 w-full rounded-lg border border-border/40 bg-muted/30 animate-pulse" />
@@ -154,7 +154,7 @@ export function NotificationsContent() {
       : "";
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
       <SettingsDetailHeader
         title="Notifications"
         description="SophionOS emails briefings around the hour you set, in your timezone, using your account email. Set your timezone under Preferences."

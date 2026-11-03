@@ -105,7 +105,7 @@ export default function ProfileSettingsPage() {
   if (!isLoaded || !isSignedIn || !user || contactLoading) {
     return (
       <div
-        className="reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full"
+        className="reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full"
         aria-busy="true"
         role="status"
         aria-label="Loading profile"
@@ -133,7 +133,7 @@ export default function ProfileSettingsPage() {
       : "External account";
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
       <SettingsDetailHeader
         title="Profile"
         description="Your photo, username, and phone number. These appear across SophionOS."

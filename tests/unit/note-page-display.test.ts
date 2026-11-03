@@ -26,7 +26,10 @@ describe("note page display helpers", () => {
 
   it("keeps the Notes page on the wide dashboard shell", () => {
     expect(NOTES_PAGE_SHELL_CLASS_NAME).toContain("p-6");
-    expect(NOTES_PAGE_SHELL_CLASS_NAME).toContain("max-w-7xl");
+    // Adaptive standard shell: grows by the sidebar width delta when the rail
+    // is collapsed (see .content-column-grid in globals.css). No fixed cap.
+    expect(NOTES_PAGE_SHELL_CLASS_NAME).toContain("content-column-grid");
+    expect(NOTES_PAGE_SHELL_CLASS_NAME).not.toContain("max-w-7xl");
     expect(NOTES_PAGE_SHELL_CLASS_NAME).toContain("mx-auto");
     expect(NOTES_PAGE_SHELL_CLASS_NAME).toContain("w-full");
   });

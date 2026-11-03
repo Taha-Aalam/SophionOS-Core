@@ -8,6 +8,7 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { ShellFrame } from "@/components/layout/shell-frame";
 import { userSettingsService } from "@/lib/services/user-settings.service";
 import { createClient } from "@/lib/supabase/server";
 
@@ -66,8 +67,13 @@ export default async function TrustLayout({
       }}
       initialAreasSeededAt={areasSeededAt}
     >
-      {/* Desktop: fixed shell, independently scrolling main pane. */}
-      <div className="hidden h-screen overflow-hidden bg-background lg:flex">
+      {/* Desktop: fixed shell, independently scrolling main pane. Signed-out
+          visitors get the expanded cap pinned — no rail is rendered, so a
+          width delta would be meaningless for them. */}
+      <ShellFrame
+        className="hidden h-screen overflow-hidden bg-background lg:flex"
+        forceExpanded={!signedIn}
+      >
         {signedIn ? (
           <>
             <Sidebar />
@@ -78,7 +84,7 @@ export default async function TrustLayout({
           {signedIn ? <Topbar /> : <PublicPolicyHeader />}
           <main className="flex-1 overflow-y-auto overscroll-contain">{children}</main>
         </div>
-      </div>
+      </ShellFrame>
 
       {/* Mobile: normal document scroll, no clipped pane. */}
       <div className="flex min-h-screen flex-col bg-background lg:hidden">

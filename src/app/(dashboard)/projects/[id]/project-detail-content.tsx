@@ -1114,7 +1114,7 @@ export function ProjectDetailContent() {
 
   if (!project) {
     return (
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
+      <div className="mx-auto flex w-full content-column-grid flex-col gap-6 p-6">
         <Button variant="ghost" onClick={() => router.push("/projects")} className="gap-2">
           <ArrowLeft className="size-4" />
           Back to Projects
@@ -1131,7 +1131,7 @@ export function ProjectDetailContent() {
   }
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button
           variant="ghost"

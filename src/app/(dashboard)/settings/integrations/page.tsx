@@ -68,7 +68,7 @@ export default function IntegrationsPage() {
   ];
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
       <SettingsDetailHeader
         title="Integrations"
         description="Connect third-party services to sync data and automate workflows. More providers coming soon."
