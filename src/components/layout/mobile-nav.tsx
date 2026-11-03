@@ -14,9 +14,9 @@ import {
   trustNavItems,
 } from "@/components/layout/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { UserAvatar, useUserIdentity } from "@/components/user-avatar";
 import { isActiveNavigationPath } from "@/lib/auth/auth-routing";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
@@ -73,7 +73,10 @@ export function MobileNav() {
   const pathname = usePathname();
   const { closeSidebar, isMobileNavOpen } = useUIStore();
   const { resolvedTheme, setTheme } = useTheme();
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
+  // Same identity source as the topbar and the desktop rail — see
+  // useUserIdentity.
+  const { displayName } = useUserIdentity();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -84,8 +87,6 @@ export function MobileNav() {
   // Policies list only, with no app navigation and no account block.
   const policyMode = isPolicyPath(pathname);
 
-  const displayName = user?.name || user?.email || "User";
-  const initials = displayName.slice(0, 2).toUpperCase();
   const themeLabel = mounted ? (resolvedTheme === "dark" ? "Light mode" : "Dark mode") : "Theme";
 
   return (
@@ -175,9 +176,7 @@ export function MobileNav() {
             <span className="text-destructive">Sign out</span>
           </Button>
           <div className="flex items-center gap-3 rounded-md px-3 py-2.5">
-            <Avatar size="sm">
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
+            <UserAvatar size="sm" />
             <span className="truncate text-sm font-medium">{displayName}</span>
           </div>
         </div>
