@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Sora } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
@@ -66,11 +67,17 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Per-request CSP nonce from the proxy. next-themes applies the theme from an
+  // inline script that must run before first paint; under this app's
+  // nonce-based script-src that script needs the nonce or the browser blocks
+  // it and the page paints light before hydration.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
       <body className={`${geistSans.variable} ${geistMono.variable} ${sora.variable} min-h-full flex flex-col antialiased`} suppressHydrationWarning>
@@ -78,7 +85,7 @@ export default function RootLayout({
           <QueryProvider>
             <PwaProvider />
             <div suppressHydrationWarning>
-              <ThemeProvider>
+              <ThemeProvider nonce={nonce}>
                 <TooltipProvider>
                   <UIProvider>
                     {children}

@@ -15,8 +15,7 @@ import {
   systemNavItems,
   trustNavItems,
 } from "@/components/layout/navigation";
-import { useAuth } from "@/components/providers/auth-provider";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar, useUserIdentity } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -98,7 +97,6 @@ function NavLink({
 export function Sidebar() {
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
-  const { user } = useAuth();
   const { isDesktopSidebarOpen, toggleDesktopSidebar } = useUIStore();
   const [mounted, setMounted] = useState(false);
 
@@ -111,14 +109,17 @@ export function Sidebar() {
   // list alone. Policy documents should read as documents, not as the app.
   const policyMode = isPolicyPath(pathname);
 
-  const displayName = user?.name || user?.email || "User";
-  const initials = displayName.slice(0, 2).toUpperCase();
+  // Same identity source as the topbar — see useUserIdentity.
+  const { displayName } = useUserIdentity();
   const themeLabel = mounted ? (resolvedTheme === "dark" ? "Light mode" : "Dark mode") : "Theme";
 
   return (
     <aside
       className={cn(
-        "hidden h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 lg:flex",
+        // `group/sidebar` drives the collapsed rail's hover-revealed expand
+        // bubble; `relative z-20` lets that bubble overflow the rail's right
+        // edge and still paint above the content column.
+        "group/sidebar relative z-20 hidden h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 lg:flex",
         isDesktopSidebarOpen ? "w-64" : "w-20",
       )}
     >
@@ -126,7 +127,10 @@ export function Sidebar() {
       <div
         className={cn(
           "flex h-12 shrink-0 items-center border-b border-sidebar-border",
-          isDesktopSidebarOpen ? "justify-between px-3" : "justify-between px-2.5",
+          // Collapsed: the logo is the only child left, and every other rail
+          // item is centred — so centre it too. The expand control moved out
+          // of this row entirely (it floats over the rail's right edge).
+          isDesktopSidebarOpen ? "justify-between px-3" : "justify-center px-2.5",
         )}
       >
         {isDesktopSidebarOpen ? (
@@ -191,15 +195,39 @@ export function Sidebar() {
           >
             <ChevronLeft className="size-3.5" />
           </Button>
-        ) : (
+        ) : null}
+      </div>
+
+      {/* Collapsed-rail expand affordance: a circular bubble straddling the
+          rail's right edge at logo height. It is absolutely positioned, so it
+          takes no space in the rail's layout flow and no rail item shifts to
+          make room for it. It stays mounted and focusable at all times — it is
+          only *invisible* until the rail is hovered or the button is focused,
+          which keeps the affordance discoverable without adding visual noise
+          to the resting rail. Touch devices have no hover, so there it rests at
+          reduced opacity instead of disappearing. */}
+      {!isDesktopSidebarOpen ? (
+        <div className="absolute right-0 top-6 z-10 -translate-y-1/2 translate-x-1/2">
           <Tooltip>
             <TooltipTrigger
               render={
                 <Button
                   variant="ghost"
-                  size="icon-sm"
+                  size="icon-xs"
                   onClick={toggleDesktopSidebar}
                   aria-label="Expand sidebar"
+                  className={cn(
+                    "size-6 rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm",
+                    "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    // Resting: invisible and nudged toward the rail. Revealed
+                    // by rail hover, keyboard focus, or pointer focus.
+                    "opacity-0 -translate-x-1",
+                    "group-hover/sidebar:translate-x-0 group-hover/sidebar:opacity-100",
+                    "focus:translate-x-0 focus:opacity-100",
+                    "focus-visible:translate-x-0 focus-visible:opacity-100",
+                    // No hover available: keep the affordance visible (dimmer).
+                    "pointer-coarse:opacity-70",
+                  )}
                 >
                   <ChevronRightIcon className="size-3.5" />
                 </Button>
@@ -209,8 +237,8 @@ export function Sidebar() {
               Expand sidebar
             </TooltipContent>
           </Tooltip>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       <nav className={cn("flex-1 overflow-y-auto px-2 py-3", isDesktopSidebarOpen ? "space-y-5" : "space-y-4")}>
         {policyMode ? (
@@ -279,7 +307,11 @@ export function Sidebar() {
                 render={
                   <Button
                     variant="ghost"
-                    className="size-10 mx-auto justify-center rounded-lg p-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    // `flex` (not the Button's default `inline-flex`): an
+                    // inline-level box ignores `mx-auto`, which is why this
+                    // toggle used to sit flush left instead of centred in the
+                    // rail like every other item.
+                    className="flex size-10 mx-auto justify-center rounded-lg p-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
                     aria-label={themeLabel}
                   >
@@ -298,9 +330,7 @@ export function Sidebar() {
               aria-label={`Open profile: ${displayName}`}
               className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
-              <Avatar size="sm">
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
+              <UserAvatar size="sm" />
               <span className="truncate text-sm font-medium">{displayName}</span>
             </Link>
           ) : (
@@ -312,9 +342,7 @@ export function Sidebar() {
                     aria-label={`Open profile: ${displayName}`}
                     className="flex size-10 mx-auto items-center justify-center rounded-lg text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   >
-                    <Avatar size="sm">
-                      <AvatarFallback>{initials}</AvatarFallback>
-                    </Avatar>
+                    <UserAvatar size="sm" />
                   </Link>
                 }
               />
