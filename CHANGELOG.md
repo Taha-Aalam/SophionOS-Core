@@ -5,6 +5,30 @@ All notable changes to SophionOS are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.11] - 2026-11-03
+
+### Changed
+
+- App-shell presentation polish (#233):
+  - Collapsed sidebar rail: the inline expand arrow beside the logo is replaced
+    by a circular bubble that floats over the rail's right edge at logo height.
+    It stays mounted and focusable, reveals on rail hover or keyboard focus,
+    and rests at reduced opacity on coarse pointers so it stays tappable. It is
+    absolutely positioned, so no rail item shifts to make room for it. The
+    open-state collapse control is unchanged.
+  - The collapsed rail's theme toggle is centred like every other rail item. It
+    sat 12px left of centre because the button's `inline-flex` base makes
+    `mx-auto` a no-op on an inline-level box.
+  - Dark is the default theme from first paint, including when no preference is
+    stored. `next-themes` now toggles the `dark` class (its default `data-theme`
+    attribute is not what Tailwind's `dark:` variant reads) from its pre-paint
+    script, which the per-request CSP nonce now allows to run. A stored explicit
+    choice still wins, and the OS preference is still ignored.
+  - The sidebar and mobile-sheet profile buttons render the same avatar as the
+    topbar — the profile image, with the same initials fallback — from a single
+    shared source (`useUserIdentity` / `UserAvatar`) instead of a separate
+    initials-only circle.
+
 ## [0.2.10] - 2026-11-03
 
 ### Changed
