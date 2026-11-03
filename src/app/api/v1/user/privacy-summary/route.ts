@@ -10,8 +10,9 @@ import {
   processDueAccountDeletion,
   isAccountDeletionDue,
 } from "@/lib/privacy/account-deletion";
+import { withApiLogging } from "@/lib/api/api-log";
 
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const authResult = await requireAuth(request);
     const { userId } = authResult;
@@ -56,8 +57,8 @@ export async function GET(request: NextRequest) {
       deletion_just_processed: dueProcess.processed,
     });
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/user/privacy-summary", handleGet);

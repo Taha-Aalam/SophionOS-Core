@@ -7,13 +7,14 @@ import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const linkBodySchema = z.object({
   task_id: z.string().uuid(),
   role_in_task: z.string().max(255).optional(),
 });
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleGet(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -25,11 +26,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const links = await contactService.getTaskLinks(userId, id, { supabase });
     return success(links);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handlePost(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -47,11 +48,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const links = await contactService.getTaskLinks(userId, id, { supabase });
     return success(links);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleDelete(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -69,6 +70,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const links = await contactService.getTaskLinks(userId, id, { supabase });
     return success(links);
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/contacts/:id/tasks", handleGet);
+export const POST = withApiLogging("/api/v1/contacts/:id/tasks", handlePost);
+export const DELETE = withApiLogging("/api/v1/contacts/:id/tasks", handleDelete);

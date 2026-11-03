@@ -4,12 +4,13 @@ import { success, error } from "@/lib/api/api-response";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { AppError } from "@/lib/api/error-handler";
 import { disableAllAiAccess } from "@/lib/api/ai-access-service";
+import { withApiLogging } from "@/lib/api/api-log";
 
 /**
  * Emergency control: disable AI/API access and revoke every active API key.
  * Clerk session (dashboard) continues to work. API keys cannot call this.
  */
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const { userId } = await requireClerkSession(request);
     const rl = await rateLimit(request, userId);
@@ -21,6 +22,8 @@ export async function POST(request: NextRequest) {
       revoked_count: revokedCount,
     });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const POST = withApiLogging("/api/v1/user/ai-access/disable-all", handlePost);

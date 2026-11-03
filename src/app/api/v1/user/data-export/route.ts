@@ -11,12 +11,13 @@ import {
 } from "@/lib/export/personal-data-export";
 import { recordAuditEvent } from "@/lib/audit/audit-service";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { withApiLogging } from "@/lib/api/api-log";
 
 /**
  * POST — request personal data export (dashboard session only).
  * Beta: synchronous capped export; result stored on job row when table exists.
  */
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const authResult = await requireClerkSession(request);
     const { userId } = authResult;
@@ -49,14 +50,12 @@ export async function POST(request: NextRequest) {
       note: "Beta export is synchronous. Archive download URLs may replace inline payloads later. Do not share this file.",
     });
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /** GET — list recent export jobs for the user (metadata only). */
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const { userId } = await requireClerkSession(request);
     const rl = await rateLimit(request, userId);
@@ -76,8 +75,9 @@ export async function GET(request: NextRequest) {
     }
     return success({ jobs: data ?? [] });
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/user/data-export", handleGet);
+export const POST = withApiLogging("/api/v1/user/data-export", handlePost);

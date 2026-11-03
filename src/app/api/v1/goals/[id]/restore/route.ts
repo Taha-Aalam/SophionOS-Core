@@ -6,11 +6,12 @@ import { AppError } from "@/lib/api/error-handler";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { goalService } from "@/lib/services/goal.service";
 import { createDataClient } from "@/lib/supabase/server";
+import { withApiLogging } from "@/lib/api/api-log";
 
 /**
  * POST /api/v1/goals/[id]/restore — restore an archived goal.
  */
-export async function POST(
+async function handlePost(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -28,8 +29,8 @@ export async function POST(
     const goal = await goalService.restore(userId, id, { supabase });
     return success(goal);
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const POST = withApiLogging("/api/v1/goals/:id/restore", handlePost);

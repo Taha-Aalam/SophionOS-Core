@@ -13,6 +13,7 @@ import type {
   GoalStatusFilter,
   GoalTermFilter,
 } from "@/lib/utils/goals";
+import { withApiLogging } from "@/lib/api/api-log";
 
 function isTruthy(value: string | null): boolean {
   return value === "true" || value === "1";
@@ -25,7 +26,7 @@ function isTruthy(value: string | null): boolean {
  * `status` is given). The service returns the full (capped) result set, so
  * pagination is applied in-memory here.
  */
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -73,16 +74,14 @@ export async function GET(request: NextRequest) {
     const pageItems = goals.slice(offset, offset + limit);
     return paginated(pageItems, goals.length, page, pageSize);
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
 
 /**
  * POST /api/v1/goals — create a goal. Requires `application/json`.
  */
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -104,8 +103,9 @@ export async function POST(request: NextRequest) {
     const goal = await goalService.create(userId, body, { supabase });
     return created(goal);
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const GET = withApiLogging("/api/v1/goals", handleGet);
+export const POST = withApiLogging("/api/v1/goals", handlePost);

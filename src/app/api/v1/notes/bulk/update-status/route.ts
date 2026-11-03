@@ -8,6 +8,7 @@ import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { createDataClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/api/error-handler";
+import { withApiLogging } from "@/lib/api/api-log";
 
 const bulkSchema = z
   .object({
@@ -22,7 +23,7 @@ const bulkSchema = z
   })
   .strict();
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const authResult = await authorizeApiRequest(request);
     const { userId } = authResult;
@@ -53,6 +54,8 @@ export async function POST(request: NextRequest) {
 
     return success({ succeeded, failed, total: ids.length });
   } catch (err) {
-    return err instanceof AppError ? error(err) : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const POST = withApiLogging("/api/v1/notes/bulk/update-status", handlePost);

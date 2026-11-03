@@ -4,8 +4,9 @@ import { success, error } from "@/lib/api/api-response";
 import { rateLimit } from "@/lib/api/rate-limiter";
 import { AppError } from "@/lib/api/error-handler";
 import { cancelAccountDeletion } from "@/lib/privacy/account-deletion";
+import { withApiLogging } from "@/lib/api/api-log";
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const { userId } = await requireClerkSession(request);
     const rl = await rateLimit(request, userId);
@@ -25,8 +26,8 @@ export async function POST(request: NextRequest) {
         "Deletion cancelled. AI access re-enabled; create new API keys if needed.",
     });
   } catch (err) {
-    return err instanceof AppError
-      ? error(err)
-      : error(new AppError("Internal server error"));
+    return error(err);
   }
 }
+
+export const POST = withApiLogging("/api/v1/user/account-deletion/cancel", handlePost);
