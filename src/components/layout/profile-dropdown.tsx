@@ -15,7 +15,7 @@ import {
 
 import { CohortMemberBadge } from "@/components/settings/cohort-member-badge";
 import { useAuth } from "@/components/providers/auth-provider";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar, useUserIdentity } from "@/components/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,22 +58,17 @@ export function ProfileDropdown({
   initialSubscription?: SubscriptionSummary | null;
 }) {
   const [isOpen, setIsOpen] = React.useState(false);
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const { data: liveSubscription } = useSubscription();
   const { resolvedTheme, setTheme } = useTheme();
+  // Identity comes from the shared hook so the topbar and the sidebar can
+  // never render different avatars/initials for the same user.
+  const { displayName, email } = useUserIdentity();
   // Live client data (session-cached by useSubscription) wins once known; the
   // server seed is only the first-paint fallback. Seed-first would pin a
   // stale seed — e.g. one computed during a marketing-site blip — for the
   // whole session even after the client fetch resolves correctly.
   const subscription = liveSubscription ?? initialSubscription;
-
-  // Title-case every word: Clerk may return lowercase usernames/emails, and a
-  // raw fallback value must still read as a proper name.
-  const rawName = user?.name || user?.email || "User";
-  const displayName = rawName.replace(/\b([\p{L}])/gu, (ch) => ch.toUpperCase());
-  const email = user?.email ?? "";
-  const avatarUrl = user?.imageUrl || undefined;
-  const initials = displayName.slice(0, 2).toUpperCase();
 
   const tierLabel = subscription ? (TIER_LABELS[subscription.tier] ?? subscription.tier) : undefined;
   const billingEnabled = isFeatureEnabled("sop_cloud");
@@ -137,12 +132,11 @@ export function ProfileDropdown({
                   ) : null}
                 </div>
                 <span className="relative block size-9 shrink-0 rounded-full border border-border p-0.5">
-                  <Avatar className="size-full" size="default">
-                    {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
-                    <AvatarFallback className="rounded-full bg-background text-foreground">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    className="size-full"
+                    size="default"
+                    fallbackClassName="rounded-full bg-background text-foreground"
+                  />
                 </span>
               </button>
             }
