@@ -1,4 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 
 /**
  * Shared loading skeletons for entity detail pages.
@@ -234,6 +236,57 @@ export function ContactDetailSkeleton() {
       {Array.from({ length: 4 }).map((_, i) => (
         <SectionSkeleton key={i} />
       ))}
+    </div>
+  );
+}
+
+/**
+ * Note detail is the one detail surface that is a single-column editor rather
+ * than a stack of relationship sections, so it gets its own shape: the header
+ * bar (back button + breadcrumb + status badge + action icons) followed by the
+ * title field and the editor body.
+ *
+ * Lives here, next to the other detail skeletons, because it is rendered from
+ * two places that must stay identical: `notes/[id]/loading.tsx` (route
+ * fallback) and the `isLoading` branch of `note-detail-content.tsx`.
+ */
+export function NoteDetailSkeleton() {
+  return (
+    <div
+      className={cn(PAGE_WRAPPER, sectionGap)}
+      aria-busy="true"
+      role="status"
+      aria-label="Loading note"
+    >
+      {/* Top bar: back button + breadcrumb on the left, status badge and
+          actions right-aligned. Mirrors the real header, which wraps onto two
+          rows when the breadcrumb is long. */}
+      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-2.5">
+        <div className="flex min-w-0 max-w-full items-center gap-2">
+          <Skeleton className="size-7 rounded" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Skeleton className="h-5 w-16 rounded-full" />
+          <Skeleton className="size-7 rounded" />
+          <Skeleton className="size-7 rounded" />
+          <Skeleton className="size-7 rounded" />
+        </div>
+      </div>
+
+      {/* Editor: title field + the bordered editor surface (toolbar strip on
+          top, writing area below), matching NoteEditor's chrome. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 p-6">
+        <Skeleton className="h-9 w-64" />
+        <div className="flex min-h-[400px] w-full flex-1 flex-col overflow-hidden rounded-lg border border-border bg-background">
+          <div className="flex items-center gap-1 border-b border-border px-2 py-1.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="size-6 rounded" />
+            ))}
+          </div>
+          <Skeleton className="m-4 flex-1 rounded-md" />
+        </div>
+      </div>
     </div>
   );
 }

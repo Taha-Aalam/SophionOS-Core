@@ -10,6 +10,7 @@ import { NoteMetadataPanel } from "@/components/entities/note-metadata-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NewNoteSkeleton } from "@/components/entities/new-note-skeleton";
 
 // TipTap (StarterKit + ProseMirror) is heavy (~150KB+ gz). Defer it out of the
 // notes route bundle; the editor mounts client-side once the page renders.
@@ -158,16 +159,7 @@ export default function NewNotePage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-10 w-full" />
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <Skeleton className="h-96 lg:col-span-2" />
-          <Skeleton className="h-96" />
-        </div>
-      </div>
-    );
+    return <NewNoteSkeleton />;
   }
 
   return (

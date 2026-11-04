@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { makeQueryClient } from "@/lib/queries/server-query-client";
 import { TOPICS_QUERY_KEY } from "@/lib/hooks/use-topics";
 import { serverFetchTopics } from "@/lib/queries/topics.queries";
-import { TopicsContent } from "./topics-content";
+import { TopicsContent } from "../topics-content";
 
 export default async function TopicsPage() {
   const { userId } = await auth();

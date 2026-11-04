@@ -4,24 +4,24 @@ import { auth } from "@clerk/nextjs/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { makeQueryClient } from "@/lib/queries/server-query-client";
-import { PROJECTS_QUERY_KEY } from "@/lib/hooks/use-projects";
-import { serverFetchProjects } from "@/lib/queries/projects.queries";
-import { ProjectsContent } from "./projects-content";
+import { CONTACTS_QUERY_KEY } from "@/lib/hooks/use-contacts";
+import { serverFetchContacts } from "@/lib/queries/contacts.queries";
+import { ContactsContent } from "../contacts-content";
 
-export default async function ProjectsPage() {
+export default async function ContactsPage() {
   const { userId } = await auth();
   if (!userId) redirect("/login");
 
   const supabase = await createClient();
   const queryClient = makeQueryClient();
   await queryClient.prefetchQuery({
-    queryKey: [PROJECTS_QUERY_KEY, { status: "all" }],
-    queryFn: () => serverFetchProjects(supabase, userId, { status: "all" }),
+    queryKey: [CONTACTS_QUERY_KEY, undefined],
+    queryFn: () => serverFetchContacts(supabase, userId),
   });
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <ProjectsContent />
+      <ContactsContent />
     </HydrationBoundary>
   );
 }
