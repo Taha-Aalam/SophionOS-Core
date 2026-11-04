@@ -17,10 +17,10 @@
  *
  * These tests pin the three things that can regress:
  *   1. route-tree shape  — no list loading boundary above a detail segment;
- *   2. fallback identity — a detail route's fallback is the shared detail
- *      skeleton, never the list skeleton;
+ *   2. fallback identity — a detail route's fallback *delegates* to the shared
+ *      detail skeleton (no inline copy) and renders exactly its output;
  *   3. mounted-branch identity — the `isLoading` branch of the detail content
- *      renders that same shared skeleton, so fallback → loading → content is
+ *      returns that same shared skeleton, so fallback → loading → content is
  *      one continuous placeholder.
  */
 
@@ -32,6 +32,7 @@ import React from "react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import * as detailSkeletons from "@/components/entities/detail-skeletons";
+import { NewNoteSkeleton } from "@/components/entities/new-note-skeleton";
 
 import AreasListLoading from "@/app/(dashboard)/areas/(list)/loading";
 import AreaDetailLoading from "@/app/(dashboard)/areas/[id]/loading";
@@ -41,6 +42,7 @@ import GoalsListLoading from "@/app/(dashboard)/goals/(list)/loading";
 import GoalDetailLoading from "@/app/(dashboard)/goals/[id]/loading";
 import NotesListLoading from "@/app/(dashboard)/notes/(list)/loading";
 import NoteDetailLoading from "@/app/(dashboard)/notes/[id]/loading";
+import NewNoteLoading from "@/app/(dashboard)/notes/new/loading";
 import ProjectsListLoading from "@/app/(dashboard)/projects/(list)/loading";
 import ProjectDetailLoading from "@/app/(dashboard)/projects/[id]/loading";
 import TopicsListLoading from "@/app/(dashboard)/topics/(list)/loading";
@@ -55,6 +57,8 @@ type EntityCase = {
   skeleton: keyof typeof detailSkeletons;
   /** aria-label carried by that skeleton. */
   ariaLabel: string;
+  /** `*-detail-content.tsx` file stem. */
+  contentFile: string;
   ListLoading: React.ComponentType;
   DetailLoading: React.ComponentType;
 };
@@ -64,6 +68,7 @@ const ENTITIES: EntityCase[] = [
     segment: "areas",
     skeleton: "AreaDetailSkeleton",
     ariaLabel: "Loading area details",
+    contentFile: "area-detail-content.tsx",
     ListLoading: AreasListLoading,
     DetailLoading: AreaDetailLoading,
   },
@@ -71,6 +76,7 @@ const ENTITIES: EntityCase[] = [
     segment: "goals",
     skeleton: "GoalDetailSkeleton",
     ariaLabel: "Loading goal details",
+    contentFile: "goal-detail-content.tsx",
     ListLoading: GoalsListLoading,
     DetailLoading: GoalDetailLoading,
   },
@@ -78,6 +84,7 @@ const ENTITIES: EntityCase[] = [
     segment: "projects",
     skeleton: "ProjectDetailSkeleton",
     ariaLabel: "Loading project details",
+    contentFile: "project-detail-content.tsx",
     ListLoading: ProjectsListLoading,
     DetailLoading: ProjectDetailLoading,
   },
@@ -85,6 +92,7 @@ const ENTITIES: EntityCase[] = [
     segment: "notes",
     skeleton: "NoteDetailSkeleton",
     ariaLabel: "Loading note",
+    contentFile: "note-detail-content.tsx",
     ListLoading: NotesListLoading,
     DetailLoading: NoteDetailLoading,
   },
@@ -92,6 +100,7 @@ const ENTITIES: EntityCase[] = [
     segment: "topics",
     skeleton: "TopicDetailSkeleton",
     ariaLabel: "Loading topic details",
+    contentFile: "topic-detail-content.tsx",
     ListLoading: TopicsListLoading,
     DetailLoading: TopicDetailLoading,
   },
@@ -99,10 +108,15 @@ const ENTITIES: EntityCase[] = [
     segment: "contacts",
     skeleton: "ContactDetailSkeleton",
     ariaLabel: "Loading contact details",
+    contentFile: "contact-detail-content.tsx",
     ListLoading: ContactsListLoading,
     DetailLoading: ContactDetailLoading,
   },
 ];
+
+function read(...parts: string[]): string {
+  return readFileSync(path.join(APP, ...parts), "utf8");
+}
 
 function markupOf(Component: React.ComponentType): string {
   const { container } = render(React.createElement(Component));
@@ -113,10 +127,13 @@ afterEach(() => {
   cleanup();
 });
 
-describe("detail loading boundary: route-tree shape", () => {
+describe("route-tree shape", () => {
   it.each(ENTITIES)(
     "$segment has no loading.tsx at the segment root (it would wrap [id])",
     ({ segment }) => {
+      // This is the regression guard: a `loading.tsx` or `page.tsx` directly
+      // under the entity segment re-creates the list boundary above `[id]`,
+      // and with it the list-skeleton flash on every detail entry.
       expect(existsSync(path.join(APP, segment, "loading.tsx"))).toBe(false);
       expect(existsSync(path.join(APP, segment, "page.tsx"))).toBe(false);
     },
@@ -133,9 +150,20 @@ describe("detail loading boundary: route-tree shape", () => {
   });
 });
 
-describe("detail loading boundary: fallback renders the detail skeleton", () => {
+describe("detail fallback delegates to the shared skeleton", () => {
   it.each(ENTITIES)(
-    "$segment detail fallback is the shared $skeleton",
+    "$segment loading.tsx imports $skeleton instead of inlining skeleton markup",
+    ({ segment, skeleton }) => {
+      const source = read(segment, "[id]", "loading.tsx");
+      expect(source).toContain(`import { ${skeleton} } from "@/components/entities/detail-skeletons"`);
+      // Inline `<Skeleton />` markup would mean a second copy that can drift
+      // from the component the mounted loading state renders.
+      expect(source).not.toContain("<Skeleton");
+    },
+  );
+
+  it.each(ENTITIES)(
+    "$segment fallback renders exactly the shared $skeleton output",
     ({ skeleton, DetailLoading }) => {
       const Shared = detailSkeletons[skeleton] as React.ComponentType;
       expect(markupOf(DetailLoading)).toBe(markupOf(Shared));
@@ -143,39 +171,48 @@ describe("detail loading boundary: fallback renders the detail skeleton", () => 
   );
 
   it.each(ENTITIES)(
-    "$segment detail fallback carries its own aria-label",
-    ({ ariaLabel, DetailLoading }) => {
-      const { container } = render(React.createElement(DetailLoading));
-      expect(container.querySelector(`[aria-label="${ariaLabel}"]`)).not.toBeNull();
-    },
-  );
-
-  it.each(ENTITIES)(
-    "$segment detail fallback is NOT the list skeleton",
-    ({ ListLoading, DetailLoading }) => {
-      const listMarkup = markupOf(ListLoading);
+    "$segment fallback carries its own aria-label and is not the list fallback",
+    ({ ariaLabel, ListLoading, DetailLoading }) => {
+      const detail = render(React.createElement(DetailLoading));
+      expect(detail.container.querySelector(`[aria-label="${ariaLabel}"]`)).not.toBeNull();
+      cleanup();
       const detailMarkup = markupOf(DetailLoading);
+      const listMarkup = markupOf(ListLoading);
       expect(detailMarkup).not.toBe(listMarkup);
-      // List fallbacks are anonymous placeholders; detail fallbacks announce
-      // themselves with role="status" plus a page-specific label, so a list
-      // fallback leaking into a detail route is detectable by the missing
-      // status role and the wrong shape.
-      expect(detailMarkup).toContain('role="status"');
-      expect(listMarkup).not.toContain('role="status"');
     },
   );
 });
 
-describe("detail loading boundary: mounted branch uses the same skeleton", () => {
+describe("mounted loading branch uses the same skeleton", () => {
   it.each(ENTITIES)(
-    "$segment detail content renders $skeleton while loading",
-    ({ segment, skeleton }) => {
-      const source = readFileSync(
-        path.join(APP, segment, "[id]", `${segment.replace(/s$/, "")}-detail-content.tsx`),
-        "utf8",
+    "$segment detail content returns $skeleton from its loading guard",
+    ({ segment, skeleton, contentFile }) => {
+      const source = read(segment, "[id]", contentFile);
+      expect(source).toContain(
+        `import { ${skeleton} } from "@/components/entities/detail-skeletons"`,
       );
-      expect(source).toContain(`import { ${skeleton} } from "@/components/entities/detail-skeletons"`);
-      expect(source).toMatch(new RegExp(`return <${skeleton} />;`));
+      // Matches `if (isLoading) { return <XDetailSkeleton />; }` across the
+      // guards actually used: isLoading, isLoadingProject, topicLoading, …
+      const guard = new RegExp(
+        `if\\s*\\(\\s*\\w*[Ll]oading\\w*\\s*\\)\\s*\\{\\s*return <${skeleton} />;`,
+      );
+      expect(source).toMatch(guard);
     },
   );
+});
+
+describe("new-note composer has its own boundary", () => {
+  it("notes/new owns a loading.tsx that is not the notes list skeleton", () => {
+    expect(existsSync(path.join(APP, "notes", "new", "loading.tsx"))).toBe(true);
+    expect(markupOf(NewNoteLoading)).toBe(markupOf(NewNoteSkeleton));
+    expect(markupOf(NewNoteLoading)).not.toBe(markupOf(NotesListLoading));
+  });
+
+  it("notes/new page returns NewNoteSkeleton from its loading guard", () => {
+    const source = read("notes", "new", "page.tsx");
+    expect(source).toContain(
+      'import { NewNoteSkeleton } from "@/components/entities/new-note-skeleton"',
+    );
+    expect(source).toMatch(/if\s*\(\s*isLoading\s*\)\s*\{\s*return <NewNoteSkeleton \/>;/);
+  });
 });
