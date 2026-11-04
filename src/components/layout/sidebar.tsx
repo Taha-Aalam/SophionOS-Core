@@ -194,8 +194,13 @@ export function Sidebar() {
         // `group/sidebar` drives the collapsed rail's hover-revealed expand
         // bubble; `relative z-20` lets that bubble overflow the rail's right
         // edge and still paint above the content column.
+        // Rail widths come from the same tokens the standard content column
+        // derives its collapsed expansion from — one source of truth, so the
+        // two can never drift apart (see globals.css).
         "group/sidebar relative z-20 hidden h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 lg:flex",
-        isDesktopSidebarOpen ? "w-64" : "w-20",
+        isDesktopSidebarOpen
+          ? "w-[var(--sidebar-expanded-width)]"
+          : "w-[var(--sidebar-collapsed-width)]",
       )}
     >
       <TooltipProvider delay={100}>

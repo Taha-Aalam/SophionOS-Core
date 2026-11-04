@@ -1143,7 +1143,7 @@ export function GoalDetailContent() {
 
   if (!goal) {
     return (
-      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
         <Button variant="ghost" onClick={() => router.push("/goals")} className="gap-2">
           <ArrowLeft className="size-4" />
           Back to Goals
@@ -1160,7 +1160,7 @@ export function GoalDetailContent() {
   }
 
   return (
-    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Button

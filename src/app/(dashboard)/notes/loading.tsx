@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function NotesLoading() {
   return (
-    <div className="reveal-stagger mx-auto flex w-full max-w-7xl flex-col gap-6 p-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+    <div className="reveal-stagger mx-auto flex w-full content-column-grid flex-col gap-6 p-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border/50 py-5">
         <div className="flex items-center gap-3">

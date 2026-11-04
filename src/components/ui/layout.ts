@@ -14,14 +14,22 @@ export const cardGrid = "grid grid-cols-1 gap-[var(--grid-gap-sm)] sm:grid-cols-
 
 /**
  * Centered content column for standard grid surfaces (Dashboard, Areas, Goals, Projects, Contacts, Topics, Tasks).
- * Enforces the Muse-style calm centered column (~1240px max-width) with generous responsive gutters.
+ * Calm, centered column with generous responsive gutters. The cap is adaptive:
+ * 77.5rem (~1240px) by default, growing by the sidebar width delta (+11rem →
+ * 88.5rem) when the desktop shell reports the sidebar collapsed — see the
+ * `.content-column-grid` utility in globals.css. Expanded state is exactly
+ * the approved 77.5rem layout.
  */
 export const contentColumnGrid =
-  "mx-auto w-full max-w-[var(--content-max-width-grid)] px-4 py-6 sm:px-6 sm:py-8 lg:px-8";
+  "content-column-grid mx-auto w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8";
 
 /**
  * Centered content column for reading-first surfaces (Notes detail, Resources stream, Settings documents).
  * Enforces a narrower column (~864px max-width) for optimal typographical line length and reading calm.
+ * Fixed — deliberately not adaptive: readable line length is the point of this column.
+ * NOTE: no current route consumes this (the last consumer, notes/[id]/loading.tsx,
+ * was realigned to match the note detail page's standard shell). Retained for
+ * future deliberate reading-first surfaces.
  */
 export const contentColumnReading =
   "mx-auto w-full max-w-[var(--content-max-width-reading)] px-4 py-6 sm:px-6 sm:py-8 lg:px-8";
