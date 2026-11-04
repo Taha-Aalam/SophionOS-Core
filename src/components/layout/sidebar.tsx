@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRightIcon,
   ChevronUp,
+  Search,
 } from "lucide-react";
 
 import { SettingsIcon, SunMoonIcon } from "@/components/icons";
@@ -102,7 +103,7 @@ function NavLink({
 export function Sidebar() {
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
-  const { isDesktopSidebarOpen, toggleDesktopSidebar } = useUIStore();
+  const { isDesktopSidebarOpen, toggleDesktopSidebar, openCommandPalette } = useUIStore();
   const [mounted, setMounted] = useState(false);
 
   // On a policy page the sidebar stops being app navigation: Core/System and
@@ -444,6 +445,24 @@ export function Sidebar() {
             isDesktopSidebarOpen ? "space-y-1" : "space-y-2",
           )}
         >
+          {isDesktopSidebarOpen ? (
+            <button
+              type="button"
+              onClick={openCommandPalette}
+              aria-label="Search"
+              aria-keyshortcuts="meta+k ctrl+k"
+              className="flex w-full items-center gap-2.5 rounded-md border border-sidebar-border bg-sidebar-accent/50 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+            >
+              <Search size={14} className="shrink-0" aria-hidden="true" />
+              <span className="flex-1 text-left">Search</span>
+              <kbd
+                aria-hidden="true"
+                className="rounded border border-sidebar-border bg-sidebar px-1 py-0.5 text-[10px] leading-none text-muted-foreground"
+              >
+                ⌘K
+              </kbd>
+            </button>
+          ) : null}
           <NavLink
             href="/settings"
             label="Settings"
