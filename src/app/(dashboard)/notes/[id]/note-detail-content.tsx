@@ -33,6 +33,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NoteDetailSkeleton } from "@/components/entities/detail-skeletons";
 import { DeleteEntityPopover } from "@/components/entities/delete-entity-popover";
 import {
   Dialog,
@@ -264,13 +265,7 @@ export function NoteDetailContent() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-10 w-full max-w-xl" />
-        <Skeleton className="flex-1" />
-      </div>
-    );
+    return <NoteDetailSkeleton />;
   }
 
   if (!note) {
