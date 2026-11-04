@@ -20,7 +20,7 @@ export function ResourceRowSkeleton() {
  */
 export function ListPageSkeleton({ rows = 6 }: { rows?: number }) {
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6" aria-busy="true" role="status" aria-label="Loading">
+    <div className="mx-auto flex w-full content-column-grid flex-col gap-6 p-6" aria-busy="true" role="status" aria-label="Loading">
       <div className="flex items-center justify-between border-b border-border/50 pb-4">
         <div className="flex items-center gap-3">
           <Skeleton className="size-8 rounded-md" />

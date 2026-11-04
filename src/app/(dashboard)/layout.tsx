@@ -8,6 +8,7 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { SignOutOverlay } from "@/components/layout/sign-out-overlay";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { InboxBackfillProvider } from "@/components/providers/inbox-backfill-provider";
+import { ShellFrame } from "@/components/layout/shell-frame";
 import { userSettingsService } from "@/lib/services/user-settings.service";
 import { resolveDashboardDestination } from "@/lib/onboarding/onboarding-routing";
 import { createClient } from "@/lib/supabase/server";
@@ -57,14 +58,14 @@ export default async function DashboardGroupLayout({
   return (
     <AuthProvider initialUser={initialUser} initialAreasSeededAt={onboardingRow.areasSeededAt}>
       <InboxBackfillProvider>
-        <div className="flex h-screen overflow-hidden bg-background">
+        <ShellFrame className="flex h-screen overflow-hidden bg-background">
           <Sidebar />
           <MobileNav />
           <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
             <Topbar initialSubscription={initialSubscription} />
             <main className="flex-1 overflow-y-auto">{children}</main>
           </div>
-        </div>
+        </ShellFrame>
         <Suspense fallback={null}>
           <CommandPalette />
         </Suspense>

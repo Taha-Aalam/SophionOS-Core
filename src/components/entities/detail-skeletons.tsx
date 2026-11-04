@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 
 const PAGE_WRAPPER =
-  "reveal-stagger flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full";
+  "reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full";
 
 function BreadcrumbSkeleton() {
   return (

@@ -1,10 +1,18 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { contentColumnReading, sectionGap } from "@/components/ui/layout";
+import { sectionGap } from "@/components/ui/layout";
 import { cn } from "@/lib/utils";
 
 export default function NoteDetailLoading() {
   return (
-    <div className={cn("reveal-stagger flex flex-col", contentColumnReading, sectionGap)} aria-busy="true" role="status" aria-label="Loading note">
+    <div
+      className={cn(
+        "reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full",
+        sectionGap,
+      )}
+      aria-busy="true"
+      role="status"
+      aria-label="Loading note"
+    >
       {/* Top bar: back button + breadcrumb + badges */}
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-4 py-2.5">
         <div className="flex items-center gap-2">
