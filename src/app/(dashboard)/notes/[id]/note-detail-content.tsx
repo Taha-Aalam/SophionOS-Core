@@ -538,8 +538,8 @@ export function NoteDetailContent() {
 
         <aside
           className={cn(
-            "hidden md:block md:shrink-0 md:overflow-hidden md:border-l md:border-border",
-            isMetadataOpen ? "md:w-72" : "md:w-0",
+            "hidden md:block md:shrink-0 md:overflow-hidden",
+            isMetadataOpen ? "md:w-72 md:border-l md:border-border" : "md:w-0",
           )}
           aria-hidden={!isMetadataOpen}
         >
