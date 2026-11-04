@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { makeQueryClient } from "@/lib/queries/server-query-client";
 import { NOTES_QUERY_KEY } from "@/lib/hooks/use-notes";
 import { serverFetchNotes } from "@/lib/queries/notes.queries";
-import { NotesContent } from "./notes-content";
+import { NotesContent } from "../notes-content";
 
 export default async function NotesPage() {
   const { userId } = await auth();

@@ -1,4 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { sectionGap } from "@/components/ui/layout";
+import { cn } from "@/lib/utils";
 
 /**
  * Shared loading skeletons for entity detail pages.
@@ -167,8 +169,7 @@ export function TopicDetailSkeleton() {
   );
 }
 
-export function ContactDetailSkeleton() {
-  return (
+export function ContactDetailSkeleton() {  return (
     <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label="Loading contact details">
       <BreadcrumbSkeleton />
       {/* Main card: avatar header + stats row + tabs strip */}
@@ -234,6 +235,49 @@ export function ContactDetailSkeleton() {
       {Array.from({ length: 4 }).map((_, i) => (
         <SectionSkeleton key={i} />
       ))}
+    </div>
+  );
+}
+
+/**
+ * Note detail is the one detail surface that is a single-column editor rather
+ * than a stack of relationship sections, so it gets its own shape: the header
+ * bar (back button + breadcrumb + status badge + action icons) followed by the
+ * title field and the editor body.
+ *
+ * Lives here, next to the other detail skeletons, because it is rendered from
+ * two places that must stay identical: `notes/[id]/loading.tsx` (route
+ * fallback) and the `isLoading` branch of `note-detail-content.tsx`.
+ */
+export function NoteDetailSkeleton() {
+  return (
+    <div
+      className={cn(PAGE_WRAPPER, sectionGap)}
+      aria-busy="true"
+      role="status"
+      aria-label="Loading note"
+    >
+      {/* Top bar: back button + breadcrumb + badges */}
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <Skeleton className="size-7 rounded" />
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="size-7 rounded" />
+          <Skeleton className="size-7 rounded" />
+          <Skeleton className="size-7 rounded" />
+        </div>
+      </div>
+
+      {/* Editor area */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 p-6">
+          <Skeleton className="h-9 w-64" />
+          <Skeleton className="min-h-[400px] w-full flex-1 rounded-lg" />
+        </div>
+      </div>
     </div>
   );
 }
