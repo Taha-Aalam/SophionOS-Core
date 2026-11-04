@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server"
 import { makeQueryClient } from "@/lib/queries/server-query-client"
 import { GOALS_QUERY_KEY } from "@/lib/hooks/use-goals"
 import { serverFetchGoals } from "@/lib/queries/goals.queries"
-import { GoalsContent } from "./goals-content"
+import { GoalsContent } from "../goals-content"
 
 // Mirror the client filter store's default exactly (src/lib/stores/filters.store.ts)
 // so the dehydrated query lands on the same cache key useGoals(filters) reads on

@@ -16,7 +16,7 @@ import { serverFetchProjects } from "@/lib/queries/projects.queries";
 import { serverFetchTasks } from "@/lib/queries/tasks.queries";
 import { serverFetchNotes } from "@/lib/queries/notes.queries";
 import { serverFetchResources } from "@/lib/queries/resources.queries";
-import { AreasContent } from "./areas-content";
+import { AreasContent } from "../areas-content";
 
 export default async function AreasPage() {
   const { userId } = await auth();
