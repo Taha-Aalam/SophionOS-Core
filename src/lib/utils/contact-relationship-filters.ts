@@ -67,6 +67,20 @@ export interface FilterInputs {
   selectedGoalIds: string[];
   selectedProjectIds: string[];
   selectedTaskIds: string[];
+  /**
+   * The ids staged when the editor opened (the contact's stored links, or
+   * the caller's create defaults). They always stay visible in their picker
+   * and are exempt from `cleanInvalidSelections`: the cross-filter narrows
+   * what can be NEWLY picked, never silently removes an already-picked
+   * link — the save payload carries picker state verbatim, so a
+   * hidden-but-staged link would be saved as an explicit unlink and delete
+   * the stored contact junction rows (same contract as resource-dialog's
+   * preselected filter args and task-dialog's preselected cascades).
+   */
+  preselectedAreaIds?: string[];
+  preselectedGoalIds?: string[];
+  preselectedProjectIds?: string[];
+  preselectedTaskIds?: string[];
   goalProjectRelations: GoalProjectRelation[];
   goalTaskRelations: GoalTaskRelation[];
 }
@@ -142,7 +156,12 @@ export function buildGoalTaskMaps(relations: GoalTaskRelation[]) {
 export function filterAreas(
   inputs: Pick<
     FilterInputs,
-    "allAreas" | "selectedAreaIds" | "selectedGoalIds" | "selectedProjectIds" | "selectedTaskIds"
+    | "allAreas"
+    | "selectedAreaIds"
+    | "selectedGoalIds"
+    | "selectedProjectIds"
+    | "selectedTaskIds"
+    | "preselectedAreaIds"
   > & {
     selectedTasks: TaskEntity[];
     selectedGoals: GoalEntity[];
@@ -180,7 +199,10 @@ export function filterAreas(
   }
 
   if (allowed && allowed.size === 0) return activeAreas;
-  return allowed ? activeAreas.filter((a) => allowed!.has(a.id)) : activeAreas;
+  const preselectedAreas = new Set(inputs.preselectedAreaIds ?? []);
+  return allowed
+    ? activeAreas.filter((a) => preselectedAreas.has(a.id) || allowed!.has(a.id))
+    : activeAreas;
 }
 
 /**
@@ -193,7 +215,12 @@ export function filterAreas(
 export function filterProjects(
   inputs: Pick<
     FilterInputs,
-    "allProjects" | "selectedAreaIds" | "selectedGoalIds" | "selectedProjectIds" | "selectedTaskIds"
+    | "allProjects"
+    | "selectedAreaIds"
+    | "selectedGoalIds"
+    | "selectedProjectIds"
+    | "selectedTaskIds"
+    | "preselectedProjectIds"
   > & {
     selectedTasks: TaskEntity[];
     goalToProjectIds: Map<string, string[]>;
@@ -218,7 +245,10 @@ export function filterProjects(
     ? new Set(inputs.selectedGoalIds.flatMap((gId) => goalToProjectIds.get(gId) ?? []))
     : null;
 
+  const preselectedProjects = new Set(inputs.preselectedProjectIds ?? []);
+
   const candidates = activeProjects.filter((p) => {
+    if (preselectedProjects.has(p.id)) return true;
     if (hasAreas) {
       const projectAreas = getEntityAreaIds(p);
       if (!projectAreas.some((aId) => areaSet.has(aId))) return false;
@@ -243,7 +273,12 @@ export function filterProjects(
 export function filterGoals(
   inputs: Pick<
     FilterInputs,
-    "allGoals" | "selectedAreaIds" | "selectedGoalIds" | "selectedProjectIds" | "selectedTaskIds"
+    | "allGoals"
+    | "selectedAreaIds"
+    | "selectedGoalIds"
+    | "selectedProjectIds"
+    | "selectedTaskIds"
+    | "preselectedGoalIds"
   > & {
     selectedTasks: TaskEntity[];
     taskToGoalIds: Map<string, string[]>;
@@ -282,7 +317,10 @@ export function filterGoals(
     }
   }
 
+  const preselectedGoals = new Set(inputs.preselectedGoalIds ?? []);
+
   const candidates = activeGoals.filter((g) => {
+    if (preselectedGoals.has(g.id)) return true;
     if (projectConstraintActive && !projectGoalIds!.has(g.id)) return false;
     if (hasTasks && taskGoalIds!.size > 0 && !taskGoalIds!.has(g.id)) return false;
     if (hasAreas) {
@@ -308,7 +346,11 @@ export function filterGoals(
 export function filterTasks(
   inputs: Pick<
     FilterInputs,
-    "allTasks" | "selectedAreaIds" | "selectedGoalIds" | "selectedProjectIds"
+    | "allTasks"
+    | "selectedAreaIds"
+    | "selectedGoalIds"
+    | "selectedProjectIds"
+    | "preselectedTaskIds"
   > & {
     goalToTaskIds: Map<string, string[]>;
   },
@@ -329,7 +371,10 @@ export function filterTasks(
     : null;
   const goalConstraintActive = hasGoals && goalTaskIdSet!.size > 0;
 
+  const preselectedTasks = new Set(inputs.preselectedTaskIds ?? []);
+
   const candidates = allTasks.filter((t) => {
+    if (preselectedTasks.has(t.id)) return true;
     if (hasAreas) {
       const taskAreas = getEntityAreaIds(t);
       if (!taskAreas.some((aId) => areaSet!.has(aId))) return false;
@@ -358,24 +403,37 @@ export interface CleanupResult {
 
 /**
  * Given current selections and the filtered option lists, strip any ids that
- * are no longer valid.  Returns the cleaned ids + a `changed` flag so callers
- * know whether to update state.
+ * are no longer valid.  `preselected` carries the ids staged when the editor
+ * opened (stored links / create defaults); those are exempt — opening a
+ * dialog must never fabricate an unlink the user never made. Returns the
+ * cleaned ids + a `changed` flag so callers know whether to update state.
  */
 export function cleanInvalidSelections(
   ids: Pick<FilterInputs, "selectedAreaIds" | "selectedGoalIds" | "selectedProjectIds" | "selectedTaskIds">,
   filtered: FilteredResults,
+  preselected?: {
+    areaIds?: string[];
+    goalIds?: string[];
+    projectIds?: string[];
+    taskIds?: string[];
+  },
 ): CleanupResult {
+  const preAreaIds = new Set(preselected?.areaIds ?? []);
+  const preGoalIds = new Set(preselected?.goalIds ?? []);
+  const preProjectIds = new Set(preselected?.projectIds ?? []);
+  const preTaskIds = new Set(preselected?.taskIds ?? []);
+
   const areaIds = ids.selectedAreaIds.filter((id) =>
-    filtered.visibleAreas.some((a) => a.id === id),
+    preAreaIds.has(id) || filtered.visibleAreas.some((a) => a.id === id),
   );
   const goalIds = ids.selectedGoalIds.filter((id) =>
-    filtered.filteredGoals.some((g) => g.id === id),
+    preGoalIds.has(id) || filtered.filteredGoals.some((g) => g.id === id),
   );
   const projectIds = ids.selectedProjectIds.filter((id) =>
-    filtered.filteredProjects.some((p) => p.id === id),
+    preProjectIds.has(id) || filtered.filteredProjects.some((p) => p.id === id),
   );
   const taskIds = ids.selectedTaskIds.filter((id) =>
-    filtered.filteredTasks.some((t) => t.id === id),
+    preTaskIds.has(id) || filtered.filteredTasks.some((t) => t.id === id),
   );
 
   const changed =

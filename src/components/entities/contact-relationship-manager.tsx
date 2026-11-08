@@ -108,6 +108,14 @@ export function ContactRelationshipManager({
     selectedGoalIds: goalIds,
     selectedProjectIds: projectIds,
     selectedTaskIds: taskIds,
+    // The staged-at-open ids (the contact's stored links) stay visible and
+    // exempt from the auto-clean: opening this dialog must never strip a
+    // link the user has not touched, and handleSave sends every link field
+    // unconditionally.
+    preselectedAreaIds: initialAreaIds,
+    preselectedGoalIds: initialGoalIds,
+    preselectedProjectIds: initialProjectIds,
+    preselectedTaskIds: initialTaskIds,
     enabled: open,
   });
 

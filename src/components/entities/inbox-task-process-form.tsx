@@ -79,29 +79,38 @@ export function TaskProcessForm({
     [projectOptions],
   );
 
+  // Every filter call passes this form's raw picks as the preselected
+  // argument (same contract as the entity dialogs): stored links must stay
+  // visible in their picker even when the cross-filter would hide them,
+  // otherwise useValidIds strips them from the save payload — and handleSave
+  // sends every link field unconditionally, so a stripped link becomes an
+  // explicit clear in the PATCH body and silently deletes the stored rows.
   const visibleGoals = useMemo(
     () => computeVisibleGoalsForProjects(
-      goalOptions, rawProjectIds, rawAreaIds, projectById,
+      goalOptions, rawProjectIds, rawAreaIds, projectById, rawGoalIds,
     ),
-    [goalOptions, rawProjectIds, rawAreaIds, projectById],
+    [goalOptions, rawGoalIds, rawProjectIds, rawAreaIds, projectById],
   );
 
   const visibleAreas = useMemo(
     () => computeVisibleAreasForProjects(
-      areaOptions, rawGoalIds, rawProjectIds, projectById, goalOptions,
+      areaOptions, rawGoalIds, rawProjectIds, projectById, goalOptions, rawAreaIds,
     ),
-    [areaOptions, goalOptions, rawGoalIds, rawProjectIds, projectById],
+    [areaOptions, rawAreaIds, goalOptions, rawGoalIds, rawProjectIds, projectById],
   );
 
   const filteredProjects = useMemo(
-    () => computeFilteredProjects(projectOptions, rawGoalIds, rawAreaIds),
-    [projectOptions, rawGoalIds, rawAreaIds],
+    () => computeFilteredProjects(projectOptions, rawGoalIds, rawAreaIds, rawProjectIds),
+    [projectOptions, rawGoalIds, rawAreaIds, rawProjectIds],
   );
 
-  // Derive filtered ID subsets from raw user picks, stripping any IDs
-  // no longer present in the corresponding visible set. Done at render
-  // time instead of via useEffect reconciliation, to avoid the
-  // cascading-render anti-pattern flagged by react-hooks/set-state-in-effect.
+  // Derive filtered ID subsets from raw user picks, stripping any IDs no
+  // longer present in the corresponding visible set. With the preselected
+  // arguments above, only a deliberate user clear (toggling an entry off,
+  // "Clear selection") can empty a picker, so the strip can no longer
+  // fabricate an unlink the user never made. Done at render time instead of
+  // via useEffect reconciliation, to avoid the cascading-render
+  // anti-pattern flagged by react-hooks/set-state-in-effect.
   const goalIds = useValidIds(rawGoalIds, visibleGoals.map((goal) => goal.id));
   const areaIds = useValidIds(rawAreaIds, visibleAreas.map((area) => area.id));
   const projectIds = useValidIds(rawProjectIds, filteredProjects.map((p) => p.id));

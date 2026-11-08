@@ -34,6 +34,15 @@ export interface UseContactRelationshipOptionsParams {
   selectedGoalIds: string[];
   selectedProjectIds: string[];
   selectedTaskIds: string[];
+  /**
+   * Ids staged when the editor opened (stored links / create defaults).
+   * They stay visible in their picker and are exempt from cleanSelections —
+   * see FilterInputs.preselected* in contact-relationship-filters.ts.
+   */
+  preselectedAreaIds?: string[];
+  preselectedGoalIds?: string[];
+  preselectedProjectIds?: string[];
+  preselectedTaskIds?: string[];
   /** Whether the goal_projects/goal_tasks queries should be enabled. */
   enabled?: boolean;
 }
@@ -66,6 +75,10 @@ export function useContactRelationshipOptions(
     selectedGoalIds,
     selectedProjectIds,
     selectedTaskIds,
+    preselectedAreaIds,
+    preselectedGoalIds,
+    preselectedProjectIds,
+    preselectedTaskIds,
     enabled = true,
   } = params;
 
@@ -100,6 +113,10 @@ export function useContactRelationshipOptions(
         selectedGoalIds,
         selectedProjectIds,
         selectedTaskIds,
+        preselectedAreaIds,
+        preselectedGoalIds,
+        preselectedProjectIds,
+        preselectedTaskIds,
         goalProjectRelations,
         goalTaskRelations,
       }),
@@ -112,6 +129,10 @@ export function useContactRelationshipOptions(
       selectedGoalIds,
       selectedProjectIds,
       selectedTaskIds,
+      preselectedAreaIds,
+      preselectedGoalIds,
+      preselectedProjectIds,
+      preselectedTaskIds,
       goalProjectRelations,
       goalTaskRelations,
     ],
@@ -121,6 +142,12 @@ export function useContactRelationshipOptions(
     cleanInvalidSelections(
       { selectedAreaIds, selectedGoalIds, selectedProjectIds, selectedTaskIds },
       filtered,
+      {
+        areaIds: preselectedAreaIds,
+        goalIds: preselectedGoalIds,
+        projectIds: preselectedProjectIds,
+        taskIds: preselectedTaskIds,
+      },
     );
 
   return {

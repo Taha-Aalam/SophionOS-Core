@@ -20,21 +20,32 @@ interface FilterableGoal {
  * - goal only  → linked to any selected goal
  * - area only  → area_id or linkedAreaIds overlaps selected areas
  * - neither    → all projects
+ *
+ * `preselectedProjectIds` (the form's raw user picks / the entity's stored
+ * links) always stay visible: the cross-filter narrows what can be newly
+ * picked, never silently removes an already-picked link — the process form's
+ * save payload carries the picker state verbatim, so a hidden-but-picked
+ * project would be saved as an explicit unlink and delete the stored
+ * task↔project rows.
  */
 export function computeFilteredProjects<T extends FilterableProject>(
   projects: T[],
   selectedGoalIds: string[],
   selectedAreaIds: string[],
+  preselectedProjectIds?: string[],
 ): T[] {
   const hasGoals = selectedGoalIds.length > 0;
   const hasAreas = selectedAreaIds.length > 0;
 
   if (!hasGoals && !hasAreas) return projects;
 
+  const preselected = new Set(preselectedProjectIds ?? []);
   const goalSet = new Set(selectedGoalIds);
   const areaSet = new Set(selectedAreaIds);
 
   return projects.filter((project) => {
+    if (preselected.has(project.id)) return true;
+
     if (hasGoals) {
       const linked = project.linkedGoalIds ?? [];
       if (!linked.some((gId) => goalSet.has(gId))) return false;
@@ -170,11 +181,14 @@ export function computeVisibleGoalsForProjects<T extends FilterableGoal>(
   selectedProjectIds: string[],
   selectedAreaIds: string[],
   projectById: Map<string, FilterableProject>,
+  preselectedGoalIds?: string[],
 ): T[] {
   const hasProjects = selectedProjectIds.length > 0;
   const hasAreas = selectedAreaIds.length > 0;
 
   if (!hasProjects && !hasAreas) return goals;
+
+  const preselected = new Set(preselectedGoalIds ?? []);
 
   // Build the goal-id allow-set across all selected projects. If any
   // selected project has no `linkedGoalIds`, that project imposes no
@@ -197,6 +211,7 @@ export function computeVisibleGoalsForProjects<T extends FilterableGoal>(
   }
 
   return goals.filter((goal) => {
+    if (preselected.has(goal.id)) return true;
     if (projectConstraintActive && projectGoalSet && !projectGoalSet.has(goal.id)) return false;
     if (hasAreas) {
       // Unassigned goals stay visible alongside area-scoped ones.
@@ -218,11 +233,14 @@ export function computeVisibleAreasForProjects<T extends FilterableArea>(
   selectedProjectIds: string[],
   projectById: Map<string, FilterableProject>,
   goals: FilterableGoal[],
+  preselectedAreaIds?: string[],
 ): T[] {
   const hasGoals = selectedGoalIds.length > 0;
   const hasProjects = selectedProjectIds.length > 0;
 
   if (!hasGoals && !hasProjects) return areas;
+
+  const preselected = new Set(preselectedAreaIds ?? []);
 
   let allowed: Set<string> | null = null;
 
@@ -256,5 +274,7 @@ export function computeVisibleAreasForProjects<T extends FilterableArea>(
   }
 
   if (allowed && allowed.size === 0) return [];
-  return allowed ? areas.filter((a) => allowed!.has(a.id)) : areas;
+  return allowed
+    ? areas.filter((a) => preselected.has(a.id) || allowed!.has(a.id))
+    : areas;
 }
