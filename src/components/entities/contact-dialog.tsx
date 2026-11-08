@@ -248,6 +248,20 @@ export function ContactDialog({
   const projectIds: string[] = useWatch({ control: form.control, name: "project_ids" }) ?? [];
   const taskIds: string[] = useWatch({ control: form.control, name: "task_ids" }) ?? [];
 
+  /**
+   * Snapshot of the link arrays the reset effect below just staged. The
+   * auto-clean treats these as "preselected" and exempts them from the
+   * cross-filter, so opening the dialog never strips an existing link even
+   * if the goal/project/area cross-filter would otherwise hide it — the
+   * same contract as task-dialog's preselected snapshot.
+   */
+  const [preselectedIds, setPreselectedIds] = useState<{
+    areaIds: string[];
+    goalIds: string[];
+    projectIds: string[];
+    taskIds: string[];
+  }>({ areaIds: [], goalIds: [], projectIds: [], taskIds: [] });
+
   const {
     visibleAreas,
     filteredGoals,
@@ -264,6 +278,15 @@ export function ContactDialog({
     selectedGoalIds: goalIds,
     selectedProjectIds: projectIds,
     selectedTaskIds: taskIds,
+    // The ids staged by the reset effect below (the contact's stored links
+    // on edit, the caller's defaults on create) stay visible in their
+    // pickers and are exempt from the auto-clean: opening this dialog must
+    // never strip a link the user has not touched, and the submit payload
+    // carries the link arrays verbatim.
+    preselectedAreaIds: preselectedIds.areaIds,
+    preselectedGoalIds: preselectedIds.goalIds,
+    preselectedProjectIds: preselectedIds.projectIds,
+    preselectedTaskIds: preselectedIds.taskIds,
     enabled: open,
   });
 
@@ -313,7 +336,16 @@ export function ContactDialog({
     }
     lastResetKeyRef.current = resetKey;
 
-    form.reset(contact ? buildContactFormValues(contact) : mergeContactFormDefaults(defaults));
+    const staged = contact
+      ? buildContactFormValues(contact)
+      : mergeContactFormDefaults(defaults);
+    form.reset(staged);
+    setPreselectedIds({
+      areaIds: staged.area_ids ?? [],
+      goalIds: staged.goal_ids ?? [],
+      projectIds: staged.project_ids ?? [],
+      taskIds: staged.task_ids ?? [],
+    });
   }, [open, contact?.id, defaults, form]);
 
   const handleSubmit = form.handleSubmit(async (values) => {

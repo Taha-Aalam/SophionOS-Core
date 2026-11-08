@@ -159,36 +159,45 @@ export function NoteInboxProcessForm({
     return map;
   }, [taskOptions]);
 
+  // Every filter call passes this form's raw picks as the preselected
+  // argument (same contract as the resource dialog): stored links must stay
+  // visible in their picker even when the cross-filter would hide them,
+  // otherwise useValidIds strips them from the save payload — and handleSave
+  // sends every link field unconditionally, so a stripped link becomes an
+  // explicit clear in the PATCH body and silently deletes the junction rows.
   const visibleGoals = useMemo(
     () => computeFilteredGoals(
-      goalOptions, rawAreaIds, rawProjectIds[0] ?? null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks,
+      goalOptions, rawAreaIds, rawProjectIds[0] ?? null, projectGoalIdsMap, taskGoalIdsMap, selectedTasks, rawGoalIds,
     ),
-    [goalOptions, rawAreaIds, rawProjectIds, projectGoalIdsMap, taskGoalIdsMap, selectedTasks],
+    [goalOptions, rawAreaIds, rawProjectIds, rawGoalIds, projectGoalIdsMap, taskGoalIdsMap, selectedTasks],
   );
 
   const visibleProjects = useMemo(
     () => computeFilteredProjects(
-      projectOptions, rawAreaIds, rawGoalIds, goalProjectIdsMap, selectedTasks,
+      projectOptions, rawAreaIds, rawGoalIds, goalProjectIdsMap, selectedTasks, rawProjectIds,
     ),
-    [projectOptions, rawAreaIds, rawGoalIds, goalProjectIdsMap, selectedTasks],
+    [projectOptions, rawAreaIds, rawGoalIds, rawProjectIds, goalProjectIdsMap, selectedTasks],
   );
 
   const visibleAreas = useMemo(
-    () => computeVisibleAreas(areaOptions, selectedProjects[0] ?? null, selectedGoals, selectedTasks),
-    [areaOptions, selectedProjects, selectedGoals, selectedTasks],
+    () => computeVisibleAreas(areaOptions, selectedProjects[0] ?? null, selectedGoals, selectedTasks, rawAreaIds),
+    [areaOptions, rawAreaIds, selectedProjects, selectedGoals, selectedTasks],
   );
 
   const visibleTasks = useMemo(
     () => computeFilteredTasks(
-      taskOptions, rawAreaIds, rawProjectIds[0] ?? null, rawGoalIds, goalTaskIdsMap,
+      taskOptions, rawAreaIds, rawProjectIds[0] ?? null, rawGoalIds, goalTaskIdsMap, rawTaskIds,
     ),
-    [taskOptions, rawAreaIds, rawProjectIds, rawGoalIds, goalTaskIdsMap],
+    [taskOptions, rawAreaIds, rawProjectIds, rawGoalIds, rawTaskIds, goalTaskIdsMap],
   );
 
-  // Derive filtered ID subsets from raw user picks, stripping any IDs
-  // no longer present in the corresponding visible set. Done at render
-  // time instead of via useEffect reconciliation, to avoid the
-  // cascading-render anti-pattern flagged by react-hooks/set-state-in-effect.
+  // Derive filtered ID subsets from raw user picks, stripping any IDs no
+  // longer present in the corresponding visible set. With the preselected
+  // arguments above, only a deliberate user clear (toggling an entry off,
+  // "Clear selection") can empty a picker, so the strip can no longer
+  // fabricate an unlink the user never made. Done at render time instead of
+  // via useEffect reconciliation, to avoid the cascading-render
+  // anti-pattern flagged by react-hooks/set-state-in-effect.
   const goalIds = useValidIds(rawGoalIds, visibleGoals.map((goal) => goal.id));
   const areaIds = useValidIds(rawAreaIds, visibleAreas.map((area) => area.id));
   const projectIds = useValidIds(rawProjectIds, visibleProjects.map((project) => project.id));
