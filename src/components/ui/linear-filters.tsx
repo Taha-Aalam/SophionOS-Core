@@ -52,10 +52,10 @@ export type LinearFilter = {
 };
 
 function newFilterId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `filter-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  // crypto.randomUUID is Baseline Widely available (2022-03) and
+  // secure-context only; this app always serves over HTTPS (HSTS in prod),
+  // and three other client components already call it bare.
+  return crypto.randomUUID();
 }
 
 function resolveOperator(
