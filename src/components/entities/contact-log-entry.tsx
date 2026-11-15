@@ -1,22 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { relativeTime } from "@/lib/utils/dates";
 import type { ContactLog } from "@/lib/types/domain.types";
 import { cn } from "@/lib/utils";
 
 export interface ContactLogEntryProps {
   log: ContactLog;
-}
-
-export function formatTimeAgo(dateStr: string): string {
-  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
 }
 
 export function ContactLogEntry({ log }: ContactLogEntryProps) {
@@ -26,7 +16,7 @@ export function ContactLogEntry({ log }: ContactLogEntryProps) {
 
   return (
     <div className="rounded-md border px-3 py-2">
-      <p className="text-xs text-muted-foreground">{formatTimeAgo(log.created_at)}</p>
+      <p className="text-xs text-muted-foreground">{relativeTime(log.created_at)}</p>
       {message && (
         <div className="mt-1">
           <p
