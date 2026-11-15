@@ -44,6 +44,7 @@ import {
 import { useAreas } from "@/lib/hooks/use-areas";
 import { useNotes } from "@/lib/hooks/use-notes";
 import { useResources } from "@/lib/hooks/use-resources";
+import { relativeTime } from "@/lib/utils/dates";
 import { useGoals, useRestoreGoal, useArchiveGoal } from "@/lib/hooks/use-goals";
 import { useProjects, useArchiveProject, useRestoreProject } from "@/lib/hooks/use-projects";
 import {
@@ -424,10 +425,7 @@ export function ContactDetailContent() {
               <p className="mb-0.5 text-2xs text-muted-foreground">Last log</p>
               <p className="text-xs font-medium">
                 {contact.last_interaction_at
-                  ? (() => {
-                      const days = contactService.computeDaysSinceInteraction(contact.last_interaction_at);
-                      return days === 0 ? "Today" : `${days}d ago`;
-                    })()
+                  ? relativeTime(contact.last_interaction_at)
                   : "Never"}
               </p>
             </div>
