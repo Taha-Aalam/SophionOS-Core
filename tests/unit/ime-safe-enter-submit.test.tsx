@@ -137,7 +137,7 @@ describe("AreasStep — IME-safe Enter submission", () => {
     return render(<AreasStep />);
   }
 
-  function openCreateCard(container: HTMLElement) {
+  function openCreateCard() {
     fireEvent.click(screen.getByRole("button", { name: /create new area/i }));
     const nameInput = screen.getByPlaceholderText("e.g. Fitness") as HTMLInputElement;
     const iconInput = screen.getByPlaceholderText("🏋️") as HTMLInputElement;
@@ -163,7 +163,7 @@ describe("AreasStep — IME-safe Enter submission", () => {
   it("reproduction: Enter confirming a composition does NOT create an area", () => {
     makeCreateArea();
     renderStep();
-    const { nameInput } = openCreateCard(document.body);
+    const { nameInput } = openCreateCard();
     typeDuringCompositionAndConfirmWithEnter(nameInput, "健身房");
     // The premature call (if any) happens synchronously inside the keydown
     // handler, so a plain synchronous assertion is sufficient and fast.
@@ -174,8 +174,8 @@ describe("AreasStep — IME-safe Enter submission", () => {
 
   it("native form submission creates the area with trimmed values", async () => {
     const handle = makeCreateArea();
-    const { container } = renderStep();
-    const { nameInput, iconInput } = openCreateCard(container);
+    renderStep();
+    const { nameInput, iconInput } = openCreateCard();
     fireEvent.change(iconInput, { target: { value: "🏋️" } });
     fireEvent.change(nameInput, { target: { value: "  Fitness  " } });
     const form = nameInput.closest("form");
@@ -199,8 +199,8 @@ describe("AreasStep — IME-safe Enter submission", () => {
 
   it("empty name does not create (Add area disabled; submit guard intact)", async () => {
     const handle = makeCreateArea();
-    const { container } = renderStep();
-    const { nameInput } = openCreateCard(container);
+    renderStep();
+    const { nameInput } = openCreateCard();
     const addButton = screen.getByRole("button", { name: /add area/i });
     expect(addButton).toBeDisabled();
     fireEvent.click(addButton);
@@ -213,8 +213,8 @@ describe("AreasStep — IME-safe Enter submission", () => {
   it("create failure keeps the card open and shows the error message", async () => {
     const mutateAsync = vi.fn().mockRejectedValue(new Error("boom"));
     makeCreateArea({ mutateAsync, isError: true });
-    const { container } = renderStep();
-    const { nameInput } = openCreateCard(container);
+    renderStep();
+    const { nameInput } = openCreateCard();
     fireEvent.change(nameInput, { target: { value: "Fitness" } });
     fireEvent.submit(nameInput.closest("form")!);
     await waitFor(() => {

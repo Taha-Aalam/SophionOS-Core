@@ -86,11 +86,11 @@ export function ContactListItem({
             >
               {status === "ON TRACK" ? "On track" : "Follow up"}
             </Badge>
-            {contact.last_interaction_at !== null && (
+            {contact.last_interaction_at ? (
               <span className="text-xs text-muted-foreground">
                 {relativeTime(contact.last_interaction_at)}
               </span>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
