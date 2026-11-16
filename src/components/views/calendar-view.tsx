@@ -186,7 +186,7 @@ export function CalendarView({ tasks, onTaskClick, onTaskReschedule }: CalendarV
     return () => clearEdge();
   }, []);
 
-  const handleDragStart = (event: React.DragEvent<HTMLDivElement>, taskId: string) => {
+  const handleDragStart = (event: React.DragEvent<HTMLElement>, taskId: string) => {
     isDraggingRef.current = true;
     event.dataTransfer.setData("text/plain", taskId);
     event.dataTransfer.effectAllowed = "move";
@@ -279,25 +279,18 @@ export function CalendarView({ tasks, onTaskClick, onTaskReschedule }: CalendarV
               </span>
 
               {dayTasks.map((task) => (
-                <div
+                <button
                   key={task.id}
+                  type="button"
                   draggable
                   onDragStart={(event) => handleDragStart(event, task.id)}
                   onDragEnd={handleDragEnd}
-                  role="button"
-                  tabIndex={0}
                   onClick={() => onTaskClick?.(task)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      onTaskClick?.(task);
-                    }
-                  }}
                   className="w-full shrink-0 cursor-grab truncate rounded bg-primary/10 px-1 py-0.5 text-left text-xs text-primary transition-colors hover:bg-primary/20 active:cursor-grabbing"
                   title={task.name}
                 >
                   {task.name}
-                </div>
+                </button>
               ))}
             </div>
           );

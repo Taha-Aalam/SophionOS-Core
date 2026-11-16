@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { addMonths, format, isValid, parseISO } from "date-fns";
+import { addMonths, isValid, parseISO } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 
@@ -27,8 +27,25 @@ export type DatePickerProps = {
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const WHEEL_THROTTLE_MS = 120;
 
-function toIsoString(date: Date): string {
-  return format(date, "yyyy-MM-dd");
+// C10: date-fns' "yyyy-MM-dd" and "PP" are plain Intl.DateTimeFormat shapes.
+// en-CA renders the ISO-like local date without UTC shifting the calendar day.
+const ISO_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const PICKER_LABEL_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+
+export function toIsoString(date: Date): string {
+  return ISO_FORMATTER.format(date);
+}
+
+export function formatPickerLabel(date: Date): string {
+  return PICKER_LABEL_FORMATTER.format(date);
 }
 
 function parseIsoOrNull(value: string | null | undefined): Date | null {
@@ -93,7 +110,7 @@ export function DatePicker({
     return matchers.length > 0 ? matchers : undefined;
   }, [minDate, maxDate]);
 
-  const triggerLabel = selected ? format(selected, "PP") : placeholder;
+  const triggerLabel = selected ? formatPickerLabel(selected) : placeholder;
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>

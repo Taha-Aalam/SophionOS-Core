@@ -149,6 +149,7 @@ export default function PreferencesPage() {
               <Label htmlFor="language">Language</Label>
               <Select
                 name="language"
+                required
                 value={languageSelect ?? preferences?.language ?? "en"}
                 onValueChange={(v) => setLanguageSelect(v ?? undefined)}
                 disabled={isPending}
@@ -180,6 +181,7 @@ export default function PreferencesPage() {
               <Label htmlFor="timezone">Timezone</Label>
               <Select
                 name="timezone"
+                required
                 value={timezoneSelect ?? (isMounted ? preferences?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC")}
                 onValueChange={(v) => setTimezoneSelect(v ?? undefined)}
                 disabled={isPending}
