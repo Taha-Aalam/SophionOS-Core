@@ -149,7 +149,13 @@ export function ApiKeyManager({
       </CardHeader>
       <CardContent className="space-y-4">
         {showCreateForm && (
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <form
+            className="flex flex-col gap-2 sm:flex-row sm:items-end"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void createKey();
+            }}
+          >
             <div className="flex-1 space-y-1.5">
               <Label htmlFor="new-key-name">New key name</Label>
               <Input
@@ -157,20 +163,17 @@ export function ApiKeyManager({
                 placeholder="e.g. Codex laptop"
                 value={newKeyName}
                 onChange={(e) => setNewKeyName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void createKey();
-                }}
                 disabled={creating}
               />
             </div>
-            <Button onClick={() => void createKey()} disabled={creating}>
+            <Button type="submit" disabled={creating}>
               {creating ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 "Create key"
               )}
             </Button>
-          </div>
+          </form>
         )}
 
         {revealedKey && (
