@@ -1,9 +1,10 @@
 "use client";
 
-import type { Variants } from "motion/react";
-import { AnimatePresence, motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
-import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import { forwardRef } from "react";
+
+import { useIconAnimation } from "./use-icon-animation";
+import "./icons.css";
 
 import { cn } from "@/lib/utils";
 
@@ -25,63 +26,17 @@ const DOTS = [
   { cx: 16, cy: 18 },
 ];
 
-const VARIANTS: Variants = {
-  normal: {
-    opacity: 1,
-    transition: {
-      duration: 0.2,
-    },
-  },
-  animate: (i: number) => ({
-    opacity: [1, 0.3, 1],
-    transition: {
-      delay: i * 0.1,
-      duration: 0.4,
-      times: [0, 0.5, 1],
-    },
-  }),
-};
-
 const CalendarDaysIcon = forwardRef<
   CalendarDaysIconHandle,
   CalendarDaysIconProps
 >(({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-  const controls = useAnimation();
-  const isControlledRef = useRef(false);
-
-  useImperativeHandle(ref, () => {
-    isControlledRef.current = true;
-    return {
-      startAnimation: () => controls.start("animate"),
-      stopAnimation: () => controls.start("normal"),
-    };
-  });
-
-  const handleMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isControlledRef.current) {
-        onMouseEnter?.(e);
-      } else {
-        controls.start("animate");
-      }
-    },
-    [controls, onMouseEnter]
-  );
-
-  const handleMouseLeave = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isControlledRef.current) {
-        onMouseLeave?.(e);
-      } else {
-        controls.start("normal");
-      }
-    },
-    [controls, onMouseLeave]
-  );
+    const { containerRef, handleMouseEnter, handleMouseLeave } =
+      useIconAnimation(ref, onMouseEnter, onMouseLeave);
 
   return (
     <div
-      className={cn(className)}
+      ref={containerRef}
+      className={cn(className, "c8-icon c8-icon-calendar-days")}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...props}
@@ -101,22 +56,16 @@ const CalendarDaysIcon = forwardRef<
         <path d="M16 2v4" />
         <rect height="18" rx="2" width="18" x="3" y="4" />
         <path d="M3 10h18" />
-        <AnimatePresence>
-          {DOTS.map((dot, index) => (
-            <motion.circle
-              animate={controls}
-              custom={index}
+          {DOTS.map((dot) => (
+            <circle pathLength="1"
               cx={dot.cx}
               cy={dot.cy}
               fill="currentColor"
-              initial="normal"
               key={`${dot.cx}-${dot.cy}`}
               r="1"
               stroke="none"
-              variants={VARIANTS}
             />
           ))}
-        </AnimatePresence>
       </svg>
     </div>
   );
