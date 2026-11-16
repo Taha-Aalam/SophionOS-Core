@@ -1,9 +1,10 @@
 "use client";
 
-import type { Variants } from "motion/react";
-import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
-import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import { forwardRef } from "react";
+
+import { useIconAnimation } from "./use-icon-animation";
+import "./icons.css";
 
 import { cn } from "@/lib/utils";
 
@@ -16,69 +17,16 @@ interface Link2IconProps extends HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
-const LEFT_VARIANTS: Variants = {
-  normal: { x: 0 },
-  animate: {
-    x: [0, -0.7, 0.3, 0],
-    transition: {
-      duration: 0.6,
-      times: [0, 0.4, 0.75, 1],
-      ease: "easeInOut",
-    },
-  },
-};
-
-const RIGHT_VARIANTS: Variants = {
-  normal: { x: 0 },
-  animate: {
-    x: [0, 0.7, -0.3, 0],
-    transition: {
-      duration: 0.6,
-      times: [0, 0.4, 0.75, 1],
-      ease: "easeInOut",
-    },
-  },
-};
 
 const Link2Icon = forwardRef<Link2IconHandle, Link2IconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
-
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-
-      return {
-        startAnimation: () => controls.start("animate"),
-        stopAnimation: () => controls.start("normal"),
-      };
-    });
-
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start("animate");
-        }
-      },
-      [controls, onMouseEnter]
-    );
-
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start("normal");
-        }
-      },
-      [controls, onMouseLeave]
-    );
+    const { containerRef, handleMouseEnter, handleMouseLeave } =
+      useIconAnimation(ref, onMouseEnter, onMouseLeave);
 
     return (
       <div
-        className={cn(className)}
+        ref={containerRef}
+        className={cn(className, "c8-icon c8-icon-link-2")}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         {...props}
@@ -94,14 +42,14 @@ const Link2Icon = forwardRef<Link2IconHandle, Link2IconProps>(
           width={size}
           xmlns="http://www.w3.org/2000/svg"
         >
-          <motion.g animate={controls} variants={LEFT_VARIANTS}>
+          <g>
             <path d="M9 17H7A5 5 0 0 1 7 7h2" />
             <line x1="8" x2="12" y1="12" y2="12" />
-          </motion.g>
-          <motion.g animate={controls} variants={RIGHT_VARIANTS}>
+          </g>
+          <g>
             <path d="M15 7h2a5 5 0 1 1 0 10h-2" />
             <line x1="16" x2="12" y1="12" y2="12" />
-          </motion.g>
+          </g>
         </svg>
       </div>
     );

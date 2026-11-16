@@ -1,8 +1,10 @@
 "use client";
 
-import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
-import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import { forwardRef } from "react";
+
+import { useIconAnimation } from "./use-icon-animation";
+import "./icons.css";
 
 import { cn } from "@/lib/utils";
 
@@ -17,43 +19,13 @@ interface TriangleAlertIconProps extends HTMLAttributes<HTMLDivElement> {
 
 const TriangleAlertIcon = forwardRef<TriangleAlertIconHandle, TriangleAlertIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
-
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-
-      return {
-        startAnimation: () => controls.start("animate"),
-        stopAnimation: () => controls.start("normal"),
-      };
-    });
-
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start("animate");
-        }
-      },
-      [controls, onMouseEnter]
-    );
-
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start("normal");
-        }
-      },
-      [controls, onMouseLeave]
-    );
+    const { containerRef, handleMouseEnter, handleMouseLeave } =
+      useIconAnimation(ref, onMouseEnter, onMouseLeave);
 
     return (
       <div
-        className={cn(className)}
+        ref={containerRef}
+        className={cn(className, "c8-icon c8-icon-triangle-alert")}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         {...props}
@@ -70,26 +42,10 @@ const TriangleAlertIcon = forwardRef<TriangleAlertIconHandle, TriangleAlertIconP
           xmlns="http://www.w3.org/2000/svg"
         >
           <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-          <motion.g
-            animate={controls}
-            initial="normal"
-            style={{ originX: "50%", originY: "50%" }}
-            variants={{
-              normal: { opacity: 1, scale: 1 },
-              animate: {
-                opacity: [1, 0.4, 1],
-                scale: [1, 1.1, 1],
-                transition: {
-                  duration: 0.8,
-                  repeat: Number.POSITIVE_INFINITY,
-                  ease: "easeInOut",
-                },
-              },
-            }}
-          >
+          <g>
             <path d="M12 9v4" />
             <path d="M12 17h.01" />
-          </motion.g>
+          </g>
         </svg>
       </div>
     );
