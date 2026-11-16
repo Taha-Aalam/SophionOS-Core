@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { startTransition, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { supportsStartingStyle } from "@/lib/utils/native-features";
 
 interface ProgressRingProps {
   percentage: number;
@@ -9,6 +10,19 @@ interface ProgressRingProps {
   strokeWidth?: number;
   className?: string;
   color?: string;
+}
+
+/** Pure resolver for the two entry-animation paths (Step 0 parity contract).
+ *  Native returns undefined so CSS @starting-style owns the initial offset;
+ *  the fallback keeps the original rAF/mounted gate. */
+export function resolveProgressRingOffset(
+  nativeStartingStyle: boolean,
+  mounted: boolean,
+  targetOffset: number,
+  circumference: number,
+): number | undefined {
+  if (nativeStartingStyle) return undefined;
+  return mounted ? targetOffset : circumference;
 }
 
 export default function ProgressRing({
@@ -23,13 +37,33 @@ export default function ProgressRing({
   const circumference = radius * 2 * Math.PI;
   const targetOffset = circumference - (clampedPercentage / 100) * circumference;
 
+  const [nativeStartingStyle, setNativeStartingStyle] = useState(false);
   const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    const id = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(id);
+    startTransition(() => setNativeStartingStyle(supportsStartingStyle()));
   }, []);
 
-  const offset = mounted ? targetOffset : circumference;
+  useEffect(() => {
+    if (nativeStartingStyle) return;
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, [nativeStartingStyle]);
+
+  const offset = resolveProgressRingOffset(
+    nativeStartingStyle,
+    mounted,
+    targetOffset,
+    circumference,
+  );
+  // The fallback writes strokeDashoffset inline so it authority-overrides the
+  // native CSS rule; otherwise CSS beats the SVG presentation attribute and the
+  // rAF draw-in would never be visible.
+  const ringStyle = {
+    "--ring-start-offset": circumference,
+    "--ring-target-offset": targetOffset,
+    ...(nativeStartingStyle ? {} : { strokeDashoffset: offset }),
+  } as React.CSSProperties;
 
   return (
     <div className={cn("relative flex items-center justify-center", className)}>
@@ -57,9 +91,9 @@ export default function ProgressRing({
           strokeWidth={strokeWidth}
           fill="transparent"
           strokeDasharray={circumference}
-          strokeDashoffset={offset}
+          style={ringStyle}
           strokeLinecap="round"
-          className={cn("transition-[stroke-dashoffset] duration-700 ease-[var(--ease-out-quint)]", color)}
+          className={cn("progress-ring__progress transition-[stroke-dashoffset] duration-700 ease-[var(--ease-out-quint)]", color)}
         />
       </svg>
       <span className="absolute text-xs font-semibold tabular-nums">

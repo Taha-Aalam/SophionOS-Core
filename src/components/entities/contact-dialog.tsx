@@ -212,7 +212,7 @@ export function ContactDialog({
     if (file) await uploadFile(file);
   };
 
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = async (e: React.DragEvent<HTMLElement>) => {
     e.preventDefault();
     setIsDragging(false);
     if (isUploading || isRemovingImage) return;
@@ -725,16 +725,9 @@ export function ContactDialog({
                     aria-label="Upload profile image"
                   />
 
-                  <div
-                    role="button"
-                    tabIndex={0}
+                  <button
+                    type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        fileInputRef.current?.click();
-                      }
-                    }}
                     onDragOver={(e) => {
                       e.preventDefault();
                       if (!isUploading && !isRemovingImage) setIsDragging(true);
@@ -785,7 +778,7 @@ export function ContactDialog({
                         </p>
                       </div>
                     )}
-                  </div>
+                  </button>
 
                   {displayImage && !isUploading && (
                     <div className="flex justify-end">

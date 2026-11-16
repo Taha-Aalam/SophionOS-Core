@@ -58,14 +58,16 @@ export function TaskInlineEditor({
 
   if (editing) {
     return (
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <Input
           ref={inputRef}
           value={draft}
+          required
+          aria-invalid={draft.trim().length === 0 || undefined}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={handleKeyDown}
-          className={cn('h-7 py-0 px-2 text-sm', className)}
+          className={cn('h-7 py-0 px-2 text-sm native-validate', className)}
         />
       </form>
     );

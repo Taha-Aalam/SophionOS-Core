@@ -393,74 +393,20 @@
     transform-origin: left center;
     animation: var(--animate-metric-bar);
   }
-  [data-slot="execution-load-bars"] > *:nth-child(1) .metric-bar-fill {
-    animation-delay: 40ms;
-  }
-  [data-slot="execution-load-bars"] > *:nth-child(2) .metric-bar-fill {
-    animation-delay: 80ms;
-  }
-  [data-slot="execution-load-bars"] > *:nth-child(3) .metric-bar-fill {
-    animation-delay: 120ms;
-  }
-  [data-slot="execution-load-bars"] > *:nth-child(4) .metric-bar-fill {
-    animation-delay: 160ms;
-  }
-  [data-slot="execution-load-bars"] > *:nth-child(5) .metric-bar-fill {
-    animation-delay: 200ms;
-  }
 
   /* Goal momentum ring segments draw in once. */
   .momentum-ring-segment {
     animation: var(--animate-ring-segment);
-  }
-  .momentum-ring-segment:nth-of-type(2) {
-    animation-delay: 40ms;
-  }
-  .momentum-ring-segment:nth-of-type(3) {
-    animation-delay: 80ms;
-  }
-  .momentum-ring-segment:nth-of-type(4) {
-    animation-delay: 120ms;
   }
 
   /* KPI strip: quick product cascade (not page-load theater). */
   .kpi-stagger > * {
     animation: var(--animate-kpi-in);
   }
-  .kpi-stagger > *:nth-child(1) {
-    animation-delay: 0ms;
-  }
-  .kpi-stagger > *:nth-child(2) {
-    animation-delay: 40ms;
-  }
-  .kpi-stagger > *:nth-child(3) {
-    animation-delay: 80ms;
-  }
-  .kpi-stagger > *:nth-child(4) {
-    animation-delay: 120ms;
-  }
 
   /* Analytics cockpit rows only: short cascade after content fade-in. */
   .cockpit-stagger > * {
     animation: var(--animate-cockpit-in);
-  }
-  .cockpit-stagger > *:nth-child(1) {
-    animation-delay: 0ms;
-  }
-  .cockpit-stagger > *:nth-child(2) {
-    animation-delay: 50ms;
-  }
-  .cockpit-stagger > *:nth-child(3) {
-    animation-delay: 100ms;
-  }
-  .cockpit-stagger > *:nth-child(4) {
-    animation-delay: 150ms;
-  }
-  .cockpit-stagger > *:nth-child(5) {
-    animation-delay: 200ms;
-  }
-  .cockpit-stagger > *:nth-child(n + 6) {
-    animation-delay: 240ms;
   }
 
   /* Page-entrance choreography: applies the `reveal` keyframe to direct children
@@ -470,14 +416,152 @@
   .reveal-stagger > * {
     animation: var(--animate-reveal);
   }
-  .reveal-stagger > *:nth-child(1) { animation-delay: 0ms; }
-  .reveal-stagger > *:nth-child(2) { animation-delay: 60ms; }
-  .reveal-stagger > *:nth-child(3) { animation-delay: 120ms; }
-  .reveal-stagger > *:nth-child(4) { animation-delay: 180ms; }
-  .reveal-stagger > *:nth-child(5) { animation-delay: 240ms; }
-  .reveal-stagger > *:nth-child(6) { animation-delay: 300ms; }
-  .reveal-stagger > *:nth-child(7) { animation-delay: 360ms; }
-  .reveal-stagger > *:nth-child(n + 8) { animation-delay: 420ms; }
+
+  /* FALLBACK (C5): today's enumerated nth-child delays, preserved verbatim as the
+     live code path. The @supports not() guard removes them only in engines that
+     implement sibling-index(), so the two paths cannot drift. */
+  @supports not (animation-delay: calc(sibling-index() * 1ms)) {
+    [data-slot="execution-load-bars"] > *:nth-child(1) .metric-bar-fill {
+      animation-delay: 40ms;
+    }
+    [data-slot="execution-load-bars"] > *:nth-child(2) .metric-bar-fill {
+      animation-delay: 80ms;
+    }
+    [data-slot="execution-load-bars"] > *:nth-child(3) .metric-bar-fill {
+      animation-delay: 120ms;
+    }
+    [data-slot="execution-load-bars"] > *:nth-child(4) .metric-bar-fill {
+      animation-delay: 160ms;
+    }
+    [data-slot="execution-load-bars"] > *:nth-child(5) .metric-bar-fill {
+      animation-delay: 200ms;
+    }
+
+    .momentum-ring-segment:nth-of-type(2) {
+      animation-delay: 40ms;
+    }
+    .momentum-ring-segment:nth-of-type(3) {
+      animation-delay: 80ms;
+    }
+    .momentum-ring-segment:nth-of-type(4) {
+      animation-delay: 120ms;
+    }
+
+    .kpi-stagger > *:nth-child(1) {
+      animation-delay: 0ms;
+    }
+    .kpi-stagger > *:nth-child(2) {
+      animation-delay: 40ms;
+    }
+    .kpi-stagger > *:nth-child(3) {
+      animation-delay: 80ms;
+    }
+    .kpi-stagger > *:nth-child(4) {
+      animation-delay: 120ms;
+    }
+
+    .cockpit-stagger > *:nth-child(1) {
+      animation-delay: 0ms;
+    }
+    .cockpit-stagger > *:nth-child(2) {
+      animation-delay: 50ms;
+    }
+    .cockpit-stagger > *:nth-child(3) {
+      animation-delay: 100ms;
+    }
+    .cockpit-stagger > *:nth-child(4) {
+      animation-delay: 150ms;
+    }
+    .cockpit-stagger > *:nth-child(5) {
+      animation-delay: 200ms;
+    }
+    .cockpit-stagger > *:nth-child(n + 6) {
+      animation-delay: 240ms;
+    }
+
+    .reveal-stagger > *:nth-child(1) { animation-delay: 0ms; }
+    .reveal-stagger > *:nth-child(2) { animation-delay: 60ms; }
+    .reveal-stagger > *:nth-child(3) { animation-delay: 120ms; }
+    .reveal-stagger > *:nth-child(4) { animation-delay: 180ms; }
+    .reveal-stagger > *:nth-child(5) { animation-delay: 240ms; }
+    .reveal-stagger > *:nth-child(6) { animation-delay: 300ms; }
+    .reveal-stagger > *:nth-child(7) { animation-delay: 360ms; }
+    .reveal-stagger > *:nth-child(n + 8) { animation-delay: 420ms; }
+  }
+
+  /* NATIVE (C5): sibling-index() is 1-based (MDN), so zero-based families subtract
+     one. min() keeps the audit's 240ms / 420ms caps so long lists cannot accumulate
+     unbounded stagger. The execution-load fill is two levels below its row, so the
+     row's computed delay is inherited down to it. */
+  @supports (animation-delay: calc(sibling-index() * 1ms)) {
+    [data-slot="execution-load-bars"] > * {
+      animation-delay: calc(sibling-index() * 40ms);
+    }
+    [data-slot="execution-load-bars"] > * [data-slot="chart-bar-track"],
+    [data-slot="execution-load-bars"] > * .metric-bar-fill {
+      animation-delay: inherit;
+    }
+    .momentum-ring-segment {
+      animation-delay: calc((sibling-index() - 1) * 40ms);
+    }
+    .kpi-stagger > * {
+      animation-delay: calc((sibling-index() - 1) * 40ms);
+    }
+    .cockpit-stagger > * {
+      animation-delay: min(calc((sibling-index() - 1) * 50ms), 240ms);
+    }
+    .reveal-stagger > * {
+      animation-delay: min(calc((sibling-index() - 1) * 60ms), 420ms);
+    }
+  }
+
+  /* C6: native scroll-driven fades for the collapsed rail. The scroll timeline
+     lives on the nav and is hoisted to its wrapper so the sibling overlays can
+     subscribe to it. Mirrors supportsScrollDrivenAnimations() in native-features.ts.
+     The chevrons remain JS-driven in both paths (see sidebar.tsx). */
+  @supports ((animation-timeline: scroll()) and (animation-range: 0% 100%) and (scroll-timeline-name: --sidebar-nav-scroll) and (timeline-scope: --sidebar-nav-scroll)) {
+    [data-slot="sidebar-scroll-region"] {
+      timeline-scope: --sidebar-nav-scroll;
+    }
+    [data-slot="sidebar-nav"] {
+      scroll-timeline: --sidebar-nav-scroll block;
+    }
+    .sidebar-scroll-cue {
+      opacity: 0;
+    }
+    .sidebar-scroll-cue--top {
+      animation: sidebar-cue-reveal linear both;
+      animation-timeline: --sidebar-nav-scroll;
+      animation-range: 0% 10%;
+    }
+    .sidebar-scroll-cue--bottom {
+      animation: sidebar-cue-hide linear both;
+      animation-timeline: --sidebar-nav-scroll;
+      animation-range: 90% 100%;
+    }
+    @keyframes sidebar-cue-reveal {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes sidebar-cue-hide {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+  }
+
+  /* C7: native entry animation for the progress ring. progress-ring.tsx skips
+     its rAF/mounted gate only when the @starting-style probe succeeds; the
+     fallback keeps writing strokeDashoffset inline, which outranks these rules. */
+  .progress-ring__progress {
+    stroke-dashoffset: var(--ring-target-offset);
+    transition: stroke-dashoffset 700ms var(--ease-out-quint);
+  }
+
+  /* C11: progressive enhancement for simple native-validated surfaces.
+     :is() keeps the rule parsing where :user-invalid is unknown. */
+  .native-validate:is(:user-invalid, .user-invalid-fallback) {
+    border-color: var(--destructive);
+  }
 
   /* Single-element entrance for page headers and standalone hero blocks. */
   .reveal-once {
@@ -655,5 +739,14 @@
   .legal-doc th {
     background: var(--muted);
     font-weight: 600;
+  }
+}
+
+/* C7: @starting-style stays top-level/unscoped (modern-web-guidance). The JS
+   probe in native-features.ts is the gate; engines without @starting-style
+   ignore this block and keep the rAF/mounted fallback. */
+@starting-style {
+  .progress-ring__progress {
+    stroke-dashoffset: var(--ring-start-offset);
   }
 }
