@@ -1,9 +1,10 @@
 "use client";
 
-import type { Variants } from "motion/react";
-import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
-import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import { forwardRef } from "react";
+
+import { useIconAnimation } from "./use-icon-animation";
+import "./icons.css";
 
 import { cn } from "@/lib/utils";
 
@@ -16,66 +17,16 @@ interface UserIconProps extends HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
-const PATH_VARIANT: Variants = {
-  normal: { pathLength: 1, opacity: 1, pathOffset: 0 },
-  animate: {
-    pathLength: [0, 1],
-    opacity: [0, 1],
-    pathOffset: [1, 0],
-  },
-};
-
-const CIRCLE_VARIANT: Variants = {
-  normal: {
-    pathLength: 1,
-    pathOffset: 0,
-    scale: 1,
-  },
-  animate: {
-    pathLength: [0, 1],
-    pathOffset: [1, 0],
-    scale: [0.5, 1],
-  },
-};
 
 const UserIcon = forwardRef<UserIconHandle, UserIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
+    const { containerRef, handleMouseEnter, handleMouseLeave } =
+      useIconAnimation(ref, onMouseEnter, onMouseLeave);
 
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-
-      return {
-        startAnimation: () => controls.start("animate"),
-        stopAnimation: () => controls.start("normal"),
-      };
-    });
-
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start("animate");
-        }
-      },
-      [controls, onMouseEnter]
-    );
-
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start("normal");
-        }
-      },
-      [controls, onMouseLeave]
-    );
     return (
       <div
-        className={cn(className)}
+        ref={containerRef}
+        className={cn(className, "c8-icon c8-icon-user")}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         {...props}
@@ -91,22 +42,14 @@ const UserIcon = forwardRef<UserIconHandle, UserIconProps>(
           width={size}
           xmlns="http://www.w3.org/2000/svg"
         >
-          <motion.circle
-            animate={controls}
+          <circle pathLength="1"
             cx="12"
             cy="8"
             r="5"
-            variants={CIRCLE_VARIANT}
           />
 
-          <motion.path
-            animate={controls}
+          <path pathLength="1"
             d="M20 21a8 8 0 0 0-16 0"
-            transition={{
-              delay: 0.2,
-              duration: 0.4,
-            }}
-            variants={PATH_VARIANT}
           />
         </svg>
       </div>

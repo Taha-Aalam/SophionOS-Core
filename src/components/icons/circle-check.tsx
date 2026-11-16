@@ -1,9 +1,10 @@
 "use client";
 
-import type { Variants } from "motion/react";
-import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
-import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import { forwardRef } from "react";
+
+import { useIconAnimation } from "./use-icon-animation";
+import "./icons.css";
 
 import { cn } from "@/lib/utils";
 
@@ -16,64 +17,15 @@ interface CircleCheckIconProps extends HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
-const PATH_VARIANTS: Variants = {
-  normal: {
-    opacity: 1,
-    pathLength: 1,
-    transition: {
-      duration: 0.3,
-      opacity: { duration: 0.1 },
-    },
-  },
-  animate: {
-    opacity: [0, 1],
-    pathLength: [0, 1],
-    transition: {
-      duration: 0.4,
-      opacity: { duration: 0.1 },
-    },
-  },
-};
-
 const CircleCheckIcon = forwardRef<CircleCheckIconHandle, CircleCheckIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
-
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-
-      return {
-        startAnimation: () => controls.start("animate"),
-        stopAnimation: () => controls.start("normal"),
-      };
-    });
-
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start("animate");
-        }
-      },
-      [controls, onMouseEnter]
-    );
-
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start("normal");
-        }
-      },
-      [controls, onMouseLeave]
-    );
+    const { containerRef, handleMouseEnter, handleMouseLeave } =
+      useIconAnimation(ref, onMouseEnter, onMouseLeave);
 
     return (
       <div
-        className={cn(className)}
+        ref={containerRef}
+        className={cn(className, "c8-icon c8-icon-circle-check")}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         {...props}
@@ -90,11 +42,8 @@ const CircleCheckIcon = forwardRef<CircleCheckIconHandle, CircleCheckIconProps>(
           xmlns="http://www.w3.org/2000/svg"
         >
           <circle cx="12" cy="12" r="10" />
-          <motion.path
-            animate={controls}
+          <path pathLength="1"
             d="m9 12 2 2 4-4"
-            initial="normal"
-            variants={PATH_VARIANTS}
           />
         </svg>
       </div>

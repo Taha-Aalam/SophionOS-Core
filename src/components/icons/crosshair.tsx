@@ -1,9 +1,10 @@
 "use client";
 
-import type { Variants } from "motion/react";
-import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
-import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import { forwardRef } from "react";
+
+import { useIconAnimation } from "./use-icon-animation";
+import "./icons.css";
 
 import { cn } from "@/lib/utils";
 
@@ -16,53 +17,15 @@ interface CrosshairIconProps extends HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
-const TICK_VARIANTS: Variants = {
-  normal: { opacity: 1 },
-  animate: (i: number) => ({
-    opacity: [0, 1],
-    transition: { delay: i * 0.1, duration: 0.3 },
-  }),
-};
-
 const CrosshairIcon = forwardRef<CrosshairIconHandle, CrosshairIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
-
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-
-      return {
-        startAnimation: () => controls.start("animate"),
-        stopAnimation: () => controls.start("normal"),
-      };
-    });
-
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start("animate");
-        }
-      },
-      [controls, onMouseEnter]
-    );
-
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start("normal");
-        }
-      },
-      [controls, onMouseLeave]
-    );
+    const { containerRef, handleMouseEnter, handleMouseLeave } =
+      useIconAnimation(ref, onMouseEnter, onMouseLeave);
 
     return (
       <div
-        className={cn(className)}
+        ref={containerRef}
+        className={cn(className, "c8-icon c8-icon-crosshair")}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         {...props}
@@ -85,11 +48,8 @@ const CrosshairIcon = forwardRef<CrosshairIconHandle, CrosshairIconProps>(
             { x1: 12, x2: 12, y1: 6, y2: 2 },
             { x1: 12, x2: 12, y1: 22, y2: 18 },
           ].map((tick, index) => (
-            <motion.line
-              animate={controls}
-              custom={index + 1}
+            <line pathLength="1"
               key={index}
-              variants={TICK_VARIANTS}
               x1={tick.x1}
               x2={tick.x2}
               y1={tick.y1}

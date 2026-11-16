@@ -1,9 +1,10 @@
 "use client";
 
-import type { Variants } from "motion/react";
-import { motion, useAnimation } from "motion/react";
 import type { HTMLAttributes } from "react";
-import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import { forwardRef } from "react";
+
+import { useIconAnimation } from "./use-icon-animation";
+import "./icons.css";
 
 import { cn } from "@/lib/utils";
 
@@ -16,77 +17,27 @@ interface GavelIconProps extends HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
-const GAVEL_VARIANTS: Variants = {
-  normal: {
-    rotate: 0,
-    transition: {
-      duration: 0.3,
-      ease: "easeOut",
-    },
-  },
-  animate: {
-    rotate: [0, -20, 25, 0],
-    transition: {
-      duration: 0.8,
-      times: [0, 0.6, 0.8, 1],
-      ease: ["easeInOut", "easeOut", "easeOut"],
-    },
-  },
-};
-
 const GavelIcon = forwardRef<GavelIconHandle, GavelIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
-
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-      return {
-        startAnimation: () => controls.start("animate"),
-        stopAnimation: () => controls.start("normal"),
-      };
-    });
-
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start("animate");
-        }
-      },
-      [controls, onMouseEnter]
-    );
-
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start("normal");
-        }
-      },
-      [controls, onMouseLeave]
-    );
+    const { containerRef, handleMouseEnter, handleMouseLeave } =
+      useIconAnimation(ref, onMouseEnter, onMouseLeave);
 
     return (
       <div
-        className={cn(className)}
+        ref={containerRef}
+        className={cn(className, "c8-icon c8-icon-gavel")}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         {...props}
       >
-        <motion.svg
-          animate={controls}
+        <svg
           fill="none"
           height={size}
-          initial="normal"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="2"
           style={{ transformOrigin: "0% 100%", transformBox: "fill-box" }}
-          variants={GAVEL_VARIANTS}
           viewBox="0 0 24 24"
           width={size}
           xmlns="http://www.w3.org/2000/svg"
@@ -96,7 +47,7 @@ const GavelIcon = forwardRef<GavelIconHandle, GavelIconProps>(
           <path d="m21.5 10.5-8-8" />
           <path d="m8 8 6-6" />
           <path d="m8.5 7.5 8 8" />
-        </motion.svg>
+        </svg>
       </div>
     );
   }
