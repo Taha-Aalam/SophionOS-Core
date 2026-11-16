@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/types/domain.types";
 import { contactService } from "@/lib/services/contact.service";
+import { relativeTime } from "@/lib/utils/dates";
 import { encodeReturnTo } from "@/lib/utils/return-to";
 import { CONTACT_GROUP_COLORS } from "@/lib/constants/entity-colors";
 
@@ -187,10 +188,7 @@ export function ContactCard({
             <p className="text-2xs text-muted-foreground mb-0.5">Last log</p>
             <p className="text-xs font-medium">
               {contact.last_interaction_at
-                ? (() => {
-                    const days = contactService.computeDaysSinceInteraction(contact.last_interaction_at);
-                    return days === 0 ? "Today" : `${days}d ago`;
-                  })()
+                ? relativeTime(contact.last_interaction_at)
                 : "Never"}
             </p>
           </div>

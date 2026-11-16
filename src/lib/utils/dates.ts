@@ -118,22 +118,46 @@ function zonedParts(
   };
 }
 
-/**
- * Returns a user-friendly relative time string.
- */
-export function relativeTime(utcString: string): string {
-  const date = new Date(utcString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
+// Locale is pinned to "en" because the app's UI copy is English-only (this
+// helper used to hard-code English strings; localizing it alone would make it
+// the one localized surface in the app). Style "narrow" keeps the terse
+// "5m ago" / "3h ago" / "2d ago" shapes the app has always shown.
+const relativeTimeFormatter = new Intl.RelativeTimeFormat("en", {
+  numeric: "auto",
+  style: "narrow",
+});
 
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
+/**
+ * Returns a user-friendly relative time string: "Just now" under a minute,
+ * terse durations ("5m ago", "3h ago"), "Yesterday"/"Tomorrow" via
+ * Intl.RelativeTimeFormat's auto numerals, and a short calendar date past a
+ * week. Future timestamps format naturally ("in 2h") instead of clamping.
+ *
+ * @param now - Reference time. Defaults to the current time; injectable so
+ *   tests and tooling can pin the clock.
+ */
+export function relativeTime(utcString: string, now: Date = new Date()): string {
+  const date = new Date(utcString);
+  const diffMs = now.getTime() - date.getTime();
+  // Magnitudes use the same floor-per-unit ladder the hand-rolled version
+  // used, so past-timestamp output is unchanged.
+  const mins = Math.floor(Math.abs(diffMs) / 60000);
+  const hours = Math.floor(Math.abs(diffMs) / 3600000);
+  const days = Math.floor(Math.abs(diffMs) / 86400000);
+  const isPast = diffMs >= 0;
+  // "yesterday"/"tomorrow" come back lowercase from Intl; the hand-rolled
+  // version capitalized "Yesterday". Pure-word outputs get the same capital;
+  // duration strings ("5m ago", "in 2h") stay as Intl formats them.
+  const capitalize = (s: string) =>
+    /^[a-z]+$/i.test(s) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
+  if (mins < 1) return "Just now";
+  if (mins < 60)
+    return capitalize(relativeTimeFormatter.format(isPast ? -mins : mins, "minute"));
+  if (hours < 24)
+    return capitalize(relativeTimeFormatter.format(isPast ? -hours : hours, "hour"));
+  if (days < 7)
+    return capitalize(relativeTimeFormatter.format(isPast ? -days : days, "day"));
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 

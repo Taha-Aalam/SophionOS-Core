@@ -33,19 +33,24 @@ export function AreasStep({
 
   async function handleCreate() {
     if (!newName.trim()) return;
-    const result = await createArea.mutateAsync({
-      name: newName.trim(),
-      icon: newIcon.trim() || null,
-    });
-    const id = result?.id;
-    if (id) {
-      const next = [...createdIds, id];
-      setCreatedIds(next);
-      onAreasCreated?.(next);
+    try {
+      const result = await createArea.mutateAsync({
+        name: newName.trim(),
+        icon: newIcon.trim() || null,
+      });
+      const id = result?.id;
+      if (id) {
+        const next = [...createdIds, id];
+        setCreatedIds(next);
+        onAreasCreated?.(next);
+      }
+      setNewName("");
+      setNewIcon("");
+      setShowCreate(false);
+    } catch {
+      // Failure is surfaced by createArea.isError (message below the form).
+      // Without this catch the rejected mutateAsync promise would be unhandled.
     }
-    setNewName("");
-    setNewIcon("");
-    setShowCreate(false);
   }
 
   if (isLoading) {
@@ -109,47 +114,52 @@ export function AreasStep({
               <X className="size-3" />
             </Button>
           </div>
-          <div className="flex gap-2">
-            <div className="w-16 space-y-1.5">
-              <Label htmlFor="onboarding-area-icon" className="sr-only">
-                Icon
-              </Label>
-              <Input
-                id="onboarding-area-icon"
-                placeholder="🏋️"
-                value={newIcon}
-                onChange={(e) => setNewIcon(e.target.value)}
-                className="text-center text-lg"
-                maxLength={2}
-              />
-            </div>
-            <div className="flex-1 space-y-1.5">
-              <Label htmlFor="onboarding-area-name" className="sr-only">
-                Area name
-              </Label>
-              <Input
-                id="onboarding-area-name"
-                placeholder="e.g. Fitness"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCreate();
-                }}
-              />
-            </div>
-          </div>
-          <Button
-            size="sm"
-            className="w-full"
-            disabled={!newName.trim() || createArea.isPending}
-            onClick={handleCreate}
+          <form
+            className="space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleCreate();
+            }}
           >
-            {createArea.isPending ? "Creating…" : "Add area"}
-          </Button>
-          {createArea.isError && (
-            <p className="text-sm text-destructive">Failed to create area. Please try again.</p>
-          )}
+            <div className="flex gap-2">
+              <div className="w-16 space-y-1.5">
+                <Label htmlFor="onboarding-area-icon" className="sr-only">
+                  Icon
+                </Label>
+                <Input
+                  id="onboarding-area-icon"
+                  placeholder="🏋️"
+                  value={newIcon}
+                  onChange={(e) => setNewIcon(e.target.value)}
+                  className="text-center text-lg"
+                  maxLength={2}
+                />
+              </div>
+              <div className="flex-1 space-y-1.5">
+                <Label htmlFor="onboarding-area-name" className="sr-only">
+                  Area name
+                </Label>
+                <Input
+                  id="onboarding-area-name"
+                  placeholder="e.g. Fitness"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
+            <Button
+              type="submit"
+              size="sm"
+              className="w-full"
+              disabled={!newName.trim() || createArea.isPending}
+            >
+              {createArea.isPending ? "Creating…" : "Add area"}
+            </Button>
+            {createArea.isError && (
+              <p className="text-sm text-destructive">Failed to create area. Please try again.</p>
+            )}
+          </form>
         </Card>
       )}
     </div>

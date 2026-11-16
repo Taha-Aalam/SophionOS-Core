@@ -10,6 +10,7 @@ import { useClickableProps } from "@/components/ui/clickable";
 import { cn } from "@/lib/utils";
 import type { Contact } from "@/lib/types/domain.types";
 import { contactService } from "@/lib/services/contact.service";
+import { relativeTime } from "@/lib/utils/dates";
 import { CONTACT_GROUP_COLORS } from "@/lib/constants/entity-colors";
 
 import { DeleteEntityPopover } from "./delete-entity-popover";
@@ -34,7 +35,6 @@ export function ContactListItem({
     contact.last_interaction_at,
     contact.follow_up_interval_days,
   );
-  const daysSince = contactService.computeDaysSinceInteraction(contact.last_interaction_at);
   const groupColor = contact.group ? CONTACT_GROUP_COLORS[contact.group] : "";
 
   const clickable = useClickableProps(() => router.push(`/contacts/${contact.slug ?? contact.id}`));
@@ -86,11 +86,11 @@ export function ContactListItem({
             >
               {status === "ON TRACK" ? "On track" : "Follow up"}
             </Badge>
-            {daysSince !== null && (
+            {contact.last_interaction_at ? (
               <span className="text-xs text-muted-foreground">
-                {daysSince === 0 ? "Today" : `${daysSince}d ago`}
+                {relativeTime(contact.last_interaction_at)}
               </span>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
