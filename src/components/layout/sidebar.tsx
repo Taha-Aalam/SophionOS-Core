@@ -32,6 +32,7 @@ import {
 import { isActiveNavigationPath } from "@/lib/auth/auth-routing";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
+import { supportsScrollDrivenAnimations } from "@/lib/utils/native-features";
 
 function NavLink({
   href,
@@ -105,6 +106,15 @@ export function Sidebar() {
   const { resolvedTheme, setTheme } = useTheme();
   const { isDesktopSidebarOpen, toggleDesktopSidebar, openCommandPalette } = useUIStore();
   const [mounted, setMounted] = useState(false);
+
+  // C6: the decorative fades become scroll-driven where the feature pair is
+  // supported. The chevrons stay JS-driven in both paths: their visibility
+  // depends on canScrollUp/canScrollDown together, which a plain scroll
+  // timeline cannot express without changing today's behaviour.
+  const [nativeScrollCues, setNativeScrollCues] = useState(false);
+  useEffect(() => {
+    startTransition(() => setNativeScrollCues(supportsScrollDrivenAnimations()));
+  }, []);
 
   // On a policy page the sidebar stops being app navigation: Core/System and
   // the account footer (Settings, Theme, profile) are replaced by the Policies
@@ -321,9 +331,10 @@ export function Sidebar() {
         </div>
       ) : null}
 
-      <div className="relative flex min-h-0 flex-1 flex-col">
+      <div data-slot="sidebar-scroll-region" className="relative flex min-h-0 flex-1 flex-col">
         <nav
           ref={navRef}
+          data-slot="sidebar-nav"
           onScroll={syncNavScroll}
           onFocus={handleNavFocus}
           className={cn(
@@ -378,19 +389,33 @@ export function Sidebar() {
             scrolled, bottom while more items remain — and a circular chevron
             offers one-viewport jumps. Neither appears when there is no overflow
             in that direction. */}
-        {!isDesktopSidebarOpen && navScroll.canScrollDown ? (
+        {!isDesktopSidebarOpen && !nativeScrollCues && navScroll.canScrollDown ? (
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 bottom-0 h-10"
             style={{ background: "linear-gradient(to top, var(--sidebar), transparent)" }}
           />
         ) : null}
-        {!isDesktopSidebarOpen && navScroll.canScrollUp ? (
+        {!isDesktopSidebarOpen && !nativeScrollCues && navScroll.canScrollUp ? (
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 top-0 h-10"
             style={{ background: "linear-gradient(to bottom, var(--sidebar), transparent)" }}
           />
+        ) : null}
+        {!isDesktopSidebarOpen && nativeScrollCues ? (
+          <>
+            <div
+              aria-hidden
+              className="sidebar-scroll-cue sidebar-scroll-cue--top pointer-events-none absolute inset-x-0 top-0 h-10"
+              style={{ background: "linear-gradient(to bottom, var(--sidebar), transparent)" }}
+            />
+            <div
+              aria-hidden
+              className="sidebar-scroll-cue sidebar-scroll-cue--bottom pointer-events-none absolute inset-x-0 bottom-0 h-10"
+              style={{ background: "linear-gradient(to top, var(--sidebar), transparent)" }}
+            />
+          </>
         ) : null}
         {!isDesktopSidebarOpen && navScroll.canScrollDown ? (
           <div className="absolute inset-x-0 bottom-1 flex justify-center">

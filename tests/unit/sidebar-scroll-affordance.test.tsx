@@ -79,6 +79,16 @@ beforeEach(() => {
   vi.restoreAllMocks();
   // jsdom has no matchMedia; drop any stub left by a previous test.
   delete (window as unknown as { matchMedia?: unknown }).matchMedia;
+  // These cases assert the JS-measured fade fallback. jsdom's CSS.supports
+  // reports the scroll-driven properties as supported, so force the
+  // non-supporting branch explicitly (the native branch is covered separately
+  // in browser-native-fallbacks.test.tsx).
+  const realSupports = window.CSS.supports.bind(window.CSS);
+  vi.spyOn(window.CSS, "supports").mockImplementation((query: string) =>
+    query === "animation-timeline: scroll()" || query === "animation-range: 0% 100%"
+      ? false
+      : realSupports(query),
+  );
 });
 
 describe("collapsed rail — scrollbar replacement", () => {
