@@ -696,6 +696,15 @@ export const projectService = {
     const { areaIds, projectInput: areaCleanedInput } = extractProjectAreaIds(validated);
     const { goalIds, projectInput } = extractGoalIds(areaCleanedInput);
 
+    // Ownership gate BEFORE the insert (mirrors task.service.ts): the singular
+    // area_id persists with the projects row and the API-key path uses a
+    // service-role client that bypasses RLS — a foreign parent reference must
+    // be rejected before anything commits. The junction-side asserts in
+    // replace*Links run only after this insert.
+    const sb = options?.supabase ?? createClient();
+    if (areaIds?.length) await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
+    if (goalIds?.length) await assertOwnedIds(sb, "goals", userId, goalIds, "Goal");
+
     // Status is always derived from context on create so an inbox entity
     // can never be persisted as "planning" (or any non-inbox bucket) just
     // because the caller passed a stale default. The dialog form default
@@ -741,6 +750,13 @@ export const projectService = {
     const validated = updateProjectSchema.parse(input);
     const { areaIds, projectInput: areaCleanedInput } = extractProjectAreaIds(validated);
     const { goalIds, projectInput } = extractGoalIds(areaCleanedInput);
+
+    // Ownership gate BEFORE the update (mirrors task.service.ts:603-611) so a
+    // denied area_id/goal_ids PATCH commits nothing.
+    const sb = options?.supabase ?? createClient();
+    if (areaIds?.length) await assertOwnedIds(sb, "areas", userId, areaIds, "Area");
+    if (goalIds?.length) await assertOwnedIds(sb, "goals", userId, goalIds, "Goal");
+
     const hasProjectUpdates = Object.keys(projectInput).length > 0;
     const projectInputWide = projectInput as Record<string, unknown> & {
       status?: ProjectStatus;
