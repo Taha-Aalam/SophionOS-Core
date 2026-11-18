@@ -44,9 +44,16 @@ export const ACCOUNT_DELETION_TABLE_ORDER = [
   "projects",
   "goals",
   "areas",
-  // User-owned config
+  // User-owned config (audit F3: provider_credentials shipped 2026-10-25 —
+  // after this list was authored — and note_types/api_rate_limits/
+  // user_entity_counts have no cascade either; user_entity_counts is keyed
+  // by clerk_user_id and is deleted via the scoped branch in the loop)
   "user_settings",
   "integrations",
+  "provider_credentials",
+  "note_types",
+  "api_rate_limits",
+  "user_entity_counts",
   "api_keys",
   "notification_deliveries",
   "data_export_jobs",
@@ -286,8 +293,10 @@ export async function finalizeAccountDeletion(
 
   for (const table of ACCOUNT_DELETION_TABLE_ORDER) {
     try {
-      // audit_events uses clerk_user_id (deletion request row is updated after the loop)
-      if (table === "audit_events") {
+      // audit_events and user_entity_counts use clerk_user_id (the deletion
+      // request row is updated after the loop); a user_id-scoped delete would
+      // 42703 here and be silently skipped as "does not exist"
+      if (table === "audit_events" || table === "user_entity_counts") {
         const { error } = await admin
           .from(table)
           .delete()
