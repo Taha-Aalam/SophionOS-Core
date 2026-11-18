@@ -18,6 +18,7 @@ import {
   type AdapterInput,
   type AdapterResult,
 } from "./types";
+import { assertFetchableProviderUrl } from "@/lib/ai/fetch-guard";
 
 export const OPENAI_DEFAULT_BASE_URL = "https://api.openai.com/v1";
 
@@ -35,8 +36,12 @@ export async function complete(
     "",
   );
   try {
-    const response = await fetchImpl(`${baseUrl}/chat/completions`, {
+    // Audit F2: the sink fetches the tenant-chosen baseUrl — resolve and deny
+    // private destinations, and never follow redirects (3xx is an error).
+    const target = await assertFetchableProviderUrl(`${baseUrl}/chat/completions`);
+    const response = await fetchImpl(target.toString(), {
       method: "POST",
+      redirect: "manual",
       headers: {
         Authorization: `Bearer ${input.apiKey}`,
         "Content-Type": "application/json",
@@ -53,7 +58,7 @@ export async function complete(
     });
     await assertOkOrThrow("openai", response);
 
-    const json = (await readJson(response)) as ChatCompletionResponse;
+    const json = (await readJson(response, "openai")) as ChatCompletionResponse;
     const text = json.choices?.[0]?.message?.content;
     if (typeof text !== "string") {
       throw new ProviderError(
