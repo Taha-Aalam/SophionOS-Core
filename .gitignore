@@ -71,6 +71,8 @@ skills-lock.json
 # Local artifacts / tool spill
 all_info.txt
 bin/
+.workbuddy-ai/
+terminals/
 screenshots/
 tsconfig.tsbuildinfo
 coverage/
