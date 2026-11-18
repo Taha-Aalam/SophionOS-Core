@@ -145,6 +145,7 @@ async function call(
   method: "GET" | "PATCH" | "DELETE",
   id: string,
   mode: string,
+  patchBody: Record<string, unknown> = {},
 ): Promise<{ status: number; code?: string }> {
   const handler = routes.get(entity)![method];
   const req = new NextRequest(`http://localhost/api/v1/${entity}/${id}`, {
@@ -153,7 +154,7 @@ async function call(
       authorization: `Bearer mode:${mode}`,
       ...(method === "PATCH" ? { "content-type": "application/json" } : {}),
     },
-    ...(method === "PATCH" ? { body: JSON.stringify({}) } : {}),
+    ...(method === "PATCH" ? { body: JSON.stringify(patchBody) } : {}),
   });
   const res = await handler(req, { params: Promise.resolve({ id }) });
   let code: string | undefined;
@@ -223,6 +224,26 @@ describe("api-key differential permission harness", () => {
         const { status } = await call(entity, "PATCH", SLUG, mode);
         expect([entity, mode, status]).toEqual([entity, mode, 403]);
       }
+    }
+  });
+
+  // Audit F7 regression: the generic PATCH surface accepts is_archived, so a
+  // write_limited key must be denied exactly like on the dedicated archive
+  // routes (which the per-mode matrix above already pins via isArchive).
+  it("PATCH is_archived cell: write_limited denied like the dedicated archive routes", async () => {
+    for (const entity of ["tasks", "notes", "resources"] as const) {
+      const wl = await call(entity, "PATCH", UUID, "write_limited", { is_archived: true });
+      expect([entity, wl.status, wl.code]).toEqual([entity, 403, "SCOPE_DENIED"]);
+      const wlRestore = await call(entity, "PATCH", UUID, "write_limited", { is_archived: false });
+      expect(wlRestore.status).toBe(403);
+      // write_enabled keeps full update behavior
+      const we = await call(entity, "PATCH", UUID, "write_enabled", { is_archived: true });
+      expect(is2xx(we.status) || we.status === 422).toBe(true);
+    }
+    // entities whose :write scope write_limited lacks stay 403 regardless
+    for (const entity of ["areas", "goals", "projects", "topics", "contacts"] as const) {
+      const wl = await call(entity, "PATCH", UUID, "write_limited", { is_archived: true });
+      expect(wl.status).toBe(403);
     }
   });
 

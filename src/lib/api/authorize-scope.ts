@@ -9,6 +9,33 @@ import {
 } from "./route-permissions";
 
 /**
+ * Audit F7: the generic PATCH update surface accepts is_archived, so without
+ * this check a write_limited key could archive/restore through it while the
+ * dedicated archive/restore routes (perm.isArchive) deny the same key. The
+ * per-key scopes column is parsed but ignored (mode preset only), so the
+ * check keys off the granted mode preset. Clerk sessions keep full update
+ * behavior (dashboard authority).
+ */
+export function assertApiKeyArchiveFieldAllowed(
+  authResult: AuthResult,
+  body: unknown,
+): void {
+  if (authResult.type !== "api_key") return;
+  if (
+    body !== null &&
+    typeof body === "object" &&
+    "is_archived" in body &&
+    !scopeSetAllows(scopesForAccessMode(authResult.accessMode), "archive:write")
+  ) {
+    throw new AppError(
+      "Write-limited keys cannot archive or restore. Upgrade the key to full write or use the dashboard.",
+      403,
+      "SCOPE_DENIED",
+    );
+  }
+}
+
+/**
  * Enforce scope presets, archive/bulk flags, and permanent-delete block for
  * API-key traffic. Clerk sessions skip scope checks (dashboard authority).
  */
