@@ -37,6 +37,13 @@ const BAD_URLS = [
   "ftp://internal-host/x",
   "https://localhost/v1",
   "https://10.0.0.5/v1",
+  // IPv4-mapped IPv6 and NAT64 forms of private/link-local/metadata targets
+  // (review finding: isIP classifies these as IPv6, so the embedded IPv4 must
+  // be decoded before the range check)
+  "https://[::ffff:127.0.0.1]:8080/x",
+  "https://[::ffff:169.254.169.254]/latest/meta-data",
+  "https://[::ffff:10.0.0.1]/v1",
+  "https://[64:ff9b::7f00:1]/v1",
 ];
 
 function makeUpsertStub() {
@@ -112,6 +119,21 @@ describe("assertFetchableProviderUrl (shared fetch guard)", () => {
       code: "BASE_URL_PRIVATE",
     });
     await expect(assertFetchableProviderUrl("https://169.254.169.254/latest/meta-data")).rejects.toMatchObject({
+      code: "BASE_URL_PRIVATE",
+    });
+    await expect(
+      assertFetchableProviderUrl("https://[::ffff:169.254.169.254]/latest/meta-data"),
+    ).rejects.toMatchObject({ code: "BASE_URL_PRIVATE" });
+    await expect(assertFetchableProviderUrl("https://[::ffff:10.0.0.1]/v1")).rejects.toMatchObject({
+      code: "BASE_URL_PRIVATE",
+    });
+  });
+
+  it("rejects mapped/NAT64 IPv6 hostnames that resolve via DNS answers too", async () => {
+    lookupMock.mockImplementation(async (_host: string, _options?: { all: boolean }) => [
+      { address: "::ffff:10.1.2.3", family: 6 },
+    ]);
+    await expect(assertFetchableProviderUrl("https://rebind6.example/v1")).rejects.toMatchObject({
       code: "BASE_URL_PRIVATE",
     });
   });
