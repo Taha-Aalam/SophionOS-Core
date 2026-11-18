@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { taskService } from "@/lib/services/task.service";
 import { authorizeApiRequest } from "@/lib/api/api-auth";
+import { assertApiKeyArchiveFieldAllowed } from "@/lib/api/authorize-scope";
 import { success, error } from "@/lib/api/api-response";
 import { validateBody } from "@/lib/api/api-validator";
 import { rateLimit } from "@/lib/api/rate-limiter";
@@ -44,6 +45,9 @@ async function handlePatch(
 
     const { id } = await params;
     const body = await validateBody(request, updateTaskSchema);
+    // Audit F7: archive state must not be mutated through the generic update
+    // surface by keys the dedicated archive/restore routes would deny.
+    assertApiKeyArchiveFieldAllowed(authResult, body);
     const supabase = await createDataClient(authResult);
     const task = await taskService.update(userId, id, body, { supabase });
     return success(task);
