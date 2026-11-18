@@ -76,14 +76,11 @@ jobs:
         continue-on-error: true
         # History may contain pre-remediation secrets; current-tree scan is blocking.
 
-      - name: Secret scan (current tree sources)
-        run: |
-          set -euo pipefail
-          for p in src supabase packages docs scripts .github; do
-            echo "Scanning $p"
-            gitleaks dir "$p" --no-banner --redact -c .gitleaks.toml
-          done
-          gitleaks dir .env.example --no-banner --redact -c .gitleaks.toml
+      - name: Secret scan (current tree)
+        # Audit F10: scan the whole tree instead of a fixed directory
+        # enumeration, so drifted tracked artifacts (mcps/, terminals/,
+        # root-level files) are covered; .gitleaks.toml holds the allowlist.
+        run: gitleaks dir . --no-banner --redact -c .gitleaks.toml
 
   security-harness:
     name: API-key differential permission harness
