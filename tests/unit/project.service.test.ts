@@ -64,20 +64,21 @@ describe("projectService", () => {
       return (clients[callIndex++] ?? makeChainableClient()) as never;
     });
 
-    // 1st call: generateUniqueSlug — return empty slug list
-    // 2nd call: insert project
-    // 3rd call: replaceGoalLinks client — assertOwnedIds (goals) then the
+    // 1st call: goal-ownership gate (audit F9 pre-write assertOwnedIds)
+    // 2nd call: generateUniqueSlug — return empty slug list
+    // 3rd call: insert project
+    // 4th call: replaceGoalLinks client — assertOwnedIds (goals) then the
     //   goal_projects insert for new links
-    // 4th/5th calls: getWithRelations (goal_projects + project_areas)
-    // 6th call: goal-status refetch (maybeSingle) inside replaceGoalLinks
-    // 7th-10th calls: hydration (project_areas, goal_projects, progress, rollups)
+    // 5th/6th calls: getWithRelations (goal_projects + project_areas)
+    // 7th call: goal-status refetch (maybeSingle) inside replaceGoalLinks
+    // 8th-10th calls: hydration (project_areas, goal_projects, progress, rollups)
 
-    clients[1].single.mockResolvedValue({ data: createdProject, error: null });
-    // replaceGoalLinks client (c2): assertOwnedIds (parent project + goals)
-    // then the goal_projects insert. getWithRelations assert (c3) and its
-    // junction reads (c4/c5) come from the permissive factory defaults;
-    // the status refetch (c6) defaults to null.
-    clients[2].in.mockImplementation((_col: string, vals: string[]) =>
+    clients[2].single.mockResolvedValue({ data: createdProject, error: null });
+    // replaceGoalLinks client (c3): assertOwnedIds (parent project + goals)
+    // then the goal_projects insert. getWithRelations assert (c4) and its
+    // junction reads (c5/c6) come from the permissive factory defaults;
+    // the status refetch (c7) defaults to null.
+    clients[3].in.mockImplementation((_col: string, vals: string[]) =>
       Promise.resolve({
         data: (vals ?? []).map((id) => ({ id })),
         error: null,
@@ -90,14 +91,14 @@ describe("projectService", () => {
     });
 
     expect(result).toMatchObject(createdProject);
-    expect(clients[1].insert).toHaveBeenCalledWith(
+    expect(clients[2].insert).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Restore Projects",
         status: "inbox",
         user_id: userId,
       }),
     );
-    expect(clients[2].insert).toHaveBeenCalledWith([
+    expect(clients[3].insert).toHaveBeenCalledWith([
       { goal_id: goalA, project_id: projectId },
       { goal_id: goalB, project_id: projectId },
     ]);
@@ -118,29 +119,30 @@ describe("projectService", () => {
       return (clients[callIndex++] ?? makeChainableClient()) as never;
     });
 
-    // 1st call: update project
-    // 2nd call: replaceGoalLinks client — assertOwnedIds (goals) then the
+    // 1st call: goal-ownership gate (audit F9 pre-write assertOwnedIds)
+    // 2nd call: update project
+    // 3rd call: replaceGoalLinks client — assertOwnedIds (goals) then the
     //   goal_projects insert + delete for added/removed links
-    // 3rd/4th calls: getWithRelations (goal_projects + project_areas)
-    // 5th call: goal-status refetch (maybeSingle) inside replaceGoalLinks
-    // 6th-9th calls: hydration
+    // 4th/5th calls: getWithRelations (goal_projects + project_areas)
+    // 6th call: goal-status refetch (maybeSingle) inside replaceGoalLinks
+    // 7th-10th calls: hydration
 
-    clients[0].single.mockResolvedValue({ data: updatedProject, error: null });
+    clients[1].single.mockResolvedValue({ data: updatedProject, error: null });
     // replaceGoalLinks client: assertOwnedIds (parent project + goals) then
     // the goal_projects insert + delete. Ownership answers are permissive.
-    clients[1].in.mockImplementation((_col: string, vals: string[]) =>
+    clients[2].in.mockImplementation((_col: string, vals: string[]) =>
       Promise.resolve({
         data: (vals ?? []).map((id) => ({ id })),
         error: null,
       }),
     );
-    // getWithRelations: parent assert (c2), goal_projects (c3) and
-    // project_areas (c4)
-    clients[3].eq.mockResolvedValue({
+    // getWithRelations: parent assert (c3), goal_projects (c4) and
+    // project_areas (c5)
+    clients[4].eq.mockResolvedValue({
       data: [{ goal_id: goalA }, { goal_id: goalB }],
       error: null,
     });
-    clients[4].eq.mockResolvedValue({ data: [], error: null });
+    clients[5].eq.mockResolvedValue({ data: [], error: null });
 
     const result = await projectService.update(userId, projectId, {
       status: PROJECT_STATUS.ACTIVE,
@@ -148,9 +150,9 @@ describe("projectService", () => {
     });
 
     expect(result).toMatchObject(updatedProject);
-    expect(clients[0].update).toHaveBeenCalledWith({ status: PROJECT_STATUS.ACTIVE });
-    expect(clients[1].insert).toHaveBeenCalledWith([{ goal_id: goalC, project_id: projectId }]);
-    expect(clients[1].in).toHaveBeenCalledWith("goal_id", [goalA]);
+    expect(clients[1].update).toHaveBeenCalledWith({ status: PROJECT_STATUS.ACTIVE });
+    expect(clients[2].insert).toHaveBeenCalledWith([{ goal_id: goalC, project_id: projectId }]);
+    expect(clients[2].in).toHaveBeenCalledWith("goal_id", [goalA]);
   });
 
   it("updates project status without requiring other fields", async () => {
@@ -477,12 +479,19 @@ describe("projectService", () => {
       return (clients[callIndex++] ?? makeChainableClient()) as never;
     });
 
-    clients[1].single.mockResolvedValue({ data: createdProject, error: null });
-    // replaceAreaLinks client (c2): assertOwnedIds (parent project + areas)
-    // then the project_areas insert. getWithRelations assert (c3) and its
-    // junction reads (c4/c5) come from the permissive factory defaults;
-    // the status refetch (c6) defaults to null.
-    clients[2].in.mockImplementation((_col: string, vals: string[]) =>
+    // 1st call: area-ownership gate (audit F9 pre-write assertOwnedIds)
+    clients[0].in.mockImplementation((_col: string, vals: string[]) =>
+      Promise.resolve({
+        data: (vals ?? []).map((id) => ({ id })),
+        error: null,
+      }),
+    );
+    clients[2].single.mockResolvedValue({ data: createdProject, error: null });
+    // replaceAreaLinks client (c3): assertOwnedIds (parent project + areas)
+    // then the project_areas insert. getWithRelations assert (c4) and its
+    // junction reads (c5/c6) come from the permissive factory defaults;
+    // the status refetch (c7) defaults to null.
+    clients[3].in.mockImplementation((_col: string, vals: string[]) =>
       Promise.resolve({
         data: (vals ?? []).map((id) => ({ id })),
         error: null,
@@ -495,7 +504,7 @@ describe("projectService", () => {
     });
 
     expect(result).toMatchObject(createdProject);
-    expect(clients[1].insert).toHaveBeenCalledWith(
+    expect(clients[2].insert).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Multi Area Project",
         area_id: areaA,
@@ -503,7 +512,7 @@ describe("projectService", () => {
         user_id: userId,
       }),
     );
-    expect(clients[2].insert).toHaveBeenCalledWith([
+    expect(clients[3].insert).toHaveBeenCalledWith([
       { area_id: areaA, project_id: projectId },
       { area_id: areaB, project_id: projectId },
     ]);
@@ -528,21 +537,22 @@ describe("projectService", () => {
     const areaA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
     const areaB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
-    // getById call (client[0]) — no project column changes, only links
-    clients[0].single.mockResolvedValue({ data: updatedProject, error: null });
-    // replaceAreaLinks client (client[1]): assertOwnedIds (parent project +
+    // 1st call: area-ownership gate (audit F9 pre-write assertOwnedIds)
+    // 2nd call: getById (client[1]) — no project column changes, only links
+    clients[1].single.mockResolvedValue({ data: updatedProject, error: null });
+    // replaceAreaLinks client (client[2]): assertOwnedIds (parent project +
     // areas), then the project_areas insert + delete. Ownership answers are
     // permissive.
-    clients[1].in.mockImplementation((_col: string, vals: string[]) =>
+    clients[2].in.mockImplementation((_col: string, vals: string[]) =>
       Promise.resolve({
         data: (vals ?? []).map((id) => ({ id })),
         error: null,
       }),
     );
-    // getWithRelations: parent assert (c2), goal_projects (c3) and
-    // project_areas (c4) — only areaA is linked today: the update adds
+    // getWithRelations: parent assert (c3), goal_projects (c4) and
+    // project_areas (c5) — only areaA is linked today: the update adds
     // areaB (insert) and removes areaA (delete)
-    clients[4].eq.mockResolvedValue({
+    clients[5].eq.mockResolvedValue({
       data: [{ area_id: areaA }],
       error: null,
     });
@@ -554,7 +564,7 @@ describe("projectService", () => {
 
     expect(result).toMatchObject(updatedProject);
     // The linked area must be ownership-checked before the junction writes.
-    expect(clients[1].in).toHaveBeenCalledWith("id", [areaB]);
+    expect(clients[2].in).toHaveBeenCalledWith("id", [areaB]);
     // Verify that insert and delete mutations were dispatched somewhere in the client sequence
     const insertCalls = clients.map((c) => c.insert.mock.calls).flat();
     const inCalls = clients.map((c) => c.in.mock.calls).flat();
@@ -562,7 +572,7 @@ describe("projectService", () => {
       [{ area_id: areaB, project_id: projectId }],
     ]);
     expect(inCalls).toContainEqual(["area_id", [areaA]]);
-    expect(clients[6].update).toHaveBeenCalledWith({ area_id: areaB });
+    expect(clients[7].update).toHaveBeenCalledWith({ area_id: areaB });
   });
 
   it("hydrates linked areas from project_areas table", async () => {

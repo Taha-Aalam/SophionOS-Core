@@ -110,6 +110,7 @@ describe("projectService.create status routing (bug #1, #2)", () => {
     const areaA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
     vi.mocked(createClient)
+      .mockImplementationOnce(() => makeDefaultClient()) // goal/area-ownership gate (audit F9)
       .mockImplementationOnce(() => slugClient)
       .mockImplementationOnce(() => insertClient)
       .mockImplementation(() => makeDefaultClient());
