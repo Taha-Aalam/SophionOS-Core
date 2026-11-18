@@ -1200,7 +1200,11 @@ export const projectService = {
   },
 
   async listByGoal(userId: string, goalId: string, options?: ServiceOptions): Promise<Project[]> {
-    const { data, error } = await (options?.supabase ?? createClient())
+    const sb = options?.supabase ?? createClient();
+    // Tenant-safety: the API-key path uses a service-role client that bypasses
+    // RLS, so the parent goal must be bound to the caller before hydration.
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
+    const { data, error } = await sb
       .from("goal_projects")
       .select("project:projects(*)")
       .eq("goal_id", goalId);
