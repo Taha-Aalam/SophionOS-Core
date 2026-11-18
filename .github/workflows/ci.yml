@@ -76,6 +76,14 @@ jobs:
         continue-on-error: true
         # History may contain pre-remediation secrets; current-tree scan is blocking.
 
+      - name: Assert leaked-secret history is purged (audit F4)
+        # Audit F4: a live-format GOCSPX- value remains reachable from master
+        # and every release tag. This fails by design until the filter-repo
+        # purge in docs/security/2026-09-secret-rotation-runbook.md lands —
+        # flip continue-on-error to false as the final runbook step.
+        run: node scripts/ci/assert-git-history-clean.mjs
+        continue-on-error: true
+
       - name: Secret scan (current tree)
         # Audit F10: scan the whole tree instead of a fixed directory
         # enumeration, so drifted tracked artifacts (mcps/, terminals/,
