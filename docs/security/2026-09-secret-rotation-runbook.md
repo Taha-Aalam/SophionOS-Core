@@ -1,9 +1,9 @@
 # Owner runbook: rotate the leaked Google OAuth secret and purge git history
 
-**Status: NOT EXECUTED — every step here is owner-side.** The code agent cannot
-reach Google Cloud Console, GitHub repo settings, or force-push; the
-history rewrite is destructive and the force-push is outward-facing, so both
-require explicit owner go-ahead at the marked step.
+**Status: EXECUTED 2026-11-19** — history purge complete and force-pushed
+(owner-approved). Credential disposition: the owning Google Cloud project
+was permanently deleted (see execution record); no rotation was possible
+or needed. Original procedure preserved below for the record.
 
 **Finding:** report finding 3 (Medium, CVSS 5.3, CWE-798). A real
 `GOCSPX-…` client secret sits in `supabase/config.toml` in the public repo's
@@ -74,13 +74,17 @@ git log --all -p | grep -c 'GOCSPX-'   # expect: 0
 
 ---
 
-## Execution record (owner fills in)
+## Execution record
 
 | Item | Value |
 | --- | --- |
-| Rotation/deletion date | |
-| Force-push approval | |
-| Purge date | |
-| Fresh-clone `GOCSPX-` count | |
-| OAuth log audit window + result | |
-| Secret scanning + push protection enabled | |
+| Rotation/deletion date | No rotation — gate form: owning project permanently deleted, owner-confirmed 2026-11-19. Google Cloud project 1033039659828 (owner of client `1033039659828-j0vt1oel93rko6u718a4qu54ad4jnk4e.apps.googleusercontent.com`) was deleted ~10 months before execution; 30-day recovery window long past; Manage Resources → Resources Pending Deletion rechecked empty 2026-11-19; owner's only Google account for that project. Client and secret permanently dead and unrestorable. |
+| Force-push approval | Owner-approved 2026-11-19 (explicit go after pre-push checkpoint: purge verified in mirror before push) |
+| Purge date | 2026-11-19 — `git filter-repo --replace-text` (`regex:GOCSPX-[A-Za-z0-9_-]+==>*REMOVED*`) in a fresh mirror clone; `git push --mirror` rewrote all refs |
+| Ref counts after purge | 42 branches, 23 tags — names identical to pre-purge manifest, all SHAs rewritten. The 5 secret-bearing commits `ecc2dd0`, `ee89242`, `568087f`, `458d879`, `b48d720` no longer exist (rewritten to `ba3aaff`, `b374d0d`, `9136aeb`, `cb94a29`, `3c3f30a`). Note: pre-purge local clone held 27 tags; 4 (`v0.1.1/.2/.3/.7`) were local-only, never published. |
+| Fresh-clone `GOCSPX-` count | Full secret value: **0** across every blob, commit message and tag message reachable from all refs (4,604 blobs scanned in fresh post-push clone). `assert-git-history-clean.mjs`: exit 0. Bare `GOCSPX-` prefix survives only as documentation/regex literals (`.gitleaks.toml`, runbook/closure/ops docs, `tests/unit/no-unpinned-dlx.test.ts`) — zero secret material; a naive `grep -c 'GOCSPX-'` over `git log --all -p` therefore returns 33 (prose/regex lines), not 0. |
+| OAuth log audit window + result | Not applicable — owning project deleted; console logs unavailable and credential unrestorable. Exposure window April 2026 → project deletion (~Jan 2026 deletion per owner timeline ~10 months before 2026-11-19). |
+| Secret scanning + push protection enabled | Owner-side GitHub setting — not verified in this execution; owner to confirm under Settings → Code security. |
+| On-disk scrub | 2026-11-19, pre-purge: `.claude/worktrees/feat-refinements/supabase/config.toml` reset to env-placeholder form (`enabled = false`); one generated turbopack cache file deleted. All other 65,298 files in that worktree verified byte-identical (sha256 manifest). Core tree, Cloud trees and /tmp swept: no other secret-bearing copies (Cloud/tmp hits were docs/regex prose only). |
+| Guard flip | `assert-git-history-clean.mjs` CI step flipped to blocking in the final remediation commit; passes (exit 0) on the purged history. |
+| Replay verification | 12 remediation commits cherry-picked onto purged master; all 12 patch-ids identical to originals; replayed tree byte-identical to pre-purge branch tree (empty diff). Battery on replay: 2,109/2,109 tests (244 files), isolation 11/11, typecheck clean, lint 0 errors, route-permissions 73/73, migrations OK (115, none added), scope 36 files. |
