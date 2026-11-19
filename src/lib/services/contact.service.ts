@@ -883,12 +883,18 @@ export const contactService = {
 
   async createLog(userId: string, contactId: string, input: CreateContactLogInput, options?: ServiceOptions): Promise<ContactLog> {
     const client = options?.supabase ?? createClient();
+    // Ownership gate BEFORE the insert (mirrors the link writers): the
+    // contact_logs FK is existence-only and its RLS binds user_id only, while
+    // trg_contact_logs_update_interaction updates contacts by bare id — so a
+    // foreign contact_id must be rejected on every identity path, including
+    // the service-role API-key client where RLS is bypassed.
+    await assertOwnedIds(client, "contacts", userId, [contactId], "Contact");
     const { data, error } = await client
       .from("contact_logs")
       .insert({ user_id: userId, contact_id: contactId, message: input.message })
       .select("id, contact_id, user_id, message, logged_at, created_at")
       .single();
-    if (error) throw new DatabaseError(error.message);
+    if (error) throw mapJunctionWriteError(error);
 
     // Update last_interaction_at on the contact
     await client

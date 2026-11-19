@@ -125,8 +125,10 @@ export async function runBriefDispatch(
           continue;
         }
 
-        sendAttempts += 1;
-
+        // Audit F6: a send attempt counts only when a recipient exists and the
+        // send is imminent — non-sendable outcomes (no email, lookup failure)
+        // must not consume the shared per-run budget, or persistent burners
+        // starve sendable tenants ahead of them in the stream.
         let email: string | null | undefined;
         try {
           email = await deps.resolveEmail(candidate.userId);
@@ -151,6 +153,8 @@ export async function runBriefDispatch(
           result.skipped += 1;
           continue;
         }
+
+        sendAttempts += 1;
 
         try {
           const today = await deps.loadToday(candidate.userId);
@@ -263,7 +267,8 @@ export async function listNotificationCandidates(
       supabase
         .from("user_settings")
         .select("user_id, value")
-        .eq("key", "notifications"),
+        .eq("key", "notifications")
+        .order("user_id"),
       supabase
         .from("user_settings")
         .select("user_id, value")

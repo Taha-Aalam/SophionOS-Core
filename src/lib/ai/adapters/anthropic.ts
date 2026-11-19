@@ -15,6 +15,7 @@ import {
   type AdapterInput,
   type AdapterResult,
 } from "./types";
+import { assertFetchableProviderUrl } from "@/lib/ai/fetch-guard";
 
 const ANTHROPIC_DEFAULT_BASE_URL = "https://api.anthropic.com/v1";
 
@@ -32,8 +33,11 @@ export async function complete(
     "",
   );
   try {
-    const response = await fetchImpl(`${baseUrl}/messages`, {
+    // Audit F2: sink guard + no redirect following (see openai adapter).
+    const target = await assertFetchableProviderUrl(`${baseUrl}/messages`);
+    const response = await fetchImpl(target.toString(), {
       method: "POST",
+      redirect: "manual",
       headers: {
         "x-api-key": input.apiKey,
         "anthropic-version": "2023-06-01",
@@ -49,7 +53,7 @@ export async function complete(
     });
     await assertOkOrThrow("anthropic", response);
 
-    const json = (await readJson(response)) as MessagesResponse;
+    const json = (await readJson(response, "anthropic")) as MessagesResponse;
     const text = (json.content ?? [])
       .filter((block) => block.type === "text" && typeof block.text === "string")
       .map((block) => block.text)
