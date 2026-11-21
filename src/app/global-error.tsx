@@ -1,17 +1,28 @@
 "use client";
 
+import { useEffect } from "react";
+
+import { captureErrorToStorage } from "@/lib/bug-report/capture";
+
 /**
  * Root error boundary. Catches throws that escape the root layout itself,
  * which would otherwise produce an unrecoverable white screen. Because it
  * replaces the root layout when active, it must render its own <html>/<body>.
  */
 export default function GlobalError({
-  error: _error,
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // This boundary renders outside the app tree — the capture provider is
+  // gone. Record straight to localStorage so the entry survives on storage
+  // alone and shows up in the next session's bug report. Scrubbed at capture.
+  useEffect(() => {
+    captureErrorToStorage(error);
+  }, [error]);
+
   return (
     <html lang="en">
       <body
