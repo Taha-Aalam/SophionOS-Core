@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
+import { version } from "./package.json";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -24,6 +25,15 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Surface the app version (package.json — single source of truth) and the
+  // build SHA to the client bundle for the in-app bug report. `env` values
+  // are inlined at build time; NEXT_PUBLIC_ is redundant here but keeps the
+  // name honest about being client-visible. VERCEL_GIT_COMMIT_SHA exists on
+  // Vercel builds; elsewhere the SHA line is simply omitted from reports.
+  env: {
+    NEXT_PUBLIC_APP_VERSION: version,
+    NEXT_PUBLIC_GIT_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? "",
+  },
   // Emit the self-contained server bundle (.next/standalone) the Docker image
   // runs with `node server.js` — see Dockerfile. Additive: `next start`, dev
   // and Vercel keep working off the full .next output.

@@ -7,6 +7,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
 import { UIProvider } from "@/lib/stores/ui.store";
 import { PwaProvider } from "@/components/providers/pwa-provider";
 import { GENERATOR_TAG } from "@/lib/watermark/release";
@@ -91,6 +92,10 @@ export default async function RootLayout({
                     {children}
                   </UIProvider>
                 </TooltipProvider>
+                {/* Sonner's <Toaster> was never mounted, so every toast.* call
+                    in the app was invisible. Mounted once here, inside
+                    ThemeProvider (it reads useTheme). */}
+                <Toaster />
               </ThemeProvider>
             </div>
           </QueryProvider>

@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
+  Bug,
   ChevronDown,
   ChevronLeft,
   ChevronRightIcon,
@@ -30,6 +31,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { isActiveNavigationPath } from "@/lib/auth/auth-routing";
+import { OPEN_BUG_REPORT_EVENT } from "@/lib/bug-report/config";
+import { BUG_REPORT_STRINGS } from "@/lib/bug-report/strings";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { supportsScrollDrivenAnimations } from "@/lib/utils/native-features";
@@ -494,6 +497,34 @@ export function Sidebar() {
             icon={SettingsIcon}
             showLabel={isDesktopSidebarOpen}
           />
+          {isDesktopSidebarOpen ? (
+            <Button
+              variant="ghost"
+              className="h-auto w-full justify-start gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              onClick={() => window.dispatchEvent(new CustomEvent(OPEN_BUG_REPORT_EVENT))}
+            >
+              <Bug size={16} className="shrink-0" />
+              <span>{BUG_REPORT_STRINGS.menuItem}</span>
+            </Button>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    className="flex size-10 mx-auto justify-center rounded-lg p-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    onClick={() => window.dispatchEvent(new CustomEvent(OPEN_BUG_REPORT_EVENT))}
+                    aria-label={BUG_REPORT_STRINGS.menuItem}
+                  >
+                    <Bug size={19} className="shrink-0" />
+                  </Button>
+                }
+              />
+              <TooltipContent side="right" sideOffset={10}>
+                {BUG_REPORT_STRINGS.menuItem}
+              </TooltipContent>
+            </Tooltip>
+          )}
           {isDesktopSidebarOpen ? (
             <Button
               variant="ghost"
