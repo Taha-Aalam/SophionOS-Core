@@ -7,6 +7,9 @@ import { Topbar } from "@/components/layout/topbar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { SignOutOverlay } from "@/components/layout/sign-out-overlay";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { BugReportCaptureProvider } from "@/components/providers/bug-report-capture-provider";
+import { BugReportBoundary } from "@/components/bug-report/bug-report-boundary";
+import { BugReportDialog } from "@/components/bug-report/bug-report-dialog";
 import { InboxBackfillProvider } from "@/components/providers/inbox-backfill-provider";
 import { ShellFrame } from "@/components/layout/shell-frame";
 import { userSettingsService } from "@/lib/services/user-settings.service";
@@ -58,18 +61,23 @@ export default async function DashboardGroupLayout({
   return (
     <AuthProvider initialUser={initialUser} initialAreasSeededAt={onboardingRow.areasSeededAt}>
       <InboxBackfillProvider>
-        <ShellFrame className="flex h-screen overflow-hidden bg-background">
-          <Sidebar />
-          <MobileNav />
-          <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
-            <Topbar initialSubscription={initialSubscription} />
-            <main className="flex-1 overflow-y-auto">{children}</main>
-          </div>
-        </ShellFrame>
-        <Suspense fallback={null}>
-          <CommandPalette />
-        </Suspense>
-        <SignOutOverlay />
+        <BugReportCaptureProvider>
+          <BugReportBoundary>
+            <ShellFrame className="flex h-screen overflow-hidden bg-background">
+              <Sidebar />
+              <MobileNav />
+              <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+                <Topbar initialSubscription={initialSubscription} />
+                <main className="flex-1 overflow-y-auto">{children}</main>
+              </div>
+            </ShellFrame>
+          </BugReportBoundary>
+          <Suspense fallback={null}>
+            <CommandPalette />
+          </Suspense>
+          <SignOutOverlay />
+          <BugReportDialog />
+        </BugReportCaptureProvider>
       </InboxBackfillProvider>
     </AuthProvider>
   );
