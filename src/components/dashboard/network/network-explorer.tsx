@@ -347,7 +347,6 @@ export function NetworkExplorer(props: NetworkExplorerProps) {
                 fitView
                 minZoom={0.1}
                 maxZoom={2}
-                colorMode="system"
                 proOptions={{ hideAttribution: false }}
                 aria-label="Context network map"
               >
