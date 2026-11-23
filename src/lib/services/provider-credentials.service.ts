@@ -6,6 +6,7 @@ import {
 } from "@/lib/ai/provider-registry";
 import { decryptSecret, encryptSecret } from "@/lib/crypto/secret-box";
 import { AppError, DatabaseError } from "@/lib/api/error-handler";
+import { assertFetchableProviderUrl } from "@/lib/ai/fetch-guard";
 
 // Server-only service for the user's connected LLM provider credentials.
 // Raw key material exists in exactly two places: the caller's request and the
@@ -79,12 +80,20 @@ async function validateApiKey(
 ): Promise<ValidationResult> {
   const def = getProviderDefinition(input.provider);
   const baseUrl = input.baseUrl ?? def.baseUrl ?? undefined;
+  // Audit F2: resolve and deny private/loopback/link-local targets BEFORE
+  // any request leaves the process. The guard throws a typed 400 past the
+  // try/catch below so an invalid destination can never be stored as
+  // "unreachable but active".
+  const target = await assertFetchableProviderUrl(def.validation.url(baseUrl));
   try {
-    // Cheap models-list GET — never a billed completion.
-    const response = await fetchImpl(def.validation.url(baseUrl), {
+    // Cheap models-list GET — never a billed completion. redirect: 'manual'
+    // stops cross-boundary redirect following (3xx is treated as
+    // unreachable, never followed).
+    const response = await fetchImpl(target.toString(), {
       method: "GET",
       headers: def.validation.headers(input.apiKey),
       signal: AbortSignal.timeout(5_000),
+      redirect: "manual",
     });
     if (response.status === 401 || response.status === 403) return "invalid";
     // Rate limits and provider 5xx are not proof of a bad key.
@@ -114,6 +123,17 @@ export const providerCredentialsService = {
     }
     if (!input.apiKey.trim()) {
       throw new AppError("An API key is required", 400, "API_KEY_REQUIRED");
+    }
+    // Audit F2: fixed providers validate against their own registry URL while
+    // a stored baseUrl was fetched by the gateway un-pinned — reject a
+    // caller-supplied baseUrl so the validated destination is always the one
+    // that will be fetched later.
+    if (!def.requiresBaseUrl && input.baseUrl?.trim()) {
+      throw new AppError(
+        "A base URL is not allowed for this provider",
+        400,
+        "BASE_URL_NOT_ALLOWED",
+      );
     }
 
     const validation = await validateApiKey(input, options.fetchImpl ?? fetch);

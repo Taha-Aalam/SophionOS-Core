@@ -696,6 +696,19 @@ export const projectService = {
     const { areaIds, projectInput: areaCleanedInput } = extractProjectAreaIds(validated);
     const { goalIds, projectInput } = extractGoalIds(areaCleanedInput);
 
+    // Ownership gate BEFORE the insert (mirrors task.service.ts): the singular
+    // area_id persists with the projects row and the API-key path uses a
+    // service-role client that bypasses RLS — a foreign parent reference must
+    // be rejected before anything commits. The junction-side asserts in
+    // replace*Links run only after this insert. The client is created lazily
+    // so a create without area/goal links makes no extra data-client call.
+    if (areaIds?.length) {
+      await assertOwnedIds(options?.supabase ?? createClient(), "areas", userId, areaIds, "Area");
+    }
+    if (goalIds?.length) {
+      await assertOwnedIds(options?.supabase ?? createClient(), "goals", userId, goalIds, "Goal");
+    }
+
     // Status is always derived from context on create so an inbox entity
     // can never be persisted as "planning" (or any non-inbox bucket) just
     // because the caller passed a stale default. The dialog form default
@@ -741,6 +754,17 @@ export const projectService = {
     const validated = updateProjectSchema.parse(input);
     const { areaIds, projectInput: areaCleanedInput } = extractProjectAreaIds(validated);
     const { goalIds, projectInput } = extractGoalIds(areaCleanedInput);
+
+    // Ownership gate BEFORE the update (mirrors task.service.ts:603-611) so a
+    // denied area_id/goal_ids PATCH commits nothing. Lazy client: no gate, no
+    // extra data-client call.
+    if (areaIds?.length) {
+      await assertOwnedIds(options?.supabase ?? createClient(), "areas", userId, areaIds, "Area");
+    }
+    if (goalIds?.length) {
+      await assertOwnedIds(options?.supabase ?? createClient(), "goals", userId, goalIds, "Goal");
+    }
+
     const hasProjectUpdates = Object.keys(projectInput).length > 0;
     const projectInputWide = projectInput as Record<string, unknown> & {
       status?: ProjectStatus;
@@ -1200,7 +1224,11 @@ export const projectService = {
   },
 
   async listByGoal(userId: string, goalId: string, options?: ServiceOptions): Promise<Project[]> {
-    const { data, error } = await (options?.supabase ?? createClient())
+    const sb = options?.supabase ?? createClient();
+    // Tenant-safety: the API-key path uses a service-role client that bypasses
+    // RLS, so the parent goal must be bound to the caller before hydration.
+    await assertOwnedIds(sb, "goals", userId, [goalId], "Goal");
+    const { data, error } = await sb
       .from("goal_projects")
       .select("project:projects(*)")
       .eq("goal_id", goalId);

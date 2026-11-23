@@ -6,7 +6,7 @@ title = "SophionOS gitleaks"
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "Local tooling and build artifacts"
 paths = [
   '''node_modules''',
@@ -26,3 +26,15 @@ id = "google-oauth-client-secret"
 description = "Google OAuth client secret"
 regex = '''GOCSPX-[A-Za-z0-9_-]{28,}'''
 keywords = ["GOCSPX-"]
+
+# Audit F10 follow-up: the whole-tree scan (widened from the old directory
+# enumeration) covers tests/ for the first time. The shipped cron-briefs
+# hardening test uses an obviously fake CRON_SECRET constant to exercise the
+# route's timing-safe compare; the default generic-api-key rule flags the
+# assignment shape. Scoped exemption: this rule + this file only — every
+# other path and rule keeps scanning at full strength.
+[[allowlists]]
+ruleId = "generic-api-key"
+paths = [
+  '''tests/unit/cron-briefs-hardening\.test\.ts''',
+]
