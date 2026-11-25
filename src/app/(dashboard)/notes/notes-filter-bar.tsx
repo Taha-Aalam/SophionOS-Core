@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useMemo, useState } from "react";
 import {
@@ -99,6 +100,7 @@ export function NotesFilterBar({
   notebooks,
   onClearFilters,
 }: NotesFilterBarProps) {
+  const { t } = useI18n();
   const [areaPopoverOpen, setAreaPopoverOpen] = useState(false);
   const [goalPopoverOpen, setGoalPopoverOpen] = useState(false);
   const [projectPopoverOpen, setProjectPopoverOpen] = useState(false);
@@ -176,15 +178,15 @@ export function NotesFilterBar({
           }
         >
           <SelectTrigger className="h-10 sm:h-8 w-[160px] sm:w-52 sm:w-48 text-xs">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder={t("notesFilterBar.status")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_STATUS_VALUE}>All statuses</SelectItem>
-            <SelectItem value="inbox">Inbox</SelectItem>
-            <SelectItem value="to_review">To Review</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="archive">Archive</SelectItem>
+            <SelectItem value={ALL_STATUS_VALUE}>{t("notesFilterBar.allStatuses")}</SelectItem>
+            <SelectItem value="inbox">{t("nav.inbox")}</SelectItem>
+            <SelectItem value="to_review">{t("notes.tabs.toReview")}</SelectItem>
+            <SelectItem value="active">{t("goals.tabs.active")}</SelectItem>
+            <SelectItem value="completed">{t("tasks.tabs.completed")}</SelectItem>
+            <SelectItem value="archive">{t("action.archive")}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -212,7 +214,7 @@ export function NotesFilterBar({
           <PopoverContent className={filterPopoverContentClassName}>
             <div className="space-y-1">
               {activeAreas.length === 0 && (
-                <p className="px-2 py-1 text-xs text-muted-foreground">No areas available.</p>
+                <p className="px-2 py-1 text-xs text-muted-foreground">{t("notesFilterBar.noAreasAvailable")}</p>
               )}
               <ScrollArea className="max-h-60 w-full">
                 {activeAreas.map((area) => {
@@ -265,7 +267,7 @@ export function NotesFilterBar({
           <PopoverContent className={filterPopoverContentClassName}>
             <div className="space-y-1">
               {activeGoals.length === 0 && (
-                <p className="px-2 py-1 text-xs text-muted-foreground">No goals available.</p>
+                <p className="px-2 py-1 text-xs text-muted-foreground">{t("notesFilterBar.noGoalsAvailable")}</p>
               )}
               <ScrollArea className="max-h-60 w-full">
                 {activeGoals.map((goal) => {
@@ -315,7 +317,7 @@ export function NotesFilterBar({
           <PopoverContent className={filterPopoverContentClassName}>
             <div className="space-y-1">
               {activeProjects.length === 0 && (
-                <p className="px-2 py-1 text-xs text-muted-foreground">No projects available.</p>
+                <p className="px-2 py-1 text-xs text-muted-foreground">{t("notesFilterBar.noProjectsAvailable")}</p>
               )}
               <ScrollArea className="max-h-60 w-full">
                 {activeProjects.map((project) => {
@@ -365,7 +367,7 @@ export function NotesFilterBar({
           <PopoverContent className={filterPopoverContentClassName}>
             <div className="space-y-1">
               {allTasks.length === 0 && (
-                <p className="px-2 py-1 text-xs text-muted-foreground">No tasks available.</p>
+                <p className="px-2 py-1 text-xs text-muted-foreground">{t("notesFilterBar.noTasksAvailable")}</p>
               )}
               <ScrollArea className="max-h-60 w-full">
                 {allTasks.map((task) => {
@@ -396,10 +398,10 @@ export function NotesFilterBar({
           onValueChange={(value) => onFilterNotebookChange(value || "")}
         >
           <SelectTrigger className="h-10 sm:h-8 w-[160px] sm:w-52 text-xs">
-            <SelectValue placeholder="Notebook" />
+            <SelectValue placeholder={t("notesFilterBar.notebook")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_NOTEBOOK_VALUE}>All notebooks</SelectItem>
+            <SelectItem value={ALL_NOTEBOOK_VALUE}>{t("notesFilterBar.allNotebooks")}</SelectItem>
             {notebooks.map((nb) => (
               <SelectItem key={nb} value={nb}>
                 <BookOpen className="mr-1 inline size-3" />
@@ -414,7 +416,7 @@ export function NotesFilterBar({
             onClick={onClearFilters}
             className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
           >
-            Clear filters
+            {t("notesFilterBar.clearFilters")}
           </button>
         )}
       </div>

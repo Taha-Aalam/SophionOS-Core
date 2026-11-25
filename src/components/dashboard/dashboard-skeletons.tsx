@@ -1,8 +1,12 @@
+"use client";
+
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function GreetingBarSkeleton() {
+  const { t } = useI18n();
   return (
-    <div className="space-y-4" aria-busy="true" role="status" aria-label="Loading greeting">
+    <div className="space-y-4" aria-busy="true" role="status" aria-label={t("dashboardSkeletons.loadingGreeting")}>
       <div className="space-y-1">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-4 w-48" />
@@ -17,8 +21,9 @@ export function GreetingBarSkeleton() {
 }
 
 export function TaskListSkeleton() {
+  const { t } = useI18n();
   return (
-    <div className="space-y-2" aria-busy="true" role="status" aria-label="Loading tasks">
+    <div className="space-y-2" aria-busy="true" role="status" aria-label={t("dashboardSkeletons.loadingTasks")}>
       {Array.from({ length: 4 }).map((_, i) => (
         <Skeleton key={i} className="h-14 w-full rounded-lg" />
       ))}
@@ -27,8 +32,9 @@ export function TaskListSkeleton() {
 }
 
 export function ActiveGoalsSkeleton() {
+  const { t } = useI18n();
   return (
-    <div className="flex gap-3 overflow-x-auto pb-2" aria-busy="true" role="status" aria-label="Loading goals">
+    <div className="flex gap-3 overflow-x-auto pb-2" aria-busy="true" role="status" aria-label={t("dashboardSkeletons.loadingGoals")}>
       {Array.from({ length: 3 }).map((_, i) => (
         <Skeleton key={i} className="h-36 w-48 flex-shrink-0 rounded-xl" />
       ))}
@@ -37,8 +43,9 @@ export function ActiveGoalsSkeleton() {
 }
 
 export function ActivityFeedSkeleton() {
+  const { t } = useI18n();
   return (
-    <div className="space-y-3" aria-busy="true" role="status" aria-label="Loading activity">
+    <div className="space-y-3" aria-busy="true" role="status" aria-label={t("dashboardSkeletons.loadingActivity")}>
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="flex items-center gap-3">
           <Skeleton className="h-8 w-8 rounded-full" />

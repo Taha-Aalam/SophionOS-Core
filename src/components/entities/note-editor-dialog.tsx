@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
@@ -61,6 +62,7 @@ function NoteEditorDialogForm({
   onOpenChange,
   onSuccess,
 }: NoteEditorDialogFormProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const createNote = useCreateNote();
   const updateNote = useUpdateNote();
@@ -72,7 +74,7 @@ function NoteEditorDialogForm({
       await updateNote.mutateAsync({ id: note.id, input: { name, content } });
     } else {
       const createInput: Parameters<typeof createNote.mutateAsync>[0] = {
-        name: name || "Untitled note",
+        name: name || t("noteEditorDialog.untitledNote"),
         content,
       };
 
@@ -108,32 +110,32 @@ function NoteEditorDialogForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{note ? "Edit Note" : "Create Note"}</DialogTitle>
-        <DialogDescription>Create or edit a note in your PARA system.</DialogDescription>
+        <DialogTitle>{note ? t("noteEditorDialog.editNote") : t("noteEditorDialog.createNote")}</DialogTitle>
+        <DialogDescription>{t("noteEditorDialog.createOrEditANoteInYourParaSystem")}</DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="note-name">Title</Label>
+          <Label htmlFor="note-name">{t("noteEditorDialog.title")}</Label>
           <Input
             id="note-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Note title"
+            placeholder={t("noteEditorDialog.noteTitle")}
             maxLength={255}
           />
         </div>
         <div className="space-y-2">
-          <Label>Content</Label>
+          <Label>{t("noteEditorDialog.content")}</Label>
           <NoteEditor content={content} onChange={setContent} />
         </div>
       </div>
 
       <DialogFooter>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          Cancel
+          {t("action.cancel")}
         </Button>
-        <Button onClick={handleSave}>{note ? "Save Changes" : "Create Note"}</Button>
+        <Button onClick={handleSave}>{note ? t("noteEditorDialog.saveChanges") : t("noteEditorDialog.createNote2")}</Button>
       </DialogFooter>
     </>
   );

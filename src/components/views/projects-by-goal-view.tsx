@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon, Plus } from "lucide-react";
@@ -51,6 +52,7 @@ function CollapsibleGoalSection({
   returnTo?: string | null;
   returnToChain?: string | null;
 }) {
+  const { t } = useI18n();
   // The unassigned ("No Goal") group is collapsed by default; real goals open
   // by default.
   const [isOpen, setIsOpen] = useState(group.goalId !== "unassigned");
@@ -78,7 +80,7 @@ function CollapsibleGoalSection({
           )}
         </span>
         <Badge variant="outline" className="text-xs font-medium">
-          {group.goalId === "unassigned" ? "No Goal" : group.goalName}
+          {group.goalId === "unassigned" ? t("common.noGoal") : group.goalName}
         </Badge>
         <span className="text-sm text-muted-foreground">
           ({group.projects.length} {group.projects.length === 1 ? "project" : "projects"})
@@ -93,7 +95,7 @@ function CollapsibleGoalSection({
               e.stopPropagation();
               onCreateProject(group.goalId);
             }}
-            title={`Create project under ${group.goalName}`}
+            title={t("projectsByGoalView.createProjectUnderV0", { v0: group.goalName })}
           >
             <Plus className="size-4" />
           </Button>
@@ -135,7 +137,7 @@ function CollapsibleGoalSection({
               className="flex flex-col items-center justify-center gap-2 h-48 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <Plus className="size-8" />
-              <span className="text-sm font-medium">New Project under {group.goalName}</span>
+              <span className="text-sm font-medium">{t("projectsByGoalView.newProjectUnder")} {group.goalName}</span>
             </button>
           )}
         </div>
@@ -157,6 +159,7 @@ export function ProjectsByGoalView({
   returnTo,
   returnToChain,
 }: ProjectsByGoalViewProps) {
+  const { t } = useI18n();
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -177,7 +180,7 @@ export function ProjectsByGoalView({
   if (groups.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <p className="text-muted-foreground">No projects grouped by goal yet.</p>
+        <p className="text-muted-foreground">{t("projectsByGoalView.noProjectsGroupedByGoalYet")}</p>
       </div>
     );
   }

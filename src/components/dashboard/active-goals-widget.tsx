@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import ProgressRing from "@/components/charts/progress-ring";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,11 +11,12 @@ interface ActiveGoalsWidgetProps {
 }
 
 export function ActiveGoalsWidget({ goals }: ActiveGoalsWidgetProps) {
+  const { t } = useI18n();
   if (goals.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-muted p-6 text-center">
         <p className="text-sm text-muted-foreground">
-          No active goals yet. Set a goal to start tracking progress.
+          {t("activeGoalsWidget.noActiveGoalsYetSetAGoalToStartTrackingPro")}
         </p>
       </div>
     );
@@ -46,7 +48,7 @@ export function ActiveGoalsWidget({ goals }: ActiveGoalsWidgetProps) {
             </div>
             {goal.targetDate && (
               <p className="text-xs text-muted-foreground">
-                Target:{" "}
+                {t("activeGoalsWidget.target")}{" "}
                 {formatDate(goal.targetDate)}
               </p>
             )}

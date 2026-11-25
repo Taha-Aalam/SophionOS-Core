@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { UsersIcon } from "@/components/icons";
 
@@ -17,23 +18,24 @@ function initials(name: string): string {
 }
 
 export function RelationshipRiskPanel({ risk }: RelationshipRiskPanelProps) {
+  const { t } = useI18n();
   return (
     <AnalyticsPanel
-      title="Relationship Risk"
-      description="Follow-ups due, especially contacts on active projects."
+      title={t("relationshipRiskPanel.relationshipRisk")}
+      description={t("relationshipRiskPanel.followupsDueEspeciallyContactsOnActiveProj")}
       icon={UsersIcon}
       iconClassName="text-analytics-risk"
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5">
         <div className="space-y-2.5 md:col-span-1">
           <div className="flex items-center justify-between rounded-lg bg-analytics-risk/10 px-3 py-2.5">
-            <span className="text-sm text-foreground">Follow-ups due</span>
+            <span className="text-sm text-foreground">{t("relationshipRiskPanel.followupsDue")}</span>
             <span className="font-semibold tabular-nums text-analytics-risk">
               {risk.followUpsDue}
             </span>
           </div>
           <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2.5">
-            <span className="text-sm text-foreground">On active projects</span>
+            <span className="text-sm text-foreground">{t("relationshipRiskPanel.onActiveProjects")}</span>
             <span className="font-semibold tabular-nums text-foreground">
               {risk.tiedToActiveProjects}
             </span>
@@ -43,7 +45,7 @@ export function RelationshipRiskPanel({ risk }: RelationshipRiskPanelProps) {
           {risk.contacts.length === 0 ? (
             <div className="flex items-center gap-2 px-1 py-2 text-sm text-muted-foreground">
               <UsersIcon size={16} className="shrink-0" aria-hidden="true" />
-              No follow-up risk right now.
+              {t("relationshipRiskPanel.noFollowupRiskRightNow")}
             </div>
           ) : (
             <ul className="space-y-0.5">
@@ -64,7 +66,7 @@ export function RelationshipRiskPanel({ risk }: RelationshipRiskPanelProps) {
                     </span>
                   </div>
                   <span className="shrink-0 text-xs font-semibold tabular-nums text-analytics-risk">
-                    {contact.daysOverdue}d overdue
+                    {contact.daysOverdue}{t("relationshipRiskPanel.dOverdue")}
                   </span>
                 </li>
               ))}

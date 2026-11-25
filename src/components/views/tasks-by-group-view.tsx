@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon, Plus } from "lucide-react";
@@ -67,6 +68,7 @@ function CollapsibleTaskGroup({
   getLinkedGoalNames: (task: Task) => string[];
   getLinkedProjectNames?: (task: Task) => string[];
 }) {
+  const { t } = useI18n();
   // The unassigned ("No Area/Goal/Project") group is collapsed by default;
   // real groups open by default.
   const [isOpen, setIsOpen] = useState(group.groupId !== "unassigned");
@@ -127,7 +129,7 @@ function CollapsibleTaskGroup({
               className="flex w-full items-center gap-2 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
               <Plus className="size-4" />
-              New task
+              {t("tasksByGroupView.newTask")}
             </button>
           )}
         </div>
@@ -152,14 +154,16 @@ export function TasksByGroupView({
   getLinkedAreaIcons,
   getLinkedGoalNames,
   getLinkedProjectNames,
-  emptyMessage = "No tasks in this view.",
+  emptyMessage,
 }: TasksByGroupViewProps) {
+  const { t } = useI18n();
+  const emptyMessageText = emptyMessage ?? t("tasksByGroupView.noTasksInThisView");
   if (groups.length === 0 || groups.every((g) => g.tasks.length === 0)) {
     return (
       <EmptyState
         icon={CheckSquare}
-        title="No tasks here"
-        description={emptyMessage}
+        title={t("tasks.empty.all.title")}
+        description={emptyMessageText}
       />
     );
   }

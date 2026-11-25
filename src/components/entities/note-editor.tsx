@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useCallback, useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -57,10 +58,12 @@ function ToolbarButton({ onClick, isActive, title, children }: ToolbarButtonProp
 export function NoteEditor({
   content,
   onChange,
-  placeholder = "Start writing…",
+  placeholder,
   readOnly = false,
   className,
 }: NoteEditorProps) {
+  const { t } = useI18n();
+  const placeholderText = placeholder ?? t("noteEditor.startWriting");
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -68,7 +71,7 @@ export function NoteEditor({
         heading: { levels: [1, 2, 3] },
         codeBlock: { languageClassPrefix: "language-" },
       }),
-      Placeholder.configure({ placeholder }),
+      Placeholder.configure({ placeholder: placeholderText }),
       Link.configure({ openOnClick: false, HTMLAttributes: { rel: "noopener noreferrer" } }),
     ],
     content: content ? (tryParseJson(content) ?? content) : "",
@@ -121,21 +124,21 @@ export function NoteEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
             isActive={editor.isActive("bold")}
-            title="Bold (Ctrl+B)"
+            title={t("noteEditor.boldCtrlb")}
           >
             <Bold className="size-3.5" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleItalic().run()}
             isActive={editor.isActive("italic")}
-            title="Italic (Ctrl+I)"
+            title={t("noteEditor.italicCtrli")}
           >
             <Italic className="size-3.5" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleCode().run()}
             isActive={editor.isActive("code")}
-            title="Inline code"
+            title={t("noteEditor.inlineCode")}
           >
             <Code className="size-3.5" />
           </ToolbarButton>
@@ -145,21 +148,21 @@ export function NoteEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
             isActive={editor.isActive("heading", { level: 1 })}
-            title="Heading 1"
+            title={t("noteEditor.heading1")}
           >
             <Heading1 className="size-3.5" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             isActive={editor.isActive("heading", { level: 2 })}
-            title="Heading 2"
+            title={t("noteEditor.heading2")}
           >
             <Heading2 className="size-3.5" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             isActive={editor.isActive("heading", { level: 3 })}
-            title="Heading 3"
+            title={t("noteEditor.heading3")}
           >
             <Heading3 className="size-3.5" />
           </ToolbarButton>
@@ -169,28 +172,28 @@ export function NoteEditor({
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             isActive={editor.isActive("bulletList")}
-            title="Bullet list"
+            title={t("noteEditor.bulletList")}
           >
             <List className="size-3.5" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             isActive={editor.isActive("orderedList")}
-            title="Ordered list"
+            title={t("noteEditor.orderedList")}
           >
             <ListOrdered className="size-3.5" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
             isActive={editor.isActive("codeBlock")}
-            title="Code block"
+            title={t("noteEditor.codeBlock")}
           >
             <Code2 className="size-3.5" />
           </ToolbarButton>
           <ToolbarButton
             onClick={setLink}
             isActive={editor.isActive("link")}
-            title="Link"
+            title={t("noteEditor.link")}
           >
             <LinkIcon className="size-3.5" />
           </ToolbarButton>

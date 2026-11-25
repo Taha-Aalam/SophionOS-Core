@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import {
   ChevronDownIcon,
@@ -70,6 +71,7 @@ export function TasksFilterBar({
   hasFilters,
   onClearFilters,
 }: TasksFilterBarProps) {
+  const { t } = useI18n();
   const selectedAreaLabels = filterAreaIds
     .map((id) => activeAreas.find((a) => a.id === id))
     .filter(Boolean)
@@ -99,12 +101,12 @@ export function TasksFilterBar({
           }
         >
           <SelectTrigger className="h-10 sm:h-8 w-[140px] sm:w-48 text-xs">
-            <SelectValue placeholder="Priority" />
+            <SelectValue placeholder={t("tasksFilterBar.priority")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_PRIORITY_VALUE}>All priorities</SelectItem>
-            <SelectItem value="high">High</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value={ALL_PRIORITY_VALUE}>{t("tasksFilterBar.allPriorities")}</SelectItem>
+            <SelectItem value="high">{t("tasksFilterBar.high")}</SelectItem>
+            <SelectItem value="medium">{t("tasksFilterBar.medium")}</SelectItem>
             <SelectItem value="low">Low</SelectItem>
           </SelectContent>
         </Select>
@@ -133,7 +135,7 @@ export function TasksFilterBar({
           <PopoverContent className={filterPopoverContentClassName}>
             <div className="space-y-1">
               {activeAreas.length === 0 && (
-                <p className="px-2 py-1 text-xs text-muted-foreground">No areas available.</p>
+                <p className="px-2 py-1 text-xs text-muted-foreground">{t("tasksFilterBar.noAreasAvailable")}</p>
               )}
               <ScrollArea className="max-h-60 w-full">
                 {activeAreas.map((area) => {
@@ -186,7 +188,7 @@ export function TasksFilterBar({
           <PopoverContent className={filterPopoverContentClassName}>
             <div className="space-y-1">
               {activeGoals.length === 0 && (
-                <p className="px-2 py-1 text-xs text-muted-foreground">No goals available.</p>
+                <p className="px-2 py-1 text-xs text-muted-foreground">{t("tasksFilterBar.noGoalsAvailable")}</p>
               )}
               <ScrollArea className="max-h-60 w-full">
                 {activeGoals.map((goal) => {
@@ -237,7 +239,7 @@ export function TasksFilterBar({
             <div className="space-y-1">
               {activeProjects.length === 0 && (
                 <p className="px-2 py-1 text-xs text-muted-foreground">
-                  No projects available.
+                  {t("tasksFilterBar.noProjectsAvailable")}
                 </p>
               )}
               <ScrollArea className="max-h-60 w-full">
@@ -269,7 +271,7 @@ export function TasksFilterBar({
             onClick={onClearFilters}
             className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
           >
-            Clear filters
+            {t("tasksFilterBar.clearFilters")}
           </button>
         )}
       </div>

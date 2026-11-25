@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useMemo, useState } from "react";
 import { CheckSquare, X } from "lucide-react";
@@ -53,6 +54,7 @@ export function TaskProcessForm({
   projectOptions,
   onClose,
 }: TaskProcessFormProps) {
+  const { t } = useI18n();
   const updateTask = useUpdateTask();
   const [rawAreaIds, setRawAreaIds] = useState<string[]>(getTaskLinkedAreaIds(task));
   const [rawGoalIds, setRawGoalIds] = useState<string[]>(getTaskLinkedGoalIds(task));
@@ -138,8 +140,8 @@ export function TaskProcessForm({
     <div className="mt-2 grid gap-3 rounded-lg border border-border bg-muted/30 p-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <DropdownMultiSelect
-          label="Area"
-          placeholder="Select area…"
+          label={t("inboxTaskProcessForm.area")}
+          placeholder={t("inboxTaskProcessForm.selectArea")}
           selectedCount={areaIds.length}
           candidates={visibleAreas}
           isSelected={(id) => areaIds.includes(id)}
@@ -147,10 +149,10 @@ export function TaskProcessForm({
           onClear={() => setRawAreaIds([])}
           emptyMessage={
             areaOptions.length === 0
-              ? "No areas available."
+              ? t("tasksFilterBar.noAreasAvailable")
               : goalIds.length > 0
-                ? "No areas match selected goals."
-                : "No areas available."
+                ? t("inboxTaskProcessForm.noAreasMatchSelectedGoals")
+                : t("tasksFilterBar.noAreasAvailable")
           }
           renderSelected={() =>
             areaIds.length > 0 ? (
@@ -183,8 +185,8 @@ export function TaskProcessForm({
         />
 
         <DropdownMultiSelect
-          label="Goal"
-          placeholder="Select goal…"
+          label={t("inboxTaskProcessForm.goal")}
+          placeholder={t("inboxTaskProcessForm.selectGoal")}
           selectedCount={goalIds.length}
           candidates={visibleGoals}
           isSelected={(id) => goalIds.includes(id)}
@@ -192,10 +194,10 @@ export function TaskProcessForm({
           onClear={() => setRawGoalIds([])}
           emptyMessage={
             goalOptions.length === 0
-              ? "No goals available."
+              ? t("tasksFilterBar.noGoalsAvailable")
               : areaIds.length > 0
-                ? "No goals in selected areas."
-                : "No goals available."
+                ? t("inboxTaskProcessForm.noGoalsInSelectedAreas")
+                : t("tasksFilterBar.noGoalsAvailable")
           }
           renderSelected={() =>
             goalIds.length > 0 ? (
@@ -233,8 +235,8 @@ export function TaskProcessForm({
       </div>
 
       <DropdownMultiSelect
-        label="Project"
-        placeholder="Select project…"
+        label={t("inboxTaskProcessForm.project")}
+        placeholder={t("inboxTaskProcessForm.selectProject")}
         selectedCount={projectIds.length}
         candidates={filteredProjects}
         isSelected={(id) => projectIds.includes(id)}
@@ -242,10 +244,10 @@ export function TaskProcessForm({
         onClear={() => setRawProjectIds([])}
         emptyMessage={
           projectOptions.length === 0
-            ? "No projects available."
+            ? t("taskDialog.noProjectsAvailable")
             : goalIds.length > 0 || areaIds.length > 0
-              ? "No projects match selected context."
-              : "No projects available."
+              ? t("inboxTaskProcessForm.noProjectsMatchSelectedContext")
+              : t("taskDialog.noProjectsAvailable")
         }
         renderSelected={() =>
           projectIds.length > 0 ? (
@@ -275,11 +277,11 @@ export function TaskProcessForm({
       />
 
       <div className="grid gap-1.5 sm:max-w-xs">
-        <span className="text-xs font-medium text-muted-foreground">Due Date</span>
+        <span className="text-xs font-medium text-muted-foreground">{t("inboxTaskProcessForm.dueDate")}</span>
         <DatePicker
           value={dueDate || null}
           onChange={(v) => setDueDate(v ?? "")}
-          placeholder="Pick due date"
+          placeholder={t("inboxTaskProcessForm.pickDueDate")}
         />
       </div>
 
@@ -288,7 +290,7 @@ export function TaskProcessForm({
           variant="secondary"
           className="gap-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
         >
-          <TASK_ICON size={12} /> task
+          <TASK_ICON size={12} /> {t("inboxTaskProcessForm.task")}
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button
@@ -297,10 +299,10 @@ export function TaskProcessForm({
             onClick={handleSave}
             disabled={updateTask.isPending}
           >
-            Process
+            {t("inboxTaskProcessForm.process")}
           </Button>
           <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={onClose}>
-            Cancel
+            {t("action.cancel")}
           </Button>
         </div>
       </div>
@@ -331,6 +333,7 @@ function DropdownMultiSelect({
   emptyMessage,
   renderSelected,
 }: DropdownMultiSelectProps) {
+  const { t } = useI18n();
   return (
     <div className="grid gap-1.5">
       <div className="flex items-center justify-between">
@@ -345,7 +348,7 @@ function DropdownMultiSelect({
               onClick={onClear}
               className="text-xs"
             >
-              Clear selection
+              {t("inboxTaskProcessForm.clearSelection")}
             </DropdownMenuItem>
             <div className="max-h-64 overflow-y-auto">
               {candidates.length === 0 ? (

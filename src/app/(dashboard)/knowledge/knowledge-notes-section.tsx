@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -68,6 +69,7 @@ export function KnowledgeNotesSection({
   onRestore,
   onDelete,
 }: KnowledgeNotesSectionProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const [notesTab, setNotesTab] = useState<NoteView>(NOTE_VIEW.ALL);
 
@@ -93,7 +95,7 @@ export function KnowledgeNotesSection({
     }
     return Array.from(grouped.entries()).map(([id, ns]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Area" : (areaNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noArea") : (areaNames.get(id) ?? id),
       notes: ns,
     }));
   };
@@ -111,7 +113,7 @@ export function KnowledgeNotesSection({
     }
     return Array.from(grouped.entries()).map(([id, ns]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Goal" : (goalNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noGoal") : (goalNames.get(id) ?? id),
       notes: ns,
     }));
   };
@@ -129,7 +131,7 @@ export function KnowledgeNotesSection({
     }
     return Array.from(grouped.entries()).map(([id, ns]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Project" : (projNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noProject") : (projNames.get(id) ?? id),
       notes: ns,
     }));
   };
@@ -144,7 +146,7 @@ export function KnowledgeNotesSection({
     }
     return Array.from(grouped.entries()).map(([id, ns]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Topic" : (topicNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noTopic") : (topicNames.get(id) ?? id),
       notes: ns,
     }));
   };
@@ -159,7 +161,7 @@ export function KnowledgeNotesSection({
     }
     return Array.from(grouped.entries()).map(([id, ns]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Notebook" : id,
+      groupName: id === "unassigned" ? t("common.noNotebook") : id,
       notes: ns,
     }));
   };
@@ -212,10 +214,10 @@ export function KnowledgeNotesSection({
     <section>
       <SectionHeader
         accentClass="bg-primary"
-        title="Notes"
+        title={t("nav.notes")}
         totalCount={notes.length}
-        description="Access and search your latest Notes."
-        buttonLabel="New Note"
+        description={t("knowledgeNotesSection.accessAndSearchYourLatestNotes")}
+        buttonLabel={t("action.newNote")}
         onNew={() => router.push(`/notes/new?returnTo=${encodeReturnTo("/knowledge")}`)}
       />
       <div className="mt-4">
@@ -225,18 +227,18 @@ export function KnowledgeNotesSection({
         >
           <TabsList className={NOTES_TABS_LIST_CLASS_NAME}>
             <TabsTrigger value={NOTE_VIEW.ALL} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">All</TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.INBOX} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><InboxIcon className="mr-1 size-3" />Inbox</TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.TO_REVIEW} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Clock className="mr-1 size-3" />To Review</TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.ACTIVE} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Zap className="mr-1 size-3" />Active</TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.PINNED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Pin className="mr-1 size-3" />Pinned</TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.FAVORITE} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Star className="mr-1 size-3" />Favorites</TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.BY_AREA} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><MapIcon className="mr-1 size-3" />By Area</TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.BY_GOAL} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Target className="mr-1 size-3" />By Goal</TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><FolderOpen className="mr-1 size-3" />By Project</TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.BY_TOPIC} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Tag className="mr-1 size-3" />By Topic</TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.BY_NOTEBOOK} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><BookOpen className="mr-1 size-3" />By Notebook</TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.COMPLETED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Bookmark className="mr-1 size-3" />Completed</TabsTrigger>
-            <TabsTrigger value={NOTE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Archive className="mr-1 size-3" />Archived</TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.INBOX} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><InboxIcon className="mr-1 size-3" />{t("nav.inbox")}</TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.TO_REVIEW} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Clock className="mr-1 size-3" />{t("notes.tabs.toReview")}</TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.ACTIVE} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Zap className="mr-1 size-3" />{t("goals.tabs.active")}</TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.PINNED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Pin className="mr-1 size-3" />{t("notes.tabs.pinned")}</TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.FAVORITE} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Star className="mr-1 size-3" />{t("knowledgeNotesSection.favorites")}</TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.BY_AREA} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><MapIcon className="mr-1 size-3" />{t("tasks.tabs.byArea")}</TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.BY_GOAL} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Target className="mr-1 size-3" />{t("tasks.tabs.byGoal")}</TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.BY_PROJECT} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><FolderOpen className="mr-1 size-3" />{t("tasks.tabs.byProject")}</TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.BY_TOPIC} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Tag className="mr-1 size-3" />{t("notes.tabs.byTopic")}</TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.BY_NOTEBOOK} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><BookOpen className="mr-1 size-3" />{t("notes.tabs.byNotebook")}</TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.COMPLETED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Bookmark className="mr-1 size-3" />{t("tasks.tabs.completed")}</TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.ARCHIVED} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Archive className="mr-1 size-3" />{t("areas.tabs.archived")}</TabsTrigger>
           </TabsList>
 
           {([
@@ -251,7 +253,7 @@ export function KnowledgeNotesSection({
           ] as NoteView[]).map((tab) => (
             <TabsContent key={tab} value={tab} className="mt-4">
               {notesLoading ? (
-                <div className="flex flex-col gap-1" aria-busy="true" role="status" aria-label="Loading notes">
+                <div className="flex flex-col gap-1" aria-busy="true" role="status" aria-label={t("knowledgeNotesSection.loadingNotes")}>
                   {Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className="flex items-center gap-3 px-4 py-2.5">
                       <div className="h-4 w-4 rounded bg-muted animate-pulse" />
@@ -263,9 +265,9 @@ export function KnowledgeNotesSection({
               ) : visibleNotes.length === 0 ? (
                 <EmptyState
                   icon={NotebookPen}
-                  title={`No ${tab.replace(/_/g, " ")} notes`}
-                  description="Try a different filter or create a new note."
-                  actionLabel="New Note"
+                  title={t("knowledgeNotesSection.noV0Notes", { v0: tab.replace(/_/g, " ") })}
+                  description={t("notes.empty.description")}
+                  actionLabel={t("action.newNote")}
                   onAction={openNoteCreate}
                 />
               ) : (
@@ -279,7 +281,7 @@ export function KnowledgeNotesSection({
               groups={noteGroupsByArea()}
               renderNote={(n) => renderNoteRow(n)}
               onNewNote={(groupId) => router.push(`/notes/new?areaId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
-              emptyMessage="Notes will be grouped by area here."
+              emptyMessage={t("notes.group.byArea")}
             />
           </TabsContent>
           <TabsContent value={NOTE_VIEW.BY_GOAL} className="mt-4">
@@ -287,7 +289,7 @@ export function KnowledgeNotesSection({
               groups={noteGroupsByGoal()}
               renderNote={(n) => renderNoteRow(n)}
               onNewNote={(groupId) => router.push(`/notes/new?goalId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
-              emptyMessage="Notes will be grouped by goal here."
+              emptyMessage={t("notes.group.byGoal")}
             />
           </TabsContent>
           <TabsContent value={NOTE_VIEW.BY_PROJECT} className="mt-4">
@@ -295,7 +297,7 @@ export function KnowledgeNotesSection({
               groups={noteGroupsByProject()}
               renderNote={(n) => renderNoteRow(n)}
               onNewNote={(groupId) => router.push(`/notes/new?projectId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
-              emptyMessage="Notes will be grouped by project here."
+              emptyMessage={t("notes.group.byProject")}
             />
           </TabsContent>
           <TabsContent value={NOTE_VIEW.BY_TOPIC} className="mt-4">
@@ -303,7 +305,7 @@ export function KnowledgeNotesSection({
               groups={noteGroupsByTopic()}
               renderNote={(n) => renderNoteRow(n)}
               onNewNote={(groupId) => router.push(`/notes/new?topicId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
-              emptyMessage="Notes will be grouped by topic here."
+              emptyMessage={t("notes.group.byTopic")}
             />
           </TabsContent>
           <TabsContent value={NOTE_VIEW.BY_NOTEBOOK} className="mt-4">
@@ -311,7 +313,7 @@ export function KnowledgeNotesSection({
               groups={noteGroupsByNotebook()}
               renderNote={(n) => renderNoteRow(n)}
               onNewNote={(groupId) => router.push(`/notes/new?notebook=${encodeURIComponent(groupId)}&returnTo=${encodeReturnTo("/knowledge")}`)}
-              emptyMessage="Notes will be grouped by notebook here."
+              emptyMessage={t("notes.group.byNotebook")}
             />
           </TabsContent>
         </Tabs>

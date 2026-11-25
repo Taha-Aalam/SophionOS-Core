@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
@@ -91,6 +92,7 @@ const NoteEditor = dynamic(
 const AUTOSAVE_DELAY_MS = 1000;
 
 export function NoteDetailContent() {
+  const { t } = useI18n();
   const params = useParams();
   const router = useRouter();
   const noteId = params.id as string;
@@ -259,7 +261,7 @@ export function NoteDetailContent() {
   if (noteError) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-16">
-        <ErrorState message="Failed to load this note." onRetry={() => refetchNote()} />
+        <ErrorState message={t("noteDetailContent.failedToLoadThisNote")} onRetry={() => refetchNote()} />
       </div>
     );
   }
@@ -273,9 +275,9 @@ export function NoteDetailContent() {
       <div className="flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
         <EmptyState
           icon={NotebookPen}
-          title="Note not found"
-          description="This note may have been deleted or you don't have access to it."
-          actionLabel="Back to Notes"
+          title={t("noteDetailContent.noteNotFound")}
+          description={t("noteDetailContent.thisNoteMayHaveBeenDeletedOrYouDontHaveAcc")}
+          actionLabel={t("noteDetailContent.backToNotes")}
           onAction={() => router.push("/notes")}
         />
       </div>
@@ -315,11 +317,11 @@ export function NoteDetailContent() {
   const renderMetadataTimestamps = () => (
     <div className="mt-auto space-y-1 border-t border-border pt-4 text-xs text-muted-foreground">
       <p>
-        Created{" "}
+        {t("noteDetailContent.created")}{" "}
         {formatDateLong(note.created_at)}
       </p>
       <p>
-        Updated{" "}
+        {t("noteDetailContent.updated")}{" "}
         {formatDateLong(note.updated_at)}
       </p>
     </div>
@@ -330,11 +332,11 @@ export function NoteDetailContent() {
       {/* Header: wraps so long breadcrumb pushes status + actions onto the next line */}
       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-2.5">
         <div className="flex min-w-0 max-w-full items-center gap-2">
-          <Button variant="ghost" size="icon-sm" onClick={() => router.push(noteBackHref)} aria-label="Back to notes">
+          <Button variant="ghost" size="icon-sm" onClick={() => router.push(noteBackHref)} aria-label={t("noteDetailContent.backToNotes")}>
             <ArrowLeft className="size-4" />
           </Button>
-          <span className="min-w-0 truncate text-sm text-muted-foreground" title={`/ Notes / ${note.name}`}>
-            / Notes / {note.name}
+          <span className="min-w-0 truncate text-sm text-muted-foreground" title={t("noteDetailContent.notesV0", { v0: note.name })}>
+            {t("noteDetailContent.notes")} {note.name}
           </span>
         </div>
 
@@ -346,7 +348,7 @@ export function NoteDetailContent() {
           {/* Desktop: pinned bubble when pinned. Mobile: pin toggle matching notes list row */}
           {note.pin && (
             <Badge variant="outline" className="hidden text-xs gap-1 md:inline-flex">
-              <Pin className="size-2.5" /> Pinned
+              <Pin className="size-2.5" /> {t("notes.tabs.pinned")}
             </Badge>
           )}
           <button
@@ -365,8 +367,8 @@ export function NoteDetailContent() {
             <Pin className={cn("size-3.5", note.pin && "fill-current")} />
           </button>
 
-          {saveState === "saving" && <span className="text-xs" role="status" aria-live="polite">Saving…</span>}
-          {saveState === "saved" && <span className="text-xs text-green-600 dark:text-green-400" role="status" aria-live="polite">Saved</span>}
+          {saveState === "saving" && <span className="text-xs" role="status" aria-live="polite">{t("preferences.saving")}</span>}
+          {saveState === "saved" && <span className="text-xs text-green-600 dark:text-green-400" role="status" aria-live="polite">{t("noteDetailContent.saved")}</span>}
 
           {/* Mobile: edit icon opens bottom metadata. Desktop: panel toggle for side rail */}
           <Button
@@ -374,8 +376,8 @@ export function NoteDetailContent() {
             size="icon-sm"
             className="md:hidden"
             onClick={() => setIsMetadataOpen((open) => !open)}
-            aria-label={isMetadataOpen ? "Hide metadata" : "Edit metadata"}
-            title={isMetadataOpen ? "Hide metadata" : "Edit metadata"}
+            aria-label={isMetadataOpen ? t("noteDetailContent.hideMetadata") : t("noteDetailContent.editMetadata")}
+            title={isMetadataOpen ? t("noteDetailContent.hideMetadata2") : t("noteDetailContent.editMetadata2")}
             aria-expanded={isMetadataOpen}
           >
             <Pencil className="size-4" />
@@ -385,8 +387,8 @@ export function NoteDetailContent() {
             size="icon-sm"
             className="hidden md:inline-flex"
             onClick={() => setIsMetadataOpen((open) => !open)}
-            aria-label={isMetadataOpen ? "Hide metadata" : "Show metadata"}
-            title={isMetadataOpen ? "Hide metadata" : "Show metadata"}
+            aria-label={isMetadataOpen ? t("noteDetailContent.hideMetadata3") : t("noteDetailContent.showMetadata")}
+            title={isMetadataOpen ? t("noteDetailContent.hideMetadata4") : t("noteDetailContent.showMetadata2")}
           >
             {isMetadataOpen ? (
               <PanelRightClose className="size-4" />
@@ -454,25 +456,25 @@ export function NoteDetailContent() {
             value={localTitle}
             onChange={(e) => setLocalTitle(e.target.value)}
             onBlur={handleTitleBlur}
-            placeholder="Note title"
+            placeholder={t("noteDetailContent.noteTitle")}
             className="mb-4 w-full bg-transparent text-2xl font-bold tracking-tight font-heading outline-none placeholder:text-muted-foreground/50"
           />
           <NoteEditor
             content={note.content}
             onChange={handleContentChange}
-            placeholder="Start writing your note…"
+            placeholder={t("noteDetailContent.startWritingYourNote")}
             className="flex-1"
           />
 
           <div className="mt-8 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Related Notes</h3>
+              <h3 className="text-sm font-semibold">{t("noteDetailContent.relatedNotes")}</h3>
               <Button variant="outline" size="sm" onClick={() => setLinkDialogOpen(true)}>
-                <Link2 className="mr-1.5 size-3.5" />Link to Notebook
+                <Link2 className="mr-1.5 size-3.5" />{t("noteDetailContent.linkToNotebook")}
               </Button>
             </div>
             {relatedGroups.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No related notes yet.</p>
+              <p className="text-sm text-muted-foreground">{t("noteDetailContent.noRelatedNotesYet")}</p>
             ) : (
               relatedGroups.map((group) => (
                 <div key={group.notebook} className="space-y-2">
@@ -506,8 +508,8 @@ export function NoteDetailContent() {
                             e.stopPropagation();
                             removeFromNotebook.mutate({ noteId: rn.id, notebook: group.notebook });
                           }}
-                          title={`Remove from ${group.notebook}`}
-                          aria-label={`Remove from ${group.notebook}`}
+                          title={t("noteDetailContent.removeFromV0", { v0: group.notebook })}
+                          aria-label={t("noteDetailContent.removeFromV02", { v0: group.notebook })}
                         >
                           <X className="size-3.5" />
                         </button>
@@ -521,9 +523,9 @@ export function NoteDetailContent() {
 
           {/* Mobile: metadata stacks below content (same pattern as new note page) */}
           {isMetadataOpen && (
-            <aside className="mt-8 rounded-lg border p-4 md:hidden" aria-label="Note metadata">
+            <aside className="mt-8 rounded-lg border p-4 md:hidden" aria-label={t("noteDetailContent.noteMetadata")}>
               <p className="mb-4 text-xs font-semibold text-muted-foreground">
-                Metadata
+                {t("noteDetailContent.metadata")}
               </p>
               {renderMetadataPanel()}
               {renderMetadataTimestamps()}
@@ -540,7 +542,7 @@ export function NoteDetailContent() {
         >
           <div className="flex h-full w-72 flex-col gap-5 overflow-y-auto p-4">
             <p className="text-xs font-semibold text-muted-foreground">
-              Metadata
+              {t("noteDetailContent.metadata2")}
             </p>
 
             {renderMetadataPanel()}
@@ -584,6 +586,7 @@ function LinkToNotebookDialog({
   candidateNotes: Note[];
   onSubmit: (notebook: string, noteIds: string[]) => void;
 }) {
+  const { t } = useI18n();
   const [notebook, setNotebook] = useState<string>("");
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -619,14 +622,14 @@ function LinkToNotebookDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Link notes to a notebook</DialogTitle>
+          <DialogTitle>{t("noteDetailContent.linkNotesToANotebook")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Notebook</Label>
+            <Label className="text-xs text-muted-foreground">{t("noteDetailContent.notebook")}</Label>
             <Select value={notebook} onValueChange={(v) => setNotebook(v ?? "")}>
               <SelectTrigger className="h-9">
-                <SelectValue placeholder="Select a notebook" />
+                <SelectValue placeholder={t("noteDetailContent.selectANotebook")} />
               </SelectTrigger>
               <SelectContent>
                 {notebookOptions.map((nb) => (
@@ -636,11 +639,11 @@ function LinkToNotebookDialog({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Notes to add</Label>
+            <Label className="text-xs text-muted-foreground">{t("noteDetailContent.notesToAdd")}</Label>
             <Command shouldFilter={false} className="rounded-md border">
-              <CommandInput placeholder="Search notes…" value={query} onValueChange={setQuery} />
+              <CommandInput placeholder={t("noteDetailContent.searchNotes")} value={query} onValueChange={setQuery} />
               <CommandList className="max-h-72">
-                <CommandEmpty>No notes found.</CommandEmpty>
+                <CommandEmpty>{t("noteDetailContent.noNotesFound")}</CommandEmpty>
                 <CommandGroup>
                   {filtered.map((n) => (
                     <CommandItem key={n.id} value={n.id} onSelect={() => togglePick(n.id)} className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useMemo, useState } from "react";
 import { BookOpen, Check, ChevronDownIcon, Map, Pin, Star, Target, X } from "lucide-react";
@@ -117,6 +118,7 @@ export function NoteMetadataPanel({
   onPinChange,
   disabled,
 }: NoteMetadataPanelProps) {
+  const { t } = useI18n();
   const activeAreas = useMemo(() => areas.filter((a) => !a.archive), [areas]);
   const activeGoals = useMemo(
     () => goals.filter((g) => !g.is_archived).sort((a, b) => a.name.localeCompare(b.name)),
@@ -322,7 +324,7 @@ export function NoteMetadataPanel({
   return (
     <div className="space-y-5">
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Status</Label>
+        <Label className="text-xs text-muted-foreground">{t("noteMetadataPanel.status")}</Label>
         <Select value={status} onValueChange={(v) => onStatusChange(v as NoteStatus)} disabled={disabled}>
           <SelectTrigger className="h-8 w-full text-sm">
             <SelectValue />
@@ -338,7 +340,7 @@ export function NoteMetadataPanel({
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Type</Label>
+        <Label className="text-xs text-muted-foreground">{t("noteMetadataPanel.type")}</Label>
         <NoteTypeCombobox
           value={type}
           options={noteTypes}
@@ -375,7 +377,7 @@ export function NoteMetadataPanel({
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">
           <BookOpen className="mr-1 inline size-3" />
-          Notebooks
+          {t("noteMetadataPanel.notebooks")}
         </Label>
         <NotebookSelector
           options={notebookOptions}
@@ -393,7 +395,7 @@ export function NoteMetadataPanel({
                   type="button"
                   onClick={() => onNotebooksChange(notebooks.filter((n) => n !== nb))}
                   className="rounded-full p-0.5 hover:bg-muted"
-                  aria-label={`Remove notebook ${nb}`}
+                  aria-label={t("noteMetadataPanel.removeNotebookV0", { v0: nb })}
                 >
                   <X className="size-3" />
                 </button>
@@ -406,7 +408,7 @@ export function NoteMetadataPanel({
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">
           <Map className="mr-1 inline size-3" />
-          Areas
+          {t("nav.areas")}
         </Label>
         <AreaSelector
           areas={filteredAreas}
@@ -424,7 +426,7 @@ export function NoteMetadataPanel({
                   type="button"
                   onClick={() => toggleArea(area.id)}
                   className="rounded-full p-0.5 hover:bg-muted"
-                  aria-label={`Remove area ${area.name}`}
+                  aria-label={t("noteMetadataPanel.removeAreaV0", { v0: area.name })}
                 >
                   <X className="size-3" />
                 </button>
@@ -437,7 +439,7 @@ export function NoteMetadataPanel({
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">
           <Target className="mr-1 inline size-3" />
-          Goals
+          {t("nav.goals")}
         </Label>
         <GoalSelector
           goals={filteredGoals}
@@ -454,7 +456,7 @@ export function NoteMetadataPanel({
                   type="button"
                   onClick={() => toggleGoal(goal.id)}
                   className="rounded-full p-0.5 hover:bg-muted"
-                  aria-label={`Remove goal ${goal.name}`}
+                  aria-label={t("noteMetadataPanel.removeGoalV0", { v0: goal.name })}
                 >
                   <X className="size-3" />
                 </button>
@@ -465,7 +467,7 @@ export function NoteMetadataPanel({
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Projects</Label>
+        <Label className="text-xs text-muted-foreground">{t("nav.projects")}</Label>
         <ProjectSelector
           projects={filteredProjects}
           selectedIds={projectIds}
@@ -481,7 +483,7 @@ export function NoteMetadataPanel({
                   type="button"
                   onClick={() => toggleProject(project.id)}
                   className="rounded-full p-0.5 hover:bg-muted"
-                  aria-label={`Remove project ${project.name}`}
+                  aria-label={t("noteMetadataPanel.removeProjectV0", { v0: project.name })}
                 >
                   <X className="size-3" />
                 </button>
@@ -492,7 +494,7 @@ export function NoteMetadataPanel({
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Tasks</Label>
+        <Label className="text-xs text-muted-foreground">{t("nav.tasks")}</Label>
         <NoteTaskSelector
           tasks={filteredTasks}
           selectedIds={taskIds}
@@ -503,7 +505,7 @@ export function NoteMetadataPanel({
 
       {topics.length > 0 && onTopicIdChange && (
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Topic</Label>
+          <Label className="text-xs text-muted-foreground">{t("noteMetadataPanel.topic")}</Label>
           <TopicSelector
             topics={topics}
             selectedId={topicId ?? null}
@@ -522,7 +524,7 @@ export function NoteMetadataPanel({
                       type="button"
                       onClick={() => onTopicIdChange(null)}
                       className="rounded-full p-0.5 hover:bg-muted"
-                      aria-label={`Remove topic ${selected.name}`}
+                      aria-label={t("noteMetadataPanel.removeTopicV0", { v0: selected.name })}
                     >
                       <X className="size-3" />
                     </button>
@@ -548,6 +550,7 @@ function AreaSelector({
   onToggle: (id: string) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -566,15 +569,15 @@ function AreaSelector({
         className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
       >
         <span className="truncate">
-          {selectedIds.length === 0 ? "Select areas..." : `${selectedIds.length} selected`}
+          {selectedIds.length === 0 ? t("noteMetadataPanel.selectAreas") : `${selectedIds.length} selected`}
         </span>
         <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search areas..." value={query} onValueChange={setQuery} />
+          <CommandInput placeholder={t("noteMetadataPanel.searchAreas")} value={query} onValueChange={setQuery} />
           <CommandList className="max-h-56 overflow-y-auto">
-            <CommandEmpty>No areas found.</CommandEmpty>
+            <CommandEmpty>{t("noteMetadataPanel.noAreasFound")}</CommandEmpty>
             <CommandGroup>
               {filtered.map((area) => (
                 <CommandItem
@@ -610,6 +613,7 @@ function GoalSelector({
   onToggle: (id: string) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -628,15 +632,15 @@ function GoalSelector({
         className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
       >
         <span className="truncate">
-          {selectedIds.length === 0 ? "Select goals..." : `${selectedIds.length} selected`}
+          {selectedIds.length === 0 ? t("noteMetadataPanel.selectGoals") : `${selectedIds.length} selected`}
         </span>
         <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-72 p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search goals..." value={query} onValueChange={setQuery} />
+          <CommandInput placeholder={t("noteMetadataPanel.searchGoals")} value={query} onValueChange={setQuery} />
           <CommandList className="max-h-56 overflow-y-auto">
-            <CommandEmpty>No goals found.</CommandEmpty>
+            <CommandEmpty>{t("noteMetadataPanel.noGoalsFound")}</CommandEmpty>
             <CommandGroup>
               {filtered.map((goal) => (
                 <CommandItem
@@ -672,6 +676,7 @@ function TopicSelector({
   onChange: (id: string | null) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -695,16 +700,16 @@ function TopicSelector({
       >
         <span className="truncate">
           {!selectedId
-            ? "Select topic..."
-            : (topics.find((t) => t.id === selectedId)?.name ?? "Select topic...")}
+            ? t("noteMetadataPanel.selectTopic")
+            : (topics.find((t) => t.id === selectedId)?.name ?? t("noteMetadataPanel.selectTopic2"))}
         </span>
         <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search topics..." value={query} onValueChange={setQuery} />
+          <CommandInput placeholder={t("noteMetadataPanel.searchTopics")} value={query} onValueChange={setQuery} />
           <CommandList className="max-h-56 overflow-y-auto">
-            <CommandEmpty>No topics found.</CommandEmpty>
+            <CommandEmpty>{t("noteMetadataPanel.noTopicsFound")}</CommandEmpty>
             <CommandGroup>
               {filtered.map((topic) => (
                 <CommandItem
@@ -737,6 +742,7 @@ function ProjectSelector({
   onToggle: (id: string) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -755,15 +761,15 @@ function ProjectSelector({
         className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
       >
         <span className="truncate">
-          {selectedIds.length === 0 ? "Select projects..." : `${selectedIds.length} selected`}
+          {selectedIds.length === 0 ? t("noteMetadataPanel.selectProjects") : `${selectedIds.length} selected`}
         </span>
         <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search projects..." value={query} onValueChange={setQuery} />
+          <CommandInput placeholder={t("noteMetadataPanel.searchProjects")} value={query} onValueChange={setQuery} />
           <CommandList className="max-h-56 overflow-y-auto">
-            <CommandEmpty>No projects found.</CommandEmpty>
+            <CommandEmpty>{t("noteMetadataPanel.noProjectsFound")}</CommandEmpty>
             <CommandGroup>
               {filtered.map((project) => (
                 <CommandItem
@@ -796,6 +802,7 @@ function NotebookSelector({
   onChange: (notebooks: string[]) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const selectedSet = useMemo(() => new Set(selected), [selected]);
@@ -827,13 +834,13 @@ function NotebookSelector({
         className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
       >
         <span className="truncate">
-          {selected.length === 0 ? "Select or create notebook..." : `${selected.length} selected`}
+          {selected.length === 0 ? t("noteMetadataPanel.selectOrCreateNotebook") : `${selected.length} selected`}
         </span>
         <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search or create..." value={query} onValueChange={setQuery} />
+          <CommandInput placeholder={t("noteMetadataPanel.searchOrCreate")} value={query} onValueChange={setQuery} />
           <CommandList className="max-h-56 overflow-y-auto">
             {canCreate && (
               <CommandGroup>
@@ -845,11 +852,11 @@ function NotebookSelector({
                   }}
                 >
                   <BookOpen className="mr-2 size-3.5" />
-                  Create &ldquo;{trimmed}&rdquo;
+                  {t("noteMetadataPanel.createLdquo")}{trimmed}{t("noteMetadataPanel.rdquo")}
                 </CommandItem>
               </CommandGroup>
             )}
-            <CommandEmpty>No notebooks found.</CommandEmpty>
+            <CommandEmpty>{t("noteMetadataPanel.noNotebooksFound")}</CommandEmpty>
             <CommandGroup>
               {filtered.map((nb) => (
                 <CommandItem key={nb} value={nb} onSelect={() => toggle(nb)} className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { CheckSquare, Target, FolderOpen, Map } from "lucide-react";
 
@@ -41,11 +42,12 @@ function ActivityIcon({ type }: { type: ActivityEntityType }) {
 }
 
 export function ActivityFeed({ items }: ActivityFeedProps) {
+  const { t } = useI18n();
   if (items.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-muted p-6 text-center">
         <p className="text-sm text-muted-foreground">
-          No activity yet. Create your first task or goal to get started.
+          {t("activityFeed.noActivityYetCreateYourFirstTaskOrGoalToGe")}
         </p>
       </div>
     );

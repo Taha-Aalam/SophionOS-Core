@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { memo } from "react";
 import {
@@ -82,6 +83,7 @@ export function TaskListItemComponent({
   onPermanentDelete,
   onDelete,
 }: TaskListItemProps) {
+  const { t } = useI18n();
   const displayAreaNames = linkedAreaNames && linkedAreaNames.length > 0 ? linkedAreaNames : (areaName ? [areaName] : []);
   const displayGoalNames = linkedGoalNames && linkedGoalNames.length > 0 ? linkedGoalNames : (goalName ? [goalName] : []);
   const displayProjectNames = linkedProjectNames && linkedProjectNames.length > 0 ? linkedProjectNames : (projectName ? [projectName] : []);
@@ -200,7 +202,7 @@ export function TaskListItemComponent({
             ? "text-yellow-500"
             : "text-muted-foreground/40 hover:text-yellow-400",
         )}
-        aria-label={task.is_focused ? "Remove from focus" : "Add to focus"}
+        aria-label={task.is_focused ? t("taskListItem.removeFromFocus") : t("taskListItem.addToFocus")}
       >
         <Star className={cn("size-3.5", task.is_focused && "fill-current")} />
       </button>
@@ -213,7 +215,7 @@ export function TaskListItemComponent({
               onEdit(task);
             }}
             className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Edit task"
+            aria-label={t("taskListItem.editTask")}
           >
             <Pencil className="size-3.5" />
           </button>

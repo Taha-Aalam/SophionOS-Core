@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useMemo } from "react";
 import { FileText, Link as LinkIcon, LucideIcon, Plus } from "lucide-react";
@@ -65,8 +66,10 @@ export function GoalDetailSection({
   onCreateNew,
   createLabel = "New",
   onLinkExisting,
-  linkLabel = "Link Existing",
+  linkLabel,
 }: GoalDetailSectionProps) {
+  const { t } = useI18n();
+  const linkLabelText = linkLabel ?? t("goalDetailSection.linkExisting");
   const accentColor = ACCENT_COLORS[entityType] ?? "bg-primary";
 
   const tabCountMap = useMemo(() => {
@@ -99,7 +102,7 @@ export function GoalDetailSection({
           {/* Totals are desktop-only; hidden below sm (mobile) */}
           {showTotal && (
             <span className="hidden text-sm text-muted-foreground sm:inline">
-              {activeTabCount ?? 0} total
+              {activeTabCount ?? 0} {t("goalDetailSection.total")}
             </span>
           )}
         </div>
@@ -113,7 +116,7 @@ export function GoalDetailSection({
                 className="gap-1.5"
               >
                 <LinkIcon className="size-3.5" />
-                {linkLabel}
+                {linkLabelText}
               </Button>
             )}
             {onCreateNew && (

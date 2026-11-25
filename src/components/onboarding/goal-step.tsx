@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ export function GoalStep({
   value: GoalStepValue;
   onChange: (value: GoalStepValue) => void;
 }) {
+  const { t } = useI18n();
   const { data: areas, isLoading, isError } = useAreas();
 
   function patch(partial: Partial<GoalStepValue>) {
@@ -54,10 +56,10 @@ export function GoalStep({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="onboarding-goal-name">Goal name</Label>
+        <Label htmlFor="onboarding-goal-name">{t("goalStep.goalName")}</Label>
         <Input
           id="onboarding-goal-name"
-          placeholder="e.g. Run a half marathon"
+          placeholder={t("goalStep.egRunAHalfMarathon")}
           value={value.name}
           onChange={(e) => patch({ name: e.target.value })}
           autoFocus
@@ -65,11 +67,11 @@ export function GoalStep({
       </div>
       <div className="space-y-2">
         <Label htmlFor="onboarding-goal-description">
-          Why it matters <span className="text-muted-foreground">(optional)</span>
+          {t("goalStep.whyItMatters")} <span className="text-muted-foreground">{t("goalStep.optional")}</span>
         </Label>
         <Textarea
           id="onboarding-goal-description"
-          placeholder="A sentence on what success looks like."
+          placeholder={t("goalStep.aSentenceOnWhatSuccessLooksLike")}
           value={value.description}
           onChange={(e) => patch({ description: e.target.value })}
           rows={3}
@@ -78,7 +80,7 @@ export function GoalStep({
 
       {/* Area linking */}
       <div className="space-y-2">
-        <Label>Link to area <span className="text-muted-foreground">(optional)</span></Label>
+        <Label>{t("goalStep.linkToArea")} <span className="text-muted-foreground">{t("goalStep.optional2")}</span></Label>
         {isLoading ? (
           <div className="flex flex-wrap gap-2">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -86,9 +88,9 @@ export function GoalStep({
             ))}
           </div>
         ) : isError ? (
-          <p className="text-sm text-destructive">Failed to load areas. You can continue and link areas later.</p>
+          <p className="text-sm text-destructive">{t("goalStep.failedToLoadAreasYouCanContinueAndLinkArea")}</p>
         ) : (
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Link to area">
+        <div className="flex flex-wrap gap-2" role="group" aria-label={t("goalStep.linkToArea2")}>
           {areas?.map((area) => {
             const selected = value.area_ids.includes(area.id);
             return (
@@ -121,13 +123,13 @@ export function GoalStep({
 
       {/* Term */}
       <div className="space-y-2">
-        <Label>Term <span className="text-muted-foreground">(optional)</span></Label>
+        <Label>{t("goalStep.term")} <span className="text-muted-foreground">{t("goalStep.optional3")}</span></Label>
         <Select
           value={value.term || EMPTY}
           onValueChange={(v) => patch({ term: v === EMPTY ? "" : (v as GoalTerm) })}
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select term" />
+            <SelectValue placeholder={t("goalStep.selectTerm")} />
           </SelectTrigger>
           <SelectContent>
             {(Object.entries(GOAL_TERM_LABELS) as [GoalTerm, string][]).map(
@@ -143,13 +145,13 @@ export function GoalStep({
 
       {/* Priority */}
       <div className="space-y-2">
-        <Label>Priority <span className="text-muted-foreground">(optional)</span></Label>
+        <Label>{t("goalStep.priority")} <span className="text-muted-foreground">{t("goalStep.optional4")}</span></Label>
         <Select
           value={value.priority || EMPTY}
           onValueChange={(v) => patch({ priority: v === EMPTY ? "" : (v as Priority) })}
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select priority" />
+            <SelectValue placeholder={t("goalStep.selectPriority")} />
           </SelectTrigger>
           <SelectContent>
             {(Object.entries(PRIORITY_LABELS) as [Priority, string][]).map(
@@ -165,7 +167,7 @@ export function GoalStep({
 
       {/* Target date */}
       <div className="space-y-2">
-        <Label>Target date <span className="text-muted-foreground">(optional)</span></Label>
+        <Label>{t("goalStep.targetDate")} <span className="text-muted-foreground">{t("goalStep.optional5")}</span></Label>
         <DatePicker
           value={value.target_date}
           onChange={(v) => patch({ target_date: v })}

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
@@ -37,6 +38,7 @@ function parseMultiValue(param: string | null): string[] {
 }
 
 export default function NewNotePage() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -133,7 +135,7 @@ export default function NewNotePage() {
 
   const handleSave = async () => {
     const note = await createNote.mutateAsync({
-      name: name.trim() || "Untitled note",
+      name: name.trim() || t("page.untitledNote"),
       content: content || null,
       status,
       type,
@@ -169,11 +171,11 @@ export default function NewNotePage() {
           <Button variant="ghost" size="icon-sm" onClick={() => router.push(noteBackHref)}>
             <ArrowLeft className="size-4" />
           </Button>
-          <h1 className="text-xl font-bold tracking-tight font-heading">New Note</h1>
+          <h1 className="text-xl font-bold tracking-tight font-heading">{t("action.newNote")}</h1>
         </div>
         <Button onClick={handleSave} disabled={createNote.isPending} className="gap-2">
           <Save className="size-4" />
-          Save Note
+          {t("page.saveNote")}
         </Button>
       </div>
 
@@ -182,13 +184,13 @@ export default function NewNotePage() {
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Note title"
+            placeholder={t("page.noteTitle")}
             className="h-10 text-lg font-semibold"
           />
           <NoteEditor
             content={content}
             onChange={setContent}
-            placeholder="Start writing your note…"
+            placeholder={t("page.startWritingYourNote")}
             className="min-h-[400px] flex-1"
           />
         </div>

@@ -1,3 +1,6 @@
+"use client";
+
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cardGrid, contentColumnGrid, sectionGap } from "@/components/ui/layout";
 import { cn } from "@/lib/utils";
@@ -102,12 +105,13 @@ export function DashboardAnalyticsSkeleton() {
 }
 
 export function DashboardPageSkeleton() {
+  const { t } = useI18n();
   return (
     <div
       className={cn("reveal-stagger flex flex-col", contentColumnGrid, sectionGap)}
       aria-busy="true"
       role="status"
-      aria-label="Loading dashboard"
+      aria-label={t("dashboardPageSkeleton.loadingDashboard")}
     >
       {/* GreetingBar — title + subtitle */}
       <div className="space-y-1.5">
@@ -116,7 +120,7 @@ export function DashboardPageSkeleton() {
       </div>
 
       {/* Analytics block */}
-      <section className="min-w-0" aria-label="Dashboard analytics">
+      <section className="min-w-0" aria-label={t("dashboardPageSkeleton.dashboardAnalytics")}>
         <DashboardAnalyticsSkeleton />
       </section>
 

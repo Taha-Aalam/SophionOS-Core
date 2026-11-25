@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { memo, useMemo, type CSSProperties } from "react";
 
@@ -72,6 +73,7 @@ function cellStyle(level: 0 | 1 | 2 | 3 | 4, options?: { invisible?: boolean }):
  * month labels, weekday labels, Less/More legend. Cells scale to panel width.
  */
 function ActivityHeatmapImpl({ heatmap }: ActivityHeatmapProps) {
+  const { t } = useI18n();
   const days = heatmap.days;
   const { max, cells, weekCount, months, activeDays } = useMemo(() => {
     let peak = 1;
@@ -93,8 +95,8 @@ function ActivityHeatmapImpl({ heatmap }: ActivityHeatmapProps) {
 
   return (
     <AnalyticsPanel
-      title="Activity Map (Last Year)"
-      description={`${activeDays} active day${activeDays === 1 ? "" : "s"} across the last year`}
+      title={t("activityHeatmap.activityMapLastYear")}
+      description={t("activityHeatmap.v0ActiveDayv1AcrossTheLastYear", { v0: activeDays, v1: activeDays === 1 ? "" : "s" })}
       icon={CalendarDaysIcon}
       className="h-full"
       contentClassName="flex h-full flex-col"
@@ -138,7 +140,7 @@ function ActivityHeatmapImpl({ heatmap }: ActivityHeatmapProps) {
           <div className="min-w-0 flex-1">
             <div
               className="grid w-full"
-              aria-label="Daily activity heatmap"
+              aria-label={t("activityHeatmap.dailyActivityHeatmap")}
               data-week-count={weekCount}
               data-day-count={days.length}
               style={{
@@ -191,7 +193,7 @@ function ActivityHeatmapImpl({ heatmap }: ActivityHeatmapProps) {
           className="mt-1 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground"
           aria-hidden="true"
         >
-          <span>Less</span>
+          <span>{t("activityHeatmap.less")}</span>
           {([0, 1, 2, 3, 4] as const).map((level) => (
             <span
               key={level}
@@ -204,7 +206,7 @@ function ActivityHeatmapImpl({ heatmap }: ActivityHeatmapProps) {
               data-legend-level={level}
             />
           ))}
-          <span>More</span>
+          <span>{t("activityHeatmap.more")}</span>
         </div>
       </div>
     </AnalyticsPanel>

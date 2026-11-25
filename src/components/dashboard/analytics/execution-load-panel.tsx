@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { ChartColumnIncreasingIcon } from "@/components/icons";
 
@@ -14,6 +15,7 @@ interface ExecutionLoadPanelProps {
 }
 
 export function ExecutionLoadPanel({ load }: ExecutionLoadPanelProps) {
+  const { t } = useI18n();
   const max = Math.max(
     1,
     load.today,
@@ -36,12 +38,12 @@ export function ExecutionLoadPanel({ load }: ExecutionLoadPanelProps) {
       valueClassName: "text-analytics-risk",
     },
     { label: "Focus", value: load.focus, tone: "accent" },
-    { label: "In progress", value: load.inProgress, tone: "action" },
-    { label: "Completed this week", value: load.completedThisWeek, tone: "success" },
+    { label: t("executionLoadPanel.inProgress"), value: load.inProgress, tone: "action" },
+    { label: t("executionLoadPanel.completedThisWeek"), value: load.completedThisWeek, tone: "success" },
   ];
 
   return (
-    <AnalyticsPanel title="Execution Load" icon={ChartColumnIncreasingIcon}>
+    <AnalyticsPanel title={t("executionLoadPanel.executionLoad")} icon={ChartColumnIncreasingIcon}>
       <div className="space-y-3.5" data-slot="execution-load-bars">
         {rows.map((row) => (
           <MetricBar

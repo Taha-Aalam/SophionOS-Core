@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect, useMemo, useRef } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
@@ -277,6 +278,7 @@ export function TaskDialog({
   onArchiveToggle,
   onPermanentDelete,
 }: TaskDialogProps) {
+  const { t } = useI18n();
   const isGoalScoped = Boolean(goalScoped) && !task;
   const isProjectScoped = Boolean(projectScoped) && !task && !isGoalScoped;
   const { data: allAreas = [], isLoading: isLoadingAreas } = useAreas();
@@ -716,7 +718,7 @@ export function TaskDialog({
             }
           }
 
-          toast.error("Please fix the errors in the form.");
+          toast.error(t("taskDialog.pleaseFixTheErrorsInTheForm"));
           return;
         }
 
@@ -742,28 +744,27 @@ export function TaskDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] sm:max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{task ? "Edit Task" : "Create Task"}</DialogTitle>
+          <DialogTitle>{task ? t("taskDialog.editTask") : t("taskDialog.createTask")}</DialogTitle>
           <DialogDescription>
-            Capture the task details, connect it to your PARA chain, and mark the right
-            urgency signals.
+            {t("taskDialog.captureTheTaskDetailsConnectItToYourParaCh")}
           </DialogDescription>
         </DialogHeader>
 
         <FormProvider {...form}>
           <form className="space-y-5" onSubmit={handleSubmit}>
             <FormItem>
-              <FormLabel>Task Name</FormLabel>
+              <FormLabel>{t("taskDialog.taskName")}</FormLabel>
               <FormControl>
-                <Input autoFocus placeholder="What needs to be done?" maxLength={255} {...form.register("name")} />
+                <Input autoFocus placeholder={t("taskDialog.whatNeedsToBeDone")} maxLength={255} {...form.register("name")} />
               </FormControl>
               <FormMessage>{form.formState.errors.name?.message}</FormMessage>
             </FormItem>
 
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t("taskDialog.description")}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Add context, notes, or the next action"
+                  placeholder={t("taskDialog.addContextNotesOrTheNextAction")}
                   rows={3}
                   maxLength={1000}
                   {...form.register("description")}
@@ -775,7 +776,7 @@ export function TaskDialog({
             {/* Row 1: Status (derived) | Priority */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormItem>
-                <FormLabel>Status</FormLabel>
+                <FormLabel>{t("taskDialog.status")}</FormLabel>
                 <Controller
                   control={form.control}
                   name="status"
@@ -787,10 +788,10 @@ export function TaskDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={TASK_STATUS.INBOX}>Inbox</SelectItem>
-                        <SelectItem value={TASK_STATUS.TODO}>To Do</SelectItem>
-                        <SelectItem value={TASK_STATUS.IN_PROGRESS}>In Progress</SelectItem>
-                        <SelectItem value={TASK_STATUS.COMPLETED}>Completed</SelectItem>
+                        <SelectItem value={TASK_STATUS.INBOX}>{t("nav.inbox")}</SelectItem>
+                        <SelectItem value={TASK_STATUS.TODO}>{t("taskDialog.toDo")}</SelectItem>
+                        <SelectItem value={TASK_STATUS.IN_PROGRESS}>{t("projects.tabs.inProgress")}</SelectItem>
+                        <SelectItem value={TASK_STATUS.COMPLETED}>{t("tasks.tabs.completed")}</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -799,7 +800,7 @@ export function TaskDialog({
               </FormItem>
 
               <FormItem>
-                <FormLabel>Priority</FormLabel>
+                <FormLabel>{t("taskDialog.priority")}</FormLabel>
                 <Controller
                   control={form.control}
                   name="priority"
@@ -812,8 +813,8 @@ export function TaskDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
-                        <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
-                        <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
+                        <SelectItem value={PRIORITY.MEDIUM}>{t("taskDialog.medium")}</SelectItem>
+                        <SelectItem value={PRIORITY.HIGH}>{t("taskDialog.high")}</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -824,7 +825,7 @@ export function TaskDialog({
 
             {/* Row 2: Due Date (full width) */}
             <FormItem>
-              <FormLabel>Due Date</FormLabel>
+              <FormLabel>{t("taskDialog.dueDate")}</FormLabel>
               <Controller
                 control={form.control}
                 name="due_date"
@@ -848,9 +849,9 @@ export function TaskDialog({
               {isGoalScoped ? (
                 <FormItem>
                   <div className="flex items-center justify-between gap-3">
-                    <FormLabel>Area</FormLabel>
+                    <FormLabel>{t("taskDialog.area")}</FormLabel>
                     {scopedAreas.length > 1 && selectedAreaIds.length > 0 && (
-                      <Badge variant="secondary">{selectedAreaIds.length} selected</Badge>
+                      <Badge variant="secondary">{selectedAreaIds.length} {t("taskDialog.selected")}</Badge>
                     )}
                   </div>
                   {(() => {
@@ -861,7 +862,7 @@ export function TaskDialog({
                           aria-readonly="true"
                           data-testid="task-dialog-area-locked"
                         >
-                          {isScopedAreasLoading ? "Loading area…" : "Inherited from goal"}
+                          {isScopedAreasLoading ? t("taskDialog.loadingArea") : t("taskDialog.inheritedFromGoal")}
                         </div>
                       );
                     }
@@ -922,14 +923,14 @@ export function TaskDialog({
               ) : isProjectScoped ? (
                 <FormItem>
                   <div className="flex items-center justify-between">
-                    <FormLabel>Areas</FormLabel>
+                    <FormLabel>{t("nav.areas")}</FormLabel>
                     {scopedAreas.length > 0 && (
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           className={buttonVariants({ variant: "outline", size: "sm" })}
                         >
                           {selectedAreaIds.length === 0
-                            ? "Select areas..."
+                            ? t("taskDialog.selectAreas")
                             : `${selectedAreaIds.length} selected`}
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-56 max-h-80">
@@ -939,7 +940,7 @@ export function TaskDialog({
                               form.setValue("area_ids", [], { shouldDirty: true });
                             }}
                           >
-                            Clear selection
+                            {t("taskDialog.clearSelection")}
                           </DropdownMenuItem>
                           <div className="max-h-64 overflow-y-auto">
                             {scopedAreas.map((area) => {
@@ -974,7 +975,7 @@ export function TaskDialog({
                       aria-readonly="true"
                       data-testid="task-dialog-area-locked"
                     >
-                      {isScopedAreasLoading ? "Loading area…" : "Inherited from project"}
+                      {isScopedAreasLoading ? t("taskDialog.loadingArea2") : t("taskDialog.inheritedFromProject")}
                     </div>
                   ) : selectedAreaIds.length > 0 ? (
                     <div className="flex flex-wrap gap-2 pt-2">
@@ -1008,13 +1009,13 @@ export function TaskDialog({
               ) : (
                 <FormItem>
                   <div className="flex items-center justify-between">
-                    <FormLabel>Areas</FormLabel>
+                    <FormLabel>{t("nav.areas")}</FormLabel>
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         className={buttonVariants({ variant: "outline", size: "sm" })}
                       >
                         {selectedAreaIds.length === 0
-                          ? "Select areas..."
+                          ? t("taskDialog.selectAreas2")
                           : `${selectedAreaIds.length} selected`}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-56 max-h-80">
@@ -1024,7 +1025,7 @@ export function TaskDialog({
                             form.setValue("area_ids", [], { shouldDirty: true });
                           }}
                         >
-                          Clear selection
+                          {t("taskDialog.clearSelection2")}
                         </DropdownMenuItem>
                         <div className="max-h-64 overflow-y-auto">
                           {visibleAreas.map((area) => {
@@ -1085,33 +1086,33 @@ export function TaskDialog({
               {/* Goals — compact dropdown (replaces ScrollArea) */}
               {isGoalScoped ? (
                 <FormItem>
-                  <FormLabel>Linked Goal</FormLabel>
+                  <FormLabel>{t("taskDialog.linkedGoal")}</FormLabel>
                   <div
                     className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
                     data-testid="task-dialog-goal-locked"
                   >
-                    Locked to current goal
-                    <Badge variant="secondary">1 linked</Badge>
+                    {t("taskDialog.lockedToCurrentGoal")}
+                    <Badge variant="secondary">{t("taskDialog.n1Linked")}</Badge>
                   </div>
                 </FormItem>
               ) : (
                 <FormItem>
                   <div className="flex items-center justify-between">
-                    <FormLabel>Goals</FormLabel>
+                    <FormLabel>{t("nav.goals")}</FormLabel>
                     <DropdownMenu>
                       <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                        {selectedGoalIds.length === 0 ? "Select goals..." : `${selectedGoalIds.length} selected`}
+                        {selectedGoalIds.length === 0 ? t("taskDialog.selectGoals") : `${selectedGoalIds.length} selected`}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-56 max-h-80">
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => form.setValue("goal_ids", [], { shouldDirty: true })}>
-                          Clear selection
+                          {t("taskDialog.clearSelection3")}
                         </DropdownMenuItem>
                         <div className="max-h-64 overflow-y-auto">
                           {visibleGoals.length === 0 ? (
                             <div className="px-2 py-1.5 text-sm text-muted-foreground">
                               {isProjectScoped
-                                ? "No goals linked to this project."
-                                : "No active goals available."}
+                                ? t("taskDialog.noGoalsLinkedToThisProject")
+                                : t("taskDialog.noActiveGoalsAvailable")}
                             </div>
                           ) : (
                             visibleGoals.map((goal) => (
@@ -1158,29 +1159,29 @@ export function TaskDialog({
             {isProjectScoped ? (
               <FormItem>
                 <div className="flex items-center justify-between">
-                  <FormLabel>Project</FormLabel>
+                  <FormLabel>{t("taskDialog.project")}</FormLabel>
                   <div
                     className={cn(buttonVariants({ variant: "outline", size: "sm" }), "pointer-events-none opacity-60 cursor-default")}
                     aria-readonly="true"
                     data-testid="task-dialog-project-locked"
                   >
-                    {projectScoped?.projectName ?? "Inherited from project"}
+                    {projectScoped?.projectName ?? t("taskDialog.inheritedFromProject2")}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 pt-2">
                   <Badge variant="secondary" className="flex items-center gap-1">
-                    {projectScoped?.projectName ?? "Inherited from project"}
+                    {projectScoped?.projectName ?? t("taskDialog.inheritedFromProject3")}
                   </Badge>
                 </div>
               </FormItem>
             ) : (
               <FormItem>
                 <div className="flex items-center justify-between">
-                  <FormLabel>Projects</FormLabel>
+                  <FormLabel>{t("nav.projects")}</FormLabel>
                   <DropdownMenu>
                     <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
                       {selectedProjectIds.length === 0
-                        ? "Select projects..."
+                        ? t("taskDialog.selectProjects")
                         : `${selectedProjectIds.length} selected`}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56 max-h-80">
@@ -1190,11 +1191,11 @@ export function TaskDialog({
                           form.setValue("project_ids", [], { shouldDirty: true, shouldTouch: true, shouldValidate: true });
                         }}
                       >
-                        Clear selection
+                        {t("taskDialog.clearSelection4")}
                       </DropdownMenuItem>
                       <div className="max-h-64 overflow-y-auto">
                         {filteredProjects.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No projects available.</div>
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("taskDialog.noProjectsAvailable")}</div>
                         ) : filteredProjects.map((project) => {
                           const isSelected = selectedProjectIds.includes(project.id);
                           return (
@@ -1258,7 +1259,7 @@ export function TaskDialog({
                       checked={field.value}
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
-                    <span className="text-sm font-normal">Focus</span>
+                    <span className="text-sm font-normal">{t("tasks.tabs.focus")}</span>
                   </label>
                 )}
               />
@@ -1276,7 +1277,7 @@ export function TaskDialog({
                       checked={field.value}
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
-                    <span className="text-sm font-normal">Important</span>
+                    <span className="text-sm font-normal">{t("taskDialog.important")}</span>
                   </label>
                 )}
               />
@@ -1294,7 +1295,7 @@ export function TaskDialog({
                       checked={field.value}
                       onCheckedChange={(checked) => field.onChange(checked === true)}
                     />
-                    <span className="text-sm font-normal">Urgent</span>
+                    <span className="text-sm font-normal">{t("taskDialog.urgent")}</span>
                   </label>
                 )}
               />
@@ -1313,7 +1314,7 @@ export function TaskDialog({
                     checked={field.value}
                     onCheckedChange={(checked) => field.onChange(checked === true)}
                   />
-                  <span className="text-sm font-normal">Make this task recurring</span>
+                  <span className="text-sm font-normal">{t("taskDialog.makeThisTaskRecurring")}</span>
                 </label>
               )}
             />
@@ -1325,7 +1326,7 @@ export function TaskDialog({
               >
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <FormItem>
-                    <FormLabel>Repeat every #</FormLabel>
+                    <FormLabel>{t("taskDialog.repeatEvery")}</FormLabel>
                     <Input
                       type="number"
                       min={1}
@@ -1344,7 +1345,7 @@ export function TaskDialog({
                   </FormItem>
 
                   <FormItem>
-                    <FormLabel>Repeat cycle</FormLabel>
+                    <FormLabel>{t("taskDialog.repeatCycle")}</FormLabel>
                     <Controller
                       control={form.control}
                       name="repeat_cycle"
@@ -1355,7 +1356,7 @@ export function TaskDialog({
                         >
                           <FormControl>
                             <SelectTrigger className="w-full h-12">
-                              <SelectValue placeholder="Select repeat cycle" />
+                              <SelectValue placeholder={t("taskDialog.selectRepeatCycle")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -1373,13 +1374,13 @@ export function TaskDialog({
                 </div>
 
                 <FormItem>
-                  <FormLabel>Next due date</FormLabel>
+                  <FormLabel>{t("taskDialog.nextDueDate")}</FormLabel>
                   <div
                     className="flex h-12 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
                     data-testid="task-dialog-next-due-date-preview"
                   >
                     {nextDueDatePreview ||
-                      "Set due date, repeat every, and repeat cycle to preview the next occurrence."}
+                      t("taskDialog.setDueDateRepeatEveryAndRepeatCycleToPrevi")}
                   </div>
                 </FormItem>
               </div>
@@ -1418,7 +1419,7 @@ export function TaskDialog({
               )}
               <div className="ml-auto flex gap-3">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
-                  Cancel
+                  {t("action.cancel")}
                 </Button>
                 <Button
                   type="submit"
@@ -1428,7 +1429,7 @@ export function TaskDialog({
                     void handleSubmit();
                   }}
                 >
-                  {isPending ? "Saving..." : task ? "Update Task" : "Create Task"}
+                  {isPending ? "Saving..." : task ? t("taskDialog.updateTask") : t("taskDialog.createTask2")}
                 </Button>
               </div>
             </div>

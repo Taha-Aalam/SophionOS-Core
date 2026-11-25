@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useMemo } from "react";
 
@@ -27,6 +28,7 @@ function dedupeById<T extends { id: string }>(...lists: T[][]): T[] {
 }
 
 export function NetworkContent() {
+  const { t } = useI18n();
   const { data: areas = [], isLoading: areasLoading, isError: areasError } = useAreas();
   const {
     data: goalsAll = [],
@@ -97,7 +99,7 @@ export function NetworkContent() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-16">
-        <p className="text-muted-foreground">Failed to load network data.</p>
+        <p className="text-muted-foreground">{t("networkContent.failedToLoadNetworkData")}</p>
       </div>
     );
   }
@@ -107,10 +109,10 @@ export function NetworkContent() {
       <div
         className="flex items-center justify-center gap-2 py-16 text-muted-foreground"
         role="status"
-        aria-label="Loading network"
+        aria-label={t("networkContent.loadingNetwork")}
       >
         <Spinner />
-        <span className="text-sm">Loading network…</span>
+        <span className="text-sm">{t("networkContent.loadingNetwork2")}</span>
       </div>
     );
   }

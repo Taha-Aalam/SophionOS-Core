@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { ArrowRight } from "lucide-react";
 import type { CSSProperties } from "react";
@@ -20,6 +21,7 @@ function densityLabel(score: number): string {
 }
 
 export function ContextNetworkMini({ network }: ContextNetworkMiniProps) {
+  const { t } = useI18n();
   const columns = [
     { label: "Areas", value: network.areaNodes },
     { label: "Goals", value: network.goalNodes },
@@ -48,8 +50,8 @@ export function ContextNetworkMini({ network }: ContextNetworkMiniProps) {
 
   return (
     <AnalyticsPanel
-      title="Context Network"
-      description="How tightly areas, goals, projects, and tasks link together."
+      title={t("contextNetworkMini.contextNetwork")}
+      description={t("contextNetworkMini.howTightlyAreasGoalsProjectsAndTasksLinkTo")}
       icon={WaypointsIcon}
     >
       <div className="mb-5 grid grid-cols-4 gap-2">
@@ -67,7 +69,7 @@ export function ContextNetworkMini({ network }: ContextNetworkMiniProps) {
       </div>
       <div>
         <div className="mb-1.5 flex justify-between text-xs">
-          <span className="text-muted-foreground">Density score</span>
+          <span className="text-muted-foreground">{t("contextNetworkMini.densityScore")}</span>
           <span
             className="font-semibold tabular-nums"
             style={{ color: "var(--analytics-success)" }}
@@ -77,7 +79,7 @@ export function ContextNetworkMini({ network }: ContextNetworkMiniProps) {
         </div>
         <div
           role="meter"
-          aria-label="Density Score"
+          aria-label={t("contextNetworkMini.densityScore2")}
           aria-valuenow={network.densityScore}
           aria-valuemin={0}
           aria-valuemax={100}
@@ -98,7 +100,7 @@ export function ContextNetworkMini({ network }: ContextNetworkMiniProps) {
         nativeButton={false}
         render={<a href="/dashboard/network" />}
       >
-        View full map
+        {t("contextNetworkMini.viewFullMap")}
         <ArrowRight data-icon="inline-end" />
       </Button>
     </AnalyticsPanel>

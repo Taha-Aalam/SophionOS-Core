@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch, type Resolver, type SubmitHandler } from "react-hook-form";
@@ -81,6 +82,7 @@ export function AreaDialog({
   onSubmit,
   isLoading,
 }: AreaDialogProps) {
+  const { t } = useI18n();
   const normalizedDefaultType = normalizeAreaType(area?.type ?? defaultType);
 
   const form = useForm<AreaFormValues>({
@@ -146,24 +148,24 @@ export function AreaDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{area ? "Edit Area" : "Create New Area"}</DialogTitle>
+          <DialogTitle>{area ? t("page.editArea") : t("areaDialog.createNewArea")}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onFormSubmit as SubmitHandler<AreaFormValues>)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" placeholder="e.g., Career Growth" maxLength={100} {...register("name")} />
+            <Label htmlFor="name">{t("areaDialog.name")}</Label>
+            <Input id="name" placeholder={t("areaDialog.egCareerGrowth")} maxLength={100} {...register("name")} />
             {errors.name && <p className="text-xs text-destructive">{String(errors.name.message)}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea id="description" placeholder="Describe this area..." rows={3} maxLength={500} {...register("description")} />
+            <Label htmlFor="description">{t("areaDialog.description")}</Label>
+            <Textarea id="description" placeholder={t("areaDialog.describeThisArea")} rows={3} maxLength={500} {...register("description")} />
             {errors.description && <p className="text-xs text-destructive">{String(errors.description.message)}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label>Icon</Label>
+            <Label>{t("areaDialog.icon")}</Label>
             <EmojiPickerPopover
               value={selectedIcon ?? null}
               onChange={(emoji) =>
@@ -174,7 +176,7 @@ export function AreaDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Color</Label>
+            <Label>{t("areaDialog.color")}</Label>
             <div className="flex flex-wrap gap-2">
               {AREA_COLORS.map((color) => (
                 <button key={color} type="button" onClick={() => setValue("color", color)}
@@ -186,7 +188,7 @@ export function AreaDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="type">Type</Label>
+            <Label htmlFor="type">{t("areaDialog.type")}</Label>
             <Controller
               control={control}
               name="type"
@@ -203,8 +205,8 @@ export function AreaDialog({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={isLoading}>{area ? "Save Changes" : "Create Area"}</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("action.cancel")}</Button>
+            <Button type="submit" disabled={isLoading}>{area ? t("areaDialog.saveChanges") : t("areas.empty.actionCreate")}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -223,6 +225,7 @@ function AreaTypeSelector({
   onChange: (next: string) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -247,14 +250,14 @@ function AreaTypeSelector({
         className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
       >
         <span className="truncate">
-          {normalizedValue || "Select or create type..."}
+          {normalizedValue || t("areaDialog.selectOrCreateType")}
         </span>
         <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder="Search or create..."
+            placeholder={t("areaDialog.searchOrCreate")}
             value={query}
             onValueChange={setQuery}
           />
@@ -270,11 +273,11 @@ function AreaTypeSelector({
                   }}
                 >
                   <Plus className="mr-2 size-3.5" />
-                  Create &ldquo;{trimmed}&rdquo;
+                  {t("areaDialog.createLdquo")}{trimmed}{t("areaDialog.rdquo")}
                 </CommandItem>
               </CommandGroup>
             )}
-            <CommandEmpty>No types found.</CommandEmpty>
+            <CommandEmpty>{t("areaDialog.noTypesFound")}</CommandEmpty>
             <CommandGroup>
               {filtered.map((option) => (
                 <CommandItem

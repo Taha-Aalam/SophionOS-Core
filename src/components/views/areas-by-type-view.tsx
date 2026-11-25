@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useState } from "react";
 import { Plus, ChevronDownIcon, ChevronRightIcon } from "lucide-react";
@@ -46,6 +47,7 @@ function CollapsibleSection({
   isArchiving?: boolean;
   onCreateArea: (type: string) => void;
 }) {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(true);
 
   // Filter out archived areas - they should not appear in "by type" view
@@ -88,7 +90,7 @@ function CollapsibleSection({
             e.stopPropagation();
             onCreateArea(type);
           }}
-          title={`Create ${type} area`}
+          title={t("areasByTypeView.createV0Area", { v0: type })}
         >
           <Plus className="size-4" />
         </Button>
@@ -117,7 +119,7 @@ function CollapsibleSection({
               className="flex flex-col items-center justify-center gap-2 h-48 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <Plus className="size-8" />
-              <span className="text-sm font-medium">New {type} Area</span>
+              <span className="text-sm font-medium">New {type} {t("areasByTypeView.area")}</span>
             </button>
           </GalleryGrid>
         </>
@@ -136,6 +138,7 @@ export function AreasByTypeView({
   isArchiving,
   onCreateArea,
 }: AreasByTypeViewProps) {
+  const { t } = useI18n();
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -156,10 +159,10 @@ export function AreasByTypeView({
   if (groupedAreas.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <p className="text-muted-foreground mb-4">No areas found</p>
+        <p className="text-muted-foreground mb-4">{t("areasByTypeView.noAreasFound")}</p>
         <Button onClick={() => onCreateArea("Personal")} className="gap-2">
           <Plus className="size-4" />
-          Create Your First Area
+          {t("areasByTypeView.createYourFirstArea")}
         </Button>
       </div>
     );
