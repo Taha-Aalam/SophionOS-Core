@@ -158,12 +158,13 @@ Acceptance cases covered by `tests/unit/command-palette.test.tsx`:
 | Locale | Translated | Missing | Coverage |
 | --- | ---: | ---: | ---: |
 | ja (pilot) | 139 | 126 | 52% |
-| es, es-MX, fr, de, pt, it, nl, zh, ko, hi, ru | 36 each | 229 each | 14% each |
+| es, es-MX, fr, de, pt, it, nl, zh, ko, hi, ru | 139 each | 126 each | 52% each |
 
-The 36 are the owner-provided seed shell keys. Japanese additionally covers
-all added shell/Settings/Preferences chrome so the pilot shell has **zero
-English leakage**. Nothing beyond the seed was machine-translated for the other
-locales; they fall back per key as specified.
+Every Tier-1 locale now covers the 139 keys Japanese translated: the 36
+owner-provided seed keys plus 103 added shell/Settings/Preferences chrome keys.
+The shell therefore has **zero English leakage** in every Tier-1 locale. The
+remaining 126 long-tail keys are still English-only and fall back per key as
+specified; es-MX keeps inheriting them from es.
 
 ## Bundle impact (excluding lazily-loaded dictionaries)
 
