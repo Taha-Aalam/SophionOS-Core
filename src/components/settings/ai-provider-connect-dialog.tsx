@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -31,6 +32,7 @@ export function AiProviderConnectDialog({
   onOpenChange,
   onConnect,
 }: AiProviderConnectDialogProps) {
+  const { t, tp } = useI18n();
   const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [model, setModel] = useState<string | null>(null);
@@ -52,15 +54,15 @@ export function AiProviderConnectDialog({
 
   async function handleConnect() {
     if (!apiKey.trim()) {
-      toast.error("Paste your API key first.");
+      toast.error(t("aiProviderConnectDialog.pasteYourApiKeyFirst"));
       return;
     }
     if (isCustom && !baseUrl.trim()) {
-      toast.error("Enter the provider's OpenAI-compatible base URL.");
+      toast.error(t("aiProviderConnectDialog.enterTheProvidersOpenaicompatibleBaseUrl"));
       return;
     }
     if (isCustom && !effectiveModel?.trim()) {
-      toast.error("Enter the model your provider should use.");
+      toast.error(t("aiProviderConnectDialog.enterTheModelYourProviderShouldUse"));
       return;
     }
     setConnecting(true);
@@ -72,11 +74,11 @@ export function AiProviderConnectDialog({
         model: effectiveModel?.trim() || undefined,
         label: label.trim() || undefined,
       });
-      toast.success(`${def.label} connected.`);
+      toast.success(t("aiProviderConnectDialog.v0Connected", { v0: def.label }));
       reset();
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to connect");
+      toast.error(err instanceof Error ? err.message : t("aiProviderConnectDialog.failedToConnect"));
     } finally {
       setConnecting(false);
     }
@@ -92,26 +94,25 @@ export function AiProviderConnectDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Connect {provider.label}</DialogTitle>
+          <DialogTitle>{t("aiProviderConnectDialog.connect")} {provider.label}</DialogTitle>
           <DialogDescription>
-            Your key is validated with the provider, stored encrypted, and used
-            server-side only. It is never shown again after saving.
+            {t("aiProviderConnectDialog.yourKeyIsValidatedWithTheProviderStoredEnc")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="provider-api-key">API key</Label>
+            <Label htmlFor="provider-api-key">{t("aiProviderConnectDialog.apiKey")}</Label>
             <Input
               id="provider-api-key"
               type="password"
               autoComplete="off"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder={`Your ${provider.label} key`}
+              placeholder={t("aiProviderConnectDialog.yourV0Key", { v0: provider.label })}
             />
             <p className="text-xs text-muted-foreground">
-              Get one at{" "}
+              {t("aiProviderConnectDialog.getOneAt")}{" "}
               <a
                 href={provider.keyUrl}
                 target="_blank"
@@ -126,31 +127,31 @@ export function AiProviderConnectDialog({
           {isCustom ? (
             <>
               <div className="space-y-1.5">
-                <Label htmlFor="provider-base-url">Base URL</Label>
+                <Label htmlFor="provider-base-url">{t("aiProviderConnectDialog.baseUrl")}</Label>
                 <Input
                   id="provider-base-url"
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder="https://openrouter.ai/api/v1"
+                  placeholder={t("aiProviderConnectDialog.httpsopenrouteraiapiv1")}
                 />
                 <p className="text-xs text-muted-foreground">
-                  OpenAI-compatible root, e.g. https://api.groq.com/openai/v1
+                  {t("aiProviderConnectDialog.openaicompatibleRootEgHttpsapigroqcomopena")}
                 </p>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="provider-model">Model</Label>
+                <Label htmlFor="provider-model">{t("aiProviderConnectDialog.model")}</Label>
                 <Input
                   id="provider-model"
                   value={effectiveModel ?? ""}
                   onChange={(e) => setModel(e.target.value)}
-                  placeholder="model id your provider exposes"
+                  placeholder={t("aiProviderConnectDialog.modelIdYourProviderExposes")}
                 />
               </div>
             </>
           ) : (
             provider.models.length > 0 && (
               <div className="space-y-1.5">
-                <Label htmlFor="provider-model">Model</Label>
+                <Label htmlFor="provider-model">{t("aiProviderConnectDialog.model2")}</Label>
                 <select
                   id="provider-model"
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
@@ -168,12 +169,12 @@ export function AiProviderConnectDialog({
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="provider-label">Label (optional)</Label>
+            <Label htmlFor="provider-label">{t("aiProviderConnectDialog.labelOptional")}</Label>
             <Input
               id="provider-label"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="Personal key"
+              placeholder={t("aiProviderConnectDialog.personalKey")}
               maxLength={100}
             />
           </div>
@@ -181,11 +182,11 @@ export function AiProviderConnectDialog({
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("action.cancel")}
           </Button>
           <Button type="button" disabled={connecting} onClick={() => void handleConnect()}>
             {connecting ? <Loader2 className="size-4 animate-spin" /> : null}
-            Connect
+            {t("aiProviderConnectDialog.connect2")}
           </Button>
         </DialogFooter>
       </DialogContent>

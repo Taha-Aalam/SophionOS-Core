@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useState } from "react";
 import { Check, Copy, Loader2 } from "lucide-react";
@@ -32,6 +33,7 @@ export function ApiKeyCreateDialog({
   onOpenChange,
   onCreated,
 }: ApiKeyCreateDialogProps) {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientType, setClientType] = useState<"mcp" | "automation" | "personal">(
@@ -57,7 +59,7 @@ export function ApiKeyCreateDialog({
   async function handleCreate() {
     const label = name.trim();
     if (!label) {
-      toast.error("Give the key a label, for example Cursor on MacBook Pro.");
+      toast.error(t("apiKeyCreateDialog.giveTheKeyALabelForExampleCursorOnMacbookP"));
       return;
     }
     setCreating(true);
@@ -69,9 +71,9 @@ export function ApiKeyCreateDialog({
         access_mode: accessMode,
       });
       setRevealedKey(result.key);
-      toast.success("API key created. Copy it now; it won’t be shown again.");
+      toast.success(t("apiKeyCreateDialog.apiKeyCreatedCopyItNowItWontBeShownAgain"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create key");
+      toast.error(err instanceof Error ? err.message : t("apiKeyCreateDialog.failedToCreateKey"));
     } finally {
       setCreating(false);
     }
@@ -82,9 +84,9 @@ export function ApiKeyCreateDialog({
     try {
       await navigator.clipboard.writeText(revealedKey);
       setCopied(true);
-      toast.success("Copied to clipboard.");
+      toast.success(t("apiKeyCreateDialog.copiedToClipboard"));
     } catch {
-      toast.error("Could not copy. Select and copy manually.");
+      toast.error(t("apiKeyCreateDialog.couldNotCopySelectAndCopyManually"));
     }
   }
 
@@ -99,12 +101,12 @@ export function ApiKeyCreateDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {revealedKey ? "Copy your API key" : "Create API key"}
+            {revealedKey ? t("apiKeyCreateDialog.copyYourApiKey") : t("apiKeyCreateDialog.createApiKey")}
           </DialogTitle>
           <DialogDescription>
             {revealedKey
-              ? "This is the only time the full key is shown. Store it somewhere safe."
-              : "Create a key for a trusted tool. MCP keys default to read-only."}
+              ? t("apiKeyCreateDialog.thisIsTheOnlyTimeTheFullKeyIsShownStoreItS")
+              : t("apiKeyCreateDialog.createAKeyForATrustedToolMcpKeysDefaultToR")}
           </DialogDescription>
         </DialogHeader>
 
@@ -114,9 +116,7 @@ export function ApiKeyCreateDialog({
               {revealedKey}
             </div>
             <p className="text-sm text-muted-foreground">
-              Do not share this key. Anyone with it can access your SophionOS data
-              according to its access mode. After you close this dialog, the full
-              key cannot be recovered.
+              {t("apiKeyCreateDialog.doNotShareThisKeyAnyoneWithItCanAccessYour")}
             </p>
             <Button type="button" variant="secondary" onClick={() => void copyKey()}>
               {copied ? (
@@ -124,32 +124,32 @@ export function ApiKeyCreateDialog({
               ) : (
                 <Copy className="size-4" />
               )}
-              {copied ? "Copied" : "Copy key"}
+              {copied ? "Copied" : t("apiKeyCreateDialog.copyKey")}
             </Button>
           </div>
         ) : (
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="key-label">Label</Label>
+              <Label htmlFor="key-label">{t("apiKeyCreateDialog.label")}</Label>
               <Input
                 id="key-label"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Cursor on MacBook Pro"
+                placeholder={t("apiKeyCreateDialog.cursorOnMacbookPro")}
                 maxLength={80}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="client-name">Client name (optional)</Label>
+              <Label htmlFor="client-name">{t("apiKeyCreateDialog.clientNameOptional")}</Label>
               <Input
                 id="client-name"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
-                placeholder="OpenCode"
+                placeholder={t("apiKeyCreateDialog.opencode")}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="client-type">Client type</Label>
+              <Label htmlFor="client-type">{t("apiKeyCreateDialog.clientType")}</Label>
               <select
                 id="client-type"
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
@@ -158,13 +158,13 @@ export function ApiKeyCreateDialog({
                   setClientType(e.target.value as "mcp" | "automation" | "personal")
                 }
               >
-                <option value="mcp">MCP client</option>
-                <option value="automation">Automation</option>
-                <option value="personal">Personal / script</option>
+                <option value="mcp">{t("apiKeyCreateDialog.mcpClient")}</option>
+                <option value="automation">{t("apiKeyCreateDialog.automation")}</option>
+                <option value="personal">{t("apiKeyCreateDialog.personalScript")}</option>
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="access-mode">Access mode</Label>
+              <Label htmlFor="access-mode">{t("apiKeyCreateDialog.accessMode")}</Label>
               <select
                 id="access-mode"
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
@@ -178,13 +178,12 @@ export function ApiKeyCreateDialog({
                   )
                 }
               >
-                <option value="read_only">Read-only (recommended)</option>
-                <option value="write_limited">Can create/update (no delete)</option>
-                <option value="write_enabled">Full write (create/update/delete)</option>
+                <option value="read_only">{t("apiKeyCreateDialog.readonlyRecommended")}</option>
+                <option value="write_limited">{t("apiKeyCreateDialog.canCreateupdateNoDelete")}</option>
+                <option value="write_enabled">{t("apiKeyCreateDialog.fullWriteCreateupdatedelete")}</option>
               </select>
               <p className="text-xs text-muted-foreground">
-                Read-only can query data. Create/update cannot archive or delete.
-                Full write can change and remove data via the API.
+                {t("apiKeyCreateDialog.readonlyCanQueryDataCreateupdateCannotArch")}
               </p>
             </div>
           </div>
@@ -199,7 +198,7 @@ export function ApiKeyCreateDialog({
                 onOpenChange(false);
               }}
             >
-              Done
+              {t("apiKeyCreateDialog.done")}
             </Button>
           ) : (
             <>
@@ -208,11 +207,11 @@ export function ApiKeyCreateDialog({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                {t("action.cancel")}
               </Button>
               <Button type="button" disabled={creating} onClick={() => void handleCreate()}>
                 {creating ? <Loader2 className="size-4 animate-spin" /> : null}
-                Create key
+                {t("apiKeyCreateDialog.createKey")}
               </Button>
             </>
           )}

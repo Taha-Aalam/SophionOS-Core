@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -35,6 +36,7 @@ function accessModeLabel(mode: string | undefined): string {
 }
 
 export function AiAccessCard() {
+  const { t } = useI18n();
   const { data, loading, error, refresh, patchSettings, disableAll } =
     useAiAccess();
   const { createKey, revokeKey, updateKey } = useApiKeys();
@@ -62,12 +64,12 @@ export function AiAccessCard() {
       await patchSettings({ ai_access_enabled: next });
       toast.success(
         next
-          ? "AI/API access enabled."
-          : "AI/API access disabled (existing keys still listed until revoked).",
+          ? t("aiAccessCard.aiapiAccessEnabled")
+          : t("aiAccessCard.aiapiAccessDisabledExistingKeysStillListed"),
       );
       await refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update");
+      toast.error(err instanceof Error ? err.message : t("aiAccessCard.failedToUpdate"));
     } finally {
       setToggling(false);
     }
@@ -79,11 +81,11 @@ export function AiAccessCard() {
       await patchSettings({ ai_write_access_enabled: next });
       toast.success(
         next
-          ? "API key write access enabled (per-key mode still applies)."
-          : "API key write access disabled.",
+          ? t("aiAccessCard.apiKeyWriteAccessEnabledPerkeyModeStillApp")
+          : t("aiAccessCard.apiKeyWriteAccessDisabled"),
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update");
+      toast.error(err instanceof Error ? err.message : t("aiAccessCard.failedToUpdate2"));
     } finally {
       setToggling(false);
     }
@@ -93,7 +95,7 @@ export function AiAccessCard() {
     return (
       <div className="flex items-center gap-2 text-muted-foreground text-sm p-6">
         <Loader2 className="size-4 animate-spin" />
-        Loading AI access…
+        {t("aiAccessCard.loadingAiAccess")}
       </div>
     );
   }
@@ -116,17 +118,16 @@ export function AiAccessCard() {
             ) : (
               <ShieldOff className="size-5 text-destructive" />
             )}
-            <CardTitle className="text-base">Global AI access</CardTitle>
+            <CardTitle className="text-base">{t("aiAccessCard.globalAiAccess")}</CardTitle>
           </div>
           <CardDescription>
-            Control whether external AI clients and API keys can reach your
-            SophionOS context. Your signed-in dashboard is separate.
+            {t("aiAccessCard.controlWhetherExternalAiClientsAndApiKeysC")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm font-medium">
-              Global AI access: {aiEnabled ? "ON" : "OFF"}
+              {t("aiAccessCard.globalAiAccess2")} {aiEnabled ? "ON" : "OFF"}
             </span>
             <Button
               type="button"
@@ -135,7 +136,7 @@ export function AiAccessCard() {
               disabled={toggling}
               onClick={() => void toggleGlobal(!aiEnabled)}
             >
-              {aiEnabled ? "Turn off" : "Turn on"}
+              {aiEnabled ? t("aiAccessCard.turnOff") : t("aiAccessCard.turnOn")}
             </Button>
             <Button
               type="button"
@@ -143,18 +144,18 @@ export function AiAccessCard() {
               variant="destructive"
               onClick={() => setDisableOpen(true)}
             >
-              Disable all AI access
+              {t("aiAccessCard.disableAllAiAccess")}
             </Button>
             <Link
               href="/settings/ai-access/activity"
               className={buttonVariants({ size: "sm", variant: "secondary" })}
             >
-              View activity
+              {t("aiAccessCard.viewActivity")}
             </Link>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm">
-              API key writes: {writeEnabled ? "allowed" : "blocked"}
+              {t("aiAccessCard.apiKeyWrites")} {writeEnabled ? "allowed" : "blocked"}
             </span>
             <Button
               type="button"
@@ -163,33 +164,30 @@ export function AiAccessCard() {
               disabled={toggling || !aiEnabled}
               onClick={() => void toggleWrite(!writeEnabled)}
             >
-              {writeEnabled ? "Disable writes" : "Enable writes"}
+              {writeEnabled ? t("aiAccessCard.disableWrites") : t("aiAccessCard.enableWrites")}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            “Disable all AI access” turns global access off and revokes every
-            active API key immediately.
+            {t("aiAccessCard.disableAllAiAccessTurnsGlobalAccessOffAndR")}
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="space-y-1">
-          <CardTitle className="text-base">Connected clients / API keys</CardTitle>
+          <CardTitle className="text-base">{t("aiAccessCard.connectedClientsApiKeys")}</CardTitle>
           <CardDescription>
-            Create a key for a trusted tool. Keys are shown once. List responses
-            never include the raw secret.
+            {t("aiAccessCard.createAKeyForATrustedToolKeysAreShownOnceL")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button type="button" onClick={() => setCreateOpen(true)}>
-            Create new key
+            {t("aiAccessCard.createNewKey")}
           </Button>
           <Separator />
           {keys.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No active API keys. Create one to connect Claude, Codex,
-              Antigravity, Cursor, OpenCode, or any MCP-compatible AI client.
+              {t("aiAccessCard.noActiveApiKeysCreateOneToConnectClaudeCod")}
             </p>
           ) : (
             <ul className="space-y-4">
@@ -202,7 +200,7 @@ export function AiAccessCard() {
                     <div className="font-medium text-sm">
                       {k.client_name || k.name}
                       <span className="ml-2 text-xs font-normal text-muted-foreground">
-                        Active
+                        {t("goals.tabs.active")}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -214,7 +212,7 @@ export function AiAccessCard() {
                       {accessModeLabel(k.access_mode as string)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Last used:{" "}
+                      {t("aiAccessCard.lastUsed")}{" "}
                       {k.last_used_at
                         ? formatDateTime(k.last_used_at)
                         : "Never"}
@@ -233,7 +231,7 @@ export function AiAccessCard() {
                         })
                       }
                     >
-                      Change access
+                      {t("aiAccessCard.changeAccess")}
                     </Button>
                     <Button
                       type="button"
@@ -243,7 +241,7 @@ export function AiAccessCard() {
                         setRevokeTarget({ id: k.id, name: k.name })
                       }
                     >
-                      Revoke
+                      {t("aiAccessCard.revoke")}
                     </Button>
                   </div>
                 </li>
@@ -255,14 +253,12 @@ export function AiAccessCard() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Privacy note</CardTitle>
+          <CardTitle className="text-base">{t("aiAccessCard.privacyNote")}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>SophionOS does not train AI models on your private content.</p>
+          <p>{t("aiAccessCard.sophionosDoesNotTrainAiModelsOnYourPrivate")}</p>
           <p>
-            SophionOS does not send your data to an AI model by default. When you
-            connect an AI client, it accesses SophionOS through the connection you
-            authorize.
+            {t("aiAccessCard.sophionosDoesNotSendYourDataToAnAiModelByD")}
           </p>
         </CardContent>
       </Card>

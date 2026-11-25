@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect, useState } from "react";
 import { ExternalLink, Plug, Lock } from "lucide-react";
@@ -35,6 +36,7 @@ async function apiFetch<T>(input: string, init?: RequestInit): Promise<T> {
 }
 
 export function McpSettingsContent() {
+  const { t } = useI18n();
   const [baseUrl, setBaseUrl] = useState("https://app.sophionos.com");
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [subLoading, setSubLoading] = useState(true);
@@ -72,14 +74,12 @@ export function McpSettingsContent() {
             <div className="flex items-center gap-2">
               <Lock className="size-5 text-primary" />
               <CardTitle className="text-base">
-                MCP & API access is a Pro feature
+                {t("mcpSettingsContent.mcpApiAccessIsAProFeature")}
               </CardTitle>
               <Badge>Pro</Badge>
             </div>
             <CardDescription>
-              The SophionOS MCP server and API let your AI client read and write
-              your SophionOS data. Upgrade to Pro to create an API key and connect
-              your tools.
+              {t("mcpSettingsContent.theSophionosMcpServerAndApiLetYourAiClient")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -88,7 +88,7 @@ export function McpSettingsContent() {
                 window.location.href = "/settings/billing";
               }}
             >
-              Upgrade to Pro
+              {t("mcpSettingsContent.upgradeToPro")}
             </Button>
           </CardContent>
         </Card>
@@ -97,34 +97,32 @@ export function McpSettingsContent() {
       <Card className="border-primary/30">
         <CardHeader className="space-y-2">
           <CardTitle className="text-base">
-            Connect SophionOS to your AI client
+            {t("mcpSettingsContent.connectSophionosToYourAiClient")}
           </CardTitle>
           <CardDescription className="space-y-2 text-sm">
             <span className="block">
-              Works with any MCP-compatible AI client you choose.
+              {t("mcpSettingsContent.worksWithAnyMcpcompatibleAiClientYouChoose")}
             </span>
             <span className="block">
-              This creates an API key for that client.
+              {t("mcpSettingsContent.thisCreatesAnApiKeyForThatClient")}
             </span>
             <span className="block">
-              <strong>Default access: Read your SophionOS context.</strong> It can
-              see relevant projects, tasks, goals, and research.
+              <strong>{t("mcpSettingsContent.defaultAccessReadYourSophionosContext")}</strong> {t("mcpSettingsContent.itCanSeeRelevantProjectsTasksGoalsAndResea")}
             </span>
             <span className="block">
-              It cannot change anything unless you enable write access on the key
-              and in AI Access settings.
+              {t("mcpSettingsContent.itCannotChangeAnythingUnlessYouEnableWrite")}
             </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Link href="/settings/ai-access" className={buttonVariants()}>
-            Continue with read-only access
+            {t("mcpSettingsContent.continueWithReadonlyAccess")}
           </Link>
           <Link
             href="/data-and-ai"
             className={buttonVariants({ variant: "outline" })}
           >
-            Review what this means
+            {t("mcpSettingsContent.reviewWhatThisMeans")}
           </Link>
         </CardContent>
       </Card>
@@ -134,28 +132,27 @@ export function McpSettingsContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Plug className="size-5 text-primary" />
-              <CardTitle className="text-base">Connection status</CardTitle>
+              <CardTitle className="text-base">{t("mcpSettingsContent.connectionStatus")}</CardTitle>
             </div>
-            <Badge variant="secondary">Not connected yet</Badge>
+            <Badge variant="secondary">{t("mcpSettingsContent.notConnectedYet")}</Badge>
           </div>
           <CardDescription>
-            Create a read-only API key in AI Access, then add it to your AI client.
+            {t("mcpSettingsContent.createAReadonlyApiKeyInAiAccessThenAddItTo")}
           </CardDescription>
         </CardHeader>
       </Card>
 
       <Card>
         <CardHeader className="space-y-1">
-          <CardTitle className="text-base">AI Access</CardTitle>
+          <CardTitle className="text-base">{t("settings.aiAccess.title")}</CardTitle>
           <CardDescription>
-            Keys authenticate your MCP server. Manage clients, revoke access, or
-            disable all AI access from the AI Access center.
+            {t("mcpSettingsContent.keysAuthenticateYourMcpServerManageClients")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Link href="/settings/ai-access" className="block">
             <Button variant="outline" className="w-full justify-between">
-              Open AI Access
+              {t("mcpSettingsContent.openAiAccess")}
               <ExternalLink className="size-3.5" />
             </Button>
           </Link>
@@ -165,11 +162,9 @@ export function McpSettingsContent() {
       {isPaid && (
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-base">Connect your AI client</CardTitle>
+            <CardTitle className="text-base">{t("mcpSettingsContent.connectYourAiClient")}</CardTitle>
             <CardDescription>
-              Create an API key in AI Access, then choose a client and copy the
-              config below. MCP remains experimental — documented for evaluation,
-              not certified for every host.
+              {t("mcpSettingsContent.createAnApiKeyInAiAccessThenChooseAClientA")}
             </CardDescription>
           </CardHeader>
           <CardContent>

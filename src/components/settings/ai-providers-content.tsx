@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useState } from "react";
 import { Loader2, PlugZap, RefreshCw, TriangleAlert } from "lucide-react";
@@ -24,6 +25,7 @@ import {
 import { useAiProviders } from "@/lib/hooks/use-ai-providers";
 
 export function AiProvidersContent() {
+  const { t, tp } = useI18n();
   const { providers, loading, error, refresh, connect, disconnect } =
     useAiProviders();
   const [connectingProvider, setConnectingProvider] = useState<string | null>(
@@ -38,10 +40,10 @@ export function AiProvidersContent() {
     setBusy(true);
     try {
       await disconnect(provider);
-      toast.success(`${label} disconnected.`);
+      toast.success(t("aiProvidersContent.v0Disconnected", { v0: label }));
       setDisconnectingProvider(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to disconnect");
+      toast.error(err instanceof Error ? err.message : t("aiProvidersContent.failedToDisconnect"));
     } finally {
       setBusy(false);
     }
@@ -70,7 +72,7 @@ export function AiProvidersContent() {
       <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm">
         <div className="flex items-center gap-2 font-medium">
           <TriangleAlert className="size-4" aria-hidden="true" />
-          Could not load your AI providers
+          {t("aiProvidersContent.couldNotLoadYourAiProviders")}
         </div>
         <p className="mt-1 text-muted-foreground">{error}</p>
         <Button
@@ -81,7 +83,7 @@ export function AiProvidersContent() {
           onClick={() => void refresh()}
         >
           <RefreshCw className="size-4" aria-hidden="true" />
-          Retry
+          {t("aiProvidersContent.retry")}
         </Button>
       </div>
     );
@@ -90,10 +92,7 @@ export function AiProvidersContent() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Keys are validated with the provider, stored encrypted, and used
-        server-side only — for example to write your brief summaries.
-        SophionOS never sends your data to a provider unless a feature you
-        enabled uses your key.
+        {t("aiProvidersContent.keysAreValidatedWithTheProviderStoredEncry")}
       </p>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -109,10 +108,10 @@ export function AiProvidersContent() {
                     <Badge
                       variant={connected.status === "invalid" ? "destructive" : "secondary"}
                     >
-                      {connected.status === "invalid" ? "Key invalid" : "Connected"}
+                      {connected.status === "invalid" ? t("aiProvidersContent.keyInvalid") : "Connected"}
                     </Badge>
                   ) : (
-                    <Badge variant="outline">Not connected</Badge>
+                    <Badge variant="outline">{t("aiProvidersContent.notConnected")}</Badge>
                   )}
                 </div>
                 <CardDescription>
@@ -120,14 +119,14 @@ export function AiProvidersContent() {
                     ? `Key ending in ${connected.hint ?? "••••"}${
                         connected.model ? ` · ${connected.model}` : ""
                       }`
-                    : "Bring your own API key to power AI features."}{" "}
+                    : t("aiProvidersContent.bringYourOwnApiKeyToPowerAiFeatures")}{" "}
                   <a
                     href={def.keyUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline"
                   >
-                    Get a key
+                    {t("aiProvidersContent.getAKey")}
                   </a>
                 </CardDescription>
               </CardHeader>
@@ -139,7 +138,7 @@ export function AiProvidersContent() {
                     size="sm"
                     onClick={() => setDisconnectingProvider(id)}
                   >
-                    Disconnect
+                    {t("aiProvidersContent.disconnect")}
                   </Button>
                 ) : (
                   <Button
@@ -149,7 +148,7 @@ export function AiProvidersContent() {
                     onClick={() => setConnectingProvider(id)}
                   >
                     <PlugZap className="size-4" aria-hidden="true" />
-                    Connect
+                    {t("aiProvidersContent.connect")}
                   </Button>
                 )}
                 {connected?.status === "invalid" ? (
@@ -159,7 +158,7 @@ export function AiProvidersContent() {
                     size="sm"
                     onClick={() => setConnectingProvider(id)}
                   >
-                    Reconnect
+                    {t("aiProvidersContent.reconnect")}
                   </Button>
                 ) : null}
               </CardContent>
@@ -202,19 +201,19 @@ function DisconnectConfirm(input: {
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const { t, tp } = useI18n();
   return (
     <div
       role="alertdialog"
-      aria-label={`Disconnect ${input.label}`}
+      aria-label={t("aiProvidersContent.disconnectV0", { v0: input.label })}
       className="fixed inset-x-0 bottom-4 z-50 mx-auto flex w-[calc(100%-2rem)] max-w-md items-center justify-between gap-3 rounded-lg border bg-background p-4 shadow-lg"
     >
       <p className="text-sm">
-        Disconnect {input.label}? Features using this key fall back to standard
-        behavior.
+        {t("aiProvidersContent.disconnect2")} {input.label}{t("aiProvidersContent.featuresUsingThisKeyFallBackToStandardBeha")}
       </p>
       <div className="flex shrink-0 gap-2">
         <Button type="button" variant="outline" size="sm" onClick={input.onCancel}>
-          Cancel
+          {t("action.cancel")}
         </Button>
         <Button
           type="button"
@@ -224,7 +223,7 @@ function DisconnectConfirm(input: {
           onClick={input.onConfirm}
         >
           {input.busy ? <Loader2 className="size-4 animate-spin" /> : null}
-          Disconnect
+          {t("aiProvidersContent.disconnect3")}
         </Button>
       </div>
     </div>

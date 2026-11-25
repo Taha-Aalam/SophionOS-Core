@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -35,6 +36,7 @@ export function ApiKeyPermissionDialog({
   currentMode,
   onSave,
 }: ApiKeyPermissionDialogProps) {
+  const { t } = useI18n();
   const [mode, setMode] = useState(currentMode);
   const [saving, setSaving] = useState(false);
 
@@ -53,10 +55,10 @@ export function ApiKeyPermissionDialog({
         keyId,
         mode as "read_only" | "write_limited" | "write_enabled",
       );
-      toast.success("Access updated.");
+      toast.success(t("apiKeyPermissionDialog.accessUpdated"));
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update access");
+      toast.error(err instanceof Error ? err.message : t("apiKeyPermissionDialog.failedToUpdateAccess"));
     } finally {
       setSaving(false);
     }
@@ -66,35 +68,35 @@ export function ApiKeyPermissionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Change access</DialogTitle>
+          <DialogTitle>{t("apiKeyPermissionDialog.changeAccess")}</DialogTitle>
           <DialogDescription>
-            Choose what <strong>{keyName}</strong> can do through the API.
+            {t("apiKeyPermissionDialog.chooseWhat")} <strong>{keyName}</strong> {t("apiKeyPermissionDialog.canDoThroughTheApi")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <Label htmlFor="perm-mode">Access mode</Label>
+          <Label htmlFor="perm-mode">{t("apiKeyPermissionDialog.accessMode")}</Label>
           <select
             id="perm-mode"
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
             value={mode}
             onChange={(e) => setMode(e.target.value)}
           >
-            <option value="read_only">Read-only (query only)</option>
+            <option value="read_only">{t("apiKeyPermissionDialog.readonlyQueryOnly")}</option>
             <option value="write_limited">
-              Can create/update — no archive/delete
+              {t("apiKeyPermissionDialog.canCreateupdateNoArchivedelete")}
             </option>
             <option value="write_enabled">
-              Full write — create, update, and delete
+              {t("apiKeyPermissionDialog.fullWriteCreateUpdateAndDelete")}
             </option>
           </select>
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("action.cancel")}
           </Button>
           <Button type="button" disabled={saving || !keyId} onClick={() => void handleSave()}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-            Save
+            {t("action.save")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -28,6 +29,7 @@ export function SettingsDetailHeader({
   description,
   fallbackHref = "/settings",
 }: SettingsDetailHeaderProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const backHref = popReturnToHref(searchParams, fallbackHref);
@@ -42,13 +44,13 @@ export function SettingsDetailHeader({
           size="icon"
           className="size-6"
           onClick={() => router.push(backHref)}
-          aria-label="Back to Settings"
+          aria-label={t("settingsDetailHeader.backToSettings")}
         >
           <ArrowLeft className="size-3.5" />
         </Button>
-        <nav aria-label="Breadcrumb">
+        <nav aria-label={t("chrome.breadcrumb")}>
           <ol className="flex items-center gap-1 text-sm text-muted-foreground">
-            <li><Link href="/settings">Settings</Link></li>
+            <li><Link href="/settings">{t("nav.settings")}</Link></li>
             <li>/</li>
             <li aria-current="page">{title}</li>
           </ol>

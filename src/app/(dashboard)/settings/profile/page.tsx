@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useRef, useState } from "react";
 import { BadgeCheck, ImageUp } from "lucide-react";
@@ -85,6 +86,7 @@ async function downscaleAvatar(file: File): Promise<File> {
 }
 
 export default function ProfileSettingsPage() {
+  const { t } = useI18n();
   const { isLoaded, isSignedIn, user } = useUser();
   const { openUserProfile } = useClerk();
   const { mutate: updateUsername, isPending: usernamePending, error: usernameError } =
@@ -108,7 +110,7 @@ export default function ProfileSettingsPage() {
         className="reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full"
         aria-busy="true"
         role="status"
-        aria-label="Loading profile"
+        aria-label={t("page.loadingProfile")}
       >
         <div className="space-y-6">
           <div className="h-8 w-48 rounded bg-muted animate-pulse" />
@@ -127,16 +129,16 @@ export default function ProfileSettingsPage() {
     : null;
 
   const signInMethod = user.passwordEnabled
-    ? "Email and password"
+    ? t("page.emailAndPassword")
     : primaryEmail?.verification?.status === "verified"
-      ? "Verified email"
-      : "External account";
+      ? t("page.verifiedEmail")
+      : t("page.externalAccount");
 
   return (
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
       <SettingsDetailHeader
-        title="Profile"
-        description="Your photo, username, and phone number. These appear across SophionOS."
+        title={t("chrome.profile")}
+        description={t("page.yourPhotoUsernameAndPhoneNumberTheseAppear")}
       />
 
       {/* Identity header */}
@@ -161,18 +163,18 @@ export default function ProfileSettingsPage() {
                 event.target.value = "";
                 if (!file) return;
                 if (!file.type.startsWith("image/")) {
-                  toast.error("Choose an image file (PNG, JPEG, or WebP).");
+                  toast.error(t("page.chooseAnImageFilePngJpegOrWebp"));
                   return;
                 }
                 if (file.size > 10 * 1024 * 1024) {
-                  toast.error("Image is too large. Pick something under 10 MB.");
+                  toast.error(t("page.imageIsTooLargePickSomethingUnder10Mb"));
                   return;
                 }
                 uploadAvatar(await downscaleAvatar(file), {
                   onSuccess: () => fileInputRef.current?.blur(),
                 });
               }}
-              aria-label="Upload profile photo"
+              aria-label={t("page.uploadProfilePhoto")}
             />
             <button
               type="button"
@@ -185,7 +187,7 @@ export default function ProfileSettingsPage() {
               ) : (
                 <>
                   <ImageUp className="size-4" />
-                  <span>Upload</span>
+                  <span>{t("page.upload")}</span>
                 </>
               )}
             </button>
@@ -195,7 +197,7 @@ export default function ProfileSettingsPage() {
               {displayNameOf(user)}
             </p>
             <p className="truncate text-sm text-muted-foreground">
-              {primaryEmail?.emailAddress ?? "No email on file"}
+              {primaryEmail?.emailAddress ?? t("page.noEmailOnFile")}
             </p>
             {user.username ? (
               <p className="mt-1 truncate text-sm text-muted-foreground">
@@ -209,19 +211,19 @@ export default function ProfileSettingsPage() {
       {/* Username */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Username</CardTitle>
+          <CardTitle className="text-base">{t("page.username")}</CardTitle>
           <CardDescription>
-            4 to 64 characters: lowercase letters, numbers, hyphens, and underscores.
+            {t("page.n4To64CharactersLowercaseLettersNumbersHyp")}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-start">
           <div className="flex-1 space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">{t("page.username2")}</Label>
             <Input
               id="username"
               value={draft}
               onChange={(e) => setUsernameDraft(e.target.value)}
-              placeholder="e.g. maverick"
+              placeholder={t("page.egMaverick")}
               autoComplete="off"
               autoCapitalize="none"
               spellCheck={false}
@@ -247,13 +249,13 @@ export default function ProfileSettingsPage() {
               updateUsername(draft.trim(), {
                 onSuccess: () => {
                   setUsernameDraft(null);
-                  toast.success("Username saved");
+                  toast.success(t("page.usernameSaved"));
                 },
               })
             }
           >
             {usernamePending ? <Spinner data-icon="inline-start" /> : null}
-            Save username
+            {t("page.saveUsername")}
           </Button>
         </CardContent>
       </Card>
@@ -261,14 +263,14 @@ export default function ProfileSettingsPage() {
       {/* Phone numbers */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Phone number</CardTitle>
+          <CardTitle className="text-base">{t("page.phoneNumber")}</CardTitle>
           <CardDescription>
-            A contact number for your account. It is not used to sign in.
+            {t("page.aContactNumberForYourAccountItIsNotUsedToS")}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-start">
           <div className="flex-1 space-y-2">
-            <Label htmlFor="phone-number">Phone number</Label>
+            <Label htmlFor="phone-number">{t("page.phoneNumber2")}</Label>
             <Input
               id="phone-number"
               value={phoneValue}
@@ -279,7 +281,7 @@ export default function ProfileSettingsPage() {
               disabled={contactPending}
             />
             <p className="text-xs text-muted-foreground">
-              Optional. Stored with your account settings.
+              {t("page.optionalStoredWithYourAccountSettings")}
             </p>
           </div>
           <Button
@@ -297,7 +299,7 @@ export default function ProfileSettingsPage() {
             }
           >
             {contactPending ? <Spinner data-icon="inline-start" /> : null}
-            Save phone number
+            {t("page.savePhoneNumber")}
           </Button>
         </CardContent>
       </Card>
@@ -305,34 +307,34 @@ export default function ProfileSettingsPage() {
       {/* Account (read-only) */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Account</CardTitle>
-          <CardDescription>How you sign in and how long you have been here.</CardDescription>
+          <CardTitle className="text-base">{t("page.account")}</CardTitle>
+          <CardDescription>{t("page.howYouSignInAndHowLongYouHaveBeenHere")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-sm font-medium">Email</p>
+              <p className="text-sm font-medium">{t("page.email")}</p>
               <p className="truncate text-sm text-muted-foreground">
-                {primaryEmail?.emailAddress ?? "Not set"}
+                {primaryEmail?.emailAddress ?? t("projectDetailContent.notSet")}
               </p>
             </div>
             {primaryEmail ? (
               <Badge variant="secondary" className="shrink-0 gap-1">
                 <BadgeCheck className="size-3" />
-                Verified
+                {t("page.verified")}
               </Badge>
             ) : null}
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-medium">Sign-in method</p>
+              <p className="text-sm font-medium">{t("page.signinMethod")}</p>
               <p className="text-sm text-muted-foreground">{signInMethod}</p>
             </div>
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-medium">Member since</p>
-              <p className="text-sm text-muted-foreground">{memberSince ?? "Just now"}</p>
+              <p className="text-sm font-medium">{t("page.memberSince")}</p>
+              <p className="text-sm text-muted-foreground">{memberSince ?? t("page.justNow")}</p>
             </div>
           </div>
           <div className="pt-1">
@@ -341,7 +343,7 @@ export default function ProfileSettingsPage() {
               size="sm"
               onClick={() => void openUserProfile()}
             >
-              Manage email, password, and MFA
+              {t("page.manageEmailPasswordAndMfa")}
             </Button>
           </div>
         </CardContent>

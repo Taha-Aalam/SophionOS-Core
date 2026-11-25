@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
@@ -75,6 +76,7 @@ function HourSelect(input: {
 }
 
 export function NotificationsContent() {
+  const { t } = useI18n();
   const { user } = useAuth();
   const { data: notifications } = useNotifications();
   const { mutate: updateNotifications, isPending } = useUpdateNotifications();
@@ -127,13 +129,13 @@ export function NotificationsContent() {
             : null,
       },
       {
-        onSuccess: () => toast.success("Notification settings saved"),
+        onSuccess: () => toast.success(t("notificationsContent.notificationSettingsSaved")),
       },
     );
   }
 
   if (!user) return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full" aria-busy="true" role="status" aria-label="Loading notifications">
+    <div className="reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full" aria-busy="true" role="status" aria-label={t("notificationsContent.loadingNotifications")}>
       <div className="space-y-6">
         <div className="h-8 w-48 rounded bg-muted animate-pulse" />
         <div className="h-64 w-full rounded-lg border border-border/40 bg-muted/30 animate-pulse" />
@@ -156,25 +158,24 @@ export function NotificationsContent() {
   return (
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
       <SettingsDetailHeader
-        title="Notifications"
-        description="SophionOS emails briefings around the hour you set, in your timezone, using your account email. Set your timezone under Preferences."
+        title={t("settings.notifications.title")}
+        description={t("notificationsContent.sophionosEmailsBriefingsAroundTheHourYouSe")}
       />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Delivery channel</CardTitle>
+            <CardTitle className="text-base">{t("notificationsContent.deliveryChannel")}</CardTitle>
             <CardDescription>
-              Additional channels (Telegram, WhatsApp) later. Delivery uses the
-              timezone from Settings → Preferences.
+              {t("notificationsContent.additionalChannelsTelegramWhatsappLaterDel")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between space-x-2">
               <div className="space-y-0.5">
-                <Label htmlFor="email_enabled">Email delivery</Label>
+                <Label htmlFor="email_enabled">{t("notificationsContent.emailDelivery")}</Label>
                 <CardDescription>
-                  Send briefings to the email on your account.
+                  {t("notificationsContent.sendBriefingsToTheEmailOnYourAccount")}
                 </CardDescription>
               </div>
               <Checkbox
@@ -189,20 +190,19 @@ export function NotificationsContent() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Daily briefings</CardTitle>
+            <CardTitle className="text-base">{t("notificationsContent.dailyBriefings")}</CardTitle>
             <CardDescription>
-              Start and end your day with a summary of what matters. Each
-              arrives on the first hourly check at or after the hour you pick.
+              {t("notificationsContent.startAndEndYourDayWithASummaryOfWhatMatter")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between space-x-2">
               <div className="space-y-0.5">
                 <Label htmlFor="morning_briefing_enabled">
-                  Morning briefing
+                  {t("notificationsContent.morningBriefing")}
                 </Label>
                 <CardDescription>
-                  A summary of your top priorities first thing.
+                  {t("notificationsContent.aSummaryOfYourTopPrioritiesFirstThing")}
                 </CardDescription>
               </div>
               <Checkbox
@@ -213,7 +213,7 @@ export function NotificationsContent() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="morning_briefing_hour">Morning hour</Label>
+              <Label htmlFor="morning_briefing_hour">{t("notificationsContent.morningHour")}</Label>
               <HourSelect
                 id="morning_briefing_hour"
                 name="morning_briefing_hour"
@@ -224,9 +224,9 @@ export function NotificationsContent() {
 
             <div className="flex items-center justify-between space-x-2">
               <div className="space-y-0.5">
-                <Label htmlFor="evening_review_enabled">Evening review</Label>
+                <Label htmlFor="evening_review_enabled">{t("notificationsContent.eveningReview")}</Label>
                 <CardDescription>
-                  Reflect on progress and plan tomorrow.
+                  {t("notificationsContent.reflectOnProgressAndPlanTomorrow")}
                 </CardDescription>
               </div>
               <Checkbox
@@ -237,7 +237,7 @@ export function NotificationsContent() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="evening_review_hour">Evening hour</Label>
+              <Label htmlFor="evening_review_hour">{t("notificationsContent.eveningHour")}</Label>
               <HourSelect
                 id="evening_review_hour"
                 name="evening_review_hour"
@@ -250,15 +250,14 @@ export function NotificationsContent() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Weekly digest</CardTitle>
+            <CardTitle className="text-base">{t("notificationsContent.weeklyDigest")}</CardTitle>
             <CardDescription>
-              A weekly summary of your progress and insights, on the day and
-              around the hour you pick.
+              {t("notificationsContent.aWeeklySummaryOfYourProgressAndInsightsOnT")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="weekly_digest_day">Day of week</Label>
+              <Label htmlFor="weekly_digest_day">{t("notificationsContent.dayOfWeek")}</Label>
               <Select
                 name="weekly_digest_day"
                 value={String(digestDaySelect ?? notifications?.weekly_digest_day ?? 0)}
@@ -266,7 +265,7 @@ export function NotificationsContent() {
                 disabled={isPending}
               >
                 <SelectTrigger className="w-full max-w-48">
-                  <SelectValue placeholder="Select day" />
+                  <SelectValue placeholder={t("notificationsContent.selectDay")} />
                 </SelectTrigger>
                 <SelectContent>
                   {WEEKDAYS.map((d) => (
@@ -278,7 +277,7 @@ export function NotificationsContent() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="weekly_digest_hour">Digest hour</Label>
+              <Label htmlFor="weekly_digest_hour">{t("notificationsContent.digestHour")}</Label>
               <HourSelect
                 id="weekly_digest_hour"
                 name="weekly_digest_hour"
@@ -293,23 +292,20 @@ export function NotificationsContent() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Sparkles className="size-4 text-primary" aria-hidden="true" />
-              AI-written summaries
+              {t("notificationsContent.aiwrittenSummaries")}
             </CardTitle>
             <CardDescription>
-              When enabled, each brief opens with a short summary written by
-              your connected AI provider, based on the same dashboard data the
-              brief already contains. If the provider is unavailable, the
-              standard brief is sent instead.
+              {t("notificationsContent.whenEnabledEachBriefOpensWithAShortSummary")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between space-x-2">
               <div className="space-y-0.5">
-                <Label htmlFor="ai_narration_enabled">AI summaries</Label>
+                <Label htmlFor="ai_narration_enabled">{t("notificationsContent.aiSummaries")}</Label>
                 <CardDescription>
-                  Uses your own API key from{" "}
+                  {t("notificationsContent.usesYourOwnApiKeyFrom")}{" "}
                   <Link href="/settings/ai-providers" className="underline">
-                    Settings → AI Providers
+                    {t("notificationsContent.settingsAiProviders")}
                   </Link>
                   .
                 </CardDescription>
@@ -324,16 +320,16 @@ export function NotificationsContent() {
 
             {providers.length === 0 ? (
               <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-                No provider connected yet.{" "}
+                {t("notificationsContent.noProviderConnectedYet")}{" "}
                 <Link href="/settings/ai-providers" className="underline">
-                  Connect one
+                  {t("notificationsContent.connectOne")}
                 </Link>{" "}
-                to enable AI summaries.
+                {t("notificationsContent.toEnableAiSummaries")}
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="ai_narration_provider">Provider</Label>
+                  <Label htmlFor="ai_narration_provider">{t("notificationsContent.provider")}</Label>
                   <Select
                     name="ai_narration_provider"
                     value={
@@ -347,7 +343,7 @@ export function NotificationsContent() {
                     disabled={isPending}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select provider" />
+                      <SelectValue placeholder={t("notificationsContent.selectProvider")} />
                     </SelectTrigger>
                     <SelectContent>
                       {PROVIDER_IDS.filter((id) =>
@@ -362,7 +358,7 @@ export function NotificationsContent() {
                 </div>
                 {narrationModels.length > 0 ? (
                   <div className="space-y-2">
-                    <Label htmlFor="ai_narration_model">Model</Label>
+                    <Label htmlFor="ai_narration_model">{t("notificationsContent.model")}</Label>
                     <select
                       id="ai_narration_model"
                       name="ai_narration_model"
@@ -382,15 +378,14 @@ export function NotificationsContent() {
                   </div>
                 ) : narrationProviderSelect ? (
                   <div className="space-y-2">
-                    <Label htmlFor="ai_narration_model">Model</Label>
+                    <Label htmlFor="ai_narration_model">{t("notificationsContent.model2")}</Label>
                     <p className="text-xs text-muted-foreground">
-                      Custom providers use the model stored on the credential
-                      ({connectedProvider?.model ?? "set it in AI Providers"}).
+                      {t("notificationsContent.customProvidersUseTheModelStoredOnTheCrede")}{connectedProvider?.model ?? t("notificationsContent.setItInAiProviders")}).
                     </p>
                   </div>
                 ) : null}
                 {connectedProvider?.status === "invalid" ? (
-                  <Badge variant="destructive">Connected key is invalid</Badge>
+                  <Badge variant="destructive">{t("notificationsContent.connectedKeyIsInvalid")}</Badge>
                 ) : null}
               </div>
             )}
@@ -399,7 +394,7 @@ export function NotificationsContent() {
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Saving…" : "Save notification settings"}
+            {isPending ? "Saving…" : t("notificationsContent.saveNotificationSettings")}
           </Button>
         </div>
       </form>

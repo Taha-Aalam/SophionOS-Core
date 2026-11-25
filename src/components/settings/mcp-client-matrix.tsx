@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
@@ -19,6 +20,7 @@ interface McpClientMatrixProps {
 }
 
 export function McpClientMatrix({ baseUrl }: McpClientMatrixProps) {
+  const { t } = useI18n();
   const [activeId, setActiveId] = useState<McpClientId>(MCP_CLIENTS[0].id);
   const [copied, setCopied] = useState(false);
 
@@ -30,9 +32,9 @@ export function McpClientMatrix({ baseUrl }: McpClientMatrixProps) {
       await navigator.clipboard.writeText(snippet);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-      toast.success("Copied to clipboard.");
+      toast.success(t("mcpClientMatrix.copiedToClipboard"));
     } catch {
-      toast.error("Could not copy. Copy manually instead.");
+      toast.error(t("mcpClientMatrix.couldNotCopyCopyManuallyInstead"));
     }
   }
 
@@ -45,7 +47,7 @@ export function McpClientMatrix({ baseUrl }: McpClientMatrixProps) {
     <div className="space-y-4">
       {/* Mobile / small: select */}
       <div className="md:hidden space-y-1.5">
-        <Label htmlFor="mcp-client-select">AI client</Label>
+        <Label htmlFor="mcp-client-select">{t("mcpClientMatrix.aiClient")}</Label>
         <select
           id="mcp-client-select"
           className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
@@ -97,7 +99,7 @@ export function McpClientMatrix({ baseUrl }: McpClientMatrixProps) {
             ) : (
               <Copy className="size-4" />
             )}
-            <span className="ml-1">Copy</span>
+            <span className="ml-1">{t("mcpClientMatrix.copy")}</span>
           </Button>
         </div>
         <pre className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap break-all">
@@ -107,11 +109,9 @@ export function McpClientMatrix({ baseUrl }: McpClientMatrixProps) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Works with any client that supports stdio MCP servers. Replace{" "}
-        <code className="rounded bg-muted px-1">{PLACEHOLDER_KEY}</code> with
-        your API key. Self-hosted: set{" "}
-        <code className="rounded bg-muted px-1">SOPHIONOS_API_URL</code> to your
-        instance origin (already filled from this app).
+        {t("mcpClientMatrix.worksWithAnyClientThatSupportsStdioMcpServ")}{" "}
+        <code className="rounded bg-muted px-1">{PLACEHOLDER_KEY}</code> {t("mcpClientMatrix.withYourApiKeySelfhostedSet")}{" "}
+        <code className="rounded bg-muted px-1">SOPHIONOS_API_URL</code> {t("mcpClientMatrix.toYourInstanceOriginAlreadyFilledFromThisA")}
       </p>
     </div>
   );
