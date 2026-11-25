@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect, useRef, useState } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
@@ -163,6 +164,7 @@ export function ContactDialog({
   defaults,
   onSubmit,
 }: ContactDialogProps) {
+  const { t, tp } = useI18n();
   const form = useForm<ContactFormValues>({
     defaultValues: EMPTY_FORM_VALUES,
   });
@@ -182,11 +184,11 @@ export function ContactDialog({
 
   const uploadFile = async (file: File) => {
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      toast.error("Please choose a JPEG, PNG, WebP, or GIF image");
+      toast.error(t("contactDialog.pleaseChooseAJpegPngWebpOrGifImage"));
       return;
     }
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      toast.error(`Image must be smaller than ${MAX_IMAGE_SIZE_MB}MB`);
+      toast.error(t("contactDialog.imageMustBeSmallerThanV0mb", { v0: MAX_IMAGE_SIZE_MB }));
       return;
     }
 
@@ -199,7 +201,7 @@ export function ContactDialog({
       // Preview the just-selected file locally (no signing round-trip needed).
       setUploadPreview(URL.createObjectURL(file));
     } catch {
-      toast.error("Failed to upload image");
+      toast.error(t("contactDialog.failedToUploadImage"));
     } finally {
       setIsUploading(false);
     }
@@ -230,9 +232,9 @@ export function ContactDialog({
       await contactService.deleteContactImage(storedPath);
       form.setValue("image_url", "");
       setUploadPreview(null);
-      toast.success("Profile image removed");
+      toast.success(t("contactDialog.profileImageRemoved"));
     } catch {
-      toast.error("Failed to remove image");
+      toast.error(t("contactDialog.failedToRemoveImage"));
     } finally {
       setIsRemovingImage(false);
     }
@@ -357,7 +359,7 @@ export function ContactDialog({
       hasError = true;
     }
     if (!values.email.trim()) {
-      form.setError("email", { message: "Email is required" });
+      form.setError("email", { message: t("contactDialog.emailIsRequired") });
       hasError = true;
     }
     if (hasError) return;
@@ -369,9 +371,9 @@ export function ContactDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{contact ? "Edit Contact" : "Create Contact"}</DialogTitle>
+          <DialogTitle>{contact ? t("contactDialog.editContact") : t("contactDialog.createContact")}</DialogTitle>
           <DialogDescription>
-            Add a professional contact and track your interactions.
+            {t("contactDialog.addAProfessionalContactAndTrackYourInterac")}
           </DialogDescription>
         </DialogHeader>
 
@@ -379,32 +381,32 @@ export function ContactDialog({
           <form className="space-y-4" onSubmit={handleSubmit}>
             <FormItem>
               <FormLabel>
-                Name <span className="text-destructive">*</span>
+                {t("goalDialog.name")} <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
-                <Input autoFocus placeholder="Full name" maxLength={255} {...form.register("name")} />
+                <Input autoFocus placeholder={t("contactDialog.fullName")} maxLength={255} {...form.register("name")} />
               </FormControl>
               <FormMessage>{form.formState.errors.name?.message}</FormMessage>
             </FormItem>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormItem>
-                <FormLabel>Role</FormLabel>
+                <FormLabel>{t("contactDialog.role")}</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g. Product Manager" {...form.register("role")} />
+                  <Input placeholder={t("contactDialog.egProductManager")} {...form.register("role")} />
                 </FormControl>
               </FormItem>
 
               <FormItem>
-                <FormLabel>Organization</FormLabel>
+                <FormLabel>{t("contactDialog.organization")}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Company name" {...form.register("organization")} />
+                  <Input placeholder={t("contactDialog.companyName")} {...form.register("organization")} />
                 </FormControl>
               </FormItem>
             </div>
 
             <FormItem>
-              <FormLabel>Group</FormLabel>
+              <FormLabel>{t("contactDialog.group")}</FormLabel>
               <Controller
                 control={form.control}
                 name="group"
@@ -412,7 +414,7 @@ export function ContactDialog({
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select group" />
+                        <SelectValue placeholder={t("contactDialog.selectGroup")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -428,7 +430,7 @@ export function ContactDialog({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormItem>
                 <FormLabel>
-                  Phone <span className="text-destructive">*</span>
+                  {t("contactDialog.phone")} <span className="text-destructive">*</span>
                 </FormLabel>
                 <FormControl>
                   <Input type="tel" placeholder="+1 555 000 0000" {...form.register("phone")} />
@@ -438,10 +440,10 @@ export function ContactDialog({
 
               <FormItem>
                 <FormLabel>
-                  Email <span className="text-destructive">*</span>
+                  {t("page.email")} <span className="text-destructive">*</span>
                 </FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="email@example.com" {...form.register("email")} />
+                  <Input type="email" placeholder={"email@example.com"} {...form.register("email")} />
                 </FormControl>
                 <FormMessage>{form.formState.errors.email?.message}</FormMessage>
               </FormItem>
@@ -449,22 +451,22 @@ export function ContactDialog({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormItem>
-                <FormLabel>LinkedIn</FormLabel>
+                <FormLabel>{t("contactDialog.linkedin")}</FormLabel>
                 <FormControl>
-                  <Input placeholder="linkedin.com/in/..." {...form.register("linkedin")} />
+                  <Input placeholder={t("contactDialog.linkedincomin")} {...form.register("linkedin")} />
                 </FormControl>
               </FormItem>
 
               <FormItem>
-                <FormLabel>Website</FormLabel>
+                <FormLabel>{t("contactDialog.website")}</FormLabel>
                 <FormControl>
-                  <Input placeholder="https://..." {...form.register("website")} />
+                  <Input placeholder={"https://..."} {...form.register("website")} />
                 </FormControl>
               </FormItem>
             </div>
 
             <FormItem>
-              <FormLabel>Follow-up Interval (days)</FormLabel>
+              <FormLabel>{t("contactDialog.followupIntervalDays")}</FormLabel>
               <Controller
                 control={form.control}
                 name="follow_up_interval_days"
@@ -476,12 +478,12 @@ export function ContactDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="none">No follow-up required</SelectItem>
-                      <SelectItem value="7">Every 7 days</SelectItem>
-                      <SelectItem value="14">Every 14 days</SelectItem>
-                      <SelectItem value="30">Every 30 days</SelectItem>
-                      <SelectItem value="60">Every 60 days</SelectItem>
-                      <SelectItem value="90">Every 90 days</SelectItem>
+                      <SelectItem value="none">{t("contactDialog.noFollowupRequired")}</SelectItem>
+                      <SelectItem value="7">{t("contactDialog.every7Days")}</SelectItem>
+                      <SelectItem value="14">{t("contactDialog.every14Days")}</SelectItem>
+                      <SelectItem value="30">{t("contactDialog.every30Days")}</SelectItem>
+                      <SelectItem value="60">{t("contactDialog.every60Days")}</SelectItem>
+                      <SelectItem value="90">{t("contactDialog.every90Days")}</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
@@ -493,18 +495,18 @@ export function ContactDialog({
               {/* Areas */}
               <FormItem>
                 <div className="flex items-center justify-between">
-                  <FormLabel>Areas</FormLabel>
+                  <FormLabel>{t("nav.areas")}</FormLabel>
                   <DropdownMenu>
                     <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                      {areaIds.length === 0 ? "Select areas..." : `${areaIds.length} selected`}
+                      {areaIds.length === 0 ? t("taskDialog.selectAreas") : `${areaIds.length} selected`}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56">
                       <DropdownMenuItem onClick={() => form.setValue("area_ids", [])}>
-                        Clear selection
+                        {t("taskDialog.clearSelection")}
                       </DropdownMenuItem>
                       <ScrollArea className="max-h-56">
                         {visibleAreas.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No areas.</div>
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("contactDialog.noAreas")}</div>
                         ) : (
                           visibleAreas.map((area) => (
                             <DropdownMenuCheckboxItem
@@ -547,18 +549,18 @@ export function ContactDialog({
               {/* Goals */}
               <FormItem>
                 <div className="flex items-center justify-between">
-                  <FormLabel>Goals</FormLabel>
+                  <FormLabel>{t("nav.goals")}</FormLabel>
                   <DropdownMenu>
                     <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                      {goalIds.length === 0 ? "Select goals..." : `${goalIds.length} selected`}
+                      {goalIds.length === 0 ? t("taskDialog.selectGoals") : `${goalIds.length} selected`}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56">
                       <DropdownMenuItem onClick={() => form.setValue("goal_ids", [])}>
-                        Clear selection
+                        {t("taskDialog.clearSelection")}
                       </DropdownMenuItem>
                       <ScrollArea className="max-h-56">
                         {filteredGoals.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No goals.</div>
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("contactDialog.noGoals")}</div>
                         ) : (
                           filteredGoals.map((goal) => (
                             <DropdownMenuCheckboxItem
@@ -602,18 +604,18 @@ export function ContactDialog({
               {/* Projects */}
               <FormItem>
                 <div className="flex items-center justify-between">
-                  <FormLabel>Projects</FormLabel>
+                  <FormLabel>{t("nav.projects")}</FormLabel>
                   <DropdownMenu>
                     <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                      {projectIds.length === 0 ? "Select projects..." : `${projectIds.length} selected`}
+                      {projectIds.length === 0 ? t("taskDialog.selectProjects") : `${projectIds.length} selected`}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56">
                       <DropdownMenuItem onClick={() => form.setValue("project_ids", [])}>
-                        Clear selection
+                        {t("taskDialog.clearSelection")}
                       </DropdownMenuItem>
                       <ScrollArea className="max-h-56">
                         {filteredProjects.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No projects.</div>
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("contactDialog.noProjects")}</div>
                         ) : (
                           filteredProjects.map((project) => (
                             <DropdownMenuCheckboxItem
@@ -654,18 +656,18 @@ export function ContactDialog({
               {/* Tasks */}
               <FormItem>
                 <div className="flex items-center justify-between">
-                  <FormLabel>Tasks</FormLabel>
+                  <FormLabel>{t("nav.tasks")}</FormLabel>
                   <DropdownMenu>
                     <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                      {taskIds.length === 0 ? "Select tasks..." : `${taskIds.length} selected`}
+                      {taskIds.length === 0 ? t("contactDialog.selectTasks") : `${taskIds.length} selected`}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56">
                       <DropdownMenuItem onClick={() => form.setValue("task_ids", [])}>
-                        Clear selection
+                        {t("taskDialog.clearSelection")}
                       </DropdownMenuItem>
                       <ScrollArea className="max-h-56">
                         {filteredTasks.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No tasks.</div>
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("contactDialog.noTasks")}</div>
                         ) : (
                           filteredTasks.map((task) => (
                             <DropdownMenuCheckboxItem
@@ -705,14 +707,14 @@ export function ContactDialog({
             </div>
 
             <FormItem>
-              <FormLabel>Notes</FormLabel>
+              <FormLabel>{t("nav.notes")}</FormLabel>
               <FormControl>
-                <Textarea placeholder="Context, background, notes..." rows={3} {...form.register("notes")} />
+                <Textarea placeholder={t("contactDialog.contextBackgroundNotes")} rows={3} {...form.register("notes")} />
               </FormControl>
             </FormItem>
 
             <FormItem>
-              <FormLabel>Profile Image</FormLabel>
+              <FormLabel>{t("contactDialog.profileImage")}</FormLabel>
               <FormControl>
                 <div className="flex flex-col gap-2">
                   <input
@@ -722,7 +724,7 @@ export function ContactDialog({
                     onChange={handleFileChange}
                     disabled={isUploading || isRemovingImage}
                     className="sr-only"
-                    aria-label="Upload profile image"
+                    aria-label={t("contactDialog.uploadProfileImage")}
                   />
 
                   <button
@@ -746,7 +748,7 @@ export function ContactDialog({
                       <>
                         <Image
                           src={displayImage}
-                          alt="Profile preview"
+                          alt={t("contactDialog.profilePreview")}
                           fill
                           sizes="(max-width: 768px) 100vw, 320px"
                           className="absolute inset-0 size-full object-cover"
@@ -771,10 +773,10 @@ export function ContactDialog({
                           )}
                         </div>
                         <p className="text-sm font-medium">
-                          {isUploading ? "Uploading…" : "Drop your image here or click to browse"}
+                          {isUploading ? "Uploading…" : t("contactDialog.dropYourImageHereOrClickToBrowse")}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          JPEG, PNG, WebP or GIF (max. {MAX_IMAGE_SIZE_MB}MB)
+                          {t("contactDialog.jpegPngWebpOrGifMax")} {MAX_IMAGE_SIZE_MB}{t("contactDialog.mb")}
                         </p>
                       </div>
                     )}
@@ -791,7 +793,7 @@ export function ContactDialog({
                         className="text-muted-foreground"
                       >
                         <XIcon className="size-4" />
-                        Remove image
+                        {t("contactDialog.removeImage")}
                       </Button>
                     </div>
                   )}
@@ -801,10 +803,10 @@ export function ContactDialog({
 
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+                {t("action.cancel")}
               </Button>
               <Button type="submit" disabled={isUploading || isRemovingImage}>
-                {contact ? "Update Contact" : "Create Contact"}
+                {contact ? t("contactDialog.updateContact") : t("contactDialog.createContact2")}
               </Button>
             </div>
           </form>

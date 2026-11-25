@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useCallback, useMemo, useState } from "react";
 import {
@@ -59,6 +60,7 @@ interface AvailableTaskRowProps {
 }
 
 function AvailableTaskRow({ task, areaName, projectName, onAddToDay }: AvailableTaskRowProps) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center gap-3 border-b border-border/40 px-4 py-2 last:border-0">
       <span className="min-w-0 flex-1 truncate text-sm">{task.name}</span>
@@ -75,8 +77,8 @@ function AvailableTaskRow({ task, areaName, projectName, onAddToDay }: Available
         variant="ghost"
         className="h-7 shrink-0 gap-1 text-xs text-muted-foreground hover:text-foreground"
         onClick={onAddToDay}
-        title="Add to My Day focus"
-        aria-label="Add to My Day focus"
+        title={t("myDayContent.addToMyDayFocus")}
+        aria-label={t("myDayContent.addToMyDayFocus2")}
       >
         <Plus className="size-3" />
         <Star className="size-3" />
@@ -86,6 +88,7 @@ function AvailableTaskRow({ task, areaName, projectName, onAddToDay }: Available
 }
 
 export function MyDayContent() {
+  const { t } = useI18n();
   const { data: myDay, isLoading: myDayLoading, isError: myDayError, refetch: refetchMyDay } = useMyDayTasks();
   const { data: available, isLoading: availableLoading, isError: availableError, refetch: refetchAvailable } = useMyDayAvailable();
 
@@ -189,7 +192,7 @@ export function MyDayContent() {
           <div className="flex items-center gap-3">
             <Sun className="size-6 text-muted-foreground" />
             <div>
-              <h1 className="text-2xl font-bold tracking-tight font-heading">My Day</h1>
+              <h1 className="text-2xl font-bold tracking-tight font-heading">{t("nav.myDay")}</h1>
               <p className="text-sm text-muted-foreground">{today}</p>
             </div>
           </div>
@@ -200,7 +203,7 @@ export function MyDayContent() {
             className="gap-1.5"
           >
             <Plus className="size-3.5" />
-            Plan My Day
+            {t("myDayContent.planMyDay")}
           </Button>
         </div>
       </div>
@@ -252,8 +255,8 @@ export function MyDayContent() {
         ) : totalMyDay === 0 && !planOpen ? (
           <EmptyState
             icon={Sun}
-            title="Your day is clear"
-            description="No tasks due today and nothing in focus. Use 'Plan My Day' to pick what to work on."
+            title={t("myDayContent.yourDayIsClear")}
+            description={t("myDayContent.noTasksDueTodayAndNothingInFocusUsePlanMyD")}
             actionLabel="Plan My Day"
             onAction={() => setPlanOpen(true)}
           />
@@ -264,13 +267,13 @@ export function MyDayContent() {
               <section>
                 <SectionHeader
                   accentClass="bg-green-500"
-                  title="Due Today"
+                  title={t("myDayContent.dueToday")}
                   totalCount={todayCount}
-                  description="Tasks due today."
+                  description={t("myDayContent.tasksDueToday")}
                 />
                 {todayCount === 0 ? (
                   <p className="mt-4 px-1 text-sm text-muted-foreground">
-                    No tasks due today.
+                    {t("myDayContent.noTasksDueToday")}
                   </p>
                 ) : (
                   <div className="mt-4">
@@ -308,13 +311,13 @@ export function MyDayContent() {
               <section>
                 <SectionHeader
                   accentClass="bg-green-500"
-                  title="Focus"
+                  title={t("tasks.tabs.focus")}
                   totalCount={focusCount}
-                  description="Starred tasks for today's focus."
+                  description={t("myDayContent.starredTasksForTodaysFocus")}
                 />
                 {focusCount === 0 ? (
                   <p className="mt-4 px-1 text-sm text-muted-foreground">
-                    No tasks in focus. Star a task below to add it to your day.
+                    {t("myDayContent.noTasksInFocusStarATaskBelowToAddItToYourD")}
                   </p>
                 ) : (
                   <div className="mt-4">
@@ -354,13 +357,13 @@ export function MyDayContent() {
           <section className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-muted-foreground">
               <CheckSquare className="size-4" />
-              <h2 className="text-sm font-semibold">Pick tasks to focus</h2>
+              <h2 className="text-sm font-semibold">{t("myDayContent.pickTasksToFocus")}</h2>
               {available.length > 0 && (
-                <span className="text-xs text-muted-foreground">{available.length} available</span>
+                <span className="text-xs text-muted-foreground">{available.length} {t("myDayContent.available")}</span>
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              Star any task to add it to your focus list for today.
+              {t("myDayContent.starAnyTaskToAddItToYourFocusListForToday")}
             </p>
 
             {availableLoading ? (
@@ -371,7 +374,7 @@ export function MyDayContent() {
               </div>
             ) : available.length === 0 ? (
               <p className="rounded-lg border border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
-                No available tasks to add.
+                {t("myDayContent.noAvailableTasksToAdd")}
               </p>
             ) : (
               <div className="flex flex-col overflow-hidden rounded-lg border border-border/60">
@@ -381,14 +384,14 @@ export function MyDayContent() {
                       type="text"
                       value={availableSearch}
                       onChange={(e) => setAvailableSearch(e.target.value)}
-                      placeholder="Search tasks…"
-                      aria-label="Search tasks"
+                      placeholder={t("myDayContent.searchTasks")}
+                      aria-label={t("myDayContent.searchTasks2")}
                       className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                     />
                   </div>
                 )}
                 {filteredAvailable.length === 0 ? (
-                  <p className="px-4 py-4 text-sm text-muted-foreground">No matches.</p>
+                  <p className="px-4 py-4 text-sm text-muted-foreground">{t("myDayContent.noMatches")}</p>
                 ) : (
                   filteredAvailable.map((task) => (
                     <AvailableTaskRow

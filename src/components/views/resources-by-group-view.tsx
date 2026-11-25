@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon, Globe, Plus } from "lucide-react";
@@ -62,6 +63,7 @@ function CollapsibleResourceGroup({
   onNewResource?: (groupId: string) => void;
   defaultOpen?: boolean;
 }) {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -119,7 +121,7 @@ function CollapsibleResourceGroup({
               className="flex w-full items-center gap-2 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
               <Plus className="size-4" />
-              New resource
+              {t("resourcesByGroupView.newResource")}
             </button>
           )}
         </div>
@@ -142,14 +144,16 @@ export function ResourcesByGroupView({
   onEdit,
   onSaveStatusChange,
   onNewResource,
-  emptyMessage = "No resources in this view.",
+  emptyMessage,
 }: ResourcesByGroupViewProps) {
+  const { t } = useI18n();
+  const emptyMessageText = emptyMessage ?? t("resourcesByGroupView.noResourcesInThisView");
   if (groups.length === 0 || groups.every((g) => g.resources.length === 0)) {
     return (
       <EmptyState
         icon={Globe}
-        title="No resources here"
-        description={emptyMessage}
+        title={t("resourcesByGroupView.noResourcesHere")}
+        description={emptyMessageText}
       />
     );
   }

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect, useState } from "react";
 import { X, Link2 } from "lucide-react";
@@ -66,6 +67,7 @@ export function ContactRelationshipManager({
   onSave,
   isSaving,
 }: ContactRelationshipManagerProps) {
+  const { t } = useI18n();
   // Local staging state — initialised from persisted ids when the dialog opens
   const [areaIds, setAreaIds] = useState<string[]>([]);
   const [goalIds, setGoalIds] = useState<string[]>([]);
@@ -162,24 +164,23 @@ export function ContactRelationshipManager({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Link2 className="size-4" />
-            Manage Relationships
+            {t("contactRelationshipManager.manageRelationships")}
           </DialogTitle>
           <DialogDescription>
-            Configure linked areas, goals, projects, and tasks for {contactName}. Selections are
-            filtered to respect entity relationships.
+            {t("contactRelationshipManager.configureLinkedAreasGoalsProjectsAndTasksF")} {contactName}{t("contactRelationshipManager.selectionsAreFilteredToRespectEntityRelati")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
           {/* Areas */}
           <EntitySelector
-            label="Areas"
+            label={t("nav.areas")}
             selectedIds={areaIds}
             options={visibleAreas}
             activeEntities={activeAreas}
             onToggle={toggleArea}
             onClear={() => setAreaIds([])}
-            emptyMessage="No areas match the current selection."
+            emptyMessage={t("contactRelationshipManager.noAreasMatchTheCurrentSelection")}
             getDisplay={(a) => ({ name: a.name, icon: a.icon ?? undefined })}
           />
 
@@ -187,7 +188,7 @@ export function ContactRelationshipManager({
 
           {/* Goals */}
           <EntitySelector
-            label="Goals"
+            label={t("nav.goals")}
             selectedIds={goalIds}
             options={filteredGoals}
             activeEntities={activeGoals}
@@ -195,8 +196,8 @@ export function ContactRelationshipManager({
             onClear={() => setGoalIds([])}
             emptyMessage={
               areaIds.length > 0 || projectIds.length > 0 || taskIds.length > 0
-                ? "No goals match the current selection."
-                : "No goals available."
+                ? t("contactRelationshipManager.noGoalsMatchTheCurrentSelection")
+                : t("tasksFilterBar.noGoalsAvailable")
             }
             getDisplay={(g) => ({ name: g.name })}
           />
@@ -205,7 +206,7 @@ export function ContactRelationshipManager({
 
           {/* Projects */}
           <EntitySelector
-            label="Projects"
+            label={t("nav.projects")}
             selectedIds={projectIds}
             options={filteredProjects}
             activeEntities={activeProjects}
@@ -213,8 +214,8 @@ export function ContactRelationshipManager({
             onClear={() => setProjectIds([])}
             emptyMessage={
               areaIds.length > 0 || goalIds.length > 0 || taskIds.length > 0
-                ? "No projects match the current selection."
-                : "No projects available."
+                ? t("contactRelationshipManager.noProjectsMatchTheCurrentSelection")
+                : t("taskDialog.noProjectsAvailable")
             }
             getDisplay={(p) => ({ name: p.name })}
           />
@@ -223,7 +224,7 @@ export function ContactRelationshipManager({
 
           {/* Tasks */}
           <EntitySelector
-            label="Tasks"
+            label={t("nav.tasks")}
             selectedIds={taskIds}
             options={filteredTasks}
             activeEntities={allTasks}
@@ -231,8 +232,8 @@ export function ContactRelationshipManager({
             onClear={() => setTaskIds([])}
             emptyMessage={
               areaIds.length > 0 || goalIds.length > 0 || projectIds.length > 0
-                ? "Tasks are limited by selected goals, projects, or areas."
-                : "No tasks available."
+                ? t("contactRelationshipManager.tasksAreLimitedBySelectedGoalsProjectsOrAr")
+                : t("notesFilterBar.noTasksAvailable")
             }
             getDisplay={(t) => ({ name: t.name })}
           />
@@ -240,10 +241,10 @@ export function ContactRelationshipManager({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("action.cancel")}
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? "Saving…" : "Save Relationships"}
+            {isSaving ? "Saving…" : t("contactRelationshipManager.saveRelationships")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -276,6 +277,7 @@ function EntitySelector<T extends { id: string }>({
   emptyMessage,
   getDisplay,
 }: EntitySelectorProps<T>) {
+  const { t } = useI18n();
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -285,7 +287,7 @@ function EntitySelector<T extends { id: string }>({
             {selectedIds.length === 0 ? `Select ${label.toLowerCase()}…` : `${selectedIds.length} selected`}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64">
-            <DropdownMenuItem onClick={onClear}>Clear selection</DropdownMenuItem>
+            <DropdownMenuItem onClick={onClear}>{t("taskDialog.clearSelection")}</DropdownMenuItem>
             <ScrollArea className="max-h-56">
               {options.length === 0 ? (
                 <div className="px-2 py-1.5 text-sm text-muted-foreground">{emptyMessage}</div>

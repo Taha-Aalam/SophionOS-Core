@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React from "react";
 import {
@@ -54,6 +55,7 @@ export function ResourceRow({
   onSaveStatusChange,
   onEdit,
 }: ResourceRowProps) {
+  const { t } = useI18n();
   const handleEdit = () => {
     onEdit?.(resource);
   };
@@ -194,7 +196,7 @@ export function ResourceRow({
           type="button"
           onClick={handleEdit}
           className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          aria-label="Edit resource"
+          aria-label={t("resourceRow.editResource")}
         >
           <Pencil className="size-3.5" />
         </button>

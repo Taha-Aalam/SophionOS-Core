@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon, Bell } from "lucide-react";
@@ -97,8 +98,9 @@ export function ContactsFollowUpView({
   onToggleFavorite,
   onArchive,
 }: ContactsFollowUpViewProps) {
+  const { t } = useI18n();
   if (sections.length === 0 || sections.every((s) => s.contacts.length === 0)) {
-    return <EmptyState icon={Bell} title="No follow-ups" description="No contacts need follow-up right now." />;
+    return <EmptyState icon={Bell} title={t("contactsFollowUpView.noFollowups")} description={t("contactsFollowUpView.noContactsNeedFollowupRightNow")} />;
   }
 
   return (

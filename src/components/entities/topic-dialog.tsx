@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect, useMemo, useState } from "react";
 import { Heart, X } from "lucide-react";
@@ -43,6 +44,7 @@ export interface TopicDialogProps {
 }
 
 export function TopicDialog({ open, onOpenChange, topic, defaultAreaId, onSuccess }: TopicDialogProps) {
+  const { t } = useI18n();
   const [form, setForm] = useState<TopicForm>(defaultForm);
   const { data: areas = [] } = useAreas();
   const { data: allNotes = [] } = useNotes({ includeArchived: false });
@@ -187,17 +189,17 @@ export function TopicDialog({ open, onOpenChange, topic, defaultAreaId, onSucces
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{topic ? "Edit Topic" : "New Topic"}</DialogTitle>
+          <DialogTitle>{topic ? t("topicDialog.editTopic") : t("page.newTopic")}</DialogTitle>
           <DialogDescription>
-            {topic ? "Update topic details" : "Create a topic to organize notes and resources"}
+            {topic ? t("topicDialog.updateTopicDetails") : t("topicDialog.createATopicToOrganizeNotesAndResources")}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="topic-name">Name</Label>
+            <Label htmlFor="topic-name">{t("goalDialog.name")}</Label>
             <Input
               id="topic-name"
-              placeholder="e.g., Productivity, Machine Learning, Recipes"
+              placeholder={t("topicDialog.egProductivityMachineLearningRecipes")}
               value={form.name}
               onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
               maxLength={255}
@@ -205,21 +207,21 @@ export function TopicDialog({ open, onOpenChange, topic, defaultAreaId, onSucces
           </div>
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
-              <Label>Linked Areas</Label>
+              <Label>{t("topicDialog.linkedAreas")}</Label>
               <DropdownMenu>
                 <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  {form.area_ids.length === 0 ? "Select areas..." : `${form.area_ids.length} selected`}
+                  {form.area_ids.length === 0 ? t("taskDialog.selectAreas") : `${form.area_ids.length} selected`}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
                   <DropdownMenuItem onClick={() => setForm((prev) => ({ ...prev, area_ids: [] }))}>
-                    Clear selection
+                    {t("taskDialog.clearSelection")}
                   </DropdownMenuItem>
                   <div className="max-h-56 overflow-y-auto overscroll-contain">
                     {filteredAreas.length === 0 ? (
                       <p className="text-sm text-muted-foreground px-2 py-1.5">
                         {form.note_ids.length > 0 || form.resource_ids.length > 0
-                          ? "No areas match selected items"
-                          : "No areas available"}
+                          ? t("topicDialog.noAreasMatchSelectedItems")
+                          : t("page.noAreasAvailable")}
                       </p>
                     ) : (
                       filteredAreas.map((area) => {
@@ -263,24 +265,24 @@ export function TopicDialog({ open, onOpenChange, topic, defaultAreaId, onSucces
               </div>
             )}
             {areas.length === 0 && (
-              <p className="text-sm text-muted-foreground">No areas available</p>
+              <p className="text-sm text-muted-foreground">{t("topicDialog.noAreasAvailable")}</p>
             )}
           </div>
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
-              <Label>Link Notes</Label>
+              <Label>{t("topicDialog.linkNotes")}</Label>
               <DropdownMenu>
                 <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  {form.note_ids.length === 0 ? "Select notes..." : `${form.note_ids.length} selected`}
+                  {form.note_ids.length === 0 ? t("topicDialog.selectNotes") : `${form.note_ids.length} selected`}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-64">
                   <DropdownMenuItem onClick={() => setForm((prev) => ({ ...prev, note_ids: [] }))}>
-                    Clear selection
+                    {t("taskDialog.clearSelection")}
                   </DropdownMenuItem>
                   <div className="max-h-56 overflow-y-auto overscroll-contain">
                     {availableNotes.length === 0 ? (
                       <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                        No notes available.
+                        {t("topicDialog.noNotesAvailable")}
                       </div>
                     ) : (
                       availableNotes.map((note) => (
@@ -321,19 +323,19 @@ export function TopicDialog({ open, onOpenChange, topic, defaultAreaId, onSucces
           </div>
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
-              <Label>Link Resources</Label>
+              <Label>{t("topicDialog.linkResources")}</Label>
               <DropdownMenu>
                 <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  {form.resource_ids.length === 0 ? "Select resources..." : `${form.resource_ids.length} selected`}
+                  {form.resource_ids.length === 0 ? t("topicDialog.selectResources") : `${form.resource_ids.length} selected`}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-64">
                   <DropdownMenuItem onClick={() => setForm((prev) => ({ ...prev, resource_ids: [] }))}>
-                    Clear selection
+                    {t("taskDialog.clearSelection")}
                   </DropdownMenuItem>
                   <div className="max-h-56 overflow-y-auto overscroll-contain">
                     {availableResources.length === 0 ? (
                       <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                        No resources available.
+                        {t("topicDialog.noResourcesAvailable")}
                       </div>
                     ) : (
                       availableResources.map((resource) => (
@@ -384,14 +386,14 @@ export function TopicDialog({ open, onOpenChange, topic, defaultAreaId, onSucces
               )}
             >
               <Heart className={cn("size-3.5", form.favorite && "fill-current")} />
-              Favorite
+              {t("notes.tabs.favorite")}
             </button>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>Cancel</Button>
+          <Button variant="outline" onClick={handleClose}>{t("action.cancel")}</Button>
           <Button onClick={handleSubmit} disabled={!form.name || createTopic.isPending || updateTopic.isPending}>
-            {topic ? "Save Changes" : "Create Topic"}
+            {topic ? t("goalDialog.saveChanges") : t("topicDialog.createTopic")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,3 +1,6 @@
+"use client";
+
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { sectionGap } from "@/components/ui/layout";
 import { cn } from "@/lib/utils";
@@ -107,8 +110,9 @@ function SectionSkeleton({ variant = "list" }: { variant?: "list" | "cards" }) {
 }
 
 export function AreaDetailSkeleton() {
+  const { t } = useI18n();
   return (
-    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label="Loading area details">
+    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label={t("detailSkeletons.loadingAreaDetails")}>
       <BreadcrumbSkeleton />
       <HeaderCardSkeleton iconClassName="w-16 h-16 rounded-lg" rollupCount={5} />
       {/* Goals (cards), Projects (cards), Tasks (list), Notes (list), Resources (list), People (cards) */}
@@ -123,8 +127,9 @@ export function AreaDetailSkeleton() {
 }
 
 export function GoalDetailSkeleton() {
+  const { t } = useI18n();
   return (
-    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label="Loading goal details">
+    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label={t("detailSkeletons.loadingGoalDetails")}>
       <BreadcrumbSkeleton />
       <HeaderCardSkeleton
         iconClassName="w-20 h-20 rounded-full"
@@ -141,8 +146,9 @@ export function GoalDetailSkeleton() {
 }
 
 export function ProjectDetailSkeleton() {
+  const { t } = useI18n();
   return (
-    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label="Loading project details">
+    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label={t("detailSkeletons.loadingProjectDetails")}>
       <BreadcrumbSkeleton />
       <HeaderCardSkeleton
         iconClassName="w-20 h-20 rounded-full"
@@ -157,8 +163,9 @@ export function ProjectDetailSkeleton() {
 }
 
 export function TopicDetailSkeleton() {
+  const { t } = useI18n();
   return (
-    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label="Loading topic details">
+    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label={t("detailSkeletons.loadingTopicDetails")}>
       <BreadcrumbSkeleton />
       <HeaderCardSkeleton iconClassName="w-14 h-14 rounded-lg" rollupCount={2} />
       {/* Notes, Resources */}
@@ -170,8 +177,9 @@ export function TopicDetailSkeleton() {
 }
 
 export function ContactDetailSkeleton() {
+  const { t } = useI18n();
   return (
-    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label="Loading contact details">
+    <div className={PAGE_WRAPPER} aria-busy="true" role="status" aria-label={t("detailSkeletons.loadingContactDetails")}>
       <BreadcrumbSkeleton />
       {/* Main card: avatar header + stats row + tabs strip */}
       <div className="rounded-xl border bg-card">
@@ -251,12 +259,13 @@ export function ContactDetailSkeleton() {
  * fallback) and the `isLoading` branch of `note-detail-content.tsx`.
  */
 export function NoteDetailSkeleton() {
+  const { t } = useI18n();
   return (
     <div
       className={cn(PAGE_WRAPPER, sectionGap)}
       aria-busy="true"
       role="status"
-      aria-label="Loading note"
+      aria-label={t("detailSkeletons.loadingNote")}
     >
       {/* Top bar: back button + breadcrumb on the left, status badge and
           actions right-aligned. Mirrors the real header, which wraps onto two

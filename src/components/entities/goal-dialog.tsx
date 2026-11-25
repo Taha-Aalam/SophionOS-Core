@@ -279,7 +279,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
                   <SelectValue>{selectedPriorityLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
+                  <SelectItem value={PRIORITY.LOW}>{t("goalDialog.low")}</SelectItem>
                   <SelectItem value={PRIORITY.MEDIUM}>{t("goalDialog.medium")}</SelectItem>
                   <SelectItem value={PRIORITY.HIGH}>{t("goalDialog.high")}</SelectItem>
                 </SelectContent>

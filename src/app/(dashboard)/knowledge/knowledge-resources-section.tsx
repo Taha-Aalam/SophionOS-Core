@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useState } from "react";
 import {
@@ -74,6 +75,7 @@ export function KnowledgeResourcesSection({
   onCreateResource,
   onUpdateResource,
 }: KnowledgeResourcesSectionProps) {
+  const { t } = useI18n();
   const [resourcesTab, setResourcesTab] = useState<ResourceView>(RESOURCE_VIEW.ALL);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [resourceCreateOpen, setResourceCreateOpen] = useState(false);
@@ -106,7 +108,7 @@ export function KnowledgeResourcesSection({
     }
     return Array.from(grouped.entries()).map(([id, rs]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Topic" : (topicNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noTopic") : (topicNames.get(id) ?? id),
       resources: rs,
     }));
   };
@@ -124,7 +126,7 @@ export function KnowledgeResourcesSection({
     }
     return Array.from(grouped.entries()).map(([id, rs]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Area" : (areaNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noArea") : (areaNames.get(id) ?? id),
       resources: rs,
     }));
   };
@@ -142,7 +144,7 @@ export function KnowledgeResourcesSection({
     }
     return Array.from(grouped.entries()).map(([id, rs]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Goal" : (goalNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noGoal") : (goalNames.get(id) ?? id),
       resources: rs,
     }));
   };
@@ -160,7 +162,7 @@ export function KnowledgeResourcesSection({
     }
     return Array.from(grouped.entries()).map(([id, rs]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Project" : (projNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noProject") : (projNames.get(id) ?? id),
       resources: rs,
     }));
   };
@@ -260,9 +262,9 @@ export function KnowledgeResourcesSection({
       <section>
         <SectionHeader
           accentClass="bg-emerald-500"
-          title="Resources"
+          title={t("nav.resources")}
           totalCount={resources.length}
-          description="Access and search your latest Resources."
+          description={t("knowledgeResourcesSection.accessAndSearchYourLatestResources")}
           buttonLabel="New Resource"
           onNew={() => setResourceCreateOpen(true)}
           isPending={createResourceIsPending}
@@ -270,23 +272,23 @@ export function KnowledgeResourcesSection({
         <div className="mt-4">
           <Tabs value={resourcesTab} onValueChange={setResourcesTab}>
             <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <TabsTrigger value={RESOURCE_VIEW.ALL} className="">All
+              <TabsTrigger value={RESOURCE_VIEW.ALL} className="">{t("notes.tabs.all")}
               </TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.INBOX} className=""><InboxIcon className="mr-1.5 size-3.5" />Inbox
+              <TabsTrigger value={RESOURCE_VIEW.INBOX} className=""><InboxIcon className="mr-1.5 size-3.5" />{t("nav.inbox")}
               </TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW} className=""><Clock className="mr-1.5 size-3.5" />To Review
+              <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW} className=""><Clock className="mr-1.5 size-3.5" />{t("notes.tabs.toReview")}
               </TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.ACTIVE} className=""><Zap className="mr-1.5 size-3.5" />Active
+              <TabsTrigger value={RESOURCE_VIEW.ACTIVE} className=""><Zap className="mr-1.5 size-3.5" />{t("goals.tabs.active")}
               </TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.FAVORITE} className=""><Heart className="mr-1.5 size-3.5" />Favorites
+              <TabsTrigger value={RESOURCE_VIEW.FAVORITE} className=""><Heart className="mr-1.5 size-3.5" />{t("knowledgeNotesSection.favorites")}
               </TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC} className=""><Tag className="mr-1.5 size-3.5" />By Topic</TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.BY_AREA} className=""><MapIcon className="mr-1.5 size-3.5" />By Area</TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.BY_GOAL} className=""><Target className="mr-1.5 size-3.5" />By Goal</TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT} className=""><FolderOpen className="mr-1.5 size-3.5" />By Project</TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.COMPLETED} className=""><Bookmark className="mr-1.5 size-3.5" />Completed
+              <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC} className=""><Tag className="mr-1.5 size-3.5" />{t("notes.tabs.byTopic")}</TabsTrigger>
+              <TabsTrigger value={RESOURCE_VIEW.BY_AREA} className=""><MapIcon className="mr-1.5 size-3.5" />{t("tasks.tabs.byArea")}</TabsTrigger>
+              <TabsTrigger value={RESOURCE_VIEW.BY_GOAL} className=""><Target className="mr-1.5 size-3.5" />{t("tasks.tabs.byGoal")}</TabsTrigger>
+              <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT} className=""><FolderOpen className="mr-1.5 size-3.5" />{t("tasks.tabs.byProject")}</TabsTrigger>
+              <TabsTrigger value={RESOURCE_VIEW.COMPLETED} className=""><Bookmark className="mr-1.5 size-3.5" />{t("tasks.tabs.completed")}
               </TabsTrigger>
-              <TabsTrigger value={RESOURCE_VIEW.ARCHIVED} className=""><Archive className="mr-1.5 size-3.5" />Archived
+              <TabsTrigger value={RESOURCE_VIEW.ARCHIVED} className=""><Archive className="mr-1.5 size-3.5" />{t("areas.tabs.archived")}
               </TabsTrigger>
             </TabsList>
 
@@ -299,9 +301,9 @@ export function KnowledgeResourcesSection({
                 ) : filteredResources.length === 0 ? (
                   <EmptyState
                     icon={Globe}
-                    title={v === RESOURCE_VIEW.ALL ? "No resources yet" : "No resources"}
-                    description={v === RESOURCE_VIEW.ALL ? "Add your first resource to get started" : "Try a different filter"}
-                    actionLabel={v === RESOURCE_VIEW.ALL ? "New Resource" : undefined}
+                    title={v === RESOURCE_VIEW.ALL ? t("knowledgeResourcesSection.noResourcesYet") : t("knowledgeResourcesSection.noResources")}
+                    description={v === RESOURCE_VIEW.ALL ? t("knowledgeResourcesSection.addYourFirstResourceToGetStarted") : t("knowledgeResourcesSection.tryADifferentFilter")}
+                    actionLabel={v === RESOURCE_VIEW.ALL ? t("goalDetailContent.newResource") : undefined}
                     onAction={v === RESOURCE_VIEW.ALL ? () => setResourceCreateOpen(true) : undefined}
                   />
                 ) : (
@@ -315,7 +317,7 @@ export function KnowledgeResourcesSection({
                 groups={resourceGroupsByTopic()}
                 {...groupViewProps}
                 onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_TOPIC, groupId)}
-                emptyMessage="Resources will be grouped by topic here."
+                emptyMessage={t("knowledgeResourcesSection.resourcesWillBeGroupedByTopicHere")}
               />
             </TabsContent>
             <TabsContent value={RESOURCE_VIEW.BY_AREA} className="mt-4">
@@ -323,7 +325,7 @@ export function KnowledgeResourcesSection({
                 groups={resourceGroupsByArea()}
                 {...groupViewProps}
                 onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_AREA, groupId)}
-                emptyMessage="Resources will be grouped by area here."
+                emptyMessage={t("goalDetailContent.resourcesWillBeGroupedByAreaHere")}
               />
             </TabsContent>
             <TabsContent value={RESOURCE_VIEW.BY_GOAL} className="mt-4">
@@ -331,7 +333,7 @@ export function KnowledgeResourcesSection({
                 groups={resourceGroupsByGoal()}
                 {...groupViewProps}
                 onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_GOAL, groupId)}
-                emptyMessage="Resources will be grouped by goal here."
+                emptyMessage={t("areaDetailContent.resourcesWillBeGroupedByGoalHere")}
               />
             </TabsContent>
             <TabsContent value={RESOURCE_VIEW.BY_PROJECT} className="mt-4">
@@ -339,7 +341,7 @@ export function KnowledgeResourcesSection({
                 groups={resourceGroupsByProject()}
                 {...groupViewProps}
                 onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_PROJECT, groupId)}
-                emptyMessage="Resources will be grouped by project here."
+                emptyMessage={t("goalDetailContent.resourcesWillBeGroupedByProjectHere")}
               />
             </TabsContent>
           </Tabs>

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useMemo, useState } from "react";
 import { X } from "lucide-react";
@@ -60,6 +61,7 @@ function CompactDropdownMultiSelect({
   emptyMessage,
   renderSelected,
 }: CompactDropdownMultiSelectProps) {
+  const { t } = useI18n();
   return (
     <div className="grid gap-1.5">
       <div className="flex items-center justify-between">
@@ -74,7 +76,7 @@ function CompactDropdownMultiSelect({
               onClick={onClear}
               className="text-xs"
             >
-              Clear selection
+              {t("taskDialog.clearSelection")}
             </DropdownMenuItem>
             <div className="max-h-64 overflow-y-auto">
               {candidates.length === 0 ? (
@@ -127,6 +129,7 @@ export function ProjectProcessForm({
   goalOptions,
   onClose,
 }: ProjectProcessFormProps) {
+  const { t } = useI18n();
   const updateProject = useUpdateProject();
   const [rawAreaIds, setRawAreaIds] = useState<string[]>(
     project.linkedAreaIds ?? (project.area_id ? [project.area_id] : []),
@@ -187,8 +190,8 @@ export function ProjectProcessForm({
     <div className="mt-2 grid gap-3 rounded-lg border border-border bg-muted/30 p-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <CompactDropdownMultiSelect
-          label="Area"
-          placeholder="Select area…"
+          label={t("taskDialog.area")}
+          placeholder={t("inboxTaskProcessForm.selectArea")}
           selectedCount={areaIds.length}
           candidates={visibleAreas}
           isSelected={(id) => areaIds.includes(id)}
@@ -196,10 +199,10 @@ export function ProjectProcessForm({
           onClear={() => setRawAreaIds([])}
           emptyMessage={
             areaOptions.length === 0
-              ? "No areas available."
+              ? t("tasksFilterBar.noAreasAvailable")
               : goalIds.length > 0
-                ? "No areas match selected goals."
-                : "No areas available."
+                ? t("inboxTaskProcessForm.noAreasMatchSelectedGoals")
+                : t("tasksFilterBar.noAreasAvailable")
           }
           renderSelected={() =>
             areaIds.length > 0 ? (
@@ -232,8 +235,8 @@ export function ProjectProcessForm({
         />
 
         <CompactDropdownMultiSelect
-          label="Goal"
-          placeholder="Select goal…"
+          label={t("inboxTaskProcessForm.goal")}
+          placeholder={t("inboxTaskProcessForm.selectGoal")}
           selectedCount={goalIds.length}
           candidates={visibleGoals}
           isSelected={(id) => goalIds.includes(id)}
@@ -241,10 +244,10 @@ export function ProjectProcessForm({
           onClear={() => setRawGoalIds([])}
           emptyMessage={
             goalOptions.length === 0
-              ? "No goals available."
+              ? t("tasksFilterBar.noGoalsAvailable")
               : areaIds.length > 0
-                ? "No goals in selected areas."
-                : "No goals available."
+                ? t("projectDialog.noGoalsInSelectedAreas")
+                : t("tasksFilterBar.noGoalsAvailable")
           }
           renderSelected={() =>
             goalIds.length > 0 ? (
@@ -283,20 +286,20 @@ export function ProjectProcessForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="grid gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Start Date</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("projectDialog.startDate")}</span>
           <DatePicker
             value={startDate || null}
             onChange={(v) => setStartDate(v ?? "")}
-            placeholder="Pick start date"
+            placeholder={t("inboxProcessDialog.pickStartDate")}
           />
         </div>
         <div className="grid gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">End Date</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("inboxProcessDialog.endDate")}</span>
           <DatePicker
             value={dueDate || null}
             onChange={(v) => setDueDate(v ?? "")}
             min={startDate || undefined}
-            placeholder="Pick end date"
+            placeholder={t("inboxProcessDialog.pickEndDate")}
           />
         </div>
       </div>
@@ -306,7 +309,7 @@ export function ProjectProcessForm({
           variant="secondary"
           className="gap-1 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
         >
-          <PROJECT_ICON size={12} aria-hidden="true" /> project
+          <PROJECT_ICON size={12} aria-hidden="true" /> {t("inboxProcessDialog.project")}
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button
@@ -315,10 +318,10 @@ export function ProjectProcessForm({
             onClick={handleSave}
             disabled={updateProject.isPending}
           >
-            Process
+            {t("inboxTaskProcessForm.process")}
           </Button>
           <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={onClose}>
-            Cancel
+            {t("action.cancel")}
           </Button>
         </div>
       </div>
@@ -350,6 +353,7 @@ export function InboxProjectRow({
   onExpand,
   onCollapse,
 }: InboxProjectRowProps) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -362,7 +366,7 @@ export function InboxProjectRow({
           variant="secondary"
           className="shrink-0 gap-1 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
         >
-          <PROJECT_ICON size={12} aria-hidden="true" /> project
+          <PROJECT_ICON size={12} aria-hidden="true" /> {t("inboxProcessDialog.project2")}
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{project.name}</span>
@@ -373,13 +377,13 @@ export function InboxProjectRow({
             <button
               onClick={onCollapse}
               className="rounded p-0.5 text-muted-foreground hover:text-foreground"
-              aria-label="Cancel"
+              aria-label={t("action.cancel")}
             >
               <X className="size-3.5" />
             </button>
           ) : (
             <Button size="sm" variant="outline" className="h-9 text-xs sm:h-7" onClick={onExpand}>
-              Process
+              {t("inboxTaskProcessForm.process")}
             </Button>
           )}
         </div>
@@ -421,6 +425,7 @@ export function InboxTaskRow({
   onExpand,
   onCollapse,
 }: InboxTaskRowProps) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -433,7 +438,7 @@ export function InboxTaskRow({
           variant="secondary"
           className="shrink-0 gap-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
         >
-          <TASK_ICON size={12} aria-hidden="true" /> task
+          <TASK_ICON size={12} aria-hidden="true" /> {t("inboxTaskProcessForm.task")}
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{task.name}</span>
@@ -444,13 +449,13 @@ export function InboxTaskRow({
             <button
               onClick={onCollapse}
               className="rounded p-0.5 text-muted-foreground hover:text-foreground"
-              aria-label="Cancel"
+              aria-label={t("action.cancel")}
             >
               <X className="size-3.5" />
             </button>
           ) : (
             <Button size="sm" variant="outline" className="h-9 text-xs sm:h-7" onClick={onExpand}>
-              Process
+              {t("inboxTaskProcessForm.process")}
             </Button>
           )}
         </div>
@@ -503,6 +508,7 @@ export function InboxNoteRow({
   onExpand,
   onCollapse,
 }: InboxNoteRowProps) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -515,7 +521,7 @@ export function InboxNoteRow({
           variant="secondary"
           className="shrink-0 gap-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
         >
-          <NOTE_ICON size={12} aria-hidden="true" /> note
+          <NOTE_ICON size={12} aria-hidden="true" /> {t("noteInboxProcessForm.note")}
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{note.name}</span>
@@ -529,13 +535,13 @@ export function InboxNoteRow({
             <button
               onClick={onCollapse}
               className="rounded p-0.5 text-muted-foreground hover:text-foreground"
-              aria-label="Cancel"
+              aria-label={t("action.cancel")}
             >
               <X className="size-3.5" />
             </button>
           ) : (
             <Button size="sm" variant="outline" className="h-9 text-xs sm:h-7" onClick={onExpand}>
-              Process
+              {t("inboxTaskProcessForm.process")}
             </Button>
           )}
         </div>
@@ -592,6 +598,7 @@ export function InboxResourceRow({
   onExpand,
   onCollapse,
 }: InboxResourceRowProps) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -604,7 +611,7 @@ export function InboxResourceRow({
           variant="secondary"
           className="shrink-0 gap-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
         >
-          <RESOURCE_ICON size={12} aria-hidden="true" /> resource
+          <RESOURCE_ICON size={12} aria-hidden="true" /> {t("inboxProcessDialog.resource")}
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{resource.name}</span>
@@ -618,13 +625,13 @@ export function InboxResourceRow({
             <button
               onClick={onCollapse}
               className="rounded p-0.5 text-muted-foreground hover:text-foreground"
-              aria-label="Cancel"
+              aria-label={t("action.cancel")}
             >
               <X className="size-3.5" />
             </button>
           ) : (
             <Button size="sm" variant="outline" className="h-9 text-xs sm:h-7" onClick={onExpand}>
-              Process
+              {t("inboxTaskProcessForm.process")}
             </Button>
           )}
         </div>

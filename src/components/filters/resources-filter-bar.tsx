@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import {
   CheckSquare,
@@ -74,6 +75,7 @@ export function ResourcesFilterBar({
   onTaskIdsChange,
   onTopicIdsChange,
 }: ResourcesFilterBarProps) {
+  const { t } = useI18n();
   const types = useMemo<LinearFilterTypeConfig[]>(
     () => [
       {
@@ -83,7 +85,7 @@ export function ResourcesFilterBar({
         selection: "single",
         options: [
           { value: RESOURCE_STATUS.INBOX, label: "Inbox" },
-          { value: RESOURCE_STATUS.TO_REVIEW, label: "To Review" },
+          { value: RESOURCE_STATUS.TO_REVIEW, label: t("notes.tabs.toReview") },
           { value: RESOURCE_STATUS.ACTIVE, label: "Active" },
           { value: RESOURCE_STATUS.COMPLETED, label: "Completed" },
         ],
@@ -99,7 +101,7 @@ export function ResourcesFilterBar({
           { value: RESOURCE_TYPE.VIDEO, label: "Video" },
           { value: RESOURCE_TYPE.DOCUMENT, label: "Document" },
           { value: RESOURCE_TYPE.PODCAST, label: "Podcast" },
-          { value: RESOURCE_TYPE.SOCIAL_MEDIA, label: "Social Media" },
+          { value: RESOURCE_TYPE.SOCIAL_MEDIA, label: t("resourcesFilterBar.socialMedia") },
           { value: RESOURCE_TYPE.TOOL, label: "Tool" },
         ],
       },
@@ -142,7 +144,7 @@ export function ResourcesFilterBar({
         options: topics.map((t) => ({ value: t.id, label: t.name })),
       },
     ],
-    [areas, goals, projects, tasks, topics],
+    [areas, goals, projects, tasks, topics, t],
   );
 
   const filters = useMemo(
@@ -180,7 +182,7 @@ export function ResourcesFilterBar({
           <Input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search..."
+            placeholder={t("tasksFilterBar.search")}
             className="h-10 sm:h-8 w-44 pl-8 text-xs"
           />
         </div>

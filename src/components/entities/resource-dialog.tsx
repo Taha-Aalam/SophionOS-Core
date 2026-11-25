@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useQuery } from "@tanstack/react-query";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
@@ -84,6 +85,7 @@ export function ResourceDialog({
   initialProjectId,
   initialTopicId,
 }: ResourceDialogProps) {
+  const { t } = useI18n();
   const isEdit = !!resource;
   const { data: areas = [] } = useAreas();
   const { data: projects = [] } = useProjects({ status: "all" });
@@ -388,19 +390,19 @@ export function ResourceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Resource" : "New Resource"}</DialogTitle>
+          <DialogTitle>{isEdit ? t("resourceDialog.editResource") : t("goalDetailContent.newResource")}</DialogTitle>
           <DialogDescription>
-            {isEdit ? "Update this external reference" : "Add an external reference to your PARA system"}
+            {isEdit ? t("resourceDialog.updateThisExternalReference") : t("resourceDialog.addAnExternalReferenceToYourParaSystem")}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="res-name">
-              Name <span className="text-destructive">*</span>
+              {t("goalDialog.name")} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="res-name"
-              placeholder="My favorite article"
+              placeholder={t("resourceDialog.myFavoriteArticle")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               aria-required="true"
@@ -415,7 +417,7 @@ export function ResourceDialog({
             <Input
               id="res-url"
               type="url"
-              placeholder="https://..."
+              placeholder={"https://..."}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onBlur={handleUrlBlur}
@@ -425,7 +427,7 @@ export function ResourceDialog({
           </div>
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="res-type">Type</Label>
+              <Label htmlFor="res-type">{t("areaDialog.type")}</Label>
               <Select value={type} onValueChange={(v) => setType(v as Resource["type"])}>
                 <SelectTrigger id="res-type" className="w-full">
                   <SelectValue />
@@ -440,7 +442,7 @@ export function ResourceDialog({
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>Status</Label>
+              <Label>{t("tasksStep.status")}</Label>
               <Select value={status} onValueChange={(v) => handleUserStatusChange(v as ResourceStatus)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -461,21 +463,21 @@ export function ResourceDialog({
             {/* Areas — multi-select */}
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
-                <Label>Areas</Label>
+                <Label>{t("nav.areas")}</Label>
                 <Popover>
                   <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                    {areaIds.length === 0 ? "Select areas..." : `${areaIds.length} selected`}
+                    {areaIds.length === 0 ? t("taskDialog.selectAreas") : `${areaIds.length} selected`}
                   </PopoverTrigger>
                   <PopoverContent align="start" className={relationPopoverContentClassName}>
                     <button type="button" onClick={() => setAreaIds([])} className={relationOptionClassName}>
-                      Clear selection
+                      {t("taskDialog.clearSelection")}
                     </button>
                     <div className="max-h-48 overflow-y-auto">
                       {visibleAreas.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
                           {taskIds.length > 0 || goalIds.length > 0 || projectIds.length > 0
-                            ? "No areas match selection."
-                            : "No areas available."}
+                            ? t("resourceDialog.noAreasMatchSelection")
+                            : t("tasksFilterBar.noAreasAvailable")}
                         </div>
                       ) : (
                         visibleAreas.map((area) => (
@@ -512,21 +514,21 @@ export function ResourceDialog({
             {/* Goals — multi-select */}
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
-                <Label>Goals</Label>
+                <Label>{t("nav.goals")}</Label>
                 <Popover>
                   <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                    {goalIds.length === 0 ? "Select goals..." : `${goalIds.length} selected`}
+                    {goalIds.length === 0 ? t("taskDialog.selectGoals") : `${goalIds.length} selected`}
                   </PopoverTrigger>
                   <PopoverContent align="start" className={relationPopoverContentClassName}>
                     <button type="button" onClick={() => setGoalIds([])} className={relationOptionClassName}>
-                      Clear selection
+                      {t("taskDialog.clearSelection")}
                     </button>
                     <div className="max-h-48 overflow-y-auto">
                       {filteredGoals.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
                           {taskIds.length > 0 || projectIds.length > 0 || areaIds.length > 0
-                            ? "No goals match selection."
-                            : "No goals available."}
+                            ? t("resourceDialog.noGoalsMatchSelection")
+                            : t("tasksFilterBar.noGoalsAvailable")}
                         </div>
                       ) : (
                         filteredGoals.map((goal) => (
@@ -566,10 +568,10 @@ export function ResourceDialog({
             {/* Project — single select with DropdownMenu style */}
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
-                <Label>Projects</Label>
+                <Label>{t("nav.projects")}</Label>
                 <Popover>
                   <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                    {projectIds.length === 0 ? "Select projects..." : `${projectIds.length} selected`}
+                    {projectIds.length === 0 ? t("taskDialog.selectProjects") : `${projectIds.length} selected`}
                   </PopoverTrigger>
                   <PopoverContent align="start" className={relationPopoverContentClassName}>
                     <button
@@ -577,14 +579,14 @@ export function ResourceDialog({
                       onClick={() => setProjectIds([])}
                       className={relationOptionClassName}
                     >
-                      Clear selection
+                      {t("taskDialog.clearSelection")}
                     </button>
                     <div className="max-h-48 overflow-y-auto">
                       {filteredProjects.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
                           {taskIds.length > 0 || goalIds.length > 0 || areaIds.length > 0
-                            ? "No projects match selection."
-                            : "No projects available."}
+                            ? t("resourceDialog.noProjectsMatchSelection")
+                            : t("taskDialog.noProjectsAvailable")}
                         </div>
                       ) : (
                         filteredProjects.map((project) => (
@@ -626,21 +628,21 @@ export function ResourceDialog({
             {/* Tasks — multi-select */}
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
-                <Label>Tasks</Label>
+                <Label>{t("nav.tasks")}</Label>
                 <Popover>
                   <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                    {taskIds.length === 0 ? "Select tasks..." : `${taskIds.length} selected`}
+                    {taskIds.length === 0 ? t("resourceDialog.selectTasks") : `${taskIds.length} selected`}
                   </PopoverTrigger>
                   <PopoverContent align="start" className={relationPopoverContentClassName}>
                     <button type="button" onClick={() => setTaskIds([])} className={relationOptionClassName}>
-                      Clear selection
+                      {t("taskDialog.clearSelection")}
                     </button>
                     <div className="max-h-48 overflow-y-auto">
                       {filteredTasks.length === 0 ? (
                         <div className="px-2 py-1.5 text-sm text-muted-foreground">
                           {goalIds.length > 0 || projectIds.length > 0 || areaIds.length > 0
-                            ? "No tasks match selection."
-                            : "No tasks available."}
+                            ? t("resourceDialog.noTasksMatchSelection")
+                            : t("notesFilterBar.noTasksAvailable")}
                         </div>
                       ) : (
                         filteredTasks.map((task) => (
@@ -678,18 +680,18 @@ export function ResourceDialog({
           {/* Topic — single select, area-style layout */}
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
-              <Label>Topic</Label>
+              <Label>{t("noteMetadataPanel.topic")}</Label>
               <Popover>
                 <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  {topicId ? (topics.find((t) => t.id === topicId)?.name ?? "Select topic...") : "Select topic..."}
+                  {topicId ? (topics.find((t) => t.id === topicId)?.name ?? t("noteMetadataPanel.selectTopic")) : t("noteMetadataPanel.selectTopic")}
                 </PopoverTrigger>
                 <PopoverContent align="start" className={relationPopoverContentClassName}>
                   <button type="button" onClick={() => setTopicId("")} className={relationOptionClassName}>
-                    Clear selection
+                    {t("taskDialog.clearSelection")}
                   </button>
                   <div className="max-h-48 overflow-y-auto">
                     {topics.length === 0 ? (
-                      <div className="px-2 py-1.5 text-sm text-muted-foreground">No topics available.</div>
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("resourceDialog.noTopicsAvailable")}</div>
                     ) : (
                       topics.map((topic) => (
                         <label key={topic.id} className={relationOptionClassName}>
@@ -725,10 +727,10 @@ export function ResourceDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("action.cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={!canSubmit}>
-            {isEdit ? "Save Changes" : "Create Resource"}
+            {isEdit ? t("goalDialog.saveChanges") : t("resourceDialog.createResource")}
           </Button>
         </DialogFooter>
       </DialogContent>

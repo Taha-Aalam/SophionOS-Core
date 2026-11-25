@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -39,6 +40,7 @@ export function ContactCard({
   returnTo,
   returnToChain,
 }: ContactCardProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const groupColor = contact.group ? CONTACT_GROUP_COLORS[contact.group] ?? "" : "";
   const roleOrgLine = [contact.role, contact.organization].filter(Boolean).join(" · ");
@@ -125,7 +127,7 @@ export function ContactCard({
               variant="ghost"
               size="icon-sm"
               onClick={() => onToggleFavorite?.(contact.id)}
-              aria-label={contact.favorite ? "Remove from favorites" : "Add to favorites"}
+              aria-label={contact.favorite ? t("contactCard.removeFromFavorites") : t("contactCard.addToFavorites")}
             >
               <Star className={cn("size-3.5", contact.favorite && "fill-yellow-400 text-yellow-400")} />
             </Button>
@@ -133,7 +135,7 @@ export function ContactCard({
               variant="ghost"
               size="icon-sm"
               onClick={() => onArchive?.(contact.id, !contact.archive)}
-              aria-label={contact.archive ? "Restore contact" : "Archive contact"}
+              aria-label={contact.archive ? t("contactCard.restoreContact") : t("contactCard.archiveContact")}
             >
               {contact.archive ? (
                 <ArchiveRestore className="size-3.5" />
@@ -145,7 +147,7 @@ export function ContactCard({
               variant="ghost"
               size="icon-sm"
               onClick={() => onEdit?.(contact)}
-              aria-label="Edit contact"
+              aria-label={t("contactCard.editContact")}
             >
               <Pencil className="size-3.5" />
             </Button>
@@ -185,7 +187,7 @@ export function ContactCard({
         </div>
         <div className="mt-3 flex items-stretch gap-2">
           <div className="flex-1 rounded-md border bg-muted/40 px-3 py-2">
-            <p className="text-2xs text-muted-foreground mb-0.5">Last log</p>
+            <p className="text-2xs text-muted-foreground mb-0.5">{t("contactCard.lastLog")}</p>
             <p className="text-xs font-medium">
               {contact.last_interaction_at
                 ? relativeTime(contact.last_interaction_at)
@@ -194,22 +196,22 @@ export function ContactCard({
           </div>
 
           <div className="flex-1 rounded-md border bg-muted/40 px-3 py-2">
-            <p className="text-2xs text-muted-foreground mb-0.5">Follow-up</p>
+            <p className="text-2xs text-muted-foreground mb-0.5">{t("contactCard.followup")}</p>
             {(() => {
               if (!contact.last_interaction_at && contact.follow_up_interval_days) {
-                return <p className="text-xs font-medium text-destructive">Overdue</p>;
+                return <p className="text-xs font-medium text-destructive">{t("tasks.tabs.overdue")}</p>;
               }
               const daysUntil = contactService.computeDaysUntilFollowUp(
                 contact.last_interaction_at,
                 contact.follow_up_interval_days,
               );
               if (daysUntil === null) {
-                return <p className="text-xs font-medium text-muted-foreground">N/A</p>;
+                return <p className="text-xs font-medium text-muted-foreground">{t("contactCard.na")}</p>;
               }
               if (daysUntil >= 0) {
-                return <p className="text-xs font-medium">{daysUntil}d left</p>;
+                return <p className="text-xs font-medium">{daysUntil}{t("contactCard.dLeft")}</p>;
               }
-              return <p className="text-xs font-medium text-destructive">{Math.abs(daysUntil)}d overdue</p>;
+              return <p className="text-xs font-medium text-destructive">{Math.abs(daysUntil)}{t("relationshipRiskPanel.dOverdue")}</p>;
             })()}
           </div>
         </div>

@@ -441,7 +441,7 @@ export function ProjectDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
+                        <SelectItem value={PRIORITY.LOW}>{t("projectDialog.low")}</SelectItem>
                         <SelectItem value={PRIORITY.MEDIUM}>{t("projectDialog.medium")}</SelectItem>
                         <SelectItem value={PRIORITY.HIGH}>{t("projectDialog.high")}</SelectItem>
                       </SelectContent>

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useState } from "react";
 import {
@@ -73,6 +74,7 @@ function CollapsibleTopicGroup({
   onCreateNew: (areaId: string) => void;
   defaultOpen?: boolean;
 }) {
+  const { t, tp } = useI18n();
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -112,7 +114,7 @@ function CollapsibleTopicGroup({
             e.stopPropagation();
             onCreateNew(areaId);
           }}
-          title={`Create topic in ${areaName}`}
+          title={t("knowledgeTopicsSection.createTopicInV0", { v0: areaName })}
         >
           <Plus className="size-4" />
         </Button>
@@ -138,7 +140,7 @@ function CollapsibleTopicGroup({
             className="flex flex-col items-center justify-center gap-2 h-full min-h-[120px] rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-all text-muted-foreground hover:text-foreground cursor-pointer"
           >
             <Plus className="size-6" />
-            <span className="text-sm font-medium">New Topic</span>
+            <span className="text-sm font-medium">{t("knowledgeTopicsSection.newTopic")}</span>
           </button>
         </GalleryGrid>
       )}
@@ -182,6 +184,7 @@ export function KnowledgeTopicsSection({
   onCreateTopic,
   onUpdateTopic,
 }: KnowledgeTopicsSectionProps) {
+  const { t } = useI18n();
   const [topicsTab, setTopicsTab] = useState("active");
   const [topicCreateOpen, setTopicCreateOpen] = useState(false);
   const [topicEditData, setTopicEditData] = useState<TopicWithCounts | null>(null);
@@ -218,7 +221,7 @@ export function KnowledgeTopicsSection({
     for (const topic of topics) {
       const areaIds = topic.linkedAreaIds ?? [];
       if (areaIds.length === 0) {
-        const g = grouped.get("__none__") ?? { areaName: "No Area", topics: [] };
+        const g = grouped.get("__none__") ?? { areaName: t("common.noArea"), topics: [] };
         if (!g.topics.find((t) => t.id === topic.id)) g.topics.push(topic);
         grouped.set("__none__", g);
       } else {
@@ -286,9 +289,9 @@ export function KnowledgeTopicsSection({
     <section>
       <SectionHeader
         accentClass="bg-blue-500"
-        title="Topics"
+        title={t("nav.topics")}
         totalCount={topics.length}
-        description="Explore your library of Topics."
+        description={t("knowledgeTopicsSection.exploreYourLibraryOfTopics")}
         buttonLabel="New Topic"
         onNew={openTopicCreate}
         isPending={createTopicIsPending}
@@ -297,22 +300,22 @@ export function KnowledgeTopicsSection({
           <Tabs value={topicsTab} onValueChange={setTopicsTab}>
             <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <TabsTrigger value="active">
-                <CircleDot className="mr-1 size-3" />Active
+                <CircleDot className="mr-1 size-3" />{t("goals.tabs.active")}
               </TabsTrigger>
               <TabsTrigger value="favorite">
-                <Heart className="mr-1 size-3" />Favorite
+                <Heart className="mr-1 size-3" />{t("notes.tabs.favorite")}
               </TabsTrigger>
               <TabsTrigger value="inactive">
-                <CircleOff className="mr-1 size-3" />Inactive
+                <CircleOff className="mr-1 size-3" />{t("goals.tabs.inactive")}
               </TabsTrigger>
               <TabsTrigger value="by_area">
-                <MapIcon className="mr-1 size-3" />By Area
+                <MapIcon className="mr-1 size-3" />{t("tasks.tabs.byArea")}
               </TabsTrigger>
               <TabsTrigger value="all">
-                <LayoutGrid className="mr-1 size-3" />All
+                <LayoutGrid className="mr-1 size-3" />{t("notes.tabs.all")}
               </TabsTrigger>
               <TabsTrigger value="archived">
-                <Archive className="mr-1 size-3" />Archived
+                <Archive className="mr-1 size-3" />{t("areas.tabs.archived")}
               </TabsTrigger>
             </TabsList>
 
@@ -326,7 +329,7 @@ export function KnowledgeTopicsSection({
               <>
                 <TabsContent value="active" className="mt-4">
                   {activeTopics.length === 0
-                    ? <EmptyState icon={Tag} title="No active topics" description="Link notes or resources to activate topics" />
+                    ? <EmptyState icon={Tag} title={t("knowledgeTopicsSection.noActiveTopics")} description={t("knowledgeTopicsSection.linkNotesOrResourcesToActivateTopics")} />
                     : (
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {activeTopics.map((t) => (
@@ -342,7 +345,7 @@ export function KnowledgeTopicsSection({
 
                 <TabsContent value="favorite" className="mt-4">
                   {favoriteTopics.length === 0
-                    ? <EmptyState icon={Heart} title="No favorite topics" description="Star topics to see them here" />
+                    ? <EmptyState icon={Heart} title={t("knowledgeTopicsSection.noFavoriteTopics")} description={t("knowledgeTopicsSection.starTopicsToSeeThemHere")} />
                     : (
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {favoriteTopics.map((t) => (
@@ -358,7 +361,7 @@ export function KnowledgeTopicsSection({
 
                 <TabsContent value="inactive" className="mt-4">
                   {inactiveTopics.length === 0
-                    ? <EmptyState icon={Tag} title="No inactive topics" description="Topics with no linked items appear here" />
+                    ? <EmptyState icon={Tag} title={t("knowledgeTopicsSection.noInactiveTopics")} description={t("knowledgeTopicsSection.topicsWithNoLinkedItemsAppearHere")} />
                     : (
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {inactiveTopics.map((t) => (
@@ -374,7 +377,7 @@ export function KnowledgeTopicsSection({
 
                 <TabsContent value="by_area" className="mt-4">
                   {groupedTopicsByArea.length === 0
-                    ? <EmptyState icon={Globe} title="No topics linked to areas" description="Link topics to areas to see them grouped here" />
+                    ? <EmptyState icon={Globe} title={t("knowledgeTopicsSection.noTopicsLinkedToAreas")} description={t("knowledgeTopicsSection.linkTopicsToAreasToSeeThemGroupedHere")} />
                     : (
                       <div className="px-1">
                         {groupedTopicsByArea.map(({ areaId, areaName, topics: areaTopics }) => {
@@ -402,7 +405,7 @@ export function KnowledgeTopicsSection({
 
                 <TabsContent value="all" className="mt-4">
                   {topics.length === 0
-                    ? <EmptyState icon={Tag} title="No topics yet" description="Create your first topic" actionLabel="New Topic" onAction={openTopicCreate} />
+                    ? <EmptyState icon={Tag} title={t("knowledgeTopicsSection.noTopicsYet")} description={t("knowledgeTopicsSection.createYourFirstTopic")} actionLabel="New Topic" onAction={openTopicCreate} />
                     : (
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {topics.map((t) => (
@@ -418,7 +421,7 @@ export function KnowledgeTopicsSection({
 
                 <TabsContent value="archived" className="mt-4">
                   {archivedTopics.length === 0 ? (
-                    <EmptyState icon={Archive} title="No archived topics" description="Archived topics will appear here" />
+                    <EmptyState icon={Archive} title={t("knowledgeTopicsSection.noArchivedTopics")} description={t("knowledgeTopicsSection.archivedTopicsWillAppearHere")} />
                   ) : (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {archivedTopics.map((t) => (
@@ -457,37 +460,37 @@ export function KnowledgeTopicsSection({
         >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>{topicEditData ? "Edit Topic" : "New Topic"}</DialogTitle>
+              <DialogTitle>{topicEditData ? t("knowledgeTopicsSection.editTopic") : t("page.newTopic")}</DialogTitle>
               <DialogDescription>
-                {topicEditData ? "Update topic details" : "Create a topic to organize notes and resources"}
+                {topicEditData ? t("knowledgeTopicsSection.updateTopicDetails") : t("knowledgeTopicsSection.createATopicToOrganizeNotesAndResources")}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="kh-topic-name">Name</Label>
+                <Label htmlFor="kh-topic-name">{t("goalDialog.name")}</Label>
                 <Input
                   id="kh-topic-name"
-                  placeholder="e.g., Productivity, Machine Learning, Recipes"
+                  placeholder={t("knowledgeTopicsSection.egProductivityMachineLearningRecipes")}
                   value={topicForm.name}
                   onChange={(e) => setTopicForm((p) => ({ ...p, name: e.target.value }))}
                 />
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
-                  <Label>Linked Areas</Label>
+                  <Label>{t("knowledgeTopicsSection.linkedAreas")}</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       className={buttonVariants({ variant: "outline", size: "sm" })}
                     >
-                      {topicForm.area_ids.length === 0 ? "Select areas..." : `${topicForm.area_ids.length} selected`}
+                      {topicForm.area_ids.length === 0 ? t("taskDialog.selectAreas") : `${topicForm.area_ids.length} selected`}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56">
                       <DropdownMenuItem onClick={() => setTopicForm((p) => ({ ...p, area_ids: [] }))}>
-                        Clear selection
+                        {t("taskDialog.clearSelection")}
                       </DropdownMenuItem>
                       <div className="max-h-56 overflow-y-auto overscroll-contain">
                         {areas.length === 0 ? (
-                          <p className="text-sm text-muted-foreground px-2 py-1.5">No areas available</p>
+                          <p className="text-sm text-muted-foreground px-2 py-1.5">{t("knowledgeTopicsSection.noAreasAvailable")}</p>
                         ) : (
                           areas.map((area) => {
                             const isSelected = topicForm.area_ids.includes(area.id);
@@ -544,20 +547,20 @@ export function KnowledgeTopicsSection({
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
-                  <Label>Link Notes</Label>
+                  <Label>{t("knowledgeTopicsSection.linkNotes")}</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       className={buttonVariants({ variant: "outline", size: "sm" })}
                     >
-                      {topicForm.note_ids.length === 0 ? "Select notes..." : `${topicForm.note_ids.length} selected`}
+                      {topicForm.note_ids.length === 0 ? t("knowledgeTopicsSection.selectNotes") : `${topicForm.note_ids.length} selected`}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-64">
                       <DropdownMenuItem onClick={() => setTopicForm((p) => ({ ...p, note_ids: [] }))}>
-                        Clear selection
+                        {t("taskDialog.clearSelection")}
                       </DropdownMenuItem>
                       <div className="max-h-56 overflow-y-auto overscroll-contain">
                         {notes.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No notes available.</div>
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("knowledgeTopicsSection.noNotesAvailable")}</div>
                         ) : (
                           notes.map((note) => {
                             const isSelected = topicForm.note_ids.includes(note.id);
@@ -612,20 +615,20 @@ export function KnowledgeTopicsSection({
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
-                  <Label>Link Resources</Label>
+                  <Label>{t("knowledgeTopicsSection.linkResources")}</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       className={buttonVariants({ variant: "outline", size: "sm" })}
                     >
-                      {topicForm.resource_ids.length === 0 ? "Select resources..." : `${topicForm.resource_ids.length} selected`}
+                      {topicForm.resource_ids.length === 0 ? t("knowledgeTopicsSection.selectResources") : `${topicForm.resource_ids.length} selected`}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-64">
                       <DropdownMenuItem onClick={() => setTopicForm((p) => ({ ...p, resource_ids: [] }))}>
-                        Clear selection
+                        {t("taskDialog.clearSelection")}
                       </DropdownMenuItem>
                       <div className="max-h-56 overflow-y-auto overscroll-contain">
                         {resources.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No resources available.</div>
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("knowledgeTopicsSection.noResourcesAvailable")}</div>
                         ) : (
                           resources.map((resource) => {
                             const isSelected = topicForm.resource_ids.includes(resource.id);
@@ -690,7 +693,7 @@ export function KnowledgeTopicsSection({
                   )}
                 >
                   <Heart className={cn("size-3.5", topicForm.favorite && "fill-current")} />
-                  Favorite
+                  {t("notes.tabs.favorite")}
                 </button>
               </div>
             </div>
@@ -703,13 +706,13 @@ export function KnowledgeTopicsSection({
                   setTopicForm({ name: "", area_ids: [], note_ids: [], resource_ids: [], favorite: false });
                 }}
               >
-                Cancel
+                {t("action.cancel")}
               </Button>
               <Button
                 onClick={topicEditData ? handleTopicUpdate : handleTopicCreate}
                 disabled={!topicForm.name || (topicEditData ? updateTopicIsPending : createTopicIsPending)}
               >
-                {topicEditData ? "Save Changes" : "Create Topic"}
+                {topicEditData ? t("goalDialog.saveChanges") : t("knowledgeTopicsSection.createTopic")}
               </Button>
             </DialogFooter>
           </DialogContent>

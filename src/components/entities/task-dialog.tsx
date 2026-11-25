@@ -812,7 +812,7 @@ export function TaskDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
+                        <SelectItem value={PRIORITY.LOW}>{t("taskDialog.low")}</SelectItem>
                         <SelectItem value={PRIORITY.MEDIUM}>{t("taskDialog.medium")}</SelectItem>
                         <SelectItem value={PRIORITY.HIGH}>{t("taskDialog.high")}</SelectItem>
                       </SelectContent>

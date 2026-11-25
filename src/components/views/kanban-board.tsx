@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React from "react";
 import { createPortal } from "react-dom";
@@ -43,6 +44,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick }: KanbanBoardProps) {
+  const { t, tp } = useI18n();
   const updateStatus = useUpdateProjectStatus();
   const [optimisticProjects, setOptimisticProjects] = React.useState<Project[]>(projects);
 
@@ -63,7 +65,7 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
   const projectsByStatus = React.useMemo(() => groupProjectsByStatus(optimisticProjects), [optimisticProjects]);
 
   if (optimisticProjects.length === 0) {
-    return <EmptyState icon={FolderOpen} title="No projects" description="Create a project to get started." />;
+    return <EmptyState icon={FolderOpen} title={t("kanbanBoard.noProjects")} description={t("kanbanBoard.createAProjectToGetStarted")} />;
   }
 
   const handleDragEnd = (result: DropResult) => {
@@ -162,7 +164,7 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
                                     {project.name}
                                     {duplicateIndices?.get(project.id) != null && duplicateIndices.get(project.id)! > 1 && (
                                       <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                        copy {duplicateIndices.get(project.id)}
+                                        {t("goalCard.copy")} {duplicateIndices.get(project.id)}
                                       </span>
                                     )}
                                   </h4>
@@ -201,10 +203,10 @@ export function KanbanBoard({ projects, areas, duplicateIndices, onProjectClick 
 
                                 <div className="space-y-1">
                                   <div className="flex justify-between text-xs text-muted-foreground">
-                                    <span>Progress</span>
+                                    <span>{t("goalDialog.progress")}</span>
                                     <span>{project.progress || 0}%</span>
                                   </div>
-                                  <div className="h-1 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={project.progress || 0} aria-valuemin={0} aria-valuemax={100} aria-label={`${project.name} progress`}>
+                                  <div className="h-1 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={project.progress || 0} aria-valuemin={0} aria-valuemax={100} aria-label={t("kanbanBoard.v0Progress", { v0: project.name })}>
                                     <div
                                       className="h-full rounded-full bg-primary transition-[width] duration-500 ease-[var(--ease-out-quint)]"
                                       style={{ width: `${project.progress || 0}%` }}

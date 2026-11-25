@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { ChevronDownIcon, Filter } from "lucide-react";
 
@@ -76,6 +77,7 @@ function FilterPopover({
   items: FilterItem[];
   onToggle: (id: string, checked: boolean) => void;
 }) {
+  const { t } = useI18n();
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger
@@ -101,7 +103,7 @@ function FilterPopover({
       <PopoverContent className={filterPopoverContentClassName}>
         <div className="space-y-1">
           {items.length === 0 && (
-            <p className="px-2 py-1 text-xs text-muted-foreground">No {label.toLowerCase()}s available.</p>
+            <p className="px-2 py-1 text-xs text-muted-foreground">No {label.toLowerCase()}{t("resourcesFilterBar.sAvailable")}</p>
           )}
           <ScrollArea className="max-h-60 w-full">
             {items.map((item) => {
@@ -158,6 +160,7 @@ export function ResourcesFilterBar({
   hasFilters,
   onClearFilters,
 }: ResourcesFilterBarProps) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center gap-3 border-b border-border/30 px-6 py-3">
       <Filter className="size-3.5 shrink-0 text-muted-foreground" />
@@ -169,24 +172,24 @@ export function ResourcesFilterBar({
           }
         >
           <SelectTrigger className="h-10 sm:h-8 w-[140px] sm:w-48 text-xs">
-            <SelectValue placeholder="Type" />
+            <SelectValue placeholder={t("areaDialog.type")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all_type__">All types</SelectItem>
-            <SelectItem value={RESOURCE_TYPE.WEBSITE}>Website</SelectItem>
-            <SelectItem value={RESOURCE_TYPE.ARTICLE}>Article</SelectItem>
-            <SelectItem value={RESOURCE_TYPE.VIDEO}>Video</SelectItem>
-            <SelectItem value={RESOURCE_TYPE.DOCUMENT}>Document</SelectItem>
-            <SelectItem value={RESOURCE_TYPE.PODCAST}>Podcast</SelectItem>
-            <SelectItem value={RESOURCE_TYPE.SOCIAL_MEDIA}>Social Media</SelectItem>
-            <SelectItem value={RESOURCE_TYPE.TOOL}>Tool</SelectItem>
+            <SelectItem value="__all_type__">{t("resourcesFilterBar.allTypes")}</SelectItem>
+            <SelectItem value={RESOURCE_TYPE.WEBSITE}>{t("resourcesFilterBar.website")}</SelectItem>
+            <SelectItem value={RESOURCE_TYPE.ARTICLE}>{t("resourcesFilterBar.article")}</SelectItem>
+            <SelectItem value={RESOURCE_TYPE.VIDEO}>{t("resourcesFilterBar.video")}</SelectItem>
+            <SelectItem value={RESOURCE_TYPE.DOCUMENT}>{t("resourcesFilterBar.document")}</SelectItem>
+            <SelectItem value={RESOURCE_TYPE.PODCAST}>{t("resourcesFilterBar.podcast")}</SelectItem>
+            <SelectItem value={RESOURCE_TYPE.SOCIAL_MEDIA}>{t("resourcesFilterBar.socialMedia")}</SelectItem>
+            <SelectItem value={RESOURCE_TYPE.TOOL}>{t("resourcesFilterBar.tool")}</SelectItem>
           </SelectContent>
         </Select>
 
         <FilterPopover
           open={areaPopoverOpen}
           onOpenChange={onAreaPopoverOpenChange}
-          label="Area"
+          label={t("taskDialog.area")}
           selectedIds={filterAreaIds}
           selectedLabels={selectedAreaLabels}
           items={activeAreas}
@@ -202,7 +205,7 @@ export function ResourcesFilterBar({
         <FilterPopover
           open={goalPopoverOpen}
           onOpenChange={onGoalPopoverOpenChange}
-          label="Goal"
+          label={t("inboxTaskProcessForm.goal")}
           selectedIds={filterGoalIds}
           selectedLabels={selectedGoalLabels}
           items={activeGoals}
@@ -218,7 +221,7 @@ export function ResourcesFilterBar({
         <FilterPopover
           open={taskPopoverOpen}
           onOpenChange={onTaskPopoverOpenChange}
-          label="Task"
+          label={t("noteInboxProcessForm.task")}
           selectedIds={filterTaskIds}
           selectedLabels={selectedTaskLabels}
           items={activeTasks}
@@ -234,7 +237,7 @@ export function ResourcesFilterBar({
         <FilterPopover
           open={topicPopoverOpen}
           onOpenChange={onTopicPopoverOpenChange}
-          label="Topic"
+          label={t("noteMetadataPanel.topic")}
           selectedIds={filterTopicIds}
           selectedLabels={selectedTopicLabels}
           items={activeTopics}
@@ -252,7 +255,7 @@ export function ResourcesFilterBar({
             onClick={onClearFilters}
             className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
           >
-            Clear filters
+            {t("tasksFilterBar.clearFilters")}
           </button>
         )}
       </div>

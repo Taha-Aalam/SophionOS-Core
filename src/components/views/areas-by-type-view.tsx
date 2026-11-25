@@ -119,7 +119,7 @@ function CollapsibleSection({
               className="flex flex-col items-center justify-center gap-2 h-48 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <Plus className="size-8" />
-              <span className="text-sm font-medium">New {type} {t("areasByTypeView.area")}</span>
+              <span className="text-sm font-medium">{t("action.new")} {type} {t("areasByTypeView.area")}</span>
             </button>
           </GalleryGrid>
         </>

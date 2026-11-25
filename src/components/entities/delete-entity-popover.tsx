@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { Trash2 } from "lucide-react";
@@ -112,6 +113,7 @@ export function DeleteEntityPopover({
   disabled = false,
   onConfirm,
 }: DeleteEntityPopoverProps) {
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [confirmation, setConfirmation] = React.useState("");
 
@@ -170,8 +172,7 @@ export function DeleteEntityPopover({
             {copy.title}
           </PopoverTitle>
           <PopoverDescription className="text-xs text-muted-foreground">
-            <span className="line-clamp-2">“{entityName}”</span> will be removed permanently. This
-            cannot be undone.
+            <span className="line-clamp-2">“{entityName}”</span> {t("deleteEntityPopover.willBeRemovedPermanentlyThisCannotBeUndone")}
           </PopoverDescription>
         </PopoverHeader>
 
@@ -182,7 +183,7 @@ export function DeleteEntityPopover({
                 htmlFor="delete-entity-confirm"
                 className="text-2xs font-medium text-muted-foreground"
               >
-                Type the {entityLabel} name to confirm
+                {t("deleteEntityPopover.typeThe")} {entityLabel} {t("deleteEntityPopover.nameToConfirm")}
               </label>
               <Input
                 id="delete-entity-confirm"
@@ -201,7 +202,7 @@ export function DeleteEntityPopover({
             <PopoverPrimitive.Close
               render={
                 <Button type="button" variant="ghost" size="sm">
-                  Cancel
+                  {t("action.cancel")}
                 </Button>
               }
             />

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import type { ReactNode } from "react";
 
@@ -40,11 +41,12 @@ export function StepShell({
   onSkip,
   children,
 }: StepShellProps) {
+  const { t, tp } = useI18n();
   const total = ONBOARDING_STEP_LIST.length;
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col overflow-y-auto px-4 py-8 sm:py-12">
-      <div className="mb-8 flex items-center justify-center gap-1.5" role="progressbar" aria-valuenow={stepIndex + 1} aria-valuemin={1} aria-valuemax={total} aria-label={`Step ${stepIndex + 1} of ${total}`}>
+      <div className="mb-8 flex items-center justify-center gap-1.5" role="progressbar" aria-valuenow={stepIndex + 1} aria-valuemin={1} aria-valuemax={total} aria-label={t("stepShell.stepV0OfV1", { v0: stepIndex + 1, v1: total })}>
         {ONBOARDING_STEP_LIST.map((s, i) => (
           <span
             key={s.step}
@@ -82,12 +84,12 @@ export function StepShell({
           onClick={onBack}
           disabled={isFirstStep || isBusy}
         >
-          Back
+          {t("action.back")}
         </Button>
         <div className="flex items-center gap-2">
           {onSkip && !isLastStep && (
             <Button variant="ghost" onClick={onSkip} disabled={isBusy}>
-              Skip
+              {t("stepShell.skip")}
             </Button>
           )}
           <Button
@@ -106,7 +108,7 @@ export function StepShell({
       </div>
 
       <p className="mt-4 text-center text-xs text-muted-foreground">
-        Step {stepIndex + 1} of {total}
+        {t("stepShell.step")} {stepIndex + 1} of {total}
       </p>
     </div>
   );

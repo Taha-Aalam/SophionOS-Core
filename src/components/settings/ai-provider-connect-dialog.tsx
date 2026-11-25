@@ -132,7 +132,7 @@ export function AiProviderConnectDialog({
                   id="provider-base-url"
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder={t("aiProviderConnectDialog.httpsopenrouteraiapiv1")}
+                  placeholder={"https://openrouter.ai/api/v1"}
                 />
                 <p className="text-xs text-muted-foreground">
                   {t("aiProviderConnectDialog.openaicompatibleRootEgHttpsapigroqcomopena")}

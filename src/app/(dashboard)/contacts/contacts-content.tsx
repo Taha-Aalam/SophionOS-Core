@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { cardGrid, contentColumnGrid, sectionGap } from "@/components/ui/layout";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ import {
 import type { ContactCategorySection } from "@/lib/utils/contact-category-sections";
 
 export function ContactsContent() {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<
     "all" | "favorite" | "follow-up" | "by-group" | "by-project" | "by-area" | "by-goal" | "archive"
   >("all");
@@ -167,7 +169,7 @@ export function ContactsContent() {
         <div className="flex items-center gap-3">
           <UsersIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Contacts</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("nav.contacts")}</h1>
             <p className="text-sm text-muted-foreground">
               {allContacts.length === 0
                 ? "No contacts yet. Add your first one to start tracking relationships"
@@ -182,7 +184,7 @@ export function ContactsContent() {
           }}
         >
           <Plus className="mr-2 size-4" />
-          Add Contact
+          {t("contactsContent.addContact")}
         </Button>
       </div>
 
@@ -190,35 +192,35 @@ export function ContactsContent() {
         <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value="all">
             <LayoutGrid className="mr-1.5 size-3.5" />
-            All
+            {t("notes.tabs.all")}
           </TabsTrigger>
           <TabsTrigger value="favorite">
             <Star className="mr-1.5 size-3.5" />
-            Favorite
+            {t("notes.tabs.favorite")}
           </TabsTrigger>
           <TabsTrigger value="follow-up">
             <Clock className="mr-1.5 size-3.5" />
-            Follow-up
+            {t("contactsContent.followup")}
           </TabsTrigger>
           <TabsTrigger value="by-group">
             <Users className="mr-1.5 size-3.5" />
-            By Group
+            {t("goalDetailContent.byGroup")}
           </TabsTrigger>
           <TabsTrigger value="by-project">
             <FolderKanban className="mr-1.5 size-3.5" />
-            By Project
+            {t("tasks.tabs.byProject")}
           </TabsTrigger>
           <TabsTrigger value="by-area">
             <MapIcon className="mr-1.5 size-3.5" />
-            By Area
+            {t("tasks.tabs.byArea")}
           </TabsTrigger>
           <TabsTrigger value="by-goal">
             <GoalIcon className="mr-1.5 size-3.5" />
-            By Goal
+            {t("tasks.tabs.byGoal")}
           </TabsTrigger>
           <TabsTrigger value="archive">
             <Archive className="mr-1.5 size-3.5" />
-            Archive
+            {t("action.archive")}
           </TabsTrigger>
         </TabsList>
 
@@ -226,8 +228,8 @@ export function ContactsContent() {
           {allContacts.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="No contacts yet"
-              description="Add your first professional contact to start tracking relationships."
+              title={t("contactsContent.noContactsYet")}
+              description={t("contactsContent.addYourFirstProfessionalContactToStartTrac")}
               actionLabel="Add Contact"
               onAction={() => {
                 setEditingContact(null);
@@ -254,8 +256,8 @@ export function ContactsContent() {
           {favContacts.length === 0 ? (
             <EmptyState
               icon={Star}
-              title="No favorites"
-              description="Star contacts to see them here."
+              title={t("contactsContent.noFavorites")}
+              description={t("contactsContent.starContactsToSeeThemHere")}
             />
           ) : (
             <div className={cardGrid}>
@@ -277,8 +279,8 @@ export function ContactsContent() {
           {followUpSections.length === 0 ? (
             <EmptyState
               icon={Clock}
-              title="All caught up"
-              description="No contacts need follow-up right now."
+              title={t("contactsContent.allCaughtUp")}
+              description={t("contactsContent.noContactsNeedFollowupRightNow")}
             />
           ) : (
             <ContactsFollowUpView
@@ -363,8 +365,8 @@ export function ContactsContent() {
           ) : archivedContacts.length === 0 ? (
             <EmptyState
               icon={Archive}
-              title="No archived contacts"
-              description="Archived contacts will appear here."
+              title={t("contactsContent.noArchivedContacts")}
+              description={t("contactsContent.archivedContactsWillAppearHere")}
             />
           ) : (
             <div className={cardGrid}>
