@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Archive, CalendarDays, CheckCircle, Clock, Flag, PauseCircle, Plus, Target } from "lucide-react";
 import { RocketIcon } from "@/components/icons";
 
+import { useI18n } from "@/components/providers/i18n-provider";
 import { GoalCard } from "@/components/entities/goal-card";
 import { GoalDialog } from "@/components/entities/goal-dialog";
 import { EmptyState } from "@/components/views/empty-state";
@@ -19,6 +20,7 @@ import { useAreas } from "@/lib/hooks/use-areas";
 import { useGoals, useRestoreGoal, useArchiveGoal } from "@/lib/hooks/use-goals";
 import { useFilterStore } from "@/lib/stores/filters.store";
 import { Goal } from "@/lib/types/domain.types";
+import type { TranslationKey } from "@/lib/i18n/dictionary";
 import {
   getGoalFiltersForView,
   getGoalLinkedAreaIds,
@@ -30,6 +32,7 @@ import {
 import { buildGoalDetailHref } from "@/lib/utils/goal-urls";
 
 export function GoalsContent() {
+  const { t } = useI18n();
   const router = useRouter();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
@@ -95,20 +98,20 @@ export function GoalsContent() {
     setStatus(nextFilters.status);
   };
 
-  const emptyStateDescriptionByView: Record<GoalView, string> = {
-    active: "Create your first goal to start tracking meaningful progress.",
-    short: "No short-term goals match the current filters.",
-    mid: "No mid-term goals match the current filters.",
-    long: "No long-term goals match the current filters.",
-    inactive: "Goals with no linked projects, tasks, notes, or resources appear here.",
-    completed: "Completed goals will appear here once you finish one.",
-    archive: "Archived goals will appear here.",
+  const emptyStateDescriptionByView: Record<GoalView, TranslationKey> = {
+    active: "goals.empty.active",
+    short: "goals.empty.short",
+    mid: "goals.empty.mid",
+    long: "goals.empty.long",
+    inactive: "goals.empty.inactive",
+    completed: "goals.empty.completed",
+    archive: "goals.empty.archive",
   };
 
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-16">
-        <ErrorState message="Failed to load goals." onRetry={() => refetch()} />
+        <ErrorState message={t("goals.error")} onRetry={() => refetch()} />
       </div>
     );
   }
@@ -119,13 +122,13 @@ export function GoalsContent() {
         <div className="flex items-center gap-3">
           <RocketIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Goals</h1>
-            <p className="text-muted-foreground">Track and achieve your long-term objectives.</p>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("nav.goals")}</h1>
+            <p className="text-muted-foreground">{t("goals.subtitle")}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-            <Plus className="size-4" /> New Goal
+            <Plus className="size-4" /> {t("action.newGoal")}
           </Button>
         </div>
       </div>
@@ -134,38 +137,38 @@ export function GoalsContent() {
         <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value="active">
             <Target className="mr-1.5 size-3.5" />
-            Active
+            {t("goals.tabs.active")}
           </TabsTrigger>
           <TabsTrigger value="short">
             <Clock className="mr-1.5 size-3.5" />
-            Short Term
+            {t("goals.tabs.short")}
           </TabsTrigger>
           <TabsTrigger value="mid">
             <CalendarDays className="mr-1.5 size-3.5" />
-            Mid Term
+            {t("goals.tabs.mid")}
           </TabsTrigger>
           <TabsTrigger value="long">
             <Flag className="mr-1.5 size-3.5" />
-            Long Term
+            {t("goals.tabs.long")}
           </TabsTrigger>
           <TabsTrigger value="inactive">
             <PauseCircle className="mr-1.5 size-3.5" />
-            Inactive
+            {t("goals.tabs.inactive")}
           </TabsTrigger>
           <TabsTrigger value="completed">
             <CheckCircle className="mr-1.5 size-3.5" />
-            Completed
+            {t("goals.tabs.completed")}
           </TabsTrigger>
           <TabsTrigger value="archive">
             <Archive className="mr-1.5 size-3.5" />
-            Archive
+            {t("goals.tabs.archive")}
           </TabsTrigger>
         </TabsList>
       </Tabs>
 
       {currentView === "inactive" && (
         <p className="text-sm text-muted-foreground">
-          Goals with no linked projects, tasks, notes, or resources are shown here.
+          {t("goals.inactiveHint")}
         </p>
       )}
 
@@ -188,7 +191,7 @@ export function GoalsContent() {
               <GoalCard
                 key={goal.id}
                 goal={goal}
-                areaName={(() => { const id = getGoalLinkedAreaIds(goal)[0]; return id ? areaNamesById.get(id) : "Unassigned"; })()}
+                areaName={(() => { const id = getGoalLinkedAreaIds(goal)[0]; return id ? areaNamesById.get(id) : t("common.unassigned"); })()}
                 areaNames={linkedAreaNames}
                 areaIcons={linkedAreaIcons}
                 duplicateIndex={duplicateIndices.get(goal.id)}
@@ -214,9 +217,13 @@ export function GoalsContent() {
       ) : (
         <EmptyState
           icon={Target}
-          title="No goals found"
-          description={emptyStateDescriptionByView[currentView]}
-          actionLabel={currentView === "active" ? "Create Goal" : "View Active Goals"}
+          title={t("goals.empty.title")}
+          description={t(emptyStateDescriptionByView[currentView])}
+          actionLabel={
+            currentView === "active"
+              ? t("action.newGoal")
+              : t("action.viewActiveGoals")
+          }
           onAction={() => {
             if (currentView === "active") {
               setEditingGoal(null);

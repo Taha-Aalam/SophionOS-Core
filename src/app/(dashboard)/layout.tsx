@@ -7,6 +7,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { SignOutOverlay } from "@/components/layout/sign-out-overlay";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { I18nProvider } from "@/components/providers/i18n-provider";
 import { BugReportCaptureProvider } from "@/components/providers/bug-report-capture-provider";
 import { BugReportBoundary } from "@/components/bug-report/bug-report-boundary";
 import { BugReportDialog } from "@/components/bug-report/bug-report-dialog";
@@ -17,6 +18,7 @@ import { resolveDashboardDestination } from "@/lib/onboarding/onboarding-routing
 import { createClient } from "@/lib/supabase/server";
 import { getSubscriptionSummary } from "@/lib/api/subscription-summary";
 import { resolveUserProfile } from "@/lib/notifications/resolve-email";
+import { resolveUserLocale } from "@/lib/i18n/server";
 
 export default async function DashboardGroupLayout({
   children,
@@ -40,7 +42,16 @@ export default async function DashboardGroupLayout({
   // then bounce on the client. The same single read carries areas_seeded_at —
   // the durable marker that gates the AuthProvider bootstrap's seed below.
   const supabase = await createClient();
-  const onboardingRow = await userSettingsService.getOnboardingRow(userId, { supabase });
+  const [onboardingRow, preferences] = await Promise.all([
+    userSettingsService.getOnboardingRow(userId, { supabase }),
+    userSettingsService.getPreferences(userId, { supabase }),
+  ]);
+  // Locale is resolved server-side so a reload paints the stored language on
+  // the first frame (no English flash) while only that locale's dictionary is
+  // serialised into the payload.
+  const { locale, hasStoredLocale, dictionary } = await resolveUserLocale(
+    preferences?.language,
+  );
   const destination = await resolveDashboardDestination(onboardingRow.state);
   if (destination) redirect(destination);
   // Resolve the full profile + subscription server-side so the topbar renders
@@ -60,6 +71,11 @@ export default async function DashboardGroupLayout({
   const initialSubscription = await getSubscriptionSummary(userId, { profile });
   return (
     <AuthProvider initialUser={initialUser} initialAreasSeededAt={onboardingRow.areasSeededAt}>
+      <I18nProvider
+        initialLocale={locale}
+        hasStoredLocale={hasStoredLocale}
+        initialDictionary={dictionary}
+      >
       <InboxBackfillProvider>
         <BugReportCaptureProvider>
           <BugReportBoundary>
@@ -79,6 +95,7 @@ export default async function DashboardGroupLayout({
           <BugReportDialog />
         </BugReportCaptureProvider>
       </InboxBackfillProvider>
+      </I18nProvider>
     </AuthProvider>
   );
 }

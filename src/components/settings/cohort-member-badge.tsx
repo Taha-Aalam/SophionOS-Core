@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/lib/hooks/use-subscription";
@@ -29,6 +30,7 @@ export function CohortMemberBadge({
   seed?: SubscriptionSummary | null;
   variant?: "plain" | "pill";
 }) {
+  const { t } = useI18n();
   const { data } = useSubscription();
   const isMember = (data ?? seed)?.cohortMember === true;
   if (!isMember) return null;
@@ -41,14 +43,14 @@ export function CohortMemberBadge({
           className,
         )}
       >
-        Cohort
+        {t("chrome.cohort")}
       </span>
     );
   }
 
   return (
     <Badge className={className} variant="secondary">
-      Cohort Member
+      {t("chrome.cohortMember")}
     </Badge>
   );
 }

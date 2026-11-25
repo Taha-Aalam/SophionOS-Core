@@ -18,6 +18,8 @@ import {
 import { CircleCheckIcon } from "@/components/icons";
 import React, { useCallback, useMemo, useState } from "react";
 
+import { useI18n } from "@/components/providers/i18n-provider";
+
 import { TaskDialog } from "@/components/entities/task-dialog";
 import { TaskList } from "@/components/entities/task-list";
 import { TasksFilterBar } from "@/components/filters/tasks-filter-bar";
@@ -62,6 +64,7 @@ import {
 } from "@/lib/utils/tasks";
 
 export function TasksContent() {
+  const { t, tp } = useI18n();
   const [activeTab, setActiveTab] = useState<TaskView>(TASK_VIEW.ALL);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -401,7 +404,7 @@ export function TasksContent() {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-16">
         <ErrorState
-          message="Failed to load tasks."
+          message={t("tasks.error")}
           onRetry={() => {
             if (tasksError) refetchTasks();
             if (archivedError) refetchArchived();
@@ -417,10 +420,12 @@ export function TasksContent() {
         <div className="flex items-center gap-3">
           <CircleCheckIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("nav.tasks")}</h1>
             <p className="text-sm text-muted-foreground" suppressHydrationWarning>
-              {counts.all} task{counts.all !== 1 ? "s" : ""} ·{" "}
-              {counts.overdue > 0 ? `${counts.overdue} overdue` : "all on track"}
+              {tp("tasks.subtitle", counts.all, {
+                overdue:
+                  counts.overdue > 0 ? counts.overdue : t("tasks.allOnTrack"),
+              })}
             </p>
           </div>
         </div>
@@ -431,7 +436,7 @@ export function TasksContent() {
           }}
         >
           <Plus className="size-4" />
-          New Task
+          {t("action.newTask")}
         </Button>
       </div>
 
@@ -443,51 +448,51 @@ export function TasksContent() {
         <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger className="text-xs" value={TASK_VIEW.ALL}>
             <LayoutGrid className="mr-1.5 size-3.5" />
-            All
+            {t("tasks.tabs.all")}
           </TabsTrigger>
           <TabsTrigger className="text-xs" value={TASK_VIEW.INBOX}>
             <InboxIcon className="mr-1.5 size-3.5" />
-            Inbox
+            {t("tasks.tabs.inbox")}
           </TabsTrigger>
           <TabsTrigger className="text-xs" value={TASK_VIEW.UPCOMING}>
             <Clock className="mr-1.5 size-3.5" />
-            Upcoming
+            {t("tasks.tabs.upcoming")}
           </TabsTrigger>
           <TabsTrigger className="text-xs" value={TASK_VIEW.OVERDUE}>
             <AlertTriangle className="mr-1.5 size-3.5" />
-            Overdue
+            {t("tasks.tabs.overdue")}
           </TabsTrigger>
           <TabsTrigger className="text-xs" value={TASK_VIEW.FOCUS}>
             <Star className="mr-1.5 size-3.5" />
-            Focus
+            {t("tasks.tabs.focus")}
           </TabsTrigger>
           <TabsTrigger className="text-xs" value={TASK_VIEW.SMART_PRIORITY}>
             <Zap className="mr-1.5 size-3.5" />
-            Smart Priority
+            {t("tasks.tabs.smartPriority")}
           </TabsTrigger>
           <TabsTrigger className="text-xs" value={TASK_VIEW.CALENDAR}>
             <CalendarDays className="mr-1.5 size-3.5" />
-            Calendar
+            {t("tasks.tabs.calendar")}
           </TabsTrigger>
           <TabsTrigger className="text-xs" value={TASK_VIEW.BY_AREA}>
             <Layers className="mr-1.5 size-3.5" />
-            By Area
+            {t("tasks.tabs.byArea")}
           </TabsTrigger>
           <TabsTrigger className="text-xs" value={TASK_VIEW.BY_GOAL}>
             <Target className="mr-1.5 size-3.5" />
-            By Goal
+            {t("tasks.tabs.byGoal")}
           </TabsTrigger>
           <TabsTrigger className="text-xs" value={TASK_VIEW.BY_PROJECT}>
             <FolderKanban className="mr-1.5 size-3.5" />
-            By Project
+            {t("tasks.tabs.byProject")}
           </TabsTrigger>
           <TabsTrigger className="text-xs" value={TASK_VIEW.COMPLETED}>
             <CheckSquare className="mr-1.5 size-3.5" />
-            Completed
+            {t("tasks.tabs.completed")}
           </TabsTrigger>
           <TabsTrigger className="text-xs" value={TASK_VIEW.ARCHIVE}>
             <Archive className="mr-1.5 size-3.5" />
-            Archive
+            {t("tasks.tabs.archive")}
           </TabsTrigger>
           </TabsList>
 
@@ -510,7 +515,7 @@ export function TasksContent() {
         <TabsContent value={TASK_VIEW.CALENDAR} className="mt-0 flex-1">
           {isLoading ? (
             <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-              Loading tasks...
+              {t("tasks.loading")}
             </div>
           ) : (
             <CalendarView
@@ -545,7 +550,7 @@ export function TasksContent() {
           <TabsContent key={tab} value={tab} className="mt-0 flex-1">
             {isLoading ? (
               <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-                Loading tasks...
+                {t("tasks.loading")}
               </div>
             ) : visibleTasks.length === 0 ? (
               <EmptyState
@@ -558,28 +563,30 @@ export function TasksContent() {
                 }
                 title={
                   tab === TASK_VIEW.FOCUS
-                    ? "No focused tasks"
+                    ? t("tasks.empty.focus.title")
                     : tab === TASK_VIEW.SMART_PRIORITY
-                      ? "No prioritized tasks"
+                      ? t("tasks.empty.smart.title")
                       : tab === TASK_VIEW.OVERDUE
-                        ? "Nothing overdue"
+                        ? t("tasks.empty.overdue.title")
                         : tab === TASK_VIEW.COMPLETED
-                          ? "No completed tasks yet"
-                          : "No tasks here"
+                          ? t("tasks.empty.completed.title")
+                          : t("tasks.empty.all.title")
                 }
                 description={
                   tab === TASK_VIEW.ALL
-                    ? "Create your first task to get started."
+                    ? t("tasks.empty.all.description")
                     : tab === TASK_VIEW.OVERDUE
-                      ? "You're all caught up"
+                      ? t("tasks.empty.overdue.description")
                       : tab === TASK_VIEW.FOCUS
-                        ? "Star a task to add it to your focus list."
+                        ? t("tasks.empty.focus.description")
                         : tab === TASK_VIEW.SMART_PRIORITY
-                          ? "Tasks are ranked here by real smart-priority scores."
-                          : "Tasks matching this view will appear here."
+                          ? t("tasks.empty.smart.description")
+                          : t("tasks.empty.default.description")
                 }
                 actionLabel={
-                  tab === TASK_VIEW.ALL || tab === TASK_VIEW.INBOX ? "New Task" : undefined
+                  tab === TASK_VIEW.ALL || tab === TASK_VIEW.INBOX
+                    ? t("action.newTask")
+                    : undefined
                 }
                 onAction={
                   tab === TASK_VIEW.ALL || tab === TASK_VIEW.INBOX
@@ -629,7 +636,7 @@ export function TasksContent() {
             getLinkedAreaIcons={getLinkedAreaIcons}
             getLinkedGoalNames={getLinkedGoalNames}
             getLinkedProjectNames={getLinkedProjectNames}
-            emptyMessage="Tasks will be grouped by area here."
+            emptyMessage={t("tasks.empty.byArea")}
           />
         </TabsContent>
 
@@ -650,7 +657,7 @@ export function TasksContent() {
             getLinkedAreaIcons={getLinkedAreaIcons}
             getLinkedGoalNames={getLinkedGoalNames}
             getLinkedProjectNames={getLinkedProjectNames}
-            emptyMessage="Tasks will be grouped by goal here."
+            emptyMessage={t("tasks.empty.byGoal")}
           />
         </TabsContent>
 
@@ -671,20 +678,20 @@ export function TasksContent() {
             getLinkedAreaIcons={getLinkedAreaIcons}
             getLinkedGoalNames={getLinkedGoalNames}
             getLinkedProjectNames={getLinkedProjectNames}
-            emptyMessage="Tasks will be grouped by project here."
+            emptyMessage={t("tasks.empty.byProject")}
           />
         </TabsContent>
 
         <TabsContent value={TASK_VIEW.ARCHIVE} className="mt-0 flex-1">
           {isArchivedLoading ? (
             <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-              Loading tasks...
+              {t("tasks.loading")}
             </div>
           ) : archivedTasks.length === 0 ? (
             <EmptyState
               icon={Archive}
-              title="No archived tasks"
-              description="Archived tasks will appear here. Use the archive icon on a task row to archive it."
+              title={t("tasks.empty.archive.title")}
+              description={t("tasks.empty.archive.description")}
             />
           ) : (
             <TaskList

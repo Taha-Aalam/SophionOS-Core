@@ -15,6 +15,7 @@ import {
 
 import { CohortMemberBadge } from "@/components/settings/cohort-member-badge";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { UserAvatar, useUserIdentity } from "@/components/user-avatar";
 import {
   DropdownMenu,
@@ -23,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { TranslationKey } from "@/lib/i18n/dictionary";
 import { useSubscription } from "@/lib/hooks/use-subscription";
 import type { SubscriptionSummary } from "@/lib/api/subscription-summary";
 import { isFeatureEnabled } from "@/lib/config/feature-flags";
@@ -37,7 +39,7 @@ const TIER_LABELS: Record<string, string> = {
 };
 
 interface MenuItem {
-  label: string;
+  labelKey: TranslationKey;
   value?: string;
   href: string;
   icon: React.ReactNode;
@@ -61,6 +63,7 @@ export function ProfileDropdown({
   const { signOut } = useAuth();
   const { data: liveSubscription } = useSubscription();
   const { resolvedTheme, setTheme } = useTheme();
+  const { t } = useI18n();
   // Identity comes from the shared hook so the topbar and the sidebar can
   // never render different avatars/initials for the same user.
   const { displayName, email } = useUserIdentity();
@@ -75,33 +78,33 @@ export function ProfileDropdown({
 
   const menuItems: MenuItem[] = [
     {
-      label: "Profile",
+      labelKey: "chrome.profile",
       href: "/settings/profile",
       icon: <UserIcon size={16} />,
     },
     {
-      label: "Subscription",
+      labelKey: "chrome.subscription",
       value: billingEnabled ? (tierLabel ?? "Free") : undefined,
       href: billingEnabled ? "/settings/billing" : "/settings",
       icon: <CreditCardIcon size={16} />,
     },
     {
-      label: "API Keys",
+      labelKey: "chrome.apiKeys",
       href: "/settings/api-keys",
       icon: <KeyIcon size={16} />,
     },
     {
-      label: "MCP Server",
+      labelKey: "chrome.mcpServer",
       href: "/settings/mcp",
       icon: <PlugZapIcon size={16} />,
     },
     {
-      label: "Settings",
+      labelKey: "nav.settings",
       href: "/settings",
       icon: <SettingsIcon size={16} />,
     },
     {
-      label: "Terms & Policies",
+      labelKey: "chrome.termsAndPolicies",
       href: "/terms",
       icon: <FileTextIcon size={16} />,
     },
@@ -115,7 +118,7 @@ export function ProfileDropdown({
             render={
               <button
                 type="button"
-                aria-label="User menu"
+                aria-label={t("chrome.userMenu")}
                 className="flex items-center gap-2 rounded-xl p-1 pr-2 transition-colors outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-accent/60"
               >
                 <div className="flex min-w-0 flex-col items-start text-left leading-tight">
@@ -181,7 +184,7 @@ export function ProfileDropdown({
             <div className="space-y-1">
               {menuItems.map((item) => (
                 <DropdownMenuItem
-                  key={item.label}
+                  key={item.labelKey}
                   className="rounded-xl border border-transparent p-3 transition-colors duration-150 hover:border-border/60 hover:bg-accent/70"
                   render={
                     <a
@@ -194,7 +197,7 @@ export function ProfileDropdown({
                   <div className="flex min-w-0 flex-1 items-center gap-2">
                     {item.icon}
                     <span className="whitespace-nowrap text-sm font-medium leading-tight tracking-tight">
-                      {item.label}
+                      {t(item.labelKey)}
                     </span>
                   </div>
                   {item.value ? (
@@ -219,7 +222,7 @@ export function ProfileDropdown({
               onClick={() => void signOut()}
             >
               <LogoutIcon size={16} />
-              <span className="text-sm font-medium">Sign Out</span>
+              <span className="text-sm font-medium">{t("chrome.signOut")}</span>
             </DropdownMenuItem>
 
             <button
@@ -229,7 +232,9 @@ export function ProfileDropdown({
             >
               <SunMoonIcon size={16} className="text-muted-foreground" />
               <span className="text-sm font-medium">
-                {resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                {resolvedTheme === "dark"
+                  ? t("chrome.switchToLightMode")
+                  : t("chrome.switchToDarkMode")}
               </span>
             </button>
           </DropdownMenuContent>

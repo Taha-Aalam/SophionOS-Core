@@ -14,6 +14,7 @@ import {
   trustNavItems,
 } from "@/components/layout/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { UserAvatar, useUserIdentity } from "@/components/user-avatar";
@@ -73,6 +74,7 @@ export function MobileNav() {
   const pathname = usePathname();
   const { closeSidebar, isMobileNavOpen } = useUIStore();
   const { resolvedTheme, setTheme } = useTheme();
+  const { t } = useI18n();
   const { signOut } = useAuth();
   // Same identity source as the topbar and the desktop rail — see
   // useUserIdentity.
@@ -87,7 +89,11 @@ export function MobileNav() {
   // Policies list only, with no app navigation and no account block.
   const policyMode = isPolicyPath(pathname);
 
-  const themeLabel = mounted ? (resolvedTheme === "dark" ? "Light mode" : "Dark mode") : "Theme";
+  const themeLabel = mounted
+    ? resolvedTheme === "dark"
+      ? t("chrome.lightMode")
+      : t("chrome.darkMode")
+    : t("chrome.theme");
 
   return (
     <Sheet open={isMobileNavOpen} onOpenChange={(open) => !open && closeSidebar()}>
@@ -118,29 +124,47 @@ export function MobileNav() {
           {policyMode ? (
             <div className="space-y-0.5">
               <p className="mb-1 px-2 text-2xs font-medium text-muted-foreground">
-                Policies
+                {t("chrome.policies")}
               </p>
               {trustNavItems.map((item) => (
-                <MobileNavLink key={item.href} {...item} onClick={closeSidebar} />
+                <MobileNavLink
+                  key={item.href}
+                  href={item.href}
+                  icon={item.icon}
+                  label={t(item.labelKey)}
+                  onClick={closeSidebar}
+                />
               ))}
             </div>
           ) : (
             <>
               <div className="space-y-0.5">
                 <p className="mb-1 px-2 text-2xs font-medium text-muted-foreground">
-                  Core
+                  {t("chrome.core")}
                 </p>
                 {coreNavItems.map((item) => (
-                  <MobileNavLink key={item.href} {...item} onClick={closeSidebar} />
+                  <MobileNavLink
+                    key={item.href}
+                    href={item.href}
+                    icon={item.icon}
+                    label={t(item.labelKey)}
+                    onClick={closeSidebar}
+                  />
                 ))}
               </div>
 
               <div className="space-y-0.5">
                 <p className="mb-1 px-2 text-2xs font-medium text-muted-foreground">
-                  System
+                  {t("chrome.system")}
                 </p>
                 {systemNavItems.map((item) => (
-                  <MobileNavLink key={item.href} {...item} onClick={closeSidebar} />
+                  <MobileNavLink
+                    key={item.href}
+                    href={item.href}
+                    icon={item.icon}
+                    label={t(item.labelKey)}
+                    onClick={closeSidebar}
+                  />
                 ))}
               </div>
             </>
@@ -155,7 +179,7 @@ export function MobileNav() {
             className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             <Settings className="size-4 shrink-0" />
-            <span>Settings</span>
+            <span>{t("nav.settings")}</span>
           </Link>
           <Button
             variant="ghost"
@@ -173,7 +197,7 @@ export function MobileNav() {
             className="h-auto w-full justify-start gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10"
             onClick={() => signOut()}
           >
-            <span className="text-destructive">Sign out</span>
+            <span className="text-destructive">{t("chrome.signOut")}</span>
           </Button>
           <div className="flex items-center gap-3 rounded-md px-3 py-2.5">
             <UserAvatar size="sm" />

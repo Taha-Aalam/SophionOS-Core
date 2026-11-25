@@ -28,6 +28,9 @@ import {
   useUpdatePreferences,
 } from "@/lib/hooks/use-user-settings";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
+import { TIER1_LOCALES } from "@/lib/i18n/config";
+import type { TranslationKey } from "@/lib/i18n/dictionary";
 
 const TIMEZONES = [
   { label: "UTC", value: "UTC" },
@@ -40,21 +43,15 @@ const TIMEZONES = [
   { label: "Australia/Sydney (AEST/AEDT)", value: "Australia/Sydney" },
 ];
 
-const THEMES = [
-  { label: "System", value: "system" },
-  { label: "Light", value: "light" },
-  { label: "Dark", value: "dark" },
-];
-
-const LANGUAGES = [
-  { label: "English", value: "en" },
-  { label: "Español", value: "es" },
-  { label: "Français", value: "fr" },
-  { label: "Deutsch", value: "de" },
+const THEMES: Array<{ labelKey: TranslationKey; value: string }> = [
+  { labelKey: "preferences.theme.system", value: "system" },
+  { labelKey: "preferences.theme.light", value: "light" },
+  { labelKey: "preferences.theme.dark", value: "dark" },
 ];
 
 export default function PreferencesPage() {
   const { user } = useAuth();
+  const { t, locale, setLocale } = useI18n();
   const { data: preferences } = usePreferences();
   const { mutate: updatePreferences, isPending } = useUpdatePreferences();
   const { theme, setTheme } = useTheme();
@@ -87,16 +84,20 @@ export default function PreferencesPage() {
     const theme = formData.get("theme") as "light" | "dark" | "system";
     const language = formData.get("language") as string;
 
+    // Apply the language to the live UI first (and keep it if the write
+    // fails); the preferences mutation persists language, theme and timezone
+    // together in the existing user_settings row.
+    void setLocale(language as typeof locale, false);
     updatePreferences(
       { timezone, theme, language },
       {
-        onSuccess: () => toast.success("Preferences saved"),
+        onSuccess: () => toast.success(t("preferences.saved")),
       },
     );
   }
 
   if (!user) return (
-    <div className="reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full" aria-busy="true" role="status" aria-label="Loading preferences">
+    <div className="reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full" aria-busy="true" role="status" aria-label={t("preferences.loading")}>
       <div className="space-y-6">
         <div className="h-8 w-48 rounded bg-muted animate-pulse" />
         <div className="h-48 w-full rounded-lg border border-border/40 bg-muted/30 animate-pulse" />
@@ -107,37 +108,39 @@ export default function PreferencesPage() {
   return (
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
       <SettingsDetailHeader
-        title="Preferences"
-        description="Set your timezone, theme, and language. Theme preference is synced with the UI immediately."
+        title={t("preferences.title")}
+        description={t("preferences.description")}
       />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Display</CardTitle>
+            <CardTitle className="text-base">
+              {t("preferences.display.title")}
+            </CardTitle>
             <CardDescription>
-              Choose how SophionOS looks and feels.
+              {t("preferences.display.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="theme">Theme</Label>
+              <Label htmlFor="theme">{t("preferences.theme.label")}</Label>
               <Select
                 value={themeSelect ?? (isMounted ? preferences?.theme ?? theme ?? "system" : "system")}
                 onValueChange={(v) => setThemeSelect(v ?? undefined)}
                 disabled={isPending}
               >
                 <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Select theme" />
+                  <SelectValue placeholder={t("preferences.theme.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {THEMES.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
+                  {THEMES.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
                       <div className="flex items-center gap-2">
-                        {t.value === "light" && <Sun className="size-4" />}
-                        {t.value === "dark" && <Moon className="size-4" />}
-                        {t.value === "system" && <Globe className="size-4" />}
-                        {t.label}
+                        {item.value === "light" && <Sun className="size-4" />}
+                        {item.value === "dark" && <Moon className="size-4" />}
+                        {item.value === "system" && <Globe className="size-4" />}
+                        {t(item.labelKey)}
                       </div>
                     </SelectItem>
                   ))}
@@ -146,21 +149,23 @@ export default function PreferencesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
+              <Label htmlFor="language">{t("preferences.language.label")}</Label>
               <Select
                 name="language"
                 required
-                value={languageSelect ?? preferences?.language ?? "en"}
+                value={languageSelect ?? locale}
                 onValueChange={(v) => setLanguageSelect(v ?? undefined)}
                 disabled={isPending}
               >
                 <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Select language" />
+                  <SelectValue placeholder={t("preferences.language.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {LANGUAGES.map((l) => (
-                    <SelectItem key={l.value} value={l.value}>
-                      {l.label}
+                  {/* Native names are never translated: a user looking for
+                      their language should recognise it as they write it. */}
+                  {TIER1_LOCALES.map((item) => (
+                    <SelectItem key={item.code} value={item.code}>
+                      {item.nativeName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -171,14 +176,16 @@ export default function PreferencesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Localization</CardTitle>
+            <CardTitle className="text-base">
+              {t("preferences.localization.title")}
+            </CardTitle>
             <CardDescription>
-              Set your timezone for date/time displays.
+              {t("preferences.localization.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
+              <Label htmlFor="timezone">{t("preferences.timezone.label")}</Label>
               <Select
                 name="timezone"
                 required
@@ -187,7 +194,7 @@ export default function PreferencesPage() {
                 disabled={isPending}
               >
                 <SelectTrigger className="w-full sm:w-64">
-                  <SelectValue placeholder="Select timezone" />
+                  <SelectValue placeholder={t("preferences.timezone.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {TIMEZONES.map((tz) => (
@@ -203,7 +210,7 @@ export default function PreferencesPage() {
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Saving…" : "Save preferences"}
+            {isPending ? t("preferences.saving") : t("preferences.save")}
           </Button>
         </div>
       </form>

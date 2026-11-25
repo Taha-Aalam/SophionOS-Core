@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Activity, Archive, CheckSquare, Folder, Inbox, Layers, LayoutGrid, Map as MapIcon, PauseCircle, Pencil, Plus, Target } from "lucide-react";
 import { FolderOpenIcon } from "@/components/icons";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { ProjectCard } from "@/components/entities/project-card";
 import { ProjectDialog } from "@/components/entities/project-dialog";
@@ -68,6 +69,7 @@ function getProjectAreaIcons(
 }
 
 export function ProjectsContent() {
+  const { t } = useI18n();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [activeView, setActiveView] = useState(PROJECT_VIEW.ALL);
@@ -143,7 +145,10 @@ export function ProjectsContent() {
     return Object.entries(byAreaId)
       .map(([areaId, projects]) => ({
         areaId,
-        areaName: areaId === "unassigned" ? "Unassigned" : (areaNames.get(areaId) ?? areaId),
+        areaName:
+          areaId === "unassigned"
+            ? t("common.unassigned")
+            : (areaNames.get(areaId) ?? areaId),
         projects,
       }))
       // Keep the "Unassigned" group last.
@@ -152,7 +157,7 @@ export function ProjectsContent() {
         if (b.areaId === "unassigned") return -1;
         return 0;
       });
-  }, [activeProjects, areaNames]);
+  }, [activeProjects, areaNames, t]);
 
   const goalMap = useMemo(
     () => new Map(allGoals.map((g) => [g.id, g])),
@@ -164,7 +169,10 @@ export function ProjectsContent() {
     return Object.entries(byGoalId)
       .map(([goalId, projects]) => ({
         goalId,
-        goalName: goalId === "unassigned" ? "No Goal" : (goalMap.get(goalId)?.name ?? goalId),
+        goalName:
+          goalId === "unassigned"
+            ? t("common.noGoal")
+            : (goalMap.get(goalId)?.name ?? goalId),
         projects,
       }))
       // Keep the "No Goal" group last.
@@ -173,7 +181,7 @@ export function ProjectsContent() {
         if (b.goalId === "unassigned") return -1;
         return 0;
       });
-  }, [activeProjects, goalMap]);
+  }, [activeProjects, goalMap, t]);
 
   const duplicateIndices = useMemo(() => {
     const result = new Map<string, number>();
@@ -257,7 +265,7 @@ export function ProjectsContent() {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-16">
         <ErrorState
-          message="Failed to load projects."
+          message={t("projects.error")}
           onRetry={() => {
             if (activeError) refetchActive();
             if (archivedError) refetchArchived();
@@ -273,15 +281,15 @@ export function ProjectsContent() {
         <div className="flex items-center gap-3">
           <FolderOpenIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("nav.projects")}</h1>
             <p className="text-muted-foreground">
-              Organize projects by area, status, and linked goals.
+              {t("projects.subtitle")}
             </p>
           </div>
         </div>
         <Button onClick={handleCreate}>
           <Plus className="mr-2 size-4" />
-          New Project
+          {t("action.newProject")}
         </Button>
       </div>
 
@@ -293,43 +301,43 @@ export function ProjectsContent() {
         <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden bg-muted/50 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value={PROJECT_VIEW.ALL}>
             <LayoutGrid className="mr-1.5 size-3.5" />
-            All
+            {t("projects.tabs.all")}
           </TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.INBOX}>
             <Inbox className="mr-1.5 size-3.5" />
-            Inbox
+            {t("projects.tabs.inbox")}
           </TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.PLANNING}>
             <Pencil className="mr-1.5 size-3.5" />
-            Planning
+            {t("projects.tabs.planning")}
           </TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.IN_PROGRESS}>
             <Activity className="mr-1.5 size-3.5" />
-            In Progress
+            {t("projects.tabs.inProgress")}
           </TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.ON_HOLD}>
             <PauseCircle className="mr-1.5 size-3.5" />
-            On Hold
+            {t("projects.tabs.onHold")}
           </TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.COMPLETED}>
             <CheckSquare className="mr-1.5 size-3.5" />
-            Completed
+            {t("projects.tabs.completed")}
           </TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.BY_STATUS}>
             <Layers className="mr-1.5 size-3.5" />
-            By Status
+            {t("projects.tabs.byStatus")}
           </TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.BY_AREA}>
             <MapIcon className="mr-1.5 size-3.5" />
-            By Area
+            {t("projects.tabs.byArea")}
           </TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.BY_GOAL}>
             <Target className="mr-1.5 size-3.5" />
-            By Goal
+            {t("projects.tabs.byGoal")}
           </TabsTrigger>
           <TabsTrigger value={PROJECT_VIEW.ARCHIVE}>
             <Archive className="mr-1.5 size-3.5" />
-            Archive
+            {t("projects.tabs.archive")}
           </TabsTrigger>
         </TabsList>
 
@@ -338,9 +346,9 @@ export function ProjectsContent() {
             activeProjects,
             <EmptyState
               icon={Folder}
-              title="No projects yet"
-              description="Create your first project to start tracking work across areas and goals."
-              actionLabel="Create Project"
+              title={t("projects.empty.all.title")}
+              description={t("projects.empty.all.description")}
+              actionLabel={t("projects.empty.actionCreate")}
               onAction={handleCreate}
             />,
             isLoadingActive,
@@ -352,9 +360,9 @@ export function ProjectsContent() {
             projectsByStatus.inbox,
             <EmptyState
               icon={Folder}
-              title="No inbox projects"
-              description="Projects without an area or goal appear here."
-              actionLabel="Create Project"
+              title={t("projects.empty.inbox.title")}
+              description={t("projects.empty.inbox.description")}
+              actionLabel={t("projects.empty.actionCreate")}
               onAction={handleCreate}
             />,
             isLoadingActive,
@@ -366,9 +374,9 @@ export function ProjectsContent() {
             projectsByStatus.planning,
             <EmptyState
               icon={Folder}
-              title="No planning projects"
-              description="Projects in the planning state will appear here."
-              actionLabel="Create Project"
+              title={t("projects.empty.planning.title")}
+              description={t("projects.empty.planning.description")}
+              actionLabel={t("projects.empty.actionCreate")}
               onAction={handleCreate}
             />,
             isLoadingActive,
@@ -380,9 +388,9 @@ export function ProjectsContent() {
             projectsByStatus.active,
             <EmptyState
               icon={Folder}
-              title="No projects in progress"
-              description="Move planning work into progress or create a new project."
-              actionLabel="Create Project"
+              title={t("projects.empty.inProgress.title")}
+              description={t("projects.empty.inProgress.description")}
+              actionLabel={t("projects.empty.actionCreate")}
               onAction={handleCreate}
             />,
             isLoadingActive,
@@ -394,8 +402,8 @@ export function ProjectsContent() {
             projectsByStatus.on_hold,
             <EmptyState
               icon={Folder}
-              title="No projects on hold"
-              description="Projects on hold will appear here."
+              title={t("projects.empty.onHold.title")}
+              description={t("projects.empty.onHold.description")}
             />,
             isLoadingActive,
           )}
@@ -406,8 +414,8 @@ export function ProjectsContent() {
             projectsByStatus.completed,
             <EmptyState
               icon={Folder}
-              title="No completed projects"
-              description="Projects marked completed will appear here."
+              title={t("projects.empty.completed.title")}
+              description={t("projects.empty.completed.description")}
             />,
             isLoadingActive,
           )}
@@ -461,8 +469,8 @@ export function ProjectsContent() {
             archivedProjects,
             <EmptyState
               icon={Archive}
-              title="No archived projects"
-              description="Archived projects will appear here when you archive them."
+              title={t("projects.empty.archive.title")}
+              description={t("projects.empty.archive.description")}
             />,
             isLoadingArchived,
           )}
