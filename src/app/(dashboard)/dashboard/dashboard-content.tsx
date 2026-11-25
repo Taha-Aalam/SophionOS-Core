@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { GreetingBar } from "@/components/dashboard/greeting-bar";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { DashboardAnalyticsSection } from "./dashboard-analytics-section";
 
 import dynamic from "next/dynamic";
@@ -43,6 +44,7 @@ import { useContacts } from "@/lib/hooks/use-contacts";
 
 export function DashboardContent() {
   const router = useRouter();
+  const { t } = useI18n();
   const { user } = useAuth();
 
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -117,7 +119,7 @@ export function DashboardContent() {
   if (isQueryError) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-16">
-        <p className="text-muted-foreground">Failed to load dashboard data.</p>
+        <p className="text-muted-foreground">{t("dashboard.error")}</p>
       </div>
     );
   }

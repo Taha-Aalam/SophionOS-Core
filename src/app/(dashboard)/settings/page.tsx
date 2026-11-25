@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   Bell,
@@ -19,75 +21,82 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { contentColumnGrid, sectionGap } from "@/components/ui/layout";
+import { useI18n } from "@/components/providers/i18n-provider";
+import type { TranslationKey } from "@/lib/i18n/dictionary";
 import { cn } from "@/lib/utils";
 import { isFeatureEnabled, type FeatureFlag } from "@/lib/config/feature-flags";
 
-const settingsCards = [
+const settingsCards: Array<{
+  href: string;
+  titleKey: TranslationKey;
+  descriptionKey: TranslationKey;
+  icon: typeof User;
+}> = [
   {
     href: "/settings/profile",
-    title: "Profile",
-    description: "Photo, username, phone number, and account details.",
+    titleKey: "settings.profile.title",
+    descriptionKey: "settings.profile.description",
     icon: User,
   },
   {
     href: "/settings/preferences",
-    title: "Preferences",
-    description: "Theme, timezone, language, and display options.",
+    titleKey: "settings.preferences.title",
+    descriptionKey: "settings.preferences.description",
     icon: Settings2,
   },
   {
     href: "/settings/notifications",
-    title: "Notifications",
-    description: "Configure briefings, digests, and reminder schedules.",
+    titleKey: "settings.notifications.title",
+    descriptionKey: "settings.notifications.description",
     icon: Bell,
   },
   {
     href: "/settings/ai-access",
-    title: "AI Access",
-    description:
-      "See connected clients, revoke keys, and disable all AI/API access.",
+    titleKey: "settings.aiAccess.title",
+    descriptionKey: "settings.aiAccess.description",
     icon: Shield,
   },
   {
     href: "/settings/ai-providers",
-    title: "AI Providers",
-    description:
-      "Connect your own AI provider keys (Claude, GPT, Gemini, Grok…) to power AI features.",
+    titleKey: "settings.aiProviders.title",
+    descriptionKey: "settings.aiProviders.description",
     icon: Sparkles,
   },
   {
     href: "/settings/privacy",
-    title: "Privacy & data",
-    description: "Export your data, review counts, and request account deletion.",
+    titleKey: "settings.privacy.title",
+    descriptionKey: "settings.privacy.description",
     icon: Lock,
   },
   {
     href: "/settings/api-keys",
-    title: "API Access",
-    description: "Create and manage API keys for MCP and direct API use.",
+    titleKey: "settings.apiAccess.title",
+    descriptionKey: "settings.apiAccess.description",
     icon: KeyRound,
   },
   {
     href: "/settings/mcp",
-    title: "MCP Server",
-    description: "Connect SophionOS to your AI client. Requires Pro.",
+    titleKey: "settings.mcpServer.title",
+    descriptionKey: "settings.mcpServer.description",
     icon: Plug,
   },
   {
     href: "/settings/billing",
-    title: "Billing",
-    description: "View your plan, usage, and upgrade options.",
+    titleKey: "settings.billing.title",
+    descriptionKey: "settings.billing.description",
     icon: CreditCard,
   },
   {
     href: "/settings/integrations",
-    title: "Integrations",
-    description: "Connect third-party services and sync data.",
+    titleKey: "settings.integrations.title",
+    descriptionKey: "settings.integrations.description",
     icon: User,
   },
 ];
 
 export default function SettingsPage() {
+  const { t } = useI18n();
+
   // Hide a settings card when its feature flag is OFF. The flags default to off,
   // so the gated tabs only appear once their NEXT_PUBLIC_FEATURE_* env var is
   // truthy. Add an entry here when a new flag is introduced.
@@ -106,31 +115,36 @@ export default function SettingsPage() {
         <div className="flex items-center gap-3">
           <Settings2 className="size-6" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-heading">Settings</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-heading">
+              {t("nav.settings")}
+            </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Configure your SophionOS experience, access, and connections.
+              {t("settings.subtitle")}
             </p>
           </div>
         </div>
       </div>
 
       <div className="grid gap-[var(--grid-gap-sm)] sm:gap-[var(--grid-gap)] md:grid-cols-2 lg:grid-cols-3">
-        {visibleSettingsCards.map((card) => (
-          <Link key={card.href} href={card.href} className="block focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none rounded-lg">
-            <Card className="hover-lift h-full">
-              <CardHeader className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <card.icon className="size-5 text-primary" />
-                  <CardTitle className="text-base">{card.title}</CardTitle>
-                </div>
-                <CardDescription>{card.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="text-sm text-primary">
-                Open {card.title} →
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+        {visibleSettingsCards.map((card) => {
+          const title = t(card.titleKey);
+          return (
+            <Link key={card.href} href={card.href} className="block focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none rounded-lg">
+              <Card className="hover-lift h-full">
+                <CardHeader className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <card.icon className="size-5 text-primary" />
+                    <CardTitle className="text-base">{title}</CardTitle>
+                  </div>
+                  <CardDescription>{t(card.descriptionKey)}</CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm text-primary">
+                  {t("settings.openCard", { name: title })}
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

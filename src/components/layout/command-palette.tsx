@@ -38,7 +38,10 @@ import { useCreateResource, useResources, useUpdateResource } from "@/lib/hooks/
 import { useTasks } from "@/lib/hooks/use-tasks";
 import { useTopics } from "@/lib/hooks/use-topics";
 import { useUIStore } from "@/lib/stores/ui.store";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { coreNavItems, systemNavItems } from "@/components/layout/navigation";
+import type { TranslationKey } from "@/lib/i18n/dictionary";
+import { navSearchKeywords } from "@/lib/i18n/nav-search-keywords";
 import type { Resource, Task } from "@/lib/types/domain.types";
 import { buildAreaDetailHref } from "@/lib/utils/area-urls";
 import { buildContactCreateInput } from "@/lib/utils/contact-input";
@@ -55,24 +58,30 @@ type CreateEntity = "area" | "goal" | "project" | "task" | "note" | "resource" |
 
 const CREATE_ACTIONS: Array<{
   entity: CreateEntity;
-  label: string;
+  labelKey: TranslationKey;
   Icon: ComponentType<{ className?: string; size?: number }>;
 }> = [
-  { entity: "area", label: "Create area", Icon: MapPinIcon },
-  { entity: "goal", label: "Create goal", Icon: ENTITY_ICONS.goal },
-  { entity: "project", label: "Create project", Icon: ENTITY_ICONS.project },
-  { entity: "task", label: "Create task", Icon: ENTITY_ICONS.task },
-  { entity: "note", label: "Create note", Icon: SquarePenIcon },
-  { entity: "resource", label: "Create resource", Icon: ENTITY_ICONS.resource },
-  { entity: "contact", label: "Create contact", Icon: UsersIcon },
-  { entity: "topic", label: "Create topic", Icon: ENTITY_ICONS.topic },
+  { entity: "area", labelKey: "action.createArea", Icon: MapPinIcon },
+  { entity: "goal", labelKey: "action.createGoal", Icon: ENTITY_ICONS.goal },
+  { entity: "project", labelKey: "action.createProject", Icon: ENTITY_ICONS.project },
+  { entity: "task", labelKey: "action.createTask", Icon: ENTITY_ICONS.task },
+  { entity: "note", labelKey: "action.createNote", Icon: SquarePenIcon },
+  { entity: "resource", labelKey: "action.createResource", Icon: ENTITY_ICONS.resource },
+  { entity: "contact", labelKey: "action.createContact", Icon: UsersIcon },
+  { entity: "topic", labelKey: "action.createTopic", Icon: ENTITY_ICONS.topic },
 ];
+
+/** Case/width-insensitive match: IME output and full-width Latin both match. */
+function normalizeSearch(value: string): string {
+  return value.normalize("NFKC").toLocaleLowerCase();
+}
 
 export function CommandPalette() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { commandPaletteOpen, closeCommandPalette, toggleCommandPalette } = useUIStore();
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [createEntity, setCreateEntity] = useState<CreateEntity | null>(null);
   const [editTask, setEditTask] = useState<Task | null>(null);
@@ -144,7 +153,17 @@ export function CommandPalette() {
   );
 
   const hasQuery = query.length > 0;
-  const q = query.toLowerCase();
+  const q = normalizeSearch(query);
+
+  // A nav item matches its active-locale label, or any of its keywords: the
+  // label in every stored Tier-1 locale plus Japanese romaji readings. This is
+  // what lets a Japanese word (or an in-progress romaji composition) find a
+  // page whose visible label is English.
+  const navMatches = (labelKey: TranslationKey, label: string): boolean =>
+    !hasQuery ||
+    [label, ...navSearchKeywords(labelKey)].some((source) =>
+      normalizeSearch(source).includes(q),
+    );
 
   const filteredTasks = hasQuery
     ? tasks.filter((t) => !t.is_archived && t.name.toLowerCase().includes(q)).slice(0, 5)
@@ -171,16 +190,14 @@ export function CommandPalette() {
     ? topics.filter((t) => !t.inactive && t.name.toLowerCase().includes(q)).slice(0, 5)
     : [];
 
-  const filteredCore = coreNavItems.filter(
-    (i) => !hasQuery || i.label.toLowerCase().includes(q),
-  );
-  const filteredSystem = systemNavItems.filter(
-    (i) => !hasQuery || i.label.toLowerCase().includes(q),
+  const filteredCore = coreNavItems.filter((i) => navMatches(i.labelKey, t(i.labelKey)));
+  const filteredSystem = systemNavItems.filter((i) =>
+    navMatches(i.labelKey, t(i.labelKey)),
   );
 
-  const filteredCreateActions = hasQuery
-    ? CREATE_ACTIONS.filter((c) => c.label.toLowerCase().includes(q))
-    : CREATE_ACTIONS;
+  const filteredCreateActions = CREATE_ACTIONS.filter(
+    (c) => !hasQuery || normalizeSearch(t(c.labelKey)).includes(q),
+  );
 
   const hasEntityResults =
     filteredTasks.length > 0 ||
@@ -209,14 +226,14 @@ export function CommandPalette() {
       >
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder="Search or create…"
+            placeholder={t("chrome.searchOrCreate")}
             value={query}
             onValueChange={setQuery}
             autoFocus
           />
           <CommandList>
             {filteredCore.length > 0 && (
-              <CommandGroup heading="Core">
+              <CommandGroup heading={t("chrome.core")}>
                 {filteredCore.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -226,7 +243,7 @@ export function CommandPalette() {
                       onSelect={() => go(item.href)}
                     >
                       <Icon size={16} />
-                      {item.label}
+                      {t(item.labelKey)}
                     </CommandItem>
                   );
                 })}
@@ -234,7 +251,7 @@ export function CommandPalette() {
             )}
 
             {filteredSystem.length > 0 && (
-              <CommandGroup heading="System">
+              <CommandGroup heading={t("chrome.system")}>
                 {filteredSystem.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -244,7 +261,7 @@ export function CommandPalette() {
                       onSelect={() => go(item.href)}
                     >
                       <Icon size={16} />
-                      {item.label}
+                      {t(item.labelKey)}
                     </CommandItem>
                   );
                 })}
@@ -252,7 +269,7 @@ export function CommandPalette() {
             )}
 
             {filteredCreateActions.length > 0 && (
-              <CommandGroup heading="Create">
+              <CommandGroup heading={t("chrome.create")}>
                 {filteredCreateActions.map((c) => {
                   const Icon = c.Icon;
                   return (
@@ -262,7 +279,7 @@ export function CommandPalette() {
                       onSelect={() => openCreate(c.entity)}
                     >
                       <Icon size={16} />
-                      {c.label}
+                      {t(c.labelKey)}
                     </CommandItem>
                   );
                 })}
@@ -270,7 +287,7 @@ export function CommandPalette() {
             )}
 
             {filteredTasks.length > 0 && (
-              <CommandGroup heading="Tasks">
+              <CommandGroup heading={t("nav.tasks")}>
                 {filteredTasks.map((task) => (
                   <CommandItem
                     key={task.id}
@@ -289,7 +306,7 @@ export function CommandPalette() {
             )}
 
             {filteredGoals.length > 0 && (
-              <CommandGroup heading="Goals">
+              <CommandGroup heading={t("nav.goals")}>
                 {filteredGoals.map((goal) => (
                   <CommandItem
                     key={goal.id}
@@ -304,7 +321,7 @@ export function CommandPalette() {
             )}
 
             {filteredProjects.length > 0 && (
-              <CommandGroup heading="Projects">
+              <CommandGroup heading={t("nav.projects")}>
                 {filteredProjects.map((project) => (
                   <CommandItem
                     key={project.id}
@@ -319,7 +336,7 @@ export function CommandPalette() {
             )}
 
             {filteredAreas.length > 0 && (
-              <CommandGroup heading="Areas">
+              <CommandGroup heading={t("nav.areas")}>
                 {filteredAreas.map((area) => (
                   <CommandItem
                     key={area.id}
@@ -344,7 +361,7 @@ export function CommandPalette() {
             )}
 
             {filteredNotes.length > 0 && (
-              <CommandGroup heading="Notes">
+              <CommandGroup heading={t("nav.notes")}>
                 {filteredNotes.map((note) => (
                   <CommandItem
                     key={note.id}
@@ -359,7 +376,7 @@ export function CommandPalette() {
             )}
 
             {filteredResources.length > 0 && (
-              <CommandGroup heading="Resources">
+              <CommandGroup heading={t("nav.resources")}>
                 {filteredResources.map((resource) => (
                   <CommandItem
                     key={resource.id}
@@ -378,7 +395,7 @@ export function CommandPalette() {
             )}
 
             {filteredTopics.length > 0 && (
-              <CommandGroup heading="Topics">
+              <CommandGroup heading={t("nav.topics")}>
                 {filteredTopics.map((topic) => (
                   <CommandItem
                     key={topic.id}
@@ -393,7 +410,7 @@ export function CommandPalette() {
             )}
 
             {filteredContacts.length > 0 && (
-              <CommandGroup heading="Contacts">
+              <CommandGroup heading={t("nav.contacts")}>
                 {filteredContacts.map((contact) => (
                   <CommandItem
                     key={contact.id}
@@ -407,7 +424,9 @@ export function CommandPalette() {
               </CommandGroup>
             )}
 
-            {showEmptyState && <CommandEmpty>No results for &ldquo;{query}&rdquo;</CommandEmpty>}
+            {showEmptyState && (
+              <CommandEmpty>{t("chrome.noResults", { query })}</CommandEmpty>
+            )}
           </CommandList>
         </Command>
       </CommandDialog>

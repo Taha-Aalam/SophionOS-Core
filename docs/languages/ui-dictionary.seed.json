@@ -1,0 +1,684 @@
+{
+  "_meta": {
+    "builtFrom": "The live cloud code on 2026-11-25: src/components/layout/navigation.ts (sidebar structure), src/components/layout/sidebar.tsx (chrome), plus the common action vocabulary used across pages. The SophionOS brand name is never translated.",
+    "fallbackRule": "If a key has no translation in the chosen language yet, the UI shows the English string. A missing translation must never render a blank or a raw key.",
+    "howSearchWorks": "The command palette indexes, for every nav key, the label in EVERY supported language as search keywords. A Japanese user typing the Japanese word finds the page even before switching the UI language; in Japanese mode the label itself matches directly.",
+    "purpose": "SophionOS UI dictionary seed — ONE common dictionary for the whole app shell. Every UI string gets a key once; each language translates the key. The backend, routes, and internal names never change — only this visible layer swaps when a user picks a language.",
+    "scopeNote": "This seed covers the shell: sidebar navigation, sidebar chrome, entity names, and common actions. The full sweep (every page body, empty states, toasts, errors — 147 source files contain visible strings) is extracted into this same structure by the implementation work; keys are added, the structure does not change.",
+    "scopeRuling": "Owner, 2026-11-25: international languages ONLY for SophionOS — no local/regional languages in this project. The 38 codes below are the full scope. (The Indian regional set from the earlier proposal — Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi — is explicitly OUT.)"
+  },
+  "locales": {
+    "scopeRuling": "Owner, 2026-11-25: international languages ONLY for SophionOS — no local/regional languages in this project. The 38 codes below are the full scope. (The Indian regional set from the earlier proposal — Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi — is explicitly OUT.)",
+    "tier1_ship_with_mechanism": [
+      {
+        "code": "en",
+        "name": "English",
+        "note": "source language"
+      },
+      {
+        "code": "ja",
+        "name": "Japanese",
+        "note": "pilot — the case that started this"
+      },
+      {
+        "code": "es",
+        "name": "Spanish"
+      },
+      {
+        "code": "es-MX",
+        "name": "Spanish (Mexico)",
+        "note": "variant: inherits es; only differing strings are stored"
+      },
+      {
+        "code": "fr",
+        "name": "French"
+      },
+      {
+        "code": "de",
+        "name": "German"
+      },
+      {
+        "code": "pt",
+        "name": "Portuguese"
+      },
+      {
+        "code": "it",
+        "name": "Italian"
+      },
+      {
+        "code": "nl",
+        "name": "Dutch"
+      },
+      {
+        "code": "zh",
+        "name": "Chinese"
+      },
+      {
+        "code": "ko",
+        "name": "Korean"
+      },
+      {
+        "code": "hi",
+        "name": "Hindi"
+      },
+      {
+        "code": "ru",
+        "name": "Russian"
+      }
+    ],
+    "tier2_dictionary_only_no_new_engineering": [
+      {
+        "code": "pl",
+        "name": "Polish"
+      },
+      {
+        "code": "cs",
+        "name": "Czech"
+      },
+      {
+        "code": "uk",
+        "name": "Ukrainian"
+      },
+      {
+        "code": "bg",
+        "name": "Bulgarian"
+      },
+      {
+        "code": "tr",
+        "name": "Turkish"
+      },
+      {
+        "code": "sv",
+        "name": "Swedish"
+      },
+      {
+        "code": "no",
+        "name": "Norwegian"
+      },
+      {
+        "code": "fi",
+        "name": "Finnish"
+      },
+      {
+        "code": "da",
+        "name": "Danish"
+      },
+      {
+        "code": "el",
+        "name": "Greek"
+      },
+      {
+        "code": "ro",
+        "name": "Romanian"
+      },
+      {
+        "code": "hr",
+        "name": "Croatian"
+      },
+      {
+        "code": "et",
+        "name": "Estonian"
+      },
+      {
+        "code": "th",
+        "name": "Thai"
+      },
+      {
+        "code": "vi",
+        "name": "Vietnamese"
+      },
+      {
+        "code": "id",
+        "name": "Indonesian"
+      },
+      {
+        "code": "bn",
+        "name": "Bengali"
+      },
+      {
+        "code": "mn",
+        "name": "Mongolian"
+      },
+      {
+        "code": "kk",
+        "name": "Kazakh"
+      },
+      {
+        "code": "ky",
+        "name": "Kyrgyz"
+      },
+      {
+        "code": "fil",
+        "name": "Filipino"
+      }
+    ],
+    "tier3_needs_rtl_layout_pass_first": [
+      {
+        "code": "ar",
+        "name": "Arabic",
+        "note": "RTL layout mirroring first"
+      },
+      {
+        "code": "ur",
+        "name": "Urdu",
+        "note": "RTL layout mirroring first"
+      },
+      {
+        "code": "fa",
+        "name": "Persian",
+        "note": "RTL layout mirroring first"
+      },
+      {
+        "code": "he",
+        "name": "Hebrew",
+        "note": "RTL layout mirroring first"
+      }
+    ]
+  },
+  "strings": {
+    "action.back": {
+      "de": "Zurück",
+      "en": "Back",
+      "es": "Atrás",
+      "fr": "Retour",
+      "hi": "वापस",
+      "ja": "戻る",
+      "ko": "뒤로",
+      "pt": "Voltar",
+      "zh": "返回",
+      "it": "Indietro",
+      "nl": "Terug",
+      "ru": "Назад"
+    },
+    "action.cancel": {
+      "de": "Abbrechen",
+      "en": "Cancel",
+      "es": "Cancelar",
+      "fr": "Annuler",
+      "hi": "रद्द करें",
+      "ja": "キャンセル",
+      "ko": "취소",
+      "pt": "Cancelar",
+      "zh": "取消",
+      "it": "Annulla",
+      "nl": "Annuleren",
+      "ru": "Отмена"
+    },
+    "action.close": {
+      "de": "Schließen",
+      "en": "Close",
+      "es": "Cerrar",
+      "fr": "Fermer",
+      "hi": "बंद करें",
+      "ja": "閉じる",
+      "ko": "닫기",
+      "pt": "Fechar",
+      "zh": "关闭",
+      "it": "Chiudi",
+      "nl": "Sluiten",
+      "ru": "Закрыть"
+    },
+    "action.create": {
+      "de": "Erstellen",
+      "en": "Create",
+      "es": "Crear",
+      "fr": "Créer",
+      "hi": "बनाएँ",
+      "ja": "作成",
+      "ko": "만들기",
+      "pt": "Criar",
+      "zh": "创建",
+      "it": "Crea",
+      "nl": "Aanmaken",
+      "ru": "Создать"
+    },
+    "action.delete": {
+      "de": "Löschen",
+      "en": "Delete",
+      "es": "Eliminar",
+      "fr": "Supprimer",
+      "hi": "हटाएँ",
+      "ja": "削除",
+      "ko": "삭제",
+      "pt": "Excluir",
+      "zh": "删除",
+      "it": "Elimina",
+      "nl": "Verwijderen",
+      "ru": "Удалить"
+    },
+    "action.edit": {
+      "de": "Bearbeiten",
+      "en": "Edit",
+      "es": "Editar",
+      "fr": "Modifier",
+      "hi": "संपादित करें",
+      "ja": "編集",
+      "ko": "편집",
+      "pt": "Editar",
+      "zh": "编辑",
+      "it": "Modifica",
+      "nl": "Bewerken",
+      "ru": "Изменить"
+    },
+    "action.loading": {
+      "de": "Wird geladen…",
+      "en": "Loading…",
+      "es": "Cargando…",
+      "fr": "Chargement…",
+      "hi": "लोड हो रहा है…",
+      "ja": "読み込み中…",
+      "ko": "로딩 중…",
+      "pt": "Carregando…",
+      "zh": "加载中…",
+      "it": "Caricamento…",
+      "nl": "Laden…",
+      "ru": "Загрузка…"
+    },
+    "action.new": {
+      "de": "Neu",
+      "en": "New",
+      "es": "Nuevo",
+      "fr": "Nouveau",
+      "hi": "नया",
+      "ja": "新規",
+      "ko": "새로 만들기",
+      "pt": "Novo",
+      "zh": "新建",
+      "it": "Nuovo",
+      "nl": "Nieuw",
+      "ru": "Новый"
+    },
+    "action.save": {
+      "de": "Speichern",
+      "en": "Save",
+      "es": "Guardar",
+      "fr": "Enregistrer",
+      "hi": "सहेजें",
+      "ja": "保存",
+      "ko": "저장",
+      "pt": "Salvar",
+      "zh": "保存",
+      "it": "Salva",
+      "nl": "Opslaan",
+      "ru": "Сохранить"
+    },
+    "chrome.collapseSidebar": {
+      "de": "Seitenleiste einklappen",
+      "en": "Collapse sidebar",
+      "es": "Contraer barra lateral",
+      "fr": "Réduire la barre latérale",
+      "hi": "साइडबार संक्षिप्त करें",
+      "ja": "サイドバーを折りたたむ",
+      "ko": "사이드바 접기",
+      "pt": "Recolher barra lateral",
+      "zh": "折叠侧边栏",
+      "it": "Comprimi barra laterale",
+      "nl": "Zijbalk inklappen",
+      "ru": "Свернуть боковую панель"
+    },
+    "chrome.expandSidebar": {
+      "de": "Seitenleiste ausklappen",
+      "en": "Expand sidebar",
+      "es": "Expandir barra lateral",
+      "fr": "Développer la barre latérale",
+      "hi": "साइडबार विस्तृत करें",
+      "ja": "サイドバーを展開する",
+      "ko": "사이드바 펼치기",
+      "pt": "Expandir barra lateral",
+      "zh": "展开侧边栏",
+      "it": "Espandi barra laterale",
+      "nl": "Zijbalk uitklappen",
+      "ru": "Развернуть боковую панель"
+    },
+    "chrome.moreOptions": {
+      "de": "Weitere Optionen",
+      "en": "More options",
+      "es": "Más opciones",
+      "fr": "Plus d'options",
+      "hi": "अधिक विकल्प",
+      "ja": "その他のオプション",
+      "ko": "옵션 더보기",
+      "pt": "Mais opções",
+      "zh": "更多选项",
+      "it": "Altre opzioni",
+      "nl": "Meer opties",
+      "ru": "Ещё опции"
+    },
+    "chrome.search": {
+      "de": "Suchen",
+      "en": "Search",
+      "es": "Buscar",
+      "fr": "Rechercher",
+      "hi": "खोजें",
+      "ja": "検索",
+      "ko": "검색",
+      "pt": "Pesquisar",
+      "zh": "搜索",
+      "it": "Cerca",
+      "nl": "Zoeken",
+      "ru": "Поиск"
+    },
+    "legal.dataAndAi": {
+      "de": "Daten & KI",
+      "en": "Data & AI",
+      "es": "Datos e IA",
+      "fr": "Données et IA",
+      "hi": "डेटा और AI",
+      "ja": "データとAI",
+      "ko": "데이터 및 AI",
+      "pt": "Dados e IA",
+      "zh": "数据与 AI",
+      "it": "Dati e IA",
+      "nl": "Gegevens & AI",
+      "ru": "Данные и ИИ"
+    },
+    "legal.privacy": {
+      "de": "Datenschutz",
+      "en": "Privacy",
+      "es": "Privacidad",
+      "fr": "Confidentialité",
+      "hi": "गोपनीयता",
+      "ja": "プライバシー",
+      "ko": "개인정보",
+      "pt": "Privacidade",
+      "zh": "隐私",
+      "it": "Privacy",
+      "nl": "Privacy",
+      "ru": "Конфиденциальность"
+    },
+    "legal.responsibleDisclosure": {
+      "de": "Verantwortungsvolle Offenlegung",
+      "en": "Responsible Disclosure",
+      "es": "Divulgación responsable",
+      "fr": "Divulgation responsable",
+      "hi": "ज़िम्मेदार प्रकटीकरण",
+      "ja": "責任ある開示",
+      "ko": "책임 있는 공개",
+      "pt": "Divulgação responsável",
+      "zh": "负责任披露",
+      "it": "Divulgazione responsabile",
+      "nl": "Verantwoorde openbaarmaking",
+      "ru": "Ответственное раскрытие"
+    },
+    "legal.security": {
+      "de": "Sicherheit",
+      "en": "Security",
+      "es": "Seguridad",
+      "fr": "Sécurité",
+      "hi": "सुरक्षा",
+      "ja": "セキュリティ",
+      "ko": "보안",
+      "pt": "Segurança",
+      "zh": "安全",
+      "it": "Sicurezza",
+      "nl": "Beveiliging",
+      "ru": "Безопасность"
+    },
+    "legal.subprocessors": {
+      "de": "Unterauftragsverarbeiter",
+      "en": "Subprocessors",
+      "es": "Subprocesadores",
+      "fr": "Sous-traitants",
+      "hi": "उप-प्रोसेसर",
+      "ja": "再委託先",
+      "ko": "서브프로세서",
+      "pt": "Subprocessadores",
+      "zh": "子处理方",
+      "it": "Sub-responsabili",
+      "nl": "Subverwerkers",
+      "ru": "Субобработчики"
+    },
+    "legal.terms": {
+      "de": "Nutzungsbedingungen",
+      "en": "Terms",
+      "es": "Términos",
+      "fr": "Conditions",
+      "hi": "नियम",
+      "ja": "利用規約",
+      "ko": "약관",
+      "pt": "Termos",
+      "zh": "条款",
+      "it": "Termini",
+      "nl": "Voorwaarden",
+      "ru": "Условия"
+    },
+    "nav.areas": {
+      "de": "Bereiche",
+      "en": "Areas",
+      "es": "Áreas",
+      "fr": "Domaines",
+      "hi": "क्षेत्र",
+      "ja": "エリア",
+      "ko": "영역",
+      "pt": "Áreas",
+      "zh": "领域",
+      "it": "Aree",
+      "nl": "Gebieden",
+      "ru": "Области"
+    },
+    "nav.contacts": {
+      "de": "Kontakte",
+      "en": "Contacts",
+      "es": "Contactos",
+      "fr": "Contacts",
+      "hi": "संपर्क",
+      "ja": "連絡先",
+      "ko": "연락처",
+      "pt": "Contatos",
+      "zh": "联系人",
+      "it": "Contatti",
+      "nl": "Contacten",
+      "ru": "Контакты"
+    },
+    "nav.dashboard": {
+      "de": "Dashboard",
+      "en": "Dashboard",
+      "es": "Panel",
+      "fr": "Tableau de bord",
+      "hi": "डैशबोर्ड",
+      "ja": "ダッシュボード",
+      "ko": "대시보드",
+      "pt": "Painel",
+      "zh": "仪表板",
+      "it": "Dashboard",
+      "nl": "Dashboard",
+      "ru": "Панель управления"
+    },
+    "nav.goals": {
+      "de": "Ziele",
+      "en": "Goals",
+      "es": "Objetivos",
+      "fr": "Objectifs",
+      "hi": "लक्ष्य",
+      "ja": "目標",
+      "ko": "목표",
+      "pt": "Metas",
+      "zh": "目标",
+      "it": "Obiettivi",
+      "nl": "Doelen",
+      "ru": "Цели"
+    },
+    "nav.inbox": {
+      "de": "Posteingang",
+      "en": "Inbox",
+      "es": "Bandeja de entrada",
+      "fr": "Boîte de réception",
+      "hi": "इनबॉक्स",
+      "ja": "受信トレイ",
+      "ko": "받은편지함",
+      "pt": "Caixa de entrada",
+      "zh": "收件箱",
+      "it": "Posta in arrivo",
+      "nl": "Inbox",
+      "ru": "Входящие"
+    },
+    "nav.knowledgeHub": {
+      "de": "Wissenszentrum",
+      "en": "Knowledge Hub",
+      "es": "Centro de conocimiento",
+      "fr": "Centre de connaissances",
+      "hi": "ज्ञान केंद्र",
+      "ja": "ナレッジハブ",
+      "ko": "지식 허브",
+      "pt": "Central de conhecimento",
+      "zh": "知识中心",
+      "it": "Centro di conoscenza",
+      "nl": "Kenniscentrum",
+      "ru": "Центр знаний"
+    },
+    "nav.myDay": {
+      "de": "Mein Tag",
+      "en": "My Day",
+      "es": "Mi día",
+      "fr": "Ma journée",
+      "hi": "मेरा दिन",
+      "ja": "マイデイ",
+      "ko": "나의 하루",
+      "pt": "Meu dia",
+      "zh": "我的一天",
+      "it": "La mia giornata",
+      "nl": "Mijn dag",
+      "ru": "Мой день"
+    },
+    "nav.notes": {
+      "de": "Notizen",
+      "en": "Notes",
+      "es": "Notas",
+      "fr": "Notes",
+      "hi": "नोट्स",
+      "ja": "ノート",
+      "ko": "노트",
+      "pt": "Notas",
+      "zh": "笔记",
+      "it": "Note",
+      "nl": "Notities",
+      "ru": "Заметки"
+    },
+    "nav.pioneers": {
+      "de": "Pioniere",
+      "en": "Pioneers",
+      "es": "Pioneros",
+      "fr": "Pionniers",
+      "hi": "अग्रणी",
+      "ja": "パイオニア",
+      "ko": "파이오니어",
+      "pt": "Pioneiros",
+      "zh": "先锋",
+      "it": "Pionieri",
+      "nl": "Pioniers",
+      "ru": "Пионеры"
+    },
+    "nav.projects": {
+      "de": "Projekte",
+      "en": "Projects",
+      "es": "Proyectos",
+      "fr": "Projets",
+      "hi": "परियोजनाएँ",
+      "ja": "プロジェクト",
+      "ko": "프로젝트",
+      "pt": "Projetos",
+      "zh": "项目",
+      "it": "Progetti",
+      "nl": "Projecten",
+      "ru": "Проекты"
+    },
+    "nav.reportBug": {
+      "de": "Fehler melden",
+      "en": "Report a Bug",
+      "es": "Informar de un error",
+      "fr": "Signaler un bug",
+      "hi": "बग रिपोर्ट करें",
+      "ja": "不具合を報告",
+      "ko": "버그 신고",
+      "pt": "Relatar um bug",
+      "zh": "报告问题",
+      "it": "Segnala un bug",
+      "nl": "Een bug melden",
+      "ru": "Сообщить об ошибке"
+    },
+    "nav.resources": {
+      "de": "Ressourcen",
+      "en": "Resources",
+      "es": "Recursos",
+      "fr": "Ressources",
+      "hi": "संसाधन",
+      "ja": "リソース",
+      "ko": "리소스",
+      "pt": "Recursos",
+      "zh": "资源",
+      "it": "Risorse",
+      "nl": "Bronnen",
+      "ru": "Ресурсы"
+    },
+    "nav.settings": {
+      "de": "Einstellungen",
+      "en": "Settings",
+      "es": "Ajustes",
+      "fr": "Paramètres",
+      "hi": "सेटिंग्स",
+      "ja": "設定",
+      "ko": "설정",
+      "pt": "Configurações",
+      "zh": "设置",
+      "it": "Impostazioni",
+      "nl": "Instellingen",
+      "ru": "Настройки"
+    },
+    "nav.support": {
+      "de": "Support",
+      "en": "Support",
+      "es": "Soporte",
+      "fr": "Assistance",
+      "hi": "सहायता",
+      "ja": "サポート",
+      "ko": "지원",
+      "pt": "Suporte",
+      "zh": "支持",
+      "it": "Supporto",
+      "nl": "Ondersteuning",
+      "ru": "Поддержка"
+    },
+    "nav.tasks": {
+      "de": "Aufgaben",
+      "en": "Tasks",
+      "es": "Tareas",
+      "fr": "Tâches",
+      "hi": "कार्य",
+      "ja": "タスク",
+      "ko": "작업",
+      "pt": "Tarefas",
+      "zh": "任务",
+      "it": "Attività",
+      "nl": "Taken",
+      "ru": "Задачи"
+    },
+    "nav.topics": {
+      "de": "Themen",
+      "en": "Topics",
+      "es": "Temas",
+      "fr": "Sujets",
+      "hi": "विषय",
+      "ja": "トピック",
+      "ko": "주제",
+      "pt": "Tópicos",
+      "zh": "主题",
+      "it": "Argomenti",
+      "nl": "Onderwerpen",
+      "ru": "Темы"
+    },
+    "settings.language": {
+      "de": "Sprache",
+      "en": "Language",
+      "es": "Idioma",
+      "fr": "Langue",
+      "hi": "भाषा",
+      "ja": "言語",
+      "ko": "언어",
+      "pt": "Idioma",
+      "zh": "语言",
+      "it": "Lingua",
+      "nl": "Taal",
+      "ru": "Язык"
+    }
+  }
+}

@@ -4,6 +4,7 @@ import React from "react";
 import { Loader2 } from "lucide-react";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 /**
  * Sign-out transition overlay. Sits above the dashboard tree while Clerk is
@@ -14,6 +15,7 @@ import { useAuth } from "@/components/providers/auth-provider";
  */
 export function SignOutOverlay() {
   const { isSigningOut } = useAuth();
+  const { t } = useI18n();
   if (!isSigningOut) return null;
   return (
     <div
@@ -24,7 +26,7 @@ export function SignOutOverlay() {
     >
       <div className="flex flex-col items-center gap-3 text-muted-foreground">
         <Loader2 className="size-6 animate-spin" aria-hidden />
-        <p className="text-sm">Signing out…</p>
+        <p className="text-sm">{t("chrome.signingOut")}</p>
       </div>
     </div>
   );

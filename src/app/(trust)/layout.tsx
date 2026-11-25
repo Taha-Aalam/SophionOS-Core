@@ -8,9 +8,11 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { I18nProvider } from "@/components/providers/i18n-provider";
 import { ShellFrame } from "@/components/layout/shell-frame";
 import { userSettingsService } from "@/lib/services/user-settings.service";
 import { createClient } from "@/lib/supabase/server";
+import { resolveUserLocale } from "@/lib/i18n/server";
 
 /**
  * Standard app shell for the system policy pages — the same Sidebar/Topbar/
@@ -45,10 +47,16 @@ export default async function TrustLayout({
   // areas_seeded_at marker here — a set marker means the bootstrap must issue
   // no seed work at all, even from a policy page.
   let areasSeededAt: string | null = null;
+  let storedLanguage: string | null = null;
   if (signedIn) {
     try {
       const supabase = await createClient();
-      ({ areasSeededAt } = await userSettingsService.getOnboardingRow(userId, { supabase }));
+      const [onboardingRow, preferences] = await Promise.all([
+        userSettingsService.getOnboardingRow(userId, { supabase }),
+        userSettingsService.getPreferences(userId, { supabase }),
+      ]);
+      areasSeededAt = onboardingRow.areasSeededAt;
+      storedLanguage = preferences?.language ?? null;
     } catch {
       // Policy pages must render even if the marker read fails; the seed RPC
       // re-checks the marker server-side, so a NULL here only costs one no-op
@@ -56,6 +64,8 @@ export default async function TrustLayout({
       areasSeededAt = null;
     }
   }
+
+  const { locale, hasStoredLocale, dictionary } = await resolveUserLocale(storedLanguage);
 
   return (
     <AuthProvider
@@ -67,6 +77,11 @@ export default async function TrustLayout({
       }}
       initialAreasSeededAt={areasSeededAt}
     >
+      <I18nProvider
+        initialLocale={locale}
+        hasStoredLocale={hasStoredLocale}
+        initialDictionary={dictionary}
+      >
       {/* Desktop: fixed shell, independently scrolling main pane. Signed-out
           visitors get the expanded cap pinned — no rail is rendered, so a
           width delta would be meaningless for them. */}
@@ -100,6 +115,7 @@ export default async function TrustLayout({
           <CommandPalette />
         </Suspense>
       ) : null}
+      </I18nProvider>
     </AuthProvider>
   );
 }

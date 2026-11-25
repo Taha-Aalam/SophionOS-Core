@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { breadcrumbLabels, trustNavItems } from "@/components/layout/navigation";
+import en from "@/lib/i18n/dictionary";
 import { TrustPage } from "@/components/trust/trust-page";
 import { isActiveNavigationPath } from "@/lib/auth/auth-routing";
 import { Lock } from "lucide-react";
@@ -30,10 +31,10 @@ describe("trust navigation", () => {
     const hrefs = trustNavItems.map((item) => item.href);
     expect(new Set(hrefs).size).toBe(hrefs.length);
     for (const item of trustNavItems) {
-      expect(item.label.trim().length).toBeGreaterThan(0);
+      expect(en[item.labelKey].trim().length).toBeGreaterThan(0);
       // Lucide exports forwardRef objects; the emoji components are functions.
-      expect(["function", "object"], item.label).toContain(typeof item.icon);
-      expect(item.icon, item.label).toBeTruthy();
+      expect(["function", "object"], item.labelKey).toContain(typeof item.icon);
+      expect(item.icon, item.labelKey).toBeTruthy();
     }
   });
 
@@ -41,7 +42,7 @@ describe("trust navigation", () => {
     const disclosure = trustNavItems.find(
       (item) => item.href === "/responsible-disclosure",
     );
-    expect(disclosure?.label).toBe("Responsible Disclosure");
+    expect(disclosure && en[disclosure.labelKey]).toBe("Responsible Disclosure");
   });
 
   it("gives every policy segment a readable breadcrumb label", () => {
@@ -298,7 +299,7 @@ describe("trust nav wiring", () => {
       ["mobile-nav", drawer()],
     ] as const) {
       expect(source, name).toContain("trustNavItems");
-      expect(source, name).toContain("Policies");
+      expect(source, name).toContain('t("chrome.policies")');
     }
   });
 
@@ -338,7 +339,7 @@ describe("trust nav wiring", () => {
     // Icons come from the vendored animated set, not raw lucide or emoji.
     expect(nav).toContain('from "@/components/icons"');
     for (const item of trustNavItems) {
-      expect(item.icon, item.label).toBeTruthy();
+      expect(item.icon, item.labelKey).toBeTruthy();
     }
     // Each page passes the same animated component its nav row uses.
     for (const href of TRUST_HREFS) {

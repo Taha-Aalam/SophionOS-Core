@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
@@ -20,10 +21,11 @@ import { cn } from "@/lib/utils";
  */
 export function useUserIdentity() {
   const { user } = useAuth();
+  const { t } = useI18n();
 
   // Title-case every word: Clerk may return lowercase usernames/emails, and a
   // raw fallback value must still read as a proper name.
-  const rawName = user?.name || user?.email || "User";
+  const rawName = user?.name || user?.email || t("chrome.userFallback");
   const displayName = rawName.replace(/\b([\p{L}])/gu, (ch) => ch.toUpperCase());
   const email = user?.email ?? "";
   const avatarUrl = user?.imageUrl || undefined;

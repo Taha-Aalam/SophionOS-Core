@@ -3,6 +3,7 @@
 import React from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 interface ErrorStateProps {
   title?: string;
@@ -10,11 +11,11 @@ interface ErrorStateProps {
   onRetry?: () => void;
 }
 
-export function ErrorState({
-  title = "Something went wrong",
-  message = "An unexpected error occurred. Please try again.",
-  onRetry,
-}: ErrorStateProps) {
+export function ErrorState({ title, message, onRetry }: ErrorStateProps) {
+  const { t } = useI18n();
+  const resolvedTitle = title ?? t("error.title");
+  const resolvedMessage = message ?? t("error.message");
+
   return (
     <div className="reveal-once flex flex-col items-center justify-center px-4 py-16 text-center" role="alert">
       <div className="mb-5 rounded-xl bg-destructive/10 p-2 ring-1 ring-destructive/20">
@@ -22,8 +23,8 @@ export function ErrorState({
           <AlertTriangle className="size-7 text-destructive" strokeWidth={1.5} />
         </div>
       </div>
-      <h3 className="mb-1.5 text-lg font-medium tracking-tight">{title}</h3>
-      <p className="mb-5 max-w-sm text-sm text-muted-foreground">{message}</p>
+      <h3 className="mb-1.5 text-lg font-medium tracking-tight">{resolvedTitle}</h3>
+      <p className="mb-5 max-w-sm text-sm text-muted-foreground">{resolvedMessage}</p>
       {onRetry && (
         <Button
           onClick={onRetry}
@@ -31,7 +32,7 @@ export function ErrorState({
           className="gap-2"
         >
           <RefreshCw className="size-4" />
-          Try again
+          {t("action.retry")}
         </Button>
       )}
     </div>

@@ -23,6 +23,7 @@ import {
   trustNavItems,
 } from "@/components/layout/navigation";
 import { UserAvatar, useUserIdentity } from "@/components/user-avatar";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -32,7 +33,6 @@ import {
 } from "@/components/ui/tooltip";
 import { isActiveNavigationPath } from "@/lib/auth/auth-routing";
 import { OPEN_BUG_REPORT_EVENT } from "@/lib/bug-report/config";
-import { BUG_REPORT_STRINGS } from "@/lib/bug-report/strings";
 import { useUIStore } from "@/lib/stores/ui.store";
 import { cn } from "@/lib/utils";
 import { supportsScrollDrivenAnimations } from "@/lib/utils/native-features";
@@ -108,6 +108,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
   const { isDesktopSidebarOpen, toggleDesktopSidebar, openCommandPalette } = useUIStore();
+  const { t } = useI18n();
   const [mounted, setMounted] = useState(false);
 
   // C6: the decorative fades become scroll-driven where the feature pair is
@@ -200,7 +201,11 @@ export function Sidebar() {
 
   // Same identity source as the topbar — see useUserIdentity.
   const { displayName } = useUserIdentity();
-  const themeLabel = mounted ? (resolvedTheme === "dark" ? "Light mode" : "Dark mode") : "Theme";
+  const themeLabel = mounted
+    ? resolvedTheme === "dark"
+      ? t("chrome.lightMode")
+      : t("chrome.darkMode")
+    : t("chrome.theme");
 
   return (
     <aside
@@ -285,7 +290,7 @@ export function Sidebar() {
             variant="ghost"
             size="icon-sm"
             onClick={toggleDesktopSidebar}
-            aria-label="Collapse sidebar"
+            aria-label={t("chrome.collapseSidebar")}
           >
             <ChevronLeft className="size-3.5" />
           </Button>
@@ -309,7 +314,7 @@ export function Sidebar() {
                   variant="ghost"
                   size="icon-xs"
                   onClick={toggleDesktopSidebar}
-                  aria-label="Expand sidebar"
+                  aria-label={t("chrome.expandSidebar")}
                   className={cn(
                     "size-6 rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm",
                     "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -328,7 +333,7 @@ export function Sidebar() {
               }
             />
             <TooltipContent side="right" sideOffset={10}>
-              Expand sidebar
+              {t("chrome.expandSidebar")}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -353,11 +358,17 @@ export function Sidebar() {
             <div className={isDesktopSidebarOpen ? "space-y-0.5" : "space-y-2"}>
               {isDesktopSidebarOpen ? (
                 <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
-                  Policies
+                  {t("chrome.policies")}
                 </p>
               ) : null}
               {trustNavItems.map((item) => (
-                <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
+                <NavLink
+                  key={item.href}
+                  href={item.href}
+                  icon={item.icon}
+                  label={t(item.labelKey)}
+                  showLabel={isDesktopSidebarOpen}
+                />
               ))}
             </div>
           ) : (
@@ -365,22 +376,34 @@ export function Sidebar() {
               <div className={isDesktopSidebarOpen ? "space-y-0.5" : "space-y-2"}>
                 {isDesktopSidebarOpen ? (
                   <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
-                    Core
+                    {t("chrome.core")}
                   </p>
                 ) : null}
                 {coreNavItems.map((item) => (
-                  <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
+                  <NavLink
+                    key={item.href}
+                    href={item.href}
+                    icon={item.icon}
+                    label={t(item.labelKey)}
+                    showLabel={isDesktopSidebarOpen}
+                  />
                 ))}
               </div>
 
               <div className={isDesktopSidebarOpen ? "space-y-0.5" : "space-y-2"}>
                 {isDesktopSidebarOpen ? (
                   <p className="mb-1 px-2.5 text-2xs font-medium text-muted-foreground">
-                    System
+                    {t("chrome.system")}
                   </p>
                 ) : null}
                 {systemNavItems.map((item) => (
-                  <NavLink key={item.href} {...item} showLabel={isDesktopSidebarOpen} />
+                  <NavLink
+                    key={item.href}
+                    href={item.href}
+                    icon={item.icon}
+                    label={t(item.labelKey)}
+                    showLabel={isDesktopSidebarOpen}
+                  />
                 ))}
               </div>
             </>
@@ -429,7 +452,7 @@ export function Sidebar() {
                     variant="ghost"
                     size="icon-xs"
                     onClick={() => scrollNavByViewport(1)}
-                    aria-label="More options"
+                    aria-label={t("chrome.moreOptions")}
                     className="size-6 rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   >
                     <ChevronDown className="size-3.5" />
@@ -437,7 +460,7 @@ export function Sidebar() {
                 }
               />
               <TooltipContent side="right" sideOffset={10}>
-                More options
+                {t("chrome.moreOptions")}
               </TooltipContent>
             </Tooltip>
           </div>
@@ -451,7 +474,7 @@ export function Sidebar() {
                     variant="ghost"
                     size="icon-xs"
                     onClick={() => scrollNavByViewport(-1)}
-                    aria-label="Scroll up"
+                    aria-label={t("chrome.scrollUp")}
                     className="size-6 rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   >
                     <ChevronUp className="size-3.5" />
@@ -459,7 +482,7 @@ export function Sidebar() {
                 }
               />
               <TooltipContent side="right" sideOffset={10}>
-                Scroll up
+                {t("chrome.scrollUp")}
               </TooltipContent>
             </Tooltip>
           </div>
@@ -477,12 +500,12 @@ export function Sidebar() {
             <button
               type="button"
               onClick={openCommandPalette}
-              aria-label="Search"
+              aria-label={t("chrome.search")}
               aria-keyshortcuts="meta+k ctrl+k"
               className="flex w-full items-center gap-2.5 rounded-md border border-sidebar-border bg-sidebar-accent/50 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
             >
               <Search size={14} className="shrink-0" aria-hidden="true" />
-              <span className="flex-1 text-left">Search</span>
+              <span className="flex-1 text-left">{t("chrome.search")}</span>
               <kbd
                 aria-hidden="true"
                 className="rounded border border-sidebar-border bg-sidebar px-1 py-0.5 text-[10px] leading-none text-muted-foreground"
@@ -493,7 +516,7 @@ export function Sidebar() {
           ) : null}
           <NavLink
             href="/settings"
-            label="Settings"
+            label={t("nav.settings")}
             icon={SettingsIcon}
             showLabel={isDesktopSidebarOpen}
           />
@@ -504,7 +527,7 @@ export function Sidebar() {
               onClick={() => window.dispatchEvent(new CustomEvent(OPEN_BUG_REPORT_EVENT))}
             >
               <Bug size={16} className="shrink-0" />
-              <span>{BUG_REPORT_STRINGS.menuItem}</span>
+              <span>{t("nav.reportBug")}</span>
             </Button>
           ) : (
             <Tooltip>
@@ -514,14 +537,14 @@ export function Sidebar() {
                     variant="ghost"
                     className="flex size-10 mx-auto justify-center rounded-lg p-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     onClick={() => window.dispatchEvent(new CustomEvent(OPEN_BUG_REPORT_EVENT))}
-                    aria-label={BUG_REPORT_STRINGS.menuItem}
+                    aria-label={t("nav.reportBug")}
                   >
                     <Bug size={19} className="shrink-0" />
                   </Button>
                 }
               />
               <TooltipContent side="right" sideOffset={10}>
-                {BUG_REPORT_STRINGS.menuItem}
+                {t("nav.reportBug")}
               </TooltipContent>
             </Tooltip>
           )}
@@ -560,7 +583,7 @@ export function Sidebar() {
           {isDesktopSidebarOpen ? (
             <Link
               href="/settings/profile"
-              aria-label={`Open profile: ${displayName}`}
+              aria-label={t("chrome.openProfileWithName", { name: displayName })}
               className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
               <UserAvatar size="sm" />
@@ -572,7 +595,7 @@ export function Sidebar() {
                 render={
                   <Link
                     href="/settings/profile"
-                    aria-label={`Open profile: ${displayName}`}
+                    aria-label={t("chrome.openProfileWithName", { name: displayName })}
                     className="flex size-10 mx-auto items-center justify-center rounded-lg text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   >
                     <UserAvatar size="sm" />
@@ -580,7 +603,7 @@ export function Sidebar() {
                 }
               />
               <TooltipContent side="right" sideOffset={10}>
-                Profile: {displayName}
+                {t("chrome.profileWithName", { name: displayName })}
               </TooltipContent>
             </Tooltip>
           )}

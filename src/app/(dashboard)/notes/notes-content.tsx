@@ -21,6 +21,7 @@ import {
   Zap,
 } from "lucide-react";
 import { SquarePenIcon } from "@/components/icons";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -58,14 +59,30 @@ import {
   type NoteView,
 } from "@/lib/utils/notes";
 import {
-  formatNotesSummary,
-  NOTES_LOADING_LABEL,
   NOTES_PAGE_SHELL_CLASS_NAME,
   NOTES_TABS_LIST_CLASS_NAME,
 } from "@/lib/utils/note-page-display";
 import type { Note } from "@/lib/types/domain.types";
+import type { TranslationKey } from "@/lib/i18n/dictionary";
+
+const NOTE_TAB_KEYS: Record<NoteView, TranslationKey> = {
+  [NOTE_VIEW.ALL]: "notes.tabs.all",
+  [NOTE_VIEW.INBOX]: "notes.tabs.inbox",
+  [NOTE_VIEW.TO_REVIEW]: "notes.tabs.toReview",
+  [NOTE_VIEW.ACTIVE]: "notes.tabs.active",
+  [NOTE_VIEW.PINNED]: "notes.tabs.pinned",
+  [NOTE_VIEW.FAVORITE]: "notes.tabs.favorite",
+  [NOTE_VIEW.BY_AREA]: "notes.tabs.byArea",
+  [NOTE_VIEW.BY_GOAL]: "notes.tabs.byGoal",
+  [NOTE_VIEW.BY_PROJECT]: "notes.tabs.byProject",
+  [NOTE_VIEW.BY_TOPIC]: "notes.tabs.byTopic",
+  [NOTE_VIEW.BY_NOTEBOOK]: "notes.tabs.byNotebook",
+  [NOTE_VIEW.COMPLETED]: "notes.tabs.completed",
+  [NOTE_VIEW.ARCHIVED]: "notes.tabs.archive",
+};
 
 export function NotesContent() {
+  const { t, tp } = useI18n();
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<NoteView>(NOTE_VIEW.ALL);
@@ -188,10 +205,13 @@ export function NotesContent() {
     }
     return Array.from(grouped.entries()).map(([areaId, notes]) => ({
       groupId: areaId,
-      groupName: areaId === "unassigned" ? "No Area" : (areaMap.get(areaId)?.name ?? areaId),
+      groupName:
+        areaId === "unassigned"
+          ? t("common.noArea")
+          : (areaMap.get(areaId)?.name ?? areaId),
       notes,
     }));
-  }, [allNotes, areaMap]);
+  }, [allNotes, areaMap, t]);
 
   const noteGroupsByGoal = useMemo((): NoteGroup[] => {
     const grouped = new Map<string, Note[]>();
@@ -206,10 +226,13 @@ export function NotesContent() {
     }
     return Array.from(grouped.entries()).map(([goalId, notes]) => ({
       groupId: goalId,
-      groupName: goalId === "unassigned" ? "No Goal" : (goalMap.get(goalId)?.name ?? goalId),
+      groupName:
+        goalId === "unassigned"
+          ? t("common.noGoal")
+          : (goalMap.get(goalId)?.name ?? goalId),
       notes,
     }));
-  }, [allNotes, goalMap]);
+  }, [allNotes, goalMap, t]);
 
   const noteGroupsByProject = useMemo((): NoteGroup[] => {
     const grouped = new Map<string, Note[]>();
@@ -224,10 +247,13 @@ export function NotesContent() {
     }
     return Array.from(grouped.entries()).map(([projectId, notes]) => ({
       groupId: projectId,
-      groupName: projectId === "unassigned" ? "No Project" : (projectMap.get(projectId)?.name ?? projectId),
+      groupName:
+        projectId === "unassigned"
+          ? t("common.noProject")
+          : (projectMap.get(projectId)?.name ?? projectId),
       notes,
     }));
-  }, [allNotes, projectMap]);
+  }, [allNotes, projectMap, t]);
 
   const noteGroupsByTopic = useMemo((): NoteGroup[] => {
     const grouped = new Map<string, Note[]>();
@@ -239,10 +265,13 @@ export function NotesContent() {
     }
     return Array.from(grouped.entries()).map(([topicId, notes]) => ({
       groupId: topicId,
-      groupName: topicId === "unassigned" ? "No Topic" : (topicNamesMap.get(topicId) ?? topicId),
+      groupName:
+        topicId === "unassigned"
+          ? t("common.noTopic")
+          : (topicNamesMap.get(topicId) ?? topicId),
       notes,
     }));
-  }, [allNotes, topicNamesMap]);
+  }, [allNotes, topicNamesMap, t]);
 
   const noteGroupsByNotebook = useMemo((): NoteGroup[] => {
     const grouped = new Map<string, Note[]>();
@@ -254,10 +283,11 @@ export function NotesContent() {
     }
     return Array.from(grouped.entries()).map(([notebook, notes]) => ({
       groupId: notebook,
-      groupName: notebook === "unassigned" ? "No Notebook" : notebook,
+      groupName:
+        notebook === "unassigned" ? t("common.noNotebook") : notebook,
       notes,
     }));
-  }, [allNotes]);
+  }, [allNotes, t]);
 
   useEffect(() => {
     if (selectedIds.size === 0) {
@@ -353,7 +383,7 @@ export function NotesContent() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-16">
-        <ErrorState message="Failed to load notes." onRetry={() => refetch()} />
+        <ErrorState message={t("notes.error")} onRetry={() => refetch()} />
       </div>
     );
   }
@@ -364,15 +394,15 @@ export function NotesContent() {
         <div className="flex items-center gap-3">
           <SquarePenIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Notes</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("nav.notes")}</h1>
             <p className="text-sm text-muted-foreground" suppressHydrationWarning>
-              {formatNotesSummary(counts.all, counts.archived)}
+              {tp("notes.summary", counts.all, { archived: counts.archived })}
             </p>
           </div>
         </div>
         <Button onClick={() => router.push("/notes/new")}>
           <Plus className="size-4" />
-          New Note
+          {t("action.newNote")}
         </Button>
       </div>
 
@@ -387,55 +417,55 @@ export function NotesContent() {
         <TabsList className={NOTES_TABS_LIST_CLASS_NAME}>
           <TabsTrigger value={NOTE_VIEW.ALL} className={compactTabTriggerClassName}>
               <LayoutGrid className="mr-1.5 size-3.5" />
-              All
+              {t("notes.tabs.all")}
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.INBOX} className={compactTabTriggerClassName}>
               <InboxIcon className="mr-1.5 size-3.5" />
-              Inbox
+              {t("notes.tabs.inbox")}
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.TO_REVIEW} className={compactTabTriggerClassName}>
               <Clock className="mr-1.5 size-3.5" />
-              To Review
+              {t("notes.tabs.toReview")}
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.ACTIVE} className={compactTabTriggerClassName}>
               <Zap className="mr-1.5 size-3.5" />
-              Active
+              {t("notes.tabs.active")}
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.PINNED} className={compactTabTriggerClassName}>
               <Pin className="mr-1.5 size-3.5" />
-              Pinned
+              {t("notes.tabs.pinned")}
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.FAVORITE} className={compactTabTriggerClassName}>
               <Star className="mr-1.5 size-3.5" />
-              Favorite
+              {t("notes.tabs.favorite")}
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.BY_AREA} className={compactTabTriggerClassName}>
               <LucideMap className="mr-1.5 size-3.5" />
-              By Area
+              {t("notes.tabs.byArea")}
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.BY_GOAL} className={compactTabTriggerClassName}>
               <Target className="mr-1.5 size-3.5" />
-              By Goal
+              {t("notes.tabs.byGoal")}
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.BY_PROJECT} className={compactTabTriggerClassName}>
               <FolderOpen className="mr-1.5 size-3.5" />
-              By Project
+              {t("notes.tabs.byProject")}
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.BY_TOPIC} className={compactTabTriggerClassName}>
               <Tag className="mr-1.5 size-3.5" />
-              By Topic
+              {t("notes.tabs.byTopic")}
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.BY_NOTEBOOK} className={compactTabTriggerClassName}>
               <BookOpen className="mr-1.5 size-3.5" />
-              By Notebook
+              {t("notes.tabs.byNotebook")}
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.COMPLETED} className={compactTabTriggerClassName}>
               <Bookmark className="mr-1.5 size-3.5" />
-              Completed
+              {t("notes.tabs.completed")}
             </TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.ARCHIVED} className={compactTabTriggerClassName}>
               <Archive className="mr-1.5 size-3.5" />
-              Archive
+              {t("notes.tabs.archive")}
             </TabsTrigger>
           </TabsList>
 
@@ -463,15 +493,17 @@ export function NotesContent() {
 
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-2 border-b border-border/30 px-6 py-2">
-            <span className="text-sm font-medium">{selectedIds.size} selected</span>
+            <span className="text-sm font-medium">
+              {t("notes.selected", { count: selectedIds.size })}
+            </span>
             <div className="ml-auto flex items-center gap-2">
               <Button variant="outline" size="sm" className="h-10 sm:h-8 text-xs" onClick={handleArchiveSelected}>
                 <Archive className="mr-1.5 size-3.5" />
-                Archive
+                {t("notes.bulk.archive")}
               </Button>
               <Button variant="outline" size="sm" className="h-10 sm:h-8 text-xs" onClick={handleRestoreSelected}>
                 <Archive className="mr-1.5 size-3.5" />
-                Restore
+                {t("notes.bulk.restore")}
               </Button>
               <Button
                 variant="destructive"
@@ -481,7 +513,7 @@ export function NotesContent() {
                 disabled={bulkDelete.isPending}
               >
                 <Trash2 className="mr-1.5 size-3.5" />
-                Delete
+                {t("notes.bulk.delete")}
               </Button>
               <Button
                 variant="ghost"
@@ -489,7 +521,7 @@ export function NotesContent() {
                 className="h-10 sm:h-8 text-xs"
                 onClick={() => setSelectedIds(new Set())}
               >
-                Clear
+                {t("notes.bulk.clear")}
               </Button>
             </div>
           </div>
@@ -509,14 +541,14 @@ export function NotesContent() {
           <TabsContent key={tab} value={tab} className="mt-0 flex-1">
             {isLoading ? (
               <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-                {NOTES_LOADING_LABEL}
+                {t("notes.loading")}
               </div>
             ) : visibleNotes.length === 0 ? (
               <EmptyState
                 icon={NotebookPen}
-                title={`No ${tab.replace(/_/g, " ")} notes`}
-                description="Try a different filter or create a new note."
-                actionLabel="New Note"
+                title={t("notes.empty.title", { view: t(NOTE_TAB_KEYS[tab]) })}
+                description={t("notes.empty.description")}
+                actionLabel={t("action.newNote")}
                 onAction={() => router.push("/notes/new")}
               />
             ) : (
@@ -531,7 +563,7 @@ export function NotesContent() {
             groups={noteGroupsByArea}
             renderNote={renderNoteRow}
             onNewNote={(groupId) => router.push(`/notes/new?areaId=${groupId}`)}
-            emptyMessage="Notes will be grouped by area here."
+            emptyMessage={t("notes.group.byArea")}
           />
         </TabsContent>
 
@@ -540,7 +572,7 @@ export function NotesContent() {
             groups={noteGroupsByGoal}
             renderNote={renderNoteRow}
             onNewNote={(groupId) => router.push(`/notes/new?goalId=${groupId}`)}
-            emptyMessage="Notes will be grouped by goal here."
+            emptyMessage={t("notes.group.byGoal")}
           />
         </TabsContent>
 
@@ -549,7 +581,7 @@ export function NotesContent() {
             groups={noteGroupsByProject}
             renderNote={renderNoteRow}
             onNewNote={(groupId) => router.push(`/notes/new?projectId=${groupId}`)}
-            emptyMessage="Notes will be grouped by project here."
+            emptyMessage={t("notes.group.byProject")}
           />
         </TabsContent>
 
@@ -558,7 +590,7 @@ export function NotesContent() {
             groups={noteGroupsByTopic}
             renderNote={renderNoteRow}
             onNewNote={(groupId) => router.push(`/notes/new?topicId=${groupId}`)}
-            emptyMessage="Notes will be grouped by topic here."
+            emptyMessage={t("notes.group.byTopic")}
           />
         </TabsContent>
 
@@ -567,7 +599,7 @@ export function NotesContent() {
             groups={noteGroupsByNotebook}
             renderNote={renderNoteRow}
             onNewNote={(groupId) => router.push(`/notes/new?notebook=${encodeURIComponent(groupId)}`)}
-            emptyMessage="Notes will be grouped by notebook here."
+            emptyMessage={t("notes.group.byNotebook")}
           />
         </TabsContent>
       </Tabs>

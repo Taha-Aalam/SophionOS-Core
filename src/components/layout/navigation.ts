@@ -19,69 +19,105 @@ import {
   UsersIcon,
 } from "@/components/icons";
 
+import type { ElementType } from "react";
 
 import { isActiveNavigationPath } from "@/lib/auth/auth-routing";
+import en, { type TranslationKey } from "@/lib/i18n/dictionary";
 
-const coreNavItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutGridIcon },
-  { href: "/areas", label: "Areas", icon: MapPinIcon },
-  { href: "/goals", label: "Goals", icon: RocketIcon },
-  { href: "/projects", label: "Projects", icon: FolderOpenIcon },
-  { href: "/tasks", label: "Tasks", icon: CircleCheckIcon },
-  { href: "/notes", label: "Notes", icon: SquarePenIcon },
-  { href: "/resources", label: "Resources", icon: Link2Icon },
-  { href: "/topics", label: "Topics", icon: LayersIcon },
-  { href: "/contacts", label: "Contacts", icon: UsersIcon },
-] as const;
+/**
+ * Navigation structure. Items deliberately carry a dictionary *key*, never a
+ * display label: the visible name comes from the active locale at render time,
+ * which is what lets the shell re-render in another language without touching
+ * routes, hrefs, or internal identifiers. `navigation-label-guard` fails the
+ * build if a display string is added back here.
+ */
+export interface NavItem {
+  href: string;
+  labelKey: TranslationKey;
+  icon: ElementType;
+}
 
-const systemNavItems = [
-  { href: "/my-day", label: "My Day", icon: SunIcon },
-  { href: "/inbox", label: "Inbox", icon: DownloadIcon },
-  { href: "/knowledge", label: "Knowledge Hub", icon: BrainIcon },
-] as const;
+const coreNavItems: NavItem[] = [
+  { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutGridIcon },
+  { href: "/areas", labelKey: "nav.areas", icon: MapPinIcon },
+  { href: "/goals", labelKey: "nav.goals", icon: RocketIcon },
+  { href: "/projects", labelKey: "nav.projects", icon: FolderOpenIcon },
+  { href: "/tasks", labelKey: "nav.tasks", icon: CircleCheckIcon },
+  { href: "/notes", labelKey: "nav.notes", icon: SquarePenIcon },
+  { href: "/resources", labelKey: "nav.resources", icon: Link2Icon },
+  { href: "/topics", labelKey: "nav.topics", icon: LayersIcon },
+  { href: "/contacts", labelKey: "nav.contacts", icon: UsersIcon },
+];
+
+const systemNavItems: NavItem[] = [
+  { href: "/my-day", labelKey: "nav.myDay", icon: SunIcon },
+  { href: "/inbox", labelKey: "nav.inbox", icon: DownloadIcon },
+  { href: "/knowledge", labelKey: "nav.knowledgeHub", icon: BrainIcon },
+];
 
 // System-level policy pages. These are NOT app navigation: they appear only
 // while you are already inside the policy pages (the sidebar swaps to a
 // Policies-only mode there), plus the profile dropdown and the sign-in page.
 // Icons match each page's own header icon, like every other nav item.
-const trustNavItems = [
-  { href: "/terms", label: "Terms", icon: FileTextIcon },
-  { href: "/privacy", label: "Privacy", icon: LockIcon },
-  { href: "/security", label: "Security", icon: ShieldCheckIcon },
-  { href: "/subprocessors", label: "Subprocessors", icon: BriefcaseBusinessIcon },
-  { href: "/data-and-ai", label: "Data & AI", icon: SparklesIcon },
-  { href: "/responsible-disclosure", label: "Responsible Disclosure", icon: GavelIcon },
-] as const;
+const trustNavItems: NavItem[] = [
+  { href: "/terms", labelKey: "legal.terms", icon: FileTextIcon },
+  { href: "/privacy", labelKey: "legal.privacy", icon: LockIcon },
+  { href: "/security", labelKey: "legal.security", icon: ShieldCheckIcon },
+  { href: "/subprocessors", labelKey: "legal.subprocessors", icon: BriefcaseBusinessIcon },
+  { href: "/data-and-ai", labelKey: "legal.dataAndAi", icon: SparklesIcon },
+  {
+    href: "/responsible-disclosure",
+    labelKey: "legal.responsibleDisclosure",
+    icon: GavelIcon,
+  },
+];
 
 /** True when `pathname` is one of the policy pages (a trustNavItems href). */
 function isPolicyPath(pathname: string): boolean {
   return trustNavItems.some((item) => isActiveNavigationPath(pathname, item.href));
 }
 
-const breadcrumbLabels: Record<string, string> = {
-  areas: "Areas",
-  contacts: "Contacts",
-  dashboard: "Dashboard",
-  "data-and-ai": "Data & AI",
-  "forgot-password": "Forgot Password",
-  goals: "Goals",
-  inbox: "Inbox",
-  knowledge: "Knowledge Hub",
-  login: "Login",
-  "my-day": "My Day",
-  notes: "Notes",
-  privacy: "Privacy",
-  projects: "Projects",
-  "reset-password": "Reset Password",
-  resources: "Resources",
-  "responsible-disclosure": "Responsible Disclosure",
-  security: "Security",
-  settings: "Settings",
-  signup: "Sign Up",
-  subprocessors: "Subprocessors",
-  tasks: "Tasks",
-  terms: "Terms",
-  topics: "Topics",
+/** URL segment → dictionary key for the topbar breadcrumb. */
+export const breadcrumbLabelKeys: Record<string, TranslationKey> = {
+  areas: "nav.areas",
+  contacts: "nav.contacts",
+  dashboard: "nav.dashboard",
+  "data-and-ai": "legal.dataAndAi",
+  "forgot-password": "page.forgotPassword",
+  goals: "nav.goals",
+  inbox: "nav.inbox",
+  knowledge: "nav.knowledgeHub",
+  login: "page.login",
+  "my-day": "nav.myDay",
+  notes: "nav.notes",
+  privacy: "legal.privacy",
+  projects: "nav.projects",
+  "reset-password": "page.resetPassword",
+  resources: "nav.resources",
+  "responsible-disclosure": "legal.responsibleDisclosure",
+  security: "legal.security",
+  settings: "nav.settings",
+  signup: "page.signUp",
+  subprocessors: "legal.subprocessors",
+  tasks: "nav.tasks",
+  terms: "legal.terms",
+  topics: "nav.topics",
 };
 
-export { breadcrumbLabels, coreNavItems, isPolicyPath, systemNavItems, trustNavItems };
+/**
+ * English label for a breadcrumb segment. Non-React consumers (the bug-report
+ * builder, tests, metadata) use this; the UI itself translates the key via
+ * `useI18n()`. The values come from the dictionary, so this map holds no
+ * display literals of its own.
+ */
+const breadcrumbLabels: Record<string, string> = Object.fromEntries(
+  Object.entries(breadcrumbLabelKeys).map(([segment, key]) => [segment, en[key]]),
+);
+
+export {
+  breadcrumbLabels,
+  coreNavItems,
+  isPolicyPath,
+  systemNavItems,
+  trustNavItems,
+};

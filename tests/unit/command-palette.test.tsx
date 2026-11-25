@@ -35,6 +35,8 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { CommandPalette } from "@/components/layout/command-palette";
+import { I18nProvider } from "@/components/providers/i18n-provider";
+import ja from "@/lib/i18n/locales/ja";
 import { useUIStore } from "@/lib/stores/ui.store";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -150,13 +152,23 @@ function openPalette() {
   useUIStore.setState({ commandPaletteOpen: true });
 }
 
-function renderPalette() {
+function renderPalette(locale?: "ja") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <CommandPalette />
+      {locale === "ja" ? (
+        <I18nProvider
+          initialLocale="ja"
+          hasStoredLocale
+          initialDictionary={ja}
+        >
+          <CommandPalette />
+        </I18nProvider>
+      ) : (
+        <CommandPalette />
+      )}
     </QueryClientProvider>,
   );
 }
@@ -316,6 +328,56 @@ describe("CommandPalette", () => {
     const svg = knowledge.querySelector("svg");
     expect(svg).not.toBeNull();
     expect(svg?.getAttribute("class") ?? "").not.toContain("text-blue-500");
+  });
+
+  // ── Multilingual search (acceptance cases) ─────────────────────────────
+
+  it("surfaces Tasks first when typing the Japanese label", async () => {
+    openPalette();
+    renderPalette();
+    const user = userEvent.setup();
+
+    await user.type(screen.getByPlaceholderText(/Search or create/i), "タスク");
+
+    // English UI: the Japanese query still finds the page, labelled in English.
+    const [first] = screen.getAllByRole("option");
+    expect(first.textContent).toContain("Tasks");
+  });
+
+  it("surfaces Tasks first when typing its romaji reading", async () => {
+    openPalette();
+    renderPalette();
+    const user = userEvent.setup();
+
+    await user.type(screen.getByPlaceholderText(/Search or create/i), "tasuku");
+
+    const [first] = screen.getAllByRole("option");
+    expect(first.textContent).toContain("Tasks");
+  });
+
+  it("matches English 'tasks' while the UI is in Japanese", async () => {
+    openPalette();
+    renderPalette("ja");
+    const user = userEvent.setup();
+
+    await user.type(screen.getByPlaceholderText(/検索|Search/i), "tasks");
+
+    const [first] = screen.getAllByRole("option");
+    expect(first.textContent).toContain("タスク");
+  });
+
+  it("surfaces Goals first for its Japanese word and romaji", async () => {
+    openPalette();
+    renderPalette();
+    const user = userEvent.setup();
+    const input = screen.getByPlaceholderText(/Search or create/i);
+
+    await user.type(input, "目標");
+    expect(screen.getAllByRole("option")[0].textContent).toContain("Goals");
+
+    await user.clear(input);
+    await user.type(input, "mokuhyou");
+    expect(screen.getAllByRole("option")[0].textContent).toContain("Goals");
   });
 
   it("does not force selected command-item svg icons to the foreground color", () => {

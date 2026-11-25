@@ -5,6 +5,7 @@ import { Activity, Archive, LayoutGrid, Map as MapIcon, PauseCircle, Plus, Tags 
 import { MapPinIcon } from "@/components/icons";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { AreaCard } from "@/components/entities/area-card";
 import { AreaDialog } from "@/components/entities/area-dialog";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ import {
 } from "@/lib/utils/areas";
 
 export function AreasContent() {
+  const { t } = useI18n();
   const { user } = useAuth();
   const userId = user?.id;
 
@@ -167,7 +169,7 @@ export function AreasContent() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-16">
-        <ErrorState message="Failed to load areas." onRetry={() => refetch()} />
+        <ErrorState message={t("areas.error")} onRetry={() => refetch()} />
       </div>
     );
   }
@@ -178,15 +180,15 @@ export function AreasContent() {
         <div className="flex items-center gap-3">
           <MapPinIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Areas</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("nav.areas")}</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Organize your life into focus areas
+              {t("areas.subtitle")}
             </p>
           </div>
         </div>
         <Button onClick={() => handleOpenCreate()}>
           <Plus className="size-4 mr-2" />
-          New Area
+          {t("action.newArea")}
         </Button>
       </div>
 
@@ -194,23 +196,23 @@ export function AreasContent() {
         <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value="active">
             <Activity className="mr-1.5 size-3.5" />
-            Active
+            {t("areas.tabs.active")}
           </TabsTrigger>
           <TabsTrigger value="inactive">
             <PauseCircle className="mr-1.5 size-3.5" />
-            Inactive
+            {t("areas.tabs.inactive")}
           </TabsTrigger>
           <TabsTrigger value="by-type">
             <Tags className="mr-1.5 size-3.5" />
-            By Type
+            {t("areas.tabs.byType")}
           </TabsTrigger>
           <TabsTrigger value="all">
             <LayoutGrid className="mr-1.5 size-3.5" />
-            All
+            {t("areas.tabs.all")}
           </TabsTrigger>
           <TabsTrigger value="archived">
             <Archive className="mr-1.5 size-3.5" />
-            Archived
+            {t("areas.tabs.archived")}
           </TabsTrigger>
         </TabsList>
 
@@ -224,9 +226,9 @@ export function AreasContent() {
           ) : areasByStatus.active.length === 0 ? (
             <EmptyState
               icon={MapIcon}
-              title="No active areas"
-              description="Create your first area to start organizing your life"
-              actionLabel="Create Area"
+              title={t("areas.empty.active.title")}
+              description={t("areas.empty.active.description")}
+              actionLabel={t("areas.empty.actionCreate")}
               onAction={() => handleOpenCreate()}
               isLoading={createArea.isPending}
             />
@@ -265,8 +267,8 @@ export function AreasContent() {
           ) : areasByStatus.inactive.length === 0 ? (
             <EmptyState
               icon={MapIcon}
-              title="No inactive areas"
-              description="Areas with no active goals, projects, tasks, notes, or resources will appear here"
+              title={t("areas.empty.inactive.title")}
+              description={t("areas.empty.inactive.description")}
             />
           ) : (
             <GalleryGrid>
@@ -346,8 +348,8 @@ export function AreasContent() {
           ) : areasByStatus.archived.length === 0 ? (
             <EmptyState
               icon={Archive}
-              title="No archived areas"
-              description="Restore or permanently delete areas from here"
+              title={t("areas.empty.archived.title")}
+              description={t("areas.empty.archived.description")}
             />
           ) : (
             <GalleryGrid>

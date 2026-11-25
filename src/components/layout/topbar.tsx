@@ -4,7 +4,8 @@ import React from "react";
 import { usePathname } from "next/navigation";
 import { Menu as MenuIcon } from "lucide-react";
 
-import { breadcrumbLabels } from "@/components/layout/navigation";
+import { breadcrumbLabelKeys } from "@/components/layout/navigation";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { ProfileDropdown } from "@/components/layout/profile-dropdown";
 import type { SubscriptionSummary } from "@/lib/api/subscription-summary";
 import { useUIStore } from "@/lib/stores/ui.store";
@@ -17,17 +18,19 @@ function Breadcrumb() {
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
   const { pageTitle } = useUIStore();
+  const { t } = useI18n();
 
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm">
+    <nav aria-label={t("chrome.breadcrumb")} className="flex items-center gap-1 text-sm">
       {segments.map((segment, index) => {
         const isLast = index === segments.length - 1;
         const href = `/${segments.slice(0, index + 1).join("/")}`;
-        const baseLabel = breadcrumbLabels[segment] ?? segment;
+        const labelKey = breadcrumbLabelKeys[segment];
+        const baseLabel = labelKey ? t(labelKey) : segment;
         let label: React.ReactNode = baseLabel;
 
         if (isUUID(segment)) {
-          label = pageTitle || "Details";
+          label = pageTitle || t("page.details");
         }
 
         // For /goals/<slug> — use page title set by detail page, fallback to raw slug while loading
@@ -77,6 +80,7 @@ export function Topbar({
   initialSubscription?: SubscriptionSummary | null;
 }) {
   const { openMobileNav } = useUIStore();
+  const { t } = useI18n();
 
   return (
     <header className="flex h-12 items-center justify-between gap-4 border-b border-border bg-background px-4">
@@ -85,7 +89,7 @@ export function Topbar({
           type="button"
           onClick={openMobileNav}
           className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground lg:hidden"
-          aria-label="Open navigation menu"
+          aria-label={t("chrome.openNavigationMenu")}
         >
           <MenuIcon className="size-4" />
         </button>
