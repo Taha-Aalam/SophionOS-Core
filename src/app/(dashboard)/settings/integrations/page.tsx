@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect, useState } from "react";
 import { Link2, Plus } from "lucide-react";
@@ -38,6 +39,7 @@ interface Integration {
 }
 
 export default function IntegrationsPage() {
+  const { t } = useI18n();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,28 +52,28 @@ export default function IntegrationsPage() {
         const data = await apiFetch<Integration[]>("/api/v1/user/integrations");
         if (!cancelled) setIntegrations(data ?? []);
       } catch {
-        if (!cancelled) setError("Failed to load integrations.");
+        if (!cancelled) setError(t("page.failedToLoadIntegrations"));
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [retryKey]);
+  }, [retryKey, t]);
 
   // Placeholder: no integrations backend exists yet per the prompt.
   // This page consumes the existing /api/v1/user/integrations when ready.
   const placeholderIntegrations = [
     { provider: "slack", name: "Slack", comingSoon: true },
     { provider: "notion", name: "Notion", comingSoon: true },
-    { provider: "google_calendar", name: "Google Calendar", comingSoon: true },
+    { provider: "google_calendar", name: t("page.googleCalendar"), comingSoon: true },
     { provider: "github", name: "GitHub", comingSoon: true },
   ];
 
   return (
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
       <SettingsDetailHeader
-        title="Integrations"
-        description="Connect third-party services to sync data and automate workflows. More providers coming soon."
+        title={t("settings.integrations.title")}
+        description={t("page.connectThirdpartyServicesToSyncDataAndAuto")}
       />
 
       {error && (
@@ -84,11 +86,11 @@ export default function IntegrationsPage() {
       {!error && (
       <Card>
         <CardHeader className="space-y-1">
-          <CardTitle className="text-base">Available integrations</CardTitle>
+          <CardTitle className="text-base">{t("page.availableIntegrations")}</CardTitle>
           <CardDescription>
             {integrations.length > 0
-              ? "Manage your connected services."
-              : "No integrations are configured yet."}
+              ? t("page.manageYourConnectedServices")
+              : t("page.noIntegrationsAreConfiguredYet")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -135,7 +137,7 @@ export default function IntegrationsPage() {
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">Coming soon</p>
+                    <p className="text-xs text-muted-foreground">{t("page.comingSoon")}</p>
                   </div>
                   <Button size="sm" variant="ghost" disabled>
                     <Plus className="size-4" />
@@ -151,16 +153,15 @@ export default function IntegrationsPage() {
       {!error && (
       <Card className="border-dashed">
         <CardHeader>
-          <CardTitle className="text-base">Custom integrations</CardTitle>
+          <CardTitle className="text-base">{t("page.customIntegrations")}</CardTitle>
           <CardDescription>
-            Build your own integration using the SophionOS API. Requires Pro tier
-            for API key access.
+            {t("page.buildYourOwnIntegrationUsingTheSophionosAp")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button variant="outline" onClick={() => window.open("https://docs.sophionos.com/api", "_blank", "noopener,noreferrer")}>
             <Link2 className="mr-1.5 size-4" />
-            API Documentation
+            {t("page.apiDocumentation")}
           </Button>
         </CardContent>
       </Card>

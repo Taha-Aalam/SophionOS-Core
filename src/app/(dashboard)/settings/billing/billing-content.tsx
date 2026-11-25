@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
@@ -74,6 +75,7 @@ const TIER_LABELS: Record<string, { name: string }> = {
 };
 
 export function BillingContent() {
+  const { t } = useI18n();
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,20 +88,20 @@ export function BillingContent() {
         const data = await apiFetch<SubscriptionInfo>("/api/v1/user/subscription");
         if (!cancelled) setSubscription(data);
       } catch {
-        if (!cancelled) setError("Failed to load billing information.");
+        if (!cancelled) setError(t("billingContent.failedToLoadBillingInformation"));
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [retryKey]);
+  }, [retryKey, t]);
 
   if (loading) {
     return (
       <div className="reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
         <SettingsDetailHeader
-          title="Billing"
-          description="View your current plan and usage."
+          title={t("settings.billing.title")}
+          description={t("billingContent.viewYourCurrentPlanAndUsage")}
         />
         <Card>
           <CardHeader>
@@ -119,8 +121,8 @@ export function BillingContent() {
     return (
       <div className="reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
         <SettingsDetailHeader
-          title="Billing"
-          description="View your current plan and usage."
+          title={t("settings.billing.title")}
+          description={t("billingContent.viewYourCurrentPlanAndUsage2")}
         />
         <ErrorState message={error} onRetry={() => { setError(null); setLoading(true); setRetryKey((k) => k + 1); }} />
       </div>
@@ -133,8 +135,8 @@ export function BillingContent() {
   return (
     <div className="content-fade-in reveal-stagger flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
       <SettingsDetailHeader
-        title="Billing"
-        description="View your current plan and usage. Checkout is coming soon. For now, you can explore Pro features and upgrade when payment processing goes live."
+        title={t("settings.billing.title")}
+        description={t("billingContent.viewYourCurrentPlanAndUsageCheckoutIsComin")}
       />
 
       {/* Current plan */}
@@ -143,12 +145,12 @@ export function BillingContent() {
           <CardTitle className="text-2xl">{info.name}</CardTitle>
           <CardDescription>
             {tier === "free"
-              ? "Full dashboard access with core features. Upgrade for MCP, API, and advanced capabilities."
+              ? t("billingContent.fullDashboardAccessWithCoreFeaturesUpgrade")
               : tier === "pro"
-                ? "Pro adds MCP server access, API access, and advanced analytics."
+                ? t("billingContent.proAddsMcpServerAccessApiAccessAndAdvanced")
                 : tier === "lifetime"
-                  ? "One-time payment, lifetime Pro features and unlimited API keys."
-                  : "Highest entity limits with a dedicated support channel."}
+                  ? t("billingContent.onetimePaymentLifetimeProFeaturesAndUnlimi")
+                  : t("billingContent.highestEntityLimitsWithADedicatedSupportCh")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -167,19 +169,17 @@ export function BillingContent() {
       {!subscription?.isPaid && (
         <Card className="border-primary/40 bg-primary/5">
           <CardHeader className="space-y-3">
-            <CardTitle className="text-base">Upgrade to Pro</CardTitle>
+            <CardTitle className="text-base">{t("billingContent.upgradeToPro")}</CardTitle>
             <CardDescription>
-              MCP server access, API keys, and advanced analytics are waiting.
-              Checkout is coming soon — this button will go live when ready.
+              {t("billingContent.mcpServerAccessApiKeysAndAdvancedAnalytics")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button disabled>
-              Checkout coming soon
+              {t("billingContent.checkoutComingSoon")}
             </Button>
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              Payment processing is not yet live. You can still explore Pro features
-              on the MCP page.
+              {t("billingContent.paymentProcessingIsNotYetLiveYouCanStillEx")}
             </p>
           </CardContent>
         </Card>
@@ -189,9 +189,9 @@ export function BillingContent() {
       {subscription?.entityCounts && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Usage</CardTitle>
+            <CardTitle className="text-base">{t("billingContent.usage")}</CardTitle>
             <CardDescription>
-              Your current entity counts and limits.
+              {t("billingContent.yourCurrentEntityCountsAndLimits")}
             </CardDescription>
           </CardHeader>
           <CardContent>

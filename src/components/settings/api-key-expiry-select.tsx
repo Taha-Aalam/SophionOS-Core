@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import {
   Select,
@@ -41,15 +42,16 @@ export function ApiKeyExpirySelect({
   onChange: (value: string | null) => void;
   options?: ExpiryOption[];
 }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-1.5">
-      <Label>Key expiry</Label>
+      <Label>{t("apiKeyExpirySelect.keyExpiry")}</Label>
       <Select
         value={value ?? "__none__"}
         onValueChange={(v) => onChange(v === "__none__" ? null : v)}
       >
         <SelectTrigger className="w-full sm:w-44">
-          <SelectValue placeholder="No expiry" />
+          <SelectValue placeholder={t("apiKeyExpirySelect.noExpiry")} />
         </SelectTrigger>
         <SelectContent>
           {options.map((opt) => (

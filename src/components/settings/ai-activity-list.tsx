@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -36,6 +37,7 @@ async function apiFetch<T>(input: string): Promise<T> {
 }
 
 export function AiActivityList() {
+  const { t } = useI18n();
   const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -57,11 +59,11 @@ export function AiActivityList() {
       setEvents(data.events ?? []);
       setTotalPages(data.pagination?.totalPages ?? 1);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load activity");
+      toast.error(err instanceof Error ? err.message : t("aiActivityList.failedToLoadActivity"));
     } finally {
       setLoading(false);
     }
-  }, [page, eventType]);
+  }, [page, eventType, t]);
 
   /* eslint-disable react-hooks/set-state-in-effect -- page/filter fetch */
   useEffect(() => {
@@ -72,16 +74,15 @@ export function AiActivityList() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">AI / API activity</CardTitle>
+        <CardTitle className="text-base">{t("aiActivityList.aiApiActivity")}</CardTitle>
         <CardDescription>
-          Attributable actions for your account. Bodies, secrets, and raw keys are
-          never stored here.
+          {t("aiActivityList.attributableActionsForYourAccountBodiesSec")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2 items-center">
           <label className="text-sm text-muted-foreground" htmlFor="ev-filter">
-            Filter
+            {t("aiActivityList.filter")}
           </label>
           <select
             id="ev-filter"
@@ -92,21 +93,21 @@ export function AiActivityList() {
               setEventType(e.target.value);
             }}
           >
-            <option value="">All event families</option>
-            <option value="credentials">Credentials</option>
-            <option value="ai_access">AI access</option>
-            <option value="mcp_api_write">API / MCP writes</option>
-            <option value="privacy">Privacy</option>
-            <option value="security">Security</option>
+            <option value="">{t("aiActivityList.allEventFamilies")}</option>
+            <option value="credentials">{t("aiActivityList.credentials")}</option>
+            <option value="ai_access">{t("aiActivityList.aiAccess")}</option>
+            <option value="mcp_api_write">{t("aiActivityList.apiMcpWrites")}</option>
+            <option value="privacy">{t("legal.privacy")}</option>
+            <option value="security">{t("legal.security")}</option>
           </select>
         </div>
 
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" /> Loading…
+            <Loader2 className="size-4 animate-spin" /> {t("action.loading")}
           </div>
         ) : events.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No activity yet.</p>
+          <p className="text-sm text-muted-foreground">{t("aiActivityList.noActivityYet")}</p>
         ) : (
           <ul className="space-y-3">
             {events.map((e) => (
@@ -134,10 +135,10 @@ export function AiActivityList() {
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            Previous
+            {t("aiActivityList.previous")}
           </Button>
           <span className="text-sm text-muted-foreground self-center">
-            Page {page} / {totalPages}
+            {t("aiActivityList.page")} {page} / {totalPages}
           </span>
           <Button
             type="button"
@@ -146,7 +147,7 @@ export function AiActivityList() {
             disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}
           >
-            Next
+            {t("aiActivityList.next")}
           </Button>
         </div>
       </CardContent>

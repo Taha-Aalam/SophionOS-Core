@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -48,6 +49,7 @@ type Summary = {
 };
 
 export function PrivacyCenter() {
+  const { t } = useI18n();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -61,15 +63,15 @@ export function PrivacyCenter() {
       setSummary(data);
       if (data.deletion_just_processed) {
         toast.success(
-          "Grace period ended. Your product data was purged for this account.",
+          t("privacyCenter.gracePeriodEndedYourProductDataWasPurgedFo"),
         );
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load privacy summary");
+      toast.error(err instanceof Error ? err.message : t("privacyCenter.failedToLoadPrivacySummary"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   /* eslint-disable react-hooks/set-state-in-effect -- mount fetch */
   useEffect(() => {
@@ -95,10 +97,10 @@ export function PrivacyCenter() {
       a.click();
       URL.revokeObjectURL(url);
       toast.success(
-        "Export downloaded. Do not share this file. Treat it like private data.",
+        t("privacyCenter.exportDownloadedDoNotShareThisFileTreatItL"),
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Export failed");
+      toast.error(err instanceof Error ? err.message : t("privacyCenter.exportFailed"));
     } finally {
       setExporting(false);
     }
@@ -111,11 +113,11 @@ export function PrivacyCenter() {
         method: "POST",
         body: JSON.stringify({ confirmation: confirmText }),
       });
-      toast.success("Deletion scheduled. AI access disabled; keys revoked.");
+      toast.success(t("privacyCenter.deletionScheduledAiAccessDisabledKeysRevok"));
       setConfirmText("");
       await refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not schedule deletion");
+      toast.error(err instanceof Error ? err.message : t("privacyCenter.couldNotScheduleDeletion"));
     } finally {
       setDeleting(false);
     }
@@ -125,10 +127,10 @@ export function PrivacyCenter() {
     setDeleting(true);
     try {
       await apiFetch("/api/v1/user/account-deletion/cancel", { method: "POST" });
-      toast.success("Deletion cancelled.");
+      toast.success(t("privacyCenter.deletionCancelled"));
       await refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Cancel failed");
+      toast.error(err instanceof Error ? err.message : t("privacyCenter.cancelFailed"));
     } finally {
       setDeleting(false);
     }
@@ -144,13 +146,13 @@ export function PrivacyCenter() {
       });
       toast.success(
         force
-          ? "Early purge completed. Product data for this account was removed."
-          : "Deletion completed. Product data for this account was purged.",
+          ? t("privacyCenter.earlyPurgeCompletedProductDataForThisAccou")
+          : t("privacyCenter.deletionCompletedProductDataForThisAccount"),
       );
       setEarlyConfirm("");
       await refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not complete deletion");
+      toast.error(err instanceof Error ? err.message : t("privacyCenter.couldNotCompleteDeletion"));
     } finally {
       setDeleting(false);
     }
@@ -159,7 +161,7 @@ export function PrivacyCenter() {
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground p-6">
-        <Loader2 className="size-4 animate-spin" /> Loading privacy data…
+        <Loader2 className="size-4 animate-spin" /> {t("privacyCenter.loadingPrivacyData")}
       </div>
     );
   }
@@ -170,9 +172,9 @@ export function PrivacyCenter() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Your data at a glance</CardTitle>
+          <CardTitle className="text-base">{t("privacyCenter.yourDataAtAGlance")}</CardTitle>
           <CardDescription>
-            Counts for your account only. No internal schema detail.
+            {t("privacyCenter.countsForYourAccountOnlyNoInternalSchemaDe")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -186,7 +188,7 @@ export function PrivacyCenter() {
               ["resources", "Resources"],
               ["topics", "Topics"],
               ["contacts", "Contacts"],
-              ["connected_ai_clients", "Connected AI clients / keys"],
+              ["connected_ai_clients", t("privacyCenter.connectedAiClientsKeys")],
             ].map(([key, label]) => (
               <li key={key} className="flex justify-between border-b py-1">
                 <span className="text-muted-foreground">{label}</span>
@@ -199,21 +201,19 @@ export function PrivacyCenter() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">How AI access works</CardTitle>
+          <CardTitle className="text-base">{t("privacyCenter.howAiAccessWorks")}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>
-            SophionOS does not train models on your private content and does not
-            send data to an AI model by default. When you connect a client, it
-            uses the API key you authorize.
+            {t("privacyCenter.sophionosDoesNotTrainModelsOnYourPrivateCo")}
           </p>
           <p>
-            Global AI access:{" "}
+            {t("privacyCenter.globalAiAccess")}{" "}
             <strong>
               {summary?.ai_access.ai_access_enabled ? "ON" : "OFF"}
             </strong>
             {" · "}
-            API key writes:{" "}
+            {t("privacyCenter.apiKeyWrites")}{" "}
             <strong>
               {summary?.ai_access.ai_write_access_enabled
                 ? "allowed"
@@ -224,7 +224,7 @@ export function PrivacyCenter() {
             href="/settings/ai-access"
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            Manage AI Access
+            {t("privacyCenter.manageAiAccess")}
           </Link>
         </CardContent>
       </Card>
@@ -232,11 +232,10 @@ export function PrivacyCenter() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Download className="size-4" /> Download your data
+            <Download className="size-4" /> {t("privacyCenter.downloadYourData")}
           </CardTitle>
           <CardDescription>
-            Export primary entities, settings, and safe API key metadata (never
-            secrets). For large accounts this may take a moment.
+            {t("privacyCenter.exportPrimaryEntitiesSettingsAndSafeApiKey")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -246,10 +245,10 @@ export function PrivacyCenter() {
             onClick={() => void handleExport()}
           >
             {exporting ? <Loader2 className="size-4 animate-spin" /> : null}
-            Request export
+            {t("privacyCenter.requestExport")}
           </Button>
           <p className="text-xs text-muted-foreground">
-            Do not share the download. Treat export files as private.
+            {t("privacyCenter.doNotShareTheDownloadTreatExportFilesAsPri")}
           </p>
         </CardContent>
       </Card>
@@ -257,37 +256,35 @@ export function PrivacyCenter() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Trash2 className="size-4" /> Delete your account and data
+            <Trash2 className="size-4" /> {t("privacyCenter.deleteYourAccountAndData")}
           </CardTitle>
           <CardDescription>
-            Two-stage deletion with a grace period. API keys are revoked
-            immediately when you request deletion.
+            {t("privacyCenter.twostageDeletionWithAGracePeriodApiKeysAre")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {summary?.deletion_request?.status === "completed" ? (
             <div className="rounded-md border p-3 text-sm space-y-1">
-              <p className="font-medium">Deletion completed</p>
+              <p className="font-medium">{t("privacyCenter.deletionCompleted")}</p>
               <p className="text-muted-foreground">
-                Product data for this account was purged
+                {t("privacyCenter.productDataForThisAccountWasPurged")}
                 {summary.deletion_request.completed_at
                   ? ` on ${new Date(summary.deletion_request.completed_at).toLocaleString()}`
                   : ""}
-                . Billing/legal records may remain. Sign out if you still have a
-                session.
+                {t("privacyCenter.billinglegalRecordsMayRemainSignOutIfYouSt")}
               </p>
             </div>
           ) : summary?.deletion_request?.status === "scheduled" ? (
             <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm space-y-3">
               <p className="flex items-center gap-2 font-medium">
                 <ShieldAlert className="size-4" />
-                Deletion scheduled for{" "}
+                {t("privacyCenter.deletionScheduledFor")}{" "}
                 {new Date(summary.deletion_request.scheduled_for).toLocaleString()}
               </p>
               <p className="text-muted-foreground">
                 {summary.deletion_request.grace_elapsed
-                  ? "Grace period has ended. Complete deletion to purge product data now (also runs automatically when you open this page after the due date)."
-                  : "During the grace period you can cancel. After the due date, opening this page runs the purge automatically, or you can complete it here. Early purge requires typing PURGE NOW."}
+                  ? t("privacyCenter.gracePeriodHasEndedCompleteDeletionToPurge")
+                  : t("privacyCenter.duringTheGracePeriodYouCanCancelAfterTheDu")}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -296,7 +293,7 @@ export function PrivacyCenter() {
                   disabled={deleting}
                   onClick={() => void handleCancelDeletion()}
                 >
-                  Cancel deletion
+                  {t("privacyCenter.cancelDeletion")}
                 </Button>
                 {summary.deletion_request.grace_elapsed ? (
                   <Button
@@ -306,20 +303,20 @@ export function PrivacyCenter() {
                     onClick={() => void handleFinalizeDeletion(false)}
                   >
                     {deleting ? <Loader2 className="size-4 animate-spin" /> : null}
-                    Complete deletion now
+                    {t("privacyCenter.completeDeletionNow")}
                   </Button>
                 ) : null}
               </div>
               {!summary.deletion_request.grace_elapsed ? (
                 <div className="space-y-2 border-t pt-3">
                   <Label htmlFor="early-purge">
-                    Early purge (type PURGE NOW) — skips remaining grace
+                    {t("privacyCenter.earlyPurgeTypePurgeNowSkipsRemainingGrace")}
                   </Label>
                   <Input
                     id="early-purge"
                     value={earlyConfirm}
                     onChange={(e) => setEarlyConfirm(e.target.value)}
-                    placeholder="PURGE NOW"
+                    placeholder={t("privacyCenter.purgeNow")}
                     autoComplete="off"
                   />
                   <Button
@@ -327,12 +324,12 @@ export function PrivacyCenter() {
                     variant="destructive"
                     disabled={
                       deleting ||
-                      earlyConfirm.trim().toUpperCase() !== "PURGE NOW"
+                      earlyConfirm.trim().toUpperCase() !== t("privacyCenter.purgeNow")
                     }
                     onClick={() => void handleFinalizeDeletion(true)}
                   >
                     {deleting ? <Loader2 className="size-4 animate-spin" /> : null}
-                    Purge product data now
+                    {t("privacyCenter.purgeProductDataNow")}
                   </Button>
                 </div>
               ) : null}
@@ -340,19 +337,18 @@ export function PrivacyCenter() {
           ) : (
             <>
               <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                <li>API keys revoked and AI access disabled immediately.</li>
+                <li>{t("privacyCenter.apiKeysRevokedAndAiAccessDisabledImmediate")}</li>
                 <li>
-                  You may cancel during the grace period from this page.
+                  {t("privacyCenter.youMayCancelDuringTheGracePeriodFromThisPa")}
                 </li>
                 <li>
-                  After the grace period, opening Privacy &amp; data (or
-                  Complete deletion) purges product data for your user id.
+                  {t("privacyCenter.afterTheGracePeriodOpeningPrivacyAmpDataOr")}
                 </li>
-                <li>Billing/legal records may be retained as required.</li>
-                <li>Backups may retain data for a provider-defined window.</li>
+                <li>{t("privacyCenter.billinglegalRecordsMayBeRetainedAsRequired")}</li>
+                <li>{t("privacyCenter.backupsMayRetainDataForAProviderdefinedWin")}</li>
               </ul>
               <div className="space-y-1.5 max-w-sm">
-                <Label htmlFor="del-confirm">Type DELETE to confirm</Label>
+                <Label htmlFor="del-confirm">{t("privacyCenter.typeDeleteToConfirm")}</Label>
                 <Input
                   id="del-confirm"
                   value={confirmText}
@@ -368,7 +364,7 @@ export function PrivacyCenter() {
                 onClick={() => void handleDeleteRequest()}
               >
                 {deleting ? <Loader2 className="size-4 animate-spin" /> : null}
-                Schedule account deletion
+                {t("privacyCenter.scheduleAccountDeletion")}
               </Button>
             </>
           )}
@@ -378,33 +374,32 @@ export function PrivacyCenter() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Policies & contact</CardTitle>
+          <CardTitle className="text-base">{t("privacyCenter.policiesContact")}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm space-y-2">
           <div className="flex flex-wrap gap-3">
             <Link className="text-primary underline-offset-4 hover:underline" href="/privacy">
-              Privacy
+              {t("legal.privacy")}
             </Link>
             <Link className="text-primary underline-offset-4 hover:underline" href="/security">
-              Security overview
+              {t("privacyCenter.securityOverview")}
             </Link>
             <Link className="text-primary underline-offset-4 hover:underline" href="/subprocessors">
-              Subprocessors
+              {t("legal.subprocessors")}
             </Link>
             <Link className="text-primary underline-offset-4 hover:underline" href="/data-and-ai">
-              Data &amp; AI / MCP
+              {t("privacyCenter.dataAmpAiMcp")}
             </Link>
             <Link
               className="text-primary underline-offset-4 hover:underline"
               href="/responsible-disclosure"
             >
-              Responsible disclosure
+              {t("privacyCenter.responsibleDisclosure")}
             </Link>
           </div>
           <Separator />
           <p className="text-muted-foreground">
-            Support must never ask for raw API keys, passwords, or session
-            tokens. Prefer screenshots and redacted examples.
+            {t("privacyCenter.supportMustNeverAskForRawApiKeysPasswordsO")}
           </p>
         </CardContent>
       </Card>

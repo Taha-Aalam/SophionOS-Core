@@ -1,3 +1,4 @@
+import { useI18n } from "@/components/providers/i18n-provider";
 import Link from "next/link";
 import { ArrowLeft, Lock } from "lucide-react";
 
@@ -21,16 +22,16 @@ interface FeatureDisabledProps {
  * (no client hooks) so it can be rendered directly from a server `page.tsx`.
  */
 export function FeatureDisabled({ feature }: FeatureDisabledProps) {
+  const { t } = useI18n();
   return (
     <Card>
       <CardHeader className="space-y-3">
         <div className="flex items-center gap-2">
           <Lock className="size-5 text-muted-foreground" aria-hidden="true" />
-          <CardTitle className="text-base">{feature} is unavailable</CardTitle>
+          <CardTitle className="text-base">{feature} {t("featureDisabled.isUnavailable")}</CardTitle>
         </div>
         <CardDescription>
-          This feature is currently turned off and will appear here once it is
-          enabled.
+          {t("featureDisabled.thisFeatureIsCurrentlyTurnedOffAndWillAppe")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -39,7 +40,7 @@ export function FeatureDisabled({ feature }: FeatureDisabledProps) {
           className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none rounded"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Back to Settings
+          {t("featureDisabled.backToSettings")}
         </Link>
       </CardContent>
     </Card>

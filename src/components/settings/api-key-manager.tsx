@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, KeyRound, Loader2, Trash2 } from "lucide-react";
@@ -52,6 +53,7 @@ export interface ApiKeyManagerProps {
 export function ApiKeyManager({
   showCreateForm = true,
 }: ApiKeyManagerProps) {
+  const { t } = useI18n();
   const [keys, setKeys] = useState<ApiKeyRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [newKeyName, setNewKeyName] = useState("");
@@ -65,12 +67,12 @@ export function ApiKeyManager({
       setKeys(data ?? []);
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to load API keys",
+        err instanceof Error ? err.message : t("apiKeyManager.failedToLoadApiKeys"),
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -81,7 +83,7 @@ export function ApiKeyManager({
   async function createKey() {
     const name = newKeyName.trim();
     if (!name) {
-      toast.error("Give the key a name first.");
+      toast.error(t("apiKeyManager.giveTheKeyANameFirst"));
       return;
     }
     setCreating(true);
@@ -92,10 +94,10 @@ export function ApiKeyManager({
       );
       setRevealedKey(data.key);
       setNewKeyName("");
-      toast.success("API key created. Copy it now, it won't be shown again.");
+      toast.success(t("apiKeyManager.apiKeyCreatedCopyItNowItWontBeShownAgain"));
       await loadKeys();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create key");
+      toast.error(err instanceof Error ? err.message : t("apiKeyManager.failedToCreateKey"));
     } finally {
       setCreating(false);
     }
@@ -107,10 +109,10 @@ export function ApiKeyManager({
     }
     try {
       await apiFetch(`/api/v1/user/api-keys/${id}`, { method: "DELETE" });
-      toast.success("API key revoked.");
+      toast.success(t("apiKeyManager.apiKeyRevoked"));
       await loadKeys();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to revoke key");
+      toast.error(err instanceof Error ? err.message : t("apiKeyManager.failedToRevokeKey"));
     }
   }
 
@@ -119,9 +121,9 @@ export function ApiKeyManager({
       await navigator.clipboard.writeText(value);
       setCopied(label);
       setTimeout(() => setCopied((c) => (c === label ? null : c)), 1500);
-      toast.success("Copied to clipboard.");
+      toast.success(t("apiKeyManager.copiedToClipboard"));
     } catch {
-      toast.error("Could not copy. Copy manually instead.");
+      toast.error(t("apiKeyManager.couldNotCopyCopyManuallyInstead"));
     }
   }
 
@@ -140,11 +142,10 @@ export function ApiKeyManager({
       <CardHeader className="space-y-1">
         <div className="flex items-center gap-2">
           <KeyRound className="size-5 text-primary" />
-          <CardTitle className="text-base">API keys</CardTitle>
+          <CardTitle className="text-base">{t("apiKeyManager.apiKeys")}</CardTitle>
         </div>
         <CardDescription>
-          Keys authenticate your MCP server or API calls. Each key is shown once
-          at creation. Store it somewhere safe.
+          {t("apiKeyManager.keysAuthenticateYourMcpServerOrApiCallsEac")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -157,10 +158,10 @@ export function ApiKeyManager({
             }}
           >
             <div className="flex-1 space-y-1.5">
-              <Label htmlFor="new-key-name">New key name</Label>
+              <Label htmlFor="new-key-name">{t("apiKeyManager.newKeyName")}</Label>
               <Input
                 id="new-key-name"
-                placeholder="e.g. Codex laptop"
+                placeholder={t("apiKeyManager.egCodexLaptop")}
                 value={newKeyName}
                 onChange={(e) => setNewKeyName(e.target.value)}
                 disabled={creating}
@@ -170,7 +171,7 @@ export function ApiKeyManager({
               {creating ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
-                "Create key"
+                t("apiKeyCreateDialog.createKey")
               )}
             </Button>
           </form>
@@ -179,7 +180,7 @@ export function ApiKeyManager({
         {revealedKey && (
           <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
             <p className="mb-2 text-sm font-medium">
-              Your new key (copy it now, it won&apos;t be shown again):
+              {t("apiKeyManager.yourNewKeyCopyItNowItWonapostBeShownAgain")}
             </p>
             <div className="flex items-center gap-2">
               <code className="flex-1 truncate rounded bg-muted px-2 py-1 font-mono text-xs">
@@ -203,9 +204,9 @@ export function ApiKeyManager({
         <Separator />
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading keys…</p>
+          <p className="text-sm text-muted-foreground">{t("apiKeyManager.loadingKeys")}</p>
         ) : activeKeys.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No active keys yet.</p>
+          <p className="text-sm text-muted-foreground">{t("apiKeyManager.noActiveKeysYet")}</p>
         ) : (
           <ul className="divide-y">
             {activeKeys.map((k) => (
@@ -218,7 +219,7 @@ export function ApiKeyManager({
                   <p className="text-xs text-muted-foreground">
                     {k.last_used_at
                       ? `Last used ${formatDateTime(k.last_used_at)}`
-                      : "Never used"}
+                      : t("apiKeyManager.neverUsed")}
                     {formatExpiry(k)}
                   </p>
                 </div>
