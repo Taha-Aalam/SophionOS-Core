@@ -132,7 +132,7 @@ export function TasksStep({ value, onChange }: TasksStepProps) {
             </div>
             {/* Due date */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Due</Label>
+              <Label className="text-xs">{t("tasksStep.due")}</Label>
               <DatePicker
                 value={task.due_date}
                 onChange={(v) => patch(i, { due_date: v })}

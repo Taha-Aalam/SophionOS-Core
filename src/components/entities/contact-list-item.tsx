@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { Mail, Phone, Star, User2 } from "lucide-react";
 
@@ -30,6 +31,7 @@ export function ContactListItem({
   onLogInteraction,
   onToggleFavorite,
 }: ContactListItemProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const status = contactService.computeFollowUpStatus(
     contact.last_interaction_at,
@@ -81,10 +83,10 @@ export function ContactListItem({
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <Badge
-              variant={status === "ON TRACK" ? "outline" : "destructive"}
+              variant={status === t("contactListItem.onTrack") ? "outline" : "destructive"}
               className="text-2xs"
             >
-              {status === "ON TRACK" ? "On track" : "Follow up"}
+              {status === t("contactListItem.onTrack2") ? t("contactListItem.onTrack3") : t("contactListItem.followUp")}
             </Badge>
             {contact.last_interaction_at ? (
               <span className="text-xs text-muted-foreground">
@@ -99,16 +101,16 @@ export function ContactListItem({
           variant="ghost"
           size="sm"
           onClick={() => onLogInteraction?.(contact.id)}
-          aria-label="Log interaction"
+          aria-label={t("contactListItem.logInteraction")}
           className="text-xs"
         >
-          Log
+          {t("contactListItem.log")}
         </Button>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => onToggleFavorite?.(contact.id)}
-          aria-label={contact.favorite ? "Remove from favorites" : "Add to favorites"}
+          aria-label={contact.favorite ? t("contactListItem.removeFromFavorites") : t("contactListItem.addToFavorites")}
         >
           <Star className={cn("size-3.5", contact.favorite && "fill-yellow-400 text-yellow-400")} />
         </Button>
@@ -116,9 +118,9 @@ export function ContactListItem({
           variant="ghost"
           size="sm"
           onClick={() => onEdit?.(contact)}
-          aria-label="Edit contact"
+          aria-label={t("contactListItem.editContact")}
         >
-          Edit
+          {t("action.edit")}
         </Button>
         <DeleteEntityPopover
           variant="row"

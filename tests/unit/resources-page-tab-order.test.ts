@@ -3,6 +3,8 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { describe, expect, it } from "vitest";
 
+import en, { type TranslationKey } from "@/lib/i18n/dictionary";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const fullSrc = readFileSync(
@@ -27,15 +29,15 @@ describe("resources page tab order", () => {
       "By Area",
       "By Goal",
       "By Project",
+      "Completed",
       "Archived",
     ];
 
-    let previousIndex = -1;
-    for (const label of orderedLabels) {
-      const index = src.indexOf(label);
-      expect(index, `"${label}" not found in TabsList after previous labels`).toBeGreaterThan(-1);
-      expect(index, `"${label}" appears before previous label`).toBeGreaterThan(previousIndex);
-      previousIndex = index;
-    }
+    // Tab labels are dictionary keys now, so resolve them through the English
+    // source before checking the rendered order.
+    const labels = [...src.matchAll(/t\("([^"]+)"\)/g)].map(
+      (match) => en[match[1] as TranslationKey],
+    );
+    expect(labels).toEqual(orderedLabels);
   });
 });

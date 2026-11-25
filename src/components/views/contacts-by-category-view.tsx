@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon, Plus, Users } from "lucide-react";
@@ -97,8 +98,9 @@ function CollapsibleContactSection({
 }
 
 export function ContactsByCategoryView(props: ContactsByCategoryViewProps) {
+  const { t } = useI18n();
   if (props.sections.length === 0) {
-    return <EmptyState icon={Users} title="No contacts" description="Add contacts to see them organized by category." />;
+    return <EmptyState icon={Users} title={t("contactsByCategoryView.noContacts")} description={t("contactsByCategoryView.addContactsToSeeThemOrganizedByCategory")} />;
   }
 
   return (

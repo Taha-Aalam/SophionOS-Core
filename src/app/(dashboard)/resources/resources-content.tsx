@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useCallback, useState, useMemo } from "react";
 import { Archive, Bookmark, Eye, FilePlus, Folder, Globe, Heart, Inbox as InboxIcon, LayoutGrid, Map as LucideMap, Tag, Target, Zap } from "lucide-react";
@@ -43,6 +44,7 @@ import {
 } from "@/lib/utils/resources";
 
 export function ResourcesContent() {
+  const { t } = useI18n();
   const { isLoading: authLoading, user } = useAuth();
   const [tab, setTab] = useState<ResourceView>(RESOURCE_VIEW.ALL);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -240,10 +242,10 @@ export function ResourcesContent() {
     }
     return Array.from(grouped.entries()).map(([topicId, resources]) => ({
       groupId: topicId,
-      groupName: topicId === "unassigned" ? "No Topic" : (topicNames.get(topicId) ?? topicId),
+      groupName: topicId === "unassigned" ? t("common.noTopic") : (topicNames.get(topicId) ?? topicId),
       resources,
     }));
-  }, [allResources, topicNames]);
+  }, [allResources, topicNames, t]);
 
   const resourceGroupsByArea = useMemo((): ResourceGroup[] => {
     const grouped = new Map<string, Resource[]>();
@@ -258,10 +260,10 @@ export function ResourcesContent() {
     }
     return Array.from(grouped.entries()).map(([areaId, resources]) => ({
       groupId: areaId,
-      groupName: areaId === "unassigned" ? "No Area" : (areaMap.get(areaId)?.name ?? areaId),
+      groupName: areaId === "unassigned" ? t("common.noArea") : (areaMap.get(areaId)?.name ?? areaId),
       resources,
     }));
-  }, [allResources, areaMap]);
+  }, [allResources, areaMap, t]);
 
   const resourceGroupsByGoal = useMemo((): ResourceGroup[] => {
     const grouped = new Map<string, Resource[]>();
@@ -276,10 +278,10 @@ export function ResourcesContent() {
     }
     return Array.from(grouped.entries()).map(([goalId, resources]) => ({
       groupId: goalId,
-      groupName: goalId === "unassigned" ? "No Goal" : (goalNames.get(goalId) ?? goalId),
+      groupName: goalId === "unassigned" ? t("common.noGoal") : (goalNames.get(goalId) ?? goalId),
       resources,
     }));
-  }, [allResources, goalNames]);
+  }, [allResources, goalNames, t]);
 
   const resourceGroupsByProject = useMemo((): ResourceGroup[] => {
     const grouped = new Map<string, Resource[]>();
@@ -294,10 +296,10 @@ export function ResourcesContent() {
     }
     return Array.from(grouped.entries()).map(([projectId, resources]) => ({
       groupId: projectId,
-      groupName: projectId === "unassigned" ? "No Project" : (projectNames.get(projectId) ?? projectId),
+      groupName: projectId === "unassigned" ? t("common.noProject") : (projectNames.get(projectId) ?? projectId),
       resources,
     }));
-  }, [allResources, projectNames]);
+  }, [allResources, projectNames, t]);
 
   const handleCreate = async (input: CreateResourceInput) => {
     await createResource.mutateAsync(input);
@@ -373,7 +375,7 @@ export function ResourcesContent() {
         <div className="flex items-center gap-3">
           <Link2Icon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Resources</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("nav.resources")}</h1>
             <p className="text-sm text-muted-foreground">
               {allResources.length} {allResources.length === 1 ? "resource" : "resources"}
             </p>
@@ -381,7 +383,7 @@ export function ResourcesContent() {
         </div>
         <Button onClick={handleOpenCreate} disabled={createResource.isPending}>
           <FilePlus className="mr-2 size-4" />
-          New Resource
+          {t("goalDetailContent.newResource")}
         </Button>
       </div>
 
@@ -389,47 +391,47 @@ export function ResourcesContent() {
         <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value={RESOURCE_VIEW.ALL}>
               <LayoutGrid className="mr-1.5 size-3.5" />
-              All
+              {t("notes.tabs.all")}
             </TabsTrigger>
             <TabsTrigger value={RESOURCE_VIEW.INBOX} className="">
               <InboxIcon className="mr-1.5 size-3.5" />
-              Inbox
+              {t("nav.inbox")}
             </TabsTrigger>
             <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW} className="">
               <Eye className="mr-1.5 size-3.5" />
-              To Review
+              {t("notes.tabs.toReview")}
             </TabsTrigger>
             <TabsTrigger value={RESOURCE_VIEW.ACTIVE} className="">
               <Zap className="mr-1.5 size-3.5" />
-              Active
+              {t("goals.tabs.active")}
             </TabsTrigger>
             <TabsTrigger value={RESOURCE_VIEW.FAVORITE} className="">
               <Heart className="mr-1.5 size-3.5" />
-              Favorite
+              {t("notes.tabs.favorite")}
             </TabsTrigger>
             <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC} className="">
               <Tag className="mr-1.5 size-3.5" />
-              By Topic
+              {t("notes.tabs.byTopic")}
             </TabsTrigger>
             <TabsTrigger value={RESOURCE_VIEW.BY_AREA} className="">
               <LucideMap className="mr-1.5 size-3.5" />
-              By Area
+              {t("tasks.tabs.byArea")}
             </TabsTrigger>
             <TabsTrigger value={RESOURCE_VIEW.BY_GOAL} className="">
               <Target className="mr-1.5 size-3.5" />
-              By Goal
+              {t("tasks.tabs.byGoal")}
             </TabsTrigger>
             <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT} className="">
               <Folder className="mr-1.5 size-3.5" />
-              By Project
+              {t("tasks.tabs.byProject")}
             </TabsTrigger>
             <TabsTrigger value={RESOURCE_VIEW.COMPLETED} className="">
               <Bookmark className="mr-1.5 size-3.5" />
-              Completed
+              {t("tasks.tabs.completed")}
             </TabsTrigger>
             <TabsTrigger value={RESOURCE_VIEW.ARCHIVED} className="">
               <Archive className="mr-1.5 size-3.5" />
-              Archived
+              {t("areas.tabs.archived")}
             </TabsTrigger>
           </TabsList>
 
@@ -471,23 +473,23 @@ export function ResourcesContent() {
                 icon={Globe}
                 title={
                   tab === RESOURCE_VIEW.INBOX
-                    ? "No resources in inbox"
+                    ? t("resourcesContent.noResourcesInInbox")
                     : tab === RESOURCE_VIEW.TO_REVIEW
-                      ? "No resources to review"
+                      ? t("resourcesContent.noResourcesToReview")
                       : tab === RESOURCE_VIEW.ACTIVE
-                        ? "No active resources"
+                        ? t("resourcesContent.noActiveResources")
                         : tab === RESOURCE_VIEW.FAVORITE
-                          ? "No favorite resources"
+                          ? t("resourcesContent.noFavoriteResources")
                           : tab === RESOURCE_VIEW.ARCHIVED
-                            ? "No archived resources"
+                            ? t("resourcesContent.noArchivedResources")
                             : tab === RESOURCE_VIEW.COMPLETED
-                              ? "No completed resources"
-                              : "No resources yet"
+                              ? t("resourcesContent.noCompletedResources")
+                              : t("resourcesContent.noResourcesYet")
                 }
                 description={
-                  tab === RESOURCE_VIEW.ALL ? "Add your first resource to get started" : "Try a different filter"
+                  tab === RESOURCE_VIEW.ALL ? t("resourcesContent.addYourFirstResourceToGetStarted") : t("resourcesContent.tryADifferentFilter")
                 }
-                actionLabel={tab === RESOURCE_VIEW.ALL ? "New Resource" : undefined}
+                actionLabel={tab === RESOURCE_VIEW.ALL ? t("goalDetailContent.newResource") : undefined}
                 onAction={tab === RESOURCE_VIEW.ALL ? handleOpenCreate : undefined}
               />
             ) : (
@@ -528,7 +530,7 @@ export function ResourcesContent() {
             onDelete={handleDelete}
             onEdit={handleEdit}
             onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_TOPIC, groupId)}
-            emptyMessage="Resources will be grouped by topic here."
+            emptyMessage={t("resourcesContent.resourcesWillBeGroupedByTopicHere")}
           />
         </TabsContent>
 
@@ -547,7 +549,7 @@ export function ResourcesContent() {
             onDelete={handleDelete}
             onEdit={handleEdit}
             onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_AREA, groupId)}
-            emptyMessage="Resources will be grouped by area here."
+            emptyMessage={t("goalDetailContent.resourcesWillBeGroupedByAreaHere")}
           />
         </TabsContent>
 
@@ -566,7 +568,7 @@ export function ResourcesContent() {
             onDelete={handleDelete}
             onEdit={handleEdit}
             onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_GOAL, groupId)}
-            emptyMessage="Resources will be grouped by goal here."
+            emptyMessage={t("areaDetailContent.resourcesWillBeGroupedByGoalHere")}
           />
         </TabsContent>
 
@@ -585,7 +587,7 @@ export function ResourcesContent() {
             onDelete={handleDelete}
             onEdit={handleEdit}
             onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_PROJECT, groupId)}
-            emptyMessage="Resources will be grouped by project here."
+            emptyMessage={t("goalDetailContent.resourcesWillBeGroupedByProjectHere")}
           />
         </TabsContent>
       </Tabs>

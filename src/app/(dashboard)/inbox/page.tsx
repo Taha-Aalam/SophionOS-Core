@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useMemo, useState } from "react";
 import { Inbox as InboxIcon, X } from "lucide-react";
@@ -78,6 +79,7 @@ function CompactDropdownMultiSelect({
   emptyMessage,
   renderSelected,
 }: CompactDropdownMultiSelectProps) {
+  const { t } = useI18n();
   return (
     <div className="grid gap-1.5">
       <div className="flex items-center justify-between">
@@ -92,7 +94,7 @@ function CompactDropdownMultiSelect({
               onClick={onClear}
               className="text-xs"
             >
-              Clear selection
+              {t("taskDialog.clearSelection")}
             </DropdownMenuItem>
             <div className="max-h-64 overflow-y-auto">
               {candidates.length === 0 ? (
@@ -145,6 +147,7 @@ function ProjectProcessForm({
   goalOptions,
   onClose,
 }: ProjectProcessFormProps) {
+  const { t } = useI18n();
   const updateProject = useUpdateProject();
   const [rawAreaIds, setRawAreaIds] = useState<string[]>(
     project.linkedAreaIds ?? (project.area_id ? [project.area_id] : []),
@@ -205,8 +208,8 @@ function ProjectProcessForm({
     <div className="mt-2 grid gap-3 rounded-lg border border-border bg-muted/30 p-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <CompactDropdownMultiSelect
-          label="Area"
-          placeholder="Select area…"
+          label={t("taskDialog.area")}
+          placeholder={t("inboxTaskProcessForm.selectArea")}
           selectedCount={areaIds.length}
           candidates={visibleAreas}
           isSelected={(id) => areaIds.includes(id)}
@@ -214,10 +217,10 @@ function ProjectProcessForm({
           onClear={() => setRawAreaIds([])}
           emptyMessage={
             areaOptions.length === 0
-              ? "No areas available."
+              ? t("tasksFilterBar.noAreasAvailable")
               : goalIds.length > 0
-                ? "No areas match selected goals."
-                : "No areas available."
+                ? t("inboxTaskProcessForm.noAreasMatchSelectedGoals")
+                : t("tasksFilterBar.noAreasAvailable")
           }
           renderSelected={() =>
             areaIds.length > 0 ? (
@@ -250,8 +253,8 @@ function ProjectProcessForm({
         />
 
         <CompactDropdownMultiSelect
-          label="Goal"
-          placeholder="Select goal…"
+          label={t("inboxTaskProcessForm.goal")}
+          placeholder={t("inboxTaskProcessForm.selectGoal")}
           selectedCount={goalIds.length}
           candidates={visibleGoals}
           isSelected={(id) => goalIds.includes(id)}
@@ -259,10 +262,10 @@ function ProjectProcessForm({
           onClear={() => setRawGoalIds([])}
           emptyMessage={
             goalOptions.length === 0
-              ? "No goals available."
+              ? t("tasksFilterBar.noGoalsAvailable")
               : areaIds.length > 0
-                ? "No goals in selected areas."
-                : "No goals available."
+                ? t("projectDialog.noGoalsInSelectedAreas")
+                : t("tasksFilterBar.noGoalsAvailable")
           }
           renderSelected={() =>
             goalIds.length > 0 ? (
@@ -301,20 +304,20 @@ function ProjectProcessForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="grid gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Start Date</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("projectDialog.startDate")}</span>
           <DatePicker
             value={startDate || null}
             onChange={(v) => setStartDate(v ?? "")}
-            placeholder="Pick start date"
+            placeholder={t("page.pickStartDate")}
           />
         </div>
         <div className="grid gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">End Date</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("page.endDate")}</span>
           <DatePicker
             value={dueDate || null}
             onChange={(v) => setDueDate(v ?? "")}
             min={startDate || undefined}
-            placeholder="Pick end date"
+            placeholder={t("page.pickEndDate")}
           />
         </div>
       </div>
@@ -324,7 +327,7 @@ function ProjectProcessForm({
           variant="secondary"
           className={cn("gap-1", BADGE_COLOR.orange)}
         >
-          <PROJECT_ICON size={12} aria-hidden="true" /> project
+          <PROJECT_ICON size={12} aria-hidden="true" /> {t("page.project")}
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button
@@ -333,10 +336,10 @@ function ProjectProcessForm({
             onClick={handleSave}
             disabled={updateProject.isPending}
           >
-            Process
+            {t("inboxTaskProcessForm.process")}
           </Button>
           <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={onClose}>
-            Cancel
+            {t("action.cancel")}
           </Button>
         </div>
       </div>
@@ -370,6 +373,7 @@ function InboxProjectRow({
   onExpand,
   onCollapse,
 }: InboxProjectRowProps) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -382,7 +386,7 @@ function InboxProjectRow({
           variant="secondary"
           className={cn("shrink-0 gap-1", BADGE_COLOR.orange)}
         >
-          <PROJECT_ICON size={12} aria-hidden="true" /> project
+          <PROJECT_ICON size={12} aria-hidden="true" /> {t("page.project2")}
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{project.name}</span>
@@ -393,13 +397,13 @@ function InboxProjectRow({
             <button
               onClick={onCollapse}
               className="rounded p-0.5 text-muted-foreground hover:text-foreground"
-              aria-label="Cancel"
+              aria-label={t("action.cancel")}
             >
               <X className="size-3.5" />
             </button>
           ) : (
             <Button size="sm" variant="outline" className="h-9 text-xs sm:h-7" onClick={onExpand}>
-              Process
+              {t("inboxTaskProcessForm.process")}
             </Button>
           )}
         </div>
@@ -441,6 +445,7 @@ function InboxTaskRow({
   onExpand,
   onCollapse,
 }: InboxTaskRowProps) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -453,7 +458,7 @@ function InboxTaskRow({
           variant="secondary"
           className={cn("shrink-0 gap-1", BADGE_COLOR.blue)}
         >
-          <TASK_ICON size={12} aria-hidden="true" /> task
+          <TASK_ICON size={12} aria-hidden="true" /> {t("inboxTaskProcessForm.task")}
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{task.name}</span>
@@ -464,13 +469,13 @@ function InboxTaskRow({
             <button
               onClick={onCollapse}
               className="rounded p-0.5 text-muted-foreground hover:text-foreground"
-              aria-label="Cancel"
+              aria-label={t("action.cancel")}
             >
               <X className="size-3.5" />
             </button>
           ) : (
             <Button size="sm" variant="outline" className="h-9 text-xs sm:h-7" onClick={onExpand}>
-              Process
+              {t("inboxTaskProcessForm.process")}
             </Button>
           )}
         </div>
@@ -523,6 +528,7 @@ function InboxNoteRow({
   onExpand,
   onCollapse,
 }: InboxNoteRowProps) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -535,7 +541,7 @@ function InboxNoteRow({
           variant="secondary"
           className={cn("shrink-0 gap-1", BADGE_COLOR.purple)}
         >
-          <NOTE_ICON size={12} aria-hidden="true" /> note
+          <NOTE_ICON size={12} aria-hidden="true" /> {t("noteInboxProcessForm.note")}
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{note.name}</span>
@@ -549,13 +555,13 @@ function InboxNoteRow({
             <button
               onClick={onCollapse}
               className="rounded p-0.5 text-muted-foreground hover:text-foreground"
-              aria-label="Cancel"
+              aria-label={t("action.cancel")}
             >
               <X className="size-3.5" />
             </button>
           ) : (
             <Button size="sm" variant="outline" className="h-9 text-xs sm:h-7" onClick={onExpand}>
-              Process
+              {t("inboxTaskProcessForm.process")}
             </Button>
           )}
         </div>
@@ -612,6 +618,7 @@ function InboxResourceRow({
   onExpand,
   onCollapse,
 }: InboxResourceRowProps) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -624,7 +631,7 @@ function InboxResourceRow({
           variant="secondary"
           className={cn("shrink-0 gap-1", BADGE_COLOR.green)}
         >
-          <RESOURCE_ICON size={12} aria-hidden="true" /> resource
+          <RESOURCE_ICON size={12} aria-hidden="true" /> {t("page.resource")}
         </Badge>
 
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{resource.name}</span>
@@ -638,13 +645,13 @@ function InboxResourceRow({
             <button
               onClick={onCollapse}
               className="rounded p-0.5 text-muted-foreground hover:text-foreground"
-              aria-label="Cancel"
+              aria-label={t("action.cancel")}
             >
               <X className="size-3.5" />
             </button>
           ) : (
             <Button size="sm" variant="outline" className="h-9 text-xs sm:h-7" onClick={onExpand}>
-              Process
+              {t("inboxTaskProcessForm.process")}
             </Button>
           )}
         </div>
@@ -682,6 +689,7 @@ function InboxItemSkeleton() {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
+  const { t } = useI18n();
   const { data: inboxProjects = [], isLoading: projectsLoading, isError: projectsError, refetch: refetchProjects } = useInboxProjects();
   const { data: inboxTasks, isLoading: tasksLoading, isError: tasksError, refetch: refetchTasks } = useInboxTasks();
   const { data: inboxNotes = [], isLoading: notesLoading, isError: notesError, refetch: refetchNotes } = useInboxNotes();
@@ -807,12 +815,12 @@ export default function InboxPage() {
         <div className="flex items-center gap-3">
           <DownloadIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Inbox</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("nav.inbox")}</h1>
             <p className="text-sm text-muted-foreground">
               {isLoading
                 ? "Loading…"
                 : totalCount === 0
-                  ? "Inbox zero. Everything processed"
+                  ? t("page.inboxZeroEverythingProcessed")
                   : `${totalCount} item${totalCount !== 1 ? "s" : ""} to process`}
             </p>
           </div>
@@ -829,8 +837,8 @@ export default function InboxPage() {
         ) : totalCount === 0 ? (
           <EmptyState
             icon={InboxIcon}
-            title="Inbox zero"
-            description="All items have been processed. Capture new tasks and notes to continue."
+            title={t("page.inboxZero")}
+            description={t("page.allItemsHaveBeenProcessedCaptureNewTasksAn")}
           />
         ) : (
           <>
@@ -838,7 +846,7 @@ export default function InboxPage() {
               <section className="flex flex-col gap-2">
                 <h2 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                   <PROJECT_ICON size={12} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-                  Projects
+                  {t("nav.projects")}
                   <span className="ml-0.5 font-normal">({inboxProjects.length})</span>
                 </h2>
                 <div className="flex flex-col gap-2">
@@ -861,7 +869,7 @@ export default function InboxPage() {
               <section className="flex flex-col gap-2">
                 <h2 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                   <TASK_ICON size={12} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-                  Tasks
+                  {t("nav.tasks")}
                   <span className="ml-0.5 font-normal">({inboxTasks.length})</span>
                 </h2>
                 <div className="flex flex-col gap-2">
@@ -885,7 +893,7 @@ export default function InboxPage() {
               <section className="flex flex-col gap-2">
                 <h2 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                   <NOTE_ICON size={12} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-                  Notes
+                  {t("nav.notes")}
                   <span className="ml-0.5 font-normal">({inboxNotes.length})</span>
                 </h2>
                 <div className="flex flex-col gap-2">
@@ -917,7 +925,7 @@ export default function InboxPage() {
               <section className="flex flex-col gap-2">
                 <h2 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                   <RESOURCE_ICON size={12} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-                  Resources
+                  {t("nav.resources")}
                   <span className="ml-0.5 font-normal">({inboxResources.length})</span>
                 </h2>
                 <div className="flex flex-col gap-2">

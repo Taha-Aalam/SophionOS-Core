@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React from "react";
 import { useRouter } from "next/navigation";
@@ -113,6 +114,7 @@ export function ContactDetailRelationshipSections({
   taskTab,
   onTaskTabChange,
 }: ContactDetailRelationshipSectionsProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const areaLookup = React.useMemo(() => buildAreaLookup(allAreas), [allAreas]);
 
@@ -230,10 +232,10 @@ export function ContactDetailRelationshipSections({
     }
     return Array.from(grouped.entries()).map(([areaId, groupTasks]) => ({
       groupId: areaId,
-      groupName: areaId === "unassigned" ? "No Area" : (areaMap.get(areaId)?.name ?? areaId),
+      groupName: areaId === "unassigned" ? t("common.noArea") : (areaMap.get(areaId)?.name ?? areaId),
       tasks: groupTasks,
     }));
-  }, [filteredTasks, areaMap]);
+  }, [filteredTasks, areaMap, t]);
 
   const taskGroupsByGoal = React.useMemo<TaskGroup[]>(() => {
     const grouped = new Map<string, Task[]>();
@@ -253,10 +255,10 @@ export function ContactDetailRelationshipSections({
     }
     return Array.from(grouped.entries()).map(([goalId, groupTasks]) => ({
       groupId: goalId,
-      groupName: goalId === "unassigned" ? "No Goal" : (goalMap.get(goalId)?.name ?? goalId),
+      groupName: goalId === "unassigned" ? t("common.noGoal") : (goalMap.get(goalId)?.name ?? goalId),
       tasks: groupTasks,
     }));
-  }, [filteredTasks, goalMap]);
+  }, [filteredTasks, goalMap, t]);
 
   const taskGroupsByProject = React.useMemo<TaskGroup[]>(() => {
     const grouped = new Map<string, Task[]>();
@@ -277,10 +279,10 @@ export function ContactDetailRelationshipSections({
     return Array.from(grouped.entries()).map(([projectId, groupTasks]) => ({
       groupId: projectId,
       groupName:
-        projectId === "unassigned" ? "No Project" : (projectMap.get(projectId)?.name ?? projectId),
+        projectId === "unassigned" ? t("common.noProject") : (projectMap.get(projectId)?.name ?? projectId),
       tasks: groupTasks,
     }));
-  }, [filteredTasks, projectMap]);
+  }, [filteredTasks, projectMap, t]);
 
   const getLinkedAreaNamesForTask = React.useCallback(
     (task: Task) =>
@@ -315,13 +317,13 @@ export function ContactDetailRelationshipSections({
       <GoalDetailSection
         id="contact-areas"
         entityType="projects"
-        heading="Areas"
+        heading={t("nav.areas")}
         tabs={areaTabs}
         activeTab={areaTab}
         onTabChange={onAreaTabChange}
         isLoading={false}
         emptyTitle="No areas linked"
-        emptyDescription="Link areas to organize this contact within your life areas."
+        emptyDescription={t("contactDetailRelationshipSections.linkAreasToOrganizeThisContactWithinYourLi")}
       >
         {areaTab === "by_type" ? (
           filteredAreas.length > 0 ? (
@@ -372,7 +374,7 @@ export function ContactDetailRelationshipSections({
         onTabChange={onGoalTabChange}
         isLoading={false}
         emptyTitle="No goals linked"
-        emptyDescription="Link goals to track which outcomes this contact contributes to."
+        emptyDescription={t("contactDetailRelationshipSections.linkGoalsToTrackWhichOutcomesThisContactCo")}
       >
         {filteredGoals.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -409,7 +411,7 @@ export function ContactDetailRelationshipSections({
         onTabChange={onProjectTabChange}
         isLoading={false}
         emptyTitle="No projects linked"
-        emptyDescription="Link projects to track which initiatives this contact is involved in."
+        emptyDescription={t("contactDetailRelationshipSections.linkProjectsToTrackWhichInitiativesThisCon")}
       >
         {filteredProjects.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -443,7 +445,7 @@ export function ContactDetailRelationshipSections({
         onTabChange={onTaskTabChange}
         isLoading={false}
         emptyTitle="No tasks linked"
-        emptyDescription="Link tasks to track work related to this contact."
+        emptyDescription={t("contactDetailRelationshipSections.linkTasksToTrackWorkRelatedToThisContact")}
       >
         {taskTab === "by_area" ? (
           <TasksByGroupView
@@ -462,7 +464,7 @@ export function ContactDetailRelationshipSections({
             getLinkedAreaIcons={getLinkedAreaIconsForTask}
             getLinkedGoalNames={getLinkedGoalNamesForTask}
             getLinkedProjectNames={getLinkedProjectNamesForTask}
-            emptyMessage="Tasks will be grouped by area here."
+            emptyMessage={t("tasks.empty.byArea")}
           />
         ) : taskTab === "by_goal" ? (
           <TasksByGroupView
@@ -481,7 +483,7 @@ export function ContactDetailRelationshipSections({
             getLinkedAreaIcons={getLinkedAreaIconsForTask}
             getLinkedGoalNames={getLinkedGoalNamesForTask}
             getLinkedProjectNames={getLinkedProjectNamesForTask}
-            emptyMessage="Tasks will be grouped by goal here."
+            emptyMessage={t("tasks.empty.byGoal")}
           />
         ) : taskTab === "by_project" ? (
           <TasksByGroupView
@@ -500,7 +502,7 @@ export function ContactDetailRelationshipSections({
             getLinkedAreaIcons={getLinkedAreaIconsForTask}
             getLinkedGoalNames={getLinkedGoalNamesForTask}
             getLinkedProjectNames={getLinkedProjectNamesForTask}
-            emptyMessage="Tasks will be grouped by project here."
+            emptyMessage={t("tasks.empty.byProject")}
           />
         ) : filteredTasks.length > 0 ? (
           <div className="rounded-xl border bg-card">

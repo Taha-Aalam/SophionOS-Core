@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
@@ -13,14 +14,17 @@ import { Button } from "@/components/ui/button";
 export function RouteError({
   error,
   reset,
-  title = "Something went wrong",
-  description = "This section failed to load. You can try again without leaving the page.",
+  title,
+  description,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
   title?: string;
   description?: string;
 }) {
+  const { t } = useI18n();
+  const titleText = title ?? t("error.title");
+  const descriptionText = description ?? t("routeError.thisSectionFailedToLoadYouCanTryAgainWitho");
   useEffect(() => {
     // Surface to the console (and any future error reporter) for diagnosis.
     console.error(error);
@@ -33,11 +37,11 @@ export function RouteError({
           <AlertTriangle className="size-7 text-destructive" strokeWidth={1.5} />
         </div>
       </div>
-      <h3 className="mb-1.5 text-lg font-medium tracking-tight">{title}</h3>
-      <p className="mb-5 max-w-sm text-sm text-muted-foreground">{description}</p>
+      <h3 className="mb-1.5 text-lg font-medium tracking-tight">{titleText}</h3>
+      <p className="mb-5 max-w-sm text-sm text-muted-foreground">{descriptionText}</p>
       <Button onClick={() => reset()} variant="outline" className="gap-2">
         <RefreshCw className="size-4" />
-        Try again
+        {t("action.retry")}
       </Button>
     </div>
   );

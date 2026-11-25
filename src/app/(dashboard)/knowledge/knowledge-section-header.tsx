@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { FilePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ export function SectionHeader({
   onNew: () => void;
   isPending?: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="flex items-start gap-3">
@@ -29,7 +31,7 @@ export function SectionHeader({
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold font-heading">{title}</h2>
             {typeof totalCount === "number" ? (
-              <span className="text-sm text-muted-foreground">{totalCount} total</span>
+              <span className="text-sm text-muted-foreground">{totalCount} {t("goalDetailSection.total")}</span>
             ) : null}
           </div>
           <p className="text-sm text-muted-foreground">{description}</p>

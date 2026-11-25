@@ -1,3 +1,6 @@
+"use client";
+
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function ResourceRowSkeleton() {
@@ -19,8 +22,9 @@ export function ResourceRowSkeleton() {
  * lines up with real content and avoids a layout shift on hydration.
  */
 export function ListPageSkeleton({ rows = 6 }: { rows?: number }) {
+  const { t } = useI18n();
   return (
-    <div className="mx-auto flex w-full content-column-grid flex-col gap-6 p-6" aria-busy="true" role="status" aria-label="Loading">
+    <div className="mx-auto flex w-full content-column-grid flex-col gap-6 p-6" aria-busy="true" role="status" aria-label={t("listPageSkeleton.loading")}>
       <div className="flex items-center justify-between border-b border-border/50 pb-4">
         <div className="flex items-center gap-3">
           <Skeleton className="size-8 rounded-md" />

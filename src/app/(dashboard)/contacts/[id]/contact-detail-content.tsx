@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -74,6 +75,7 @@ import {
 
 
 export function ContactDetailContent() {
+  const { t } = useI18n();
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -232,8 +234,8 @@ export function ContactDetailContent() {
       <div className="flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
         <EmptyState
           icon={User2}
-          title="Contact not found"
-          description="This contact may have been deleted or the link is incorrect."
+          title={t("contactDetailContent.contactNotFound")}
+          description={t("contactDetailContent.thisContactMayHaveBeenDeletedOrTheLinkIsIn")}
           actionLabel="Back to Contacts"
           onAction={() => router.push(backHref)}
         />
@@ -304,7 +306,7 @@ export function ContactDetailContent() {
             <ArrowLeft className="size-3.5" />
           </Button>
           <span>/</span>
-          <span>Contacts</span>
+          <span>{t("nav.contacts")}</span>
           <span>/</span>
           <span className="text-foreground">{contact.name}</span>
         </div>
@@ -367,8 +369,8 @@ export function ContactDetailContent() {
                 size="icon-sm"
                 className="sm:size-8"
                 onClick={handleToggleFavorite}
-                title={contact.favorite ? "Remove from favorites" : "Add to favorites"}
-                aria-label={contact.favorite ? "Remove from favorites" : "Add to favorites"}
+                title={contact.favorite ? t("contactDetailContent.removeFromFavorites") : t("contactDetailContent.addToFavorites")}
+                aria-label={contact.favorite ? t("contactDetailContent.removeFromFavorites2") : t("contactDetailContent.addToFavorites2")}
               >
                 <Star className={`size-3.5 sm:size-4 ${contact.favorite ? "fill-yellow-400 text-yellow-400" : ""}`} />
               </Button>
@@ -377,8 +379,8 @@ export function ContactDetailContent() {
                 size="icon-sm"
                 className="sm:size-8"
                 onClick={handleEdit}
-                title="Edit contact"
-                aria-label="Edit contact"
+                title={t("contactDetailContent.editContact")}
+                aria-label={t("contactDetailContent.editContact2")}
               >
                 <Edit className="size-3.5 sm:size-4" />
               </Button>
@@ -422,7 +424,7 @@ export function ContactDetailContent() {
           {/* Stats row — bubble content matches ContactCard; tighter mobile padding */}
           <div className="flex gap-2 border-t px-4 py-2.5 sm:gap-3 sm:px-6 sm:py-3">
             <div className="flex-1 rounded-md border bg-muted/40 px-2.5 py-1.5 sm:px-3 sm:py-2">
-              <p className="mb-0.5 text-2xs text-muted-foreground">Last log</p>
+              <p className="mb-0.5 text-2xs text-muted-foreground">{t("contactDetailContent.lastLog")}</p>
               <p className="text-xs font-medium">
                 {contact.last_interaction_at
                   ? relativeTime(contact.last_interaction_at)
@@ -430,7 +432,7 @@ export function ContactDetailContent() {
               </p>
             </div>
             <div className="flex-1 rounded-md border bg-muted/40 px-2.5 py-1.5 sm:px-3 sm:py-2">
-              <p className="mb-0.5 text-2xs text-muted-foreground">Follow-up</p>
+              <p className="mb-0.5 text-2xs text-muted-foreground">{t("contactDetailContent.followup")}</p>
               {(() => {
                 const daysUntil = contactService.computeDaysUntilFollowUp(
                   contact.last_interaction_at,
@@ -440,9 +442,9 @@ export function ContactDetailContent() {
                   return <p className="text-xs font-medium text-muted-foreground">—</p>;
                 }
                 if (daysUntil >= 0) {
-                  return <p className="text-xs font-medium">{daysUntil}d left</p>;
+                  return <p className="text-xs font-medium">{daysUntil}{t("contactDetailContent.dLeft")}</p>;
                 }
-                return <p className="text-xs font-medium text-destructive">{Math.abs(daysUntil)}d overdue</p>;
+                return <p className="text-xs font-medium text-destructive">{Math.abs(daysUntil)}{t("relationshipRiskPanel.dOverdue")}</p>;
               })()}
             </div>
           </div>
@@ -471,43 +473,43 @@ export function ContactDetailContent() {
             {/* Properties section — always open; mobile type matches card/header scale */}
             <div className="rounded-xl border bg-card">
               <div className="px-4 py-3 sm:px-6 sm:py-4">
-                <h2 className="text-sm font-semibold">Properties</h2>
+                <h2 className="text-sm font-semibold">{t("goalDetailContent.properties")}</h2>
               </div>
               <div className="space-y-3 border-t px-4 py-3 sm:px-6 sm:py-4">
                 <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2 sm:gap-4 sm:text-sm">
                   {contact.phone && (
                     <div>
-                      <p className="text-muted-foreground">Phone</p>
+                      <p className="text-muted-foreground">{t("contactDetailContent.phone")}</p>
                       <p className="mt-0.5 font-medium">{contact.phone}</p>
                     </div>
                   )}
                   {contact.email && (
                     <div>
-                      <p className="text-muted-foreground">Email</p>
+                      <p className="text-muted-foreground">{t("page.email")}</p>
                       <p className="mt-0.5 font-medium">{contact.email}</p>
                     </div>
                   )}
                   {contact.organization && (
                     <div>
-                      <p className="text-muted-foreground">Organization</p>
+                      <p className="text-muted-foreground">{t("contactDetailContent.organization")}</p>
                       <p className="mt-0.5 font-medium">{contact.organization}</p>
                     </div>
                   )}
                   {contact.group && (
                     <div>
-                      <p className="text-muted-foreground">Group</p>
+                      <p className="text-muted-foreground">{t("contactDetailContent.group")}</p>
                       <p className="mt-0.5 font-medium">{contact.group}</p>
                     </div>
                   )}
                   {contact.follow_up_interval_days && (
                     <div>
-                      <p className="text-muted-foreground">Follow-up interval</p>
-                      <p className="mt-0.5 font-medium">{contact.follow_up_interval_days} days</p>
+                      <p className="text-muted-foreground">{t("contactDetailContent.followupInterval")}</p>
+                      <p className="mt-0.5 font-medium">{contact.follow_up_interval_days} {t("contactDetailContent.days")}</p>
                     </div>
                   )}
                   {contact.linkedin && safeHttpUrl(contact.linkedin) && (
                     <div>
-                      <p className="text-muted-foreground">LinkedIn</p>
+                      <p className="text-muted-foreground">{t("contactDetailContent.linkedin")}</p>
                       <a href={safeHttpUrl(contact.linkedin)} target="_blank" rel="noopener noreferrer" className="mt-0.5 break-all font-medium hover:underline">
                         {contact.linkedin}
                       </a>
@@ -515,7 +517,7 @@ export function ContactDetailContent() {
                   )}
                   {contact.website && safeHttpUrl(contact.website) && (
                     <div>
-                      <p className="text-muted-foreground">Website</p>
+                      <p className="text-muted-foreground">{t("contactDetailContent.website")}</p>
                       <a href={safeHttpUrl(contact.website)} target="_blank" rel="noopener noreferrer" className="mt-0.5 break-all font-medium hover:underline">
                         {contact.website}
                       </a>
@@ -524,7 +526,7 @@ export function ContactDetailContent() {
                 </div>
                 {contact.notes && (
                   <div className="border-t pt-2">
-                    <p className="text-xs text-muted-foreground sm:text-sm">Notes</p>
+                    <p className="text-xs text-muted-foreground sm:text-sm">{t("nav.notes")}</p>
                     <p className="mt-0.5 whitespace-pre-wrap text-xs sm:text-sm">{contact.notes}</p>
                   </div>
                 )}
@@ -534,10 +536,10 @@ export function ContactDetailContent() {
             {/* Relationships — manage only; linked entities listed in sections below */}
             <div className="rounded-xl border bg-card">
               <div className="flex items-center justify-between px-6 py-4">
-                <h2 className="text-sm font-semibold">Relationships</h2>
+                <h2 className="text-sm font-semibold">{t("contactDetailContent.relationships")}</h2>
                 <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setIsRelationshipManagerOpen(true)}>
                   <Link2 className="size-3.5" />
-                  Manage
+                  {t("contactDetailContent.manage")}
                 </Button>
               </div>
             </div>
@@ -583,17 +585,17 @@ export function ContactDetailContent() {
           <div className="space-y-6">
             {/* Log interaction input */}
             <div className="rounded-xl border bg-card p-6">
-              <h2 className="text-sm font-semibold mb-3">Log Interaction</h2>
+              <h2 className="text-sm font-semibold mb-3">{t("contactDetailContent.logInteraction")}</h2>
               <div className="flex gap-2">
                 <Textarea
-                  placeholder="What was discussed?"
+                  placeholder={t("contactDetailContent.whatWasDiscussed")}
                   value={logNote}
                   onChange={(e) => setLogNote(e.target.value)}
                   rows={2}
                   className="flex-1"
                 />
                 <Button onClick={handleLogInteraction} disabled={!logNote.trim()} className="self-end">
-                  Log
+                  {t("contactDetailContent.log")}
                 </Button>
               </div>
             </div>
@@ -601,12 +603,12 @@ export function ContactDetailContent() {
             {/* Interaction log */}
             <div className="rounded-xl border bg-card">
               <div className="px-6 py-4">
-                <h2 className="text-sm font-semibold">History</h2>
+                <h2 className="text-sm font-semibold">{t("contactDetailContent.history")}</h2>
               </div>
               <Separator />
               <div className="px-6 py-4">
                 {logs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No interactions logged yet.</p>
+                  <p className="text-sm text-muted-foreground">{t("contactDetailContent.noInteractionsLoggedYet")}</p>
                 ) : (
                   <div className="space-y-3">
                     {logs.map((log) => (

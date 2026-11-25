@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -59,6 +60,7 @@ import { cn } from "@/lib/utils";
 import { sectionGap } from "@/components/ui/layout";
 
 export function TopicDetailContent() {
+  const { t } = useI18n();
   const params = useParams();
   const router = useRouter();
   const topicId = params.id as string;
@@ -211,11 +213,11 @@ export function TopicDetailContent() {
   const noteTabs = useMemo(() => [
     { value: "all", label: "All" },
     { value: "inbox", label: "Inbox" },
-    { value: "to_review", label: "To Review" },
+    { value: "to_review", label: t("notes.tabs.toReview") },
     { value: "active", label: "Active" },
     { value: "completed", label: "Completed" },
     { value: "archived", label: "Archived" },
-  ], []);
+  ], [t]);
 
   const filteredNotes = useMemo(() => {
     switch (noteTab) {
@@ -231,11 +233,11 @@ export function TopicDetailContent() {
   const resourceTabs = useMemo(() => [
     { value: "all", label: "All" },
     { value: "inbox", label: "Inbox" },
-    { value: "to_review", label: "To Review" },
+    { value: "to_review", label: t("notes.tabs.toReview") },
     { value: "active", label: "Active" },
     { value: "completed", label: "Completed" },
     { value: "archived", label: "Archived" },
-  ], []);
+  ], [t]);
 
   const filteredResources = useMemo(() => {
     switch (resourceTab) {
@@ -272,8 +274,8 @@ export function TopicDetailContent() {
       <div className="flex flex-col gap-6 p-6 content-column-grid mx-auto w-full">
         <EmptyState
           icon={Tag}
-          title="Topic not found"
-          description="This topic doesn't exist or you don't have access to it"
+          title={t("topicDetailContent.topicNotFound")}
+          description={t("topicDetailContent.thisTopicDoesntExistOrYouDontHaveAccessToI")}
           actionLabel="Go Back"
           onAction={() => router.push(backHref)}
         />
@@ -294,7 +296,7 @@ export function TopicDetailContent() {
           <ArrowLeft className="size-3.5" />
         </Button>
         <span>/</span>
-        <span>Topics</span>
+        <span>{t("nav.topics")}</span>
         <span>/</span>
         <span className="text-foreground">{topic.name}</span>
       </div>
@@ -314,7 +316,7 @@ export function TopicDetailContent() {
                   {topic.name}
                 </h1>
                 {topic.inactive && (
-                  <Badge variant="outline" className="text-xs text-muted-foreground">Inactive</Badge>
+                  <Badge variant="outline" className="text-xs text-muted-foreground">{t("goals.tabs.inactive")}</Badge>
                 )}
                 {topic.favorite && (
                   <Heart className="size-4 fill-rose-500 text-rose-500" />
@@ -339,7 +341,7 @@ export function TopicDetailContent() {
             onClick={() => setIsPropertiesOpen((v) => !v)}
             className="gap-1 shrink-0 text-xs sm:text-sm"
           >
-            Properties
+            {t("goalDetailContent.properties")}
             {isPropertiesOpen ? (
               <ChevronDownIcon className="size-3.5" />
             ) : (
@@ -352,11 +354,11 @@ export function TopicDetailContent() {
         <div className="flex flex-wrap items-center gap-4 px-4 pb-4 sm:px-6">
           <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm">
             <span className="tabular-nums text-foreground">{notes.length}</span>
-            <span className="text-muted-foreground">Notes</span>
+            <span className="text-muted-foreground">{t("nav.notes")}</span>
           </div>
           <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm">
             <span className="tabular-nums text-foreground">{resources.length}</span>
-            <span className="text-muted-foreground">Resources</span>
+            <span className="text-muted-foreground">{t("nav.resources")}</span>
           </div>
         </div>
 
@@ -367,7 +369,7 @@ export function TopicDetailContent() {
             <div className="space-y-4 p-4 sm:p-6">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Areas</Label>
+                  <Label className="text-xs text-muted-foreground">{t("nav.areas")}</Label>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {linkedAreas.length > 0 ? (
                       linkedAreas.map((area) => (
@@ -377,19 +379,19 @@ export function TopicDetailContent() {
                         </Badge>
                       ))
                     ) : (
-                      <span className="text-sm text-muted-foreground">Unassigned</span>
+                      <span className="text-sm text-muted-foreground">{t("common.unassigned")}</span>
                     )}
                   </div>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <Label className="text-xs text-muted-foreground">{t("tasksStep.status")}</Label>
                   {/* Values — mobile text-sm to match panel; desktop keeps base weight scale */}
                   <p className="mt-1 text-sm font-medium sm:text-base">
                     {topic.inactive ? "Inactive" : "Active"}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Favorite</Label>
+                  <Label className="text-xs text-muted-foreground">{t("notes.tabs.favorite")}</Label>
                   <p className="mt-1 text-sm font-medium sm:text-base">
                     {topic.favorite ? "Yes" : "No"}
                   </p>
@@ -402,23 +404,23 @@ export function TopicDetailContent() {
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleNewNote} className="gap-2">
                   <Plus className="size-4" />
-                  New Note
+                  {t("action.newNote")}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => { setSelectedNoteIds([]); setIsLinkNoteOpen(true); }} className="gap-2">
                   <Plus className="size-4" />
-                  Link Note
+                  {t("goalDetailContent.linkNote")}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => { setEditResource(null); setIsResourceDialogOpen(true); }} className="gap-2">
                   <Plus className="size-4" />
-                  New Resource
+                  {t("goalDetailContent.newResource")}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => { setSelectedResourceIds([]); setIsLinkResourceOpen(true); }} className="gap-2">
                   <Plus className="size-4" />
-                  Link Resource
+                  {t("goalDetailContent.linkResource")}
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleArchive} disabled={archiveTopic.isPending} className="gap-2">
                   <Archive className="size-4" />
-                  Archive
+                  {t("action.archive")}
                 </Button>
                 <DeleteEntityPopover
                   variant="detail"
@@ -445,7 +447,7 @@ export function TopicDetailContent() {
         onTabChange={setNoteTab}
         isLoading={notesLoading}
         emptyTitle="No linked notes"
-        emptyDescription="Notes linked to this topic will appear here."
+        emptyDescription={t("topicDetailContent.notesLinkedToThisTopicWillAppearHere")}
         onCreateNew={handleNewNote}
         createLabel="New Note"
         onLinkExisting={() => { setSelectedNoteIds([]); setIsLinkNoteOpen(true); }}
@@ -498,7 +500,7 @@ export function TopicDetailContent() {
         onTabChange={setResourceTab}
         isLoading={resourcesLoading}
         emptyTitle="No linked resources"
-        emptyDescription="Resources linked to this topic will appear here."
+        emptyDescription={t("topicDetailContent.resourcesLinkedToThisTopicWillAppearHere")}
         onCreateNew={() => { setEditResource(null); setIsResourceDialogOpen(true); }}
         createLabel="New Resource"
         onLinkExisting={() => { setSelectedResourceIds([]); setIsLinkResourceOpen(true); }}
@@ -550,15 +552,15 @@ export function TopicDetailContent() {
       <Dialog open={isLinkNoteOpen} onOpenChange={(open) => { if (!open) { setIsLinkNoteOpen(false); setSelectedNoteIds([]); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Link Note</DialogTitle>
+            <DialogTitle>{t("goalDetailContent.linkNote")}</DialogTitle>
             <DialogDescription>
-              Select notes to link to this topic.
-              {topic.linkedAreaIds?.length ? " Showing notes from linked areas only." : ""}
+              {t("topicDetailContent.selectNotesToLinkToThisTopic")}
+              {topic.linkedAreaIds?.length ? t("topicDetailContent.showingNotesFromLinkedAreasOnly") : ""}
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-72">
             {linkableNotes.length === 0 ? (
-              <p className="text-sm text-muted-foreground px-1 py-2">No notes available.</p>
+              <p className="text-sm text-muted-foreground px-1 py-2">{t("topicDetailContent.noNotesAvailable")}</p>
             ) : (
               <div className="flex flex-col gap-1 py-1">
                 {linkableNotes.map((note) => (
@@ -582,13 +584,13 @@ export function TopicDetailContent() {
           </ScrollArea>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setIsLinkNoteOpen(false); setSelectedNoteIds([]); }}>
-              Cancel
+              {t("action.cancel")}
             </Button>
             <Button
               onClick={handleLinkNotes}
               disabled={selectedNoteIds.length === 0 || updateTopic.isPending}
             >
-              Link {selectedNoteIds.length > 0 ? `(${selectedNoteIds.length})` : ""}
+              {t("noteEditor.link")} {selectedNoteIds.length > 0 ? `(${selectedNoteIds.length})` : ""}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -598,15 +600,15 @@ export function TopicDetailContent() {
       <Dialog open={isLinkResourceOpen} onOpenChange={(open) => { if (!open) { setIsLinkResourceOpen(false); setSelectedResourceIds([]); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Link Resource</DialogTitle>
+            <DialogTitle>{t("goalDetailContent.linkResource")}</DialogTitle>
             <DialogDescription>
-              Select resources to link to this topic.
-              {topic.linkedAreaIds?.length ? " Showing resources from linked areas only." : ""}
+              {t("topicDetailContent.selectResourcesToLinkToThisTopic")}
+              {topic.linkedAreaIds?.length ? t("topicDetailContent.showingResourcesFromLinkedAreasOnly") : ""}
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-72">
             {linkableResources.length === 0 ? (
-              <p className="text-sm text-muted-foreground px-1 py-2">No resources available.</p>
+              <p className="text-sm text-muted-foreground px-1 py-2">{t("topicDetailContent.noResourcesAvailable")}</p>
             ) : (
               <div className="flex flex-col gap-1 py-1">
                 {linkableResources.map((resource) => (
@@ -630,13 +632,13 @@ export function TopicDetailContent() {
           </ScrollArea>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setIsLinkResourceOpen(false); setSelectedResourceIds([]); }}>
-              Cancel
+              {t("action.cancel")}
             </Button>
             <Button
               onClick={handleLinkResources}
               disabled={selectedResourceIds.length === 0 || updateTopic.isPending}
             >
-              Link {selectedResourceIds.length > 0 ? `(${selectedResourceIds.length})` : ""}
+              {t("noteEditor.link")} {selectedResourceIds.length > 0 ? `(${selectedResourceIds.length})` : ""}
             </Button>
           </DialogFooter>
         </DialogContent>

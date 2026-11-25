@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useMemo, useState } from "react";
 import { Tag, FilePlus, Heart, Globe, Map as MapIcon, LayoutGrid, Archive, CircleDot, CircleOff, ChevronDownIcon, ChevronRightIcon, Plus } from "lucide-react";
@@ -74,6 +75,7 @@ function CollapsibleTopicGroup({
   onCreateNew: (areaId: string) => void;
   defaultOpen?: boolean;
 }) {
+  const { t, tp } = useI18n();
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -113,7 +115,7 @@ function CollapsibleTopicGroup({
             e.stopPropagation();
             onCreateNew(areaId);
           }}
-          title={`Create topic in ${areaName}`}
+          title={t("topicsContent.createTopicInV0", { v0: areaName })}
         >
           <Plus className="size-4" />
         </Button>
@@ -138,7 +140,7 @@ function CollapsibleTopicGroup({
             className="flex flex-col items-center justify-center gap-2 h-full min-h-[120px] rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
           >
             <Plus className="size-6" />
-            <span className="text-sm font-medium">New Topic</span>
+            <span className="text-sm font-medium">{t("topicsContent.newTopic")}</span>
           </button>
         </GalleryGrid>
       )}
@@ -147,6 +149,7 @@ function CollapsibleTopicGroup({
 }
 
 export function TopicsContent() {
+  const { t } = useI18n();
   const [tab, setTab] = useState("active");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editTopic, setEditTopic] = useState<TopicWithCounts | null>(null);
@@ -213,7 +216,7 @@ export function TopicsContent() {
     for (const topic of topics) {
       const areaIds = topic.linkedAreaIds ?? [];
       if (areaIds.length === 0) {
-        const unknown = grouped.get("__none__") ?? { areaName: "No Area", areaIcon: null, topics: [] };
+        const unknown = grouped.get("__none__") ?? { areaName: t("common.noArea"), areaIcon: null, topics: [] };
         if (!unknown.topics.find((t) => t.id === topic.id)) {
           unknown.topics.push(topic);
         }
@@ -234,7 +237,7 @@ export function TopicsContent() {
       .filter(([key]) => key !== "__none__")
       .sort(([, a], [, b]) => a.areaName.localeCompare(b.areaName))
       .map(([areaId, { areaName, areaIcon, topics: areaTopics }]) => ({ areaId, areaName, areaIcon, topics: areaTopics }));
-  }, [topics, areaNames, areaIcons]);
+  }, [topics, areaNames, areaIcons, t]);
 
   const handleCreateInArea = (areaId: string) => {
     setDefaultAreaIdFromCreate(areaId);
@@ -286,7 +289,7 @@ export function TopicsContent() {
           icon={Tag}
           title={emptyTitle}
           description={emptyDesc}
-          actionLabel={emptyAction ? "New Topic" : undefined}
+          actionLabel={emptyAction ? t("page.newTopic") : undefined}
           onAction={emptyAction}
         />
       );
@@ -315,7 +318,7 @@ export function TopicsContent() {
         <div className="flex items-center gap-3">
           <LayersIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Topics</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("nav.topics")}</h1>
             <p className="text-sm text-muted-foreground">
               {topics.length} {topics.length === 1 ? "topic" : "topics"}
             </p>
@@ -323,7 +326,7 @@ export function TopicsContent() {
         </div>
         <Button onClick={() => setIsCreateOpen(true)}>
           <FilePlus className="mr-2 size-4" />
-          New Topic
+          {t("topicsContent.newTopic2")}
         </Button>
       </div>
 
@@ -331,43 +334,43 @@ export function TopicsContent() {
         <TabsList className="mb-6 w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsTrigger value="active">
             <CircleDot className="mr-1 size-3" />
-            Active
+            {t("goals.tabs.active")}
           </TabsTrigger>
           <TabsTrigger value="favorite">
             <Heart className="mr-1 size-3" />
-            Favorite
+            {t("notes.tabs.favorite")}
           </TabsTrigger>
           <TabsTrigger value="inactive">
             <CircleOff className="mr-1 size-3" />
-            Inactive
+            {t("goals.tabs.inactive")}
           </TabsTrigger>
           <TabsTrigger value="by_area">
             <MapIcon className="mr-1 size-3" />
-            By Area
+            {t("tasks.tabs.byArea")}
           </TabsTrigger>
           <TabsTrigger value="all">
             <LayoutGrid className="mr-1 size-3" />
-            All
+            {t("notes.tabs.all")}
           </TabsTrigger>
           <TabsTrigger value="archived">
             <Archive className="mr-1 size-3" />
-            Archived
+            {t("areas.tabs.archived")}
           </TabsTrigger>
         </TabsList>
 
         {/* Active */}
         <TabsContent value="active" className="mt-4">
-          {renderTopicList(activeTopics, "No active topics", "Link notes or resources to activate topics")}
+          {renderTopicList(activeTopics, t("page.noActiveTopics"), t("page.linkNotesOrResourcesToActivateTopics"))}
         </TabsContent>
 
         {/* Favorite */}
         <TabsContent value="favorite" className="mt-4">
-          {renderTopicList(favoriteTopics, "No favorite topics", "Star topics to see them here")}
+          {renderTopicList(favoriteTopics, t("page.noFavoriteTopics"), t("page.starTopicsToSeeThemHere"))}
         </TabsContent>
 
         {/* Inactive */}
         <TabsContent value="inactive" className="mt-4">
-          {renderTopicList(inactiveTopics, "No inactive topics", "Topics with no linked items appear here")}
+          {renderTopicList(inactiveTopics, t("page.noInactiveTopics"), "Topics with no linked items appear here")}
         </TabsContent>
 
         {/* By Area */}
@@ -388,8 +391,8 @@ export function TopicsContent() {
           ) : groupedByArea.length === 0 ? (
             <EmptyState
               icon={Globe}
-              title="No topics linked to areas"
-              description="Link topics to areas to see them grouped here"
+              title={t("topicsContent.noTopicsLinkedToAreas")}
+              description={t("topicsContent.linkTopicsToAreasToSeeThemGroupedHere")}
               actionLabel="New Topic"
               onAction={() => setIsCreateOpen(true)}
             />
@@ -419,8 +422,8 @@ export function TopicsContent() {
         <TabsContent value="all" className="mt-4">
           {renderTopicList(
             topics,
-            "No topics yet",
-            "Create your first topic to get started",
+            t("page.noTopicsYet"),
+            t("topicsContent.createYourFirstTopicToGetStarted"),
             () => setIsCreateOpen(true)
           )}
         </TabsContent>
@@ -434,8 +437,8 @@ export function TopicsContent() {
           ) : archivedTopics.length === 0 ? (
             <EmptyState
               icon={Archive}
-              title="No archived topics"
-              description="Archived topics will appear here"
+              title={t("topicsContent.noArchivedTopics")}
+              description={t("topicsContent.archivedTopicsWillAppearHere")}
             />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

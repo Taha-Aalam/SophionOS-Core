@@ -331,7 +331,7 @@ export function NetworkExplorer(props: NetworkExplorerProps) {
 
       <Tabs defaultValue="map">
         <TabsList>
-          <TabsTrigger value="map">Map</TabsTrigger>
+          <TabsTrigger value="map">{t("networkExplorer.map")}</TabsTrigger>
           <TabsTrigger value="list">{t("networkExplorer.list")}</TabsTrigger>
         </TabsList>
         <TabsContent value="map">

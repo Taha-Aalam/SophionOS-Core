@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useMemo, useState } from "react";
 import { Link2, X } from "lucide-react";
@@ -66,6 +67,7 @@ export function ResourceInboxProcessForm({
   taskGoalIdsMap,
   onClose,
 }: ResourceInboxProcessFormProps) {
+  const { t } = useI18n();
   const updateResource = useUpdateResource();
   const [rawAreaIds, setRawAreaIds] = useState<string[]>(
     resource.linkedAreaIds ?? (resource.area_id ? [resource.area_id] : []),
@@ -209,8 +211,8 @@ export function ResourceInboxProcessForm({
     <div className="mt-2 grid gap-3 rounded-lg border border-border bg-muted/30 p-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <DropdownMultiSelect
-          label="Area"
-          placeholder="Select area…"
+          label={t("taskDialog.area")}
+          placeholder={t("inboxTaskProcessForm.selectArea")}
           selectedCount={areaIds.length}
           candidates={visibleAreas}
           isSelected={(id) => areaIds.includes(id)}
@@ -218,10 +220,10 @@ export function ResourceInboxProcessForm({
           onClear={() => setRawAreaIds([])}
           emptyMessage={
             areaOptions.length === 0
-              ? "No areas available."
+              ? t("tasksFilterBar.noAreasAvailable")
               : goalIds.length > 0
-                ? "No areas match selected goals."
-                : "No areas available."
+                ? t("inboxTaskProcessForm.noAreasMatchSelectedGoals")
+                : t("tasksFilterBar.noAreasAvailable")
           }
           renderSelected={() =>
             areaIds.length > 0 ? (
@@ -254,8 +256,8 @@ export function ResourceInboxProcessForm({
         />
 
         <DropdownMultiSelect
-          label="Goal"
-          placeholder="Select goal…"
+          label={t("inboxTaskProcessForm.goal")}
+          placeholder={t("inboxTaskProcessForm.selectGoal")}
           selectedCount={goalIds.length}
           candidates={visibleGoals}
           isSelected={(id) => goalIds.includes(id)}
@@ -263,10 +265,10 @@ export function ResourceInboxProcessForm({
           onClear={() => setRawGoalIds([])}
           emptyMessage={
             goalOptions.length === 0
-              ? "No goals available."
+              ? t("tasksFilterBar.noGoalsAvailable")
               : areaIds.length > 0
-                ? "No goals in selected areas."
-                : "No goals available."
+                ? t("projectDialog.noGoalsInSelectedAreas")
+                : t("tasksFilterBar.noGoalsAvailable")
           }
           renderSelected={() =>
             goalIds.length > 0 ? (
@@ -305,8 +307,8 @@ export function ResourceInboxProcessForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <DropdownMultiSelect
-          label="Project"
-          placeholder="Select projects…"
+          label={t("taskDialog.project")}
+          placeholder={t("resourceInboxProcessForm.selectProjects")}
           selectedCount={projectIds.length}
           selectedLabel={projectOptions.find((p) => p.id === projectIds[0])?.name}
           candidates={visibleProjects}
@@ -315,10 +317,10 @@ export function ResourceInboxProcessForm({
           onClear={() => setRawProjectIds([])}
           emptyMessage={
             projectOptions.length === 0
-              ? "No projects available."
+              ? t("taskDialog.noProjectsAvailable")
               : areaIds.length > 0 || goalIds.length > 0 || taskIds.length > 0
-                ? "No projects match selected context."
-                : "No projects available."
+                ? t("inboxTaskProcessForm.noProjectsMatchSelectedContext")
+                : t("taskDialog.noProjectsAvailable")
           }
           renderSelected={() => (
             projectIds.length > 0 ? (
@@ -348,8 +350,8 @@ export function ResourceInboxProcessForm({
         />
 
         <DropdownMultiSelect
-          label="Task"
-          placeholder="Select task…"
+          label={t("noteInboxProcessForm.task")}
+          placeholder={t("noteInboxProcessForm.selectTask")}
           selectedCount={taskIds.length}
           candidates={visibleTasks}
           isSelected={(id) => taskIds.includes(id)}
@@ -357,10 +359,10 @@ export function ResourceInboxProcessForm({
           onClear={() => setRawTaskIds([])}
           emptyMessage={
             taskOptions.length === 0
-              ? "No tasks available."
+              ? t("notesFilterBar.noTasksAvailable")
               : areaIds.length > 0 || goalIds.length > 0 || projectIds.length > 0
-                ? "No tasks match selected context."
-                : "No tasks available."
+                ? t("noteInboxProcessForm.noTasksMatchSelectedContext")
+                : t("notesFilterBar.noTasksAvailable")
           }
           renderSelected={() =>
             taskIds.length > 0 ? (
@@ -391,15 +393,15 @@ export function ResourceInboxProcessForm({
       </div>
 
       <DropdownMultiSelect
-        label="Topic"
-        placeholder="Select topic…"
+        label={t("noteMetadataPanel.topic")}
+        placeholder={t("resourceInboxProcessForm.selectTopic")}
         selectedCount={topicId ? 1 : 0}
         selectedLabel={topicOptions.find((t) => t.id === topicId)?.name}
         candidates={topicOptions}
         isSelected={(id) => topicId === id}
         onToggle={toggleTopic}
         onClear={() => setTopicId("")}
-        emptyMessage="No topics available."
+        emptyMessage={t("resourceInboxProcessForm.noTopicsAvailable")}
         renderSelected={() =>
           topicId ? (
             <div className="flex flex-wrap gap-1.5 pt-1">
@@ -433,7 +435,7 @@ export function ResourceInboxProcessForm({
           variant="secondary"
           className="gap-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
         >
-          <RESOURCE_ICON size={12} /> resource
+          <RESOURCE_ICON size={12} /> {t("resourceInboxProcessForm.resource")}
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button
@@ -442,10 +444,10 @@ export function ResourceInboxProcessForm({
             onClick={handleSave}
             disabled={updateResource.isPending}
           >
-            Process
+            {t("inboxTaskProcessForm.process")}
           </Button>
           <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={onClose}>
-            Cancel
+            {t("action.cancel")}
           </Button>
         </div>
       </div>
@@ -478,6 +480,7 @@ function DropdownMultiSelect({
   emptyMessage,
   renderSelected,
 }: DropdownMultiSelectProps) {
+  const { t } = useI18n();
   return (
     <div className="grid gap-1.5">
       <div className="flex items-center justify-between">
@@ -494,7 +497,7 @@ function DropdownMultiSelect({
               onClick={onClear}
               className="text-xs"
             >
-              Clear selection
+              {t("taskDialog.clearSelection")}
             </DropdownMenuItem>
             <div className="max-h-64 overflow-y-auto">
               {candidates.length === 0 ? (

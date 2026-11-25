@@ -107,7 +107,7 @@ export function TasksFilterBar({
             <SelectItem value={ALL_PRIORITY_VALUE}>{t("tasksFilterBar.allPriorities")}</SelectItem>
             <SelectItem value="high">{t("tasksFilterBar.high")}</SelectItem>
             <SelectItem value="medium">{t("tasksFilterBar.medium")}</SelectItem>
-            <SelectItem value="low">Low</SelectItem>
+            <SelectItem value="low">{t("tasksFilterBar.low")}</SelectItem>
           </SelectContent>
         </Select>
 

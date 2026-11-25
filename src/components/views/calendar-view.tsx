@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRightIcon, Calendar } from "lucide-react";
@@ -48,6 +49,7 @@ function pad(value: number): string {
 }
 
 export function CalendarView({ tasks, onTaskClick, onTaskReschedule }: CalendarViewProps) {
+  const { t } = useI18n();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -214,13 +216,13 @@ export function CalendarView({ tasks, onTaskClick, onTaskReschedule }: CalendarV
   return (
     <div className="flex flex-col gap-3 p-4">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="icon-sm" onClick={prevMonth} aria-label="Previous month">
+        <Button variant="ghost" size="icon-sm" onClick={prevMonth} aria-label={t("calendarView.previousMonth")}>
           <ChevronLeft className="size-4" />
         </Button>
         <h2 className="text-sm font-semibold">
           {MONTH_NAMES[month]} {year}
         </h2>
-        <Button variant="ghost" size="icon-sm" onClick={nextMonth} aria-label="Next month">
+        <Button variant="ghost" size="icon-sm" onClick={nextMonth} aria-label={t("calendarView.nextMonth")}>
           <ChevronRightIcon className="size-4" />
         </Button>
       </div>
@@ -298,7 +300,7 @@ export function CalendarView({ tasks, onTaskClick, onTaskReschedule }: CalendarV
       </div>
 
       {visibleMonthTaskCount === 0 && (
-        <EmptyState icon={Calendar} title="No scheduled tasks" description="Tasks with due dates will appear here." />
+        <EmptyState icon={Calendar} title={t("calendarView.noScheduledTasks")} description={t("calendarView.tasksWithDueDatesWillAppearHere")} />
       )}
     </div>
   );

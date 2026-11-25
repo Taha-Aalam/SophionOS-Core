@@ -132,9 +132,9 @@ function ActivityHeatmapImpl({ heatmap }: ActivityHeatmapProps) {
             className="flex w-7 shrink-0 flex-col justify-between py-px text-[10px] font-medium leading-none text-muted-foreground"
             aria-hidden="true"
           >
-            <span className="flex flex-1 items-center">Mon</span>
-            <span className="flex flex-1 items-center">Wed</span>
-            <span className="flex flex-1 items-center">Fri</span>
+            <span className="flex flex-1 items-center">{t("activityHeatmap.mon")}</span>
+            <span className="flex flex-1 items-center">{t("activityHeatmap.wed")}</span>
+            <span className="flex flex-1 items-center">{t("activityHeatmap.fri")}</span>
           </div>
 
           <div className="min-w-0 flex-1">

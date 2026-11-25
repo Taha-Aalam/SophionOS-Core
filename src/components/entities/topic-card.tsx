@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { memo } from "react";
 import { useRouter } from "next/navigation";
@@ -36,6 +37,7 @@ const TopicCardComponent = ({
   onRestore,
   compact = false,
 }: TopicCardProps) => {
+  const { t } = useI18n();
   const router = useRouter();
   const linkedAreas = topic.linkedAreaIds ?? [];
 
@@ -67,14 +69,14 @@ const TopicCardComponent = ({
                 {topic.name}
                 {duplicateIndex != null && duplicateIndex > 1 && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    copy {duplicateIndex}
+                    {t("goalCard.copy")} {duplicateIndex}
                   </span>
                 )}
               </h3>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 {topic.inactive && (
                   <Badge variant="outline" className="text-xs text-muted-foreground">
-                    Inactive
+                    {t("goals.tabs.inactive")}
                   </Badge>
                 )}
                 {linkedAreas.slice(0, compact ? 1 : 3).map((areaId) => {
@@ -90,7 +92,7 @@ const TopicCardComponent = ({
                 })}
                 {linkedAreas.length > (compact ? 1 : 3) && (
                   <Badge variant="outline" className="text-xs text-muted-foreground">
-                    +{linkedAreas.length - (compact ? 1 : 3)} more
+                    +{linkedAreas.length - (compact ? 1 : 3)} {t("topicCard.more")}
                   </Badge>
                 )}
               </div>
@@ -105,7 +107,7 @@ const TopicCardComponent = ({
                 e.stopPropagation();
                 onToggleFavorite?.(topic.id, !topic.favorite);
               }}
-              aria-label={topic.favorite ? "Remove from favorites" : "Add to favorites"}
+              aria-label={topic.favorite ? t("topicCard.removeFromFavorites") : t("topicCard.addToFavorites")}
             >
               {topic.favorite ? (
                 <Heart className="size-4 fill-rose-500 text-rose-500" />
@@ -121,7 +123,7 @@ const TopicCardComponent = ({
                   e.stopPropagation();
                   onEdit(topic);
                 }}
-                aria-label="Edit topic"
+                aria-label={t("topicCard.editTopic")}
               >
                 <Pencil className="size-4" />
               </Button>
@@ -134,7 +136,7 @@ const TopicCardComponent = ({
                   e.stopPropagation();
                   onArchive(topic);
                 }}
-                aria-label="Archive topic"
+                aria-label={t("topicCard.archiveTopic")}
               >
                 <Archive className="size-4 text-muted-foreground" />
               </Button>
@@ -147,7 +149,7 @@ const TopicCardComponent = ({
                   e.stopPropagation();
                   onRestore(topic);
                 }}
-                aria-label="Restore topic"
+                aria-label={t("topicCard.restoreTopic")}
               >
                 <RotateCcw className="size-4 text-muted-foreground" />
               </Button>
@@ -159,11 +161,11 @@ const TopicCardComponent = ({
           <div className="mt-3 flex items-center gap-2">
             <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm">
               <span className="font-medium tabular-nums text-foreground">{topic.notesCount}</span>
-              <span className="text-muted-foreground">Notes</span>
+              <span className="text-muted-foreground">{t("nav.notes")}</span>
             </div>
             <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm">
               <span className="font-medium tabular-nums text-foreground">{topic.resourcesCount}</span>
-              <span className="text-muted-foreground">Resources</span>
+              <span className="text-muted-foreground">{t("nav.resources")}</span>
             </div>
           </div>
         )}
@@ -172,11 +174,11 @@ const TopicCardComponent = ({
           <div className="mt-2 flex items-center gap-2">
             <div className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs">
               <span className="font-medium tabular-nums text-foreground">{topic.notesCount}</span>
-              <span className="text-muted-foreground">Notes</span>
+              <span className="text-muted-foreground">{t("nav.notes")}</span>
             </div>
             <div className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs">
               <span className="font-medium tabular-nums text-foreground">{topic.resourcesCount}</span>
-              <span className="text-muted-foreground">Resources</span>
+              <span className="text-muted-foreground">{t("nav.resources")}</span>
             </div>
           </div>
         )}

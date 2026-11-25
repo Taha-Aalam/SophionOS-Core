@@ -226,7 +226,7 @@ export function KnowledgeNotesSection({
           onValueChange={(v) => { setNotesTab(v as NoteView); }}
         >
           <TabsList className={NOTES_TABS_LIST_CLASS_NAME}>
-            <TabsTrigger value={NOTE_VIEW.ALL} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">All</TabsTrigger>
+            <TabsTrigger value={NOTE_VIEW.ALL} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">{t("notes.tabs.all")}</TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.INBOX} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><InboxIcon className="mr-1 size-3" />{t("nav.inbox")}</TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.TO_REVIEW} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Clock className="mr-1 size-3" />{t("notes.tabs.toReview")}</TabsTrigger>
             <TabsTrigger value={NOTE_VIEW.ACTIVE} className="rounded-none border-b-2 border-transparent px-2.5 py-1.5 text-xs leading-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"><Zap className="mr-1 size-3" />{t("goals.tabs.active")}</TabsTrigger>

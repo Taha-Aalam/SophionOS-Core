@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useMemo, useState } from "react";
 import { Link as LinkIcon, Search } from "lucide-react";
@@ -34,6 +35,7 @@ export function LinkEntityDialog<T>({
   renderItem,
   onLink,
 }: LinkEntityDialogProps<T>) {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -65,13 +67,13 @@ export function LinkEntityDialog<T>({
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search..."
+                placeholder={t("tasksFilterBar.search")}
                 className="pl-8"
               />
             </div>
             <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
               {filtered.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No matches.</p>
+                <p className="text-sm text-muted-foreground">{t("linkEntityDialog.noMatches")}</p>
               ) : (
                 filtered.map((entity) => (
                   <button

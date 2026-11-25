@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import type { OnboardingStepMeta } from "@/lib/onboarding/steps";
 
@@ -8,12 +9,12 @@ import type { OnboardingStepMeta } from "@/lib/onboarding/steps";
  * already render in StepShell, so this just adds a short reassurance line.
  */
 export function ExplainerStep({ meta }: { meta: OnboardingStepMeta }) {
+  const { t } = useI18n();
   return (
     <div className="rounded-lg border border-border/60 bg-muted/30 p-6 text-center">
       <p className="text-sm text-muted-foreground">
-        You&apos;ll find <span className="font-medium text-foreground">{meta.title.replace(/^.*? /, "")}</span>{" "}
-        in the sidebar once you&apos;re in. Nothing to set up now, just so you
-        know where it lives.
+        {t("explainerStep.youaposllFind")} <span className="font-medium text-foreground">{meta.title.replace(/^.*? /, "")}</span>{" "}
+        {t("explainerStep.inTheSidebarOnceYouaposreInNothingToSetUpN")}
       </p>
     </div>
   );

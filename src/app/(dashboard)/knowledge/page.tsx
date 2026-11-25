@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -139,6 +140,7 @@ function SectionHeader({
   onNew: () => void;
   isPending?: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="flex items-start gap-3">
@@ -147,7 +149,7 @@ function SectionHeader({
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">{title}</h2>
             {typeof totalCount === "number" ? (
-              <span className="text-sm text-muted-foreground">{totalCount} total</span>
+              <span className="text-sm text-muted-foreground">{totalCount} {t("goalDetailSection.total")}</span>
             ) : null}
           </div>
           <p className="text-sm text-muted-foreground">{description}</p>
@@ -189,6 +191,7 @@ function CollapsibleTopicGroup({
   onCreateNew: (areaId: string) => void;
   defaultOpen?: boolean;
 }) {
+  const { t, tp } = useI18n();
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -228,7 +231,7 @@ function CollapsibleTopicGroup({
             e.stopPropagation();
             onCreateNew(areaId);
           }}
-          title={`Create topic in ${areaName}`}
+          title={t("page.createTopicInV0", { v0: areaName })}
         >
           <Plus className="size-4" />
         </Button>
@@ -254,7 +257,7 @@ function CollapsibleTopicGroup({
             className="flex flex-col items-center justify-center gap-2 h-full min-h-[120px] rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
           >
             <Plus className="size-6" />
-            <span className="text-sm font-medium">New Topic</span>
+            <span className="text-sm font-medium">{t("page.newTopic")}</span>
           </button>
         </GalleryGrid>
       )}
@@ -264,6 +267,7 @@ function CollapsibleTopicGroup({
 
 // ─── page ─────────────────────────────────────────────────────────────────────
 export default function KnowledgeHubPage() {
+  const { t, tp } = useI18n();
   const router = useRouter();
 
   // ── global search ─────────────────────────────────────────────────────────
@@ -336,7 +340,7 @@ export default function KnowledgeHubPage() {
     for (const topic of topics) {
       const areaIds = topic.linkedAreaIds ?? [];
       if (areaIds.length === 0) {
-        const g = grouped.get("__none__") ?? { areaName: "No Area", topics: [] };
+        const g = grouped.get("__none__") ?? { areaName: t("common.noArea"), topics: [] };
         if (!g.topics.find((t) => t.id === topic.id)) g.topics.push(topic);
         grouped.set("__none__", g);
       } else {
@@ -351,7 +355,7 @@ export default function KnowledgeHubPage() {
       .filter(([key]) => key !== "__none__")
       .sort(([, a], [, b]) => a.areaName.localeCompare(b.areaName))
       .map(([areaId, { areaName, topics: ts }]) => ({ areaId, areaName, topics: ts }));
-  }, [topics, areaNames]);
+  }, [topics, areaNames, t]);
 
   // ── notes section state ──────────────────────────────────────────────────
   const [notesTab, setNotesTab] = useState<NoteView>(NOTE_VIEW.ALL);
@@ -380,10 +384,10 @@ export default function KnowledgeHubPage() {
     }
     return Array.from(grouped.entries()).map(([id, ns]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Area" : (areaNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noArea") : (areaNames.get(id) ?? id),
       notes: ns,
     }));
-  }, [notes, areaNames]);
+  }, [notes, areaNames, t]);
 
   const noteGroupsByGoal = useMemo((): NoteGroup[] => {
     const grouped = new Map<string, Note[]>();
@@ -398,10 +402,10 @@ export default function KnowledgeHubPage() {
     }
     return Array.from(grouped.entries()).map(([id, ns]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Goal" : (goalNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noGoal") : (goalNames.get(id) ?? id),
       notes: ns,
     }));
-  }, [notes, goalNames]);
+  }, [notes, goalNames, t]);
 
   const noteGroupsByProject = useMemo((): NoteGroup[] => {
     const grouped = new Map<string, Note[]>();
@@ -416,10 +420,10 @@ export default function KnowledgeHubPage() {
     }
     return Array.from(grouped.entries()).map(([id, ns]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Project" : (projNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noProject") : (projNames.get(id) ?? id),
       notes: ns,
     }));
-  }, [notes, projNames]);
+  }, [notes, projNames, t]);
 
   const noteGroupsByTopic = useMemo((): NoteGroup[] => {
     const grouped = new Map<string, Note[]>();
@@ -431,10 +435,10 @@ export default function KnowledgeHubPage() {
     }
     return Array.from(grouped.entries()).map(([id, ns]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Topic" : (topicNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noTopic") : (topicNames.get(id) ?? id),
       notes: ns,
     }));
-  }, [notes, topicNames]);
+  }, [notes, topicNames, t]);
 
   const noteGroupsByNotebook = useMemo((): NoteGroup[] => {
     const grouped = new Map<string, Note[]>();
@@ -446,10 +450,10 @@ export default function KnowledgeHubPage() {
     }
     return Array.from(grouped.entries()).map(([id, ns]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Notebook" : id,
+      groupName: id === "unassigned" ? t("common.noNotebook") : id,
       notes: ns,
     }));
-  }, [notes]);
+  }, [notes, t]);
 
   // ── resources section state ──────────────────────────────────────────────
   const [resourcesTab, setResourcesTab] = useState<ResourceView>(RESOURCE_VIEW.ALL);
@@ -484,10 +488,10 @@ export default function KnowledgeHubPage() {
     }
     return Array.from(grouped.entries()).map(([id, rs]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Topic" : (topicNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noTopic") : (topicNames.get(id) ?? id),
       resources: rs,
     }));
-  }, [resources, topicNames]);
+  }, [resources, topicNames, t]);
 
   const resourceGroupsByArea = useMemo((): ResourceGroup[] => {
     const grouped = new Map<string, Resource[]>();
@@ -502,10 +506,10 @@ export default function KnowledgeHubPage() {
     }
     return Array.from(grouped.entries()).map(([id, rs]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Area" : (areaNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noArea") : (areaNames.get(id) ?? id),
       resources: rs,
     }));
-  }, [resources, areaNames]);
+  }, [resources, areaNames, t]);
 
   const resourceGroupsByGoal = useMemo((): ResourceGroup[] => {
     const grouped = new Map<string, Resource[]>();
@@ -520,10 +524,10 @@ export default function KnowledgeHubPage() {
     }
     return Array.from(grouped.entries()).map(([id, rs]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Goal" : (goalNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noGoal") : (goalNames.get(id) ?? id),
       resources: rs,
     }));
-  }, [resources, goalNames]);
+  }, [resources, goalNames, t]);
 
   const resourceGroupsByProject = useMemo((): ResourceGroup[] => {
     const grouped = new Map<string, Resource[]>();
@@ -538,10 +542,10 @@ export default function KnowledgeHubPage() {
     }
     return Array.from(grouped.entries()).map(([id, rs]) => ({
       groupId: id,
-      groupName: id === "unassigned" ? "No Project" : (projNames.get(id) ?? id),
+      groupName: id === "unassigned" ? t("common.noProject") : (projNames.get(id) ?? id),
       resources: rs,
     }));
-  }, [resources, projNames]);
+  }, [resources, projNames, t]);
 
   // ── mutations ─────────────────────────────────────────────────────────────
   const createTopic = useCreateTopic();
@@ -750,8 +754,8 @@ export default function KnowledgeHubPage() {
       return (
         <div className="rounded-xl border border-border bg-card p-6 text-center">
           <Search className="mx-auto mb-3 size-10 text-muted-foreground/40" />
-          <p className="font-medium">No results for &ldquo;{debouncedQuery}&rdquo;</p>
-          <p className="mt-1 text-sm text-muted-foreground">Try different keywords</p>
+          <p className="font-medium">{t("page.noResultsForLdquo")}{debouncedQuery}{t("areaDialog.rdquo")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("page.tryDifferentKeywords")}</p>
         </div>
       );
     }
@@ -762,8 +766,8 @@ export default function KnowledgeHubPage() {
           <div>
             <div className="mb-3 flex items-center gap-2">
               <LayersIcon size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-              <h3 className="font-semibold">Topics</h3>
-              <Badge variant="secondary" className="text-xs">{sr!.counts.topics} found</Badge>
+              <h3 className="font-semibold">{t("nav.topics")}</h3>
+              <Badge variant="secondary" className="text-xs">{sr!.counts.topics} {t("page.found")}</Badge>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {sr!.topics.map((topic) => (
@@ -786,8 +790,8 @@ export default function KnowledgeHubPage() {
           <div>
             <div className="mb-3 flex items-center gap-2">
               <SquarePenIcon size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-              <h3 className="font-semibold">Notes</h3>
-              <Badge variant="secondary" className="text-xs">{sr!.counts.notes} found</Badge>
+              <h3 className="font-semibold">{t("nav.notes")}</h3>
+              <Badge variant="secondary" className="text-xs">{sr!.counts.notes} {t("page.found2")}</Badge>
             </div>
             {renderNotesList(sr!.notes)}
           </div>
@@ -797,8 +801,8 @@ export default function KnowledgeHubPage() {
           <div>
             <div className="mb-3 flex items-center gap-2">
               <Link2Icon size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-              <h3 className="font-semibold">Resources</h3>
-              <Badge variant="secondary" className="text-xs">{sr!.counts.resources} found</Badge>
+              <h3 className="font-semibold">{t("nav.resources")}</h3>
+              <Badge variant="secondary" className="text-xs">{sr!.counts.resources} {t("page.found3")}</Badge>
             </div>
             {renderResourcesList(sr!.resources)}
           </div>
@@ -829,10 +833,10 @@ export default function KnowledgeHubPage() {
       <div>
         <div className="flex items-center gap-2.5">
           <BrainIcon size={24} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-          <h1 className="text-2xl font-bold tracking-tight">Knowledge Hub</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("nav.knowledgeHub")}</h1>
         </div>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Store, search, and browse your notes and resources, organized by type or topic.
+          {t("page.storeSearchAndBrowseYourNotesAndResourcesO")}
         </p>
       </div>
 
@@ -842,7 +846,7 @@ export default function KnowledgeHubPage() {
         <Input
           value={rawQuery}
           onChange={(e) => setRawQuery(e.target.value)}
-          placeholder="Search topics, notes, resources…"
+          placeholder={t("page.searchTopicsNotesResources")}
           className="pl-9 pr-16"
         />
         {rawQuery && (
@@ -851,7 +855,7 @@ export default function KnowledgeHubPage() {
             onClick={() => { setRawQuery(""); setDebouncedQuery(""); }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
           >
-            Clear
+            {t("action.clear")}
           </button>
         )}
       </div>
@@ -865,9 +869,9 @@ export default function KnowledgeHubPage() {
           <section>
             <SectionHeader
               accentClass="bg-blue-500"
-              title="Topics"
+              title={t("nav.topics")}
               totalCount={topics.length}
-              description="Explore your library of Topics."
+              description={t("page.exploreYourLibraryOfTopics")}
               buttonLabel="New Topic"
               onNew={openTopicCreate}
               isPending={createTopic.isPending}
@@ -876,22 +880,22 @@ export default function KnowledgeHubPage() {
               <Tabs value={topicsTab} onValueChange={setTopicsTab}>
                 <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <TabsTrigger value="active">
-                    <CircleDot className="mr-1.5 size-3.5" />Active
+                    <CircleDot className="mr-1.5 size-3.5" />{t("goals.tabs.active")}
                   </TabsTrigger>
                   <TabsTrigger value="favorite">
-                    <Heart className="mr-1.5 size-3.5" />Favorite
+                    <Heart className="mr-1.5 size-3.5" />{t("notes.tabs.favorite")}
                   </TabsTrigger>
                   <TabsTrigger value="inactive">
-                    <CircleOff className="mr-1.5 size-3.5" />Inactive
+                    <CircleOff className="mr-1.5 size-3.5" />{t("goals.tabs.inactive")}
                   </TabsTrigger>
                   <TabsTrigger value="by_area">
-                    <MapIcon className="mr-1.5 size-3.5" />By Area
+                    <MapIcon className="mr-1.5 size-3.5" />{t("tasks.tabs.byArea")}
                   </TabsTrigger>
                   <TabsTrigger value="all">
-                    <LayoutGrid className="mr-1.5 size-3.5" />All
+                    <LayoutGrid className="mr-1.5 size-3.5" />{t("notes.tabs.all")}
                   </TabsTrigger>
                   <TabsTrigger value="archived">
-                    <Archive className="mr-1.5 size-3.5" />Archived
+                    <Archive className="mr-1.5 size-3.5" />{t("areas.tabs.archived")}
                   </TabsTrigger>
                 </TabsList>
 
@@ -905,7 +909,7 @@ export default function KnowledgeHubPage() {
                   <>
                     <TabsContent value="active" className="mt-4">
                       {activeTopics.length === 0
-                        ? <EmptyState icon={Tag} title="No active topics" description="Link notes or resources to activate topics" />
+                        ? <EmptyState icon={Tag} title={t("page.noActiveTopics")} description={t("page.linkNotesOrResourcesToActivateTopics")} />
                         : (
                           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {activeTopics.map((t) => (
@@ -921,7 +925,7 @@ export default function KnowledgeHubPage() {
 
                     <TabsContent value="favorite" className="mt-4">
                       {favoriteTopics.length === 0
-                        ? <EmptyState icon={Heart} title="No favorite topics" description="Star topics to see them here" />
+                        ? <EmptyState icon={Heart} title={t("page.noFavoriteTopics")} description={t("page.starTopicsToSeeThemHere")} />
                         : (
                           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {favoriteTopics.map((t) => (
@@ -937,7 +941,7 @@ export default function KnowledgeHubPage() {
 
                     <TabsContent value="inactive" className="mt-4">
                       {inactiveTopics.length === 0
-                        ? <EmptyState icon={Tag} title="No inactive topics" description="Topics with no linked items appear here" />
+                        ? <EmptyState icon={Tag} title={t("page.noInactiveTopics")} description={t("page.topicsWithNoLinkedItemsAppearHere")} />
                         : (
                           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {inactiveTopics.map((t) => (
@@ -953,7 +957,7 @@ export default function KnowledgeHubPage() {
 
                     <TabsContent value="by_area" className="mt-4">
                       {groupedTopicsByArea.length === 0
-                        ? <EmptyState icon={Globe} title="No topics linked to areas" description="Link topics to areas to see them grouped here" />
+                        ? <EmptyState icon={Globe} title={t("page.noTopicsLinkedToAreas")} description={t("page.linkTopicsToAreasToSeeThemGroupedHere")} />
                         : (
                           <div className="px-1">
                             {groupedTopicsByArea.map(({ areaId, areaName, topics: areaTopics }) => {
@@ -981,7 +985,7 @@ export default function KnowledgeHubPage() {
 
                     <TabsContent value="all" className="mt-4">
                       {topics.length === 0
-                        ? <EmptyState icon={Tag} title="No topics yet" description="Create your first topic" actionLabel="New Topic" onAction={openTopicCreate} />
+                        ? <EmptyState icon={Tag} title={t("page.noTopicsYet")} description={t("page.createYourFirstTopic")} actionLabel="New Topic" onAction={openTopicCreate} />
                         : (
                           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {topics.map((t) => (
@@ -997,7 +1001,7 @@ export default function KnowledgeHubPage() {
 
                     <TabsContent value="archived" className="mt-4">
                       {archivedTopics.length === 0 ? (
-                        <EmptyState icon={Archive} title="No archived topics" description="Archived topics will appear here" />
+                        <EmptyState icon={Archive} title={t("page.noArchivedTopics")} description={t("page.archivedTopicsWillAppearHere")} />
                       ) : (
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                           {archivedTopics.map((t) => (
@@ -1025,9 +1029,9 @@ export default function KnowledgeHubPage() {
           <section>
             <SectionHeader
               accentClass="bg-purple-500"
-              title="Notes"
+              title={t("nav.notes")}
               totalCount={noteCounts.all}
-              description="Access and search your latest Notes."
+              description={t("knowledgeNotesSection.accessAndSearchYourLatestNotes")}
               buttonLabel="New Note"
               onNew={openNoteCreate}
             />
@@ -1037,19 +1041,19 @@ export default function KnowledgeHubPage() {
                 onValueChange={(v) => { setNotesTab(v as NoteView); }}
               >
                 <TabsList className={NOTES_TABS_LIST_CLASS_NAME}>
-                  <TabsTrigger value={NOTE_VIEW.ALL}><LayoutGrid className="mr-1.5 size-3.5" />All</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.INBOX}><InboxIcon className="mr-1.5 size-3.5" />Inbox</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.TO_REVIEW}><Clock className="mr-1.5 size-3.5" />To Review</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.ACTIVE}><Zap className="mr-1.5 size-3.5" />Active</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.PINNED}><Pin className="mr-1.5 size-3.5" />Pinned</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.FAVORITE}><Star className="mr-1.5 size-3.5" />Favorites</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.BY_AREA}><MapIcon className="mr-1.5 size-3.5" />By Area</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.BY_GOAL}><Target className="mr-1.5 size-3.5" />By Goal</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.BY_PROJECT}><FolderOpen className="mr-1.5 size-3.5" />By Project</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.BY_TOPIC}><Tag className="mr-1.5 size-3.5" />By Topic</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.BY_NOTEBOOK}><BookOpen className="mr-1.5 size-3.5" />By Notebook</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.COMPLETED}><Bookmark className="mr-1.5 size-3.5" />Completed</TabsTrigger>
-                  <TabsTrigger value={NOTE_VIEW.ARCHIVED}><Archive className="mr-1.5 size-3.5" />Archived</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.ALL}><LayoutGrid className="mr-1.5 size-3.5" />{t("notes.tabs.all")}</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.INBOX}><InboxIcon className="mr-1.5 size-3.5" />{t("nav.inbox")}</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.TO_REVIEW}><Clock className="mr-1.5 size-3.5" />{t("notes.tabs.toReview")}</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.ACTIVE}><Zap className="mr-1.5 size-3.5" />{t("goals.tabs.active")}</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.PINNED}><Pin className="mr-1.5 size-3.5" />{t("notes.tabs.pinned")}</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.FAVORITE}><Star className="mr-1.5 size-3.5" />{t("knowledgeNotesSection.favorites")}</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_AREA}><MapIcon className="mr-1.5 size-3.5" />{t("tasks.tabs.byArea")}</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_GOAL}><Target className="mr-1.5 size-3.5" />{t("tasks.tabs.byGoal")}</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_PROJECT}><FolderOpen className="mr-1.5 size-3.5" />{t("tasks.tabs.byProject")}</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_TOPIC}><Tag className="mr-1.5 size-3.5" />{t("notes.tabs.byTopic")}</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.BY_NOTEBOOK}><BookOpen className="mr-1.5 size-3.5" />{t("notes.tabs.byNotebook")}</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.COMPLETED}><Bookmark className="mr-1.5 size-3.5" />{t("tasks.tabs.completed")}</TabsTrigger>
+                  <TabsTrigger value={NOTE_VIEW.ARCHIVED}><Archive className="mr-1.5 size-3.5" />{t("areas.tabs.archived")}</TabsTrigger>
                 </TabsList>
 
                 {([
@@ -1064,12 +1068,12 @@ export default function KnowledgeHubPage() {
                 ] as NoteView[]).map((tab) => (
                   <TabsContent key={tab} value={tab} className="mt-4">
                     {notesLoading ? (
-                      <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">Loading notes...</div>
+                      <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">{t("page.loadingNotes")}</div>
                     ) : visibleNotes.length === 0 ? (
                       <EmptyState
                         icon={NotebookPen}
-                        title={`No ${tab.replace(/_/g, " ")} notes`}
-                        description="Try a different filter or create a new note."
+                        title={t("knowledgeNotesSection.noV0Notes", { v0: tab.replace(/_/g, " ") })}
+                        description={t("notes.empty.description")}
                         actionLabel="New Note"
                         onAction={openNoteCreate}
                       />
@@ -1084,7 +1088,7 @@ export default function KnowledgeHubPage() {
                     groups={noteGroupsByArea}
                     renderNote={(n) => renderNoteRow(n)}
                     onNewNote={(groupId) => router.push(`/notes/new?areaId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
-                    emptyMessage="Notes will be grouped by area here."
+                    emptyMessage={t("notes.group.byArea")}
                   />
                 </TabsContent>
                 <TabsContent value={NOTE_VIEW.BY_GOAL} className="mt-4">
@@ -1092,7 +1096,7 @@ export default function KnowledgeHubPage() {
                     groups={noteGroupsByGoal}
                     renderNote={(n) => renderNoteRow(n)}
                     onNewNote={(groupId) => router.push(`/notes/new?goalId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
-                    emptyMessage="Notes will be grouped by goal here."
+                    emptyMessage={t("notes.group.byGoal")}
                   />
                 </TabsContent>
                 <TabsContent value={NOTE_VIEW.BY_PROJECT} className="mt-4">
@@ -1100,7 +1104,7 @@ export default function KnowledgeHubPage() {
                     groups={noteGroupsByProject}
                     renderNote={(n) => renderNoteRow(n)}
                     onNewNote={(groupId) => router.push(`/notes/new?projectId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
-                    emptyMessage="Notes will be grouped by project here."
+                    emptyMessage={t("notes.group.byProject")}
                   />
                 </TabsContent>
                 <TabsContent value={NOTE_VIEW.BY_TOPIC} className="mt-4">
@@ -1108,7 +1112,7 @@ export default function KnowledgeHubPage() {
                     groups={noteGroupsByTopic}
                     renderNote={(n) => renderNoteRow(n)}
                     onNewNote={(groupId) => router.push(`/notes/new?topicId=${groupId}&returnTo=${encodeReturnTo("/knowledge")}`)}
-                    emptyMessage="Notes will be grouped by topic here."
+                    emptyMessage={t("notes.group.byTopic")}
                   />
                 </TabsContent>
                 <TabsContent value={NOTE_VIEW.BY_NOTEBOOK} className="mt-4">
@@ -1116,7 +1120,7 @@ export default function KnowledgeHubPage() {
                     groups={noteGroupsByNotebook}
                     renderNote={(n) => renderNoteRow(n)}
                     onNewNote={(groupId) => router.push(`/notes/new?notebook=${encodeURIComponent(groupId)}&returnTo=${encodeReturnTo("/knowledge")}`)}
-                    emptyMessage="Notes will be grouped by notebook here."
+                    emptyMessage={t("notes.group.byNotebook")}
                   />
                 </TabsContent>              </Tabs>
             </div>
@@ -1126,9 +1130,9 @@ export default function KnowledgeHubPage() {
           <section>
             <SectionHeader
               accentClass="bg-orange-500"
-              title="Resources"
+              title={t("nav.resources")}
               totalCount={resources.length}
-              description="Access and search your latest Resources."
+              description={t("page.accessAndSearchYourLatestResources")}
               buttonLabel="New Resource"
               onNew={() => setResourceCreateOpen(true)}
               isPending={createResource.isPending}
@@ -1136,23 +1140,23 @@ export default function KnowledgeHubPage() {
             <div className="mt-4">
               <Tabs value={resourcesTab} onValueChange={setResourcesTab}>
                 <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1 max-[1023px]:snap-x max-[1023px]:snap-mandatory max-[1023px]:touch-pan-x max-[1023px]:overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  <TabsTrigger value={RESOURCE_VIEW.ALL}><LayoutGrid className="mr-1.5 size-3.5" />All
+                  <TabsTrigger value={RESOURCE_VIEW.ALL}><LayoutGrid className="mr-1.5 size-3.5" />{t("notes.tabs.all")}
                   </TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.INBOX}><InboxIcon className="mr-1.5 size-3.5" />Inbox
+                  <TabsTrigger value={RESOURCE_VIEW.INBOX}><InboxIcon className="mr-1.5 size-3.5" />{t("nav.inbox")}
                   </TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW}><Clock className="mr-1.5 size-3.5" />To Review
+                  <TabsTrigger value={RESOURCE_VIEW.TO_REVIEW}><Clock className="mr-1.5 size-3.5" />{t("notes.tabs.toReview")}
                   </TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.ACTIVE}><Zap className="mr-1.5 size-3.5" />Active
+                  <TabsTrigger value={RESOURCE_VIEW.ACTIVE}><Zap className="mr-1.5 size-3.5" />{t("goals.tabs.active")}
                   </TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.FAVORITE}><Heart className="mr-1.5 size-3.5" />Favorites
+                  <TabsTrigger value={RESOURCE_VIEW.FAVORITE}><Heart className="mr-1.5 size-3.5" />{t("knowledgeNotesSection.favorites")}
                   </TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC}><Tag className="mr-1.5 size-3.5" />By Topic</TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.BY_AREA}><MapIcon className="mr-1.5 size-3.5" />By Area</TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.BY_GOAL}><Target className="mr-1.5 size-3.5" />By Goal</TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT}><FolderOpen className="mr-1.5 size-3.5" />By Project</TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.COMPLETED}><Bookmark className="mr-1.5 size-3.5" />Completed
+                  <TabsTrigger value={RESOURCE_VIEW.BY_TOPIC}><Tag className="mr-1.5 size-3.5" />{t("notes.tabs.byTopic")}</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_AREA}><MapIcon className="mr-1.5 size-3.5" />{t("tasks.tabs.byArea")}</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_GOAL}><Target className="mr-1.5 size-3.5" />{t("tasks.tabs.byGoal")}</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.BY_PROJECT}><FolderOpen className="mr-1.5 size-3.5" />{t("tasks.tabs.byProject")}</TabsTrigger>
+                  <TabsTrigger value={RESOURCE_VIEW.COMPLETED}><Bookmark className="mr-1.5 size-3.5" />{t("tasks.tabs.completed")}
                   </TabsTrigger>
-                  <TabsTrigger value={RESOURCE_VIEW.ARCHIVED}><Archive className="mr-1.5 size-3.5" />Archived
+                  <TabsTrigger value={RESOURCE_VIEW.ARCHIVED}><Archive className="mr-1.5 size-3.5" />{t("areas.tabs.archived")}
                   </TabsTrigger>
                 </TabsList>
 
@@ -1165,9 +1169,9 @@ export default function KnowledgeHubPage() {
                     ) : filteredResources.length === 0 ? (
                       <EmptyState
                         icon={Globe}
-                        title={v === RESOURCE_VIEW.ALL ? "No resources yet" : "No resources"}
-                        description={v === RESOURCE_VIEW.ALL ? "Add your first resource to get started" : "Try a different filter"}
-                        actionLabel={v === RESOURCE_VIEW.ALL ? "New Resource" : undefined}
+                        title={v === RESOURCE_VIEW.ALL ? t("page.noResourcesYet") : t("page.noResources")}
+                        description={v === RESOURCE_VIEW.ALL ? t("page.addYourFirstResourceToGetStarted") : t("page.tryADifferentFilter")}
+                        actionLabel={v === RESOURCE_VIEW.ALL ? t("goalDetailContent.newResource") : undefined}
                         onAction={v === RESOURCE_VIEW.ALL ? () => setResourceCreateOpen(true) : undefined}
                       />
                     ) : (
@@ -1190,7 +1194,7 @@ export default function KnowledgeHubPage() {
                     onDelete={(id) => deleteResource.mutate(id)}
                     onEdit={(r) => setEditingResource(r)}
                     onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_TOPIC, groupId)}
-                    emptyMessage="Resources will be grouped by topic here."
+                    emptyMessage={t("page.resourcesWillBeGroupedByTopicHere")}
                   />
                 </TabsContent>
                 <TabsContent value={RESOURCE_VIEW.BY_AREA} className="mt-4">
@@ -1207,7 +1211,7 @@ export default function KnowledgeHubPage() {
                     onDelete={(id) => deleteResource.mutate(id)}
                     onEdit={(r) => setEditingResource(r)}
                     onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_AREA, groupId)}
-                    emptyMessage="Resources will be grouped by area here."
+                    emptyMessage={t("goalDetailContent.resourcesWillBeGroupedByAreaHere")}
                   />
                 </TabsContent>
                 <TabsContent value={RESOURCE_VIEW.BY_GOAL} className="mt-4">
@@ -1224,7 +1228,7 @@ export default function KnowledgeHubPage() {
                     onDelete={(id) => deleteResource.mutate(id)}
                     onEdit={(r) => setEditingResource(r)}
                     onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_GOAL, groupId)}
-                    emptyMessage="Resources will be grouped by goal here."
+                    emptyMessage={t("areaDetailContent.resourcesWillBeGroupedByGoalHere")}
                   />
                 </TabsContent>
                 <TabsContent value={RESOURCE_VIEW.BY_PROJECT} className="mt-4">
@@ -1241,7 +1245,7 @@ export default function KnowledgeHubPage() {
                     onDelete={(id) => deleteResource.mutate(id)}
                     onEdit={(r) => setEditingResource(r)}
                     onNewResource={(groupId) => handleNewResourceForGroup(RESOURCE_VIEW.BY_PROJECT, groupId)}
-                    emptyMessage="Resources will be grouped by project here."
+                    emptyMessage={t("goalDetailContent.resourcesWillBeGroupedByProjectHere")}
                   />
                 </TabsContent>
               </Tabs>
@@ -1264,37 +1268,37 @@ export default function KnowledgeHubPage() {
         >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>{topicEditData ? "Edit Topic" : "New Topic"}</DialogTitle>
+              <DialogTitle>{topicEditData ? t("page.editTopic") : t("page.newTopic")}</DialogTitle>
               <DialogDescription>
-                {topicEditData ? "Update topic details" : "Create a topic to organize notes and resources"}
+                {topicEditData ? t("page.updateTopicDetails") : t("page.createATopicToOrganizeNotesAndResources")}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="kh-topic-name">Name</Label>
+                <Label htmlFor="kh-topic-name">{t("goalDialog.name")}</Label>
                 <Input
                   id="kh-topic-name"
-                  placeholder="e.g., Productivity, Machine Learning, Recipes"
+                  placeholder={t("page.egProductivityMachineLearningRecipes")}
                   value={topicForm.name}
                   onChange={(e) => setTopicForm((p) => ({ ...p, name: e.target.value }))}
                 />
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
-                  <Label>Linked Areas</Label>
+                  <Label>{t("page.linkedAreas")}</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       className={buttonVariants({ variant: "outline", size: "sm" })}
                     >
-                      {topicForm.area_ids.length === 0 ? "Select areas..." : `${topicForm.area_ids.length} selected`}
+                      {topicForm.area_ids.length === 0 ? t("taskDialog.selectAreas") : `${topicForm.area_ids.length} selected`}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56">
                       <DropdownMenuItem onClick={() => setTopicForm((p) => ({ ...p, area_ids: [] }))}>
-                        Clear selection
+                        {t("taskDialog.clearSelection")}
                       </DropdownMenuItem>
                       <div className="max-h-56 overflow-y-auto overscroll-contain">
                         {areas.length === 0 ? (
-                          <p className="text-sm text-muted-foreground px-2 py-1.5">No areas available</p>
+                          <p className="text-sm text-muted-foreground px-2 py-1.5">{t("page.noAreasAvailable")}</p>
                         ) : (
                           areas.map((area) => {
                             const isSelected = topicForm.area_ids.includes(area.id);
@@ -1351,20 +1355,20 @@ export default function KnowledgeHubPage() {
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
-                  <Label>Link Notes</Label>
+                  <Label>{t("page.linkNotes")}</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       className={buttonVariants({ variant: "outline", size: "sm" })}
                     >
-                      {topicForm.note_ids.length === 0 ? "Select notes..." : `${topicForm.note_ids.length} selected`}
+                      {topicForm.note_ids.length === 0 ? t("page.selectNotes") : `${topicForm.note_ids.length} selected`}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-64">
                       <DropdownMenuItem onClick={() => setTopicForm((p) => ({ ...p, note_ids: [] }))}>
-                        Clear selection
+                        {t("taskDialog.clearSelection")}
                       </DropdownMenuItem>
                       <div className="max-h-56 overflow-y-auto overscroll-contain">
                         {notes.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No notes available.</div>
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("page.noNotesAvailable")}</div>
                         ) : (
                           notes.map((note) => {
                             const isSelected = topicForm.note_ids.includes(note.id);
@@ -1419,20 +1423,20 @@ export default function KnowledgeHubPage() {
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
-                  <Label>Link Resources</Label>
+                  <Label>{t("page.linkResources")}</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       className={buttonVariants({ variant: "outline", size: "sm" })}
                     >
-                      {topicForm.resource_ids.length === 0 ? "Select resources..." : `${topicForm.resource_ids.length} selected`}
+                      {topicForm.resource_ids.length === 0 ? t("page.selectResources") : `${topicForm.resource_ids.length} selected`}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-64">
                       <DropdownMenuItem onClick={() => setTopicForm((p) => ({ ...p, resource_ids: [] }))}>
-                        Clear selection
+                        {t("taskDialog.clearSelection")}
                       </DropdownMenuItem>
                       <div className="max-h-56 overflow-y-auto overscroll-contain">
                         {resources.length === 0 ? (
-                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No resources available.</div>
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">{t("page.noResourcesAvailable")}</div>
                         ) : (
                           resources.map((resource) => {
                             const isSelected = topicForm.resource_ids.includes(resource.id);
@@ -1497,7 +1501,7 @@ export default function KnowledgeHubPage() {
                   )}
                 >
                   <Heart className={cn("size-3.5", topicForm.favorite && "fill-current")} />
-                  Favorite
+                  {t("notes.tabs.favorite")}
                 </button>
               </div>
             </div>
@@ -1510,13 +1514,13 @@ export default function KnowledgeHubPage() {
                   setTopicForm({ name: "", area_ids: [], note_ids: [], resource_ids: [], favorite: false });
                 }}
               >
-                Cancel
+                {t("action.cancel")}
               </Button>
               <Button
                 onClick={topicEditData ? handleTopicUpdate : handleTopicCreate}
                 disabled={!topicForm.name || (topicEditData ? updateTopic.isPending : createTopic.isPending)}
               >
-                {topicEditData ? "Save Changes" : "Create Topic"}
+                {topicEditData ? t("goalDialog.saveChanges") : t("page.createTopic")}
               </Button>
             </DialogFooter>
           </DialogContent>

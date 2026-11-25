@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect } from "react";
 
@@ -16,6 +17,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useI18n();
   // This boundary renders outside the app tree — the capture provider is
   // gone. Record straight to localStorage so the entry survives on storage
   // alone and shows up in the next session's bug report. Scrubbed at capture.
@@ -53,10 +55,10 @@ export default function GlobalError({
             style={{ display: "block", margin: "0 auto 1.5rem" }}
           />
           <h1 style={{ fontSize: "1.25rem", fontWeight: 600, margin: 0 }}>
-            Something went wrong
+            {t("error.title")}
           </h1>
           <p style={{ marginTop: "0.75rem", color: "#a1a1aa", fontSize: "0.875rem" }}>
-            The app hit an unexpected error and could not recover this view.
+            {t("globalError.theAppHitAnUnexpectedErrorAndCouldNotRecov")}
           </p>
           <button
             onClick={() => reset()}
@@ -81,7 +83,7 @@ export default function GlobalError({
               e.currentTarget.style.outline = "none";
             }}
           >
-            Try again
+            {t("action.retry")}
           </button>
         </div>
       </body>
