@@ -131,7 +131,12 @@ export default function PreferencesPage() {
                 disabled={isPending}
               >
                 <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder={t("preferences.theme.placeholder")} />
+                  <SelectValue placeholder={t("preferences.theme.placeholder")}>
+                    {(value) => {
+                      const labelKey = THEMES.find((item) => item.value === value)?.labelKey;
+                      return labelKey ? t(labelKey) : undefined;
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {THEMES.map((item) => (
@@ -158,7 +163,9 @@ export default function PreferencesPage() {
                 disabled={isPending}
               >
                 <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder={t("preferences.language.placeholder")} />
+                  <SelectValue placeholder={t("preferences.language.placeholder")}>
+                    {(value) => TIER1_LOCALES.find((item) => item.code === value)?.nativeName}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {/* Native names are never translated: a user looking for

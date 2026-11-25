@@ -103,6 +103,17 @@ describe("dictionary parity", () => {
   it("es-MX resolves through Spanish before English", () => {
     expect(translate("nav.tasks", "es-MX", STORED_DICTIONARIES)).toBe(es["nav.tasks"]);
   });
+
+  it("covers every ja-translated key in every stored Tier-1 locale", () => {
+    for (const [code, dictionary] of Object.entries(STORED_DICTIONARIES)) {
+      // es-MX stores only overrides and inherits the rest from es.
+      const parent = code === "es-MX" ? es : undefined;
+      for (const key of Object.keys(ja) as Array<keyof Dictionary>) {
+        const value = dictionary[key] ?? parent?.[key];
+        expect(typeof value === "string" && value.trim().length > 0, `${code} → ${key}`).toBe(true);
+      }
+    }
+  });
 });
 
 describe("navigation display-label guard", () => {
