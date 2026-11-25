@@ -1,3 +1,4 @@
+import { getLegalI18n } from "@/lib/i18n/server";
 import { PolicyMeta } from "@/components/trust/policy-meta";
 import { LockIcon } from "@/components/icons";
 import { TrustPage } from "@/components/trust/trust-page";
@@ -7,620 +8,504 @@ export const metadata = {
   description: "How SophionOS handles your personal context data.",
 };
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const { t, locale } = await getLegalI18n();
   return (
     <TrustPage
+      notice={locale === "en" ? undefined : t("legal.governingNotice")}
       icon={LockIcon}
-      title="Privacy"
-      description="How SophionOS handles your personal context data."
+      title={t("legal.privacy")}
+      description={t("legal.privacy.howSophionosHandlesYourPersonalContextData")}
     >
       <PolicyMeta
         version="3.0"
         effective="October 19, 2026"
-        summary="Adopts the reviewed, corrected SophionOS legal text (Privacy Policy v2, effective 19 October 2026), with the notification promises replaced by an operator-responsibility statement: SophionOS is self-hosted, and whoever operates an instance is responsible for securing it and for the duties that apply to them. Still DRAFT pending counsel sign-off."
+        summary={t("legal.privacy.adoptsTheReviewedCorrectedSophionosLegalTextPrivacyPolic")}
       />
       <p className="text-sm text-muted-foreground">
-        <strong>DRAFT: NOT YET IN FORCE.</strong> This document is product
-        text awaiting review by qualified Indian counsel. It must not be
-        published as binding until counsel signs it off. Every clause is
-        subject to that review. The grievance officer details in section 9 are
-        placeholders and must be replaced with a real, monitored contact before
-        launch.
+        <strong>{t("legal.privacy.draftNotYetInForce")}</strong> {t("legal.privacy.thisDocumentIsProductTextAwaitingReviewByQualifiedIndian")}
       </p>
 
       <p>
-        This Privacy Policy explains what personal data SophionOS collects, why
-        we collect it, who we share it with, how long we keep it, and the rights
-        you have over it. It is a separate document from our{" "}
-        <a href="/terms">Terms &amp; Conditions</a> and our Marketing &amp;
-        Communications Policy, and you consent to each independently.
+        {t("legal.privacy.thisPrivacyPolicyExplainsWhatPersonalDataSophionosCollec")}{" "}
+        <a href="/terms">{t("legal.privacy.termsConditions")}</a> {t("legal.privacy.andOurMarketingCommunicationsPolicyAndYouConsentToEachIn")}
       </p>
 
-      <h2>1. Who we are and what this covers</h2>
+      <h2>{t("legal.privacy.n1WhoWeAreAndWhatThisCovers")}</h2>
       <p>
-        SophionOS is a life operating system and system of record for
-        interconnected life domains: areas, goals, projects, tasks, notes,
-        resources, topics, and contacts. In this Policy, &quot;SophionOS&quot;,
-        &quot;we&quot;, &quot;us&quot; means Taha Aalam, a sole proprietor trading as
-        SophionOS, who operates the SophionOS Cloud service. &quot;You&quot; means
-        the person using it.
+        {t("legal.privacy.sophionosIsALifeOperatingSystemAndSystemOfRecordForInter")}
       </p>
       <p>
-        This Policy covers the SophionOS Cloud service. A self-hosted instance
-        you operate is governed by the operator&apos;s configuration, not by this
-        Policy. See <a href="/terms">Self-hosted Core vs Cloud</a> in the Terms
-        for what that means for processors and legal basis.
+        {t("legal.privacy.thisPolicyCoversTheSophionosCloudServiceASelfhostedInsta")} <a href="/terms">{t("legal.privacy.selfhostedCoreVsCloud")}</a> {t("legal.privacy.inTheTermsForWhatThatMeansForProcessorsAndLegalBasis")}
       </p>
 
-      <h2>2. Consent, and how we record it</h2>
+      <h2>{t("legal.privacy.n2ConsentAndHowWeRecordIt")}</h2>
       <p>
-        We do not ask for blanket consent. Each document is a separate consent
-        item, and you can consent to them independently:
+        {t("legal.privacy.weDoNotAskForBlanketConsentEachDocumentIsASeparateConsen")}
       </p>
       <table>
         <thead>
           <tr>
-            <th>Item</th>
-            <th>Required?</th>
-            <th>What it covers</th>
+            <th>{t("legal.privacy.item")}</th>
+            <th>{t("legal.privacy.required2")}</th>
+            <th>{t("legal.privacy.whatItCovers")}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Terms &amp; Conditions</td>
-            <td>Required</td>
-            <td>The rules for using the service</td>
+            <td>{t("legal.privacy.termsConditions")}</td>
+            <td>{t("legal.privacy.required")}</td>
+            <td>{t("legal.privacy.theRulesForUsingTheService")}</td>
           </tr>
           <tr>
-            <td>Privacy Policy</td>
-            <td>Required</td>
-            <td>This document</td>
+            <td>{t("legal.privacy.privacyPolicy")}</td>
+            <td>{t("legal.privacy.required")}</td>
+            <td>{t("legal.privacy.thisDocument")}</td>
           </tr>
           <tr>
-            <td>Marketing &amp; Communications</td>
+            <td>{t("legal.privacy.marketingCommunications")}</td>
             <td>
-              Optional, <strong>off by default</strong>
+              {t("legal.privacy.optional")} <strong>{t("legal.privacy.offByDefault")}</strong>
             </td>
-            <td>Promotional email only</td>
+            <td>{t("legal.privacy.promotionalEmailOnly")}</td>
           </tr>
         </tbody>
       </table>
       <p>
-        Two of the three are required because the service cannot function without
-        them. The third is optional and is never pre-ticked.
+        {t("legal.privacy.twoOfTheThreeAreRequiredBecauseTheServiceCannotFunctionW")}
       </p>
       <p>
-        There is no consent banner, because there is nothing to consent to: the
-        documents above are the terms on which the Service is offered, and using
-        the Service is the acceptance. We keep no consent log, no consent
-        ledger, and no per-version consent record, so there is no record of a
-        decision to look up or to withdraw from. The version of each document
-        in force is the version line at the top of that document.
+        {t("legal.privacy.thereIsNoConsentBannerBecauseThereIsNothingToConsentToTh")}
       </p>
       <p>
-        To withdraw consent to marketing, use the unsubscribe link in any
-        message, or write to us; service and security notices are not marketing
-        and are sent regardless. To withdraw consent to the Terms or the Privacy
-        Policy, delete your account from Settings → Privacy &amp; data.
-        Withdrawing is exactly as easy as granting, and takes effect immediately.
+        {t("legal.privacy.toWithdrawConsentToMarketingUseTheUnsubscribeLinkInAnyMe")}
       </p>
       <p>
-        If a document changes materially, we publish a new version with its own
-        version number and effective date, and we tell you before it takes
-        effect (see section 15). We will not retroactively apply a new version
-        to the terms you accepted under an older one.
+        {t("legal.privacy.ifADocumentChangesMateriallyWePublishANewVersionWithItsO")}
       </p>
 
-      <h2>3. What we collect, and why</h2>
+      <h2>{t("legal.privacy.n3WhatWeCollectAndWhy")}</h2>
       <p>
-        We collect the minimum needed to run a personal life-management
-        product. Each row states a distinct purpose. We do not reuse your data
-        for a purpose not listed here; introducing a new purpose requires a new
-        version of this Policy, published before any new collection.
+        {t("legal.privacy.weCollectTheMinimumNeededToRunAPersonalLifemanagementPro")}
       </p>
 
-      <h3>3.1 Account and identity</h3>
+      <h3>{t("legal.privacy.n31AccountAndIdentity")}</h3>
       <table>
         <thead>
           <tr>
-            <th>Data</th>
-            <th>Purpose</th>
-            <th>Legal basis</th>
+            <th>{t("legal.privacy.data")}</th>
+            <th>{t("legal.privacy.purpose")}</th>
+            <th>{t("legal.privacy.legalBasis")}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Email address</td>
-            <td>Sign-in, account recovery, security alerts</td>
-            <td>Performance of contract</td>
+            <td>{t("legal.privacy.emailAddress2")}</td>
+            <td>{t("legal.privacy.signinAccountRecoverySecurityAlerts")}</td>
+            <td>{t("legal.privacy.performanceOfContract")}</td>
           </tr>
           <tr>
-            <td>Name (optional)</td>
-            <td>Personalising the interface</td>
-            <td>Consent</td>
+            <td>{t("legal.privacy.nameOptional")}</td>
+            <td>{t("legal.privacy.personalisingTheInterface")}</td>
+            <td>{t("legal.privacy.consent")}</td>
           </tr>
           <tr>
-            <td>Session tokens and authentication events</td>
-            <td>Keeping you signed in, detecting account takeover</td>
-            <td>Legitimate interests</td>
+            <td>{t("legal.privacy.sessionTokensAndAuthenticationEvents")}</td>
+            <td>{t("legal.privacy.keepingYouSignedInDetectingAccountTakeover")}</td>
+            <td>{t("legal.privacy.legitimateInterests")}</td>
           </tr>
           <tr>
-            <td>IP address and request logs</td>
-            <td>Security, rate-limiting, debugging, and abuse prevention</td>
-            <td>Legitimate interests</td>
+            <td>{t("legal.privacy.ipAddressAndRequestLogs")}</td>
+            <td>{t("legal.privacy.securityRatelimitingDebuggingAndAbusePrevention")}</td>
+            <td>{t("legal.privacy.legitimateInterests")}</td>
           </tr>
           <tr>
-            <td>Founding Cohort seat purchase</td>
-            <td>Confirming and honouring a seat you paid for</td>
-            <td>Performance of contract; legal obligation</td>
+            <td>{t("legal.privacy.foundingCohortSeatPurchase")}</td>
+            <td>{t("legal.privacy.confirmingAndHonouringASeatYouPaidFor")}</td>
+            <td>{t("legal.privacy.performanceOfContractLegalObligation")}</td>
           </tr>
         </tbody>
       </table>
       <p>
-        Authentication is handled by Clerk. We receive your Clerk user id; we do
-        not receive your password.
+        {t("legal.privacy.authenticationIsHandledByClerkWeReceiveYourClerkUserIdWe")}
       </p>
 
-      <h3>3.2 Your content</h3>
+      <h3>{t("legal.privacy.n32YourContent")}</h3>
       <table>
         <thead>
           <tr>
-            <th>Data</th>
-            <th>Purpose</th>
-            <th>Legal basis</th>
+            <th>{t("legal.privacy.data")}</th>
+            <th>{t("legal.privacy.purpose")}</th>
+            <th>{t("legal.privacy.legalBasis")}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>
-              Areas, goals, projects, tasks, notes, resources, topics, contacts
+              {t("legal.privacy.areasGoalsProjectsTasksNotesResourcesTopicsContacts")}
             </td>
-            <td>The core service</td>
-            <td>Performance of contract</td>
+            <td>{t("legal.privacy.theCoreService")}</td>
+            <td>{t("legal.privacy.performanceOfContract")}</td>
           </tr>
           <tr>
             <td>
-              Note content, contact details (email, phone, professional links),
-              descriptions, resource URLs
+              {t("legal.privacy.noteContentContactDetailsEmailPhoneProfessionalLinksDesc")}
             </td>
             <td>
-              The core service, stored encrypted at the application layer
+              {t("legal.privacy.theCoreServiceStoredEncryptedAtTheApplicationLayer")}
             </td>
-            <td>Performance of contract</td>
+            <td>{t("legal.privacy.performanceOfContract")}</td>
           </tr>
           <tr>
-            <td>Full-text search index over the above</td>
-            <td>Searching your own content</td>
-            <td>Performance of contract</td>
+            <td>{t("legal.privacy.fulltextSearchIndexOverTheAbove")}</td>
+            <td>{t("legal.privacy.searchingYourOwnContent")}</td>
+            <td>{t("legal.privacy.performanceOfContract")}</td>
           </tr>
         </tbody>
       </table>
       <p>
-        This is your data. We do not sell it, and we do not use it to train
-        models.
+        {t("legal.privacy.thisIsYourDataWeDoNotSellItAndWeDoNotUseItToTrainModels")}
       </p>
 
-      <h3>3.3 Product operation</h3>
+      <h3>{t("legal.privacy.n33ProductOperation")}</h3>
       <table>
         <thead>
           <tr>
-            <th>Data</th>
-            <th>Purpose</th>
-            <th>Legal basis</th>
+            <th>{t("legal.privacy.data")}</th>
+            <th>{t("legal.privacy.purpose")}</th>
+            <th>{t("legal.privacy.legalBasis")}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Account settings and preferences</td>
-            <td>Remembering how you configured the app</td>
-            <td>Performance of contract</td>
+            <td>{t("legal.privacy.accountSettingsAndPreferences")}</td>
+            <td>{t("legal.privacy.rememberingHowYouConfiguredTheApp")}</td>
+            <td>{t("legal.privacy.performanceOfContract")}</td>
           </tr>
           <tr>
             <td>
-              API key metadata (name, expiry, last used, revoked; hashed secrets
-              only)
+              {t("legal.privacy.apiKeyMetadataNameExpiryLastUsedRevokedHashedSecretsOnly")}
             </td>
-            <td>Letting you manage programmatic access</td>
-            <td>Performance of contract</td>
+            <td>{t("legal.privacy.lettingYouManageProgrammaticAccess")}</td>
+            <td>{t("legal.privacy.performanceOfContract")}</td>
           </tr>
           <tr>
-            <td>Subscription and billing records</td>
-            <td>Running subscriptions and invoices</td>
-            <td>Performance of contract; legal obligation</td>
+            <td>{t("legal.privacy.subscriptionAndBillingRecords")}</td>
+            <td>{t("legal.privacy.runningSubscriptionsAndInvoices")}</td>
+            <td>{t("legal.privacy.performanceOfContractLegalObligation")}</td>
           </tr>
           <tr>
-            <td>Security and access logs</td>
-            <td>Detecting abuse, investigating incidents</td>
-            <td>Legitimate interests</td>
+            <td>{t("legal.privacy.securityAndAccessLogs")}</td>
+            <td>{t("legal.privacy.detectingAbuseInvestigatingIncidents")}</td>
+            <td>{t("legal.privacy.legitimateInterests")}</td>
           </tr>
           <tr>
-            <td>Support tickets and messages</td>
-            <td>Answering your support requests</td>
-            <td>Performance of contract</td>
+            <td>{t("legal.privacy.supportTicketsAndMessages")}</td>
+            <td>{t("legal.privacy.answeringYourSupportRequests")}</td>
+            <td>{t("legal.privacy.performanceOfContract")}</td>
           </tr>
         </tbody>
       </table>
       <p>
-        Raw API key secrets are never stored and never exported. Only hashes
-        are.
+        {t("legal.privacy.rawApiKeySecretsAreNeverStoredAndNeverExportedOnlyHashes")}
       </p>
 
-      <h3>3.4 AI clients you connect</h3>
+      <h3>{t("legal.privacy.n34AiClientsYouConnect")}</h3>
       <p>
-        AI clients are available to signed-in users. They work only for the
-        purposes listed below, and only for the version of this Policy you
-        accepted.
+        {t("legal.privacy.aiClientsAreAvailableToSignedinUsersTheyWorkOnlyForThePu")}
       </p>
       <table>
         <thead>
           <tr>
-            <th>Data</th>
-            <th>Purpose</th>
-            <th>Legal basis</th>
+            <th>{t("legal.privacy.data")}</th>
+            <th>{t("legal.privacy.purpose")}</th>
+            <th>{t("legal.privacy.legalBasis")}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Workspace content an authorized client requests</td>
-            <td>Serving the client you connected</td>
-            <td>Performance of contract</td>
+            <td>{t("legal.privacy.workspaceContentAnAuthorizedClientRequests")}</td>
+            <td>{t("legal.privacy.servingTheClientYouConnected")}</td>
+            <td>{t("legal.privacy.performanceOfContract")}</td>
           </tr>
           <tr>
             <td>
-              API key metadata (name, expiry, last used, revoked; hashed secrets
-              only)
+              {t("legal.privacy.apiKeyMetadataNameExpiryLastUsedRevokedHashedSecretsOnly")}
             </td>
-            <td>Letting the client authenticate to SophionOS</td>
-            <td>Performance of contract</td>
+            <td>{t("legal.privacy.lettingTheClientAuthenticateToSophionos")}</td>
+            <td>{t("legal.privacy.performanceOfContract")}</td>
           </tr>
           <tr>
-            <td>Prompts and responses handled by the client and its provider</td>
+            <td>{t("legal.privacy.promptsAndResponsesHandledByTheClientAndItsProvider")}</td>
             <td>
-              Answering your query, under that provider&apos;s own terms
+              {t("legal.privacy.answeringYourQueryUnderThatProvidersOwnTerms")}
             </td>
-            <td>Consent (by connecting the client)</td>
+            <td>{t("legal.privacy.consentByConnectingTheClient")}</td>
           </tr>
         </tbody>
       </table>
       <p>
-        If you create an API key and connect Claude, Cursor, Codex, or another
-        MCP client, that client calls SophionOS and its provider processes what
-        it receives. This happens only because you set it up, and it is outside
-        our control after the request leaves us. See{" "}
-        <a href="/data-and-ai">Data &amp; AI</a>.
+        {t("legal.privacy.ifYouCreateAnApiKeyAndConnectClaudeCursorCodexOrAnotherM")}{" "}
+        <a href="/data-and-ai">{t("legal.dataAndAi")}</a>.
       </p>
       <p>
-        If a client is ever extended to a new data type or a new use, for
-        example, reading content you have not opened, that is a new purpose. It
-        is not added to this list silently: it requires a new version of this
-        Policy, published before anything new is collected. See Settings → AI
-        Access to review and revoke AI access at any time.
+        {t("legal.privacy.ifAClientIsEverExtendedToANewDataTypeOrANewUseForExample")}
       </p>
 
-      <h3>3.5 Telemetry</h3>
+      <h3>{t("legal.privacy.n35Telemetry")}</h3>
       <p>
-        We do not send your content, notes, contacts, or prompts to any
-        third-party analytics provider. We do collect aggregate, non-content
-        operational metrics about how the service performs.
+        {t("legal.privacy.weDoNotSendYourContentNotesContactsOrPromptsToAnyThirdpa")}
       </p>
 
-      <h2>4. Where your data goes</h2>
+      <h2>{t("legal.privacy.n4WhereYourDataGoes")}</h2>
       <table>
         <thead>
           <tr>
-            <th>Recipient</th>
-            <th>Why</th>
-            <th>Where</th>
+            <th>{t("legal.privacy.recipient")}</th>
+            <th>{t("legal.privacy.why")}</th>
+            <th>{t("legal.privacy.where")}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Clerk</td>
-            <td>Authentication</td>
-            <td>Their infrastructure, region per your Clerk account</td>
+            <td>{t("legal.privacy.clerk")}</td>
+            <td>{t("legal.privacy.authentication")}</td>
+            <td>{t("legal.privacy.theirInfrastructureRegionPerYourClerkAccount")}</td>
           </tr>
           <tr>
-            <td>Supabase (or your self-hosted Postgres)</td>
-            <td>Primary database hosting</td>
-            <td>Your configured region</td>
+            <td>{t("legal.privacy.supabaseOrYourSelfhostedPostgres")}</td>
+            <td>{t("legal.privacy.primaryDatabaseHosting")}</td>
+            <td>{t("legal.privacy.yourConfiguredRegion")}</td>
           </tr>
           <tr>
-            <td>Vercel (hosted)</td>
-            <td>Application hosting and edge delivery</td>
-            <td>Their infrastructure, global edge</td>
+            <td>{t("legal.privacy.vercelHosted")}</td>
+            <td>{t("legal.privacy.applicationHostingAndEdgeDelivery")}</td>
+            <td>{t("legal.privacy.theirInfrastructureGlobalEdge")}</td>
           </tr>
           <tr>
             <td>
-              Dodo Payments (Dodo Payments Inc., Dodope Payments Limited, and
-              Sarvapanchhi Technologies Private Limited)
+              {t("legal.privacy.dodoPaymentsDodoPaymentsIncDodopePaymentsLimitedAndSarva")}
             </td>
             <td>
-              Subscription billing and the one-time founding-seat checkout;
-              merchant of record; see 4.1
+              {t("legal.privacy.subscriptionBillingAndTheOnetimeFoundingseatCheckoutMerc")}
             </td>
-            <td>Their infrastructure, United States and India</td>
+            <td>{t("legal.privacy.theirInfrastructureUnitedStatesAndIndia")}</td>
           </tr>
           <tr>
-            <td>Resend</td>
-            <td>Transactional email delivery</td>
-            <td>Their infrastructure, United States</td>
+            <td>{t("legal.privacy.resend")}</td>
+            <td>{t("legal.privacy.transactionalEmailDelivery")}</td>
+            <td>{t("legal.privacy.theirInfrastructureUnitedStates")}</td>
           </tr>
           <tr>
-            <td>Cron and job infrastructure</td>
-            <td>Scheduling briefs and background jobs</td>
-            <td>Their infrastructure, United States</td>
+            <td>{t("legal.privacy.cronAndJobInfrastructure")}</td>
+            <td>{t("legal.privacy.schedulingBriefsAndBackgroundJobs")}</td>
+            <td>{t("legal.privacy.theirInfrastructureUnitedStates")}</td>
           </tr>
         </tbody>
       </table>
       <p>
-        Payments are processed by Dodo Payments, which sells to you as merchant
-        of record; section 4.1 says exactly what goes to them and what they do
-        with it. Transactional email providers receive your email address and
-        the content of the message being delivered.
+        {t("legal.privacy.paymentsAreProcessedByDodoPaymentsWhichSellsToYouAsMerch")}
       </p>
       <p>
-        The current list of subprocessors is published at{" "}
-        <a href="/subprocessors">the subprocessors page</a>. We will give notice
-        before adding a subprocessor that can access your content, and you may
-        object on reasonable grounds.
+        {t("legal.privacy.theCurrentListOfSubprocessorsIsPublishedAt")}{" "}
+        <a href="/subprocessors">{t("legal.privacy.theSubprocessorsPage")}</a>{t("legal.privacy.weWillGiveNoticeBeforeAddingASubprocessorThatCanAccessYo")}
       </p>
       <p>
-        We do <strong>not</strong> share your personal data for advertising. We
-        do not sell it to anyone, in any form.
+        {t("legal.privacy.weDo")} <strong>{t("legal.privacy.not")}</strong> {t("legal.privacy.shareYourPersonalDataForAdvertisingWeDoNotSellItToAnyone")}
       </p>
 
-      <h3>4.1 Payment processing</h3>
+      <h3>{t("legal.privacy.n41PaymentProcessing")}</h3>
       <p>
-        <strong>Who sells to you.</strong> Paid plans and the one-time founding
-        seat are sold by &quot;Dodo Payments&quot; (as defined in Dodo Payments&apos;
-        Master Service Agreement: Dodo Payments Inc., Dodope Payments Limited,
-        and Sarvapanchhi Technologies Private Limited, collectively the merchant
-        of record), acting as our <strong>merchant of record</strong>. Dodo
-        Payments is the seller of record for that purchase: it takes your
-        payment, issues the invoice, applies and remits applicable taxes, and
-        issues any refund to the card you paid with. The contract for the
-        purchase is between you and Dodo Payments, under Dodo Payments&apos; own
-        terms of sale. Your use of the Service itself is governed by the{" "}
-        <a href="/terms">Terms &amp; Conditions</a>, which are between you and
-        Taha Aalam.
+        <strong>{t("legal.privacy.whoSellsToYou")}</strong> {t("legal.privacy.paidPlansAndTheOnetimeFoundingSeatAreSoldByDodoPaymentsA")} <strong>{t("legal.privacy.merchantOfRecord")}</strong>{t("legal.privacy.dodoPaymentsIsTheSellerOfRecordForThatPurchaseItTakesYou")}{" "}
+        <a href="/terms">{t("legal.privacy.termsConditions")}</a>{t("legal.privacy.whichAreBetweenYouAndTahaAalam")}
       </p>
       <p>
-        <strong>What goes to Dodo Payments.</strong> At checkout Dodo Payments
-        receives:
+        <strong>{t("legal.privacy.whatGoesToDodoPayments")}</strong> {t("legal.privacy.atCheckoutDodoPaymentsReceives")}
       </p>
       <ul>
         <li>
-          your <strong>name</strong> and <strong>email address</strong>;
+          {t("legal.privacy.your")} <strong>{t("legal.privacy.name")}</strong> {t("legal.privacy.and")} <strong>{t("legal.privacy.emailAddress")}</strong>;
         </li>
         <li>
-          your <strong>billing details</strong>, including your billing address
-          and country;
+          {t("legal.privacy.your")} <strong>{t("legal.privacy.billingDetails")}</strong>{t("legal.privacy.includingYourBillingAddressAndCountry")}
         </li>
         <li>
-          the <strong>payment record</strong>: the amount, the currency, the
-          payment method, the transaction status, and the timestamps of the
-          payment;
+          {t("legal.privacy.the")} <strong>{t("legal.privacy.paymentRecord")}</strong>{t("legal.privacy.theAmountTheCurrencyThePaymentMethodTheTransactionStatus")}
         </li>
         <li>
-          your <strong>card details</strong>, which go to Dodo Payments and its
-          payment service providers and never reach us. We never see or store
-          them.
+          {t("legal.privacy.your")} <strong>{t("legal.privacy.cardDetails")}</strong>{t("legal.privacy.whichGoToDodoPaymentsAndItsPaymentServiceProvidersAndNev")}
         </li>
       </ul>
       <p>
-        <strong>Whose privacy policy applies.</strong> For that payment data,
-        Dodo Payments acts on its own account: it decides why and how the data
-        is processed, to sell to you and to meet its own legal, tax, and
-        fraud-prevention obligations. Dodo Payments&apos; own privacy policy
-        applies to that data and governs your rights over it:{" "}
+        <strong>{t("legal.privacy.whosePrivacyPolicyApplies")}</strong> {t("legal.privacy.forThatPaymentDataDodoPaymentsActsOnItsOwnAccountItDecid")}{" "}
         <a href="https://dodopayments.com/privacy-policy">
-          dodopayments.com/privacy-policy
+          {t("legal.privacy.dodopaymentscomprivacypolicy")}
         </a>
-        . We are the Data Fiduciary for the data you create in the Service
-        (section 14) and for your account data; what comes back to us is only
-        what we need to grant the entitlement: your name and email, the payment
-        and subscription identifiers, and the fact that a payment succeeded.
+        {t("legal.privacy.weAreTheDataFiduciaryForTheDataYouCreateInTheServiceSect")}
       </p>
 
-      <h2>5. Cookies and local storage</h2>
+      <h2>{t("legal.privacy.n5CookiesAndLocalStorage")}</h2>
       <p>
-        We use a session cookie to keep you signed in. We use local storage for
-        interface preferences, and a first-party identifier so a logged-out
-        visitor can be linked to their account when they sign up.
+        {t("legal.privacy.weUseASessionCookieToKeepYouSignedInWeUseLocalStorageFor")}
       </p>
       <p>
-        We do not use advertising cookies, cross-site tracking cookies, or
-        fingerprinting.
+        {t("legal.privacy.weDoNotUseAdvertisingCookiesCrosssiteTrackingCookiesOrFi")}
       </p>
 
-      <h2>6. How long we keep your data</h2>
+      <h2>{t("legal.privacy.n6HowLongWeKeepYourData")}</h2>
       <table>
         <thead>
           <tr>
-            <th>Data category</th>
-            <th>Retention</th>
+            <th>{t("legal.privacy.dataCategory")}</th>
+            <th>{t("legal.privacy.retention")}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Your account and content</td>
+            <td>{t("legal.privacy.yourAccountAndContent")}</td>
             <td>
-              Until you delete your account, then purged within{" "}
-              <strong>30 days</strong> of the deletion request completing
+              {t("legal.privacy.untilYouDeleteYourAccountThenPurgedWithin")}{" "}
+              <strong>{t("legal.privacy.n30Days")}</strong> {t("legal.privacy.ofTheDeletionRequestCompleting")}
             </td>
           </tr>
           <tr>
-            <td>Security and access logs</td>
+            <td>{t("legal.privacy.securityAndAccessLogs")}</td>
             <td>
-              <strong>12 months</strong> from the event
+              <strong>{t("legal.privacy.n12Months")}</strong> {t("legal.privacy.fromTheEvent")}
             </td>
           </tr>
           <tr>
-            <td>Database backups</td>
+            <td>{t("legal.privacy.databaseBackups")}</td>
             <td>
-              <strong>30 days</strong>, rolling. A backup may contain data that
-              has already been deleted from the live database
+              <strong>{t("legal.privacy.n30Days")}</strong>{t("legal.privacy.rollingABackupMayContainDataThatHasAlreadyBeenDeletedFro")}
             </td>
           </tr>
           <tr>
-            <td>Marketing consent state</td>
+            <td>{t("legal.privacy.marketingConsentState")}</td>
             <td>
-              Held with your email subscription. An opt-out is permanent, so no
-              address ever restarts receiving marketing
+              {t("legal.privacy.heldWithYourEmailSubscriptionAnOptoutIsPermanentSoNoAddr")}
             </td>
           </tr>
           <tr>
-            <td>Grievance records</td>
+            <td>{t("legal.privacy.grievanceRecords")}</td>
             <td>
-              <strong>36 months</strong> from closure
+              <strong>{t("legal.privacy.n36Months")}</strong> {t("legal.privacy.fromClosure")}
             </td>
           </tr>
           <tr>
-            <td>Consent record</td>
+            <td>{t("legal.privacy.consentRecord")}</td>
             <td>
-              None is kept. Acceptance is the use of the Service itself (section
-              2), so there is nothing separate to retain
+              {t("legal.privacy.noneIsKeptAcceptanceIsTheUseOfTheServiceItselfSection2So")}
             </td>
           </tr>
         </tbody>
       </table>
       <p>
-        Two things follow from the backup window, stated plainly rather than
-        hidden: if you delete your account, a snapshot taken up to 30 days
-        earlier may still contain your data until that snapshot ages out of the
-        rotation; and we keep no consent log, because using the Service is the
-        acceptance and the version of this document in force is what you agreed
-        to.
+        {t("legal.privacy.twoThingsFollowFromTheBackupWindowStatedPlainlyRatherTha")}
       </p>
       <p>
-        We keep billing, tax, and accounting records for as long as the law
-        requires. We keep security and access logs for at least one year. India
-        requires at least one year for data fiduciaries processing under the
-        DPDP Rules, 2025, and the same window covers our incident investigation
-        needs everywhere.
+        {t("legal.privacy.weKeepBillingTaxAndAccountingRecordsForAsLongAsTheLawReq")}
       </p>
 
-      <h2>7. Your rights</h2>
+      <h2>{t("legal.privacy.n7YourRights")}</h2>
       <p>
-        You have the following rights. Each one has an in-app control, not just
-        a policy paragraph, and each is usable without emailing anyone.
+        {t("legal.privacy.youHaveTheFollowingRightsEachOneHasAnInappControlNotJust")}
       </p>
       <table>
         <thead>
           <tr>
-            <th>Right</th>
-            <th>How to exercise it</th>
-            <th>When we respond</th>
+            <th>{t("legal.privacy.right")}</th>
+            <th>{t("legal.privacy.howToExerciseIt")}</th>
+            <th>{t("legal.privacy.whenWeRespond")}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>
-              <strong>Access / portability</strong>
+              <strong>{t("legal.privacy.accessPortability")}</strong>
             </td>
             <td>
-              Settings → Privacy &amp; data → <strong>Download your data</strong>{" "}
-              gives you a JSON file of your personal data
+              {t("legal.privacy.settingsPrivacyData")} <strong>{t("privacyCenter.downloadYourData")}</strong>{" "}
+              {t("legal.privacy.givesYouAJsonFileOfYourPersonalData")}
             </td>
-            <td>Immediately</td>
+            <td>{t("legal.privacy.immediately")}</td>
           </tr>
           <tr>
             <td>
-              <strong>Correction</strong>
+              <strong>{t("legal.privacy.correction")}</strong>
             </td>
             <td>
-              Settings → <strong>Preferences</strong> for your timezone and
-              language. Your name, username, phone and photo are corrected in
-              Settings → <strong>Profile</strong>; your content is corrected
-              where you created it. Anything you cannot edit, correct by
-              grievance
+              {t("legal.privacy.settings")} <strong>{t("preferences.title")}</strong> {t("legal.privacy.forYourTimezoneAndLanguageYourNameUsernamePhoneAndPhotoA")} <strong>{t("settings.profile.title")}</strong>{t("legal.privacy.yourContentIsCorrectedWhereYouCreatedItAnythingYouCannot")}
             </td>
-            <td>Immediately</td>
+            <td>{t("legal.privacy.immediately")}</td>
           </tr>
           <tr>
             <td>
-              <strong>Erasure</strong>
+              <strong>{t("legal.privacy.erasure2")}</strong>
             </td>
             <td>
-              Settings → Privacy &amp; data → <strong>Delete my data and
-              account</strong>, with a typed confirmation
+              {t("legal.privacy.settingsPrivacyData")} <strong>{t("legal.privacy.deleteMyDataAndAccount")}</strong>{t("legal.privacy.withATypedConfirmation")}
             </td>
-            <td>Purge within 30 days</td>
+            <td>{t("legal.privacy.purgeWithin30Days")}</td>
           </tr>
           <tr>
             <td>
-              <strong>Withdraw consent</strong>
+              <strong>{t("legal.privacy.withdrawConsent")}</strong>
             </td>
             <td>
-              Delete your account from Settings → Privacy &amp; data, or use the
-              unsubscribe link in any marketing email
+              {t("legal.privacy.deleteYourAccountFromSettingsPrivacyDataOrUseTheUnsubscr")}
             </td>
-            <td>Immediately</td>
+            <td>{t("legal.privacy.immediately")}</td>
           </tr>
           <tr>
             <td>
-              <strong>Nomination</strong>
+              <strong>{t("legal.privacy.nomination")}</strong>
             </td>
-            <td>Contact the grievance officer</td>
-            <td>Within 15 days</td>
+            <td>{t("legal.privacy.contactTheGrievanceOfficer")}</td>
+            <td>{t("legal.privacy.within15Days")}</td>
           </tr>
           <tr>
             <td>
-              <strong>Grievance redressal</strong>
+              <strong>{t("legal.privacy.grievanceRedressal")}</strong>
             </td>
-            <td>By email to the grievance officer (section 9)</td>
-            <td>Acknowledged within 48 hours, resolved within 15 days</td>
+            <td>{t("legal.privacy.byEmailToTheGrievanceOfficerSection9")}</td>
+            <td>{t("legal.privacy.acknowledgedWithin48HoursResolvedWithin15Days")}</td>
           </tr>
           <tr>
             <td>
-              <strong>Complaint to the Board</strong>
+              <strong>{t("legal.privacy.complaintToTheBoard")}</strong>
             </td>
             <td>
-              You may complain to the Data Protection Board at any time, in
-              addition to or instead of contacting us
+              {t("legal.privacy.youMayComplainToTheDataProtectionBoardAtAnyTimeInAdditio")}
             </td>
-            <td>As per the Board&apos;s process</td>
+            <td>{t("legal.privacy.asPerTheBoardsProcess")}</td>
           </tr>
         </tbody>
       </table>
       <p>
-        Withdrawing consent to marketing stops every promotional email
-        immediately, with no other effect. Withdrawing consent to the Terms or
-        the Privacy Policy means the service can no longer lawfully operate for
-        you, so it closes your account. The app tells you this before you
-        confirm, and asks you to type to confirm.
+        {t("legal.privacy.withdrawingConsentToMarketingStopsEveryPromotionalEmailI")}
       </p>
 
-      <h2>8. Children and under-18 users</h2>
+      <h2>{t("legal.privacy.n8ChildrenAndUnder18Users")}</h2>
       <p>
-        The service is not directed at children and is not intended for anyone
-        under 18. We do not knowingly collect personal data from children under
-        18.
+        {t("legal.privacy.theServiceIsNotDirectedAtChildrenAndIsNotIntendedForAnyo")}
       </p>
       <p>
-        The Service is for people 18 and over, so we do not ask for an age
-        declaration and we do not record one. We do not seek verifiable
-        parental consent, because we do not process children&apos;s personal data;
-        if we learn that we have, we will delete it.
+        {t("legal.privacy.theServiceIsForPeople18AndOverSoWeDoNotAskForAnAgeDeclar")}
       </p>
       <p>
-        If you believe a child under 18 has created an account or provided
-        personal data, contact the grievance officer. We will delete that data
-        on verification and will not hold it while the question is
-        investigated, beyond what we need to verify the report.
+        {t("legal.privacy.ifYouBelieveAChildUnder18HasCreatedAnAccountOrProvidedPe")}
       </p>
       <p>
-        We do not knowingly serve advertising to children, and we do not use
-        behavioural advertising at all.
+        {t("legal.privacy.weDoNotKnowinglyServeAdvertisingToChildrenAndWeDoNotUseB")}
       </p>
 
-      <h2>9. Grievance redressal</h2>
+      <h2>{t("legal.privacy.n9GrievanceRedressal")}</h2>
       <p>
-        Every Data Principal has the right to lodge a grievance with us and to
-        receive a response.
+        {t("legal.privacy.everyDataPrincipalHasTheRightToLodgeAGrievanceWithUsAndT")}
       </p>
       <p>
-        <strong>Grievance Officer</strong>
+        <strong>{t("legal.privacy.grievanceOfficer")}</strong>
       </p>
       <table>
         <thead>
@@ -631,308 +516,194 @@ export default function PrivacyPage() {
         </thead>
         <tbody>
           <tr>
-            <td>Name</td>
+            <td>{t("areaDialog.name")}</td>
             <td>
-              <strong>Taha Aalam</strong>
+              <strong>{t("legal.privacy.tahaAalam")}</strong>
             </td>
           </tr>
           <tr>
-            <td>Email</td>
+            <td>{t("page.email")}</td>
             <td>
               <strong>
                 <a href="mailto:privacy@sophionos.com">
-                  privacy@sophionos.com
+                  {t("legal.privacy.privacysophionoscom")}
                 </a>
               </strong>
             </td>
           </tr>
           <tr>
-            <td>Postal address</td>
+            <td>{t("legal.privacy.postalAddress")}</td>
             <td>
               <strong>
-                B202, Wellington Park Apartment, Wellington Street, Richmond
-                Town, Bangalore, Karnataka 560025, India
+                {t("legal.privacy.b202WellingtonParkApartmentWellingtonStreetRichmondTownB")}
               </strong>
             </td>
           </tr>
         </tbody>
       </table>
       <p>
-        Taha Aalam, a sole proprietor trading as SophionOS, is the designated
-        grievance officer. The mailbox is monitored and the postal address is
-        published, so a grievance can be raised in writing.
+        {t("legal.privacy.tahaAalamASoleProprietorTradingAsSophionosIsTheDesignate")}
       </p>
       <p>
-        <strong>What you can expect</strong>
+        <strong>{t("legal.privacy.whatYouCanExpect")}</strong>
       </p>
       <table>
         <thead>
           <tr>
-            <th>Step</th>
-            <th>Commitment</th>
+            <th>{t("stepShell.step")}</th>
+            <th>{t("legal.privacy.commitment")}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Acknowledgement</td>
+            <td>{t("legal.privacy.acknowledgement")}</td>
             <td>
-              Within <strong>48 hours</strong> of us receiving your grievance
+              {t("legal.privacy.within")} <strong>{t("legal.privacy.n48Hours")}</strong> {t("legal.privacy.ofUsReceivingYourGrievance")}
             </td>
           </tr>
           <tr>
-            <td>Resolution</td>
+            <td>{t("legal.privacy.resolution")}</td>
             <td>
-              Within <strong>15 days</strong>
+              {t("legal.privacy.within")} <strong>{t("legal.privacy.n15Days")}</strong>
             </td>
           </tr>
           <tr>
-            <td>Status updates</td>
-            <td>At least every 5 days while it is open</td>
+            <td>{t("legal.privacy.statusUpdates")}</td>
+            <td>{t("legal.privacy.atLeastEvery5DaysWhileItIsOpen")}</td>
           </tr>
           <tr>
-            <td>Escalation</td>
+            <td>{t("legal.privacy.escalation")}</td>
             <td>
-              If you are not satisfied, you may complain to the Data Protection
-              Board of India
+              {t("legal.privacy.ifYouAreNotSatisfiedYouMayComplainToTheDataProtectionBoa")}
             </td>
           </tr>
         </tbody>
       </table>
       <p>
-        Raise a grievance by emailing the officer at{" "}
-        <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a> with
-        the subject line &quot;DPDP grievance&quot;.
+        {t("legal.privacy.raiseAGrievanceByEmailingTheOfficerAt")}{" "}
+        <a href="mailto:privacy@sophionos.com">{t("legal.privacy.privacysophionoscom")}</a> {t("legal.privacy.withTheSubjectLineDpdpGrievance")}
       </p>
       <p>
-        When you raise a grievance we will ask only for what we need to
-        investigate it. We will not ask you to send passwords, API keys, or the
-        content of your notes.
+        {t("legal.privacy.whenYouRaiseAGrievanceWeWillAskOnlyForWhatWeNeedToInvest")}
       </p>
 
-      <h2>10. Security</h2>
+      <h2>{t("legal.privacy.n10Security")}</h2>
       <p>
-        We encrypt sensitive fields at the application layer before they reach
-        the database, and use row-level database policies as the primary
-        isolation boundary. We store API keys only as cryptographic hashes, and
-        we keep no consent log or consent record, because acceptance is the use
-        of the Service itself (section 2). Access to production data by staff is
-        limited, logged, and reviewed.
+        {t("legal.privacy.weEncryptSensitiveFieldsAtTheApplicationLayerBeforeTheyR")}
       </p>
       <p>
-        No system is perfectly secure. SophionOS is self-hosted: whoever
-        operates an instance is responsible for securing it and for meeting any
-        breach-notification duties that apply to them. See{" "}
-        <a href="/security">Security</a> for the full statement of what the
-        software does and does not claim.
+        {t("legal.privacy.noSystemIsPerfectlySecureSophionosIsSelfhostedWhoeverOpe")}{" "}
+        <a href="/security">{t("legal.security")}</a> {t("legal.privacy.forTheFullStatementOfWhatTheSoftwareDoesAndDoesNotClaim")}
       </p>
 
-      <h2>11. International data transfers</h2>
+      <h2>{t("legal.privacy.n11InternationalDataTransfers")}</h2>
       <p>
-        We operate the Service from the United States and use service providers
-        in the United States and the European Union. Your personal information
-        may therefore be processed outside your country of residence, including
-        in a country whose privacy laws differ from yours. Where the GDPR
-        applies, we rely on appropriate safeguards for those transfers:
-        standard contractual clauses, or an applicable adequacy decision. Where
-        India&apos;s DPDP Act applies, transfers are made subject to any
-        restrictions the Central Government specifies under Rule 15 of the DPDP
-        Rules, 2025.
+        {t("legal.privacy.weOperateTheServiceFromTheUnitedStatesAndUseServiceProvi")}
       </p>
 
-      <h2>12. Notice to European users</h2>
+      <h2>{t("legal.privacy.n12NoticeToEuropeanUsers")}</h2>
       <p>
-        <strong>Scope.</strong> This section applies to you if you are in the
-        European Economic Area, the United Kingdom, or Switzerland (together
-        &quot;Europe&quot;). &quot;Personal information&quot; here means
-        &quot;personal data&quot; as defined by the EU GDPR or UK GDPR. The
-        Service is not established in Europe; this notice addresses European
-        data-protection law as it applies to offering the Service to people in
-        Europe.
+        <strong>{t("legal.privacy.scope")}</strong> {t("legal.privacy.thisSectionAppliesToYouIfYouAreInTheEuropeanEconomicArea")}
       </p>
       <p>
-        <strong>Controller.</strong> Taha Aalam, a sole proprietor trading as
-        SophionOS, is the controller of the processing described in this Policy.
-        Contact:{" "}
-        <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a>.
-        Payment data is the one exception: Dodo Payments sells to you as
-        merchant of record and decides how that data is processed; see section
-        4.1.
+        <strong>{t("legal.privacy.controller")}</strong> {t("legal.privacy.tahaAalamASoleProprietorTradingAsSophionosIsTheControlle")}{" "}
+        <a href="mailto:privacy@sophionos.com">{t("legal.privacy.privacysophionoscom")}</a>{t("legal.privacy.paymentDataIsTheOneExceptionDodoPaymentsSellsToYouAsMerc")}
       </p>
       <p>
-        <strong>Legal bases.</strong> We rely on:
+        <strong>{t("legal.privacy.legalBases")}</strong> {t("legal.privacy.weRelyOn")}
       </p>
       <ul>
         <li>
-          contractual necessity to provide the Service you asked for: your
-          account, your workspace, export, and deletion;
+          {t("legal.privacy.contractualNecessityToProvideTheServiceYouAskedForYourAc")}
         </li>
-        <li>legal obligation for tax, accounting, and lawful requests;</li>
+        <li>{t("legal.privacy.legalObligationForTaxAccountingAndLawfulRequests")}</li>
         <li>
-          legitimate interests in keeping the Service secure and working,
-          preventing abuse, and improving it, where your rights and freedoms do
-          not override those interests;
+          {t("legal.privacy.legitimateInterestsInKeepingTheServiceSecureAndWorkingPr")}
         </li>
         <li>
-          consent where you choose to connect an AI client or enable an
-          optional email. You can withdraw consent at any time; that withdrawal
-          does not affect processing that already happened.
+          {t("legal.privacy.consentWhereYouChooseToConnectAnAiClientOrEnableAnOption")}
         </li>
       </ul>
       <p>
-        <strong>Your rights.</strong> You may ask us to give you access to your
-        personal data, correct inaccuracies, delete it where there is no
-        continuing reason to keep it, provide it in a machine-readable format
-        for transfer, restrict our processing, or object to processing we base
-        on legitimate interests (including for direct marketing). Where we rely
-        on consent, you may withdraw it at any time. To exercise a right, email{" "}
-        <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a>; we
-        may need to verify your identity and will answer within one month, or
-        tell you why an extension applies. You can also lodge a complaint with
-        the supervisory authority in your country of residence.
+        <strong>{t("legal.privacy.yourRights")}</strong> {t("legal.privacy.youMayAskUsToGiveYouAccessToYourPersonalDataCorrectInacc")}{" "}
+        <a href="mailto:privacy@sophionos.com">{t("legal.privacy.privacysophionoscom")}</a>{t("legal.privacy.weMayNeedToVerifyYourIdentityAndWillAnswerWithinOneMonth")}
       </p>
 
-      <h2>13. Notice to U.S. state residents</h2>
+      <h2>{t("legal.privacy.n13NoticeToUsStateResidents")}</h2>
       <p>
-        If you live in a state with a comprehensive consumer privacy law,
-        California, Colorado, Connecticut, Virginia, and the other states that
-        have enacted one, you have the rights that state grants. For California
-        residents, under the CCPA as amended by the CPRA, you have the right to
-        know what personal information we collect, use, and disclose; to delete
-        it; to correct it; to opt out of its sale or sharing; to limit the use
-        of sensitive personal information; and not to be discriminated against
-        for exercising these rights. We do not sell personal information, we do
-        not share it for cross-context behavioral advertising, and we do not use
-        sensitive personal information beyond what is necessary to provide the
-        Service, so there is nothing to opt out of, but you may still ask us to
-        confirm that.
+        {t("legal.privacy.ifYouLiveInAStateWithAComprehensiveConsumerPrivacyLawCal")}
       </p>
       <p>
-        Categories collected in the last 12 months: identifiers (email, name,
-        account id), internet or network activity (log data), commercial
-        information (subscription and founding-seat payments), and user-generated
-        content (your workspace). Sources: you, Clerk, and Dodo Payments.
-        Disclosed to: the service providers listed in section 4. Retention:
-        section 6.
+        {t("legal.privacy.categoriesCollectedInTheLast12MonthsIdentifiersEmailName")}
       </p>
       <p>
-        To exercise a right, email{" "}
-        <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a>. We
-        will verify your identity against your account email and respond within
-        the period the applicable law allows. You can use an authorized agent
-        where your state permits it.
+        {t("legal.privacy.toExerciseARightEmail")}{" "}
+        <a href="mailto:privacy@sophionos.com">{t("legal.privacy.privacysophionoscom")}</a>{t("legal.privacy.weWillVerifyYourIdentityAgainstYourAccountEmailAndRespon")}
       </p>
 
-      <h2>14. Notice to users in India</h2>
+      <h2>{t("legal.privacy.n14NoticeToUsersInIndia")}</h2>
       <p>
-        This section applies if you are in India, or if the Digital Personal
-        Data Protection Act, 2023 (&quot;DPDP Act&quot;) and the Digital Personal
-        Data Protection Rules, 2025 (&quot;DPDP Rules&quot;) otherwise apply to our
-        processing of your personal data.
+        {t("legal.privacy.thisSectionAppliesIfYouAreInIndiaOrIfTheDigitalPersonalD")}
       </p>
       <p>
-        <strong>Who is who.</strong> You are the <strong>Data Principal</strong>.
-        Taha Aalam, a sole proprietor trading as SophionOS, is the{" "}
-        <strong>Data Fiduciary</strong> for the personal data you give us and
-        for the workspace content you create here. Our service providers act as
-        our Data Processors. Dodo Payments is the exception: as merchant of
-        record it holds the payment data as a Data Fiduciary in its own right,
-        not as our processor (section 4.1). See{" "}
-        <a href="/subprocessors">Subprocessors</a>.
+        <strong>{t("legal.privacy.whoIsWho")}</strong> {t("legal.privacy.youAreThe")} <strong>{t("legal.privacy.dataPrincipal")}</strong>{t("legal.privacy.tahaAalamASoleProprietorTradingAsSophionosIsThe")}{" "}
+        <strong>{t("legal.privacy.dataFiduciary")}</strong> {t("legal.privacy.forThePersonalDataYouGiveUsAndForTheWorkspaceContentYouC")}{" "}
+        <a href="/subprocessors">{t("legal.subprocessors")}</a>.
       </p>
       <p>
-        <strong>Consent and notice.</strong> We process your personal data only
-        on the basis you give us when you create an account, your consent, to
-        provide the Service. This Policy is the notice the DPDP Rules require:
-        it states the personal data we collect, the purposes of processing, how
-        to withdraw consent, and how to exercise your rights or complain. You
-        can withdraw consent at any time, but withdrawing it ends our ability to
-        provide the Service to you, since processing the workspace is the
-        Service. Withdrawing consent does not affect processing done before the
-        withdrawal.
+        <strong>{t("legal.privacy.consentAndNotice")}</strong> {t("legal.privacy.weProcessYourPersonalDataOnlyOnTheBasisYouGiveUsWhenYouC")}
       </p>
       <p>
-        <strong>Your rights as a Data Principal.</strong>
+        <strong>{t("legal.privacy.yourRightsAsADataPrincipal")}</strong>
       </p>
       <ul>
         <li>
-          <strong>Access</strong>: obtain a summary of the personal data we
-          process about you and of our processing.
+          <strong>{t("legal.privacy.access")}</strong>{t("legal.privacy.obtainASummaryOfThePersonalDataWeProcessAboutYouAndOfOur")}
         </li>
         <li>
-          <strong>Correction and erasure</strong>: correct inaccurate or
-          incomplete personal data, and have personal data you have given us
-          erased, in each case as described in section 7.
+          <strong>{t("legal.privacy.correctionAndErasure")}</strong>{t("legal.privacy.correctInaccurateOrIncompletePersonalDataAndHavePersonal")}
         </li>
         <li>
-          <strong>Grievance redressal</strong>: raise a grievance with our
-          Grievance Officer, in the manner and within the timescales set out in
-          section 9, and never later than 90 days from the date you raise it, as
-          required by Rule 14(3) of the DPDP Rules, 2025.
+          <strong>{t("legal.privacy.grievanceRedressal")}</strong>{t("legal.privacy.raiseAGrievanceWithOurGrievanceOfficerInTheMannerAndWith")}
         </li>
         <li>
-          <strong>Nomination</strong>: nominate a person to exercise the
-          rights above on your behalf in the event of your death or incapacity.
+          <strong>{t("legal.privacy.nomination")}</strong>{t("legal.privacy.nominateAPersonToExerciseTheRightsAboveOnYourBehalfInThe")}
         </li>
         <li>
-          <strong>Withdraw consent</strong>: as described in section 2, at any
-          time, with the same ease as giving it.
+          <strong>{t("legal.privacy.withdrawConsent")}</strong>{t("legal.privacy.asDescribedInSection2AtAnyTimeWithTheSameEaseAsGivingIt")}
         </li>
         <li>
-          <strong>Complaint to the Board</strong>: complain to the Data
-          Protection Board of India at any time, in addition to or instead of
-          contacting us.
+          <strong>{t("legal.privacy.complaintToTheBoard")}</strong>{t("legal.privacy.complainToTheDataProtectionBoardOfIndiaAtAnyTimeInAdditi")}
         </li>
       </ul>
       <p>
-        <strong>The safeguards we take.</strong> Where the DPDP Rules, 2025
-        apply, Rule 6 requires a Data Fiduciary to take minimum safeguards. We
-        meet them as set out in the table in <a href="/security">Security</a>:
-        encryption in transit and at rest, hashed API keys, per-user row
-        isolation, and a global AI disable switch. Rule 14 requires us to
-        publish a grievance process and the contact details of the Grievance
-        Officer; section 9 is that notice. Rule 15 governs transfers out of
-        India, addressed in section 11.
+        <strong>{t("legal.privacy.theSafeguardsWeTake")}</strong> {t("legal.privacy.whereTheDpdpRules2025ApplyRule6RequiresADataFiduciaryToT")} <a href="/security">{t("legal.security")}</a>{t("legal.privacy.encryptionInTransitAndAtRestHashedApiKeysPeruserRowIsola")}
       </p>
       <p>
-        <strong>Erasure.</strong> Rule 8 of the DPDP Rules imposes a fixed
-        inactivity-triggered erasure period on large e-commerce entities, online
-        gaming intermediaries, and social media intermediaries listed in the
-        Third Schedule. SophionOS is none of those, so that fixed period does
-        not apply to your workspace, and we keep it until you delete it or
-        delete your account. If we ever become a fiduciary covered by the Third
-        Schedule, we will apply the specified period and notify you at least 48
-        hours before erasure, as Rule 8 requires.
+        <strong>{t("legal.privacy.erasure")}</strong> {t("legal.privacy.rule8OfTheDpdpRulesImposesAFixedInactivitytriggeredErasu")}
       </p>
 
-      <h2>15. Changes to this Policy</h2>
+      <h2>{t("legal.privacy.n15ChangesToThisPolicy")}</h2>
       <p>
-        A change is published as a new version with its own version number and
-        effective date. Material changes are surfaced to you before they take
-        effect, and continuing to use the Service after the effective date
-        means the updated policy applies to your use from then on. We will not
-        retroactively apply a new version to the terms you accepted under an
-        older one.
+        {t("legal.privacy.aChangeIsPublishedAsANewVersionWithItsOwnVersionNumberAn")}
       </p>
 
-      <h2>16. Contact</h2>
+      <h2>{t("legal.privacy.n16Contact")}</h2>
       <p>
         <strong>
-          <a href="mailto:privacy@sophionos.com">privacy@sophionos.com</a>
+          <a href="mailto:privacy@sophionos.com">{t("legal.privacy.privacysophionoscom")}</a>
         </strong>
-        , monitored. This is the address for privacy matters and for grievances
-        about this Policy. The operator is Taha Aalam, a sole proprietor
-        trading as SophionOS. See section 9 for the grievance officer.
+        {t("legal.privacy.monitoredThisIsTheAddressForPrivacyMattersAndForGrievanc")}
       </p>
 
       <p className="text-sm text-muted-foreground">
-        <strong>Status: DRAFT.</strong> This document requires review by
-        qualified Indian counsel before it is published as binding.
+        <strong>{t("legal.privacy.statusDraft")}</strong> {t("legal.privacy.thisDocumentRequiresReviewByQualifiedIndianCounselBefore")}
       </p>
 
       <p>
-        Related: <a href="/terms">Terms</a> ·{" "}
-        <a href="/security">Security</a> · <a href="/data-and-ai">Data &amp; AI</a>{" "}
-        · <a href="/subprocessors">Subprocessors</a>
+        {t("legal.privacy.related")} <a href="/terms">{t("legal.terms")}</a> ·{" "}
+        <a href="/security">{t("legal.security")}</a> · <a href="/data-and-ai">{t("legal.dataAndAi")}</a>{" "}
+        · <a href="/subprocessors">{t("legal.subprocessors")}</a>
       </p>
     </TrustPage>
   );

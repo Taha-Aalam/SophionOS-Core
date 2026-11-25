@@ -65,7 +65,7 @@ export default async function TrustLayout({
     }
   }
 
-  const { locale, hasStoredLocale, dictionary } = await resolveUserLocale(storedLanguage);
+  const { locale, dictionary } = await resolveUserLocale(storedLanguage);
 
   return (
     <AuthProvider
@@ -79,7 +79,10 @@ export default async function TrustLayout({
     >
       <I18nProvider
         initialLocale={locale}
-        hasStoredLocale={hasStoredLocale}
+        // Legal routes never infer language from the browser: a signed-out
+        // visitor (or a signed-in user with no stored preference) sees English.
+        // Scoped to this layout; the dashboard keeps first-visit derivation.
+        hasStoredLocale={true}
         initialDictionary={dictionary}
       >
       {/* Desktop: fixed shell, independently scrolling main pane. Signed-out
