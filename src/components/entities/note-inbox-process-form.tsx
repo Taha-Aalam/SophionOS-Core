@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useMemo, useState } from "react";
 import { BookOpen, NotebookPen, X } from "lucide-react";
@@ -80,6 +81,7 @@ export function NoteInboxProcessForm({
   taskGoalIdsMap,
   onClose,
 }: NoteInboxProcessFormProps) {
+  const { t } = useI18n();
   const updateNote = useUpdateNote();
   const [rawAreaIds, setRawAreaIds] = useState<string[]>(getNoteLinkedAreaIds(note));
   const [rawGoalIds, setRawGoalIds] = useState<string[]>(getNoteLinkedGoalIds(note));
@@ -226,8 +228,8 @@ export function NoteInboxProcessForm({
     <div className="mt-2 grid gap-3 rounded-lg border border-border bg-muted/30 p-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <DropdownMultiSelect
-          label="Area"
-          placeholder="Select area…"
+          label={t("noteInboxProcessForm.area")}
+          placeholder={t("noteInboxProcessForm.selectArea")}
           selectedCount={areaIds.length}
           candidates={visibleAreas}
           isSelected={(id) => areaIds.includes(id)}
@@ -235,10 +237,10 @@ export function NoteInboxProcessForm({
           onClear={() => setRawAreaIds([])}
           emptyMessage={
             areaOptions.length === 0
-              ? "No areas available."
+              ? t("tasksFilterBar.noAreasAvailable")
               : goalIds.length > 0
-                ? "No areas match selected goals."
-                : "No areas available."
+                ? t("noteInboxProcessForm.noAreasMatchSelectedGoals")
+                : t("tasksFilterBar.noAreasAvailable")
           }
           renderSelected={() =>
             areaIds.length > 0 ? (
@@ -271,8 +273,8 @@ export function NoteInboxProcessForm({
         />
 
         <DropdownMultiSelect
-          label="Goal"
-          placeholder="Select goal…"
+          label={t("noteInboxProcessForm.goal")}
+          placeholder={t("noteInboxProcessForm.selectGoal")}
           selectedCount={goalIds.length}
           candidates={visibleGoals}
           isSelected={(id) => goalIds.includes(id)}
@@ -280,10 +282,10 @@ export function NoteInboxProcessForm({
           onClear={() => setRawGoalIds([])}
           emptyMessage={
             goalOptions.length === 0
-              ? "No goals available."
+              ? t("tasksFilterBar.noGoalsAvailable")
               : areaIds.length > 0
-                ? "No goals in selected areas."
-                : "No goals available."
+                ? t("noteInboxProcessForm.noGoalsInSelectedAreas")
+                : t("tasksFilterBar.noGoalsAvailable")
           }
           renderSelected={() =>
             goalIds.length > 0 ? (
@@ -322,8 +324,8 @@ export function NoteInboxProcessForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <DropdownMultiSelect
-          label="Project"
-          placeholder="Select project…"
+          label={t("noteInboxProcessForm.project")}
+          placeholder={t("noteInboxProcessForm.selectProject")}
           selectedCount={projectIds.length}
           candidates={visibleProjects}
           isSelected={(id) => projectIds.includes(id)}
@@ -331,10 +333,10 @@ export function NoteInboxProcessForm({
           onClear={() => setRawProjectIds([])}
           emptyMessage={
             projectOptions.length === 0
-              ? "No projects available."
+              ? t("taskDialog.noProjectsAvailable")
               : areaIds.length > 0 || goalIds.length > 0 || taskIds.length > 0
-                ? "No projects match selected context."
-                : "No projects available."
+                ? t("noteInboxProcessForm.noProjectsMatchSelectedContext")
+                : t("taskDialog.noProjectsAvailable")
           }
           renderSelected={() =>
             projectIds.length > 0 ? (
@@ -364,8 +366,8 @@ export function NoteInboxProcessForm({
         />
 
         <DropdownMultiSelect
-          label="Task"
-          placeholder="Select task…"
+          label={t("noteInboxProcessForm.task")}
+          placeholder={t("noteInboxProcessForm.selectTask")}
           selectedCount={taskIds.length}
           candidates={visibleTasks}
           isSelected={(id) => taskIds.includes(id)}
@@ -373,10 +375,10 @@ export function NoteInboxProcessForm({
           onClear={() => setRawTaskIds([])}
           emptyMessage={
             taskOptions.length === 0
-              ? "No tasks available."
+              ? t("notesFilterBar.noTasksAvailable")
               : areaIds.length > 0 || goalIds.length > 0 || projectIds.length > 0
-                ? "No tasks match selected context."
-                : "No tasks available."
+                ? t("noteInboxProcessForm.noTasksMatchSelectedContext")
+                : t("notesFilterBar.noTasksAvailable")
           }
           renderSelected={() =>
             taskIds.length > 0 ? (
@@ -409,17 +411,17 @@ export function NoteInboxProcessForm({
       {/* Notebook selector - using Popover pattern matching note-metadata-panel */}
       <div className="grid gap-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">Notebook</span>
+          <span className="text-xs font-medium text-muted-foreground">{t("noteInboxProcessForm.notebook")}</span>
           <Popover>
             <PopoverTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-              {notebooks.length === 0 ? "Select notebooks…" : `${notebooks.length} selected`}
+              {notebooks.length === 0 ? t("noteInboxProcessForm.selectNotebooks") : `${notebooks.length} selected`}
             </PopoverTrigger>
             <PopoverContent align="start" className="w-64 p-0">
               <Command shouldFilter={false}>
-                <CommandInput placeholder="Search or create…" />
+                <CommandInput placeholder={t("chrome.searchOrCreate")} />
                 <CommandList className="max-h-56 overflow-y-auto">
                   <CommandEmpty className="px-2 py-1.5 text-sm text-muted-foreground">
-                    Type to create a new notebook
+                    {t("noteInboxProcessForm.typeToCreateANewNotebook")}
                   </CommandEmpty>
                   <CommandGroup>
                     {notebookOptions.map((nb) => (
@@ -467,7 +469,7 @@ export function NoteInboxProcessForm({
           variant="secondary"
           className="gap-1 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
         >
-          <NOTE_ICON size={12} /> note
+          <NOTE_ICON size={12} /> {t("noteInboxProcessForm.note")}
         </Badge>
         <div className="flex items-center gap-1.5">
           <Button
@@ -476,10 +478,10 @@ export function NoteInboxProcessForm({
             onClick={handleSave}
             disabled={updateNote.isPending}
           >
-            Process
+            {t("noteInboxProcessForm.process")}
           </Button>
           <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={onClose}>
-            Cancel
+            {t("action.cancel")}
           </Button>
         </div>
       </div>
@@ -510,6 +512,7 @@ function DropdownMultiSelect({
   emptyMessage,
   renderSelected,
 }: DropdownMultiSelectProps) {
+  const { t } = useI18n();
   return (
     <div className="grid gap-1.5">
       <div className="flex items-center justify-between">
@@ -524,7 +527,7 @@ function DropdownMultiSelect({
               onClick={onClear}
               className="text-xs"
             >
-              Clear selection
+              {t("noteInboxProcessForm.clearSelection")}
             </DropdownMenuItem>
             <div className="max-h-64 overflow-y-auto">
               {candidates.length === 0 ? (

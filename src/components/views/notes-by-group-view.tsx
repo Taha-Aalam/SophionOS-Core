@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon, NotebookPen, Plus } from "lucide-react";
@@ -31,6 +32,7 @@ function CollapsibleNoteGroup({
   onNewNote?: (groupId: string) => void;
   defaultOpen?: boolean;
 }) {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -74,7 +76,7 @@ function CollapsibleNoteGroup({
               className="flex w-full items-center gap-2 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
               <Plus className="size-4" />
-              New note
+              {t("notesByGroupView.newNote")}
             </button>
           )}
         </div>
@@ -87,14 +89,16 @@ export function NotesByGroupView({
   groups,
   renderNote,
   onNewNote,
-  emptyMessage = "No notes in this view.",
+  emptyMessage,
 }: NotesByGroupViewProps) {
+  const { t } = useI18n();
+  const emptyMessageText = emptyMessage ?? t("notesByGroupView.noNotesInThisView");
   if (groups.length === 0 || groups.every((g) => g.notes.length === 0)) {
     return (
       <EmptyState
         icon={NotebookPen}
-        title="No notes here"
-        description={emptyMessage}
+        title={t("notesByGroupView.noNotesHere")}
+        description={emptyMessageText}
       />
     );
   }

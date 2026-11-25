@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import type { ComponentType } from "react";
 
@@ -57,9 +58,10 @@ const items: Array<{
 ];
 
 export function KpiStrip({ kpis }: KpiStripProps) {
+  const { t } = useI18n();
   return (
     <section
-      aria-label="Dashboard key metrics"
+      aria-label={t("kpiStrip.dashboardKeyMetrics")}
       className="kpi-stagger grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4"
     >
       {items.map((item) => {

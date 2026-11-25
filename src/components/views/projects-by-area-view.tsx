@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useState } from "react";
 import { ChevronDownIcon, ChevronRightIcon, Plus } from "lucide-react";
@@ -51,6 +52,7 @@ function CollapsibleAreaSection({
   returnTo?: string | null;
   returnToChain?: string | null;
 }) {
+  const { t } = useI18n();
   // The unassigned ("Unassigned") group is collapsed by default; real areas
   // open by default.
   const [isOpen, setIsOpen] = useState(group.areaId !== "unassigned");
@@ -93,7 +95,7 @@ function CollapsibleAreaSection({
               e.stopPropagation();
               onCreateProject(group.areaId);
             }}
-            title={`Create project in ${group.areaName}`}
+            title={t("projectsByAreaView.createProjectInV0", { v0: group.areaName })}
           >
             <Plus className="size-4" />
           </Button>
@@ -135,7 +137,7 @@ function CollapsibleAreaSection({
               className="flex flex-col items-center justify-center gap-2 h-48 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <Plus className="size-8" />
-              <span className="text-sm font-medium">New Project in {group.areaName}</span>
+              <span className="text-sm font-medium">{t("projectsByAreaView.newProjectIn")} {group.areaName}</span>
             </button>
           )}
         </div>
@@ -157,6 +159,7 @@ export function ProjectsByAreaView({
   returnTo,
   returnToChain,
 }: ProjectsByAreaViewProps) {
+  const { t } = useI18n();
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -177,7 +180,7 @@ export function ProjectsByAreaView({
   if (groups.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <p className="text-muted-foreground">No projects grouped by area yet.</p>
+        <p className="text-muted-foreground">{t("projectsByAreaView.noProjectsGroupedByAreaYet")}</p>
       </div>
     );
   }

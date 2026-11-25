@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { RouteError } from "@/components/route-error";
 
@@ -9,12 +10,13 @@ export default function AreaDetailError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <RouteError
       error={error}
       reset={reset}
-      title="This area could not be loaded"
-      description="Something went wrong loading this area. Try again, or head back to your areas list."
+      title={t("error.thisAreaCouldNotBeLoaded")}
+      description={t("error.somethingWentWrongLoadingThisAreaTryAgainO")}
     />
   );
 }

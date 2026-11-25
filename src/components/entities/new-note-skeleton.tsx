@@ -1,3 +1,6 @@
+"use client";
+
+import { useI18n } from "@/components/providers/i18n-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -14,12 +17,13 @@ import { cn } from "@/lib/utils";
  * (route fallback) and the `isLoading` branch of `notes/new/page.tsx`.
  */
 export function NewNoteSkeleton() {
+  const { t } = useI18n();
   return (
     <div
       className={cn("flex flex-col gap-6 p-6 content-column-grid mx-auto w-full")}
       aria-busy="true"
       role="status"
-      aria-label="Loading new note"
+      aria-label={t("newNoteSkeleton.loadingNewNote")}
     >
       <Skeleton className="h-8 w-48" />
       <Skeleton className="h-10 w-full" />

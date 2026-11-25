@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React from 'react';
 import { Archive, Calendar, RotateCcw } from 'lucide-react';
@@ -89,6 +90,7 @@ function calculateDueState(targetDate: string | null): { text: string; isOverdue
 }
 
 export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onRestore, onArchive, onDelete, isDeleting, duplicateIndex, rollups }: GoalCardProps) {
+  const { t } = useI18n();
   const dueState = calculateDueState(goal.target_date);
   const resolvedAreaNames = (() => {
     if (areaNames && areaNames.length > 0) {
@@ -121,17 +123,17 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
               <h3 className="font-heading text-base font-semibold truncate">{goal.name}</h3>
               {showDuplicateBadge && (
                 <Badge variant="outline" className="text-2xs px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
-                  copy {duplicateIndex}
+                  {t("goalCard.copy")} {duplicateIndex}
                 </Badge>
               )}
               {rollups && rollups.projectCount === 0 && rollups.taskCount === 0 && rollups.noteCount === 0 && rollups.resourceCount === 0 && !goal.is_archived && (
                 <Badge variant="outline" className="text-2xs px-1.5 py-0">
-                  No activity
+                  {t("goalCard.noActivity")}
                 </Badge>
               )}
               {goal.is_inactive && rollups && (rollups.projectCount > 0 || rollups.taskCount > 0 || rollups.noteCount > 0 || rollups.resourceCount > 0) && !goal.is_archived && (
                 <Badge variant="outline" className="text-2xs px-1.5 py-0">
-                  Paused
+                  {t("goalCard.paused")}
                 </Badge>
               )}
             </div>
@@ -182,19 +184,19 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
 
         {rollups && (
           <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1 whitespace-nowrap" title="Projects">
+            <span className="flex items-center gap-1 whitespace-nowrap" title={t("nav.projects")}>
               <ENTITY_ICONS.project size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <span>{rollups.projectCount}</span>
             </span>
-            <span className="flex items-center gap-1 whitespace-nowrap" title="Tasks">
+            <span className="flex items-center gap-1 whitespace-nowrap" title={t("nav.tasks")}>
               <ENTITY_ICONS.task size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <span>{rollups.taskCount}</span>
             </span>
-            <span className="flex items-center gap-1 whitespace-nowrap" title="Notes">
+            <span className="flex items-center gap-1 whitespace-nowrap" title={t("nav.notes")}>
               <ENTITY_ICONS.note size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <span>{rollups.noteCount}</span>
             </span>
-            <span className="flex items-center gap-1 whitespace-nowrap" title="Resources">
+            <span className="flex items-center gap-1 whitespace-nowrap" title={t("nav.resources")}>
               <ENTITY_ICONS.resource size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               <span>{rollups.resourceCount}</span>
             </span>
@@ -212,13 +214,13 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
           <div className="flex items-center gap-2">
             {goal.is_completed && (
               <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-none">
-                Completed
+                {t("tasks.tabs.completed")}
               </Badge>
             )}
             {goal.is_archived ? (
               <>
                 <Badge variant="outline">
-                  Archived
+                  {t("areas.tabs.archived")}
                 </Badge>
                 {onRestore && (
                   <Button
@@ -226,7 +228,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
                     variant="ghost"
                     size="icon"
                     className="size-6"
-                    aria-label="Restore goal"
+                    aria-label={t("goalCard.restoreGoal")}
                     onClick={(e) => {
                       e.stopPropagation();
                       onRestore(goal);
@@ -255,7 +257,7 @@ export function GoalCard({ goal, areaName, areaNames, areaIcons, onEdit, onResto
                     variant="ghost"
                     size="icon"
                     className="size-6"
-                    aria-label="Archive goal"
+                    aria-label={t("goalCard.archiveGoal")}
                     onClick={(e) => {
                       e.stopPropagation();
                       onArchive(goal);

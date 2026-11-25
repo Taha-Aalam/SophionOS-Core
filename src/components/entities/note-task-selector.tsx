@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useMemo, useState } from "react";
 import { Check, ChevronDownIcon, X } from "lucide-react";
@@ -35,8 +36,10 @@ export function NoteTaskSelector({
   selectedIds,
   onChange,
   disabled,
-  placeholder = "Link tasks...",
+  placeholder,
 }: NoteTaskSelectorProps) {
+  const { t } = useI18n();
+  const placeholderText = placeholder ?? t("noteTaskSelector.linkTasks");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -69,19 +72,19 @@ export function NoteTaskSelector({
           className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
         >
           <span className="truncate">
-            {selectedIds.length === 0 ? placeholder : `${selectedIds.length} linked`}
+            {selectedIds.length === 0 ? placeholderText : `${selectedIds.length} linked`}
           </span>
           <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
         </PopoverTrigger>
         <PopoverContent className="w-72 p-0" align="start">
           <Command shouldFilter={false}>
             <CommandInput
-              placeholder="Search tasks..."
+              placeholder={t("noteTaskSelector.searchTasks")}
               value={query}
               onValueChange={setQuery}
             />
             <CommandList className="max-h-56 overflow-y-auto">
-              <CommandEmpty>No tasks found.</CommandEmpty>
+              <CommandEmpty>{t("noteTaskSelector.noTasksFound")}</CommandEmpty>
               <CommandGroup>
                 {filtered.map((task) => (
                   <CommandItem

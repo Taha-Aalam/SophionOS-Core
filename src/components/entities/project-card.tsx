@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React from "react";
 import { useRouter } from "next/navigation";
@@ -74,6 +75,7 @@ export function ProjectCard({
   returnToChain,
   rollups,
 }: ProjectCardProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const dueState = getProjectDueState(project.due_date);
   const resolvedAreaNames = (() => {
@@ -123,7 +125,7 @@ export function ProjectCard({
                   variant="outline"
                   className="text-2xs px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
                 >
-                  copy {duplicateIndex}
+                  {t("projectCard.copy")} {duplicateIndex}
                 </Badge>
               )}
             </div>
@@ -168,19 +170,19 @@ export function ProjectCard({
         </div>
 
         <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1 whitespace-nowrap" title="Goals">
+          <span className="flex items-center gap-1 whitespace-nowrap" title={t("nav.goals")}>
             <ENTITY_ICONS.goal size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{resolvedRollups.goalCount}</span>
           </span>
-          <span className="flex items-center gap-1 whitespace-nowrap" title="Tasks">
+          <span className="flex items-center gap-1 whitespace-nowrap" title={t("nav.tasks")}>
             <ENTITY_ICONS.task size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{resolvedRollups.taskCount}</span>
           </span>
-          <span className="flex items-center gap-1 whitespace-nowrap" title="Notes">
+          <span className="flex items-center gap-1 whitespace-nowrap" title={t("nav.notes")}>
             <ENTITY_ICONS.note size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{resolvedRollups.noteCount}</span>
           </span>
-          <span className="flex items-center gap-1 whitespace-nowrap" title="Resources">
+          <span className="flex items-center gap-1 whitespace-nowrap" title={t("nav.resources")}>
             <ENTITY_ICONS.resource size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{resolvedRollups.resourceCount}</span>
           </span>
@@ -197,14 +199,14 @@ export function ProjectCard({
           <div className="flex items-center gap-2">
             {project.status === "completed" && (
               <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-none">
-                Completed
+                {t("tasks.tabs.completed")}
               </Badge>
             )}
             {project.is_archived ? (
               <>
                 <Badge variant="outline">
                   <Archive className="size-3 mr-1" />
-                  Archived
+                  {t("areas.tabs.archived")}
                 </Badge>
                 {onRestore && (
                   <Button
@@ -212,7 +214,7 @@ export function ProjectCard({
                     variant="ghost"
                     size="icon"
                     className="size-6"
-                    aria-label="Restore project"
+                    aria-label={t("projectCard.restoreProject")}
                     onClick={(e) => {
                       e.stopPropagation();
                       onRestore(project);
@@ -241,7 +243,7 @@ export function ProjectCard({
                     variant="ghost"
                     size="icon"
                     className="size-6"
-                    aria-label="Archive project"
+                    aria-label={t("projectCard.archiveProject")}
                     onClick={(e) => {
                       e.stopPropagation();
                       onArchive(project);

@@ -92,10 +92,10 @@ describe("dictionary parity", () => {
     }
   });
 
-  it("falls back to English for long-tail keys a locale has not translated", () => {
-    // This key is intentionally English-only in the seed/locale files.
-    expect(ja["tasks.subtitle.other" as keyof typeof ja]).toBeUndefined();
-    expect(translate("tasks.subtitle.other", "ja", STORED_DICTIONARIES)).toBe(
+  it("falls back to English when a locale has no stored translation", () => {
+    // Every stored key is now translated in every Tier-1 locale, so exercise
+    // the fallback with an empty dictionary rather than a deliberate gap.
+    expect(translate("tasks.subtitle.other", "ja", {})).toBe(
       en["tasks.subtitle.other"],
     );
   });

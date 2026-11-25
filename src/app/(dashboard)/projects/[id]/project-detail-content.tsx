@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -119,6 +120,7 @@ import { ENTITY_ICONS } from "@/lib/constants/entity-icons";
 import ProgressRing from "@/components/charts/progress-ring";
 
 export function ProjectDetailContent() {
+  const { t } = useI18n();
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -376,17 +378,17 @@ export function ProjectDetailContent() {
       },
       {
         value: "short",
-        label: "Short Term",
+        label: t("goals.tabs.short"),
         count: linkedGoals.filter((goal) => goal.term === "short" && !goal.is_completed && !goal.is_archived).length,
       },
       {
         value: "mid",
-        label: "Mid Term",
+        label: t("goals.tabs.mid"),
         count: linkedGoals.filter((goal) => goal.term === "mid" && !goal.is_completed && !goal.is_archived).length,
       },
       {
         value: "long",
-        label: "Long Term",
+        label: t("goals.tabs.long"),
         count: linkedGoals.filter((goal) => goal.term === "long" && !goal.is_completed && !goal.is_archived).length,
       },
       {
@@ -411,7 +413,7 @@ export function ProjectDetailContent() {
         count: linkedGoals.filter((goal) => goal.is_archived).length,
       },
     ],
-    [linkedGoals],
+    [linkedGoals, t],
   );
   const filteredGoals = useMemo(() => {
     const isAutoInactive = (goal: typeof linkedGoals[number]) =>
@@ -463,8 +465,8 @@ export function ProjectDetailContent() {
           return new Date(t.due_date) < new Date();
         }).length,
       },
-      { value: "by_area", label: "By Area" },
-      { value: "by_goal", label: "By Goal" },
+      { value: "by_area", label: t("tasks.tabs.byArea") },
+      { value: "by_goal", label: t("tasks.tabs.byGoal") },
       {
         value: "completed",
         label: "Completed",
@@ -472,7 +474,7 @@ export function ProjectDetailContent() {
       },
       { value: "archived", label: "Archived", count: archived.length },
     ];
-  }, [activeLinkedTasks, linkedTasks]);
+  }, [activeLinkedTasks, linkedTasks, t]);
   const filteredTasks = useMemo(() => {
     if (taskTab === "archived") return linkedTasks.filter((t) => t.is_archived);
     const active = activeLinkedTasks;
@@ -533,10 +535,10 @@ export function ProjectDetailContent() {
     return Array.from(grouped.entries()).map(([areaId, groupTasks]) => ({
       groupId: areaId,
       groupName:
-        areaId === "unassigned" ? "No Area" : (taskGroupAreaMap.get(areaId)?.name ?? areaId),
+        areaId === "unassigned" ? t("common.noArea") : (taskGroupAreaMap.get(areaId)?.name ?? areaId),
       tasks: groupTasks,
     }));
-  }, [filteredTasks, taskGroupAreaMap]);
+  }, [filteredTasks, taskGroupAreaMap, t]);
 
   const taskGroupsByGoal = useMemo<TaskGroup[]>(() => {
     const grouped = new Map<string, Task[]>();
@@ -557,10 +559,10 @@ export function ProjectDetailContent() {
     return Array.from(grouped.entries()).map(([goalId, groupTasks]) => ({
       groupId: goalId,
       groupName:
-        goalId === "unassigned" ? "No Goal" : (taskGroupGoalMap.get(goalId)?.name ?? goalId),
+        goalId === "unassigned" ? t("common.noGoal") : (taskGroupGoalMap.get(goalId)?.name ?? goalId),
       tasks: groupTasks,
     }));
-  }, [filteredTasks, taskGroupGoalMap]);
+  }, [filteredTasks, taskGroupGoalMap, t]);
 
   const getTaskLinkedAreaNames = useCallback(
     (task: Task) =>
@@ -596,15 +598,15 @@ export function ProjectDetailContent() {
       return [
         { value: "all", label: "All", count: active.length },
         { value: "inbox", label: "Inbox", count: active.filter((note) => note.status === "inbox").length },
-        { value: "to_review", label: "To Review", count: active.filter((note) => note.status === "to_review").length },
+        { value: "to_review", label: t("notes.tabs.toReview"), count: active.filter((note) => note.status === "to_review").length },
         { value: "active", label: "Active", count: active.filter((note) => note.status === "active").length },
-        { value: "by_area", label: "By Area" },
-        { value: "by_goal", label: "By Goal" },
+        { value: "by_area", label: t("tasks.tabs.byArea") },
+        { value: "by_goal", label: t("tasks.tabs.byGoal") },
         { value: "completed", label: "Completed", count: active.filter((note) => note.status === "completed").length },
         { value: "archived", label: "Archive", count: archived.length },
       ];
     },
-    [linkedNotes],
+    [linkedNotes, t],
   );
   const filteredNotes = useMemo(() => {
     if (noteTab === "archived") return linkedNotes.filter((note) => note.is_archived);
@@ -639,10 +641,10 @@ export function ProjectDetailContent() {
     }
     return Array.from(grouped.entries()).map(([areaId, notes]) => ({
       groupId: areaId,
-      groupName: areaId === "unassigned" ? "No Area" : (areaNamesMap.get(areaId) ?? areaId),
+      groupName: areaId === "unassigned" ? t("common.noArea") : (areaNamesMap.get(areaId) ?? areaId),
       notes,
     }));
-  }, [filteredNotes, areaNamesMap]);
+  }, [filteredNotes, areaNamesMap, t]);
 
   const noteGroupsByGoal = useMemo<NoteGroup[]>(() => {
     const grouped = new Map<string, typeof filteredNotes>();
@@ -657,22 +659,22 @@ export function ProjectDetailContent() {
     }
     return Array.from(grouped.entries()).map(([goalId, notes]) => ({
       groupId: goalId,
-      groupName: goalId === "unassigned" ? "No Goal" : (goalNamesMap.get(goalId) ?? goalId),
+      groupName: goalId === "unassigned" ? t("common.noGoal") : (goalNamesMap.get(goalId) ?? goalId),
       notes,
     }));
-  }, [filteredNotes, goalNamesMap]);
+  }, [filteredNotes, goalNamesMap, t]);
 
   const contactTabs = useMemo(
     () => [
       { value: "all", label: "All", count: activeLinkedContacts.length },
       { value: "favorite", label: "Favorite", count: activeLinkedContacts.filter((c) => c.favorite).length },
       { value: "follow_up", label: "Follow-up", count: activeLinkedContacts.filter((c) => !!c.follow_up_interval_days).length },
-      { value: "by_group", label: "By Group", count: activeLinkedContacts.filter((c) => !!c.group).length },
-      { value: "by_area", label: "By Area", count: activeLinkedContacts.filter((c) => (c.linkedAreaIds?.length ?? 0) > 0).length },
-      { value: "by_goal", label: "By Goal", count: activeLinkedContacts.filter((c) => (c.linkedGoalIds?.length ?? 0) > 0).length },
+      { value: "by_group", label: t("projectDetailContent.byGroup"), count: activeLinkedContacts.filter((c) => !!c.group).length },
+      { value: "by_area", label: t("tasks.tabs.byArea"), count: activeLinkedContacts.filter((c) => (c.linkedAreaIds?.length ?? 0) > 0).length },
+      { value: "by_goal", label: t("tasks.tabs.byGoal"), count: activeLinkedContacts.filter((c) => (c.linkedGoalIds?.length ?? 0) > 0).length },
       { value: "archived", label: "Archive", count: archivedLinkedContacts.length },
     ],
-    [activeLinkedContacts, archivedLinkedContacts],
+    [activeLinkedContacts, archivedLinkedContacts, t],
   );
   const filteredContacts = useMemo(() => {
     switch (contactTab) {
@@ -733,14 +735,14 @@ export function ProjectDetailContent() {
     return [
       { value: "all", label: "All", count: active.length },
       { value: "inbox", label: "Inbox", count: active.filter((r) => r.status === "inbox").length },
-      { value: "to_review", label: "To Review", count: active.filter((r) => r.status === "to_review").length },
+      { value: "to_review", label: t("notes.tabs.toReview"), count: active.filter((r) => r.status === "to_review").length },
       { value: "active", label: "Active", count: active.filter((r) => r.status === "active").length },
-      { value: "by_area", label: "By Area" },
-      { value: "by_goal", label: "By Goal" },
+      { value: "by_area", label: t("tasks.tabs.byArea") },
+      { value: "by_goal", label: t("tasks.tabs.byGoal") },
       { value: "completed", label: "Completed", count: active.filter((r) => r.status === "completed").length },
       { value: "archived", label: "Archive", count: archived.length },
     ];
-  }, [linkedResources]);
+  }, [linkedResources, t]);
 
   const filteredResources = useMemo(() => {
     switch (resourceTab) {
@@ -777,10 +779,10 @@ export function ProjectDetailContent() {
     }
     return Array.from(grouped.entries()).map(([areaId, resources]) => ({
       groupId: areaId,
-      groupName: areaId === "unassigned" ? "No Area" : (areaNamesMap.get(areaId) ?? areaId),
+      groupName: areaId === "unassigned" ? t("common.noArea") : (areaNamesMap.get(areaId) ?? areaId),
       resources,
     }));
-  }, [filteredResources, areaNamesMap]);
+  }, [filteredResources, areaNamesMap, t]);
 
   const resourceGroupsByGoal = useMemo<ResourceGroup[]>(() => {
     const grouped = new Map<string, typeof filteredResources>();
@@ -795,10 +797,10 @@ export function ProjectDetailContent() {
     }
     return Array.from(grouped.entries()).map(([goalId, resources]) => ({
       groupId: goalId,
-      groupName: goalId === "unassigned" ? "No Goal" : (goalNamesMap.get(goalId) ?? goalId),
+      groupName: goalId === "unassigned" ? t("common.noGoal") : (goalNamesMap.get(goalId) ?? goalId),
       resources,
     }));
-  }, [filteredResources, goalNamesMap]);
+  }, [filteredResources, goalNamesMap, t]);
 
   const scrollToSection = useCallback((id: string) => {
     const element = document.getElementById(id);
@@ -1103,7 +1105,7 @@ export function ProjectDetailContent() {
   if (projectError) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-16">
-        <ErrorState message="Failed to load this project." onRetry={() => refetchProject()} />
+        <ErrorState message={t("projectDetailContent.failedToLoadThisProject")} onRetry={() => refetchProject()} />
       </div>
     );
   }
@@ -1117,13 +1119,13 @@ export function ProjectDetailContent() {
       <div className="mx-auto flex w-full content-column-grid flex-col gap-6 p-6">
         <Button variant="ghost" onClick={() => router.push("/projects")} className="gap-2">
           <ArrowLeft className="size-4" />
-          Back to Projects
+          {t("projectDetailContent.backToProjects")}
         </Button>
         <EmptyState
           icon={Target}
-          title="Project not found"
-          description="This project may have been deleted or you do not have access to it."
-          actionLabel="Return to Projects"
+          title={t("projectDetailContent.projectNotFound")}
+          description={t("projectDetailContent.thisProjectMayHaveBeenDeletedOrYouDoNotHav")}
+          actionLabel={t("projectDetailContent.returnToProjects")}
           onAction={() => router.push("/projects")}
         />
       </div>
@@ -1142,7 +1144,7 @@ export function ProjectDetailContent() {
           <ArrowLeft className="size-3.5" />
         </Button>
         <span>/</span>
-        <span>Projects</span>
+        <span>{t("nav.projects")}</span>
         <span>/</span>
         <span className="text-foreground">{project.name}</span>
       </div>
@@ -1217,12 +1219,12 @@ export function ProjectDetailContent() {
                 </Badge>
                 {project.status === "completed" && (
                   <Badge className="bg-green-500/10 text-green-600 border-none text-xs">
-                    Completed
+                    {t("tasks.tabs.completed")}
                   </Badge>
                 )}
                 {project.is_archived && (
                   <Badge variant="outline" className="text-xs">
-                    Archived
+                    {t("areas.tabs.archived")}
                   </Badge>
                 )}
               </div>
@@ -1249,7 +1251,7 @@ export function ProjectDetailContent() {
             onClick={() => setIsPropertiesOpen((current) => !current)}
             className="gap-1 shrink-0 text-xs sm:text-sm"
           >
-            Properties
+            {t("projectDetailContent.properties")}
             {isPropertiesOpen ? (
               <ChevronDownIcon className="size-3.5" />
             ) : (
@@ -1264,7 +1266,7 @@ export function ProjectDetailContent() {
             type="button"
             onClick={() => scrollToSection("goals")}
             className="flex items-center gap-1 transition-colors hover:text-foreground"
-            title="Goals"
+            title={t("nav.goals")}
           >
             <ENTITY_ICONS.goal size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{activeGoalCount}</span>
@@ -1273,7 +1275,7 @@ export function ProjectDetailContent() {
             type="button"
             onClick={() => scrollToSection("tasks")}
             className="flex items-center gap-1 transition-colors hover:text-foreground"
-            title="Tasks"
+            title={t("nav.tasks")}
           >
             <ENTITY_ICONS.task size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{activeTaskCount}</span>
@@ -1282,7 +1284,7 @@ export function ProjectDetailContent() {
             type="button"
             onClick={() => scrollToSection("notes")}
             className="flex items-center gap-1 transition-colors hover:text-foreground"
-            title="Notes"
+            title={t("nav.notes")}
           >
             <ENTITY_ICONS.note size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{activeNoteCount}</span>
@@ -1291,7 +1293,7 @@ export function ProjectDetailContent() {
             type="button"
             onClick={() => scrollToSection("resources")}
             className="flex items-center gap-1 transition-colors hover:text-foreground"
-            title="Resources"
+            title={t("nav.resources")}
           >
             <ENTITY_ICONS.resource size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{activeResourceCount}</span>
@@ -1304,7 +1306,7 @@ export function ProjectDetailContent() {
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
             <span className="tabular-nums text-foreground">{activeGoalCount}</span>
-            <span className="text-muted-foreground">Goals</span>
+            <span className="text-muted-foreground">{t("nav.goals")}</span>
           </button>
           <button
             type="button"
@@ -1312,7 +1314,7 @@ export function ProjectDetailContent() {
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
             <span className="tabular-nums text-foreground">{activeTaskCount}</span>
-            <span className="text-muted-foreground">Tasks</span>
+            <span className="text-muted-foreground">{t("nav.tasks")}</span>
           </button>
           <button
             type="button"
@@ -1320,7 +1322,7 @@ export function ProjectDetailContent() {
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:bg-muted/50"
           >
             <span className="tabular-nums text-foreground">{activeNoteCount}</span>
-            <span className="text-muted-foreground">Notes</span>
+            <span className="text-muted-foreground">{t("nav.notes")}</span>
           </button>
           <button
             type="button"
@@ -1330,7 +1332,7 @@ export function ProjectDetailContent() {
             <span className="tabular-nums text-foreground">
               {activeResourceCount}
             </span>
-            <span className="text-muted-foreground">Resources</span>
+            <span className="text-muted-foreground">{t("nav.resources")}</span>
           </button>
         </div>
 
@@ -1340,7 +1342,7 @@ export function ProjectDetailContent() {
             <div className="space-y-4 p-4 sm:p-6">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 md:grid-cols-4">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Areas</Label>
+                  <Label className="text-xs text-muted-foreground">{t("nav.areas")}</Label>
                   <div className="mt-1 flex flex-wrap gap-1.5">
                     {linkedAreas.length > 0 ? (
                       linkedAreas.map((linkedArea) => (
@@ -1361,24 +1363,24 @@ export function ProjectDetailContent() {
                         </Badge>
                       ))
                     ) : (
-                      <span className="text-sm text-muted-foreground">Unassigned</span>
+                      <span className="text-sm text-muted-foreground">{t("common.unassigned")}</span>
                     )}
                   </div>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <Label className="text-xs text-muted-foreground">{t("projectDetailContent.status")}</Label>
                   <p className="mt-1 text-sm font-medium sm:text-base">
                     {getProjectStatusLabel(project.status)}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Start Date</Label>
+                  <Label className="text-xs text-muted-foreground">{t("projectDetailContent.startDate")}</Label>
                   <p className="mt-1 text-sm font-medium sm:text-base">
-                    {project.start_date ?? "Not set"}
+                    {project.start_date ?? t("projectDetailContent.notSet")}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Due Date</Label>
+                  <Label className="text-xs text-muted-foreground">{t("projectDetailContent.dueDate")}</Label>
                   <DatePicker
                     value={dueDateInput || null}
                     onChange={(value) => {
@@ -1404,7 +1406,7 @@ export function ProjectDetailContent() {
               <div className="flex flex-wrap items-center gap-4">
                 <Button size="sm" onClick={() => setIsEditOpen(true)} className="gap-1.5">
                   <Edit className="size-3.5" />
-                  Edit Project
+                  {t("projectDetailContent.editProject")}
                 </Button>
                 <Button
                   size="sm"
@@ -1413,7 +1415,7 @@ export function ProjectDetailContent() {
                   className="gap-1.5"
                 >
                   <Plus className="size-3.5" />
-                  Link Area
+                  {t("projectDetailContent.linkArea")}
                 </Button>
                 <DeleteEntityPopover
                   variant="detail"
@@ -1436,7 +1438,7 @@ export function ProjectDetailContent() {
                     onCheckedChange={(checked) => handleProjectInactiveToggle(checked === true)}
                   />
                   <Label htmlFor="project-inactive" className="cursor-pointer text-sm">
-                    Inactive
+                    {t("goals.tabs.inactive")}
                   </Label>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1447,7 +1449,7 @@ export function ProjectDetailContent() {
                     onCheckedChange={(checked) => handleProjectArchiveToggle(checked === true)}
                   />
                   <Label htmlFor="project-archived" className="cursor-pointer text-sm">
-                    Archived
+                    {t("areas.tabs.archived")}
                   </Label>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1458,7 +1460,7 @@ export function ProjectDetailContent() {
                     onCheckedChange={(checked) => handleProjectCompleteToggle(checked === true)}
                   />
                   <Label htmlFor="project-completed" className="cursor-pointer text-sm">
-                    Completed
+                    {t("tasks.tabs.completed")}
                   </Label>
                 </div>
               </div>
@@ -1475,12 +1477,12 @@ export function ProjectDetailContent() {
           activeTab={goalTab}
           onTabChange={setGoalTab}
           isLoading={false}
-          emptyTitle="No linked goals"
-          emptyDescription="Link a goal to show how this project contributes to your larger outcomes."
+          emptyTitle={t("projectDetailContent.noLinkedGoals")}
+          emptyDescription={t("projectDetailContent.linkAGoalToShowHowThisProjectContributesTo")}
           onCreateNew={() => setIsNewGoalOpen(true)}
-          createLabel="New Goal"
+          createLabel={t("action.newGoal")}
           onLinkExisting={() => setIsLinkGoalOpen(true)}
-          linkLabel="Link Goal"
+          linkLabel={t("areaDetailContent.linkGoal")}
         >
           {filteredGoals.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1522,12 +1524,12 @@ export function ProjectDetailContent() {
           activeTab={taskTab}
           onTabChange={setTaskTab}
           isLoading={isLoadingTasks}
-          emptyTitle="No linked tasks"
-          emptyDescription="Tasks connected to this project will appear here."
+          emptyTitle={t("projectDetailContent.noLinkedTasks")}
+          emptyDescription={t("projectDetailContent.tasksConnectedToThisProjectWillAppearHere")}
           onCreateNew={() => setIsNewTaskOpen(true)}
-          createLabel="New Task"
+          createLabel={t("action.newTask")}
           onLinkExisting={() => setIsLinkTaskOpen(true)}
-          linkLabel="Link Task"
+          linkLabel={t("goalDetailContent.linkTask")}
         >
           {taskTab === "by_area" ? (
             <TasksByGroupView
@@ -1550,7 +1552,7 @@ export function ProjectDetailContent() {
               getLinkedAreaIcons={getTaskLinkedAreaIcons}
               getLinkedGoalNames={getTaskLinkedGoalNames}
               getLinkedProjectNames={getTaskLinkedProjectNames}
-              emptyMessage="Tasks will be grouped by area here."
+              emptyMessage={t("tasks.empty.byArea")}
             />
           ) : taskTab === "by_goal" ? (
             <TasksByGroupView
@@ -1573,7 +1575,7 @@ export function ProjectDetailContent() {
               getLinkedAreaIcons={getTaskLinkedAreaIcons}
               getLinkedGoalNames={getTaskLinkedGoalNames}
               getLinkedProjectNames={getTaskLinkedProjectNames}
-              emptyMessage="Tasks will be grouped by goal here."
+              emptyMessage={t("tasks.empty.byGoal")}
             />
           ) : filteredTasks.length > 0 ? (
             <div className="rounded-xl border bg-card">
@@ -1607,8 +1609,8 @@ export function ProjectDetailContent() {
           activeTab={noteTab}
           onTabChange={setNoteTab}
           isLoading={isLoadingNotes}
-          emptyTitle="No linked notes"
-          emptyDescription="Notes linked to this project will show up here."
+          emptyTitle={t("projectDetailContent.noLinkedNotes")}
+          emptyDescription={t("projectDetailContent.notesLinkedToThisProjectWillShowUpHere")}
           onCreateNew={() => {
               const noteReturnTo = `/projects/${project?.slug ?? project?.id}`;
               const params = new URLSearchParams();
@@ -1619,9 +1621,9 @@ export function ProjectDetailContent() {
               }
               router.push(`/notes/new?${params.toString()}`);
             }}
-          createLabel="New Note"
+          createLabel={t("action.newNote")}
           onLinkExisting={() => setIsLinkNoteOpen(true)}
-          linkLabel="Link Note"
+          linkLabel={t("goalDetailContent.linkNote")}
         >
           {(noteTab === "by_area" || noteTab === "by_goal") ? (
             <NotesByGroupView
@@ -1665,7 +1667,7 @@ export function ProjectDetailContent() {
                 }
                 router.push(`/notes/new?${params.toString()}`);
               }}
-              emptyMessage={noteTab === "by_area" ? "Notes will be grouped by area here." : "Notes will be grouped by goal here."}
+              emptyMessage={noteTab === "by_area" ? t("notes.group.byArea") : t("notes.group.byGoal")}
             />
           ) : filteredNotes.length > 0 ? (
             <div className="rounded-xl border bg-card">
@@ -1709,12 +1711,12 @@ export function ProjectDetailContent() {
           activeTab={resourceTab}
           onTabChange={setResourceTab}
           isLoading={isLoadingResources}
-          emptyTitle="No resources linked to this project"
-          emptyDescription="Add resources to track external references that contribute to this project."
+          emptyTitle={t("projectDetailContent.noResourcesLinkedToThisProject")}
+          emptyDescription={t("projectDetailContent.addResourcesToTrackExternalReferencesThatC")}
           onCreateNew={() => setIsNewResourceOpen(true)}
-          createLabel="New Resource"
+          createLabel={t("projectDetailContent.newResource")}
           onLinkExisting={() => setIsLinkResourceOpen(true)}
-          linkLabel="Link Resource"
+          linkLabel={t("goalDetailContent.linkResource")}
         >
           {(resourceTab === "by_area" || resourceTab === "by_goal") ? (
             <ResourcesByGroupView
@@ -1742,7 +1744,7 @@ export function ProjectDetailContent() {
                 setNewResourceGroupType(resourceTab === "by_area" ? "area" : "goal");
                 setIsNewResourceOpen(true);
               }}
-              emptyMessage={resourceTab === "by_area" ? "Resources will be grouped by area here." : "Resources will be grouped by goal here."}
+              emptyMessage={resourceTab === "by_area" ? t("projectDetailContent.resourcesWillBeGroupedByAreaHere") : t("projectDetailContent.resourcesWillBeGroupedByGoalHere")}
             />
           ) : filteredResources.length > 0 ? (
             <div className="rounded-xl border border-border">
@@ -1791,17 +1793,17 @@ export function ProjectDetailContent() {
         <GoalDetailSection
           id="people"
           entityType="people"
-          heading="Contacts"
+          heading={t("nav.contacts")}
           tabs={contactTabs}
           activeTab={contactTab}
           onTabChange={setContactTab}
           isLoading={false}
-          emptyTitle="No linked people"
-          emptyDescription="Create a new contact to attach to this project, or link an existing one."
+          emptyTitle={t("projectDetailContent.noLinkedPeople")}
+          emptyDescription={t("projectDetailContent.createANewContactToAttachToThisProjectOrLi")}
           onCreateNew={() => setIsNewContactOpen(true)}
-          createLabel="New Contact"
+          createLabel={t("projectDetailContent.newContact")}
           onLinkExisting={() => setIsLinkContactOpen(true)}
-          linkLabel="Link Contact"
+          linkLabel={t("goalDetailContent.linkContact")}
         >
           {contactTab === "follow_up" ? (
             <ContactsFollowUpView
@@ -1861,8 +1863,8 @@ export function ProjectDetailContent() {
       <LinkEntityDialog
         open={isLinkAreaOpen}
         onOpenChange={setIsLinkAreaOpen}
-        title="Link Area"
-        emptyMessage="All active areas are already linked to this project."
+        title={t("projectDetailContent.linkArea2")}
+        emptyMessage={t("projectDetailContent.allActiveAreasAreAlreadyLinkedToThisProjec")}
         candidates={eligibleAreas}
         getKey={(a) => a.id}
         getSearchText={(a) => `${a.name} ${a.description ?? ""}`}
@@ -1883,17 +1885,17 @@ export function ProjectDetailContent() {
       <Dialog open={isLinkGoalOpen} onOpenChange={setIsLinkGoalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Link Goal</DialogTitle>
-            <DialogDescription>Attach an existing goal to this project.</DialogDescription>
+            <DialogTitle>{t("projectDetailContent.linkGoal")}</DialogTitle>
+            <DialogDescription>{t("projectDetailContent.attachAnExistingGoalToThisProject")}</DialogDescription>
           </DialogHeader>
           {unlinkedGoals.length === 0 ? (
             totalActiveUnlinkedGoals.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                All active goals are already linked to this project.
+                {t("projectDetailContent.allActiveGoalsAreAlreadyLinkedToThisProjec")}
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No goals found in the areas linked to this project. Link an area to the project first, or create a goal in a linked area.
+                {t("projectDetailContent.noGoalsFoundInTheAreasLinkedToThisProjectL")}
               </p>
             )
           ) : (
@@ -1908,7 +1910,7 @@ export function ProjectDetailContent() {
                   <LinkIcon className="mt-0.5 size-4 text-muted-foreground" />
                   <div className="min-w-0">
                     <p className="truncate font-medium">{goal.name}</p>
-                    <p className="text-sm text-muted-foreground">{goal.term} term</p>
+                    <p className="text-sm text-muted-foreground">{goal.term} {t("projectDetailContent.term")}</p>
                   </div>
                 </button>
               ))}
@@ -2050,8 +2052,8 @@ export function ProjectDetailContent() {
       <LinkEntityDialog
         open={isLinkTaskOpen}
         onOpenChange={setIsLinkTaskOpen}
-        title="Link Task"
-        emptyMessage="No more active tasks available to link."
+        title={t("projectDetailContent.linkTask")}
+        emptyMessage={t("projectDetailContent.noMoreActiveTasksAvailableToLink")}
         candidates={linkTaskCandidates}
         getKey={(t) => t.id}
         getSearchText={(t) => t.name}
@@ -2061,8 +2063,8 @@ export function ProjectDetailContent() {
       <LinkEntityDialog
         open={isLinkNoteOpen}
         onOpenChange={setIsLinkNoteOpen}
-        title="Link Note"
-        emptyMessage="No more active notes available to link."
+        title={t("projectDetailContent.linkNote")}
+        emptyMessage={t("projectDetailContent.noMoreActiveNotesAvailableToLink")}
         candidates={linkNoteCandidates}
         getKey={(n) => n.id}
         getSearchText={(n) => n.name}
@@ -2072,8 +2074,8 @@ export function ProjectDetailContent() {
       <LinkEntityDialog
         open={isLinkResourceOpen}
         onOpenChange={setIsLinkResourceOpen}
-        title="Link Resource"
-        emptyMessage="No more active resources available to link."
+        title={t("projectDetailContent.linkResource")}
+        emptyMessage={t("projectDetailContent.noMoreActiveResourcesAvailableToLink")}
         candidates={linkResourceCandidates}
         getKey={(r) => r.id}
         getSearchText={(r) => r.name}
@@ -2083,8 +2085,8 @@ export function ProjectDetailContent() {
       <LinkEntityDialog
         open={isLinkContactOpen}
         onOpenChange={setIsLinkContactOpen}
-        title="Link Contact"
-        emptyMessage="No more active contacts available to link."
+        title={t("projectDetailContent.linkContact")}
+        emptyMessage={t("projectDetailContent.noMoreActiveContactsAvailableToLink")}
         candidates={linkContactCandidates}
         getKey={(c) => c.id}
         getSearchText={(c) => `${c.name} ${c.organization ?? ""}`}

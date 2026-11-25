@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import {
   ArchiveIcon,
@@ -17,6 +18,7 @@ interface KnowledgePipelineProps {
 }
 
 export function KnowledgePipeline({ pipeline }: KnowledgePipelineProps) {
+  const { t } = useI18n();
   const metrics = [
     {
       label: "Captured",
@@ -46,8 +48,8 @@ export function KnowledgePipeline({ pipeline }: KnowledgePipelineProps) {
 
   return (
     <AnalyticsPanel
-      title="Knowledge Pipeline"
-      description="Capture through archive, plus topics with the most activity."
+      title={t("knowledgePipeline.knowledgePipeline")}
+      description={t("knowledgePipeline.captureThroughArchivePlusTopicsWithTheMost")}
       icon={BookTextIcon}
     >
       <div className="mb-4 grid grid-cols-2 gap-2.5">
@@ -69,10 +71,10 @@ export function KnowledgePipeline({ pipeline }: KnowledgePipelineProps) {
       </div>
       <div className="border-t border-border/60 pt-3">
         <div className="mb-2 text-xs font-medium text-muted-foreground">
-          Most active topics
+          {t("knowledgePipeline.mostActiveTopics")}
         </div>
         {pipeline.mostActiveTopics.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No topic activity yet.</p>
+          <p className="text-sm text-muted-foreground">{t("knowledgePipeline.noTopicActivityYet")}</p>
         ) : (
           <div className="space-y-1.5">
             {pipeline.mostActiveTopics.map((topic) => (

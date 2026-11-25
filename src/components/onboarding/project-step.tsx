@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect } from "react";
 
@@ -55,6 +56,7 @@ interface ProjectStepProps {
 }
 
 export function ProjectStep({ value, onChange, createdGoal }: ProjectStepProps) {
+  const { t } = useI18n();
   const { data: areas, isLoading, isError } = useAreas();
 
   // Auto-link goal + inherit area from goal when goal step completes
@@ -86,10 +88,10 @@ export function ProjectStep({ value, onChange, createdGoal }: ProjectStepProps) 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="onboarding-project-name">Project name</Label>
+        <Label htmlFor="onboarding-project-name">{t("projectStep.projectName")}</Label>
         <Input
           id="onboarding-project-name"
-          placeholder="e.g. 12-week training plan"
+          placeholder={t("projectStep.eg12weekTrainingPlan")}
           value={value.name}
           onChange={(e) => patch({ name: e.target.value })}
           autoFocus
@@ -97,11 +99,11 @@ export function ProjectStep({ value, onChange, createdGoal }: ProjectStepProps) 
       </div>
       <div className="space-y-2">
         <Label htmlFor="onboarding-project-description">
-          Description <span className="text-muted-foreground">(optional)</span>
+          {t("projectStep.description")} <span className="text-muted-foreground">{t("projectStep.optional")}</span>
         </Label>
         <Textarea
           id="onboarding-project-description"
-          placeholder="What does this project deliver?"
+          placeholder={t("projectStep.whatDoesThisProjectDeliver")}
           value={value.description}
           onChange={(e) => patch({ description: e.target.value })}
           rows={3}
@@ -110,13 +112,13 @@ export function ProjectStep({ value, onChange, createdGoal }: ProjectStepProps) 
 
       {/* Status */}
       <div className="space-y-2">
-        <Label>Status <span className="text-muted-foreground">(optional)</span></Label>
+        <Label>{t("projectStep.status")} <span className="text-muted-foreground">{t("projectStep.optional2")}</span></Label>
         <Select
           value={value.status || EMPTY}
           onValueChange={(v) => patch({ status: v === EMPTY ? "" : (v as ProjectStatus) })}
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select status" />
+            <SelectValue placeholder={t("projectStep.selectStatus")} />
           </SelectTrigger>
           <SelectContent>
             {Object.entries(STATUS_LABELS).map(([key, label]) => (
@@ -130,13 +132,13 @@ export function ProjectStep({ value, onChange, createdGoal }: ProjectStepProps) 
 
       {/* Priority */}
       <div className="space-y-2">
-        <Label>Priority <span className="text-muted-foreground">(optional)</span></Label>
+        <Label>{t("projectStep.priority")} <span className="text-muted-foreground">{t("projectStep.optional3")}</span></Label>
         <Select
           value={value.priority || EMPTY}
           onValueChange={(v) => patch({ priority: v === EMPTY ? "" : (v as Priority) })}
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select priority" />
+            <SelectValue placeholder={t("projectStep.selectPriority")} />
           </SelectTrigger>
           <SelectContent>
             {(Object.entries(PRIORITY_LABELS) as [Priority, string][]).map(
@@ -153,14 +155,14 @@ export function ProjectStep({ value, onChange, createdGoal }: ProjectStepProps) 
       {/* Dates */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label>Start date <span className="text-muted-foreground">(optional)</span></Label>
+          <Label>{t("projectStep.startDate")} <span className="text-muted-foreground">{t("projectStep.optional4")}</span></Label>
           <DatePicker
             value={value.start_date}
             onChange={(v) => patch({ start_date: v })}
           />
         </div>
         <div className="space-y-2">
-          <Label>Due date <span className="text-muted-foreground">(optional)</span></Label>
+          <Label>{t("projectStep.dueDate")} <span className="text-muted-foreground">{t("projectStep.optional5")}</span></Label>
           <DatePicker
             value={value.due_date}
             onChange={(v) => patch({ due_date: v })}
@@ -170,7 +172,7 @@ export function ProjectStep({ value, onChange, createdGoal }: ProjectStepProps) 
 
       {/* Area linking (auto-populated from goal, but editable) */}
       <div className="space-y-2">
-        <Label>Areas <span className="text-muted-foreground">(optional)</span></Label>
+        <Label>{t("nav.areas")} <span className="text-muted-foreground">{t("projectStep.optional6")}</span></Label>
         {isLoading ? (
           <div className="flex flex-wrap gap-2">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -178,9 +180,9 @@ export function ProjectStep({ value, onChange, createdGoal }: ProjectStepProps) 
             ))}
           </div>
         ) : isError ? (
-          <p className="text-sm text-destructive">Failed to load areas. You can continue and link areas later.</p>
+          <p className="text-sm text-destructive">{t("projectStep.failedToLoadAreasYouCanContinueAndLinkArea")}</p>
         ) : (
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Areas">
+        <div className="flex flex-wrap gap-2" role="group" aria-label={t("nav.areas")}>
           {areas?.map((area) => {
             const selected = value.area_ids.includes(area.id);
             return (

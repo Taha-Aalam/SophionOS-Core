@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import {
   Background,
@@ -123,6 +124,7 @@ function TypeIcon({ type }: { type: NetworkNodeType }) {
 }
 
 function GraphNode({ data, selected }: NodeProps<FlowNode>) {
+  const { t } = useI18n();
   const meta = TYPE_META[data.type];
   return (
     <div
@@ -139,11 +141,11 @@ function GraphNode({ data, selected }: NodeProps<FlowNode>) {
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-semibold text-foreground">
           {data.label}
-          {selected ? <span className="sr-only"> (selected)</span> : null}
+          {selected ? <span className="sr-only"> {t("networkExplorer.selected")}</span> : null}
         </span>
         <span className="block text-2xs capitalize text-muted-foreground">
           {data.type}
-          {data.archived ? " · archived" : ""}
+          {data.archived ? t("networkExplorer.archived") : ""}
         </span>
       </span>
       <Handle type="source" position={Position.Right} className="!bg-muted-foreground" />
@@ -166,6 +168,7 @@ const COLUMN_X: Record<NetworkNodeType, number> = {
 };
 
 export function NetworkExplorer(props: NetworkExplorerProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const [includeArchived, setIncludeArchived] = useState(true);
   const [includeNotebooks, setIncludeNotebooks] = useState(true);
@@ -261,13 +264,12 @@ export function NetworkExplorer(props: NetworkExplorerProps) {
           onClick={() => router.push("/dashboard")}
         >
           <ArrowLeft data-icon="inline-start" />
-          Dashboard
+          {t("nav.dashboard")}
         </Button>
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold tracking-tight text-foreground">Context network</h1>
+          <h1 className="text-lg font-semibold tracking-tight text-foreground">{t("networkExplorer.contextNetwork")}</h1>
           <p className="text-xs text-muted-foreground">
-            {graph.nodes.length} things · {graph.edges.length} connections. Drag to explore, click
-            a node for details.
+            {graph.nodes.length} {t("networkExplorer.things")} {graph.edges.length} {t("networkExplorer.connectionsDragToExploreClickANodeForDetai")}
           </p>
         </div>
       </div>
@@ -281,7 +283,7 @@ export function NetworkExplorer(props: NetworkExplorerProps) {
               onCheckedChange={(value) => setIncludeArchived(value === true)}
             />
             <Label htmlFor="network-show-archived" className="cursor-pointer text-sm">
-              Archived
+              {t("areas.tabs.archived")}
             </Label>
           </div>
           <div className="flex items-center gap-2">
@@ -291,7 +293,7 @@ export function NetworkExplorer(props: NetworkExplorerProps) {
               onCheckedChange={(value) => setIncludeNotebooks(value === true)}
             />
             <Label htmlFor="network-show-notebooks" className="cursor-pointer text-sm">
-              Notebooks
+              {t("networkExplorer.notebooks")}
             </Label>
           </div>
           <div className="flex items-center gap-2">
@@ -301,19 +303,19 @@ export function NetworkExplorer(props: NetworkExplorerProps) {
               onCheckedChange={(value) => setIncludeTopics(value === true)}
             />
             <Label htmlFor="network-show-topics" className="cursor-pointer text-sm">
-              Topics
+              {t("nav.topics")}
             </Label>
           </div>
           <Input
             type="search"
-            aria-label="Search things in the network"
-            placeholder="Search…"
+            aria-label={t("networkExplorer.searchThingsInTheNetwork")}
+            placeholder={t("networkExplorer.search")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             className="ml-auto w-full sm:max-w-56"
           />
         </div>
-        <div className="flex flex-wrap gap-1.5" aria-label="Legend">
+        <div className="flex flex-wrap gap-1.5" aria-label={t("networkExplorer.legend")}>
           {TYPE_ORDER.map((type) => {
             const count = counts.get(type) ?? 0;
             if (count === 0) return null;
@@ -330,12 +332,12 @@ export function NetworkExplorer(props: NetworkExplorerProps) {
       <Tabs defaultValue="map">
         <TabsList>
           <TabsTrigger value="map">Map</TabsTrigger>
-          <TabsTrigger value="list">List</TabsTrigger>
+          <TabsTrigger value="list">{t("networkExplorer.list")}</TabsTrigger>
         </TabsList>
         <TabsContent value="map">
           {graph.nodes.length === 0 ? (
             <Card className="p-8 text-center text-sm text-muted-foreground">
-              Nothing to show. Try enabling Archived, Notebooks, or Topics above.
+              {t("networkExplorer.nothingToShowTryEnablingArchivedNotebooksO")}
             </Card>
           ) : (
             <div className="h-[65vh] min-h-105 overflow-hidden rounded-xl border border-border/70 bg-card">
@@ -348,7 +350,7 @@ export function NetworkExplorer(props: NetworkExplorerProps) {
                 minZoom={0.1}
                 maxZoom={2}
                 proOptions={{ hideAttribution: false }}
-                aria-label="Context network map"
+                aria-label={t("networkExplorer.contextNetworkMap")}
               >
                 <Background gap={24} />
                 <Controls showInteractive={false} />
@@ -378,7 +380,7 @@ export function NetworkExplorer(props: NetworkExplorerProps) {
                           >
                             <span className="min-w-0 flex-1 truncate">{item.label}</span>
                             {item.archived ? (
-                              <Badge variant="secondary">Archived</Badge>
+                              <Badge variant="secondary">{t("areas.tabs.archived")}</Badge>
                             ) : null}
                           </a>
                         </li>
@@ -401,8 +403,8 @@ export function NetworkExplorer(props: NetworkExplorerProps) {
             </SheetTitle>
             <SheetDescription className="capitalize">
               {selected?.type}
-              {selected?.archived ? " · archived" : ""} · {selectedNeighbors.length}{" "}
-              connection{selectedNeighbors.length === 1 ? "" : "s"}
+              {selected?.archived ? t("networkExplorer.archived2") : ""} · {selectedNeighbors.length}{" "}
+              {t("networkExplorer.connection")}{selectedNeighbors.length === 1 ? "" : "s"}
             </SheetDescription>
           </SheetHeader>
           {selected ? (
@@ -413,14 +415,14 @@ export function NetworkExplorer(props: NetworkExplorerProps) {
                 className="cursor-pointer"
                 onClick={() => router.push(selected.href)}
               >
-                Open {selected.type}
+                {t("networkExplorer.open")} {selected.type}
               </Button>
               <div>
                 <h3 className="mb-1.5 text-xs font-semibold text-muted-foreground">
-                  Connected to
+                  {t("networkExplorer.connectedTo")}
                 </h3>
                 {selectedNeighbors.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No connections.</p>
+                  <p className="text-sm text-muted-foreground">{t("networkExplorer.noConnections")}</p>
                 ) : (
                   <ul className="flex flex-col gap-1">
                     {selectedNeighbors.map((neighbor) => (

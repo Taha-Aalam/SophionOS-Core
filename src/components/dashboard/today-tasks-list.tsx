@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useCompleteTask, useFocusTask, useUpdateTask } from "@/lib/hooks/use-tasks";
 import { TaskListItem } from "@/components/entities/task-list-item";
@@ -10,6 +11,7 @@ interface TodayTasksListProps {
 }
 
 export function TodayTasksList({ tasks }: TodayTasksListProps) {
+  const { t } = useI18n();
   const completeTask = useCompleteTask();
   const focusTask = useFocusTask();
   const updateTask = useUpdateTask();
@@ -18,7 +20,7 @@ export function TodayTasksList({ tasks }: TodayTasksListProps) {
     return (
       <div className="rounded-xl border border-dashed border-muted p-6 text-center">
         <p className="text-sm text-muted-foreground">
-          Nothing due today. Enjoy the breathing room!
+          {t("todayTasksList.nothingDueTodayEnjoyTheBreathingRoom")}
         </p>
       </div>
     );

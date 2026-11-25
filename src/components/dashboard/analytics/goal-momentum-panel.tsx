@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { ChartPieIcon } from "@/components/icons";
 
@@ -19,6 +20,7 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
  * filled pie disc — matches the thick multi-color ring in the reference.
  */
 export function GoalMomentumPanel({ momentum }: GoalMomentumPanelProps) {
+  const { t } = useI18n();
   const stuck = momentum.buckets.stuck;
   const moving = momentum.buckets.moving;
   const almostDone = momentum.buckets.almostDone;
@@ -44,7 +46,7 @@ export function GoalMomentumPanel({ momentum }: GoalMomentumPanelProps) {
 
   return (
     <AnalyticsPanel
-      title="Goal Momentum"
+      title={t("goalMomentumPanel.goalMomentum")}
       icon={ChartPieIcon}
       contentClassName="flex min-h-[160px] items-center justify-center"
     >
@@ -52,7 +54,7 @@ export function GoalMomentumPanel({ momentum }: GoalMomentumPanelProps) {
         <div
           className="relative shrink-0"
           style={{ width: SIZE, height: SIZE }}
-          aria-label="Goal progress buckets"
+          aria-label={t("goalMomentumPanel.goalProgressBuckets")}
           data-slot="goal-momentum-ring"
         >
           <svg
@@ -92,14 +94,14 @@ export function GoalMomentumPanel({ momentum }: GoalMomentumPanelProps) {
             <span className="text-xl font-semibold leading-none tabular-nums text-foreground transition-colors duration-200 ease-[var(--ease-out-quint)]">
               {total}
             </span>
-            <span className="mt-1 text-2xs text-muted-foreground">goals</span>
+            <span className="mt-1 text-2xs text-muted-foreground">{t("goalMomentumPanel.goals")}</span>
           </div>
         </div>
         <div className="min-w-[7.5rem] space-y-2.5">
-          <LegendRow label="Stuck" value={stuck} color="var(--analytics-risk, oklch(0.55 0.2 27))" />
-          <LegendRow label="Moving" value={moving} color="var(--analytics-action, oklch(0.58 0.14 260))" />
+          <LegendRow label={t("goalMomentumPanel.stuck")} value={stuck} color="var(--analytics-risk, oklch(0.55 0.2 27))" />
+          <LegendRow label={t("goalMomentumPanel.moving")} value={moving} color="var(--analytics-action, oklch(0.58 0.14 260))" />
           <LegendRow
-            label="Almost done"
+            label={t("goalMomentumPanel.almostDone")}
             value={almostDone}
             color="var(--analytics-accent, oklch(0.56 0.12 315))"
           />

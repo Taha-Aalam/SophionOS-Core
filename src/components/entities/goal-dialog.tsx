@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { useEffect, useMemo, useRef } from "react";
 import { X } from "lucide-react";
@@ -90,6 +91,7 @@ function buildGoalResolver(isCreate: boolean): Resolver<GoalFormValues> {
 }
 
 export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, availableAreaIds, onSuccess }: GoalDialogProps) {
+  const { t } = useI18n();
   const isCreate = !goal;
   const { data: allAreas = [] } = useAreas();
   const baseAreas = allAreas.filter((area) => !area.archive);
@@ -170,10 +172,10 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
   const selectedAreas = areas.filter((area) => selectedAreaIds.includes(area.id));
   const selectedTermLabel =
     selectedTerm === GOAL_TERM.SHORT
-      ? "Short Term"
+      ? t("goals.tabs.short")
       : selectedTerm === GOAL_TERM.MID
-        ? "Mid Term"
-        : "Long Term";
+        ? t("goals.tabs.mid")
+        : t("goals.tabs.long");
   const selectedPriorityLabel =
     selectedPriority === PRIORITY.LOW
       ? "Low"
@@ -209,14 +211,14 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{goal ? "Edit Goal" : "Create New Goal"}</DialogTitle>
+          <DialogTitle>{goal ? t("goalDetailContent.editGoal") : t("goalDialog.createNewGoal")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="goal-name">Name</Label>
+            <Label htmlFor="goal-name">{t("goalDialog.name")}</Label>
             <Input
               id="goal-name"
-              placeholder="e.g. Run a marathon"
+              placeholder={t("goalDialog.egRunAMarathon")}
               maxLength={100}
               {...form.register("name")}
             />
@@ -228,10 +230,10 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="goal-description">Description</Label>
+            <Label htmlFor="goal-description">{t("goalDialog.description")}</Label>
             <Textarea
               id="goal-description"
-              placeholder="Describe your objective..."
+              placeholder={t("goalDialog.describeYourObjective")}
               rows={3}
               maxLength={500}
               {...form.register("description")}
@@ -246,7 +248,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
           {/* Row 1: Term | Priority */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="goal-term">Term</Label>
+              <Label htmlFor="goal-term">{t("goalDialog.term")}</Label>
               <Select
                 value={selectedTerm}
                 onValueChange={(value) => form.setValue("term", value as Goal["term"])}
@@ -255,9 +257,9 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
                   <SelectValue>{selectedTermLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={GOAL_TERM.SHORT}>Short Term</SelectItem>
-                  <SelectItem value={GOAL_TERM.MID}>Mid Term</SelectItem>
-                  <SelectItem value={GOAL_TERM.LONG}>Long Term</SelectItem>
+                  <SelectItem value={GOAL_TERM.SHORT}>{t("goals.tabs.short")}</SelectItem>
+                  <SelectItem value={GOAL_TERM.MID}>{t("goals.tabs.mid")}</SelectItem>
+                  <SelectItem value={GOAL_TERM.LONG}>{t("goals.tabs.long")}</SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.term && (
@@ -268,7 +270,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="goal-priority">Priority</Label>
+              <Label htmlFor="goal-priority">{t("goalDialog.priority")}</Label>
               <Select
                 value={selectedPriority}
                 onValueChange={(value) => form.setValue("priority", value as Goal["priority"])}
@@ -278,8 +280,8 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
-                  <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
-                  <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
+                  <SelectItem value={PRIORITY.MEDIUM}>{t("goalDialog.medium")}</SelectItem>
+                  <SelectItem value={PRIORITY.HIGH}>{t("goalDialog.high")}</SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.priority && (
@@ -294,18 +296,18 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="goal-area">Areas</Label>
+                <Label htmlFor="goal-area">{t("nav.areas")}</Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     className={buttonVariants({ variant: "outline", size: "sm" })}
                   >
                     {selectedAreaIds.length === 0
-                      ? "Select areas..."
+                      ? t("goalDialog.selectAreas")
                       : `${selectedAreaIds.length} selected`}
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-56">
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => form.setValue("area_ids", [])}>
-                      Clear selection
+                      {t("goalDialog.clearSelection")}
                     </DropdownMenuItem>
                     <ScrollArea className="max-h-56">
                       {areas.map((area) => {
@@ -360,7 +362,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="goal-target-date">Target Date</Label>
+              <Label htmlFor="goal-target-date">{t("goalDialog.targetDate")}</Label>
               <Controller
                 control={form.control}
                 name="target_date"
@@ -385,7 +387,7 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
           {!isCreate && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="goal-progress">Progress</Label>
+                <Label htmlFor="goal-progress">{t("goalDialog.progress")}</Label>
                 <span className="text-xs font-medium text-muted-foreground">
                   {Math.round(progressValue)}%
                 </span>
@@ -409,10 +411,10 @@ export function GoalDialog({ open, onOpenChange, goal, defaultAreaIds, available
           <DialogFooter className="gap-2 sm:justify-end">
             <div className="flex items-center gap-2">
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-                Cancel
+                {t("action.cancel")}
               </Button>
               <Button type="submit" disabled={isPending}>
-                {goal ? "Save Changes" : "Create Goal"}
+                {goal ? t("goalDialog.saveChanges") : t("goalDialog.createGoal")}
               </Button>
             </div>
           </DialogFooter>

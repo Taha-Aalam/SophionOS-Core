@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useEffect, useMemo, useRef } from "react";
 import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
@@ -155,6 +156,7 @@ export function ProjectDialog({
   defaultAreaIds,
   onSuccess,
 }: ProjectDialogProps) {
+  const { t } = useI18n();
   const isGoalScoped = Boolean(goalScoped) && !project;
   const { data: allAreas = [] } = useAreas();
   const { data: allGoals = [] } = useGoals({ status: "all" });
@@ -365,20 +367,20 @@ export function ProjectDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] sm:max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{project ? "Edit Project" : "Create Project"}</DialogTitle>
+          <DialogTitle>{project ? t("projectDetailContent.editProject") : t("projects.empty.actionCreate")}</DialogTitle>
           <DialogDescription>
-            Capture the project basics now and link the goals it supports.
+            {t("projectDialog.captureTheProjectBasicsNowAndLinkTheGoalsI")}
           </DialogDescription>
         </DialogHeader>
 
         <FormProvider {...form}>
           <form className="space-y-5" onSubmit={handleSubmit}>
             <FormItem>
-              <FormLabel>Project Name</FormLabel>
+              <FormLabel>{t("projectDialog.projectName")}</FormLabel>
               <FormControl>
                 <Input
                   autoFocus
-                  placeholder="Enter project name"
+                  placeholder={t("projectDialog.enterProjectName")}
                   maxLength={100}
                   {...form.register("name")}
                 />
@@ -387,10 +389,10 @@ export function ProjectDialog({
             </FormItem>
 
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t("projectDialog.description")}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Add the project outcome or context"
+                  placeholder={t("projectDialog.addTheProjectOutcomeOrContext")}
                   rows={3}
                   maxLength={500}
                   {...form.register("description")}
@@ -402,7 +404,7 @@ export function ProjectDialog({
             {/* Row 1: Status (derived) | Priority */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormItem>
-                <FormLabel>Status</FormLabel>
+                <FormLabel>{t("projectDialog.status")}</FormLabel>
                 <Controller
                   control={form.control}
                   name="status"
@@ -414,11 +416,11 @@ export function ProjectDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={PROJECT_STATUS.INBOX}>Inbox</SelectItem>
-                        <SelectItem value={PROJECT_STATUS.PLANNING}>Planning</SelectItem>
-                        <SelectItem value={PROJECT_STATUS.ACTIVE}>In Progress</SelectItem>
-                        <SelectItem value={PROJECT_STATUS.COMPLETED}>Completed</SelectItem>
-                        <SelectItem value={PROJECT_STATUS.ON_HOLD}>On Hold</SelectItem>
+                        <SelectItem value={PROJECT_STATUS.INBOX}>{t("nav.inbox")}</SelectItem>
+                        <SelectItem value={PROJECT_STATUS.PLANNING}>{t("projects.tabs.planning")}</SelectItem>
+                        <SelectItem value={PROJECT_STATUS.ACTIVE}>{t("projects.tabs.inProgress")}</SelectItem>
+                        <SelectItem value={PROJECT_STATUS.COMPLETED}>{t("tasks.tabs.completed")}</SelectItem>
+                        <SelectItem value={PROJECT_STATUS.ON_HOLD}>{t("projects.tabs.onHold")}</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -427,7 +429,7 @@ export function ProjectDialog({
               </FormItem>
 
               <FormItem>
-                <FormLabel>Priority</FormLabel>
+                <FormLabel>{t("projectDialog.priority")}</FormLabel>
                 <Controller
                   control={form.control}
                   name="priority"
@@ -440,8 +442,8 @@ export function ProjectDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value={PRIORITY.LOW}>Low</SelectItem>
-                        <SelectItem value={PRIORITY.MEDIUM}>Medium</SelectItem>
-                        <SelectItem value={PRIORITY.HIGH}>High</SelectItem>
+                        <SelectItem value={PRIORITY.MEDIUM}>{t("projectDialog.medium")}</SelectItem>
+                        <SelectItem value={PRIORITY.HIGH}>{t("projectDialog.high")}</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -453,7 +455,7 @@ export function ProjectDialog({
             {/* Row 2: Start Date | Due Date */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormItem>
-                <FormLabel>Start Date</FormLabel>
+                <FormLabel>{t("projectDialog.startDate")}</FormLabel>
                 <Controller
                   control={form.control}
                   name="start_date"
@@ -472,7 +474,7 @@ export function ProjectDialog({
               </FormItem>
 
               <FormItem>
-                <FormLabel>Due Date</FormLabel>
+                <FormLabel>{t("projectDialog.dueDate")}</FormLabel>
                 <Controller
                   control={form.control}
                   name="due_date"
@@ -495,7 +497,7 @@ export function ProjectDialog({
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {isGoalScoped ? (
                 <FormItem>
-                  <FormLabel>Area</FormLabel>
+                  <FormLabel>{t("projectDialog.area")}</FormLabel>
                   <div
                     className="flex h-9 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground"
                     aria-readonly="true"
@@ -505,7 +507,7 @@ export function ProjectDialog({
                       const lockedArea = areas.find(
                         (area) => area.id === goalScoped?.areaId,
                       );
-                      if (!lockedArea) return "Inherited from goal";
+                      if (!lockedArea) return t("projectDialog.inheritedFromGoal");
                       return `${lockedArea.icon ? `${lockedArea.icon} ` : ""}${lockedArea.name} (from goal)`;
                     })()}
                   </div>
@@ -513,16 +515,16 @@ export function ProjectDialog({
               ) : (
                 <FormItem>
                   <div className="flex items-center justify-between">
-                    <FormLabel>Areas</FormLabel>
+                    <FormLabel>{t("nav.areas")}</FormLabel>
                     <DropdownMenu>
                       <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
                         {selectedAreaIds.length === 0
-                          ? "Select areas..."
+                          ? t("projectDialog.selectAreas")
                           : `${selectedAreaIds.length} selected`}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-56">
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => form.setValue("area_ids", [])}>
-                          Clear selection
+                          {t("projectDialog.clearSelection")}
                         </DropdownMenuItem>
                         <ScrollArea className="max-h-56">
                           {visibleAreas.map((area) => {
@@ -571,33 +573,33 @@ export function ProjectDialog({
 
               {isGoalScoped ? (
                 <FormItem>
-                  <FormLabel>Linked Goal</FormLabel>
+                  <FormLabel>{t("projectDialog.linkedGoal")}</FormLabel>
                   <div
                     className="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
                     data-testid="project-dialog-goal-locked"
                   >
-                    Locked to current goal
-                    <Badge variant="secondary">1 linked</Badge>
+                    {t("projectDialog.lockedToCurrentGoal")}
+                    <Badge variant="secondary">{t("projectDialog.n1Linked")}</Badge>
                   </div>
                 </FormItem>
               ) : (
                 <FormItem>
                   <div className="flex items-center justify-between">
-                    <FormLabel>Goals</FormLabel>
+                    <FormLabel>{t("nav.goals")}</FormLabel>
                     <DropdownMenu>
                       <DropdownMenuTrigger className={buttonVariants({ variant: "outline", size: "sm" })}>
-                        {selectedGoalIds.length === 0 ? "Select goals..." : `${selectedGoalIds.length} selected`}
+                        {selectedGoalIds.length === 0 ? t("projectDialog.selectGoals") : `${selectedGoalIds.length} selected`}
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-56">
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => form.setValue("goal_ids", [])}>
-                          Clear selection
+                          {t("projectDialog.clearSelection2")}
                         </DropdownMenuItem>
                         <ScrollArea className="max-h-56">
                           {visibleGoals.length === 0 ? (
                             <div className="px-2 py-1.5 text-sm text-muted-foreground">
                               {selectedAreaIds.length > 0
-                                ? "No goals in selected areas."
-                                : "No active goals available."}
+                                ? t("projectDialog.noGoalsInSelectedAreas")
+                                : t("projectDialog.noActiveGoalsAvailable")}
                             </div>
                           ) : (
                             visibleGoals.map((goal) => (
@@ -647,10 +649,10 @@ export function ProjectDialog({
                 onClick={() => onOpenChange(false)}
                 disabled={isPending}
               >
-                Cancel
+                {t("action.cancel")}
               </Button>
               <Button type="submit" disabled={isPending}>
-                {isPending ? "Saving..." : project ? "Update Project" : "Create Project"}
+                {isPending ? "Saving..." : project ? t("projectDialog.updateProject") : t("projects.empty.actionCreate")}
               </Button>
             </div>
           </form>

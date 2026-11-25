@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -14,6 +15,7 @@ import { generateSlug } from "@/lib/utils";
 import { getSuggestedAreaTypes } from "@/lib/utils/areas";
 
 export default function EditAreaPage() {
+  const { t } = useI18n();
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
@@ -77,7 +79,7 @@ export default function EditAreaPage() {
           <Button variant="ghost" size="icon-sm" onClick={() => router.push("/areas")}>
             <ArrowLeft className="size-4" />
           </Button>
-          <span>Area not found</span>
+          <span>{t("page.areaNotFound")}</span>
         </div>
       </div>
     );
@@ -89,7 +91,7 @@ export default function EditAreaPage() {
         <Button variant="ghost" size="icon-sm" onClick={() => router.push(`/areas/${area.slug}`)}>
           <ArrowLeft className="size-4" />
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight font-heading">Edit Area</h1>
+        <h1 className="text-2xl font-bold tracking-tight font-heading">{t("page.editArea")}</h1>
       </div>
       <AreaDialog
         open={true}

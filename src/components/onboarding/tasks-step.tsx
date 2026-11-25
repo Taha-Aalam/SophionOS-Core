@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { Plus, X } from "lucide-react";
 
@@ -48,6 +49,7 @@ function defaultTask(): TaskItemValue {
 }
 
 export function TasksStep({ value, onChange }: TasksStepProps) {
+  const { t } = useI18n();
   function patch(index: number, partial: Partial<TaskItemValue>) {
     const next = [...value];
     next[index] = { ...next[index], ...partial };
@@ -69,7 +71,7 @@ export function TasksStep({ value, onChange }: TasksStepProps) {
         <div key={task.id} className="space-y-2 rounded-lg border border-border/60 p-3">
           <div className="flex items-center gap-2">
             <Input
-              placeholder={`Task ${i + 1} name`}
+              placeholder={t("tasksStep.taskV0Name", { v0: i + 1 })}
               value={task.name}
               onChange={(e) => patch(i, { name: e.target.value })}
               autoFocus={i === 0}
@@ -81,7 +83,7 @@ export function TasksStep({ value, onChange }: TasksStepProps) {
                 size="icon"
                 className="size-7"
                 onClick={() => removeTask(i)}
-                aria-label={`Remove task ${i + 1}`}
+                aria-label={t("tasksStep.removeTaskV0", { v0: i + 1 })}
               >
                 <X className="size-3" />
               </Button>
@@ -90,13 +92,13 @@ export function TasksStep({ value, onChange }: TasksStepProps) {
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {/* Status */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Status</Label>
+              <Label className="text-xs">{t("tasksStep.status")}</Label>
               <Select
                 value={task.status || EMPTY}
                 onValueChange={(v) => patch(i, { status: v === EMPTY ? "" : (v as TaskStatus) })}
               >
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Todo" />
+                  <SelectValue placeholder={t("tasksStep.todo")} />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(TASK_STATUS_LABELS).map(([key, label]) => (
@@ -109,13 +111,13 @@ export function TasksStep({ value, onChange }: TasksStepProps) {
             </div>
             {/* Priority */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Priority</Label>
+              <Label className="text-xs">{t("tasksStep.priority")}</Label>
               <Select
                 value={task.priority || EMPTY}
                 onValueChange={(v) => patch(i, { priority: v === EMPTY ? "" : (v as Priority) })}
               >
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Medium" />
+                  <SelectValue placeholder={t("tasksStep.medium")} />
                 </SelectTrigger>
                 <SelectContent>
                   {(Object.entries(PRIORITY_LABELS) as [Priority, string][]).map(
@@ -148,7 +150,7 @@ export function TasksStep({ value, onChange }: TasksStepProps) {
           onClick={addTask}
         >
           <Plus className="size-4" />
-          Add task
+          {t("tasksStep.addTask")}
         </Button>
       )}
     </div>

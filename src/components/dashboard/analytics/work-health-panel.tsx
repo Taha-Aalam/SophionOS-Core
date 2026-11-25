@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import {
   FolderClockIcon,
@@ -16,32 +17,33 @@ interface WorkHealthPanelProps {
 }
 
 export function WorkHealthPanel({ health }: WorkHealthPanelProps) {
+  const { t } = useI18n();
   const rows = [
     {
-      label: "Overdue by area",
+      label: t("workHealthPanel.overdueByArea"),
       value: health.overdueByArea[0]?.count ?? 0,
-      detail: health.overdueByArea[0]?.name ?? "No overdue areas",
+      detail: health.overdueByArea[0]?.name ?? t("workHealthPanel.noOverdueAreas"),
       icon: TriangleAlertIcon,
       tone: "risk" as const,
     },
     {
-      label: "Overdue by project",
+      label: t("workHealthPanel.overdueByProject"),
       value: health.overdueByProject[0]?.count ?? 0,
-      detail: health.overdueByProject[0]?.name ?? "No overdue projects",
+      detail: health.overdueByProject[0]?.name ?? t("workHealthPanel.noOverdueProjects"),
       icon: FolderClockIcon,
       tone: "risk" as const,
     },
     {
-      label: "Low progress near due",
+      label: t("workHealthPanel.lowProgressNearDue"),
       value: health.lowProgressNearDueGoals.length,
-      detail: health.lowProgressNearDueGoals[0]?.name ?? "No goal risk",
+      detail: health.lowProgressNearDueGoals[0]?.name ?? t("workHealthPanel.noGoalRisk"),
       icon: RocketIcon,
       tone: "accent" as const,
     },
     {
-      label: "Unassigned tasks",
+      label: t("workHealthPanel.unassignedTasks"),
       value: health.unassignedTasks,
-      detail: "Missing area, project, and goal links",
+      detail: t("workHealthPanel.missingAreaProjectAndGoalLinks"),
       icon: Link2OffIcon,
       tone: "muted" as const,
     },
@@ -49,8 +51,8 @@ export function WorkHealthPanel({ health }: WorkHealthPanelProps) {
 
   return (
     <AnalyticsPanel
-      title="Work Health"
-      description="Overdue work, near-due goals, and unlinked tasks."
+      title={t("workHealthPanel.workHealth")}
+      description={t("workHealthPanel.overdueWorkNeardueGoalsAndUnlinkedTasks")}
       icon={HeartPulseIcon}
       className="h-full"
       contentClassName="flex h-full flex-col"

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useState } from "react";
 
@@ -22,6 +23,7 @@ export function AreasStep({
 }: {
   onAreasCreated?: (ids: string[]) => void;
 }) {
+  const { t } = useI18n();
   const { user } = useAuth();
   const { data: areas, isLoading } = useAreas();
   const createArea = useCreateArea(user?.id);
@@ -82,7 +84,7 @@ export function AreasStep({
           </Card>
         ))}
         {(!areas || areas.length === 0) && (
-          <p className="text-sm text-muted-foreground py-4 text-center col-span-full">No areas yet. Create one above to get started.</p>
+          <p className="text-sm text-muted-foreground py-4 text-center col-span-full">{t("areasStep.noAreasYetCreateOneAboveToGetStarted")}</p>
         )}
       </div>
 
@@ -94,12 +96,12 @@ export function AreasStep({
           onClick={() => setShowCreate(true)}
         >
           <Plus className="size-4" />
-          Create new area
+          {t("areasStep.createNewArea")}
         </Button>
       ) : (
         <Card className="space-y-3 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">New area</span>
+            <span className="text-sm font-medium">{t("areasStep.newArea")}</span>
             <Button
               variant="ghost"
               size="icon"
@@ -109,7 +111,7 @@ export function AreasStep({
                 setNewName("");
                 setNewIcon("");
               }}
-              aria-label="Remove area"
+              aria-label={t("areasStep.removeArea")}
             >
               <X className="size-3" />
             </Button>
@@ -124,7 +126,7 @@ export function AreasStep({
             <div className="flex gap-2">
               <div className="w-16 space-y-1.5">
                 <Label htmlFor="onboarding-area-icon" className="sr-only">
-                  Icon
+                  {t("areasStep.icon")}
                 </Label>
                 <Input
                   id="onboarding-area-icon"
@@ -137,11 +139,11 @@ export function AreasStep({
               </div>
               <div className="flex-1 space-y-1.5">
                 <Label htmlFor="onboarding-area-name" className="sr-only">
-                  Area name
+                  {t("areasStep.areaName")}
                 </Label>
                 <Input
                   id="onboarding-area-name"
-                  placeholder="e.g. Fitness"
+                  placeholder={t("areasStep.egFitness")}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   autoFocus
@@ -154,10 +156,10 @@ export function AreasStep({
               className="w-full"
               disabled={!newName.trim() || createArea.isPending}
             >
-              {createArea.isPending ? "Creating…" : "Add area"}
+              {createArea.isPending ? "Creating…" : t("areasStep.addArea")}
             </Button>
             {createArea.isError && (
-              <p className="text-sm text-destructive">Failed to create area. Please try again.</p>
+              <p className="text-sm text-destructive">{t("areasStep.failedToCreateAreaPleaseTryAgain")}</p>
             )}
           </form>
         </Card>

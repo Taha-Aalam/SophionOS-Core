@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useMemo, useState } from "react";
 import { Check, ChevronDownIcon, Plus } from "lucide-react";
@@ -32,8 +33,10 @@ export function NoteTypeCombobox({
   options,
   onChange,
   disabled,
-  placeholder = "Select or create type...",
+  placeholder,
 }: NoteTypeComboboxProps) {
+  const { t } = useI18n();
+  const placeholderText = placeholder ?? t("noteTypeCombobox.selectOrCreateType");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -62,13 +65,13 @@ export function NoteTypeCombobox({
         disabled={disabled}
         className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between text-sm font-normal")}
       >
-        {value ? selectedLabel : placeholder}
+        {value ? selectedLabel : placeholderText}
         <ChevronDownIcon className="ml-2 size-3.5 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0" align="start">
         <Command>
           <CommandInput
-            placeholder="Search or create type..."
+            placeholder={t("noteTypeCombobox.searchOrCreateType")}
             value={query}
             onValueChange={setQuery}
           />
@@ -87,10 +90,10 @@ export function NoteTypeCombobox({
                   }}
                 >
                   <Plus className="size-3.5" />
-                  Create &quot;{query.trim()}&quot;
+                  {t("noteTypeCombobox.createQuot")}{query.trim()}{t("noteTypeCombobox.quot")}
                 </button>
               ) : (
-                "No types found."
+                t("areaDialog.noTypesFound")
               )}
             </CommandEmpty>
             <CommandGroup>
@@ -123,7 +126,7 @@ export function NoteTypeCombobox({
                   }}
                 >
                   <Plus className="mr-2 size-3.5" />
-                  Create &quot;{query.trim()}&quot;
+                  {t("noteTypeCombobox.createQuot2")}{query.trim()}{t("noteTypeCombobox.quot2")}
                 </CommandItem>
               )}
             </CommandGroup>

@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React, { memo } from "react";
 import { useRouter } from "next/navigation";
@@ -54,6 +55,7 @@ const AreaCardComponent = ({
   returnTo,
   returnToChain,
 }: AreaCardProps) => {
+  const { t } = useI18n();
   const router = useRouter();
   const isArchived = area.archive;
 
@@ -104,7 +106,7 @@ const AreaCardComponent = ({
                 {area.name}
                 {duplicateIndex != null && duplicateIndex > 1 && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    copy {duplicateIndex}
+                    {t("areaCard.copy")} {duplicateIndex}
                   </span>
                 )}
               </h3>
@@ -117,18 +119,18 @@ const AreaCardComponent = ({
                 </Badge>
                 {!isArchived && goalsCount === 0 && projectsCount === 0 && tasksCount === 0 && notesCount === 0 && resourcesCount === 0 && (
                   <Badge variant="outline" className="text-xs text-muted-foreground">
-                    No activity
+                    {t("areaCard.noActivity")}
                   </Badge>
                 )}
                 {isInactive && !isArchived && (goalsCount > 0 || projectsCount > 0 || tasksCount > 0 || notesCount > 0 || resourcesCount > 0) && (
                   <Badge variant="outline" className="text-xs text-muted-foreground">
-                    Paused
+                    {t("areaCard.paused")}
                   </Badge>
                 )}
                 {isArchived && (
                   <Badge variant="outline" className="text-xs">
                     <Archive className="size-3 mr-1" />
-                    Archived
+                    {t("areas.tabs.archived")}
                   </Badge>
                 )}
               </div>
@@ -145,7 +147,7 @@ const AreaCardComponent = ({
                     e.stopPropagation();
                     onEdit(area);
                   }}
-                  aria-label="Edit area"
+                  aria-label={t("areaCard.editArea")}
                 >
                   <Pencil className="size-4" />
                 </Button>
@@ -159,7 +161,7 @@ const AreaCardComponent = ({
                     onArchive(area);
                   }}
                   disabled={isArchiving}
-                  aria-label="Archive area"
+                  aria-label={t("areaCard.archiveArea")}
                 >
                   <Archive className="size-4" />
                 </Button>
@@ -178,7 +180,7 @@ const AreaCardComponent = ({
                     onRestore(area);
                   }}
                   disabled={isRestoring}
-                  aria-label="Restore area"
+                  aria-label={t("areaCard.restoreArea")}
                 >
                   <RotateCcw className="size-4" />
                 </Button>
@@ -207,23 +209,23 @@ const AreaCardComponent = ({
 
       <CardContent>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1" title="Goals">
+          <div className="flex items-center gap-1" title={t("nav.goals")}>
             <ENTITY_ICONS.goal size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{goalsCount}</span>
           </div>
-          <div className="flex items-center gap-1" title="Projects">
+          <div className="flex items-center gap-1" title={t("nav.projects")}>
             <ENTITY_ICONS.project size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{projectsCount}</span>
           </div>
-          <div className="flex items-center gap-1" title="Tasks">
+          <div className="flex items-center gap-1" title={t("nav.tasks")}>
             <ENTITY_ICONS.task size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{tasksCount}</span>
           </div>
-          <div className="flex items-center gap-1" title="Notes">
+          <div className="flex items-center gap-1" title={t("nav.notes")}>
             <ENTITY_ICONS.note size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{notesCount}</span>
           </div>
-          <div className="flex items-center gap-1" title="Resources">
+          <div className="flex items-center gap-1" title={t("nav.resources")}>
             <ENTITY_ICONS.resource size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>{resourcesCount}</span>
           </div>

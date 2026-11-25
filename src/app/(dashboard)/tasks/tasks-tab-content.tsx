@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import React from "react";
 
@@ -84,6 +85,7 @@ export function TasksTabContent({
   getLinkedGoalNamesForList,
   getLinkedProjectNamesForList,
 }: TasksTabContentProps) {
+  const { t } = useI18n();
   return (
     <>
       <TabsContent value={TASK_VIEW.CALENDAR} className="mt-0 flex-1">
@@ -131,28 +133,28 @@ export function TasksTabContent({
               }
               title={
                 tab === TASK_VIEW.FOCUS
-                  ? "No focused tasks"
+                  ? t("tasks.empty.focus.title")
                   : tab === TASK_VIEW.SMART_PRIORITY
-                    ? "No prioritized tasks"
+                    ? t("tasks.empty.smart.title")
                     : tab === TASK_VIEW.OVERDUE
-                      ? "Nothing overdue"
+                      ? t("tasks.empty.overdue.title")
                       : tab === TASK_VIEW.COMPLETED
-                        ? "No completed tasks yet"
-                        : "No tasks here"
+                        ? t("tasks.empty.completed.title")
+                        : t("tasks.empty.all.title")
               }
               description={
                 tab === TASK_VIEW.ALL
-                  ? "Create your first task to get started."
+                  ? t("tasks.empty.all.description")
                   : tab === TASK_VIEW.OVERDUE
-                    ? "Great job - you're all caught up!"
+                    ? t("tasksTabContent.greatJobYoureAllCaughtUp")
                     : tab === TASK_VIEW.FOCUS
-                      ? "Star a task to add it to your focus list."
+                      ? t("tasks.empty.focus.description")
                       : tab === TASK_VIEW.SMART_PRIORITY
-                        ? "Tasks are ranked here by real smart-priority scores."
-                        : "Tasks matching this view will appear here."
+                        ? t("tasks.empty.smart.description")
+                        : t("tasks.empty.default.description")
               }
               actionLabel={
-                tab === TASK_VIEW.ALL || tab === TASK_VIEW.INBOX ? "New Task" : undefined
+                tab === TASK_VIEW.ALL || tab === TASK_VIEW.INBOX ? t("action.newTask") : undefined
               }
               onAction={
                 tab === TASK_VIEW.ALL || tab === TASK_VIEW.INBOX
@@ -199,7 +201,7 @@ export function TasksTabContent({
           getLinkedAreaIcons={getLinkedAreaIcons}
           getLinkedGoalNames={getLinkedGoalNames}
           getLinkedProjectNames={getLinkedProjectNames}
-          emptyMessage="Tasks will be grouped by area here."
+          emptyMessage={t("tasks.empty.byArea")}
         />
       </TabsContent>
 
@@ -220,7 +222,7 @@ export function TasksTabContent({
           getLinkedAreaIcons={getLinkedAreaIcons}
           getLinkedGoalNames={getLinkedGoalNames}
           getLinkedProjectNames={getLinkedProjectNames}
-          emptyMessage="Tasks will be grouped by goal here."
+          emptyMessage={t("tasks.empty.byGoal")}
         />
       </TabsContent>
 
@@ -241,20 +243,20 @@ export function TasksTabContent({
           getLinkedAreaIcons={getLinkedAreaIcons}
           getLinkedGoalNames={getLinkedGoalNames}
           getLinkedProjectNames={getLinkedProjectNames}
-          emptyMessage="Tasks will be grouped by project here."
+          emptyMessage={t("tasks.empty.byProject")}
         />
       </TabsContent>
 
       <TabsContent value={TASK_VIEW.ARCHIVE} className="mt-0 flex-1">
         {isArchivedLoading ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-            Loading tasks...
+            {t("tasks.loading")}
           </div>
         ) : archivedTasks.length === 0 ? (
           <EmptyState
             icon={Archive}
-            title="No archived tasks"
-            description="Archived tasks will appear here. Use the archive icon on a task row to archive it."
+            title={t("tasks.empty.archive.title")}
+            description={t("tasks.empty.archive.description")}
           />
         ) : (
           <TaskList

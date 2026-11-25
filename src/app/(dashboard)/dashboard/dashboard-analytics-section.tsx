@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { DashboardAnalyticsPanels } from "./dashboard-analytics-panels";
 import type {
@@ -29,8 +30,9 @@ interface DashboardAnalyticsSectionProps {
  * no second analytics-only skeleton flash.
  */
 export function DashboardAnalyticsSection(props: DashboardAnalyticsSectionProps) {
+  const { t } = useI18n();
   return (
-    <section className="min-w-0" aria-label="Dashboard analytics">
+    <section className="min-w-0" aria-label={t("dashboardAnalyticsSection.dashboardAnalytics")}>
       <DashboardAnalyticsPanels
         areas={props.areas}
         goals={props.goals}
