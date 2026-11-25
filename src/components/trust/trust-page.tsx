@@ -20,11 +20,14 @@ export function TrustPage({
   icon: Icon,
   title,
   description,
+  notice,
   children,
 }: {
   icon: ComponentType<{ className?: string; size?: number; "aria-hidden"?: "true" | "false" | undefined }>;
   title: string;
   description: string;
+  /** Governing-language notice — rendered only on non-English renderings. */
+  notice?: string;
   children: ReactNode;
 }) {
   return (
@@ -39,7 +42,12 @@ export function TrustPage({
           <p className="text-muted-foreground text-sm mt-1">{description}</p>
         </div>
       </div>
-      <div className="legal-doc">{children}</div>
+      <div className="legal-doc">
+        {notice ? (
+          <p className="mb-6 text-xs text-muted-foreground">{notice}</p>
+        ) : null}
+        {children}
+      </div>
     </div>
   );
 }

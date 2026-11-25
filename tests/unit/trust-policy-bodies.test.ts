@@ -3,6 +3,15 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import en, { type TranslationKey } from "@/lib/i18n/dictionary";
+
+/** Legal prose now lives in dictionary keys; resolve it back to English so
+ *  these product-truth assertions still pin the same rendered words. */
+const resolveKeys = (source: string) =>
+  source
+    .replace(/\{t\("([^"]+)"\)\}/g, (_, key: string) => en[key as TranslationKey] ?? "")
+    .replace(/t\("([^"]+)"\)/g, (_, key: string) => en[key as TranslationKey] ?? "");
+
 /**
  * Pins the BODY of the four policy pages that carry no binding counterpart:
  * /security, /subprocessors, /data-and-ai, /responsible-disclosure.
@@ -29,7 +38,7 @@ const raw = (slug: string) =>
 
 /** The page source is prettier-wrapped at 80 columns, so prose assertions
  *  have to run against whitespace-normalised text. */
-const prose = (slug: string) => raw(slug).replace(/\s+/g, " ");
+const prose = (slug: string) => resolveKeys(raw(slug)).replace(/\s+/g, " ");
 
 const SECURITY = () => prose("security");
 const SUBPROCESSORS = () => prose("subprocessors");

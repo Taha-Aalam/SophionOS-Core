@@ -1,3 +1,4 @@
+import { getLegalI18n } from "@/lib/i18n/server";
 import { PolicyMeta } from "@/components/trust/policy-meta";
 import { GavelIcon } from "@/components/icons";
 import { TrustPage } from "@/components/trust/trust-page";
@@ -7,136 +8,108 @@ export const metadata = {
   description: "How to report security vulnerabilities.",
 };
 
-export default function ResponsibleDisclosurePage() {
+export default async function ResponsibleDisclosurePage() {
+  const { t, locale } = await getLegalI18n();
   return (
     <TrustPage
+      notice={locale === "en" ? undefined : t("legal.governingNotice")}
       icon={GavelIcon}
-      title="Responsible Disclosure"
-      description="How to report security vulnerabilities."
+      title={t("legal.responsibleDisclosure")}
+      description={t("legal.responsibleDisclosure.howToReportSecurityVulnerabilities")}
     >
       <PolicyMeta
         version="2.1"
         effective="October 19, 2026"
-        summary="Replaces the previous page. Adds safe-harbor terms, a clear scope of what is and is not in bounds, and the timelines you can expect."
+        summary={t("legal.responsibleDisclosure.replacesThePreviousPageAddsSafeharborTermsAClearScopeOfW")}
       />
 
       <p>
-        If you believe you have found a security vulnerability in SophionOS,
-        please report it privately so we can investigate before public
-        disclosure. Good-faith research is welcome, and we will not pursue or
-        support legal action against you for it.
+        {t("legal.responsibleDisclosure.ifYouBelieveYouHaveFoundASecurityVulnerabilityInSophiono")}
       </p>
 
-      <h2>How to report</h2>
+      <h2>{t("legal.responsibleDisclosure.howToReport")}</h2>
       <ul>
         <li>
-          Email{" "}
-          <a href="mailto:security@sophionos.com">security@sophionos.com</a>{" "}
-          with the subject line &quot;Security&quot;. This is the security
-          contact for SophionOS Cloud, and the same address the
-          repository&apos;s <code>SECURITY.md</code> names. For a self-hosted
-          deployment, contact its operator instead.
+          {t("page.email")}{" "}
+          <a href="mailto:security@sophionos.com">{t("legal.responsibleDisclosure.securitysophionoscom")}</a>{" "}
+          {t("legal.responsibleDisclosure.withTheSubjectLineSecurityThisIsTheSecurityContactForSop")} <code>{t("legal.responsibleDisclosure.securitymd")}</code> {t("legal.responsibleDisclosure.namesForASelfhostedDeploymentContactItsOperatorInstead")}
         </li>
         <li>
-          Include steps to reproduce, the impact you believe it has, and whether
-          any user data was accessed or could be.
+          {t("legal.responsibleDisclosure.includeStepsToReproduceTheImpactYouBelieveItHasAndWhethe")}
         </li>
         <li>
-          Do not include raw API keys, passwords, or session tokens; redact
-          anything sensitive. If a secret leaked, tell us so we can rotate it;
-          do not send the secret itself.
+          {t("legal.responsibleDisclosure.doNotIncludeRawApiKeysPasswordsOrSessionTokensRedactAnyt")}
         </li>
       </ul>
 
-      <h2>Safe harbor</h2>
+      <h2>{t("legal.responsibleDisclosure.safeHarbor")}</h2>
       <p>
-        If you act in good faith and follow this page, we consider your research
-        authorized, and we will not bring or support a legal claim against you
-        for it. Good faith means:
+        {t("legal.responsibleDisclosure.ifYouActInGoodFaithAndFollowThisPageWeConsiderYourResear")}
       </p>
       <ul>
         <li>
-          You test only against your own account and your own data, or a test
-          account you created for the purpose.
+          {t("legal.responsibleDisclosure.youTestOnlyAgainstYourOwnAccountAndYourOwnDataOrATestAcc")}
         </li>
         <li>
-          You stop as soon as you have enough evidence to demonstrate the issue,
-          and you do not exfiltrate, retain, or share anyone else&apos;s data.
+          {t("legal.responsibleDisclosure.youStopAsSoonAsYouHaveEnoughEvidenceToDemonstrateTheIssu")}
         </li>
         <li>
-          You do not degrade, interrupt, or deny service to other users, and you
-          do not run automated load, brute-force, or spam campaigns.
+          {t("legal.responsibleDisclosure.youDoNotDegradeInterruptOrDenyServiceToOtherUsersAndYouD")}
         </li>
         <li>
-          You give us a reasonable opportunity to fix the issue before any
-          public disclosure, and you do not disclose another person&apos;s data
-          at any point.
+          {t("legal.responsibleDisclosure.youGiveUsAReasonableOpportunityToFixTheIssueBeforeAnyPub")}
         </li>
       </ul>
       <p>
-        This safe harbor does not cover the systems of our providers: Clerk,
-        Supabase, Vercel, Dodo Payments, or Resend. Report issues in those
-        services to them, under their own programs.
+        {t("legal.responsibleDisclosure.thisSafeHarborDoesNotCoverTheSystemsOfOurProvidersClerkS")}
       </p>
 
-      <h2>In scope</h2>
+      <h2>{t("legal.responsibleDisclosure.inScope")}</h2>
       <ul>
         <li>
-          Authentication and session handling on app.sophionos.com, including
-          authorization bypass.
+          {t("legal.responsibleDisclosure.authenticationAndSessionHandlingOnAppsophionoscomIncludi")}
         </li>
         <li>
-          Cross-user data access: any way to read or write another user&apos;s
-          rows through the app, the REST API, or the MCP server.
+          {t("legal.responsibleDisclosure.crossuserDataAccessAnyWayToReadOrWriteAnotherUsersRowsTh")}
         </li>
-        <li>API key handling, and the plan and entitlement checks.</li>
-        <li>Server-side request forgery, injection, and access-control flaws.</li>
-        <li>Prompt-injection paths that cross a user boundary.</li>
+        <li>{t("legal.responsibleDisclosure.apiKeyHandlingAndThePlanAndEntitlementChecks")}</li>
+        <li>{t("legal.responsibleDisclosure.serversideRequestForgeryInjectionAndAccesscontrolFlaws")}</li>
+        <li>{t("legal.responsibleDisclosure.promptinjectionPathsThatCrossAUserBoundary")}</li>
       </ul>
 
-      <h2>Out of scope</h2>
+      <h2>{t("legal.responsibleDisclosure.outOfScope")}</h2>
       <ul>
         <li>
-          Findings that require a compromised device, a compromised browser
-          extension, or physical access.
+          {t("legal.responsibleDisclosure.findingsThatRequireACompromisedDeviceACompromisedBrowser")}
         </li>
         <li>
-          Missing security headers with no demonstrated impact, clickjacking on
-          pages with no sensitive action, and self-XSS.
+          {t("legal.responsibleDisclosure.missingSecurityHeadersWithNoDemonstratedImpactClickjacki")}
         </li>
         <li>
-          Reports from automated scanners with no proof of impact, and
-          rate-limit or email-bombing reports that are working as designed.
+          {t("legal.responsibleDisclosure.reportsFromAutomatedScannersWithNoProofOfImpactAndRateli")}
         </li>
         <li>
-          Social engineering of the founder or any user, and physical attacks.
+          {t("legal.responsibleDisclosure.socialEngineeringOfTheFounderOrAnyUserAndPhysicalAttacks")}
         </li>
         <li>
-          Denial of service, load testing, or anything that degrades the service
-          for others.
+          {t("legal.responsibleDisclosure.denialOfServiceLoadTestingOrAnythingThatDegradesTheServi")}
         </li>
         <li>
-          Third-party services listed in{" "}
-          <a href="/subprocessors">Subprocessors</a>; report to them.
+          {t("legal.responsibleDisclosure.thirdpartyServicesListedIn")}{" "}
+          <a href="/subprocessors">{t("legal.subprocessors")}</a>{t("legal.responsibleDisclosure.reportToThem")}
         </li>
       </ul>
 
-      <h2>What to expect</h2>
+      <h2>{t("legal.responsibleDisclosure.whatToExpect")}</h2>
       <p>
-        We acknowledge reports within 7 days, tell you whether we consider the
-        issue in scope, and keep you informed of progress. We aim to remediate
-        critical issues within 30 days and lower-severity issues within 90 days,
-        and we will tell you if a fix will take longer. Any breach-notification
-        duty falls on whoever operates the instance the issue affects, not on
-        the reporter. We are happy to credit you in the fix notes or in the
-        repository if you would like; just say so.
+        {t("legal.responsibleDisclosure.weAcknowledgeReportsWithin7DaysTellYouWhetherWeConsiderT")}
       </p>
       <p className="text-sm text-muted-foreground">
-        This page is product documentation, not legal counsel.
+        {t("legal.security.thisPageIsProductDocumentationNotLegalCounsel")}
       </p>
       <p>
-        Related: <a href="/security">Security</a> ·{" "}
-        <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
+        {t("legal.privacy.related")} <a href="/security">{t("legal.security")}</a> ·{" "}
+        <a href="/privacy">{t("legal.privacy")}</a> · <a href="/terms">{t("legal.terms")}</a>
       </p>
     </TrustPage>
   );

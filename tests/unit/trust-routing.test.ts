@@ -7,6 +7,12 @@ import { describe, expect, it } from "vitest";
 
 import { breadcrumbLabels, trustNavItems } from "@/components/layout/navigation";
 import en from "@/lib/i18n/dictionary";
+
+/** Legal prose lives in dictionary keys now; resolve to English for assertions. */
+const resolveKeys = (source: string) =>
+  source
+    .replace(/\{t\("([^"]+)"\)\}/g, (_, key: string) => en[key as keyof typeof en] ?? "")
+    .replace(/t\("([^"]+)"\)/g, (_, key: string) => en[key as keyof typeof en] ?? "");
 import { TrustPage } from "@/components/trust/trust-page";
 import { isActiveNavigationPath } from "@/lib/auth/auth-routing";
 import { Lock } from "lucide-react";
@@ -179,7 +185,9 @@ describe("trust route group", () => {
   });
 
   it("states the founding seat exactly as the marketing site sells it", () => {
-    const source = readFileSync(join(SRC, "app", "(trust)", "terms", "page.tsx"), "utf8");
+    // Terms prose now lives in dictionary keys; resolve to English for the
+    // product-truth assertion.
+    const source = resolveKeys(readFileSync(join(SRC, "app", "(trust)", "terms", "page.tsx"), "utf8"));
     expect(source).toContain("$150");
     // A seat grants two years of Power from the payment instant.
     expect(source).toContain("two years of Power");
@@ -198,7 +206,7 @@ describe("trust route group", () => {
 });
 
 describe("privacy coverage beyond US and EU", () => {
-  const privacy = () => readFileSync(join(SRC, "app", "(trust)", "privacy", "page.tsx"), "utf8");
+  const privacy = () => resolveKeys(readFileSync(join(SRC, "app", "(trust)", "privacy", "page.tsx"), "utf8"));
 
   it("carries a GDPR notice for European users", () => {
     expect(privacy()).toContain("Notice to European users");
