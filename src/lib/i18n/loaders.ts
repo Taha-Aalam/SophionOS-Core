@@ -6,9 +6,9 @@ import type { Dictionary } from "./dictionary";
  *
  * Only English is imported eagerly: it is the fallback every other locale
  * resolves through, and the one the shell needs before a preference is known.
- * Every other Tier-1 dictionary is a `import()` behind its own locale code, so
- * the bundler emits one chunk per locale and the client downloads only the
- * active one. Tier-2/3 locales have no loader yet and resolve to English.
+ * Every other dictionary is a `import()` behind its own locale code, so the
+ * bundler emits one chunk per locale and the client downloads only the active
+ * one. Tier-3 locales have no loader yet and resolve to English.
  *
  * es-MX deliberately imports `es` first, then applies its own overrides, which
  * keeps the variant file tiny and means an es fix reaches es-MX automatically.
@@ -26,6 +26,27 @@ const LOADERS: Partial<Record<Locale, () => Promise<{ default: Partial<Dictionar
   ko: () => import("./locales/ko"),
   hi: () => import("./locales/hi"),
   ru: () => import("./locales/ru"),
+  pl: () => import("./locales/pl"),
+  cs: () => import("./locales/cs"),
+  uk: () => import("./locales/uk"),
+  bg: () => import("./locales/bg"),
+  tr: () => import("./locales/tr"),
+  sv: () => import("./locales/sv"),
+  no: () => import("./locales/no"),
+  fi: () => import("./locales/fi"),
+  da: () => import("./locales/da"),
+  el: () => import("./locales/el"),
+  ro: () => import("./locales/ro"),
+  hr: () => import("./locales/hr"),
+  et: () => import("./locales/et"),
+  th: () => import("./locales/th"),
+  vi: () => import("./locales/vi"),
+  id: () => import("./locales/id"),
+  bn: () => import("./locales/bn"),
+  mn: () => import("./locales/mn"),
+  kk: () => import("./locales/kk"),
+  ky: () => import("./locales/ky"),
+  fil: () => import("./locales/fil"),
 };
 
 const ES_MX_OVERRIDES = () => import("./locales/es-MX");

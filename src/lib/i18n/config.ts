@@ -110,6 +110,9 @@ export const LOCALES: readonly LocaleMeta[] = [
 /** Locales whose dictionaries ship with the i18n mechanism. */
 export const TIER1_LOCALES = LOCALES.filter((locale) => locale.tier === 1);
 
+/** Locales with a stored dictionary that the UI can select (Tier 1 + Tier 2). */
+export const AVAILABLE_LOCALES = LOCALES.filter((locale) => locale.tier <= 2);
+
 export const DEFAULT_LOCALE: Locale = "en";
 
 const LOCALE_BY_LOWER = new Map(LOCALES.map((locale) => [locale.code.toLowerCase(), locale]));

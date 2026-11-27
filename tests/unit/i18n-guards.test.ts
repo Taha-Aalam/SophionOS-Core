@@ -15,37 +15,85 @@ import {
   type Locale,
 } from "@/lib/i18n/config";
 import en, { type Dictionary } from "@/lib/i18n/dictionary";
+import { hasLocaleDictionary } from "@/lib/i18n/loaders";
 import { NAV_SEARCH_KEYWORDS } from "@/lib/i18n/nav-search-keywords";
 import { translate } from "@/lib/i18n/translate";
+import bg from "@/lib/i18n/locales/bg";
+import bn from "@/lib/i18n/locales/bn";
+import cs from "@/lib/i18n/locales/cs";
+import da from "@/lib/i18n/locales/da";
 import de from "@/lib/i18n/locales/de";
+import el from "@/lib/i18n/locales/el";
 import es from "@/lib/i18n/locales/es";
 import esMX from "@/lib/i18n/locales/es-MX";
+import et from "@/lib/i18n/locales/et";
+import fi from "@/lib/i18n/locales/fi";
+import fil from "@/lib/i18n/locales/fil";
 import fr from "@/lib/i18n/locales/fr";
 import hi from "@/lib/i18n/locales/hi";
+import hr from "@/lib/i18n/locales/hr";
+import id from "@/lib/i18n/locales/id";
 import itLocale from "@/lib/i18n/locales/it";
 import ja from "@/lib/i18n/locales/ja";
+import kk from "@/lib/i18n/locales/kk";
 import ko from "@/lib/i18n/locales/ko";
+import ky from "@/lib/i18n/locales/ky";
+import mn from "@/lib/i18n/locales/mn";
 import nl from "@/lib/i18n/locales/nl";
+import no from "@/lib/i18n/locales/no";
+import pl from "@/lib/i18n/locales/pl";
 import pt from "@/lib/i18n/locales/pt";
+import ro from "@/lib/i18n/locales/ro";
 import ru from "@/lib/i18n/locales/ru";
+import sv from "@/lib/i18n/locales/sv";
+import th from "@/lib/i18n/locales/th";
+import tr from "@/lib/i18n/locales/tr";
+import uk from "@/lib/i18n/locales/uk";
+import vi from "@/lib/i18n/locales/vi";
 import zh from "@/lib/i18n/locales/zh";
 
 const SRC = new URL("../../src", import.meta.url).pathname;
 
 const STORED_DICTIONARIES: Partial<Record<Locale, Partial<Dictionary>>> = {
+  bg,
+  bn,
+  cs,
+  da,
   de,
+  el,
   es,
   "es-MX": esMX,
+  et,
+  fi,
+  fil,
   fr,
   hi,
+  hr,
+  id,
   it: itLocale,
   ja,
+  kk,
   ko,
+  ky,
+  mn,
   nl,
+  no,
+  pl,
   pt,
+  ro,
   ru,
+  sv,
+  th,
+  tr,
+  uk,
+  vi,
   zh,
 };
+
+const TIER2_CODES = [
+  "pl", "cs", "uk", "bg", "tr", "sv", "no", "fi", "da", "el", "ro", "hr",
+  "et", "th", "vi", "id", "bn", "mn", "kk", "ky", "fil",
+] as const satisfies readonly Locale[];
 
 const EN_KEYS = Object.keys(en) as Array<keyof Dictionary>;
 
@@ -65,6 +113,14 @@ describe("i18n locale scope", () => {
       "en", "ja", "es", "es-MX", "fr", "de", "pt", "it", "nl", "zh", "ko", "hi", "ru",
     ]);
   });
+
+  it("registers all twenty-one Tier-2 locales with stored dictionaries", () => {
+    for (const code of TIER2_CODES) {
+      expect(LOCALE_CODES, code).toContain(code);
+      expect(Object.keys(STORED_DICTIONARIES), code).toContain(code);
+      expect(hasLocaleDictionary(code), code).toBe(true);
+    }
+  });
 });
 
 describe("dictionary parity", () => {
@@ -82,8 +138,8 @@ describe("dictionary parity", () => {
     }
   });
 
-  it("resolves every English key to non-blank copy in every Tier-1 locale", () => {
-    for (const { code } of TIER1_LOCALES) {
+  it("resolves every English key to non-blank copy in every stored locale", () => {
+    for (const code of Object.keys(STORED_DICTIONARIES) as Locale[]) {
       for (const key of EN_KEYS) {
         const value = translate(key, code, STORED_DICTIONARIES);
         expect(value, `${code} → ${key}`).toBeTruthy();
@@ -104,7 +160,7 @@ describe("dictionary parity", () => {
     expect(translate("nav.tasks", "es-MX", STORED_DICTIONARIES)).toBe(es["nav.tasks"]);
   });
 
-  it("covers every ja-translated key in every stored Tier-1 locale", () => {
+  it("covers every ja-translated key in every stored locale", () => {
     for (const [code, dictionary] of Object.entries(STORED_DICTIONARIES)) {
       // es-MX stores only overrides and inherits the rest from es.
       const parent = code === "es-MX" ? es : undefined;
@@ -144,11 +200,12 @@ describe("navigation display-label guard", () => {
 });
 
 describe("command palette multilingual keywords", () => {
-  it("indexes every nav label in every Tier-1 locale", () => {
+  it("indexes every nav label in every stored locale", () => {
+    const codes: Locale[] = ["en", ...(Object.keys(STORED_DICTIONARIES) as Locale[])];
     for (const item of [...coreNavItems, ...systemNavItems, ...trustNavItems]) {
       const keywords = NAV_SEARCH_KEYWORDS[item.labelKey] ?? [];
       expect(keywords.length, item.labelKey).toBeGreaterThan(0);
-      for (const { code } of TIER1_LOCALES) {
+      for (const code of codes) {
         if (code === "en") {
           expect(keywords, `${item.labelKey} (en)`).toContain(en[item.labelKey]);
           continue;
@@ -158,6 +215,13 @@ describe("command palette multilingual keywords", () => {
         expect(keywords, `${item.labelKey} (${code})`).toContain(label);
       }
     }
+  });
+
+  it("indexes the Tier-2 search acceptance labels", () => {
+    expect(NAV_SEARCH_KEYWORDS["nav.tasks"]).toContain("Zadania");
+    expect(NAV_SEARCH_KEYWORDS["nav.tasks"]).toContain(pl["nav.tasks"]);
+    expect(NAV_SEARCH_KEYWORDS["nav.tasks"]).toContain(th["nav.tasks"]);
+    expect(NAV_SEARCH_KEYWORDS["nav.tasks"]).toContain(bn["nav.tasks"]);
   });
 
   it("includes Japanese romaji readings for the acceptance cases", () => {

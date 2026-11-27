@@ -29,7 +29,7 @@ import {
 } from "@/lib/hooks/use-user-settings";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useI18n } from "@/components/providers/i18n-provider";
-import { TIER1_LOCALES } from "@/lib/i18n/config";
+import { AVAILABLE_LOCALES } from "@/lib/i18n/config";
 import type { TranslationKey } from "@/lib/i18n/dictionary";
 
 const TIMEZONES = [
@@ -164,13 +164,13 @@ export default function PreferencesPage() {
               >
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder={t("preferences.language.placeholder")}>
-                    {(value) => TIER1_LOCALES.find((item) => item.code === value)?.nativeName}
+                    {(value) => AVAILABLE_LOCALES.find((item) => item.code === value)?.nativeName}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {/* Native names are never translated: a user looking for
                       their language should recognise it as they write it. */}
-                  {TIER1_LOCALES.map((item) => (
+                  {AVAILABLE_LOCALES.map((item) => (
                     <SelectItem key={item.code} value={item.code}>
                       {item.nativeName}
                     </SelectItem>
