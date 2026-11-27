@@ -13,15 +13,15 @@
 
 ## Primary controls
 
-| Control | Status in alpha |
+| Control | Status today |
 |---------|-----------------|
 | Clerk session auth | Implemented |
 | RLS on user tables | Implemented in migrations; multi-user CI incomplete in all envs |
 | API key hashing (SHA-256), revoke, expiry | Implemented |
 | Rate limiting | Implemented (memory or Postgres RPC) |
-| Paid tier wall on many `/api/v1` routes | Implemented (Cloud-oriented) |
-| Fine-grained API key scopes | **Not complete** — treat keys as broad access |
-| MCP permanent-delete restrictions | Partial (confirm flags); **experimental** |
+| Tier wall on API routes behind `authorizeApiRequest` | Implemented (Cloud-oriented, 403 `TIER_REQUIRED`) |
+| API key scopes | Mode presets only (`read_only`/`write_limited`/`write_enabled`); per-key scopes not enforced |
+| MCP permanent-delete restriction | Implemented: 403 `PERMANENT_DELETE_DISABLED` for all keys |
 | Full threat model tests for prompt injection | Residual risk |
 
 ## Threat notes (selected)
@@ -41,7 +41,7 @@ See `SECURITY.md`.
 
 ## Residual risks (honest)
 
-Public alpha has not completed a formal third-party audit. Full dual-user RLS
+No third-party audit report has been published for this tree. Full dual-user RLS
 integration matrices may not run in every contributor environment without local
 Supabase + Clerk JWT fixtures. Structural migration checks and unit tests cover
 what this repo can automate without live credentials.

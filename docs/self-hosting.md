@@ -16,7 +16,7 @@ You are the operator. SophionOS open source does not include managed backups,
 ## Prerequisites
 
 - Node.js **22+**
-- **pnpm** 9+
+- **pnpm** 11 (the repo pins `pnpm@11.13.1` in `package.json`)
 - Clerk application (development or production)
 - Supabase project **or** Supabase CLI for local Postgres
 - Ability to set JWT integration so Supabase accepts Clerk tokens (see below)
@@ -108,13 +108,25 @@ pnpm build
 ```
 
 Unit tests use in-memory rate limiting (`RATE_LIMIT_STORE=memory` in CI).
+Leave `RATE_LIMIT_STORE` unset in production to use the Postgres shared
+counters; the `memory` store keeps counters per process and is only suitable
+for tests or a single-process install.
+
+### The tier gate on API/MCP routes
+
+Data routes behind `authorizeApiRequest` call `requirePaidTier`
+(`src/lib/api/subscription.ts`), so a new self-hosted account without an
+active `pro`/`lifetime`/`max` row receives 403 `TIER_REQUIRED`; the MCP server
+also checks this at startup via `GET /api/v1/mcp/health`. There is no supported
+off-switch in this tree. Read `docs/known-limitations.md` before you rely on
+API or MCP access from a self-hosted deployment.
 
 ## 5. Docker evaluation path
 
 Multi-stage image builds the Next.js app only (Clerk + Supabase stay external).
 A published image is available at
 `ghcr.io/taha-aalam/sophionos-core` (`latest`, `sha-<short>`, and a version tag
-such as `0.2.1`), built for `linux/amd64` and `linux/arm64`.
+such as `0.2.11`), built for `linux/amd64` and `linux/arm64`.
 
 **Browser-visible configuration is fixed at image build time.** Next.js inlines
 every `NEXT_PUBLIC_*` value into the client bundle during `next build`, so

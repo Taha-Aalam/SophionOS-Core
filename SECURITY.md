@@ -4,11 +4,12 @@
 
 | Version | Supported |
 |---------|-----------|
-| `0.x` public alpha (main branch) | Security fixes on a best-effort basis |
+| `0.x` (current line, launched 2026-11-27) | Security fixes on a best-effort basis |
 | Unreleased local builds | Not supported for production use |
 
-This project is in **public alpha**. Do not treat it as enterprise-certified or
-penetration-tested without your own review.
+This project is the self-hosted open-source edition of a launched product. Do
+not treat it as enterprise-certified or penetration-tested without your own
+review.
 
 ## Reporting a vulnerability
 
@@ -18,8 +19,7 @@ Prefer one of:
 
 1. **GitHub private vulnerability reporting** (Security → Report a vulnerability)
    on this repository, if enabled.
-2. Email: **security@sophionos.com** (replace with your maintainer address if
-   different; update this file before public launch if needed).
+2. Email: **security@sophionos.com**.
 
 ### What to include
 

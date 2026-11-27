@@ -34,6 +34,12 @@ Progress moves up the chain. Completing a task updates its project's progress, w
 - The dashboard, Inbox and My Day focus attention on current work.
 - Guided onboarding and flexible settings cover setup.
 - MCP tools let Claude, Cursor and other clients read and update your SophionOS data.
+- Internationalized UI: 38 locales are configured (34 selectable with shipped
+  dictionaries), with a 2,085-key source dictionary and RTL locales staged for
+  a layout pass (`src/lib/i18n/config.ts`, `docs/languages/i18n-report.md`).
+
+Core is permanently free and open source. There is no paywall in Core and none
+is planned; plans and founding seats belong to the hosted Cloud service only.
 
 ## License
 
@@ -91,7 +97,7 @@ Details: `docs/privacy-and-data.md`, `docs/mcp.md`, `docs/api.md`.
 ## Quick start (local)
 
 ```bash
-# Prerequisites: Node 22+, pnpm 9+, Clerk + Supabase projects
+# Prerequisites: Node 22+, pnpm 11 (packageManager pins 11.13.1), Clerk + Supabase projects
 cp .env.example .env.local
 # Edit .env.local with your keys (placeholders only in .env.example)
 
@@ -135,8 +141,8 @@ for security findings.
 | `docs/security-model.md` | Boundaries and threat notes |
 | `docs/api.md` | REST API status |
 | `docs/mcp.md` | MCP status |
-| `docs/known-limitations.md` | Honest alpha limits |
-| `docs/BUG-smart-priority.md` | Open defects in task smart priority (unfixed) |
+| `docs/known-limitations.md` | Honest current limits and the tier gate |
+| `docs/superpowers/BUG-smart-priority.md` | Open defects in task smart priority (unfixed) |
 | `docs/deployment.md` | Deploy and upgrades |
 | `docs/testing.md` | How we test |
 | `SUPPORT.md` | Where to ask for help |

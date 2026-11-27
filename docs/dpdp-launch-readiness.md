@@ -70,12 +70,12 @@ One finding in this tree is closed here:
 
 A real Google OAuth client secret was committed in `supabase/config.toml` and
 was removed from the current tree (Google external auth disabled; placeholders
-use `env(GOOGLE_*)`). The value may still exist in git history until a history
-rewrite, which was not done without the owner's approval. See
-`docs/ops/secret-history-remediation.md` and
-`docs/audit/Owner-Actions-Required-For-Public-Alpha.md`. Note that app
-authentication is Clerk, not Supabase Auth Google login — if the Google OAuth
-client is unused, delete the credentials rather than rotating them.
+use `env(GOOGLE_*)`). The history was purged and force-pushed on 2026-11-19 with
+owner approval; the owning Google Cloud project was permanently deleted, so no
+rotation was possible or needed. See
+`docs/security/2026-09-secret-rotation-runbook.md` and
+`docs/security/2026-09-remediation-closure.md`. App authentication is Clerk,
+not Supabase Auth Google login.
 
 ## Decisions taken, and what they foreclose
 

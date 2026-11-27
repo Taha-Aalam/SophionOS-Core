@@ -18,7 +18,7 @@
 - [ ] Docs updated if user-facing or operator-facing behavior changed
 - [ ] Migrations are additive/safe; destructive changes are documented
 - [ ] No secrets, real user data, or production credentials in the diff
-- [ ] API/MCP claims remain accurate (experimental vs stable)
+- [ ] API/MCP claims match the code (tool count, status, and concrete limits)
 
 ## Security notes
 

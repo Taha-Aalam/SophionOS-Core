@@ -900,7 +900,7 @@ Page header (`SettingsDetailHeader`):
 
 **Connect your AI client card** (paid only):
 - Title: **`Connect your AI client`**
-- Description: `Create an API key in AI Access, then choose a client and copy the config below. MCP remains experimental — documented for evaluation, not certified for every host.`
+- Description: `Create an API key in AI Access, then choose a client and copy the config below. MCP works today; the tool list can still change.`
 - Contains `<McpClientMatrix baseUrl />`
 
 ### 5.4 MCP client matrix — `src/components/settings/mcp-client-matrix.tsx` + `src/lib/mcp/client-configs.ts`
@@ -1007,7 +1007,7 @@ OpenCode (JSON):
 ### 5.5 MCP tool registry — `packages/mcp-server/src/tools/{core,knowledge,links,parity}.ts`
 
 Server identity (`src/server.ts`): `SERVER_NAME = "sophionos"`, `SERVER_VERSION = "0.1.0"`, transport **stdio**.
-**66 `registerTool` calls total** (core 16, knowledge 27, links 12, parity 11). Note: `packages/mcp-server/README.md:156` still says "33 tools" — the README count is stale relative to the code.
+**66 `registerTool` calls total** (core 16, knowledge 27, links 12, parity 11). The package README now carries the same 66-tool count and list.
 
 **Core PARA** (16)
 `list_areas` (List Areas) · `create_area` (Create Area) · `archive_area` (Archive Area) · `restore_area` (Restore Area) · `list_goals` (List Goals) · `get_goal_detail` (Get Goal Detail) · `create_goal` (Create Goal) · `update_goal` (Update Goal) · `list_projects` (List Projects) · `get_project` (Get Project) · `create_project` (Create Project) · `update_project` (Update Project) · `list_tasks` (List Tasks) · `create_task` (Create Task) · `update_task` (Update Task) · `complete_task` (Complete Task)

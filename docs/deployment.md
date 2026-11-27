@@ -19,7 +19,7 @@ SophionOS is a Next.js application plus Supabase (Postgres) and Clerk.
 - [ ] Database backups scheduled and restore-tested
 - [ ] Clerk production instance + allowed origins configured
 - [ ] Rate limits and tier gates understood for your threat model
-- [ ] Read `docs/known-limitations.md` (API/MCP experimental)
+- [ ] Read `docs/known-limitations.md` (working API/MCP, concrete limits, tier gate)
 
 ## Docker
 
