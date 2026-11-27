@@ -38,5 +38,9 @@ Missing keys fall back to English at runtime, so a partial locale is safe.
 | kk | Қазақша | 2085 | 0 | 100% |
 | ky | Кыргызча | 2085 | 0 | 100% |
 | fil | Filipino | 2085 | 0 | 100% |
+| ar | العربية | 2085 | 0 | 100% |
+| ur | اردو | 2085 | 0 | 100% |
+| fa | فارسی | 2085 | 0 | 100% |
+| he | עברית | 2085 | 0 | 100% |
 
 ## Keys still untranslated

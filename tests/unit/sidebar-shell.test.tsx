@@ -79,9 +79,10 @@ describe("Sidebar — collapsed rail expand control", () => {
     const bubble = expandButtons[0];
     const floatingWrapper = bubble.parentElement as HTMLElement;
 
-    // Out of the rail's layout flow, straddling the right edge at logo height.
+    // Out of the rail's layout flow, straddling the rail's trailing edge
+    // (`end-0` mirrors to the left under RTL) at logo height.
     expect(floatingWrapper.className).toContain("absolute");
-    expect(floatingWrapper.className).toContain("right-0");
+    expect(floatingWrapper.className).toContain("end-0");
     expect(floatingWrapper.className).toContain("top-6");
     expect(floatingWrapper.className).toContain("translate-x-1/2");
 
