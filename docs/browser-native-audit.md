@@ -12,7 +12,8 @@ Audit-only report: what the web platform can now do natively that this repo curr
 
 ## 0. Browser targets (assumption on record)
 
-No `browserslist`, `.browserslistrc`, `browserslist` field in `package.json`, or `.mwgrc` exists in this repo. **Assumption:** Next.js 16's built-in transpilation target (modern evergreen browsers). Classification below therefore treats **Baseline Widely available** as safe without fallback, **Newly available** as adopt-with-feature-detection, and **Limited** as adopt-only-behind-a-fallback or defer. Recommendation: document an explicit Baseline policy (e.g. in `AGENTS.md`) so future audits don't re-derive it.
+`package.json` now declares a `browserslist` (chrome/edge 111+, firefox 111+,
+safari 16.4+); there is no `.browserslistrc` or `.mwgrc`. **Assumption:** Next.js 16's built-in transpilation target (modern evergreen browsers). Classification below treats **Baseline Widely available** as safe without fallback, **Newly available** as adopt-with-feature-detection, and **Limited** as adopt-only-behind-a-fallback or defer. Recommendation: document an explicit Baseline policy (e.g. in `AGENTS.md`) so future audits don't re-derive it.
 
 Out of scope per the audit brief (excluded, not evaluated as candidates): server-side dependencies, database/storage (`@supabase/*`, `pg` in CI scripts), auth (`@clerk/nextjs`, 188 KB client chunks), payments, email (`resend`), server AI providers, build/test tooling. `packages/mcp-server` is server-only — out of scope.
 

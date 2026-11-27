@@ -52,13 +52,14 @@ always per `user_id`. See `docs/data-model.md`.
 ## MCP
 
 `packages/mcp-server` is a separate package that calls the REST API with an API
-key. Status: **experimental** — see `docs/mcp.md`.
+key. It works today; the tool list can still change — see `docs/mcp.md`.
 
 ## Important as-built notes
 
 - Many entity services still default to the **browser** Supabase client; API
   routes inject a server client via `{ supabase }` options when present.
-- Tier wall / paid-tier checks gate some API paths for Cloud-style monetization;
-  self-hosters should understand `requirePaidTier` behavior for their deployment.
+- `authorizeApiRequest` enforces a Cloud-oriented tier wall through
+  `requirePaidTier`; a self-hoster without an active `pro`/`lifetime`/`max` row
+  gets 403 `TIER_REQUIRED`. See `docs/known-limitations.md`.
 - Progress, smart priority, and some cascades are implemented with SQL triggers
   and RPCs in `supabase/migrations/`.

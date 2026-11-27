@@ -1,10 +1,10 @@
 # Governance
 
-## Early-stage model
+## Launch-stage model
 
-SophionOS is in **public alpha**. The founding maintainer(s) retain final
-decision-making authority on product direction, security, licensing, and
-releases.
+The hosted product launched on 2026-11-27; Core is the open-source self-hosted
+edition. The founding maintainer(s) retain final decision-making authority on
+product direction, security, licensing, and releases.
 
 ## Decision criteria
 

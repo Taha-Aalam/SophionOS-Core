@@ -1,6 +1,6 @@
 # i18n (Tier 1): typed dictionary, shell extraction, multilingual search
 
-Branch: `feat/i18n` → `master` · one PR · **not merged**
+Merged to `master` on 2026-11-27 (Tier-1 i18n), with Tier-2 locales registered in PR #270.
 
 UI layer only. Routes, API, DB, internal identifiers and user content stay
 canonical English; the `SophionOS` brand is never translated; legal document

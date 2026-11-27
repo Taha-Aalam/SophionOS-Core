@@ -1,6 +1,6 @@
 # Brief — Seed once at signup; duplicate-aware entity-cap guard
 
-Status: implemented in this repo (PR: branch `fix/seed-once-duplicate-aware-cap`, two commits).
+Status: implemented on `master` via PR #229 (`fix/seed-once-duplicate-aware-cap`).
 This document is the design record for the hand-port to **sophionos-cloud** — the
 migration SQL, the RPC contract, the gating shape, and the proof methodology are
 what the port carries. Bugs confirmed live on the downstream cloud deployment

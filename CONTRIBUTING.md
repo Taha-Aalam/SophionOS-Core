@@ -1,13 +1,13 @@
 # Contributing to SophionOS
 
-Thanks for helping improve SophionOS. This project is a **public alpha**:
-correctness, security, and honest documentation matter more than flashy
-features.
+Thanks for helping improve SophionOS. The hosted product is launched and Core
+is the permanently free, open-source self-hosted edition; correctness, security,
+and honest documentation matter more than flashy features.
 
 ## Prerequisites
 
 - Node.js 22+
-- [pnpm](https://pnpm.io) 9+
+- [pnpm](https://pnpm.io) 11 (`package.json` pins `pnpm@11.13.1`)
 - A [Clerk](https://clerk.com) application (development instance is fine)
 - A [Supabase](https://supabase.com) project or local Supabase CLI stack
 - Git

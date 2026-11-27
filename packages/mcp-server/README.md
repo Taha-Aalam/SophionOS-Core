@@ -1,8 +1,8 @@
 # @sophionos/mcp-server
 
-**Status: experimental.** Connect [SophionOS Core](https://sophionos.com) to Claude, Codex, Antigravity, Cursor, OpenCode, or any MCP-compatible AI client. Your AI assistant gets structured tools for your tasks, goals, projects, notes, resources, contacts, and more.
+**Status: working today.** Connect [SophionOS Core](https://sophionos.com) to Claude, Codex, Antigravity, Cursor, OpenCode, or any MCP-compatible AI client. Your AI assistant gets structured tools for your tasks, goals, projects, notes, resources, contacts, and more. The tool list can still change, and founding members help shape it.
 
-The server wraps the SophionOS Core REST API. Your existing AI model handles the natural language; this server handles the structured data operations against your SophionOS account. Clients below are **documented for evaluation**, not certified.
+The server wraps the SophionOS Core REST API. Your existing AI model handles the natural language; this server handles the structured data operations against your SophionOS account. The client paths below are documented and working, but not certified for every host version. Core is permanently free and open source (AGPL-3.0-or-later) with no SophionOS plans or billing of its own.
 
 ## Prerequisites
 
@@ -18,11 +18,16 @@ The server reads two environment variables:
 | `SOPHIONOS_API_KEY` | yes | — | Your SophionOS API key (`sop_…`). |
 | `SOPHIONOS_API_URL` | no | `https://app.sophionos.com` | Base origin of your SophionOS instance (no trailing slash). |
 
-On startup the server validates the key against `GET /api/v1/user/settings`. An invalid or revoked key makes the server refuse to start with a clear error.
+On startup the server validates the key with `GET /api/v1/mcp/health`. A 200
+means the key is valid and the account has an active `pro`/`lifetime`/`max`
+entitlement; 401 means invalid/revoked; 403 `TIER_REQUIRED` means the key is
+valid but the account has no paid entitlement, so the server refuses to start.
+See `docs/known-limitations.md` before self-hosting.
 
 ## Setup
 
-In-app snippets (Settings → MCP, Pro) use the same shapes as below. Paths are **typical**, not certified for every host version.
+In-app snippets (Settings → MCP) use the same shapes as below. Paths are
+**typical**, not certified for every host version.
 
 ### Claude Desktop
 
@@ -153,7 +158,41 @@ Set `SOPHIONOS_API_URL` to your instance origin (no trailing slash). The example
 
 ## Tools
 
-33 tools across every SophionOS module.
+**66 tools** across every SophionOS module, counted from `registerTool` calls
+in `packages/mcp-server/src/tools/` on this tree: core 16, knowledge 27,
+links 12, parity 11. The tool list can still change and founding members help
+shape it; this is the authoritative list for this version.
+
+**Core PARA** (`tools/core.ts`, 16)
+
+- `list_areas`, `create_area`, `archive_area`, `restore_area`, `list_goals`,
+  `get_goal_detail`, `create_goal`, `update_goal`, `list_projects`, `get_project`,
+  `create_project`, `update_project`, `list_tasks`, `create_task`, `update_task`,
+  `complete_task`
+
+**Knowledge, contacts and system** (`tools/knowledge.ts`, 27)
+
+- `list_notes`, `get_note`, `create_note`, `update_note`, `save_resource`,
+  `list_resources`, `list_topics`, `create_topic`, `list_contacts`,
+  `create_contact`, `log_interaction`, `link_contact_to_project`, `search`,
+  `knowledge_search`, `get_dashboard`, `get_my_day`, `get_inbox`,
+  `list_notebooks`, `list_note_types`, `bulk_archive_notes`,
+  `bulk_delete_notes`, `bulk_update_note_status`, `get_contact_log_history`,
+  `get_contact_groups`, `get_contacts_grouped_by_area`,
+  `get_contacts_grouped_by_goal`, `get_dashboard_activity`
+
+**Links and notebooks** (`tools/links.ts`, 12)
+
+- `add_note_to_notebook`, `remove_note_from_notebook`, `set_note_notebooks`,
+  `get_related_notes`, `link_area`, `unlink_area`, `archive_entity`,
+  `restore_entity`, `link_contact_to_task`, `update_resource`, `update_topic`,
+  `update_contact`
+
+**Entity parity** (`tools/parity.ts`, 11)
+
+- `get_entity`, `delete_entity`, `link_goal`, `unlink_goal`, `link_project`,
+  `unlink_project`, `link_task`, `unlink_task`, `unlink_contact_from_project`,
+  `unlink_contact_from_task`, `update_area`
 
 **Data safety:** permanent delete is dashboard-only. The API rejects every
 permanent delete from API keys and MCP with `403 PERMANENT_DELETE_DISABLED`
@@ -161,23 +200,10 @@ permanent delete from API keys and MCP with `403 PERMANENT_DELETE_DISABLED`
 tools (`archive_area`, `archive_entity`, `bulk_archive_notes`) to hide
 records reversibly, or delete permanently in the web dashboard.
 
-**Core PARA**
-- Areas — `list_areas`, `create_area`, `archive_area`, `restore_area`
-- Goals — `list_goals`, `get_goal_detail`, `create_goal`, `update_goal`
-- Projects — `list_projects`, `get_project`, `create_project`, `update_project`
-- Tasks — `list_tasks`, `create_task`, `update_task`, `complete_task`
-
-**Knowledge**
-- Notes — `list_notes`, `get_note`, `create_note`, `update_note`
-- Resources — `save_resource`, `list_resources`
-- Topics — `list_topics`, `create_topic`
-- Search — `search` (all entities), `knowledge_search` (notes + resources + topics)
-
-**Contacts**
-- `list_contacts`, `create_contact`, `log_interaction`, `link_contact_to_project`
-
-**System**
-- `get_dashboard` (today), `get_my_day`, `get_inbox`
+**Access limits:** keys use access-mode presets (`read_only`, `write_limited`,
+`write_enabled`) defined in the Core API; per-key scopes are not enforced
+today, and the startup probe enforces the account tier. See
+`docs/known-limitations.md` and `docs/mcp.md` for the exact behavior.
 
 ### Example prompts
 
@@ -192,8 +218,12 @@ records reversibly, or delete permanently in the web dashboard.
 ## How it works
 
 - **Transport:** stdio (works with all local MCP clients).
-- **Auth:** your API key travels as `Authorization: Bearer sop_…`. SophionOS resolves it to your account server-side and applies row-level security — the server never sees your password or session.
-- **Scope:** every tool acts only on your own data.
+- **Auth:** your API key travels in an `Authorization` header as a Bearer
+  token. SophionOS resolves it to your account server-side and applies
+  row-level security — the server never sees your password or session.
+- **Scope:** every tool acts only on your own data, within the key's access
+  mode and the account's tier. Permanent delete via a key is always blocked;
+  see `docs/known-limitations.md`.
 
 ## Development
 
@@ -220,4 +250,4 @@ src/
 
 ## License
 
-MIT
+AGPL-3.0-or-later — see the repository `LICENSE` and `packages/mcp-server/package.json`.
