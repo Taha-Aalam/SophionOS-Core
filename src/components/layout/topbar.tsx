@@ -96,7 +96,7 @@ export function Topbar({
         <Breadcrumb />
       </div>
 
-      <ProfileDropdown className="mr-1" initialSubscription={initialSubscription} />
+      <ProfileDropdown className="me-1" initialSubscription={initialSubscription} />
     </header>
   );
 }

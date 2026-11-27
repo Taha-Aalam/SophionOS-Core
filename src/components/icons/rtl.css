@@ -1,0 +1,19 @@
+/* Tier-3 RTL: the shared icon-layer mirroring rule.
+ *
+ * Only glyphs that encode a horizontal direction are flipped. Brand marks,
+ * search, clock, media, chart and other symmetric glyphs are deliberately not
+ * listed here and therefore never mirror. Chart canvases and timelines render
+ * their own internals and are intentionally unaffected.
+ */
+[dir="rtl"] .lucide-chevron-left,
+[dir="rtl"] .lucide-chevron-right,
+[dir="rtl"] .lucide-arrow-left,
+[dir="rtl"] .lucide-arrow-right,
+[dir="rtl"] .lucide-arrow-big-left,
+[dir="rtl"] .lucide-arrow-big-right,
+[dir="rtl"] .lucide-move-left,
+[dir="rtl"] .lucide-move-right,
+[dir="rtl"] .lucide-send,
+[dir="rtl"] .lucide-send-horizontal {
+  transform: scaleX(-1);
+}

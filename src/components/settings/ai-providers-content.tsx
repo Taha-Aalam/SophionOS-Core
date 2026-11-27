@@ -206,7 +206,7 @@ function DisconnectConfirm(input: {
     <div
       role="alertdialog"
       aria-label={t("aiProvidersContent.disconnectV0", { v0: input.label })}
-      className="fixed inset-x-0 bottom-4 z-50 mx-auto flex w-[calc(100%-2rem)] max-w-md items-center justify-between gap-3 rounded-lg border bg-background p-4 shadow-lg"
+      className="fixed inset-inline-0 bottom-4 z-50 mx-auto flex w-[calc(100%-2rem)] max-w-md items-center justify-between gap-3 rounded-lg border bg-background p-4 shadow-lg"
     >
       <p className="text-sm">
         {t("aiProvidersContent.disconnect2")} {input.label}{t("aiProvidersContent.featuresUsingThisKeyFallBackToStandardBeha")}

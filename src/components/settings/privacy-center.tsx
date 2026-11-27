@@ -336,7 +336,7 @@ export function PrivacyCenter() {
             </div>
           ) : (
             <>
-              <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+              <ul className="text-sm text-muted-foreground list-disc ps-5 space-y-1">
                 <li>{t("privacyCenter.apiKeysRevokedAndAiAccessDisabledImmediate")}</li>
                 <li>
                   {t("privacyCenter.youMayCancelDuringTheGracePeriodFromThisPa")}

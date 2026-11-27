@@ -119,9 +119,9 @@ export function ProfileDropdown({
               <button
                 type="button"
                 aria-label={t("chrome.userMenu")}
-                className="flex items-center gap-2 rounded-xl p-1 pr-2 transition-colors outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-accent/60"
+                className="flex items-center gap-2 rounded-xl p-1 pe-2 transition-colors outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-accent/60"
               >
-                <div className="flex min-w-0 flex-col items-start text-left leading-tight">
+                <div className="flex min-w-0 flex-col items-start text-start leading-tight">
                   <span className="flex max-w-[16rem] items-center gap-1.5">
                     <span className="truncate text-sm font-medium tracking-tight text-foreground">
                       {displayName}
@@ -149,7 +149,7 @@ export function ProfileDropdown({
           <div
             className={cn(
               "pointer-events-none absolute top-1/2 -translate-y-1/2 transition-opacity duration-200",
-              "right-0 translate-x-full",
+              "end-0 translate-x-full rtl:-translate-x-full",
               isOpen ? "opacity-100" : "opacity-60 group-hover:opacity-100",
             )}
             aria-hidden
@@ -203,7 +203,7 @@ export function ProfileDropdown({
                   {item.value ? (
                     <span
                       className={cn(
-                        "ml-auto shrink-0 rounded-md border px-2 py-1 text-xs font-medium tracking-tight",
+                        "ms-auto shrink-0 rounded-md border px-2 py-1 text-xs font-medium tracking-tight",
                         "border-border bg-muted text-muted-foreground",
                       )}
                     >
@@ -227,7 +227,7 @@ export function ProfileDropdown({
 
             <button
               type="button"
-              className="mt-1 flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors outline-none hover:bg-accent/70 focus-visible:ring-2 focus-visible:ring-ring"
+              className="mt-1 flex w-full items-center gap-3 rounded-xl p-3 text-start transition-colors outline-none hover:bg-accent/70 focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
             >
               <SunMoonIcon size={16} className="text-muted-foreground" />

@@ -694,11 +694,11 @@
   }
   .legal-doc ul {
     list-style: disc;
-    padding-left: 1.25rem;
+    padding-inline-start: 1.25rem;
   }
   .legal-doc ol {
     list-style: decimal;
-    padding-left: 1.25rem;
+    padding-inline-start: 1.25rem;
   }
   .legal-doc li + li {
     margin-top: 0.375rem;
@@ -733,7 +733,7 @@
   .legal-doc td {
     border: 1px solid var(--border);
     padding: 0.5rem 0.75rem;
-    text-align: left;
+    text-align: start;
     vertical-align: top;
   }
   .legal-doc th {
@@ -749,4 +749,19 @@
   .progress-ring__progress {
     stroke-dashoffset: var(--ring-start-offset);
   }
+}
+
+/* Tier-3 script fallback. Geist/Sora ship latin subsets only; the browser
+   falls back per glyph for RTL scripts. Naming the scripts explicitly keeps
+   Arabic, Nastaliq Urdu, Persian and Hebrew rendering consistent across
+   platforms instead of leaving it to an implementation-specific default. */
+:root {
+  --font-rtl-fallback: "Noto Sans Arabic", "Noto Naskh Arabic", "Noto Nastaliq Urdu",
+    "Noto Sans Hebrew", "David Libre", "DejaVu Sans", sans-serif;
+}
+[dir="rtl"] body {
+  font-family: var(--font-geist-sans, ui-sans-serif), var(--font-rtl-fallback);
+}
+[dir="rtl"] .font-heading {
+  font-family: var(--font-heading, ui-sans-serif), var(--font-rtl-fallback);
 }

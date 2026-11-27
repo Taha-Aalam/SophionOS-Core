@@ -99,7 +99,7 @@ export function McpClientMatrix({ baseUrl }: McpClientMatrixProps) {
             ) : (
               <Copy className="size-4" />
             )}
-            <span className="ml-1">{t("mcpClientMatrix.copy")}</span>
+            <span className="ms-1">{t("mcpClientMatrix.copy")}</span>
           </Button>
         </div>
         <pre className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap break-all">
