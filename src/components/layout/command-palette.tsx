@@ -156,7 +156,7 @@ export function CommandPalette() {
   const q = normalizeSearch(query);
 
   // A nav item matches its active-locale label, or any of its keywords: the
-  // label in every stored Tier-1 locale plus Japanese romaji readings. This is
+  // label in every stored locale plus Japanese romaji readings. This is
   // what lets a Japanese word (or an in-progress romaji composition) find a
   // page whose visible label is English.
   const navMatches = (labelKey: TranslationKey, label: string): boolean =>

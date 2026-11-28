@@ -28,6 +28,7 @@ const STORED = [
   "ja", "es", "es-MX", "fr", "de", "pt", "it", "nl", "zh", "ko", "hi", "ru",
   "pl", "cs", "uk", "bg", "tr", "sv", "no", "fi", "da", "el", "ro", "hr",
   "et", "th", "vi", "id", "bn", "mn", "kk", "ky", "fil",
+  "ar", "ur", "fa", "he",
 ];
 
 // Hepburn-style readings of the Japanese nav labels. These are not

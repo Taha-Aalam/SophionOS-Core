@@ -80,8 +80,8 @@ function NavLink({
           className={cn(
             "absolute rounded-full bg-primary",
             showLabel
-              ? "left-0 top-1/2 h-4 w-0.5 -translate-y-1/2"
-              : "left-1 top-1/2 h-5 w-1 -translate-y-1/2",
+              ? "start-0 top-1/2 h-4 w-0.5 -translate-y-1/2"
+              : "start-1 top-1/2 h-5 w-1 -translate-y-1/2",
           )}
         />
       ) : null}
@@ -216,7 +216,7 @@ export function Sidebar() {
         // Rail widths come from the same tokens the standard content column
         // derives its collapsed expansion from — one source of truth, so the
         // two can never drift apart (see globals.css).
-        "group/sidebar relative z-20 hidden h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 lg:flex",
+        "group/sidebar relative z-20 hidden h-full flex-col border-e border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 lg:flex",
         isDesktopSidebarOpen
           ? "w-[var(--sidebar-expanded-width)]"
           : "w-[var(--sidebar-collapsed-width)]",
@@ -306,7 +306,7 @@ export function Sidebar() {
           to the resting rail. Touch devices have no hover, so there it rests at
           reduced opacity instead of disappearing. */}
       {!isDesktopSidebarOpen ? (
-        <div className="absolute right-0 top-6 z-10 -translate-y-1/2 translate-x-1/2">
+        <div className="absolute end-0 top-6 z-10 -translate-y-1/2 translate-x-1/2 rtl:-translate-x-1/2">
           <Tooltip>
             <TooltipTrigger
               render={
@@ -320,7 +320,7 @@ export function Sidebar() {
                     "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     // Resting: invisible and nudged toward the rail. Revealed
                     // by rail hover, keyboard focus, or pointer focus.
-                    "opacity-0 -translate-x-1",
+                    "opacity-0 -translate-x-1 rtl:translate-x-1",
                     "group-hover/sidebar:translate-x-0 group-hover/sidebar:opacity-100",
                     "focus:translate-x-0 focus:opacity-100",
                     "focus-visible:translate-x-0 focus-visible:opacity-100",
@@ -418,14 +418,14 @@ export function Sidebar() {
         {!isDesktopSidebarOpen && !nativeScrollCues && navScroll.canScrollDown ? (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-10"
+            className="pointer-events-none absolute inset-inline-0 bottom-0 h-10"
             style={{ background: "linear-gradient(to top, var(--sidebar), transparent)" }}
           />
         ) : null}
         {!isDesktopSidebarOpen && !nativeScrollCues && navScroll.canScrollUp ? (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-10"
+            className="pointer-events-none absolute inset-inline-0 top-0 h-10"
             style={{ background: "linear-gradient(to bottom, var(--sidebar), transparent)" }}
           />
         ) : null}
@@ -433,18 +433,18 @@ export function Sidebar() {
           <>
             <div
               aria-hidden
-              className="sidebar-scroll-cue sidebar-scroll-cue--top pointer-events-none absolute inset-x-0 top-0 h-10"
+              className="sidebar-scroll-cue sidebar-scroll-cue--top pointer-events-none absolute inset-inline-0 top-0 h-10"
               style={{ background: "linear-gradient(to bottom, var(--sidebar), transparent)" }}
             />
             <div
               aria-hidden
-              className="sidebar-scroll-cue sidebar-scroll-cue--bottom pointer-events-none absolute inset-x-0 bottom-0 h-10"
+              className="sidebar-scroll-cue sidebar-scroll-cue--bottom pointer-events-none absolute inset-inline-0 bottom-0 h-10"
               style={{ background: "linear-gradient(to top, var(--sidebar), transparent)" }}
             />
           </>
         ) : null}
         {!isDesktopSidebarOpen && navScroll.canScrollDown ? (
-          <div className="absolute inset-x-0 bottom-1 flex justify-center">
+          <div className="absolute inset-inline-0 bottom-1 flex justify-center">
             <Tooltip>
               <TooltipTrigger
                 render={
@@ -466,7 +466,7 @@ export function Sidebar() {
           </div>
         ) : null}
         {!isDesktopSidebarOpen && !navScroll.canScrollDown && navScroll.canScrollUp ? (
-          <div className="absolute inset-x-0 top-1 flex justify-center">
+          <div className="absolute inset-inline-0 top-1 flex justify-center">
             <Tooltip>
               <TooltipTrigger
                 render={
@@ -505,7 +505,7 @@ export function Sidebar() {
               className="flex w-full items-center gap-2.5 rounded-md border border-sidebar-border bg-sidebar-accent/50 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
             >
               <Search size={14} className="shrink-0" aria-hidden="true" />
-              <span className="flex-1 text-left">{t("chrome.search")}</span>
+              <span className="flex-1 text-start">{t("chrome.search")}</span>
               <kbd
                 aria-hidden="true"
                 className="rounded border border-sidebar-border bg-sidebar px-1 py-0.5 text-[10px] leading-none text-muted-foreground"

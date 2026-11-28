@@ -13,6 +13,7 @@ import { writeFile } from "node:fs/promises";
 import { AVAILABLE_LOCALES } from "../src/lib/i18n/config";
 import type { Dictionary } from "../src/lib/i18n/dictionary";
 import en from "../src/lib/i18n/dictionary";
+import ar from "../src/lib/i18n/locales/ar";
 import bg from "../src/lib/i18n/locales/bg";
 import bn from "../src/lib/i18n/locales/bn";
 import cs from "../src/lib/i18n/locales/cs";
@@ -22,9 +23,11 @@ import el from "../src/lib/i18n/locales/el";
 import es from "../src/lib/i18n/locales/es";
 import esMX from "../src/lib/i18n/locales/es-MX";
 import et from "../src/lib/i18n/locales/et";
+import fa from "../src/lib/i18n/locales/fa";
 import fi from "../src/lib/i18n/locales/fi";
 import fil from "../src/lib/i18n/locales/fil";
 import fr from "../src/lib/i18n/locales/fr";
+import he from "../src/lib/i18n/locales/he";
 import hi from "../src/lib/i18n/locales/hi";
 import hr from "../src/lib/i18n/locales/hr";
 import id from "../src/lib/i18n/locales/id";
@@ -39,6 +42,7 @@ import no from "../src/lib/i18n/locales/no";
 import pl from "../src/lib/i18n/locales/pl";
 import pt from "../src/lib/i18n/locales/pt";
 import ro from "../src/lib/i18n/locales/ro";
+import ur from "../src/lib/i18n/locales/ur";
 import ru from "../src/lib/i18n/locales/ru";
 import sv from "../src/lib/i18n/locales/sv";
 import th from "../src/lib/i18n/locales/th";
@@ -48,8 +52,9 @@ import vi from "../src/lib/i18n/locales/vi";
 import zh from "../src/lib/i18n/locales/zh";
 
 const DICTIONARIES: Record<string, Partial<Dictionary>> = {
-  bg, bn, cs, da, de, el, es, "es-MX": esMX, et, fi, fil, fr, hi, hr, id, it,
-  ja, kk, ko, ky, mn, nl, no, pl, pt, ro, ru, sv, th, tr, uk, vi, zh,
+  ar, bg, bn, cs, da, de, el, es, "es-MX": esMX, et, fa, fi, fil, fr, he, hi,
+  hr, id, it, ja, kk, ko, ky, mn, nl, no, pl, pt, ro, ru, sv, th, tr, uk, ur,
+  vi, zh,
 };
 
 const EN_KEYS = Object.keys(en) as Array<keyof Dictionary>;

@@ -199,7 +199,7 @@ export function AiAccessCard() {
                   <div className="space-y-1">
                     <div className="font-medium text-sm">
                       {k.client_name || k.name}
-                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      <span className="ms-2 text-xs font-normal text-muted-foreground">
                         {t("goals.tabs.active")}
                       </span>
                     </div>

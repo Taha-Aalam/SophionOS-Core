@@ -145,7 +145,7 @@ function FilterValueCombobox({
                     {isMulti ? <Checkbox checked /> : null}
                     {opt.icon}
                     <span className="whitespace-nowrap">{opt.label}</span>
-                    {!isMulti ? <Check className="ml-auto size-3.5 opacity-100" /> : null}
+                    {!isMulti ? <Check className="ms-auto size-3.5 opacity-100" /> : null}
                   </CommandItem>
                 ))}
               </CommandGroup>
@@ -371,7 +371,7 @@ export function LinearFilters({
               key={filter.id}
               className="flex items-center gap-px text-xs"
             >
-              <div className="flex shrink-0 items-center gap-1.5 rounded-l bg-muted px-1.5 py-1">
+              <div className="flex shrink-0 items-center gap-1.5 rounded-s bg-muted px-1.5 py-1">
                 {config.icon}
                 <span>{config.label}</span>
               </div>
@@ -406,7 +406,7 @@ export function LinearFilters({
                 variant="ghost"
                 size="icon"
                 onClick={() => removeFilter(filter.id)}
-                className="h-6 w-6 shrink-0 rounded-l-none rounded-r-sm bg-muted text-muted-foreground transition hover:bg-muted/50 hover:text-primary"
+                className="h-6 w-6 shrink-0 rounded-s-none rounded-e-sm bg-muted text-muted-foreground transition hover:bg-muted/50 hover:text-primary"
               >
                 <X className="size-3" />
               </Button>
